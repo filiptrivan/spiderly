@@ -18,7 +18,6 @@ using Microsoft.Extensions.Options;
 using Spider.Shared.Exceptions;
 using Spider.Shared.Resources;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Data.SqlClient;
 using System.Threading.RateLimiting;
 using Serilog;
 using Serilog.Events;
@@ -334,7 +333,6 @@ namespace Spider.Shared.Extensions
         }
 
         #endregion
-
 
     }
 }

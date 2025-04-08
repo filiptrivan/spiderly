@@ -23,11 +23,44 @@ namespace Spider.Shared.Helpers
 {
     public static class Helper
     {
-        public static void WriteToTheFile(string data, string path)
+        public static void WriteToFile(string data, string path)
         {
-            StreamWriter sw = new StreamWriter(path);
-            sw.WriteLine(data);
-            sw.Close();
+            if (data != null)
+            {
+                StreamWriter sw = new StreamWriter(path, false);
+                sw.WriteLine(data);
+                sw.Close();
+            }
+        }
+
+        public static string MakeFolder(string path, string name)
+        {
+            if (!Directory.Exists(path))
+                throw new DirectoryNotFoundException($"Directory not found: {path}");
+
+            string newFolderPath = Path.Combine(path, name);
+
+            FolderOverrideCheck(newFolderPath);
+
+            Directory.CreateDirectory(newFolderPath);
+
+            return newFolderPath;
+        }
+
+        public static void FolderOverrideCheck(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                throw new Exception($"Direktorijum na putanji {path} već postoji.");
+            }
+        }
+
+        public static void FileOverrideCheck(string path)
+        {
+            if (File.Exists(path))
+            {
+                throw new Exception($"Datoteka na putanji {path} već postoji.");
+            }
         }
 
         public static bool AreDatesEqualToSeconds(DateTime? date1, DateTime? date2)

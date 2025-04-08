@@ -3,19 +3,9 @@ using Spider.Shared.BaseEntities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spider.Shared.Interfaces;
 using System.Reflection;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
-using Spider.Shared.Helpers;
-using Spider.Shared.Enums;
 using Spider.Security.Interfaces;
 using Spider.Security.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Spider.Shared.Attributes;
-using System.Diagnostics.CodeAnalysis;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Spider.Shared.Attributes.EF;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using Spider.Shared.Extensions;
 
 namespace Spider.Infrastructure
 {

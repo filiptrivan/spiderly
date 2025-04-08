@@ -3,15 +3,22 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+	<NoWarn>NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Entities\**" />
+    <EmbeddedResource Remove="Entities\**" />
+    <None Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Emailing\Templates\" />
-    <Folder Include="Entities\" />
     <Folder Include="Excel\ExcelTemplates\" />
   </ItemGroup>
 
   <ItemGroup>
+	<PackageReference Include="CaseConverter" Version="2.0.1" />
 	<PackageReference Include="Serilog" Version="4.2.0" />
 	<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
 	<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
