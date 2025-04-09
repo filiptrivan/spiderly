@@ -68,10 +68,9 @@ namespace {{basePartOfNamespace}}.Services
 
         public AuthorizationBusinessServiceGenerated(
             IApplicationDbContext context, 
-            AuthenticationService authenticationService, 
-            BlobContainerClient blobContainerClient
+            AuthenticationService authenticationService
         )
-            : base(context, authenticationService, blobContainerClient)
+            : base(context, authenticationService)
         {
             _context = context;
             _authenticationService = authenticationService;

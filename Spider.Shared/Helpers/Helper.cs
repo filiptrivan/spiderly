@@ -18,6 +18,8 @@ using Serilog;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
+using Spider.Shared.Exceptions;
+using System.ComponentModel;
 
 namespace Spider.Shared.Helpers
 {
@@ -105,6 +107,32 @@ namespace Spider.Shared.Helpers
         public static bool AreIdsDifferent<ID>(List<ID> ids1, List<ID> ids2) where ID : struct
         {
             return ids1.Except(ids2).Any() || ids2.Except(ids1).Any();
+        }
+
+        public static ID GetObjectIdFromFileName<ID>(string fileName) where ID : struct
+        {
+            List<string> parts = fileName.Split('-').ToList();
+
+            if (parts.Count < 2)
+                throw new HackerException($"Invalid file name format ({fileName}).");
+
+            string idPart = parts[0];
+
+            // Try to convert the string part to the specified struct type
+            if (TypeDescriptor.GetConverter(typeof(ID)).IsValid(idPart))
+                return (ID)TypeDescriptor.GetConverter(typeof(ID)).ConvertFromString(idPart);
+
+            throw new InvalidCastException($"Cannot convert '{idPart}' to {typeof(ID)}.");
+        }
+
+        public static string GetFileExtensionFromFileName(string fileName)
+        {
+            List<string> parts = fileName.Split('.').ToList();
+
+            if (parts.Count < 2) // FT: It could be only 2, it's not the same validation as spliting with '-'
+                throw new HackerException($"Invalid file name format ({fileName}).");
+
+            return parts.Last(); // FT: The file could be .abc.png
         }
 
         #region Emailing

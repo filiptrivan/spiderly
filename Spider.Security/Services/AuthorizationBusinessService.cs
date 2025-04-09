@@ -12,14 +12,12 @@ namespace Spider.Security.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
-        private readonly BlobContainerClient _blobContainerClient;
 
-        public AuthorizationBusinessService(IApplicationDbContext context, AuthenticationService authenticationService, BlobContainerClient blobContainerClient)
-            : base(context, authenticationService, blobContainerClient)
+        public AuthorizationBusinessService(IApplicationDbContext context, AuthenticationService authenticationService)
+            : base(context, authenticationService)
         {
             _context = context;
             _authenticationService = authenticationService;
-            _blobContainerClient = blobContainerClient;
         }
 
         

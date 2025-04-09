@@ -14,14 +14,12 @@ namespace Spider.Security.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
-        private readonly BlobContainerClient _blobContainerClient;
 
-        public AuthorizationService(IApplicationDbContext context, AuthenticationService authenticationService, BlobContainerClient blobContainerClient)
-            : base(context, blobContainerClient)
+        public AuthorizationService(IApplicationDbContext context, AuthenticationService authenticationService)
+            : base(context)
         {
             _context = context;
             _authenticationService = authenticationService;
-            _blobContainerClient = blobContainerClient;
         }
 
         public async Task AuthorizeAndThrowAsync<TUser>(TUser user, string permissionCode) where TUser : class, IUser, new()

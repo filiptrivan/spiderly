@@ -8,15 +8,14 @@ using System.Linq.Dynamic.Core;
 using Google.Apis.Auth;
 using Spider.Security.Interfaces;
 using Spider.Shared.Extensions;
-using Spider.Security.ValidationRules;
 using FluentValidation;
 using Spider.Shared.Emailing;
 using Spider.Security.Enums;
 using Spider.Security.Entities;
 using Spider.Shared.DTO;
-using Azure.Storage.Blobs;
 using Microsoft.IdentityModel.Tokens;
 using Spider.Shared.Resources;
+using Spider.Security.ValidationRules;
 
 namespace Spider.Security.Services
 {
@@ -27,7 +26,6 @@ namespace Spider.Security.Services
         private readonly AuthenticationService _authenticationService;
         private readonly AuthorizationBusinessService<TUser> _authorizationService;
         private readonly EmailingService _emailingService;
-        private readonly BlobContainerClient _blobContainerClient;
 
         public SecurityBusinessService(
             IApplicationDbContext context, 
@@ -36,16 +34,15 @@ namespace Spider.Security.Services
             AuthenticationService authenticationService, 
             AuthorizationBusinessService<TUser> authorizationService,
             ExcelService excelService, 
-            BlobContainerClient blobContainerClient
+            IFileManager fileManager
         )
-            : base(context, excelService, authorizationService, blobContainerClient)
+            : base(context, excelService, authorizationService, fileManager)
         {
             _context = context;
             _jwtAuthManagerService = jwtAuthManagerService;
             _emailingService = emailingService;
             _authenticationService = authenticationService;
             _authorizationService = authorizationService;
-            _blobContainerClient = blobContainerClient;
         }
 
         #region Authentication
@@ -135,8 +132,7 @@ namespace Spider.Security.Services
         {
             RegistrationVerificationResultDTO registrationResultDTO = new RegistrationVerificationResultDTO();
 
-            RegistrationDTOValidationRules validationRules = new RegistrationDTOValidationRules();
-            validationRules.ValidateAndThrow(registrationDTO);
+            new RegistrationDTOValidationRules().ValidateAndThrow(registrationDTO);
 
             await _context.WithTransactionAsync(async () =>
             {
@@ -167,8 +163,7 @@ namespace Spider.Security.Services
 
         public async Task<AuthResultDTO> Register(VerificationTokenRequestDTO verificationRequestDTO)
         {
-            VerificationTokenRequestDTOValidationRules validationRules = new VerificationTokenRequestDTOValidationRules();
-            validationRules.ValidateAndThrow(verificationRequestDTO);
+            new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
             RegistrationVerificationTokenDTO registrationVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetRegistrationVerificationTokenDTO(
                 verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email); // FT: Can not be null, if its null it already has thrown

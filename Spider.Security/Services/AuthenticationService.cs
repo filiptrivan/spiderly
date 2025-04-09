@@ -1,21 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Spider.Security.Entities;
 using Spider.Security.Interfaces;
 using Spider.Shared.Interfaces;
 using Spider.Shared.Services;
 using Spider.Shared.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using Azure.Storage.Blobs;
 using Spider.Shared.Helpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace Spider.Security.Services
 {
@@ -26,10 +15,9 @@ namespace Spider.Security.Services
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor, 
-            IApplicationDbContext context, 
-            BlobContainerClient blobContainerClient
+            IApplicationDbContext context
         )
-            : base(context, blobContainerClient)
+            : base(context)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;

@@ -3317,6 +3317,17 @@ namespace {{appName}}.Business
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
 	</ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Include="Terms.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Terms.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Include="TermsGenerated.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>TermsGenerated.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+    </ItemGroup>
+
 </Project>
 """;
         }

@@ -67,20 +67,20 @@ namespace {{basePartOfNamespace}}.Services
         private readonly IApplicationDbContext _context;
         private readonly ExcelService _excelService;
         {{(isSecurityProject ? "private readonly AuthorizationBusinessService<TUser> _authorizationService;" : "private readonly AuthorizationBusinessService _authorizationService;")}}
-        private readonly BlobContainerClient _blobContainerClient;
+        private readonly IFileManager _fileManager;
 
         public BusinessServiceGenerated(
             IApplicationDbContext context, 
             ExcelService excelService, 
             {{(isSecurityProject ? "AuthorizationBusinessService<TUser> authorizationService" : "AuthorizationBusinessService authorizationService")}}, 
-            BlobContainerClient blobContainerClient
+            IFileManager fileManager
         )
-            : base(context, blobContainerClient)
+            : base(context)
         {
             _context = context;
             _excelService = excelService;
             _authorizationService = authorizationService;
-            _blobContainerClient = blobContainerClient;
+            _fileManager = fileManager;
         }
 
 {{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities, projectName))}}
@@ -361,7 +361,7 @@ namespace {{basePartOfNamespace}}.Services
                 blobParts.Add($$"""
                     if (!string.IsNullOrEmpty(dto.{{property.Name}}))
                     {
-                        dto.{{property.Name}}Data = await GetFileDataAsync(dto.{{property.Name}});
+                        dto.{{property.Name}}Data = await _fileManager.GetFileDataAsync(dto.{{property.Name}});
                     }
 """);
             }
@@ -1065,7 +1065,7 @@ namespace {{basePartOfNamespace}}.Services
             foreach (SpiderProperty property in blobProperies)
             {
                 result.Add($$"""
-                await DeleteNonActiveBlobs(dto.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
+                await _fileManager.DeleteNonActiveBlobs(dto.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
 """);
             }
 
@@ -1085,7 +1085,7 @@ namespace {{basePartOfNamespace}}.Services
                 result.Add($$"""
         public async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert) // FT: It doesn't work without interface
         {
-            {{entityIdType}} {{entity.Name.FirstCharToLower()}}Id = GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
+            {{entityIdType}} {{entity.Name.FirstCharToLower()}}Id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
             OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(file, {{entity.Name.FirstCharToLower()}}Id); // FT: Validate
 
@@ -1100,7 +1100,7 @@ namespace {{basePartOfNamespace}}.Services
 
             using Stream stream = file.OpenReadStream();
 
-            string fileName = await UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), {{entity.Name.FirstCharToLower()}}Id.ToString(), stream);
+            string fileName = await _fileManager.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), {{entity.Name.FirstCharToLower()}}Id.ToString(), stream);
 
             return fileName;
         }
@@ -1347,6 +1347,7 @@ using Spider.Shared.DTO;
 using Spider.Shared.Extensions;
 using Spider.Shared.Exceptions;
 using Spider.Shared.Resources;
+using Spider.Shared.Helpers;
 using Mapster;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;

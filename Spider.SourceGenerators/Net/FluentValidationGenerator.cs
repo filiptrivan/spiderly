@@ -7,9 +7,6 @@ using Spider.SourceGenerators.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System;
-using System.Data;
 using System.Diagnostics;
 
 namespace Spider.SourceGenerators.Net
@@ -82,8 +79,8 @@ namespace {{basePartOfNamespace}}.ValidationRules
 
                 foreach (SpiderClass DTOClass in DTOClassGroup)
                 {
-                    DTOAttributes.AddRange(DTOClass.Attributes);
                     DTOProperties.AddRange(DTOClass.Properties);
+                    DTOAttributes.AddRange(DTOClass.Attributes);
                 }
 
                 SpiderClass entity = currentProjectEntities.Where(x => DTOClassGroup.Key.Replace("DTO", "") == x.Name).SingleOrDefault(); // If it is null then we only made DTO, without entity class

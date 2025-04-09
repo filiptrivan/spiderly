@@ -75,26 +75,10 @@ namespace Spider.ProjectInitializer
                 return;
             }
 
-            Console.WriteLine("Primary color (eg. #000000): ");
-            string primaryColor = Console.ReadLine();
-            if (string.IsNullOrEmpty(primaryColor) == false)
-            {
-                if (primaryColor.Count() != 7)
-                {
-                    Console.WriteLine("You need to pass 7 character primary color code.");
-                    return;
-                }
-                if (primaryColor.First() != '#')
-                {
-                    Console.WriteLine("You need '#' as the first character of the primary color code.");
-                    return;
-                }
-            }
-
             string currentPath = Environment.CurrentDirectory;
 
             if (templateType == "default")
-                NetAndAngularStructureGenerator.Generate(currentPath, appName, primaryColor);
+                NetAndAngularStructureGenerator.Generate(currentPath, appName, null);
         }
 
         private static bool HasArg(this string[] args, string arg)

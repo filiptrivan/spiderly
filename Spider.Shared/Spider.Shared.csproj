@@ -43,14 +43,6 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources\SharedTerms.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>SharedTerms.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Update="Resources\SharedTerms.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>SharedTerms.Designer.cs</LastGenOutput>
@@ -75,6 +67,14 @@
 		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Resources\SharedTerms.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>SharedTerms.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 </Project>
