@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Version>1.0.7</Version>
     <OutputType>Exe</OutputType>
@@ -15,8 +15,5 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Spider.Shared\Spider.Shared.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="nupkg\" />
   </ItemGroup>
 </Project>

@@ -121,17 +121,14 @@ namespace {{basePartOfNamespace}}.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} _businessService;
-        private readonly BlobContainerClient _blobContainerClient;
 
         public {{referencedProjectEntityGroupedClasses.Key}}BaseController(
             IApplicationDbContext context, 
-            {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} businessService, 
-            BlobContainerClient blobContainerClient
+            {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} businessService
         )
         {
             _context = context;
             _businessService = businessService;
-            _blobContainerClient = blobContainerClient;
         }
 
 {{string.Join("\n\n", GetControllerMethods(referencedProjectEntityGroupedClasses.ToList(), referencedProjectEntities))}}

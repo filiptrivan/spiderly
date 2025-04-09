@@ -3454,7 +3454,6 @@ namespace {{appName}}.Business.Services
         private readonly AuthenticationService _authenticationService;
         private readonly SecurityBusinessService<UserExtended> _securityBusinessService;
         private readonly EmailingService _emailingService;
-        private readonly BlobContainerClient _blobContainerClient;
 
         public {{appName}}BusinessService(
             IApplicationDbContext context, 
@@ -3462,17 +3461,16 @@ namespace {{appName}}.Business.Services
             {{appName}}.Business.Services.AuthorizationBusinessService authorizationService, 
             SecurityBusinessService<UserExtended> securityBusinessService, 
             AuthenticationService authenticationService, 
-            EmailingService emailingService, 
-            BlobContainerClient blobContainerClient
+            EmailingService emailingService,
+            IFileManager fileManager
         )
-            : base(context, excelService, authorizationService, blobContainerClient)
+            : base(context, excelService, authorizationService, fileManager)
         {
             _context = context;
             _authorizationService = authorizationService;
             _securityBusinessService = securityBusinessService;
             _authenticationService = authenticationService;
             _emailingService = emailingService;
-            _blobContainerClient = blobContainerClient;
         }
 
         #region User
