@@ -1,28 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<Version>1.0.1</Version>
+    <Version>1.0.7</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-	<NoWarn>NU1701</NoWarn>
-
-	<PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<PackAsTool>true</PackAsTool>
-	<ToolCommandName>spider</ToolCommandName>
-	<PackageOutputPath>./nupkg</PackageOutputPath>
+    <NoWarn>NU1701</NoWarn>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>spider</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.3" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Spider.Shared\Spider.Shared.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Folder Include="nupkg\" />
   </ItemGroup>
-
 </Project>

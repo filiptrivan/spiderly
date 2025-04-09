@@ -4,7 +4,6 @@ using System.Security.Claims;
 using Spider.Shared.Excel;
 using Spider.Shared.Interfaces;
 using Spider.Shared.Exceptions;
-using System.Linq.Dynamic.Core;
 using Google.Apis.Auth;
 using Spider.Security.Interfaces;
 using Spider.Shared.Extensions;

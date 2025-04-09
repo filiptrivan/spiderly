@@ -8,6 +8,7 @@
 **/*.user
 **/*.suo
 **/*.pdb
+**/appsettings*.json
 
 # Angular
 **/dist/
