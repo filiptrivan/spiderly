@@ -556,7 +556,8 @@ namespace Spider.Shared.Helpers
             };
 
             GenerateProjectStructure(appStructure, outputPath);
-            CreateSqlServerDatabase(appName, SettingsProvider.Current.ConnectionString);
+            Console.WriteLine("App structure created.");
+            CreateSqlServerDatabase(appName);
         }
 
         private static void GenerateProjectStructure(SpiderFolder appStructure, string path)
@@ -586,27 +587,25 @@ namespace Spider.Shared.Helpers
             Helper.WriteToFile(file.Data, filePath);
         }
 
-        private static void CreateSqlServerDatabase(string appName, string connectionString)
+        private static void CreateSqlServerDatabase(string appName)
         {
-            string createDatabaseQuery = $"CREATE DATABASE {appName}";
+            string connectionString = $"Data source=localhost\\SQLEXPRESS;Initial Catalog=master;Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;";
 
-            try
+            string createDatabaseQuery = $$"""
+IF DB_ID(N'{{appName}}') IS NULL
+    CREATE DATABASE [{{appName}}];
+""";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(createDatabaseQuery, connection))
                 {
-                    connection.Open();
-
-                    using (SqlCommand command = new SqlCommand(createDatabaseQuery, connection))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-
-                    Console.WriteLine("Database created successfully.");
+                    command.ExecuteNonQuery();
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("An error occurred: " + ex.Message);
+
+                Console.WriteLine("Database created.");
             }
         }
 

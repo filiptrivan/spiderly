@@ -58,6 +58,16 @@ namespace Spider.Shared.Extensions
             return new List<T> { structValue };
         }
 
+        public static bool HasSpaces(this string input)
+        {
+            if (input.Any(x => x == ' '))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         #region ResourceManager
 
         public static string GetExcelTranslation(this ResourceManager manager, string excelKey, string pluralKey)
