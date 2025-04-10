@@ -168,7 +168,11 @@ namespace {{basePartOfNamespace}}.Controllers
         public virtual async Task<IActionResult> Export{{referencedProjectEntity.Name}}TableDataToExcel(TableFilterDTO tableFilterDTO)
         {
             byte[] fileContent = await _businessService.Export{{referencedProjectEntity.Name}}TableDataToExcel(tableFilterDTO, _context.DbSet<{{referencedProjectEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(referencedProjectEntity)}});
-            return File(fileContent, SettingsProvider.Current.ExcelContentType, Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{referencedProjectEntity.Name}}ExcelExportName", "{{referencedProjectEntity.Name}}List")}.xlsx"));
+            return File(
+                fileContent, 
+                SettingsProvider.Current.ExcelContentType, 
+                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{referencedProjectEntity.Name}}ExcelExportName", "{{referencedProjectEntity.Name}}List")}.xlsx")
+            );
         }
 
         [HttpGet]
@@ -333,7 +337,11 @@ namespace {{basePartOfNamespace}}.Controllers
         public virtual async Task<IActionResult> Export{{property.Name}}TableDataToExcelFor{{entity.Name}}(TableFilterDTO tableFilterDTO)
         {
             byte[] fileContent = await _businessService.Export{{extractedEntity.Name}}TableDataToExcel(tableFilterDTO, _context.DbSet<{{extractedEntity.Name}}>(), false);
-            return File(fileContent, SettingsProvider.Current.ExcelContentType, Uri.EscapeDataString($"{TermsGenerated.{{extractedEntity.Name}}ExcelExportName}.xlsx"));
+            return File(
+                fileContent, 
+                SettingsProvider.Current.ExcelContentType, 
+                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+            );
         }
 
         [HttpPost]

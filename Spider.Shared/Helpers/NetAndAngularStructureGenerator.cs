@@ -12,7 +12,7 @@ namespace Spider.Shared.Helpers
 {
     public static class NetAndAngularStructureGenerator
     {
-        public static void Generate(string outputPath, string appName, string primaryColor)
+        public static void Generate(string outputPath, string appName, string version, string primaryColor)
         {
             SpiderFolder appStructure = new SpiderFolder
             {
@@ -425,7 +425,7 @@ namespace Spider.Shared.Helpers
                                         Files =
                                         {
                                             new SpiderFile { Name = "GeneratorSettings.cs", Data = GetBusinessGeneratorSettingsData(appName) },
-                                            new SpiderFile { Name = $"{appName}.Business.csproj", Data = GetBusinessCsProjData(appName) },
+                                            new SpiderFile { Name = $"{appName}.Business.csproj", Data = GetBusinessCsProjData(appName, version) },
                                             new SpiderFile { Name = $"Settings.cs", Data = GetBusinessSettingsCsData(appName) },
                                         }
                                     },
@@ -435,7 +435,7 @@ namespace Spider.Shared.Helpers
                                         Files =
                                         {
                                             new SpiderFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
-                                            new SpiderFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName) },
+                                            new SpiderFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, version) },
                                         }
                                     },
                                     new SpiderFolder
@@ -466,7 +466,7 @@ namespace Spider.Shared.Helpers
                                         },
                                         Files =
                                         {
-                                            new SpiderFile { Name = $"{appName}.Shared.csproj", Data = GetSharedCsProjData() },
+                                            new SpiderFile { Name = $"{appName}.Shared.csproj", Data = GetSharedCsProjData(version) },
                                         }
                                     },
                                     new SpiderFolder
@@ -509,7 +509,8 @@ namespace Spider.Shared.Helpers
                                         {
                                             new SpiderFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName, null, null, null, null, null, null) }, // TODO FT: Add this to the app
                                             new SpiderFile { Name = "GeneratorSettings.cs", Data = GetWebAPIGeneratorSettingsData(appName) },
-                                            new SpiderFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName) },
+                                            new SpiderFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, version) },
+                                            new SpiderFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                                             new SpiderFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
                                             new SpiderFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
                                             new SpiderFile { Name = "Startup.cs", Data = GetStartupCsData(appName) },
@@ -2415,10 +2416,9 @@ namespace {{appName}}.WebAPI.Controllers
 
         public NotificationController(
             IApplicationDbContext context, 
-            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService, 
-            BlobContainerClient blobContainerClient
+            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService
         )
-            : base(context, {{appName.FirstCharToLower()}}BusinessService, blobContainerClient)
+            : base(context, {{appName.FirstCharToLower()}}BusinessService)
         {
             _context = context;
             _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
@@ -2556,10 +2556,9 @@ namespace {{appName}}.WebAPI.Controllers
         public UserExtendedController(
             IApplicationDbContext context, 
             {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService, 
-            BlobContainerClient blobContainerClient, 
             AuthenticationService authenticationService
         )
-            : base(context, {{appName.FirstCharToLower()}}BusinessService, blobContainerClient)
+            : base(context, {{appName.FirstCharToLower()}}BusinessService)
         {
             _context = context;
             _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
@@ -2927,7 +2926,7 @@ namespace {{appName}}.WebAPI
 """;
         }
 
-        private static string GetWebAPICsProjData(string appName)
+        private static string GetWebAPICsProjData(string appName, string version)
         {
             return $$"""
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -2961,10 +2960,10 @@ namespace {{appName}}.WebAPI
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Infrastructure\Spider.Infrastructure.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Security\Spider.Security.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Shared\Spider.Shared.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.SourceGenerators\Spider.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Infrastructure\Spider.Infrastructure.csproj" /> -->
+        <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Security\Spider.Security.csproj" /> -->
+        <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Shared\Spider.Shared.csproj" /> -->
+        <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.SourceGenerators\Spider.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" /> -->
 		<ProjectReference Include="..\{{appName}}.Business\{{appName}}.Business.csproj" />
 		<ProjectReference Include="..\{{appName}}.Infrastructure\{{appName}}.Infrastructure.csproj" />
 		<ProjectReference Include="..\{{appName}}.Shared\{{appName}}.Shared.csproj" />
@@ -2979,12 +2978,31 @@ namespace {{appName}}.WebAPI
 		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
+        <PackageReference Include="Spider.Infrastructure" Version="{{version}}" />
+        <PackageReference Include="Spider.Security" Version="{{version}}" />
+        <PackageReference Include="Spider.Shared" Version="{{version}}" />
+        <PackageReference Include="Spider.SourceGenerators" Version="{{version}}" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="Helpers\" />
 	</ItemGroup>
 
+</Project>
+""";
+        }
+
+        private static string GetWebAPICsProjUserData()
+        {
+            return $$"""
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ActiveDebugProfile>IIS Express</ActiveDebugProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>
 """;
         }
@@ -3150,6 +3168,8 @@ using Spider.Shared.Emailing;
 using {{appName}}.Business.Services;
 using {{appName}}.Business.Entities;
 using {{appName}}.Shared.FluentValidation;
+using Spider.Shared.Interfaces;
+using Spider.Shared.Services;
 
 namespace {{appName}}.WebAPI.DI
 {
@@ -3166,6 +3186,7 @@ namespace {{appName}}.WebAPI.DI
             registry.Register<Spider.Security.Services.AuthorizationBusinessServiceGenerated<UserExtended>>();
             registry.Register<ExcelService>();
             registry.Register<EmailingService>();
+            registry.Register<IFileManager, DiskStorageService>();
             registry.RegisterSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             registry.RegisterSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
@@ -3180,7 +3201,7 @@ namespace {{appName}}.WebAPI.DI
 """;
         }
 
-        private static string GetSharedCsProjData()
+        private static string GetSharedCsProjData(string version)
         {
             return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
@@ -3188,11 +3209,10 @@ namespace {{appName}}.WebAPI.DI
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Shared\Spider.Shared.csproj" />
+    <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Shared\Spider.Shared.csproj" /> -->
   </ItemGroup>
 
   <ItemGroup>
@@ -3207,14 +3227,41 @@ namespace {{appName}}.WebAPI.DI
 		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
+        <PackageReference Include="Spider.Shared" Version="{{version}}" />
 	</ItemGroup>
+
+    <ItemGroup>
+	    <EmbeddedResource Update="Resources\Terms.resx">
+		    <Generator>PublicResXFileCodeGenerator</Generator>
+		    <LastGenOutput>Terms.Designer.cs</LastGenOutput>
+	    </EmbeddedResource>
+	    <EmbeddedResource Update="Resources\TermsGenerated.resx">
+		    <Generator>PublicResXFileCodeGenerator</Generator>
+		    <LastGenOutput>TermsGenerated.Designer.cs</LastGenOutput>
+	    </EmbeddedResource>
+	    <EmbeddedResource Update="Resources\TermsGenerated.sr-Latn-RS.resx">
+		    <Generator>PublicResXFileCodeGenerator</Generator>
+	    </EmbeddedResource>
+    </ItemGroup>
+    <ItemGroup>
+	    <Compile Update="Resources\Terms.Designer.cs">
+		    <DesignTime>True</DesignTime>
+		    <AutoGen>True</AutoGen>
+		    <DependentUpon>Terms.resx</DependentUpon>
+	    </Compile>
+	    <Compile Update="Resources\TermsGenerated.Designer.cs">
+		    <DesignTime>True</DesignTime>
+		    <AutoGen>True</AutoGen>
+		    <DependentUpon>TermsGenerated.resx</DependentUpon>
+	    </Compile>
+    </ItemGroup>
 
 </Project>
 
 """;
         }
 
-        private static string GetInfrastructureCsProjData(string appName)
+        private static string GetInfrastructureCsProjData(string appName, string version)
         {
             return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
@@ -3228,10 +3275,7 @@ namespace {{appName}}.WebAPI.DI
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Infrastructure\Spider.Infrastructure.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Security\Spider.Security.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Shared\Spider.Shared.csproj" />
-		<ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.SourceGenerators\Spider.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Infrastructure\Spider.Infrastructure.csproj" /> -->
 		<ProjectReference Include="..\{{appName}}.Business\{{appName}}.Business.csproj" />
 		<ProjectReference Include="..\{{appName}}.Shared\{{appName}}.Shared.csproj" />
 	</ItemGroup>
@@ -3245,6 +3289,7 @@ namespace {{appName}}.WebAPI.DI
 		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
+        <PackageReference Include="Spider.Infrastructure" Version="{{version}}" />
 	</ItemGroup>
 
 </Project>
@@ -3275,7 +3320,7 @@ namespace {{appName}}.Business
 """;
         }
 
-        private static string GetBusinessCsProjData(string appName)
+        private static string GetBusinessCsProjData(string appName, string version)
         {
             return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
@@ -3286,8 +3331,8 @@ namespace {{appName}}.Business
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Security\Spider.Security.csproj" />
-    <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.SourceGenerators\Spider.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.Security\Spider.Security.csproj" /> -->
+    <!-- <ProjectReference Include="..\..\..\..\SpiderFramework\spider-framework\Spider.SourceGenerators\Spider.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" /> -->
     <ProjectReference Include="..\{{appName}}.Shared\{{appName}}.Shared.csproj" />
   </ItemGroup>
 
@@ -3315,18 +3360,9 @@ namespace {{appName}}.Business
 		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
 		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
+        <PackageReference Include="Spider.Security" Version="{{version}}" />
+        <PackageReference Include="Spider.SourceGenerators" Version="{{version}}" />
 	</ItemGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Include="Terms.resx">
-        <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>Terms.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-      <EmbeddedResource Include="TermsGenerated.resx">
-        <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>TermsGenerated.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-    </ItemGroup>
 
 </Project>
 """;
@@ -3368,10 +3404,9 @@ namespace {{appName}}.Business.Services
 
         public AuthorizationBusinessService(
             IApplicationDbContext context, 
-            AuthenticationService authenticationService, 
-            BlobContainerClient blobContainerClient
+            AuthenticationService authenticationService
         )
-            : base(context, authenticationService, blobContainerClient)
+            : base(context, authenticationService)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -3697,7 +3732,7 @@ namespace {{appName}}.Business.DataMappers
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "@playerty/spider": ["../../../SpiderFramework/spider-framework/Angular/projects/spider/src/public-api"]
+      // "@playerty/spider": ["../../../SpiderFramework/spider-framework/Angular/projects/spider/src/public-api"]
     },
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
@@ -4104,8 +4139,8 @@ $gutter: 1rem; // FT: For primeflex grid system, it needs to be rigth above prim
 
 //#region Spider
 
-@import "../../../../../SpiderFramework/spider-framework/Angular/projects/spider/src/lib/styles/styles.scss";
-// @import "../../node_modules/@playerty/spider/styles/styles/styles.scss";
+// @import "../../../../../SpiderFramework/spider-framework/Angular/projects/spider/src/lib/styles/styles.scss";
+@import "../../node_modules/@playerty/spider/styles/styles/styles.scss";
 
 //#endregion
 
@@ -4631,10 +4666,9 @@ namespace {{{appName}}}.WebAPI.Controllers
         public {{filename}}Controller(
             IApplicationDbContext context, 
             {{{appName}}}BusinessService {{{appName.FirstCharToLower()}}}BusinessService, 
-            BlobContainerClient blobContainerClient, 
             AuthenticationService authenticationService
         )
-            : base(context, {{{appName.FirstCharToLower()}}}BusinessService, blobContainerClient)
+            : base(context, {{{appName.FirstCharToLower()}}}BusinessService)
         {
             _context = context;
             _{{{appName.FirstCharToLower()}}}BusinessService = {{{appName.FirstCharToLower()}}}BusinessService;

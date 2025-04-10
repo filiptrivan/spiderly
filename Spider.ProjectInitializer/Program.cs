@@ -1,16 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc.ViewFeatures;
+﻿using CaseConverter;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Configuration;
 using Spider.Shared;
 using Spider.Shared.Extensions;
 using Spider.Shared.Helpers;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Spider.ProjectInitializer
 {
     internal static class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.HasArg("--help"))
             {
@@ -20,7 +22,7 @@ namespace Spider.ProjectInitializer
 
             if (args.HasArg("init"))
             {
-                HandleProjectInit();
+                await HandleProjectInit();
             }
 
             IConfiguration config = new ConfigurationBuilder()
@@ -52,8 +54,10 @@ namespace Spider.ProjectInitializer
             Console.WriteLine("  spider init");
         }
 
-        private static void HandleProjectInit()
+        private static async Task HandleProjectInit()
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+
             Console.WriteLine("App name without spaces: ");
             string appName = Console.ReadLine();
             if (string.IsNullOrEmpty(appName))
@@ -77,8 +81,61 @@ namespace Spider.ProjectInitializer
 
             string currentPath = Environment.CurrentDirectory;
 
+            string version = assembly.GetName().Version.ToString();
+
             if (templateType == "default")
-                NetAndAngularStructureGenerator.Generate(currentPath, appName, null);
+                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, null);
+
+            string infrastructurePath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\API\{appName}.Infrastructure");
+            string backendPath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\API\{appName}.WebAPI");
+            string frontendPath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\Angular");
+            Console.WriteLine("\nAdding EF migration...");
+            if (!await RunCommand("dotnet", "ef migrations add InitialCreate", backendPath)) 
+                return;
+
+            Console.WriteLine("\nUpdating database...");
+            if (!await RunCommand("dotnet", "ef database update", backendPath)) 
+                return;
+
+            Console.WriteLine("\nStarting backend...");
+            if (!await RunCommand("dotnet", "run", backendPath)) 
+                return;
+
+            Console.WriteLine("\nNpm install...");
+            if (!await RunCommand("npm", "install", frontendPath)) 
+                return;
+
+            Console.WriteLine("\nStarting frontend...");
+            if (!await RunCommand("npx", "ng serve", frontendPath)) 
+                return;
+        }
+
+        private static async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory)
+        {
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = false
+                },
+                EnableRaisingEvents = true
+            };
+
+            process.OutputDataReceived += (sender, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
+            process.ErrorDataReceived += (sender, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
+
+            bool started = process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
+
+            return process.ExitCode == 0;
         }
 
         private static bool HasArg(this string[] args, string arg)
