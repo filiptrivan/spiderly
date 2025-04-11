@@ -1,6 +1,7 @@
 ﻿using CaseConverter;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Configuration;
+using OfficeOpenXml.Utils;
 using Spider.Shared;
 using Spider.Shared.Extensions;
 using Spider.Shared.Helpers;
@@ -12,6 +13,8 @@ namespace Spider.ProjectInitializer
 {
     internal static class Program
     {
+        private static readonly char _s_ = Path.DirectorySeparatorChar;
+
         static async Task Main(string[] args)
         {
             if (args.HasArg("--help"))
@@ -84,30 +87,31 @@ namespace Spider.ProjectInitializer
             string version = assembly.GetName().Version.ToString();
 
             if (templateType == "default")
-                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, null);
+                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, IsFromNuGet(assembly), null);
 
-            string infrastructurePath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\API\{appName}.Infrastructure");
-            string backendPath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\API\{appName}.WebAPI");
-            string frontendPath = Path.Combine(currentPath, @$"{appName}\{appName.ToKebabCase()}\Angular");
+            string infrastructurePath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
+            string backendPath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API");
+            string frontendPath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}Angular");
+
             Console.WriteLine("\nAdding EF migration...");
-            if (!await RunCommand("dotnet", "ef migrations add InitialCreate", backendPath)) 
+            if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
+            {
                 return;
+            }
 
             Console.WriteLine("\nUpdating database...");
-            if (!await RunCommand("dotnet", "ef database update", backendPath)) 
+            if (!await RunCommand("dotnet", @$"ef database update --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath)) 
                 return;
 
-            Console.WriteLine("\nStarting backend...");
-            if (!await RunCommand("dotnet", "run", backendPath)) 
-                return;
-
+            Console.WriteLine("\nOpening Visual Studio...");
+            OpenFile($".{_s_}{appName}.sln", null, backendPath);
+            
             Console.WriteLine("\nNpm install...");
             if (!await RunCommand("npm", "install", frontendPath)) 
                 return;
 
-            Console.WriteLine("\nStarting frontend...");
-            if (!await RunCommand("npx", "ng serve", frontendPath)) 
-                return;
+            Console.WriteLine("\nOpening Visual Studio Code...");
+            OpenFile("code", ".", frontendPath);
         }
 
         private static async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory)
@@ -130,12 +134,52 @@ namespace Spider.ProjectInitializer
             process.OutputDataReceived += (sender, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
             process.ErrorDataReceived += (sender, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
 
-            bool started = process.Start();
+            process.Start();
+
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+
             await process.WaitForExitAsync();
 
             return process.ExitCode == 0;
+        }
+
+        private static void OpenFile(string fileName, string arguments, string workingDirectory)
+        {
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                },
+            };
+
+            process.Start();
+        }
+
+        /// <summary>
+        /// Returns true if the given assembly was loaded from the global NuGet cache (~/.nuget/packages),
+        /// false if it came from your local build output (e.g. bin/Debug or bin/Release).
+        /// </summary>
+        private static bool IsFromNuGet(Assembly assembly)
+        {
+            if (assembly == null) 
+                throw new ArgumentNullException(nameof(assembly));
+
+            // If Location is empty, it's a dynamic or in-memory assembly; treat as local
+            string location = assembly.Location;
+
+            if (string.IsNullOrEmpty(location))
+                return false;
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string nugetPackagesRoot = Path.Combine(userProfile, ".nuget", "packages") + Path.DirectorySeparatorChar;
+
+            return location.StartsWith(nugetPackagesRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasArg(this string[] args, string arg)
