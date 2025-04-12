@@ -1,0 +1,22 @@
+<!-- Can't put (onBlur) in this control -->
+
+<div class="flex flex-column gap-2">
+  <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
+    <label>{{getTranslatedLabel()}}</label>
+    <required *ngIf="control?.required"></required>
+  </div>
+
+  <!-- Disable doesn't work on this control -->
+  <p-editor
+  *ngIf="control"
+  [formControl]="control"
+  [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
+  [readonly]="control.disabled"
+  [class]="control.invalid && control.dirty ? 'control-error-border' : ''"
+  [id]="control.label"
+  [placeholder]="placeholder"
+  (click)="onClick()"
+  [style]="{ height: '320px' }"
+  ></p-editor>
+
+</div>

@@ -3,23 +3,23 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "spider": {
+    "spiderly": {
       "projectType": "library",
-      "root": "projects/spider",
-      "sourceRoot": "projects/spider/src",
+      "root": "projects/spiderly",
+      "sourceRoot": "projects/spiderly/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/spider/ng-package.json"
+            "project": "projects/spiderly/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/spider/tsconfig.lib.prod.json"
+              "tsConfig": "projects/spiderly/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/spider/tsconfig.lib.json"
+              "tsConfig": "projects/spiderly/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -27,7 +27,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "tsConfig": "projects/spider/tsconfig.spec.json",
+            "tsConfig": "projects/spiderly/tsconfig.spec.json",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -38,10 +38,10 @@
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "projects/spider/**/*.ts",
-              "projects/spider/**/*.html"
+              "projects/spiderly/**/*.ts",
+              "projects/spiderly/**/*.html"
             ],
-            "eslintConfig": "projects/spider/eslint.config.js"
+            "eslintConfig": "projects/spiderly/eslint.config.js"
           }
         }
       }

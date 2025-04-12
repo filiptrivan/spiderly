@@ -1,0 +1,33 @@
+<ng-container *transloco="let t">
+    <spiderly-panel>
+        <panel-header></panel-header>
+
+        <panel-body>
+            <form *ngIf="loading === false" class="grid"> <!-- FT: Don't put @deffer it's not working as expected -->
+                <div class="col-12">
+                    <spiderly-textbox [control]="control('name', roleFormGroup)"></spiderly-textbox>
+                </div>
+                <div class="col-12">
+                    <spiderly-textarea [control]="control('description', roleFormGroup)"></spiderly-textarea>
+                </div>
+                <div class="col-12">
+                    <spiderly-multiautocomplete [control]="selectedUsersForRole" [options]="usersForRoleOptions" (onTextInput)="searchUsersForRole($event)" [label]="t('Users')"></spiderly-multiautocomplete>
+                </div>
+                <div class="col-12">
+                    <spiderly-multiselect [control]="selectedPermissionsForRole" [options]="permissionsForRoleOptions" [label]="t('Permissions')"></spiderly-multiselect>
+                </div>
+            </form>
+
+            <card-skeleton *ngIf="loading === true" [height]="502"></card-skeleton>
+
+        </panel-body>
+
+        <panel-footer>
+            <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
+            @for (button of additionalButtons; track button.label) {
+                <spiderly-button (onClick)="button.onClick()" [disabled]="button.disabled" [label]="button.label" [icon]="button.icon"></spiderly-button>
+            }
+            <return-button></return-button>
+        </panel-footer>
+    </spiderly-panel>
+</ng-container>

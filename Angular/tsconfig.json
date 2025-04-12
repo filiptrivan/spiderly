@@ -18,8 +18,8 @@
     "importHelpers": true,
     "target": "ES2022",
     "paths": {
-      "spider": [
-        "./dist/spider",
+      "spiderly": [
+        "./dist/spiderly",
       ]
     },
     "module": "ES2022",
