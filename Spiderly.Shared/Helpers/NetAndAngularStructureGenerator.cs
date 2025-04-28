@@ -1,20 +1,18 @@
 ﻿using Spiderly.Shared.Classes;
 using Spiderly.Shared.Extensions;
 using CaseConverter;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using System.Security.Cryptography;
+using Spiderly.Shared.Exceptions;
 
 namespace Spiderly.Shared.Helpers
 {
     public static class NetAndAngularStructureGenerator
     {
-        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
+        public static bool Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
         {
+            bool hasErrors = false;
+
             string jwtKey = GenerateJwtSecretKey();
 
             SpiderlyFolder appStructure = new SpiderlyFolder
@@ -559,9 +557,48 @@ namespace Spiderly.Shared.Helpers
                 }
             };
 
-            GenerateProjectStructure(appStructure, outputPath);
+            try
+            {
+                GenerateProjectStructure(appStructure, outputPath);
+            }
+            catch (Exception ex)
+            {
+                if (ex is BusinessException)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+                else
+                {
+                    Console.WriteLine(ex);
+                }
+
+                hasErrors = true;
+            }
+
             Console.WriteLine("App structure created.");
-            CreateSqlServerDatabase(appName);
+
+            try
+            {
+                CreateSqlServerDatabase(appName);
+            }
+            catch (Exception ex)
+            {
+                if (ex is SqlException sqlEx)
+                {
+                    foreach (SqlError sqlErr in sqlEx.Errors)
+                    {
+                        Console.WriteLine($"SQL Server error #{sqlErr.Number}: {sqlErr.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine(ex);
+                }
+
+                hasErrors = true;
+            }
+
+            return hasErrors;
         }
 
         private static void GenerateProjectStructure(SpiderlyFolder appStructure, string path)

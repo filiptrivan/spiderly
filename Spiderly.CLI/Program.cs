@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Spiderly.ProjectInitializer
+namespace Spiderly.CLI
 {
     internal static class Program
     {
@@ -46,8 +46,6 @@ namespace Spiderly.ProjectInitializer
             Console.WriteLine();
             Console.WriteLine("Options for init:");
             Console.WriteLine("  app-name             Specify the name of the application. (No spaces allowed.)");
-            Console.WriteLine("  template-type        Specify the template type. ('default' or 'loyalty').");
-            Console.WriteLine("  primary-color        Specify the primary color for the application in hexadecimal format (e.g., #000000).");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly --help");
@@ -71,20 +69,11 @@ namespace Spiderly.ProjectInitializer
                 return;
             }
 
-            Console.WriteLine("Template type (default/loyalty): ");
-            string templateType = Console.ReadLine();
-            if (templateType != "default" && templateType != "loyalty")
-            {
-                Console.WriteLine("Template type can only be default/loyalty.");
-                return;
-            }
-
             string currentPath = Environment.CurrentDirectory;
 
             string version = assembly.GetName().Version.ToString();
 
-            if (templateType == "default")
-                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, IsFromNuGet(assembly), null);
+            bool hasErrors = NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
 
             string infrastructurePath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
             string backendPath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API");
@@ -93,25 +82,38 @@ namespace Spiderly.ProjectInitializer
             Console.WriteLine("\nAdding EF migration...");
             if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
             {
-                return;
+                Console.WriteLine("\nFailed to add EF migration.");
+                hasErrors = true;
             }
 
             Console.WriteLine("\nUpdating database...");
-            if (!await RunCommand("dotnet", @$"ef database update --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath)) 
-                return;
+            if (!await RunCommand("dotnet", @$"ef database update --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
+            {
+                Console.WriteLine("\nFailed to update database.");
+                hasErrors = true;
+            }
 
-            Console.WriteLine("\nOpening Visual Studio...");
-            OpenFile($".{_s_}{appName}.sln", null, backendPath);
-            
             Console.WriteLine("\nNpm install...");
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
-            if (!await RunCommand(npmCmd, npmArgs, frontendPath)) 
-                return;
+            if (!await RunCommand(npmCmd, npmArgs, frontendPath))
+            {
+                Console.WriteLine("\nFailed to npm install.");
+                hasErrors = true;
+            }
 
-            Console.WriteLine("\nOpening Visual Studio Code...");
-            OpenFile("code", ".", frontendPath);
+            if (hasErrors)
+            {
+                Console.WriteLine("You had some errors. Please solve them, then run the same command (`spiderly init`) again with the same app name to continue.");
+            }
+            else
+            {
+                Console.WriteLine("Basic Spiderly app structure created!");
+                Console.WriteLine("Open the frontend and backend projects in your preferred IDEs.");
+                Console.WriteLine("Start the backend using the 'dotnet run' command.");
+                Console.WriteLine("Start the frontend using the 'npm start' command.");
+            }
         }
 
         private static async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory)
@@ -142,44 +144,6 @@ namespace Spiderly.ProjectInitializer
             await process.WaitForExitAsync();
 
             return process.ExitCode == 0;
-        }
-
-        private static void OpenFile(string fileName, string arguments, string workingDirectory)
-        {
-            Process process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    WorkingDirectory = workingDirectory,
-                    UseShellExecute = true,
-                    CreateNoWindow = false
-                },
-            };
-
-            process.Start();
-        }
-
-        /// <summary>
-        /// Returns true if the given assembly was loaded from the global NuGet cache (~/.nuget/packages),
-        /// false if it came from your local build output (e.g. bin/Debug or bin/Release).
-        /// </summary>
-        private static bool IsFromNuGet(Assembly assembly)
-        {
-            if (assembly == null) 
-                throw new ArgumentNullException(nameof(assembly));
-
-            // If Location is empty, it's a dynamic or in-memory assembly; treat as local
-            string location = assembly.Location;
-
-            if (string.IsNullOrEmpty(location))
-                return false;
-
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string nugetPackagesRoot = Path.Combine(userProfile, ".nuget", "packages") + Path.DirectorySeparatorChar;
-
-            return location.StartsWith(nugetPackagesRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasArg(this string[] args, string arg)

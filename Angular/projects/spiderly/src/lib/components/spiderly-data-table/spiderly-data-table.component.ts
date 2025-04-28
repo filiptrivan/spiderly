@@ -55,7 +55,7 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() showCardWrapper: boolean = true;
   @Input() readonly: boolean = false;
   totalRecords: number;
-  @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();;
+  @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();
   
   @Input() getTableDataObservableMethod: (tableFilter: TableFilter) => Observable<TableResponse>;
   @Input() exportTableDataToExcelObservableMethod: (tableFilter: TableFilter) => Observable<any>;

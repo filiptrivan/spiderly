@@ -38,7 +38,7 @@ namespace Spiderly.Shared.Helpers
         public static string MakeFolder(string path, string name)
         {
             if (!Directory.Exists(path))
-                throw new DirectoryNotFoundException($"Directory not found: {path}");
+                throw new BusinessException($"Folder '{path}' not found.");
 
             string newFolderPath = Path.Combine(path, name);
 
@@ -53,7 +53,7 @@ namespace Spiderly.Shared.Helpers
         {
             if (Directory.Exists(path))
             {
-                throw new Exception($"Direktorijum na putanji {path} već postoji.");
+                throw new BusinessException($"Folder '{path}' already exists.");
             }
         }
 
@@ -61,7 +61,7 @@ namespace Spiderly.Shared.Helpers
         {
             if (File.Exists(path))
             {
-                throw new Exception($"Datoteka na putanji {path} već postoji.");
+                throw new BusinessException($"File '{path}' already exists.");
             }
         }
 

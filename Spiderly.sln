@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.SourceGenerators",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.Shared", "Spiderly.Shared\Spiderly.Shared.csproj", "{2A6C90AD-D954-423F-A9CF-B4D77B2869D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.ProjectInitializer", "Spiderly.ProjectInitializer\Spiderly.ProjectInitializer.csproj", "{058F315A-2F56-4B6A-9ECE-DF8DA54482B5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.CLI", "Spiderly.CLI\Spiderly.CLI.csproj", "{058F315A-2F56-4B6A-9ECE-DF8DA54482B5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

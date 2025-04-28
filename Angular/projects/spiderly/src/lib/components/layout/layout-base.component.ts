@@ -47,7 +47,10 @@ export class LayoutBaseComponent implements OnDestroy {
 
             if (!this.profileMenuOutsideClickListener) {
                 this.profileMenuOutsideClickListener = this.renderer.listen('document', 'click', event => {
-                    const isOutsideClicked = !(this.appTopbar.menu.nativeElement.isSameNode(event.target) || this.appTopbar.menu.nativeElement.contains(event.target));
+                    const isOutsideClicked = !(
+                        this.appTopbar.menu.nativeElement.isSameNode(event.target) || 
+                        this.appTopbar.menu.nativeElement.contains(event.target)
+                    );
 
                     if (isOutsideClicked) {
                         this.hideProfileMenu();
