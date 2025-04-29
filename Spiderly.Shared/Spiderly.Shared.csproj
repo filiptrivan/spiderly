@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Version>1.0.16</Version>
     <TargetFramework>net9.0</TargetFramework>
@@ -6,11 +6,17 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <NoWarn>NU1701</NoWarn>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>spiderly-logo.png</PackageIcon>
+	  <Authors>Filip Trivan</Authors>
+	  <Description>Spiderly.Shared package provides shared features that can be used by all other Spiderly packages.</Description>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Entities\**" />
     <EmbeddedResource Remove="Entities\**" />
     <None Remove="Entities\**" />
+	<None Include="README.md" Pack="true" PackagePath="\"/>
+	  <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Emailing\Templates\" />

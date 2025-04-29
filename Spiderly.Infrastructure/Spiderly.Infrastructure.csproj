@@ -1,15 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Version>1.0.16</Version>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>spiderly-logo.png</PackageIcon>
+	  <Authors>Filip Trivan</Authors>
+	  <Description>Spiderly.Infrastructure is built on EF Core and offers features such as optimistic concurrency control, customizable table and column naming, and extensions for simplified database configuration.</Description>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repositories\**" />
     <EmbeddedResource Remove="Repositories\**" />
     <None Remove="Repositories\**" />
+	<None Include="README.md" Pack="true" PackagePath="\"/>
+	  <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />

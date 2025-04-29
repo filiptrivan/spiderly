@@ -1,12 +1,12 @@
 <div align="right">
-  <img src="https://www.spiderly.dev/assets/spiderly-logo.svg" alt="Spiderly Logo" width="60"/>
+  <img src="https://github.com/filiptrivan/spiderly/blob/main/spiderly-logo.svg" alt="Spiderly Logo" width="60"/>
 </div>
 
 # Spiderly
 Spiderly is a .NET (C#) library that turns your plain C# classes into a complete .NET + Angular web apps. Automatically updating all the boilerplate code as your classes evolve. You're free to add your own logic and change anything in the generated app exactly how you want.
 
 <ul>
-  <li><b>Speed</b>: With CRUD operations, Backend/Frontend architecture, Auth, Logging, and the best Libraries already set up for you, we save you a significant amount of time so you can focus on your specific business logic.</li>
+  <li><b>Speed</b>: With CRUD operations, backend/frontend architecture, authentication, authorization, logging, and the best libraries already set up for you, we save you a significant amount of time so you can focus on your specific business logic.</li>
   <li><b>Accuracy</b>: Even if the generated code is boilerplate, copy-pasting without focus inevitably leads to mistakes. Spiderly eliminates this subconscious burden, freeing your mind for more important tasks.</li>
   <li><b>Customizability</b>: If you don't like any of Spiderly's functionalities (CRUD operations, backend/frontend architecture, auth, logging), you can disable any of them and implement your own.</li>
 </ul>
@@ -54,19 +54,19 @@ These two classes alone will generate app like this:
 ## Documentation
 
 ### Spiderly.SourceGenerators
-[Spiderly.SourceGenerators](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.SourceGenerators) generates a lot of features in a .NET application, as well as a lot of features for Angular application, it works based on attributes on EF Core entities. The idea of ​​the generator is that programmers only have to write specific logic, and don't think about anything else.
+[Spiderly.SourceGenerators](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.SourceGenerators) generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.
 
 ### Spiderly.Security
-[Spiderly.Security](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Security) library provides Authentication and Authorization features with JWT.
+[Spiderly.Security](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Security) provides authentication and authorization features with JWT.
 
 ### Spiderly.Infrastructure
-[Spiderly.Infrastructure](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Infrastructure) works on the basis of EF Core, provides features of optimistic version control, naming tables/attributes within the database, has extensions for easy database definition through EF Core.
+[Spiderly.Infrastructure](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Infrastructure) is built on EF Core and offers features such as optimistic concurrency control, customizable table and column naming, and extensions for simplified database configuration.
 
 ### Spiderly.Shared
-[Spiderly.Shared](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Shared) library provides shared features that can be used by all projects.
+[Spiderly.Shared](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Shared) provides shared features that can be used by all other Spiderly libraries.
 
 ## Contributing
-If you want to participate in this cool open source project be free to open an issue, start a discussion or make pull request.
+If you want to participate in this cool open source repo be free to open an issue, start a discussion or make pull request.
 
 ### License
 Spiderly is [MIT licensed](https://github.com/filiptrivan/spiderly/blob/main/LICENSE).

@@ -1,15 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Version>1.0.16</Version>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>spiderly-logo.png</PackageIcon>
+	  <Authors>Filip Trivan</Authors>
+	  <Description>Spiderly.Security package provides authentication and authorization features using JWT tokens.</Description>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="ValidationRules\**" />
     <EmbeddedResource Remove="ValidationRules\**" />
     <None Remove="ValidationRules\**" />
+	<None Include="README.md" Pack="true" PackagePath="\"/>
+	<None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />

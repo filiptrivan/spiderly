@@ -106,18 +106,6 @@ namespace Spiderly.Infrastructure
                 case BusinessObject<byte> businessObjectByte:
                     HandleBusinessObjectChanges(businessObjectByte, changedEntity);
                     break;
-
-                    //case ReadonlyObject<long> readonlyObjectLong:
-                    //    HandleReadonlyObjectChanges(readonlyObjectLong, changedEntity);
-                    //    break;
-
-                    //case ReadonlyObject<int> readonlyObjectInt:
-                    //    HandleReadonlyObjectChanges(readonlyObjectInt, changedEntity);
-                    //    break;
-
-                    //case ReadonlyObject<byte> readonlyObjectByte:
-                    //    HandleReadonlyObjectChanges(readonlyObjectByte, changedEntity);
-                    //    break;
             }
         }
 
@@ -140,22 +128,6 @@ namespace Spiderly.Infrastructure
                     break;
             }
         }
-
-        //void HandleReadonlyObjectChanges<T>(ReadonlyObject<T> readOnlyObject, EntityEntry changedEntity)
-        //{
-        //    DateTime now = DateTime.Now;
-
-        //    switch (changedEntity.State)
-        //    {
-        //        case EntityState.Added:
-        //            readOnlyObject.SetCreatedAt(now);
-        //            break;
-
-        //        case EntityState.Modified:
-        //            Entry(readOnlyObject).Property(x => x.CreatedAt).IsModified = false;
-        //            break;
-        //    }
-        //}
 
     }
 

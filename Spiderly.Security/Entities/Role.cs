@@ -23,9 +23,6 @@ namespace Spiderly.Security.Entities
         [StringLength(400, MinimumLength = 1)]
         public string Description { get; set; }
 
-        //[UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
-        //public virtual List<TUser> Users { get; set; }
-
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
         public virtual List<Permission> Permissions { get; } = new();
     }

@@ -1,18 +1,20 @@
 
-# Spider.SourceGenerators
+# Spiderly.SourceGenerators
+Spiderly.SourceGenerators generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.
+
 ## Quickstart
-1. Generate the app structure with this [project](https://github.com/filiptrivan/soft-web-app-generator).
+1. Generate the app structure using [Spiderly CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI).
 2. Add entities to the project (inside {appName}.Business -> Entities folder): 
-  - If crud operations can be performed on the entity from the application, it should inherit `BusinessObject<ID>`, if the entity is only for reading from the database (eg Gender entity), it should inherit `ReadonlyObject<ID>`. For BusinessObject entities, the necessary methods for basic crud operations will be generated, while e.g. for ReadonlyObject entities Create, Update, Delete methods will not be generated.
+  - If crud operations can be performed on the entity from the application, it should inherit `BusinessObject<ID>`, if the entity is only for reading from the database (e.g. `Gender` entity), it should inherit `ReadonlyObject<ID>`. For BusinessObject entities, the necessary methods for basic crud operations will be generated, while e.g. for ReadonlyObject entities Create, Update, Delete methods will not be generated. For ReadonlyObject<T> we don't make CreatedAt and Version properties.
   - Example of the EF Core entity:
-```
+```csharp
 namespace PlayertyLoyals.Business.Entities
 {
     [TranslateSingularSrLatnRS("Korisnik")] // Where necessary, the entity UserExtended will be translated into Serbian as "Korisnik"
     public class UserExtended : BusinessObject<long>, IUser
     {
         [UIControlWidth("col-12")] // On the UI this control will be displayed over the entire width of the screen for any device size (by default it is half, then from a certain number of pixels the whole screen)
-        [DisplayName] // A Property with this attribute will be used as a display name for the class it is in (eg when we display the UserExtended list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
+        [DisplayName] // A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the UserExtended list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
         [StringLength(70, MinimumLength = 5)] // This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend)
         [Required] // This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend)
         public string Email { get; set; }
@@ -35,14 +37,14 @@ namespace PlayertyLoyals.Business.Entities
 ```
 3. Write custom logic, 
 - This is an example for the Notification entity, on the administration page of the entity we want to add a button, click on which we will send an email notification to users:
-```
+```csharp
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { Notification } from 'src/app/business/entities/business-entities.generated';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { BaseFormCopy, SpiderFormGroup, SpiderFormControl, SpiderButton, SpiderMessageService, BaseFormService } from '@playerty/spider';
+import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, SpiderlyMessageService, BaseFormService } from 'spiderly';
 
 @Component({
     selector: 'notification-details',
@@ -50,16 +52,16 @@ import { BaseFormCopy, SpiderFormGroup, SpiderFormControl, SpiderButton, SpiderM
     styles: [],
 })
 export class NotificationDetailsComponent extends BaseFormCopy implements OnInit {
-    notificationFormGroup = new SpiderFormGroup<Notification>({});
+    notificationFormGroup = new SpiderlyFormGroup<Notification>({});
 
-    isMarkedAsRead = new SpiderFormControl<boolean>(true, {updateOn: 'change'})
+    isMarkedAsRead = new SpiderlyFormControl<boolean>(true, {updateOn: 'change'})
 
-    additionalButtons: SpiderButton[];
+    additionalButtons: SpiderlyButton[];
 
     constructor(
         protected override differs: KeyValueDiffers,
         protected override http: HttpClient,
-        protected override messageService: SpiderMessageService, 
+        protected override messageService: SpiderlyMessageService, 
         protected override changeDetectorRef: ChangeDetectorRef,
         protected override router: Router, 
         protected override route: ActivatedRoute,
@@ -89,14 +91,14 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
 }
 ```
 - Example of adding custom code to html:
-```
+```html
 <ng-container *transloco="let t">
-    <spider-card [title]="t('PartnerNotification')" icon="pi pi-bell">
-        <spider-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
+    <spiderly-card [title]="t('PartnerNotification')" icon="pi pi-bell">
+        <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
             <panel-body>
                 Custom HTML logic!
             </panel-body>
-        </spider-panel>
+        </spiderly-panel>
         
         <notification-base-details
         [formGroup]="formGroup" 
@@ -106,7 +108,7 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         [additionalButtons]="additionalButtons"
         />
 
-    </spider-card>
+    </spiderly-card>
 </ng-container>
 ```
 
@@ -120,10 +122,10 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
 - Set this attribute to the numeric properties only.
 ### CustomValidator
 - If you cannot achieve something with built in fluent validations, you can write custom on the class.
-- eg `[CustomValidator("RuleFor(x => x.Name).NotEmpty();")]`
+- e.g. `[CustomValidator("RuleFor(x => x.Name).NotEmpty();")]`
 
 ### DisplayName
-- A Property with this attribute will be used as a display name for the class it is in (eg when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
+- A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
 - Don't use nameof, because source generator will take only "Email" if you pass nameof(User.Email)
 - Pass the parameter only if the display name is like this: User.Email
 ### BlobName
@@ -168,15 +170,15 @@ These attributes are used exclusively for the UI.
 #### UIControlType
 - We try to conclude what type of controller should be on the front based on the property data type, but in some cases it is impossible
 - Such as e.g. with the `color-picker` UI control type, the data type in C# is string, but that doesn't tell us enough.
-- eg 
-```
+- e.g. 
+```csharp
 [UIControlType(nameof(UIControlTypeCodes.ColorPick))]
 public string PrimaryColor { get; set; }
 ```
 
 #### UIControlWidth
 - Set to the property whose default width you want to change.
-- eg `[UIControlWidth("col-12")]`, in the example, the width control will always be full screen.
+- e.g. `[UIControlWidth("col-12")]`, in the example, the width control will always be full screen.
 - Default values for different control types are:
 - - file, text-area, color-picker, multiselect, multiautocomplete, table, editor: `col-12`
 - - everything else: `col-12 md:col-6`
@@ -189,8 +191,8 @@ public string PrimaryColor { get; set; }
 #### UIOrderedOneToMany
 - Set to the one to many property.
 - Will generate such a structure on the backend and frontend that the one-to-many relationship is maintained using ordered list.
-- For this way of maintenance on the entity, on the other hand, you must have the property `OrderNumber`, eg
-```
+- For this way of maintenance on the entity, on the other hand, you must have the property `OrderNumber`, e.g.
+```csharp
 [UIDoNotGenerate]
 [Required]
 public int OrderNumber { get; set; }
@@ -206,8 +208,8 @@ public int OrderNumber { get; set; }
 
 #### UITableColumn
 - Set to the enumerable property in combination with `SimpleManyToManyTableLazyLoad` attribute.
-- eg
-```
+- e.g.
+```csharp
 #region UITableColumn
 [UITableColumn(nameof(PartnerUserDTO.UserDisplayName))]
 [UITableColumn(nameof(PartnerUserDTO.Points))]
@@ -222,16 +224,16 @@ public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 ### Translation Attributes
 
 #### TranslatePluralEn
-- eg `Users`
+- e.g. `Users`
 #### TranslatePluralSrLatnRS
-- eg `Korisnici`
+- e.g. `Korisnici`
 #### TranslateExcelEn
 - If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
-- eg `Users.xlsx`
+- e.g. `Users.xlsx`
 #### TranslateExcelSrLatnRS
 - If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
-- eg `Korisnici.xlsx` 
+- e.g. `Korisnici.xlsx` 
 #### TranslateSingularEn
-- eg `User`
+- e.g. `User`
 #### TranslateSingularSrLatnRS
-- eg `Korisnik`
+- e.g. `Korisnik`
