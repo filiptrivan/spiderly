@@ -3,7 +3,7 @@
     "version":  "0.0.6",
     "author":  "Filip Trivan",
     "license":  "MIT",
-    "description":  "Angular Library to use in combination with Spiderly.",
+    "description":  "Spiderly Angular Library to use in combination with Spiderly.",
     "repository":  {
                        "type":  "git",
                        "url":  "https://github.com/filiptrivan/spiderly/tree/main/Angular"
