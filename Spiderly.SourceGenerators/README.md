@@ -37,7 +37,7 @@ namespace PlayertyLoyals.Business.Entities
 ```
 3. Write custom logic, 
 - This is an example for the Notification entity, on the administration page of the entity we want to add a button, click on which we will send an email notification to users:
-```csharp
+```ts
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
