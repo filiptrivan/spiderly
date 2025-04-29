@@ -48,7 +48,7 @@ public class Gender
 ```
 These two classes alone will generate app like this:
 <div>
-  <img src="https://www.spiderly.dev/assets/spiderly-app-demo.png" alt="Spiderly Get Started App Demo"/>
+  <img src="https://github.com/filiptrivan/spiderly/blob/main/spiderly-app-demo.png" alt="Spiderly Get Started App Demo"/>
 </div>
 
 ## Documentation
