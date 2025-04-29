@@ -15,7 +15,7 @@ Spiderly is a .NET (C#) library that turns your plain C# classes into a complete
 Follow [Get Started](https://www.spiderly.dev/#get-started) to start using Spiderly.
 
 ## Examples
-With the [Playground](https://www.spiderly.dev/playground) on the Spiderly Website, you can create your own examples, live. Here is the first one to get you started:
+With the [Playground](https://www.spiderly.dev/playground) on the [Spiderly Website](https://www.spiderly.dev), you can create your own examples, live. Here is the first one to get you started:
 ```csharp
 [TranslatePluralEn("Users")]
 public class User
