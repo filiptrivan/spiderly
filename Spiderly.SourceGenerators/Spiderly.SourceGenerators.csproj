@@ -1,22 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.16</Version>
+    <Version>1.0.17</Version>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <LangVersion>latest</LangVersion>
-	<PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<PackageReadmeFile>README.md</PackageReadmeFile>
-	<PackageIcon>spiderly-logo.png</PackageIcon>
-	  <Authors>Filip Trivan</Authors>
-	  <Description>Spiderly.SourceGenerators generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>spiderly-logo.png</PackageIcon>
+    <Authors>Filip Trivan</Authors>
+    <Description>Spiderly.SourceGenerators generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.</Description>
+	  <PackageTags>spiderly;spiderly-source-gen;spiderly-source-generator;code-generation;crud-generator;angular-generator</PackageTags>
+	  <Company>Spiderly</Company>
+	  <ProjectUrl>https://www.spiderly.dev</ProjectUrl>
+	  <RepositoryUrl>https://github.com/filiptrivan/spiderly</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CodegenCS.Core" Version="3.3.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.7.0" PrivateAssets="all" />
     <PackageReference Include="ResXResourceReader.NetStandard" Version="1.3.0" PrivateAssets="all" GeneratePathProperty="true" />
-	<None Include="README.md" Pack="true" PackagePath="\"/>
-	  <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <!-- START HACK: https://youtu.be/wp-dxZXRkJ4?si=Q6ByOOf461XRYzBU -->
   <PropertyGroup>

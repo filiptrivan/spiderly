@@ -1,13 +1,18 @@
 ﻿{
     "name":  "spiderly",
-    "version":  "0.0.6",
+    "version":  "0.0.7",
     "author":  "Filip Trivan",
     "license":  "MIT",
     "description":  "Spiderly Angular Library to use in combination with Spiderly.",
+    "bugs": {
+        "url": "https://github.com/filiptrivan/spiderly/issues",
+        "email": "filiptrivan5@gmail.com"
+    },
     "repository":  {
                        "type":  "git",
-                       "url":  "https://github.com/filiptrivan/spiderly/tree/main/Angular"
+                       "url": "https://github.com/filiptrivan/spiderly.git"
                    },
+    "homepage": "https://www.spiderly.dev",
     "keywords":  [
                      "spiderly",
                      "spiderly framework",
