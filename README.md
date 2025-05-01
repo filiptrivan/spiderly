@@ -53,6 +53,9 @@ These two classes alone will generate app like this:
 
 ## Documentation
 
+### Spiderly.CLI
+By using the [Spiderly.CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI), you properly initialize the app, allowing all other Spiderly libraries to function.
+
 ### Spiderly.SourceGenerators
 [Spiderly.SourceGenerators](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.SourceGenerators) generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.
 
