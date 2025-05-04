@@ -154,14 +154,14 @@ namespace Spiderly.Shared.Helpers
 
         public static void SendUnhandledExceptionEmails(string userEmail, long? userId, IWebHostEnvironment env, Exception unhandledEx)
         {
-            Task.Run(async () =>
+            Task.Run((Func<Task>)(async () =>
             {
                 try
                 {
                     using (SmtpClient smtpClient = GetSmtpClient())
                     using (MailMessage mailMessage = new MailMessage
                     {
-                        From = new MailAddress(SettingsProvider.Current.EmailSender),
+                        From = new MailAddress((string)SettingsProvider.Current.EmailSender),
                         Subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception",
                         Body = $$"""
 Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
@@ -186,14 +186,14 @@ Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
                         userEmail, userId
                     );
                 }
-            });
+            }));
         }
 
         public static SmtpClient GetSmtpClient()
         {
             return new SmtpClient(SettingsProvider.Current.SmtpHost, SettingsProvider.Current.SmtpPort)
             {
-                Credentials = new NetworkCredential(SettingsProvider.Current.SmtpUser, SettingsProvider.Current.SmtpPass),
+                Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender, SettingsProvider.Current.EmailSenderPassword),
                 EnableSsl = true
             };
         }

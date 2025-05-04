@@ -16,11 +16,6 @@ namespace Spiderly.Shared.Helpers
             string jwtKey = GenerateJwtSecretKey();
 
             SpiderlyFolder appStructure = new SpiderlyFolder
-            {
-                Name = appName,
-                ChildFolders =
-                {
-                    new SpiderlyFolder
                     {
                         Name = appName.ToKebabCase(),
                         ChildFolders =
@@ -508,7 +503,7 @@ namespace Spiderly.Shared.Helpers
                                         },
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName, emailSender: null, smtpUser: null, smtpPass: null, jwtKey: jwtKey, blobStorageConnectionString: null, blobStorageUrl: null) },
+                                            new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName, emailSender: null, emailSenderPassword: null, jwtKey: jwtKey, blobStorageConnectionString: null, blobStorageUrl: null) },
                                             new SpiderlyFile { Name = "GeneratorSettings.cs", Data = GetWebAPIGeneratorSettingsData(appName) },
                                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, version, isFromNuget) },
                                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
@@ -554,8 +549,6 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = "License", Data = GetMitLicenseData() },
                         }
                     }
-                }
-            };
 
             try
             {
@@ -1819,7 +1812,7 @@ import { LayoutService } from './business/services/layout/layout.service';
           {
             id: GoogleLoginProvider.PROVIDER_ID,
             provider: new GoogleLoginProvider(
-              environment.googleClientId, 
+              environment.GoogleClientId, 
               {
                 scopes: 'email',
                 oneTapEnabled: false,
@@ -2927,8 +2920,6 @@ namespace {{appName}}.WebAPI
 
     public class Settings
     {
-        public string GoogleClientId { get; set; }
-
         public string ExcelContentType { get; set; }
     }
 }
@@ -3066,7 +3057,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
 """;
         }
 
-        private static string GetAppSettingsJsonData(string appName, string emailSender, string smtpUser, string smtpPass, string jwtKey, string blobStorageConnectionString, string blobStorageUrl)
+        private static string GetAppSettingsJsonData(string appName, string emailSender, string emailSenderPassword, string jwtKey, string blobStorageConnectionString, string blobStorageUrl)
         {
             return $$"""
 {
@@ -3099,7 +3090,6 @@ namespace {{appName}}.WebAPI.GeneratorSettings
   "AppSettings": {
     "AllowedHosts": "*",
     "{{appName}}.WebAPI": {
-      "GoogleClientId": "24372003240-44eprq8dn4s0b5f30i18tqksep60uk5u.apps.googleusercontent.com",
       "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     },
     "{{appName}}.Business": {
@@ -3110,14 +3100,13 @@ namespace {{appName}}.WebAPI.GeneratorSettings
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "{{emailSender}}",
+      "EmailSender": "{{emailSender ?? "abc@gmail.com"}}",
+      "EmailSenderPassword": "{{emailSenderPassword ?? "xxxx xxxx xxxx xxxx"}}",
       "UnhandledExceptionRecipients": [
-        "{{emailSender}}"
+        "{{emailSender ?? "abc@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
       "SmtpPort": 587,
-      "SmtpUser": "{{smtpUser}}",
-      "SmtpPass": "{{smtpPass}}",
       "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
@@ -3144,7 +3133,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "NumberOfFailedLoginAttemptsInARowToDisableUser": 40, // FT: I think we don't need this check, maybe delete in the future
       "AllowTheUseOfAppWithDifferentIpAddresses": true,
       "AllowedBrowsersForTheSingleUser": 5,
-      "GoogleClientId": "24372003240-44eprq8dn4s0b5f30i18tqksep60uk5u.apps.googleusercontent.com",
+      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
       "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     }
   }
@@ -4173,7 +4162,7 @@ export const environment = {
   production: false,
   apiUrl: 'https://localhost:44388/api',
   frontendUrl: 'http://localhost:4200',
-  googleClientId: '24372003240-44eprq8dn4s0b5f30i18tqksep60uk5u.apps.googleusercontent.com',
+  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName.ToTitleCase()}}',
   primaryColor: '{{primaryColor}}',
 };
@@ -4548,7 +4537,7 @@ export class ConfigService extends ConfigBaseService
     override production: boolean = environment.production;
     override apiUrl: string = environment.apiUrl;
     override frontendUrl: string = environment.frontendUrl;
-    override googleClientId: string = environment.googleClientId;
+    override GoogleClientId: string = environment.GoogleClientId;
     override companyName: string = environment.companyName;
 
     /* URLs */

@@ -9,7 +9,7 @@ export class ConfigBaseService
     production = false;
     apiUrl: string;
     frontendUrl = 'http://localhost:4200';
-    googleClientId: string;
+    GoogleClientId: string;
     companyName = 'Company Name';
     primaryColor = '#111b2c';
     

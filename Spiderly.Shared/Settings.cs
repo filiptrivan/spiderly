@@ -17,12 +17,11 @@ namespace Spiderly.Shared
         public string ConnectionString { get; set; }
 
 
-        public string EmailSender { get; set; }
         public List<string> UnhandledExceptionRecipients { get; set; }
+        public string EmailSender { get; set; }
+        public string EmailSenderPassword { get; set; }
         public string SmtpHost { get; set; }
         public int SmtpPort { get; set; }
-        public string SmtpUser { get; set; }
-        public string SmtpPass { get; set; }
 
 
         public string JwtKey { get; set; }
