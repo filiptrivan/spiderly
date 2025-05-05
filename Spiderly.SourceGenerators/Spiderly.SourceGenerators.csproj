@@ -1,6 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.17</Version>
+    <Version>1.0.18</Version>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <LangVersion>latest</LangVersion>
@@ -9,10 +9,10 @@
     <PackageIcon>spiderly-logo.png</PackageIcon>
     <Authors>Filip Trivan</Authors>
     <Description>Spiderly.SourceGenerators generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.</Description>
-	  <PackageTags>spiderly;spiderly-source-gen;spiderly-source-generator;code-generation;crud-generator;angular-generator</PackageTags>
-	  <Company>Spiderly</Company>
-	  <ProjectUrl>https://www.spiderly.dev</ProjectUrl>
-	  <RepositoryUrl>https://github.com/filiptrivan/spiderly</RepositoryUrl>
+    <PackageTags>spiderly;spiderly-source-gen;spiderly-source-generator;code-generation;crud-generator;angular-generator</PackageTags>
+    <Company>Spiderly</Company>
+    <ProjectUrl>https://www.spiderly.dev</ProjectUrl>
+    <RepositoryUrl>https://github.com/filiptrivan/spiderly</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CodegenCS.Core" Version="3.3.1" />

@@ -1,6 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.17</Version>
+    <Version>1.0.18</Version>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -9,10 +9,10 @@
     <PackageIcon>spiderly-logo.png</PackageIcon>
     <Authors>Filip Trivan</Authors>
     <Description>Spiderly.Infrastructure is built on EF Core and offers features such as optimistic concurrency control, customizable table and column naming, and extensions for simplified database configuration.</Description>
-	  <PackageTags>spiderly;spiderly-infrastructure;spiderly-ef-core;spiderly-database;code-generation;crud-generator</PackageTags>
-	  <Company>Spiderly</Company>
-	  <ProjectUrl>https://www.spiderly.dev</ProjectUrl>
-	  <RepositoryUrl>https://github.com/filiptrivan/spiderly</RepositoryUrl>
+    <PackageTags>spiderly;spiderly-infrastructure;spiderly-ef-core;spiderly-database;code-generation;crud-generator</PackageTags>
+    <Company>Spiderly</Company>
+    <ProjectUrl>https://www.spiderly.dev</ProjectUrl>
+    <RepositoryUrl>https://github.com/filiptrivan/spiderly</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repositories\**" />

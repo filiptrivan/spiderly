@@ -75,9 +75,9 @@ namespace Spiderly.CLI
 
             bool hasErrors = NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
 
-            string infrastructurePath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
-            string backendPath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}API");
-            string frontendPath = Path.Combine(currentPath, @$"{appName}{_s_}{appName.ToKebabCase()}{_s_}Angular");
+            string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
+            string backendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API");
+            string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Angular");
 
             Console.WriteLine("\nAdding EF migration...");
             if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
