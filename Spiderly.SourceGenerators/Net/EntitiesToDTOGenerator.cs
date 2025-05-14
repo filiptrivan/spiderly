@@ -13,33 +13,10 @@ using System;
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// **Summary:**
-    /// Generates partial DTO (Data Transfer Object) classes (`{YourProjectName}DTOList.generated.cs`)
+    /// Generates partial DTO (Data Transfer Object) classes (`{YourAppName}DTOList.generated.cs`)
     /// within the `{YourBaseNamespace}.DTO` namespace. These DTOs are automatically created
     /// based on your entity classes located in the '.Entities' namespace, providing a
     /// separate representation of your data for transfer purposes.
-    ///
-    /// **Key Features:**
-    /// - **Automatic DTO Generation:** Creates a partial DTO class for each entity class found.
-    /// - **Property Mapping:** Includes properties in the DTO that directly correspond to the properties of the respective entity. Base class properties are excluded to leverage inheritance.
-    /// - **Extensibility:** Generates partial classes, allowing you to add custom properties, methods, and attributes to your DTOs without modifying the generated code.
-    /// - **Namespace Alignment:** Places the generated DTO classes in a `.DTO` sub-namespace, mirroring the `.Entities` namespace structure.
-    /// - **Base Type Support:** Respects inheritance hierarchies by extending the DTO from the base type of the corresponding entity, if one exists.
-    ///
-    /// **How to Use:**
-    /// 1. Ensure your entity classes are located in a namespace ending with `.Entities`.
-    /// 2. Build your .NET project. This source generator will automatically run during the build process.
-    /// 3. The generated DTO classes will be created in a `.DTO` sub-namespace.
-    /// 4. You can then use these generated DTOs in your services, controllers, and other parts of your application for data transfer.
-    /// 5. To add custom properties or logic to a DTO, create another partial class with the same name in the same namespace.
-    ///
-    /// **Generated Output:**
-    /// - `{YourProjectName}DTOList.generated.cs`: Contains partial classes, one for each entity.
-    ///     - Each partial class will have properties matching the non-inherited properties of its corresponding entity.
-    ///     - If the entity inherits from another entity, the DTO will inherit from the DTO of the base entity.
-    /// - The namespace will be `{YourBaseNamespace}.DTO`.
-    ///
-    /// **Note:** This generator focuses on creating a basic DTO structure mirroring your entities. You might need to manually add more complex properties or properties that you want in DTO but not in Entity.
     /// </summary>
     [Generator]
     public class EntitiesToDTOGenerator : IIncrementalGenerator

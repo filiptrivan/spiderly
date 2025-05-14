@@ -8,6 +8,12 @@ using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI
 {
+    /// <summary>
+    /// The main entry point for the Spiderly command-line interface (CLI) tool.
+    /// This class handles parsing command-line arguments, displaying help information,
+    /// and executing commands such as initializing a new Spiderly project structure
+    /// with a .NET backend and an Angular frontend.
+    /// </summary>
     internal static class Program
     {
         private static readonly char _s_ = Path.DirectorySeparatorChar;

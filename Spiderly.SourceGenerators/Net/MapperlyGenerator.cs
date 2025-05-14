@@ -12,45 +12,9 @@ using System;
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// **Summary:**
-    /// Generates Mapster configuration methods (`{YourProjectName}Mapper.generated.cs`)
+    /// Generates Mapster configuration methods (`{YourAppName}Mapper.generated.cs`)
     /// within the `{YourBaseNamespace}.DataMappers` namespace. This generator automates
     /// the creation of mapping configurations between your entities and DTOs using the Mapster library.
-    ///
-    /// **Key Features:**
-    /// - **Automatic Mapping Configuration:** For each entity in your project (within the '.Entities' namespace),
-    ///   it generates Mapster `TypeAdapterConfig` methods for mapping:
-    ///     - From DTO to Entity (`{EntityName}DTOToEntityConfig`).
-    ///     - From Entity to DTO (`{EntityName}ToDTOConfig`).
-    ///     - Projecting Entity to DTO (with optional custom mappings via `[ProjectToDTO]` attribute) (`{EntityName}ProjectToConfig`).
-    ///     - Projecting Entity to DTO for Excel export (`{EntityName}ExcelProjectToConfig`).
-    /// - **Many-to-One Relationship Handling:** Automatically configures mapping for properties representing many-to-one relationships, mapping the related entity's ID and a display name property (identified by convention or a `DisplayName` attribute).
-    /// - **One-to-Many Relationship Handling:** Provides an option (using the `[GenerateCommaSeparatedDisplayName]` attribute on the one-to-many property) to map a comma-separated string of display names from the related entities to a property in the DTO.
-    /// - **Custom Mapping Support:** Respects manually written mapping methods in your custom mapper class (typically named `Mapper` in the `.DataMappers` namespace) and avoids generating duplicate configurations.
-    /// - **Extensibility:** Generates partial `Mapper` class, allowing you to add your own custom mapping configurations and extension methods.
-    ///
-    /// **How to Use:**
-    /// 1. Ensure your entity classes are located in a namespace ending with `.Entities`.
-    /// 2. Create corresponding DTO classes in a namespace ending with `.DTO`.
-    /// 3. (Optional) Create a partial static class named `Mapper` in a namespace ending with `.DataMappers` if you need to add custom mapping logic or use the `[MapperIgnoreTarget]` attribute (for Excel export exclusion).
-    /// 4. (Optional) On your entity classes, you can use the `[ProjectToDTO("CustomMapping")]` attribute to specify the name of a custom mapping method within your `Mapper` class to be included in the projection to the DTO.
-    /// 5. (Optional) On one-to-many navigation properties in your entity, you can use the `[GenerateCommaSeparatedDisplayName]` attribute to generate a comma-separated string of display names in the DTO. Ensure the related entity has a property identified as its display name.
-    /// 6. Build your .NET project. This source generator will automatically create the `{YourProjectName}Mapper.generated.cs` file.
-    /// 7. In your application, you can use the generated `TypeAdapterConfig` methods with Mapster's `Adapt()` and `ProjectToType()` extensions to perform mapping between entities and DTOs.
-    ///
-    /// **Generated Output:**
-    /// - `{YourProjectName}Mapper.generated.cs`: Contains a partial static class `Mapper` with methods like:
-    ///     - `EntityDTOToEntityConfig()`
-    ///     - `EntityToDTOConfig()`
-    ///     - `EntityProjectToConfig()` (includes mappings for many-to-one relationships and custom projections)
-    ///     - `EntityExcelProjectToConfig()` (similar to `ProjectToDTOConfig`)
-    /// - The namespace will be `{YourBaseNamespace}.DataMappers`.
-    /// - Includes necessary `using` statements for Mapster, ASP.NET Core, and your DTO and Entity namespaces.
-    ///
-    /// **Dependencies:**
-    /// - Requires the Mapster library to be installed in your project.
-    /// - Assumes a consistent project structure with Entities and DTOs namespaces.
-    /// 
     /// </summary>
     [Generator]
     public class MapperlyGenerator : IIncrementalGenerator

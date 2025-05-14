@@ -16,33 +16,9 @@ using Spiderly.SourceGenerators.Enums;
 namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
-    /// **Summary:**
-    /// Generates Angular enums (`{your-app-path}\Angular\src\app\business\enums\{kebab-case-project-name}-enums.generated.ts`)
+    /// Generates Angular enums (`{your-app-name}\Angular\src\app\business\enums\{your-app-name}-enums.generated.ts`)
     /// from C# `enum` declarations and specially marked C# classes within the '.Enums' namespace.
     /// This generator ensures type safety and consistency between your backend and frontend enum values.
-    ///
-    /// **Key Features:**
-    /// - **Automatic Enum Generation:** Creates TypeScript `enum` definitions for each C# `enum`.
-    /// - **Value Preservation:** Retains the integer values associated with C# enum members in the generated TypeScript enums.
-    /// - **Class-Based Enum Support:** Converts properties of C# classes (within the '.Enums' namespace) into TypeScript enums, treating each property name as an enum member with its name as its value.
-    /// - **Permission Code Aggregation:** Specifically handles a class named `{ProjectName}PermissionCodes` by also including dynamically generated permission codes derived from your C# entity classes.
-    ///
-    /// **How to Use:**
-    /// 1. Define your C# `enum` types in your .NET project.
-    /// 2. For class-based enums, create C# classes within a namespace ending with `.Enums`. Each property in these classes will become an enum member.
-    /// 3. If you have permission codes defined as properties in a class named `{YourProjectName}PermissionCodes` (in the '.Enums' namespace), these will be automatically included in the generated Angular enum.
-    /// 4. Build your .NET project. This source generator will automatically run during the build process.
-    /// 5. In your Angular application, import the generated enums from the `enums.generated.ts` file.
-    /// 6. Use these enums for type-safe handling of discrete value sets in your Angular components and services.
-    ///
-    /// **Generated Output:**
-    /// - A TypeScript file (`{kebab-case-project-name}-enums.generated.ts`) containing:
-    /// - TypeScript `enum` definitions corresponding to your C# `enum` types.
-    /// - TypeScript `enum` definitions generated from classes in the '.Enums' namespace.
-    /// - For the `{ProjectName}PermissionCodes` enum, members derived from entity names (e.g., `InsertUser = "InsertUser"`).
-    /// - Each enum member will have its name and optionally its associated value (if defined in C#). For class-based enums, the value will be the member's name as a string.
-    ///
-    /// **Note:** This generator targets standard C# `enum` syntax and classes within the specified '.Enums' namespace. Ensure your permission code class follows the `{ProjectName}PermissionCodes` naming convention for automatic inclusion of entity-based permissions.
     /// </summary>
     [Generator]
     public class NgEnumsGenerator : IIncrementalGenerator

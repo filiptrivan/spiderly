@@ -12,20 +12,26 @@ using System.Text;
 
 namespace Spiderly.Security.Services
 {
+    /// <summary>
+    /// Manages JWT (JSON Web Token) authentication and refresh token functionalities.
+    /// It handles the generation, validation, and storage of access and refresh tokens,
+    /// as well as verification tokens for login and registration processes.
+    /// </summary>
     public class JwtAuthManagerService : IJwtAuthManager
     {
         public IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary => _usersRefreshTokens.ToImmutableDictionary();
+
         // Making ConcurrentDictionary if two users are searching for the refresh token in the same time, use Redis in the future
         // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
-        private readonly ConcurrentDictionary<string, RefreshTokenDTO> _usersRefreshTokens = new ConcurrentDictionary<string, RefreshTokenDTO>();
+        private readonly ConcurrentDictionary<string, RefreshTokenDTO> _usersRefreshTokens = new();
 
         public IImmutableDictionary<string, RegistrationVerificationTokenDTO> UsersRegistrationVerificationTokensReadOnlyDictionary => _usersRegistrationVerificationTokens.ToImmutableDictionary();
-        private readonly ConcurrentDictionary<string, RegistrationVerificationTokenDTO> _usersRegistrationVerificationTokens = new ConcurrentDictionary<string, RegistrationVerificationTokenDTO>();
+        private readonly ConcurrentDictionary<string, RegistrationVerificationTokenDTO> _usersRegistrationVerificationTokens = new();
 
         public IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary => _usersLoginVerificationTokens.ToImmutableDictionary();
-        private readonly ConcurrentDictionary<string, LoginVerificationTokenDTO> _usersLoginVerificationTokens = new ConcurrentDictionary<string, LoginVerificationTokenDTO>();
+        private readonly ConcurrentDictionary<string, LoginVerificationTokenDTO> _usersLoginVerificationTokens = new();
 
-        private static readonly Random Random = new Random();
+        private static readonly Random Random = new();
 
         public JwtAuthManagerService()
         {

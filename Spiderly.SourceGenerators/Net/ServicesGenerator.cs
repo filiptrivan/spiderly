@@ -14,41 +14,11 @@ using System.Reflection;
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// **Summary:**
     /// Generates the `BusinessServiceGenerated` class (`BusinessService.generated.cs`)
     /// within the `{YourBaseNamespace}.Services` namespace. This class provides the
     /// core business logic for your entities, including CRUD operations, data retrieval,
     /// Excel export, and basic authorization checks. It serves as a base class for
     /// your custom business services.
-    ///
-    /// **Key Features:**
-    /// - **Automatic CRUD Method Generation:** For each entity, it generates asynchronous methods for reading (`Get`, `GetList`, `GetTableData`, `ExportTableDataToExcel`), saving (`Save`), and deleting (`Delete`).
-    /// - **DTO-Based Operations:** Primarily works with DTOs for data transfer, utilizing Mapster for efficient mapping between entities and DTOs.
-    /// - **Authorization Integration:** Includes calls to an `AuthorizationBusinessService` to perform basic authorization checks based on the `[ShouldAuthorizeEntity]` attribute.
-    /// - **Excel Export Functionality:** Leverages an `ExcelService` to export entity data to Excel, respecting configured exclusion properties.
-    /// - **Blob Property Handling:** Provides methods for uploading and retrieving Blob data using an `IFileManager`.
-    /// - **Relationship Handling:** Includes methods for efficiently retrieving data for related entities in many-to-one and one-to-many relationships (including support for ordered one-to-many and simple many-to-many scenarios with lazy loading).
-    /// - **FluentValidation Integration:** Performs validation of DTOs before saving using generated FluentValidation rules.
-    /// - **Extensibility:** Designed as a base class, allowing you to create custom business services that inherit from it and add more specific business logic.
-    ///
-    /// **How to Use:**
-    /// 1. Ensure your entity classes are in a namespace ending with `.Entities`.
-    /// 2. Build your .NET project. This source generator will automatically create the `BusinessService.generated.cs` file.
-    /// 3. Create your custom business service classes in the `.Services` namespace, inheriting from `BusinessServiceGenerated` (or `BusinessServiceGenerated<TUser>` in `Spiderly.Security` project).
-    /// 4. In your custom business services, you can override the generated methods to add custom logic or call them to leverage the base functionality.
-    /// 5. Register your custom business services and the `IApplicationDbContext`, `ExcelService`, `AuthorizationBusinessService`, and `IFileManager` in your dependency injection container.
-    ///
-    /// **Generated Output:**
-    /// - `BusinessService.generated.cs`: Contains the `BusinessServiceGenerated` class with methods for CRUD operations, data retrieval, Excel export, and relationship handling for each of your entities.
-    /// - The namespace will be `{YourBaseNamespace}.Services`.
-    ///
-    /// **Dependencies:**
-    /// - Requires `Microsoft.EntityFrameworkCore`.
-    /// - Depends on Mapster for object mapping.
-    /// - Utilizes generated DTO and FluentValidation rule classes.
-    /// - Relies on `ExcelService`, `AuthorizationBusinessService`, and `IFileManager` interfaces and implementations.
-    /// - Assumes the existence of `IApplicationDbContext` for database interaction.
-    /// - Uses `Spiderly.Shared` and `Spiderly.Security` namespaces for base classes, DTOs, exceptions, and interfaces.
     /// </summary>
     [Generator]
     public class ServicesGenerator : IIncrementalGenerator

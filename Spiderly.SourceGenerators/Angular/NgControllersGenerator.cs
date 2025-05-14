@@ -18,40 +18,10 @@ using Spiderly.SourceGenerators;
 namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
-    /// **Summary:**
     /// This generator produces an Angular `ApiService` (`{your-app-name}\Angular\src\app\business\services\api\api.service.generated.ts`)
     /// containing strongly-typed methods for interacting with your .NET Web API controllers.
     /// It analyzes C# controller classes (within the '.Controllers' namespace) and referenced entity and DTO classes
     /// to create corresponding Angular `HttpClient` calls.
-    ///
-    /// **Key Features:**
-    /// - **Automated API Client Generation:** Eliminates the need to manually write Angular service methods for API endpoints.
-    /// - **Strongly Typed Methods:** Generates methods with appropriate parameter types (based on controller action parameters)
-    ///   and return types (based on controller action return types), improving code maintainability and reducing errors.
-    /// - **Handles Various HTTP Methods:** Supports GET, POST, PUT, and DELETE requests based on controller action attributes (`[HttpGet]`, `[HttpPost]`, etc.).
-    /// - **Supports Different Return Types:** Correctly handles `Observable<string>`, `Observable<Blob>`, and `Observable<T>` for various controller action results.
-    /// - **Form Data Support:** Automatically generates `FormData` handling for controller actions accepting `[FromForm]` parameters, including `IFormFile` and `List<IFormFile>`.
-    /// - **Base Controller Support:** Inherits methods from a base controller (`SpiderBaseController`) to provide standard CRUD operations (Get, GetList, Save, Delete, TableData, Export to Excel, etc.) for entities.
-    /// - **Autocomplete and Dropdown Endpoints:** Generates specific methods for retrieving data for autocomplete (`Get[PropertyName]AutocompleteListFor[EntityName]`) and dropdown (`Get[PropertyName]DropdownListFor[EntityName]`) controls.
-    /// - **Ordered One-to-Many and Many-to-Many Support:** Generates methods for managing related entities in one-to-many and many-to-many scenarios.
-    /// - **Lazy Loading for Many-to-Many Tables:** Includes methods for efficiently fetching data for simple many-to-many tables with lazy loading (`LazyLoadSelected[PropertyName]IdsFor[EntityName]`, `Get[PropertyName]TableDataFor[EntityName]`).
-    /// - **Spinner Control:** Configures HTTP options to potentially skip the global spinner for specific endpoints (e.g., namebook lookups, table data).
-    ///
-    /// **How to Use:**
-    /// 1. Ensure your .NET Web API project has controllers in a namespace ending with `.Controllers`.
-    /// 2. Ensure your entity and DTO classes are in namespaces ending with `.Entities` and `.DTO` respectively.
-    /// 3. Build your .NET project. This source generator will automatically run during the build process.
-    /// 4. In your Angular application, inject the `ApiGeneratedService`.
-    /// 5. Call the generated methods (e.g., `apiGeneratedService.getEntityList()`, `apiGeneratedService.saveEntity(entity)`, `apiGeneratedService.getUserAutocompleteList(limit, filter)`) to interact with your backend API.
-    ///
-    /// **Generated Output:**
-    /// - An Angular service class `ApiGeneratedService` extending `ApiSecurityService`.
-    /// - Methods within this service that correspond to your Web API controller actions.
-    /// - Correctly typed parameters and return values as `Observable<T>`.
-    /// - Handling of URL construction, HTTP method selection, and request body serialization.
-    /// - Import statements for necessary Angular modules (`HttpClient`, `Injectable`) and generated entity/DTO interfaces.
-    ///
-    /// **Note:** This generator relies on the `Spiderly` library's base classes (`ApiSecurityService`) and models (`TableFilter`, `TableResponse`, `Namebook`, etc.). Ensure these are available in your Angular project. You'll also need to have a `ConfigService` in your Angular application that provides the `apiUrl`.
     /// </summary>
     [Generator]
     public class NgControllersGenerator : IIncrementalGenerator

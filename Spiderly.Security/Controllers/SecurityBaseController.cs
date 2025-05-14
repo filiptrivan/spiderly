@@ -11,6 +11,13 @@ using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Security.SecurityControllers // Needs to be other namespace because of source generator
 {
+    /// <summary>
+    /// A base controller providing core security functionalities such as authentication, user management, and role-based access control.
+    /// It leverages various services for handling user authentication (login, registration, logout, token refresh),
+    /// retrieving user information and permissions, and managing roles (CRUD operations, assigning users and permissions).
+    /// This controller is designed to be extended for specific user types.
+    /// </summary>
+    /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
     public class SecurityBaseController<TUser> : SpiderBaseController where TUser : class, IUser, new()
     {
         private readonly SecurityBusinessService<TUser> _securityBusinessService;
@@ -42,6 +49,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             await _securityBusinessService.SendLoginVerificationEmail(loginDTO);
         }
 
+        /// <summary>
+        /// Made it async because of potential override
+        /// </summary>
         [HttpPost]
         public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO request)
         {
@@ -72,7 +82,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         public ActionResult Logout(string browserId)
         {
             string email = _authenticationService.GetCurrentUserEmail();
-            _jwtAuthManagerService.Logout(browserId, email); // FT: If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
+            _jwtAuthManagerService.Logout(browserId, email); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
 
             return Ok();
         }
