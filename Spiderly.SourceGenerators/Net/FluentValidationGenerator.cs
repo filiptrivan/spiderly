@@ -11,6 +11,34 @@ using System.Diagnostics;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates FluentValidation validator classes (`{YourProjectName}ValidationRules.generated.cs`)
+    /// within the `{YourBaseNamespace}.ValidationRules` namespace. These validators are
+    /// automatically created based on the validation attributes defined on your DTO properties.
+    ///
+    /// **Key Features:**
+    /// - **Automatic Validator Generation:** For each DTO class in your project (within the '.DTO' namespace) that corresponds to an entity (in the '.Entities' namespace),
+    ///   it generates a FluentValidation validator class.
+    /// - **Validation Rule Mapping:** Translates standard .NET validation attributes (e.g., `[Required]`, `[StringLength]`, `[EmailAddress]`, `[Range]`, `[RegularExpression]`, `[PrecisionScale]`, `[NotHaveWhiteSpace]`)
+    ///   into their FluentValidation equivalents (e.g. `NotNull()`, `NotEmpty()`, `Length()`, `EmailAddress()`, `InclusiveBetween()`, `Matches()`, `ScalePrecision()`, `MustNotWhiteSpace()`).
+    /// - **Extensibility:** Allowing you to easily add custom validation rules as needed by CustomValidator attribute (e.g. CustomValidator("...")).
+    /// - **Namespace Alignment:** Places the generated validator classes in a `.ValidationRules` sub-namespace, aligning with the `.DTO` namespace structure.
+    /// - **Handles Partial DTOs:** Correctly processes DTO classes that are split across multiple partial files.
+    ///
+    /// **How to Use:**
+    /// 1. Decorate your DTO properties with standard .NET validation attributes.
+    /// 2. Ensure that for each DTO you want validation rules generated, there is a corresponding entity class (with the same name, minus the "DTO" suffix) in your '.Entities' namespace.
+    /// 3. Build your .NET project. This source generator will automatically run during the build process.
+    /// 4. The generated validator classes will be created in a `.ValidationRules` sub-namespace.
+    /// 5. In your services or wherever you need to perform validation, instantiate these generated validator classes and use them to validate your DTO instances.
+    ///
+    /// **Generated Output:**
+    /// - `{YourProjectName}ValidationRules.generated.cs`: Contains FluentValidation validator classes (e.g., `UserDTOValidationRules`) for each of your DTOs. Each validator class inherits from `AbstractValidator<{YourDTO}>` and defines validation rules in its constructor using the `RuleFor` method and FluentValidation's validation methods (e.g., `NotNull()`, `Length()`).
+    /// - The namespace will be `{YourBaseNamespace}.ValidationRules`.
+    ///
+    /// **Note:** This generator provides a convenient way to automatically create basic FluentValidation rules based on your existing .NET validation attributes. For more complex validation scenarios or custom validation logic, add CustomValidator attribute (e.g. CustomValidator("...")).
+    /// </summary>
     [Generator]
     public class FluentValidationGenerator : IIncrementalGenerator
     {

@@ -13,6 +13,49 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates base API controller classes (`{YourAppName}BaseControllers.generated.cs`)
+    /// within the `{YourBaseNamespace}.Controllers` namespace. These base controllers provide
+    /// generic CRUD endpoints for your entities, leveraging corresponding business services.
+    ///
+    /// **Key Features:**
+    /// - **Automatic CRUD Endpoint Generation:** For each entity in your project (within the '.Entities' namespace) that has a corresponding business service,
+    ///   it generates a base controller with standard CRUD actions: `GetTableData`, `ExportTableDataToExcel`, `GetList`, `GetMainUIFormDTO`, `Get`, `Save`, and `Delete`.
+    /// - **Relationship Handling:** Includes methods for handling common entity relationships:
+    ///     - **Many-to-One:** Generates autocomplete and dropdown list endpoints for related entities.
+    ///     - **Many-to-Many:** Provides endpoints for retrieving selected related entities and lazy-loading data for related tables.
+    ///     - **One-to-Many (Ordered):** Offers endpoints to retrieve ordered lists of related entities.
+    /// - **Blob Property Handling:** Includes basic upload functionality for Blob properties.
+    /// - **Authorization Integration:** Applies the `[AuthGuard]` attribute to all generated actions, relying on your authentication/authorization setup. Authorization checks within the business service are controlled by the `ShouldAuthorizeEntity` attribute.
+    /// - **DTO-Based Operations:** Primarily works with DTOs (`{EntityName}DTO`, `{EntityName}SaveBodyDTO`, `TableResponseDTO`, `TableFilterDTO`, `NamebookDTO`) for data transfer.
+    /// - **Excel Export:** Includes functionality to export table data to Excel.
+    /// - **Localization:** Uses resource files (`{YourAppName}.Shared.Resources.TermsGenerated`) for localized Excel export names.
+    /// - **Dependency Injection:** The generated controllers are designed to receive `IApplicationDbContext` and the corresponding business service via constructor injection.
+    ///
+    /// **How to Use:**
+    /// 1. Ensure your entity classes are in a namespace ending with `.Entities`.
+    /// 2. Create corresponding business service classes in a namespace ending with `.Services`. These services should ideally follow a naming convention (e.g., `{EntityName}BusinessService`) and be registered in your DI container.
+    /// 3. Apply the `[ShouldAuthorizeEntity(true/false)]` attribute to your entity classes to control whether authorization checks should be enforced for that entity's CRUD operations within the generated controller actions.
+    /// 4. Build your .NET project. This source generator will automatically create the `{YourAppName}BaseControllers.generated.cs` file.
+    /// 5. Create your actual API controllers by inheriting from these generated base controllers (e.g., `public class UsersController : UsersBaseController`). This allows you to add custom endpoints and logic while benefiting from the generated standard CRUD actions.
+    ///
+    /// **Generated Output:**
+    /// - `{YourAppName}BaseControllers.generated.cs`: Contains base controller classes (e.g., `{EntityName}BaseController`) for each of your entities. Each base controller includes:
+    ///     - Constructor injecting `IApplicationDbContext` and the corresponding business service.
+    ///     - Standard CRUD action methods (`GetTableData`, `ExportTableDataToExcel`, `GetList`, `GetMainUIFormDTO`, `Get`, `Save`, `Delete`) decorated with `[HttpPost]`, `[HttpGet]`, `[HttpPut]`, `[HttpDelete]`, and `[AuthGuard]`.
+    ///     - Methods for handling many-to-one, many-to-many, and ordered one-to-many relationships.
+    ///     - Basic `Upload{BlobPropertyName}For{EntityName}` action for Blob properties.
+    /// - The namespace will be `{YourBaseNamespace}.Controllers`.
+    /// - Includes necessary `using` statements.
+    ///
+    /// **Dependencies:**
+    /// - Requires `Microsoft.EntityFrameworkCore`.
+    /// - Depends on a consistent project structure with Entities and Services namespaces.
+    /// - Assumes the existence of DTO classes (e.g., `{EntityName}DTO`, `{EntityName}SaveBodyDTO`).
+    /// - Relies on `SpiderBaseController`, `TableResponseDTO`, `TableFilterDTO`, `NamebookDTO`, `[AuthGuard]`, `[ShouldAuthorizeEntity]`, and helper extensions from the `Spiderly.Infrastructure` and `Spiderly.Shared` namespaces.
+    /// - Uses resource files for localization.
+    /// </summary>
     [Generator]
     public class ControllerGenerator : IIncrementalGenerator
     {

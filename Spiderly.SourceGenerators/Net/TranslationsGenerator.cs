@@ -9,6 +9,45 @@ using System.Linq;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates translation resource files (`TermsGenerated.resx`, `TermsGenerated.sr-Latn-RS.resx`)
+    /// in the `.Shared` project and Angular i18n JSON files (`en.generated.json`, `sr-Latn-RS.generated.json`)
+    /// in the Angular project's `src/assets/i18n` folder. These files contain translations for
+    /// entity names (singular and plural), Excel export names, and property names, based on
+    /// the `[Translate]` attribute applied to your entity classes and their properties.
+    ///
+    /// **Key Features:**
+    /// - **Automatic Translation Key Generation:** For each entity and its properties, it generates translation keys based on their names.
+    /// - **Attribute-Driven Translation:** Uses the `[Translate]` attribute on entities and properties to determine their translated values for different languages.
+    /// - **Support for Singular, Plural, and Excel Forms:** Generates translations specifically for singular and plural entity names, as well as names suitable for Excel export.
+    /// - **Language-Specific Files:** Creates separate resource and JSON files for each supported language (currently English and Serbian Latin).
+    /// - **Angular i18n Compatibility:** Generates JSON files in a format directly usable by Angular's internationalization (i18n) system.
+    /// - **Consistent File Paths:** Places the generated resource files in the `.Shared` project's `Resources` folder and the Angular i18n files in the Angular project's `src/assets/i18n` folder.
+    /// - **Handles Duplicate Keys:** Prevents duplicate keys in the generated files.
+    ///
+    /// **How to Use:**
+    /// 1. Decorate your entity classes and their properties with the `[Translate]` attribute to provide translations for different languages. The attribute takes the `TranslationCodes` (Singular, Plural, Excel) and the translated string as arguments. For properties, only the translated string is needed.
+    /// 2. Ensure your `.WebAPI` project is in the same solution as your `.Shared` and Angular projects, following a standard project structure.
+    /// 3. Build your .NET solution. This source generator will automatically run during the build process of your `.WebAPI` project.
+    /// 4. The generated resource files (`TermsGenerated.resx`, `TermsGenerated.sr-Latn-RS.resx`) will be created in the `Resources` folder of your `.Shared` project.
+    /// 5. The generated Angular i18n files (`en.generated.json`, `sr-Latn-RS.generated.json`) will be created in the `src/assets/i18n` folder of your Angular project.
+    /// 6. In your .NET code, you can use the generated resource files (typically accessed via a `TermsGenerated` class) to retrieve translations.
+    /// 7. In your Angular application, configure Angular `transloco` to use the generated JSON files for providing translations to your users.
+    ///
+    /// **Generated Output:**
+    /// - `.Shared/Resources/TermsGenerated.resx`: Contains English translations as key-value pairs.
+    /// - `.Shared/Resources/TermsGenerated.sr-Latn-RS.resx`: Contains Serbian Latin translations as key-value pairs.
+    /// - `Angular/src/assets/i18n/en.generated.json`: Contains English translations in JSON format.
+    /// - `Angular/src/assets/i18n/sr-Latn-RS.generated.json`: Contains Serbian Latin translations in JSON format.
+    /// - The keys in these files will correspond to your entity names (with suffixes like "List", "ExcelExportName") and your property names.
+    /// - The values will be the translated strings you provided via the `[Translate]` attribute.
+    ///
+    /// **Dependencies:**
+    /// - Requires your `.WebAPI`, `.Shared`, and Angular projects to be in the same solution with a recognizable folder structure.
+    /// - `Spiderly.Shared`
+    /// 
+    /// </summary>
     [Generator]
     public class TranslationsGenerator : IIncrementalGenerator
     {

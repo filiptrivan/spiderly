@@ -13,6 +13,50 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates an `AuthorizationBusinessServiceGenerated` class (`AuthorizationBusinessService.generated.cs`)
+    /// that extends `AuthorizationService` and provides methods for declarative authorization checks
+    /// based on your entity classes. This service simplifies the process of enforcing permissions
+    /// before performing CRUD operations on your entities.
+    ///
+    /// **Key Features:**
+    /// - **Automated Authorization Method Generation:** For each entity in your project (within the '.Entities' namespace),
+    ///   it generates asynchronous methods (e.g., `AuthorizeUser`, `AuthorizeUserList`, `AuthorizeInsertUser`, etc.)
+    ///   that perform authorization checks.
+    /// - **CRUD Operation Support:** Generates methods for common CRUD operations (Read, Update, Insert, Delete, and bulk Delete).
+    /// - **Blob Property Authorization:** Includes specific authorization methods for updating and inserting Blob properties associated with entities.
+    /// - **Permission Code Integration:** Leverages an enumeration (`{ProjectName}PermissionCodes`) to define the specific permissions required for each operation on each entity.
+    /// - **Transaction Management:** Wraps authorization checks within a transaction using `_context.WithTransactionAsync`.
+    /// - **Generic User Support (for Security Projects):** If the project name is "Security", the generated service is generic (`AuthorizationBusinessServiceGenerated<TUser>`)
+    ///   allowing you to specify your custom user type that implements `IUser`.
+    /// - **Dependency Injection Ready:** The generated service depends on `IApplicationDbContext` and `AuthenticationService`, making it easy to integrate with your dependency injection setup.
+    ///
+    /// **How to Use:**
+    /// 1. Ensure your entity classes are located in a namespace ending with `.Entities`.
+    /// 2. Define an enumeration named `{YourProjectName}PermissionCodes` containing members for each CRUD operation on your entities (e.g., `UserRead`, `UserInsert`, `BlobForUserUpdate`).
+    /// 3. Build your .NET project. This source generator will automatically run during the build process.
+    /// 4. In your business logic or API controllers, inject `AuthorizationBusinessServiceGenerated` (or `AuthorizationBusinessServiceGenerated<TUser>` in Security projects).
+    /// 5. Call the generated `Authorize...` methods before performing corresponding data operations (e.g., `await _authorizationBusinessService.AuthorizeUser(userId);`).
+    /// 6. The `AuthorizeAndThrowAsync` method (inherited from `AuthorizationService`) will handle the actual permission check and throw an exception if the user is not authorized.
+    ///
+    /// **Generated Output:**
+    /// - `AuthorizationBusinessService.generated.cs`: A class named `AuthorizationBusinessServiceGenerated` (or generic version) with methods like:
+    /// - `Authorize{EntityName}({EntityIdType}? {entityName}IdToRead)`
+    /// - `Authorize{EntityName}List(List<{EntityIdType}> {entityName}IdListToRead)`
+    /// - `AuthorizeInsert{EntityName}({EntityName}DTO dto)`
+    /// - `AuthorizeUpdate{EntityName}({EntityName}DTO dto)`
+    /// - `AuthorizeDelete{EntityName}({EntityIdType} {entityName}Id)`
+    /// - `AuthorizeDelete{EntityName}List(List<{EntityIdType}> {entityName}ListToDelete)`
+    /// - `Authorize{BlobPropertyName}For{EntityName}({EntityIdType} {entityName}Id)` (for Blob updates)
+    /// - `Authorize{BlobPropertyName}For{EntityName}()` (for Blob inserts)
+    ///
+    /// **Dependencies:**
+    /// - Requires an `IApplicationDbContext` for transaction management.
+    /// - Depends on an `AuthenticationService` (from the `Spiderly.Security` namespace) for retrieving user information.
+    /// - Assumes the existence of a permission code enumeration named `{YourProjectName}PermissionCodes`.
+    /// - Relies on a base `AuthorizationService` class (from the `Spiderly.Security` namespace) with an `AuthorizeAndThrowAsync` method.
+    /// </summary>internal sealed partial class SourceGenerator : SourceGenerator
     [Generator]
     public class AuthorizationServicesGenerator : IIncrementalGenerator
     {

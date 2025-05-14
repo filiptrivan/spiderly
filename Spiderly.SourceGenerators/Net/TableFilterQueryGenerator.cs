@@ -10,6 +10,36 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates the `TableFilterQueryable` static class (`TableFilterQueryable.generated.cs`)
+    /// within the `{YourBaseNamespace}.TableFiltering` namespace. This class provides a method
+    /// `Build` that dynamically constructs an EF Core query with filtering based on the
+    /// `TableFilterDTO` payload. It intelligently handles filtering on properties that might
+    /// exist in the DTO but not directly in the entity, by looking up mapping configurations.
+    ///
+    /// **Key Features:**
+    /// - **Dynamic Filtering:** Applies filters to an `IQueryable` of an entity based on the provided `TableFilterDTO`.
+    /// - **DTO Property Handling:** Can filter on properties present in the DTO even if they don't directly map to entity properties (e.g., display names, IDs of related entities).
+    /// - **Mapping Awareness:** Leverages mapping configurations (potentially defined using attributes like `[ProjectToDTO]`) to understand how DTO properties relate to entity properties.
+    /// - **Standard Match Modes:** Supports common filter match modes like "startsWith", "contains", "equals", "dateBefore", "dateAfter", "lte", "gte", and "in".
+    /// - **Enumerable Filtering:** Handles "in" filtering for enumerable properties by checking if any related entity's ID is in the provided values.
+    /// - **String, Boolean, DateTime, and Numeric Filtering:** Provides specific filtering logic for different data types.
+    /// - **Pagination Result:** Returns a `PaginationResult` containing the filtered query and the total number of records.
+    ///
+    /// **How to Use:**
+    /// 1. When fetching data for tables with filtering capabilities, pass the `IQueryable<YourEntity>` and the `TableFilterDTO` to the `TableFilterQueryable.Build` method.
+    /// 2. The `Build` method will return a `PaginationResult<YourEntity>` with the filtered query that you can then use for pagination.
+    /// 3. If you need to filter on DTO properties that are not directly on the entity, ensure that a mapping configuration exists (either by convention or through attributes like `[ProjectToDTO]`).
+    ///
+    /// **Generated Output:**
+    /// - `TableFilterQueryable.generated.cs`: Contains a static class `TableFilterQueryable` with a `Build` method for each of your entity classes (that have a base type, excluding abstract ones). The `Build` method takes an `IQueryable<YourEntity>` and a `TableFilterDTO` and returns a `Task<PaginationResult<YourEntity>>` with the filtered query.
+    /// - The namespace will be `{YourBaseNamespace}.TableFiltering`.
+    ///
+    /// **Dependencies:**
+    /// - Requires `LinqKit.Core` and `Microsoft.EntityFrameworkCore`.
+    /// 
+    /// </summary>
     [Generator]
     public class TableFilterQueryGenerator : IIncrementalGenerator
     {
