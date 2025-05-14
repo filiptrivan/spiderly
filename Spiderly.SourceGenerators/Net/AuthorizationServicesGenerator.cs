@@ -16,7 +16,6 @@ namespace Spiderly.SourceGenerators.Net
     [Generator]
     public class AuthorizationServicesGenerator : IIncrementalGenerator
     {
-
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             //#if DEBUG

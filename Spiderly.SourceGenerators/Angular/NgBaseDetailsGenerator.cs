@@ -13,6 +13,47 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates Angular component code for displaying and editing entity details on the frontend.
+    /// This generator targets C# entity and DTO classes (marked within 'Entities' or 'DTO' namespaces)
+    /// and produces a TypeScript file (`{your-app-name}\Angular\src\app\business\components\base-details\{your-app-name}-base-details.generated.ts`).
+    ///
+    /// **Key Features:**
+    /// - **Automatic UI Generation:** Creates a `BaseDetailsComponent` for each relevant entity, including:
+    ///     - Form layout based on entity properties.
+    ///     - Integration with PrimeNG UI components and custom `SpiderlyControlsModule`.
+    ///     - Transloco for internationalization.
+    ///     - Basic save functionality.
+    ///     - Handling of one-to-many and many-to-many relationships.
+    ///     - Support for lazy-loaded simple many-to-many tables.
+    ///     - Role-based authorization for save actions (configurable via attributes).
+    /// - **Extensibility:** Provides `@Input` properties and `@Output` events for customization:
+    ///     - `additionalButtons`: Add custom buttons to the footer.
+    ///     - `isFirstMultiplePanel`, `isMiddleMultiplePanel`, `isLastMultiplePanel`, `showPanelHeader`, `panelTitle`, `panelIcon`: Control panel appearance in nested scenarios.
+    ///     - `showReturnButton`: Toggle the visibility of a return button.
+    ///     - Event emitters (`onSave`, `on[EntityName]FormGroupInitFinish`, `onIsAuthorizedForSaveChange`).
+    ///     - Visibility toggles for specific form blocks (`show[PropertyName]For[EntityName]`).
+    /// - **Form Management:** Utilizes `SpiderlyFormGroup` and `SpiderlyFormArray` for reactive form handling.
+    /// - **Data Fetching:** Relies on an `ApiService` for retrieving and saving entity data.
+    /// - **Authorization:** Integrates with an `AuthService` to determine save permissions based on user roles and optional entity-level attributes (`UIAdditionalPermissionCodeForInsert`, `UIAdditionalPermissionCodeForUpdate`).
+    ///
+    /// **How to Extend/Customize:**
+    /// - **Input Binding:** Control component behavior and appearance using the provided `@Input` properties in the parent component.
+    /// - **Event Handling:** Subscribe to the `@Output` events to implement custom logic on save or form initialization.
+    /// - **Additional Buttons:** Pass an array of `SpiderlyButton` objects to the `additionalButtons` input.
+    /// - **Conditional Visibility:** Use the `show[PropertyName]For[EntityName]` inputs to show/hide specific form sections.
+    /// - **Authorization Overrides:** Provide a custom `authorizedForSaveObservable` function via `@Input` for more complex authorization logic.
+    ///
+    /// **Generated Output:**
+    /// - An Angular component (`[EntityName]BaseDetailsComponent`) with:
+    ///     - Properties for form controls, data, and UI state.
+    ///     - Methods for initialization, data loading, saving, and handling related entities.
+    ///     - Template with PrimeNG components and structural directives.
+    ///     - Imports for necessary Angular modules and custom components.
+    ///
+    /// **Note:** This generator assumes the existence of related Angular services (`ApiService`, `BaseFormService`, `ValidatorService`, `TranslateLabelsService`, `TranslocoService`, `AuthService`), custom UI modules (`PrimengModule`, `SpiderlyControlsModule`), and potentially other generated components (`CardSkeletonComponent`, `IndexCardComponent`, `SpiderlyDataTableComponent`, `ReturnButtonComponent`).
+    /// </summary>
     [Generator]
     public class NgBaseDetailsGenerator : IIncrementalGenerator
     {

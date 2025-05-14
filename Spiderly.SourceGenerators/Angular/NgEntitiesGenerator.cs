@@ -15,6 +15,37 @@ using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates Angular entity and DTO classes (`{your-app-name}\Angular\src\app\business\entities\{your-app-name}-entities.generated.ts`)
+    /// based on corresponding C# classes within the '.Entities' and '.DTO' namespaces.
+    /// This generator simplifies frontend data modeling by automatically creating TypeScript interfaces/classes
+    /// that mirror your backend data structures.
+    ///
+    /// **Key Features:**
+    /// - **Automatic Type Generation:** Creates Angular classes for each C# entity and DTO.
+    /// - **Inheritance from BaseEntity:** Generated classes extend a `BaseEntity` class from the `spiderly` library, providing common entity properties and functionality.
+    /// - **Property Mapping:** Maps C# properties to their equivalent TypeScript types using `Helpers.GetAngularType()`.
+    /// - **Constructor Generation:** Includes a constructor that accepts an optional object literal for easy instantiation, with all properties being optional (`?:`).
+    /// - **Import Handling:** Automatically imports necessary types, including `BaseEntity`, `TableFilter`, enums (from a generated enums file), and other related entity/DTO classes.
+    /// - **Handles Duplicate Class Names:** Groups properties from potentially duplicate C# class names (e.g., `UserDTO` and `UserDTO.generated`) into a single Angular class.
+    ///
+    /// **How to Use:**
+    /// 1. Ensure your C# entity and DTO classes are located in namespaces ending with `.Entities` or `.DTO`.
+    /// 2. Build your .NET project. This source generator will automatically run during the build process.
+    /// 3. In your Angular application, import the generated entity/DTO classes from the generated `entities.generated.ts` file.
+    /// 4. Use these classes for type-safe data handling within your Angular components and services.
+    ///
+    /// **Generated Output:**
+    /// - A TypeScript file (`{your-app-name}-entities.generated.ts`) containing:
+    ///     - Import statements for `BaseEntity` and other necessary types.
+    ///     - TypeScript classes (extending `BaseEntity`) representing your C# entities and DTOs.
+    ///     - Properties within these classes with their corresponding Angular data types (all properties are optional).
+    ///     - Constructors for easy object creation.
+    ///     - Imports for any referenced enum types from a related `enums.generated.ts` file.
+    ///
+    /// **Note:** This generator relies on the `BaseEntity` class from the `spiderly` Angular library. Ensure this library is installed in your Angular project. It also assumes that a separate source generator (`NgEnumsGenerator`) is responsible for creating the `enums.generated.ts` file if your DTOs or entities use enums.
+    /// </summary>
     [Generator]
     public class NgEntitiesGenerator : IIncrementalGenerator
     {

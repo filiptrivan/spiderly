@@ -14,6 +14,38 @@ using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates an Angular `ValidatorServiceGenerated` (`validators.generated.ts`)
+    /// within the `{your-app-path}\Angular\src\app\business\services\validators` directory.
+    /// This service provides methods to dynamically set Angular form validators based on validation attributes
+    /// defined on your C# DTO properties.
+    ///
+    /// **Key Features:**
+    /// - **Automatic Validator Generation:** Analyzes validation attributes (e.g., `[Required]`, `[StringLength]`, `[EmailAddress]`, `[Range]`, `[RegularExpression]`, `[PrecisionScale]`, `[NotHaveWhiteSpace]`)
+    ///   on your C# DTO properties and generates corresponding Angular validator functions.
+    /// - **Dynamic Validator Assignment:** The `setValidator` method allows you to retrieve the appropriate validator function for a given form control and DTO property name.
+    /// - **Transloco Integration:** Utilizes `@jsverse/transloco` for providing localized validation error messages. Translation keys are automatically generated based on the validation rules.
+    /// - **Type-Specific Validation:** Handles different data types appropriately (e.g., checking `value !== '<p></p>'` for editor controls).
+    /// - **Supports Common Validation Rules:** Includes support for required fields, string length constraints, email address format, numeric ranges, regular expressions, precision and scale for numbers, and disallowing whitespace.
+    /// - **Integration with `SpiderlyFormControl`:** Designed to work with `SpiderlyFormControl`, a custom form control provided by the `spiderly` library.
+    ///
+    /// **How to Use:**
+    /// 1. Decorate your C# DTO properties with standard .NET validation attributes.
+    /// 2. Build your .NET project. This source generator will automatically run during the build process.
+    /// 3. In your Angular forms, inject the `ValidatorServiceGenerated`.
+    /// 4. When creating or configuring your `SpiderlyFormControl` instances, call the `setValidator` method, passing the form control instance and a unique key (typically the lowercase property name concatenated with the DTO class name).
+    /// 5. Ensure you have corresponding translation keys (e.g., `"NotEmpty"`, `"Length"`, `"EmailAddress"`) in your Transloco language files to provide user-friendly error messages.
+    ///
+    /// **Generated Output:**
+    /// - `validators.generated.ts`: An Angular service (`ValidatorServiceGenerated`) with:
+    /// - A `setValidator` method that returns a `SpiderlyValidatorFn` based on the provided key.
+    /// - Individual validator functions (e.g., `firstNameUserValidator`, `emailAddressUserValidator`) for each DTO property with validation rules.
+    /// - Each validator function checks the form control's value against the defined rules and returns a `ValidationErrors` object (or `null` if valid).
+    /// - Error messages are obtained using `this.translocoService.translate()` with dynamically generated keys.
+    ///
+    /// **Note:** This generator relies on the `SpiderlyFormControl` and `SpiderlyValidatorFn` types from the `spiderly` Angular library. Ensure this library is installed in your Angular project. You also need to have `@jsverse/transloco` configured for localization.
+    /// </summary>
     [Generator]
     public class NgValidatorsGenerator : IIncrementalGenerator
     {

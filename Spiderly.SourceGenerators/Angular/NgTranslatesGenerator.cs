@@ -16,6 +16,33 @@ using Spiderly.SourceGenerators.Models;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// **Summary:**
+    /// Generates Angular translation services (`class-names.generated.ts` and `labels.generated.ts`)
+    /// within the `{your-app-path}\Angular\src\app\business\services\translates` directory.
+    /// These services leverage Transloco to provide basic translation capabilities for class names and DTO property labels
+    /// based on your backend DTO classes.
+    ///
+    /// **Key Features:**
+    /// - **Automated Translation Key Generation:** Scans your C# DTO classes and generates `translate` methods in Angular services.
+    /// - **Class Name Translation:** Creates `TranslateClassNamesGeneratedService` which provides a `translate(className: string)` method. This method attempts to translate a given class name (without the "DTO" suffix) using Transloco's `translate` function with the class name as the key.
+    /// - **Property Label Translation:** Creates `TranslateLabelsGeneratedService` with a `translate(propertyName: string)` method. This method tries to translate a given DTO property name (with some basic heuristics to remove "Id", "DisplayName", "CommaSeparated" suffixes) using Transloco with the processed property name as the key.
+    /// - **Transloco Integration:** Assumes you are using `@jsverse/transloco` for internationalization in your Angular project.
+    /// - **Simple Key Mapping:** Uses the class name or property name (after basic processing) directly as the translation key. You'll need to ensure corresponding entries exist in your Transloco translation files.
+    ///
+    /// **How to Use:**
+    /// 1. Ensure you have `@jsverse/transloco` installed and configured in your Angular project.
+    /// 2. Build your .NET project. This source generator will automatically run during the build process.
+    /// 3. In your Angular components or services, inject either `TranslateClassNamesGeneratedService` or `TranslateLabelsGeneratedService`.
+    /// 4. Call the `translate()` method, passing the class name (e.g., `user`) or property name (e.g., `firstName`) as a string.
+    /// 5. Ensure you have corresponding translation keys (e.g., `"User": "Utilisateur"`, `"FirstName": "Prénom"`) defined in your Transloco language files (e.g., `en.json`, `fr.json`).
+    ///
+    /// **Generated Output:**
+    /// - `class-names.generated.ts`: An Angular service (`TranslateClassNamesGeneratedService`) with a `translate` method for class names.
+    /// - `labels.generated.ts`: An Angular service (`TranslateLabelsGeneratedService`) with a `translate` method for DTO property labels.
+    /// - Both services are `@Injectable({ providedIn: 'root' })` for easy dependency injection.
+    /// - The `translate` methods use a `switch` statement to map the input string to a `this.translocoService.translate()` call.
+    /// </summary>
     [Generator]
     public class NgTranslatesGenerator : IIncrementalGenerator
     {
