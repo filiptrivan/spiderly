@@ -8,8 +8,8 @@ namespace Spiderly.Shared.FluentValidation
 {
 
     /// <summary>
-    /// FT: If you are adding more custom validators, you need to change the generator
-    /// Generator only support property validators, not the whole dto ones (eg. x => x, only x => x.Name)
+    /// If you want to add more custom validators here, you need to change the generator also
+    /// Generator only support property validators, not the whole DTO ones (eg. x => x, only x => x.Name)
     /// </summary>
     public static class CustomValidators
     {

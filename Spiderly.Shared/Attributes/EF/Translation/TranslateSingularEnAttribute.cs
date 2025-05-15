@@ -7,16 +7,30 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.Translation
 {
     /// <summary>
-    /// Putting it on the class will translate the singular form of it (e.g. for class UserPoint: [TranslateSingularEn("User point")])
-    /// It will be used in:
-    /// - Base form details UI component 
-    /// 
-    /// Putting it on the property will translate the singular form of it (e.g. for property EmailAddress: [TranslateSingularEn("Email address")])
-    /// It will be used in:
-    /// - UI field label
-    /// - UI validation (e.g. "Field 'Email address' can not be empty.")
-    /// - Server validation (e.g. "Field 'Email address' can not be empty.")
-    /// 
+    /// Specifies the English singular form translation for a class or property. <br/> <br/>
+    /// When applied to a <b>class</b>: <br/>
+    /// - Used in base form details UI component title <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// [TranslateSingularEn("User point")]
+    /// public class UserPoint : BusinessObject&lt;long&gt;
+    /// {
+    ///     // Class properties
+    /// }
+    /// </code>
+    /// <br/>
+    /// When applied to a <b>property</b>: <br/>
+    /// - Used as UI field label <br/>
+    /// - Used in UI validation messages (e.g., "Field 'Email address' cannot be empty") <br/>
+    /// - Used in server validation messages (e.g., "Field 'Email address' cannot be empty") <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     [TranslateSingularEn("Email address")]
+    ///     public string Email { get; set; }
+    /// }
+    /// </code>
     /// </summary>
     public class TranslateSingularEnAttribute : Attribute
     {

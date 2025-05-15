@@ -7,19 +7,26 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Set to the enumerable property in combination with `SimpleManyToManyTableLazyLoad` attribute.
-    /// e.g.
-    /// ```csharp
-    /// #region UITableColumn
-    /// [UITableColumn(nameof(PartnerUserDTO.UserDisplayName))]
-    /// [UITableColumn(nameof(PartnerUserDTO.Points))]
-    /// [UITableColumn(nameof(PartnerUserDTO.TierDisplayName))]
-    /// [UITableColumn(nameof(PartnerUserDTO.CheckedSegmentationItemsCommaSeparated), "Segmentation")]
-    /// [UITableColumn(nameof(PartnerUserDTO.CreatedAt))]
-    /// #endregion
-    /// [SimpleManyToManyTableLazyLoad]
-    /// public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
-    /// ```
+    /// Specifies which columns should be displayed in a table view for a many-to-many relationship. <br/> <br/>
+    /// Must be used in combination with [SimpleManyToManyTableLazyLoad] attribute. <br/> <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class Partner : BusinessObject&lt;long&gt;
+    /// {
+    ///     [DisplayName]
+    ///     public string Name { get; set; }
+    ///     
+    ///     #region UITableColumn
+    ///     [UITableColumn(nameof(PartnerUserDTO.UserDisplayName))]
+    ///     [UITableColumn(nameof(PartnerUserDTO.Points))]
+    ///     [UITableColumn(nameof(PartnerUserDTO.TierDisplayName))]
+    ///     [UITableColumn(nameof(PartnerUserDTO.CheckedSegmentationItemsCommaSeparated), "Segmentation")] // Custom translation key
+    ///     [UITableColumn(nameof(PartnerUserDTO.CreatedAt))]
+    ///     #endregion
+    ///     [SimpleManyToManyTableLazyLoad]
+    ///     public virtual List&lt;PartnerUser&gt; Recipients { get; set; } = new(); // M2M relationship
+    /// }
+    /// </code>
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
     public class UITableColumnAttribute : Attribute

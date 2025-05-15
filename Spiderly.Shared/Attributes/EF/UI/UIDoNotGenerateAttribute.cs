@@ -7,8 +7,22 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// If you put this attribute on the property the field will not generate on the UI main form component
+    /// Excludes a property from being generated in the UI main form component. <br/> <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     public string Name { get; set; }
+    ///     
+    ///     [UIDoNotGenerate]
+    ///     public DateTime LastLoginDate { get; set; } // Won't appear in the UI form
+    ///     
+    ///     [UIDoNotGenerate]
+    ///     public string InternalNotes { get; set; } // Won't appear in the UI form
+    /// }
+    /// </code>
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class UIDoNotGenerateAttribute : Attribute
     {
     }

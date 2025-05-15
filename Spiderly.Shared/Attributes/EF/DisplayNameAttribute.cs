@@ -6,19 +6,36 @@ using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Attributes.EF
 {
+    /// <summary>
+    /// Specifies which property should be used as the display name for an entity in UI elements. <br/> <br/>
+    /// <b>Usage:</b> <br/>
+    /// - When applied to a property: The property's value will be used to represent the entity <br/>
+    /// - When applied to a class: The specified property's value will be used to represent the entity <br/>
+    /// - If no property or class is marked with this attribute: The entity's Id will be used <br/> <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     [DisplayName]
+    ///     public string FullName { get; set; } // Will be used in dropdowns and lists
+    /// }
+    /// 
+    /// [DisplayName("Department.Name")] // Uses related entity's property
+    /// public class Employee : BusinessObject&lt;long&gt;
+    /// {
+    ///     public virtual Department Department { get; set; }
+    /// }
+    /// </code>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class)]
     public class DisplayNameAttribute : Attribute
     {
-        /// <summary>
-        /// A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the 
-        /// UserExtended list in the dropdown, their emails will be used for display). If you don't put this property anywhere, 
-        /// the Id would be used for display name.
-        /// Don't use nameof to define display name, because source generator will take only "Email" 
-        /// if you pass nameof(User.Email)
-        /// </summary>
-        /// <param name="displayName">Pass this parameter only if the display name is like this: User.Email</param>
+        /// <param name="displayName">Optional. The fully qualified property path (e.g., "User.Email"). 
+        /// Only needed when the display name property is in a related entity. <br/>
+        /// <b>WARNING:</b> Don't use nameof(User.Email) here, use the simple string 
+        /// "User.Email" instead.</param>
         public DisplayNameAttribute(string displayName = null)
         {
-
         }
     }
 }

@@ -7,11 +7,25 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// If you put this attribute on the many to one property whole parent entity will be deleted if the entity from
-    /// many to one relationship get deleted
-    /// e.g. user class has property gender and some of the users have saved as male in database, 
-    /// if male gender is deleted, all users that were male are also deleted
+    /// Implements cascade delete behavior in many-to-one relationships. When the referenced entity is deleted,
+    /// all entities that reference it will automatically be deleted as well.<br/><br/>
+    /// This attribute is useful when:<br/>
+    /// - Child entities should not exist without their parent<br/>
+    /// - You want cascade delete but don't need the strict validation of [ManyToOneRequired]<br/><br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class Comment : BusinessObject&lt;long&gt;
+    /// {
+    ///     [DisplayName] 
+    ///     public string Text { get; set; }
+    ///     
+    ///     [CascadeDelete] // When the Post is deleted, all its Comments will be deleted
+    ///     [WithMany(nameof(Post.Comments))]
+    ///     public virtual Post Post { get; set; }
+    /// }
+    /// </code>
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class CascadeDeleteAttribute : Attribute
     {
     }

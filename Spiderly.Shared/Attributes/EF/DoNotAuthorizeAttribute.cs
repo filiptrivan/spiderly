@@ -7,12 +7,15 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// By default all entities are authorized, if you don't want to authorize CRUD operations for some entity
-    /// assign this attribute to it. 
-    /// This attribute is usefull for testing purposes, be carefull when using it in production.
+    /// Disables authorization checks for CRUD operations on the decorated entity.
+    /// By default, all entities require authorization for CRUD operations.
     /// </summary>
+    /// <remarks>
+    /// <b>WARNING:</b> This attribute bypasses security checks and should be used with extreme caution.
+    /// It is primarily intended for testing purposes and should generally be avoided in production environments.
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Class)]
     public class DoNotAuthorizeAttribute : Attribute
     {
-        
     }
 }

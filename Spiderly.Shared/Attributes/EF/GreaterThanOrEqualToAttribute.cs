@@ -8,12 +8,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Set this attribute to the numeric properties only. 
-    /// It is used for server and client validation.
+    /// Validates that a numeric property value is greater than or equal to a specified number.
+    /// This attribute provides both server-side and client-side validation.
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class GreaterThanOrEqualToAttribute : Attribute
     {
-        /// <param name="number">e.g. If you put the number 10 the propertys value must be greater or equal to 10.</param>
+        /// <param name="number">The minimum allowed value. The property value must be greater than or equal to this number.</param>
         public GreaterThanOrEqualToAttribute(int number) { }
     }
 }

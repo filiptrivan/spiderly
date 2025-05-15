@@ -8,6 +8,9 @@ using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Attributes
 {
+    /// <summary>
+    /// Provides authentication protection for API endpoints by validating JWT tokens in the request.
+    /// </summary>
     public class AuthGuardAttribute : ActionFilterAttribute
     {
 

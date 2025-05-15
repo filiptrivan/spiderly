@@ -7,10 +7,28 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// With this control, you determine the order in which controls will be displayed on the UI.
-    /// The controls are displayed in the order you specified the properties on the entity (except `file`, `text-area`, `editor`, `table` control types, they are always displayed last in the written order).
+    /// Specifies the display order of UI controls. <br/> <br/>
+    /// Controls are displayed in the order of property declaration, except for 'file', 'text-area', 'editor', and 'table' controls, 
+    /// which are always displayed last in their declaration order. <br/> <br/>
+    /// <b>Example:</b> <br/>
+    /// <code>
+    /// public class Article : BusinessObject&lt;long&gt;
+    /// {
+    ///     [UIPropertyBlockOrder("1")]
+    ///     public string Title { get; set; }
+    ///     
+    ///     [UIPropertyBlockOrder("2")]
+    ///     public string Author { get; set; }
+    ///     
+    ///     // Will be displayed last despite order number
+    ///     [UIPropertyBlockOrder("0")]
+    ///     [UIControlType(nameof(UIControlTypeCodes.TextArea))]
+    ///     public string Content { get; set; }
+    /// }
+    /// </code>
     /// </summary>
-    public class UIPropertyBlockOrderAttribute : Attribute // TODO FT: Make this attribute work
+    [AttributeUsage(AttributeTargets.Property)]
+    public class UIPropertyBlockOrderAttribute : Attribute // TODO: Make this attribute work
     {
         public UIPropertyBlockOrderAttribute(string orderNumber) { }
     }
