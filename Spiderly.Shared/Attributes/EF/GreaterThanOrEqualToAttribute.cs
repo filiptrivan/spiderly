@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Validates that a numeric property value is greater than or equal to a specified number.
-    /// This attribute provides both server-side and client-side validation.
+    /// <b>Usage:</b> Validates that a numeric property value is greater than or equal to a specified number.
+    /// This attribute provides both <i>server-side</i> and <i>client-side</i> validation.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class GreaterThanOrEqualToAttribute : Attribute

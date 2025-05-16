@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Specifies the width of a UI field using PrimeNG (PrimeFlex) column classes. <br/> <br/>
-    /// <b>Default values:</b> <br/>
-    /// - "col-12" for TextArea and Editor controls <br/>
-    /// - "col-12 md:col-6" for all other controls <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Specifies the width of a UI field using PrimeNG (PrimeFlex) column classes. <br/> <br/>
+    /// 
+    /// <b>Default values:</b>
+    /// - <i>"col-12"</i> for TextArea and Editor controls <br/>
+    /// - <i>"col-12 md:col-6"</i> for all other controls <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Article : &lt;long&gt;
     /// {

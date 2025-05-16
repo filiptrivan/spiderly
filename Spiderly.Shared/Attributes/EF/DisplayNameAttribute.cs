@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Specifies which property should be used as the display name for an entity in UI elements. <br/> <br/>
-    /// <b>Usage:</b> <br/>
+    /// <b>Usage:</b>
+    /// Specifies which property should be used as the display name for an entity in UI elements: <br/>
     /// - When applied to a property: The property's value will be used to represent the entity <br/>
     /// - When applied to a class: The specified property's value will be used to represent the entity <br/>
-    /// - If no property or class is marked with this attribute: The entity's Id will be used <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// - If no property or class is marked with this attribute: The entity's 'Id' will be used <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class User : BusinessObject&lt;long&gt;
     /// {

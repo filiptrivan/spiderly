@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Specifies in which panel the UI control will be located. <br/> <br/>
-    /// By default, all controls are inside the "Details" panel. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Specifies in which panel the UI control will be located.
+    /// By default, all controls are inside the <i>"Details"</i> panel. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class User : BusinessObject&lt;long&gt;
     /// {

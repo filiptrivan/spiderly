@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.Translation
 {
     /// <summary>
-    /// Specifies the Serbian Latin plural form translation for a class. <br/> <br/>
-    /// <b>This translation is used for:</b> <br/>
+    /// <b>Usage:</b> Specifies the Serbian Latin plural form translation for a class. <br/> <br/>
+    /// 
+    /// <b>This translation is used for:</b>
     /// - Table titles <br/>
-    /// - Excel export filenames (when TranslateExcelSrLatnRS is not specified) <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// - Excel export filenames (when <i>TranslateExcelSrLatnRS</i> is not specified) <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [TranslatePluralSrLatnRS("Korisnički poeni")]
     /// public class UserPoint : BusinessObject&lt;long&gt;

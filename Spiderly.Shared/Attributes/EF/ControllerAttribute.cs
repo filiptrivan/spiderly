@@ -7,14 +7,12 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Specifies a custom controller name for an entity, overriding the default naming convention. <br/>
+    /// <b>Usage:</b> Specifies a custom controller name for an entity, overriding the default naming convention.
     /// This attribute allows grouping multiple related entities under a single controller. <br/> <br/>
-    /// <b>Default Behavior:</b> <br/>
-    /// Controllers are named as '{EntityName}Controller' <br/> <br/>
-    /// <b>This attribute allows you to:</b> <br/>
-    /// - Specify a custom controller name <br/>
-    /// - Group multiple related entities under one controller <br/> <br/>
-    /// <b>Example usage:</b> <br/>
+    /// 
+    /// <b>Default behavior without 'Controller' attribute:</b> Controllers are named as <i>'{EntityName}Controller'</i> <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [Controller("SecurityController")]
     /// public class User { }

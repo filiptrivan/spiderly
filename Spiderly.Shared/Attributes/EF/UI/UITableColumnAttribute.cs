@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Specifies which columns should be displayed in a table view for a many-to-many relationship. <br/> <br/>
-    /// Must be used in combination with [SimpleManyToManyTableLazyLoad] attribute. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Specifies which columns should be displayed in a table view for a <i>many-to-many</i> relationship.
+    /// Must be used in combination with <i>[SimpleManyToManyTableLazyLoad]</i> attribute. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Partner : BusinessObject&lt;long&gt;
     /// {

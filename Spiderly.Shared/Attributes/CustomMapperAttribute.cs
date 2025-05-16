@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes
 {
     /// <summary>
-    /// Marks a class for custom object mapping implementation. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Marks a class for custom object mapping implementation. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [CustomMapper]
     /// public static partial class Mapper
@@ -16,6 +17,7 @@ namespace Spiderly.Shared.Attributes
     ///     // Custom mapping methods
     /// }
     /// </code> <br/>
+    /// 
     /// <b>Note:</b> Use this attribute when you need to implement specialized mapping logic
     /// that cannot be handled by the default mapping configuration.
     /// </summary>

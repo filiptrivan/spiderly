@@ -1,14 +1,17 @@
 ﻿namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Specifies the UI control type for a property. <br/> <br/>
+    /// <b>Usage:</b> Specifies the UI control type for a property. <br/> <br/>
+    /// 
     /// If not specified, the control type is automatically determined based on the property type: <br/>
-    /// - string: TextBox (or TextArea if [StringLength] value is large) <br/>
-    /// - int/long: Number <br/>
-    /// - decimal: Decimal <br/>
-    /// - bool: CheckBox <br/>
-    /// - DateTime: Calendar <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// - <i>string</i>: <i>TextBox</i> (or <i>TextArea</i> if <i>[StringLength]</i> value is large) <br/>
+    /// - <i>int/long</i>: <i>Number</i> <br/>
+    /// - <i>decimal</i>: <i>Decimal</i> <br/>
+    /// - <i>bool</i>: <i>CheckBox</i> <br/>
+    /// - <i>DateTime</i>: <i>Calendar</i> <br/>
+    /// - <i>many-to-one</i>: <i>Autocomplete</i> <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class User : BusinessObject&lt;long&gt;
     /// {

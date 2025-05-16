@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Excludes a property from being generated in the UI main form component. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Excludes a property from being generated in the UI main form component. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class User : BusinessObject&lt;long&gt;
     /// {

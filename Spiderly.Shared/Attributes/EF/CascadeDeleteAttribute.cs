@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Implements cascade delete behavior in many-to-one relationships. When the referenced entity is deleted,
-    /// all entities that reference it will automatically be deleted as well.<br/><br/>
-    /// This attribute is useful when:<br/>
+    /// <b>Usage:</b> Implements cascade delete behavior in <i>many-to-one</i> relationships. When the referenced entity is deleted,
+    /// all entities that reference it will automatically be deleted as well. <br/> <br/>
+    /// 
+    /// <b>This attribute is useful when:</b>
     /// - Child entities should not exist without their parent<br/>
-    /// - You want cascade delete but don't need the strict validation of [ManyToOneRequired]<br/><br/>
-    /// <b>Example:</b> <br/>
+    /// - You want cascade delete but don't need the strict validation of <i>[ManyToOneRequired]</i> <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Comment : BusinessObject&lt;long&gt;
     /// {

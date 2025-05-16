@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Specifies the collection navigation property name in a related entity for establishing
+    /// <b>Usage:</b> Specifies the collection navigation property name in a related entity for establishing
     /// a bidirectional relationship in Entity Framework. <br/> <br/>
-    /// <b>Purpose:</b> <br/>
-    /// This attribute is used to define the inverse navigation property in a relationship,
+    /// 
+    /// <b>Purpose:</b> This attribute is used to define the inverse navigation property in a relationship,
     /// enabling proper relationship configuration and navigation in both directions. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Course : BusinessObject&lt;long&gt; 
     /// {

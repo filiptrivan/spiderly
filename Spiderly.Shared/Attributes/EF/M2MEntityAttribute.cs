@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Marks a property in a many-to-many relationship where the administration of the relationship
-    /// should NOT be performed. This attribute is used in conjunction with M2MMaintanceEntity to
-    /// define the relationship management structure. <br/>
-    /// Example usage in a many-to-many relationship:
+    /// <b>Usage:</b> Marks a property in a <i>many-to-many</i> relationship where the administration of the relationship
+    /// should NOT be performed. This attribute is used in conjunction with <i>M2MMaintanceEntity</i> to
+    /// define the relationship management structure. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class RolePermission
     /// {

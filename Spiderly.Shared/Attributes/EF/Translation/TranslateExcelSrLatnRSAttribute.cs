@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.Translation
 {
     /// <summary>
-    /// Specifies the Serbian Latin name for the exported Excel file. <br/> <br/>
-    /// Used to customize the Excel export filename. <br/>
-    /// <b>If not specified:</b> <br/>
-    /// - First tries to use TranslatePluralSrLatnRS value <br/>
-    /// - If TranslatePluralSrLatnRS is not available, uses '{class_name}List' <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Specifies the Serbian Latin name for the exported Excel file. <br/> <br/>
+    /// 
+    /// <b>If not specified:</b>
+    /// - First tries to use <i>TranslatePluralSrLatnRS</i> value <br/>
+    /// - If <i>TranslatePluralSrLatnRS</i> is not available, uses <i>'{class_name}List'</i> <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [TranslateExcelSrLatnRS("Korisnici_Excel")]
     /// public class User : BusinessObject&lt;long&gt;

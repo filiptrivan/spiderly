@@ -1,8 +1,9 @@
 ﻿namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Enables management of child entities through an ordered list in the parent entity's main UI form component. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Enables management of child entities through an ordered list in the parent entity's main UI form component. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Course : BusinessObject&lt;long&gt;
     /// {

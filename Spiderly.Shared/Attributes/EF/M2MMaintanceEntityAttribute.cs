@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Marks a property in a many-to-many relationship where the administration of the relationship
+    /// <b>Usage:</b> Marks a property in a <i>many-to-many</i> relationship where the administration of the relationship
     /// should be performed. This attribute indicates that the current entity's page will contain
-    /// the UI controls for managing the many-to-many relationship. <br/>
-    /// Example usage in a many-to-many relationship:
+    /// the UI controls for managing the <i>many-to-many</i> relationship. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class RolePermission
     /// {

@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.Translation
 {
     /// <summary>
-    /// Specifies the English plural form translation for a class. <br/> <br/>
-    /// <b>This translation is used for:</b> <br/>
+    /// <b>Usage:</b> Specifies the English plural form translation for a class. <br/> <br/>
+    /// 
+    /// <b>This translation is used for:</b>
     /// - Table titles <br/>
-    /// - Excel export filenames (when TranslateExcelEn is not specified) <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// - Excel export filenames (when <i>TranslateExcelEn</i> is not specified) <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [TranslatePluralEn("User points")]
     /// public class UserPoint : BusinessObject&lt;long&gt;

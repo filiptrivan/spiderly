@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// Specifies the display order of UI controls. <br/> <br/>
-    /// Controls are displayed in the order of property declaration, except for 'file', 'text-area', 'editor', and 'table' controls, 
+    /// <b>Usage:</b> Specifies the display order of UI controls.
+    /// Controls are displayed in the order of property declaration, except for: 
+    /// <i>'file'</i>, <i>'text-area'</i>, <i>'editor'</i>, and <i>'table'</i> controls, 
     /// which are always displayed last in their declaration order. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// public class Article : BusinessObject&lt;long&gt;
     /// {

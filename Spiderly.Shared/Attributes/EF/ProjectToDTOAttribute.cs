@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Specifies custom mapping configuration when projecting an entity to its DTO. <br/> <br/>
-    /// <b>Example:</b> <br/>
+    /// <b>Usage:</b> Specifies custom mapping configuration when projecting an entity to its DTO. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
     /// <code>
     /// [ProjectToDTO(".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)")]
     /// public class Achievement : BusinessObject&lt;long&gt;
@@ -20,7 +21,7 @@ namespace Spiderly.Shared.Attributes.EF
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class ProjectToDTOAttribute : Attribute
     {
-        /// <param name="customMapper">The custom mapping expression, e.g., <b>".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)"</b></param>
+        /// <param name="customMapper">The custom mapping expression, e.g., <i>".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)"</i></param>
         public ProjectToDTOAttribute(string customMapper) { }
     }
 }
