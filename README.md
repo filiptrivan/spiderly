@@ -12,7 +12,7 @@ Spiderly is a .NET (C#) library that turns your plain C# classes into a complete
 </ul>
 
 ## Installation
-Follow [Get Started](https://www.spiderly.dev/#get-started) to start using Spiderly.
+Follow [Getting Started guide](https://www.spiderly.dev/docs/getting-started) to start using Spiderly.
 
 ## Examples
 With the [Playground](https://www.spiderly.dev/playground) on the [Spiderly Website](https://www.spiderly.dev), you can create your own examples, live. Here is the first one to get you started:
@@ -48,7 +48,7 @@ public class Gender
 ```
 These two classes alone will generate app like this:
 <div>
-  <img src="https://github.com/filiptrivan/spiderly/blob/main/spiderly-app-demo.png" alt="Spiderly Get Started App Demo"/>
+  <img src="https://github.com/filiptrivan/spiderly/blob/main/spiderly-app-demo.png" alt="Spiderly Getting Started App Demo"/>
 </div>
 
 ## Documentation
