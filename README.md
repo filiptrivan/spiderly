@@ -3,13 +3,32 @@
 </div>
 
 # Spiderly
-Spiderly is a .NET (C#) library that turns your plain C# classes into a complete .NET + Angular web apps. Automatically updating all the boilerplate code as your classes evolve. You're free to add your own logic and change anything in the generated app exactly how you want.
+Spiderly is a .NET (C#) code generation library that transforms an EF Core model into a fully customizable .NET (C#) + Angular web application, automatically updating all repetitive boilerplate code as your model evolves.
 
-<ul>
-  <li><b>Speed</b>: With CRUD operations, backend/frontend architecture, authentication, authorization, logging, and the best libraries already set up for you, we save you a significant amount of time so you can focus on your specific business logic.</li>
-  <li><b>Accuracy</b>: Even if the generated code is boilerplate, copy-pasting without focus inevitably leads to mistakes. Spiderly eliminates this subconscious burden, freeing your mind for more important tasks.</li>
-  <li><b>Customizability</b>: If you don't like any of Spiderly's functionalities (CRUD operations, backend/frontend architecture, auth, logging), you can disable any of them and implement your own.</li>
-</ul>
+## Key Generation Features
+- **CRUD Generator**  
+  For each EF Core entity, the generator creates:
+  - CRUD UI  
+  - Angular API client  
+  - .NET controllers  
+  - Service methods to interact with the database
+
+- **CRUD UI Generator**  
+  For each EF Core entity, the generator creates:
+  - A table view page — displays records with sorting, filtering, and pagination  
+  - An admin page — a form for creating and editing records
+
+- **API Client Generator**  
+  Generates an Angular service class with methods that match your .NET controllers. Each method corresponds to a controller action and includes strongly typed parameters and responses based on your DTO classes.
+
+- **Shared .NET and Angular Validations**  
+  Generates .NET FluentValidation rules and matching Angular reactive form validators. Both sides stay in sync while allowing separate customization if needed.
+
+- **C# DTO and TypeScript Classes**  
+  Generates C# partial DTO classes and matching Angular TypeScript classes with strongly typed constructors.
+
+- **.NET + Angular App Starter**  
+  Sets up the .NET (C#) and Angular app template with built-in support for: authentication (including Google Sign-In), authorization, emailing, logging, global error handling, and more.
 
 ## Installation
 Follow [Getting Started guide](https://www.spiderly.dev/docs/getting-started) to start using Spiderly.
