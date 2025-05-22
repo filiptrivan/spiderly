@@ -62,7 +62,7 @@ namespace Spiderly.CLI
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
-            Console.WriteLine("App name without spaces: ");
+            Console.WriteLine("App name without spaces (e.g., YourAppName): ");
             string appName = Console.ReadLine();
             if (string.IsNullOrEmpty(appName))
             {
@@ -115,10 +115,7 @@ namespace Spiderly.CLI
             }
             else
             {
-                Console.WriteLine("Basic Spiderly app structure created!");
-                Console.WriteLine("Open the frontend and backend projects in your preferred IDEs.");
-                Console.WriteLine("Start the backend using the 'dotnet run' command.");
-                Console.WriteLine("Start the frontend using the 'npm start' command.");
+                Console.WriteLine("App initialized successfully!");
             }
         }
 
