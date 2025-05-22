@@ -100,3 +100,9 @@ export * from './lib/services/spiderly-transloco-loader';
 export * from './lib/services/translate-labels-abstract.service';
 export * from './lib/services/validator-abstract.service';
 export * from './lib/services/app-layout-base.service';
+
+export * from './lib/components/app-base/app-base.component';
+export * from './lib/components/app-base/app-base.module';
+
+// Assets
+export const SPIDERLY_FAVICON_PATH = 'assets/favicon.png';
