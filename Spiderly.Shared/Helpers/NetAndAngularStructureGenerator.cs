@@ -1,7 +1,6 @@
 ﻿using Spiderly.Shared.Classes;
 using Spiderly.Shared.Extensions;
 using CaseConverter;
-using Microsoft.Data.SqlClient;
 using System.Security.Cryptography;
 using Spiderly.Shared.Exceptions;
 
@@ -567,27 +566,8 @@ namespace Spiderly.Shared.Helpers
                 }
             }
 
-            Console.WriteLine("App structure created.");
-
-            try
-            {
-                CreateSqlServerDatabase(appName);
-            }
-            catch (Exception ex)
-            {
-                if (ex is SqlException sqlEx)
-                {
-                    foreach (SqlError sqlErr in sqlEx.Errors)
-                    {
-                        Console.WriteLine($"SQL Server error #{sqlErr.Number}: {sqlErr.Message}");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine(ex);
-                    hasErrors = true;
-                }
-            }
+            Console.WriteLine("Backend initialized.");
+            Console.WriteLine("Frontend initialized.");
 
             return hasErrors;
         }
@@ -617,28 +597,6 @@ namespace Spiderly.Shared.Helpers
             Helper.FileOverrideCheck(filePath);
 
             Helper.WriteToFile(file.Data, filePath);
-        }
-
-        private static void CreateSqlServerDatabase(string appName)
-        {
-            string connectionString = $"Data source=localhost\\SQLEXPRESS;Initial Catalog=master;Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;";
-
-            string createDatabaseQuery = $$"""
-IF DB_ID(N'{{appName}}') IS NULL
-    CREATE DATABASE [{{appName}}];
-""";
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand(createDatabaseQuery, connection))
-                {
-                    command.ExecuteNonQuery();
-                }
-
-                Console.WriteLine("Database created.");
-            }
         }
 
         private static string GetNotificationDetailsComponentHtmlData()
@@ -3115,7 +3073,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "BlobStorageUrl": "{{blobStorageUrl}}",
       "BlobStorageContainerName": "files",
 
-      "ConnectionString": "Data source=localhost\\SQLEXPRESS;Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
+      "ConnectionString": "Data source=localhost;Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
 
       "RequestsLimitNumber": 70,
       "RequestsLimitWindow": 60

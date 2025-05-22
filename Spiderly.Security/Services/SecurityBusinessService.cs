@@ -129,7 +129,7 @@ namespace Spiderly.Security.Services
 
         public async Task<RegistrationVerificationResultDTO> SendRegistrationVerificationEmail(RegistrationDTO registrationDTO)
         {
-            RegistrationVerificationResultDTO registrationResultDTO = new RegistrationVerificationResultDTO();
+            RegistrationVerificationResultDTO registrationResultDTO = new();
 
             new RegistrationDTOValidationRules().ValidateAndThrow(registrationDTO);
 
