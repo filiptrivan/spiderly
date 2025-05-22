@@ -16,6 +16,12 @@ using Spiderly.SourceGenerators.Models;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// Generates Angular translation services (`class-names.generated.ts` and `labels.generated.ts`)
+    /// within the `{your-app-name}\Angular\src\app\business\services\translates` directory.
+    /// These services leverage Transloco to provide basic translation capabilities for class names and DTO property labels
+    /// based on your backend DTO classes.
+    /// </summary>
     [Generator]
     public class NgTranslatesGenerator : IIncrementalGenerator
     {

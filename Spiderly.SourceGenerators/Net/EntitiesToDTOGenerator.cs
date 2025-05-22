@@ -12,6 +12,12 @@ using System;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates partial DTO (Data Transfer Object) classes (`{YourAppName}DTOList.generated.cs`)
+    /// within the `{YourBaseNamespace}.DTO` namespace. These DTOs are automatically created
+    /// based on your entity classes located in the '.Entities' namespace, providing a
+    /// separate representation of your data for transfer purposes.
+    /// </summary>
     [Generator]
     public class EntitiesToDTOGenerator : IIncrementalGenerator
     {

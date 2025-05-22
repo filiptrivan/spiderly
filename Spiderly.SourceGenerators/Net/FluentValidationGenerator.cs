@@ -11,6 +11,11 @@ using System.Diagnostics;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates FluentValidation validator classes (`{YourAppName}ValidationRules.generated.cs`)
+    /// within the `{YourBaseNamespace}.ValidationRules` namespace. These validators are
+    /// automatically created based on the validation attributes defined on your DTO properties.
+    /// </summary>
     [Generator]
     public class FluentValidationGenerator : IIncrementalGenerator
     {

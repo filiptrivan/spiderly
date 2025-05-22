@@ -10,6 +10,11 @@ using System.Linq;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates a partial class `{{YourAppName}}PermissionCodes` (`{{YourAppName}}PermissionCodes.generated.cs`)
+    /// within the `{YourBaseNamespace}.Enums` namespace. This class defines static string constants
+    /// representing permission codes for each CRUD operation on your entity classes.
+    /// </summary>
     [Generator]
     public class PermissionCodesGenerator : IIncrementalGenerator
     {

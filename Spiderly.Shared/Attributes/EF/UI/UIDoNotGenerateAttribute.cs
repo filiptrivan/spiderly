@@ -6,6 +6,24 @@ using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Attributes.EF.UI
 {
+    /// <summary>
+    /// <b>Usage:</b> Excludes a property from being generated in the UI main form component. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
+    /// <code>
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     public string Name { get; set; }
+    ///     
+    ///     [UIDoNotGenerate]
+    ///     public DateTime LastLoginDate { get; set; } // Won't appear in the UI form
+    ///     
+    ///     [UIDoNotGenerate]
+    ///     public string InternalNotes { get; set; } // Won't appear in the UI form
+    /// }
+    /// </code>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class UIDoNotGenerateAttribute : Attribute
     {
     }

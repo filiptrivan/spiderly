@@ -10,6 +10,13 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates the `TableFilterQueryable` static class (`TableFilterQueryable.generated.cs`)
+    /// within the `{YourBaseNamespace}.TableFiltering` namespace. This class provides a method
+    /// `Build` that dynamically constructs an EF Core query with filtering based on the
+    /// `TableFilterDTO` payload. It intelligently handles filtering on properties that might
+    /// exist in the DTO but not directly in the entity, by looking up mapping configurations.
+    /// </summary>
     [Generator]
     public class TableFilterQueryGenerator : IIncrementalGenerator
     {

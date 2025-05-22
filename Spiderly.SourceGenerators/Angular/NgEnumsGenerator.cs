@@ -15,6 +15,11 @@ using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// Generates Angular enums (`{your-app-name}\Angular\src\app\business\enums\{your-app-name}-enums.generated.ts`)
+    /// from C# `enum` declarations and specially marked C# classes within the '.Enums' namespace.
+    /// This generator ensures type safety and consistency between your backend and frontend enum values.
+    /// </summary>
     [Generator]
     public class NgEnumsGenerator : IIncrementalGenerator
     {

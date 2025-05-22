@@ -7,6 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Spiderly.Security.Services
 {
+    /// <summary>
+    /// Provides authorization services, allowing to check if a user has specific permissions
+    /// based on their roles and the permissions associated with those roles.
+    /// </summary>
     public class AuthorizationService : BusinessServiceBase
     {
         private readonly IApplicationDbContext _context;

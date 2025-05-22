@@ -10,6 +10,11 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates a static class `ExcelPropertiesToExclude` (`ExcelPropertiesToExclude.generated.cs`)
+    /// within the `{YourBaseNamespace}.ExcelProperties` namespace. This class provides methods
+    /// to define which properties of your DTOs should be excluded during Excel export operations.
+    /// </summary>
     [Generator]
     public class ExcelPropertiesGenerator : IIncrementalGenerator
     {

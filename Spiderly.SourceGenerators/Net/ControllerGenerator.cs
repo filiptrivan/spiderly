@@ -13,6 +13,11 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates base API controller classes (`{YourAppName}BaseControllers.generated.cs`)
+    /// within the `{YourBaseNamespace}.Controllers` namespace. These base controllers provide
+    /// generic CRUD endpoints for your entities, leveraging corresponding business services.
+    /// </summary>
     [Generator]
     public class ControllerGenerator : IIncrementalGenerator
     {

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Spiderly.Security.Enums
 {
+    // TODO FT: Delete if don't need
     public enum LoginVerificationResultStatusCodes
     {
     }

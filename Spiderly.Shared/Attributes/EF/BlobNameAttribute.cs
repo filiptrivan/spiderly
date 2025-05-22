@@ -7,8 +7,20 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Set this attribute to a property that serves as a pointer to the file identifier in azure storage.
+    /// <b>Usage:</b> Marks a string property as a reference to a file stored in Azure Blob Storage.
+    /// This property will contain the unique identifier (<i>blob name</i>) used to locate
+    /// and access the file in Azure Storage. <br/> <br/>
+    /// 
+    /// <b>Example:</b>
+    /// <code>
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     [BlobName]
+    ///     public string ProfilePictureBlobName { get; set; }
+    /// }
+    /// </code>
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class BlobNameAttribute : Attribute
     {
     }

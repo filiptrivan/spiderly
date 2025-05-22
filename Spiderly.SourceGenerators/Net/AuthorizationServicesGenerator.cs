@@ -13,10 +13,15 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates an `AuthorizationBusinessServiceGenerated` class (`AuthorizationBusinessService.generated.cs`)
+    /// that extends `AuthorizationService` and provides methods for declarative authorization checks
+    /// based on your entity classes. This service simplifies the process of enforcing permissions
+    /// before performing CRUD operations on your entities.
+    /// </summary>
     [Generator]
     public class AuthorizationServicesGenerator : IIncrementalGenerator
     {
-
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             //#if DEBUG

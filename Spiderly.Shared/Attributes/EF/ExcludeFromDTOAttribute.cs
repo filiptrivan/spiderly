@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF
 {
     /// <summary>
-    /// Set this attribute to the property you don't want generated in the DTO.
+    /// <b>Usage:</b> Specifies that a property should be excluded from the generated DTO.
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class ExcludeFromDTOAttribute : Attribute
     {
     }

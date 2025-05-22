@@ -9,6 +9,13 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Spiderly.Infrastructure
 {
+    /// <summary>
+    /// Represents the application's database context, including common entities such as users, roles, and permissions.
+    /// Supports generic user types implementing <see cref="IUser"/> and automatically registers all entity types
+    /// from assemblies with the ".Entities" namespace. Applies custom relationship configurations and handles 
+    /// auditing and versioning for tracked business entities.
+    /// </summary>
+    /// <typeparam name="TUser">The user type used in the application, which must implement <see cref="IUser"/>.</typeparam>
     public class ApplicationDbContext<TUser> : DbContext, IApplicationDbContext
         where TUser : class, IUser, new()
     {

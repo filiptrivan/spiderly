@@ -18,6 +18,12 @@ using Spiderly.Security.ValidationRules;
 
 namespace Spiderly.Security.Services
 {
+    /// <summary>
+    /// Provides business logic for security-related operations, including authentication, registration,
+    /// token management, and user and role management. It leverages various services like JWT authentication,
+    /// email sending, and data access through Entity Framework Core.
+    /// </summary>
+    /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
     public class SecurityBusinessService<TUser> : BusinessServiceGenerated<TUser> where TUser : class, IUser, new()
     {
         private readonly IApplicationDbContext _context;

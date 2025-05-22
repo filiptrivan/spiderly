@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Attributes.EF
 {
+    /// <summary>
+    /// <b>Usage:</b> Specifies additional permission requirements for inserting entities in the UI.
+    /// The user must have ONE of the specified permissions to perform the insert operation.
+    /// Multiple instances of this attribute can be applied to a single entity.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class UIAdditionalPermissionCodeForInsertAttribute : Attribute
     {
-        public UIAdditionalPermissionCodeForInsertAttribute(string permissionCode)
-        {
-            
-        }
+        public UIAdditionalPermissionCodeForInsertAttribute(string permissionCode) { }
     }
 }

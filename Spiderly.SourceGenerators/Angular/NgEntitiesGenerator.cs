@@ -15,6 +15,12 @@ using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// Generates Angular entity and DTO classes (`{your-app-name}\Angular\src\app\business\entities\{your-app-name}-entities.generated.ts`)
+    /// based on corresponding C# classes within the '.Entities' and '.DTO' namespaces.
+    /// This generator simplifies frontend data modeling by automatically creating TypeScript interfaces/classes
+    /// that mirror your backend data structures.
+    /// </summary>
     [Generator]
     public class NgEntitiesGenerator : IIncrementalGenerator
     {

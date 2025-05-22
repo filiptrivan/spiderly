@@ -11,6 +11,11 @@ using System;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates Mapster configuration methods (`{YourAppName}Mapper.generated.cs`)
+    /// within the `{YourBaseNamespace}.DataMappers` namespace. This generator automates
+    /// the creation of mapping configurations between your entities and DTOs using the Mapster library.
+    /// </summary>
     [Generator]
     public class MapperlyGenerator : IIncrementalGenerator
     {

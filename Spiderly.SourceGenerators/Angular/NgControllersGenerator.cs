@@ -17,6 +17,12 @@ using Spiderly.SourceGenerators;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// This generator produces an Angular `ApiService` (`{your-app-name}\Angular\src\app\business\services\api\api.service.generated.ts`)
+    /// containing strongly-typed methods for interacting with your .NET Web API controllers.
+    /// It analyzes C# controller classes (within the '.Controllers' namespace) and referenced entity and DTO classes
+    /// to create corresponding Angular `HttpClient` calls.
+    /// </summary>
     [Generator]
     public class NgControllersGenerator : IIncrementalGenerator
     {

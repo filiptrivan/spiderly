@@ -13,6 +13,13 @@ using System.Reflection;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates the `BusinessServiceGenerated` class (`BusinessService.generated.cs`)
+    /// within the `{YourBaseNamespace}.Services` namespace. This class provides the
+    /// core business logic for your entities, including CRUD operations, data retrieval,
+    /// Excel export, and basic authorization checks. It serves as a base class for
+    /// your custom business services.
+    /// </summary>
     [Generator]
     public class ServicesGenerator : IIncrementalGenerator
     {

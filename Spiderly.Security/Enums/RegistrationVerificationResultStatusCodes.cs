@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Spiderly.Security.Enums
 {
-    public enum RegistrationVerificationResultStatusCodes
+    public enum RegistrationVerificationResultStatusCodes // TODO FT: Delete if don't need
     {
         UserDoesNotExistAndDoesNotHaveValidToken = 0,
         UserWithoutPasswordExists = 1,

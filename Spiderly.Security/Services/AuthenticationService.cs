@@ -8,6 +8,10 @@ using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Security.Services
 {
+    /// <summary>
+    /// Provides services for accessing authentication-related information from the current HTTP context,
+    /// such as the current user's ID, email, access token, and IP address.
+    /// </summary>
     public class AuthenticationService : BusinessServiceBase
     {
         private readonly IHttpContextAccessor _httpContextAccessor;

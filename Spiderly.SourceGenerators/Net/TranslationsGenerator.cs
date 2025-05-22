@@ -9,6 +9,13 @@ using System.Linq;
 
 namespace Spiderly.SourceGenerators.Net
 {
+    /// <summary>
+    /// Generates translation resource files (`TermsGenerated.resx`, `TermsGenerated.sr-Latn-RS.resx`)
+    /// in the `.Shared` project and Angular i18n JSON files (`en.generated.json`, `sr-Latn-RS.generated.json`)
+    /// in the Angular project's `src/assets/i18n` folder. These files contain translations for
+    /// entity names (singular and plural), Excel export names, and property names, based on
+    /// the `[Translate]` attribute applied to your entity classes and their properties.
+    /// </summary>
     [Generator]
     public class TranslationsGenerator : IIncrementalGenerator
     {

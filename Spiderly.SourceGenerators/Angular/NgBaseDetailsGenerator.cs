@@ -13,6 +13,11 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// Generates Angular component code for displaying and editing entity details on the frontend.
+    /// This generator targets C# entity and DTO classes (marked within 'Entities' or 'DTO' namespaces)
+    /// and produces a TypeScript file (`{your-app-name}\Angular\src\app\business\components\base-details\{your-app-name}-base-details.generated.ts`).
+    /// </summary>
     [Generator]
     public class NgBaseDetailsGenerator : IIncrementalGenerator
     {

@@ -14,6 +14,12 @@ using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
 {
+    /// <summary>
+    /// Generates an Angular `ValidatorServiceGenerated` (`validators.generated.ts`)
+    /// within the `{your-app-name}\Angular\src\app\business\services\validators` directory.
+    /// This service provides methods to dynamically set Angular form validators based on validation attributes
+    /// defined on your C# DTO properties.
+    /// </summary>
     [Generator]
     public class NgValidatorsGenerator : IIncrementalGenerator
     {

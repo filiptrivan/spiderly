@@ -78,7 +78,7 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         ];
     }
 
-    // FT: We must to do it like arrow function
+    // NOTE: We must to do it like arrow function
     sendEmailNotification = () => {
         this.apiService.sendNotificationEmail(this.notificationFormGroup.controls.id.value, this.notificationFormGroup.controls.version.value).subscribe(() => {
             this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
