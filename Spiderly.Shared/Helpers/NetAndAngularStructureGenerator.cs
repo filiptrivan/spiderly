@@ -3058,17 +3058,17 @@ namespace {{appName}}.WebAPI.GeneratorSettings
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "{{emailSender ?? "abc@gmail.com"}}",
+      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}", // Email address used to send verification emails during login or registration.
       "EmailSenderPassword": "{{emailSenderPassword ?? "xxxx xxxx xxxx xxxx"}}",
-      "UnhandledExceptionRecipients": [
-        "{{emailSender ?? "abc@gmail.com"}}"
+      "UnhandledExceptionRecipients": [ // Email address that will receive notifications when an unhandled exception occurs.
+        "{{emailSender ?? "youremail@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
       "SmtpPort": 587,
       "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // FT: Making it to 1 minute because of the SPA sends request exactly when it expires.
+      "ClockSkewMinutes": 1, // Making it to 1 minute because of the SPA sends request exactly when it expires.
       "FrontendUrl": "http://localhost:4200",
 
       "BlobStorageConnectionString": "{{blobStorageConnectionString}}",
@@ -3084,11 +3084,11 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // FT: Making it to 1 minute because of the SPA sends request exactly when it expires. 
+      "ClockSkewMinutes": 1, // Making it to 1 minute because of the SPA sends request exactly when it expires. 
       "AccessTokenExpiration": 20,
       "RefreshTokenExpiration": 1440, // 24 hours
       "VerificationTokenExpiration": 5,
-      "NumberOfFailedLoginAttemptsInARowToDisableUser": 40, // FT: I think we don't need this check, maybe delete in the future
+      "NumberOfFailedLoginAttemptsInARowToDisableUser": 40,
       "AllowTheUseOfAppWithDifferentIpAddresses": true,
       "AllowedBrowsersForTheSingleUser": 5,
       "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
