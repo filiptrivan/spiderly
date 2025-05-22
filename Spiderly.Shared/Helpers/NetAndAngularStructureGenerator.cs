@@ -4098,9 +4098,9 @@ platformBrowserDynamic().bootstrapModule(AppModule)
 <html lang="sr-Latn-RS">
 <head>
   <meta charset="utf-8">
-  <title>{{appName.ToTitleCase()}}</title>
-  <meta name="description" content="{{appName.ToTitleCase()}}">
-  <meta name="author" content="{{appName.ToTitleCase()}}">
+  <title>{{appName}}</title>
+  <meta name="description" content="{{appName}}">
+  <meta name="author" content="{{appName}}">
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="./assets/images/logo/favicon.ico">
