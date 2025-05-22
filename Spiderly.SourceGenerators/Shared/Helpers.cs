@@ -872,7 +872,7 @@ namespace Spiderly.SourceGenerators.Shared
             List<SpiderValidationRule> rulesOnEntity = new(); // priority - 3.
             List<SpiderValidationRule> rulesOnEntityProperties = new(); // priority - 4.
 
-            rulesOnDTO.AddRange(GetRulesForAttributes(DTOProperties, DTOAttributes, DTOProperties));
+            rulesOnDTO.AddRange(GetRulesForAttributes(DTOAttributes, DTOProperties));
 
             foreach (SpiderlyProperty DTOproperty in DTOProperties)
             {
@@ -884,7 +884,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (entity != null) // FT: If it is null then we only made DTO, without entity class
             {
-                rulesOnEntity.AddRange(GetRulesForAttributes(entity.Properties, entity.Attributes, DTOProperties));
+                rulesOnEntity.AddRange(GetRulesForAttributes(entity.Attributes, DTOProperties));
 
                 foreach (SpiderlyProperty property in entity.Properties)
                 {
@@ -903,7 +903,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// Passing <paramref name="DTOProperties"/> because we are always validating only DTO with FluentValidation
         /// </summary>
-        private static List<SpiderValidationRule> GetRulesForAttributes(List<SpiderlyProperty> properties, List<SpiderlyAttribute> attributes, List<SpiderlyProperty> DTOProperties)
+        private static List<SpiderValidationRule> GetRulesForAttributes(List<SpiderlyAttribute> attributes, List<SpiderlyProperty> DTOProperties)
         {
             List<SpiderValidationRule> rules = new();
 

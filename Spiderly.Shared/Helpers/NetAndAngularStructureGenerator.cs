@@ -867,7 +867,7 @@ export class RoleTableComponent implements OnInit {
             return $$"""
 <ng-container *transloco="let t">
     <user-extended-base-details
-    [panelTitle]="userExtendedFormGroup.getRawValue().email"
+    [panelTitle]="userExtendedFormGroup.getRawValue().email ?? null"
     panelIcon="pi pi-user"
     [formGroup]="formGroup" 
     [userExtendedFormGroup]="userExtendedFormGroup" 
@@ -891,7 +891,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { UserExtended } from 'src/app/business/entities/business-entities.generated';
 import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent } from 'spiderly';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
-import { combineLatest, map, Observable } from 'rxjs';
+import { combineLatest, delay, map, Observable } from 'rxjs';
 import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.generated';
 
 @Component({
@@ -927,6 +927,7 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
 
     authorizedForSaveObservable = (): Observable<boolean> => {
         return combineLatest([this.authService.currentUserPermissionCodes$, this.authService.user$]).pipe(
+            delay(0),
             map(([currentUserPermissionCodes, currentUser]) => {
                 if (currentUserPermissionCodes != null && currentUser != null) {
                     const IsDisabledAndExternalLoggedInControls = this.showIsDisabledAndExternalLoggedInControlsForPermissions(currentUserPermissionCodes);
@@ -972,6 +973,7 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
     [getTableDataObservableMethod]="getUserTableDataObservableMethod" 
     [exportTableDataToExcelObservableMethod]="exportUserTableDataToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteUserObservableMethod"
+    [showAddButton]="false"
     ></spiderly-data-table>
 </ng-container>
 """;

@@ -12,6 +12,17 @@ namespace Spiderly.Shared.Attributes
     /// 
     /// <b>Example:</b>
     /// <code>
+    /// // Class Example
+    /// [CustomValidator("RuleFor(x => x.Email).EmailAddress().Length(5, 50);")] // Validates email format and length
+    /// [CustomValidator("RuleFor(x => x.Name).Length(2, 100);")] // Validates name length
+    /// public class User : BusinessObject&lt;long&gt;
+    /// {
+    ///     public string Email { get; set; }
+    ///     
+    ///     public string Name { get; set; }
+    /// }
+    /// 
+    /// // Property Example
     /// public class User : BusinessObject&lt;long&gt;
     /// {
     ///     [CustomValidator("EmailAddress().Length(5, 50)")] // Validates email format and length
@@ -19,7 +30,7 @@ namespace Spiderly.Shared.Attributes
     /// }
     /// </code>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
     public class CustomValidatorAttribute : Attribute
     {
         public CustomValidatorAttribute(string validationRule)

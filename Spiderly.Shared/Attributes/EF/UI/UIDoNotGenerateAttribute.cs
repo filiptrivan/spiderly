@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.EF.UI
 {
     /// <summary>
-    /// <b>Usage:</b> Excludes a property from being generated in the UI main form component. <br/> <br/>
+    /// <b>Usage:</b> Apply to a property to exclude it from the UI form.
+    /// Apply to an entity to exclude the entire UI form generation. 
+    /// Apply to a controller method to exclude the UI controller method generation. <br/> <br/>
     /// 
     /// <b>Example:</b>
     /// <code>
@@ -23,7 +25,7 @@ namespace Spiderly.Shared.Attributes.EF.UI
     /// }
     /// </code>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class | AttributeTargets.Method)]
     public class UIDoNotGenerateAttribute : Attribute
     {
     }
