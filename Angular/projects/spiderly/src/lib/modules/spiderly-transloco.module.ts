@@ -10,21 +10,27 @@ import { provideTranslocoPreloadLangs } from '@jsverse/transloco-preload-langs';
 })
 export class SpiderlyTranslocoModule {
 
-  static forRoot(): ModuleWithProviders<SpiderlyTranslocoModule> {
+  static forRoot(config?: SpiderlyTranslocoConfig): ModuleWithProviders<SpiderlyTranslocoModule> {
     return {
       ngModule: SpiderlyTranslocoModule,
       providers: [
         provideTranslocoPreloadLangs(['sr-Latn-RS']),
         provideTransloco({
           config: {
-            availableLangs: [
-              'sr-Latn-RS', 'sr-Latn-RS.generated', 
+            availableLangs: config?.availableLangs ?? [
               'en', 'en.generated',
+              'sr-Latn-RS', 'sr-Latn-RS.generated', 
             ],
-            defaultLang: 'sr-Latn-RS',
-            fallbackLang: [
-              'sr-Latn-RS.generated',
-            ],
+            defaultLang: config?.defaultLang ?? 'en',
+            fallbackLang: config?.fallbackLang ?? 'en.generated',
+            // availableLangs: [
+            //   'sr-Latn-RS', 'sr-Latn-RS.generated', 
+            //   'en', 'en.generated',
+            // ],
+            // defaultLang: 'sr-Latn-RS',
+            // fallbackLang: [
+            //   'sr-Latn-RS.generated',
+            // ],
             missingHandler: {
               useFallbackTranslation: true,
               logMissingKey: false,
@@ -37,4 +43,10 @@ export class SpiderlyTranslocoModule {
     };
   }
 
+}
+
+export interface SpiderlyTranslocoConfig {
+  availableLangs: string[];
+  defaultLang: string;
+  fallbackLang: string;
 }
