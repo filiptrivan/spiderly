@@ -88,7 +88,15 @@ By using the [Spiderly.CLI](https://github.com/filiptrivan/spiderly/tree/main/Sp
 [Spiderly.Shared](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Shared) provides shared features that can be used by all other Spiderly libraries.
 
 ## Contributing
-If you want to participate in this cool open source repo be free to open an issue, start a discussion or make pull request.
+We welcome contributions from the community! Whether you have ideas, found a bug, or want to add a new feature — feel free to get involved. You can:
+- [Open an issue](https://github.com/filiptrivan/spiderly/issues) to report bugs or suggest enhancements
+- [Submit a pull request](https://github.com/filiptrivan/spiderly/pulls) with your proposed changes
+- [Start a discussion](https://github.com/filiptrivan/spiderly/discussions) to explore ideas or ask questions
+
+Every contribution is appreciated and helps make this project better for everyone.
+
+### Good First Issues
+To help you get your feet wet and get you familiar with our contribution process, we have a [list of good first issues](https://github.com/filiptrivan/spiderly/issues?q=is%3Aissue%20state%3Aopen%20label%3A"good%20first%20issue"), this is a great place to get started.
 
 ### License
 Spiderly is [MIT licensed](https://github.com/filiptrivan/spiderly/blob/main/LICENSE).
