@@ -1,36 +1,18 @@
-import { Injectable } from '@angular/core';
-import {
-  HttpRequest,
-  HttpHandler,
-  HttpEvent,
-  HttpInterceptor,
-} from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { inject } from '@angular/core';
+import { HttpInterceptorFn } from '@angular/common/http';
 import { ConfigBaseService } from '../services/config-base.service';
 
-@Injectable({
-    providedIn: 'root'
-})
-export class JwtInterceptor implements HttpInterceptor {
+export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
+  const config = inject(ConfigBaseService);
 
-  constructor(
-    private config: ConfigBaseService
-  ) {
-    
+  const accessToken = localStorage.getItem('access_token');
+  const isApiUrl = req.url.startsWith(config.apiUrl);
+
+  if (accessToken && isApiUrl) {
+    req = req.clone({
+      setHeaders: { Authorization: `Bearer ${accessToken}` },
+    });
   }
 
-  intercept(
-    request: HttpRequest<unknown>,
-    next: HttpHandler
-  ): Observable<HttpEvent<unknown>> {
-    const accessToken = localStorage.getItem('access_token');
-    const isApiUrl = request.url.startsWith(this.config.apiUrl);
-    if (accessToken && isApiUrl) {
-      request = request.clone({
-        setHeaders: { Authorization: `Bearer ${accessToken}` },
-      });
-    }
-
-    return next.handle(request);
-  }
+  return next(req);
 }

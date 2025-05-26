@@ -1,28 +1,20 @@
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from "@angular/common/http";
-import { Injectable } from "@angular/core";
+import { HttpEvent, HttpInterceptorFn } from "@angular/common/http";
+import { inject } from "@angular/core";
 import { NgxSpinnerService } from "ngx-spinner";
 import { Observable, finalize } from "rxjs";
 
-@Injectable({
-  providedIn: 'root'
-})
-export class HttpLoadingInterceptor implements HttpInterceptor {
-  constructor(private spinner: NgxSpinnerService) {}
+export const httpLoadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const spinner = inject(NgxSpinnerService);
+  
+  const shouldSkipSpinner = req.params.has('X-Skip-Spinner'); // Using this for multiautocomplete, autocomplete, dropdown, table etc...
 
-  intercept(
-    request: HttpRequest<any>,
-    next: HttpHandler
-  ): Observable<HttpEvent<any>> {
-    const skipSpinner = request.params.has('X-Skip-Spinner'); // FT: Using this for multiautocomplete, autocomplete, dropdown, table etc...
+  if (!shouldSkipSpinner)
+    spinner.show();
 
-    if (!skipSpinner)
-      this.spinner.show();
-
-    return next.handle(request).pipe(
-      finalize(() => {
-        if (!skipSpinner)
-          this.spinner.hide();
-      })
-    ) as Observable<HttpEvent<any>>;
-  }
+  return next(req).pipe(
+    finalize(() => {
+      if (!shouldSkipSpinner)
+        spinner.hide();
+    })
+  ) as Observable<HttpEvent<any>>;
 }
