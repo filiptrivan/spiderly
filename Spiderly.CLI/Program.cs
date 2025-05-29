@@ -1,8 +1,11 @@
 ﻿using CaseConverter;
 using Microsoft.Extensions.Configuration;
+using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
+using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -62,59 +65,108 @@ namespace Spiderly.CLI
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
-            Console.WriteLine("App name without spaces (e.g., YourAppName): ");
-            string appName = Console.ReadLine();
-            if (string.IsNullOrEmpty(appName))
+            string appName;
+
+            while (true)
             {
-                Console.WriteLine("Your app name can't be null or empty.");
-                return;
-            }
-            if (appName.HasSpaces())
-            {
-                Console.WriteLine("Your app name can't have spaces.");
-                return;
+                Console.Write("App name without spaces (e.g., YourAppName): ");
+                appName = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(appName))
+                {
+                    Console.WriteLine("Your app name can't be null or empty.");
+                    continue;
+                }
+
+                if (appName.Contains(" "))
+                {
+                    Console.WriteLine("Your app name can't have spaces.");
+                    continue;
+                }
+
+                break;
             }
 
             string currentPath = Environment.CurrentDirectory;
 
             string version = assembly.GetName().Version.ToString();
 
-            bool hasErrors = NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
+            bool hasNetAndAngularInitErrors = false;
+            bool hasEfMigrationErrors = false;
+            bool hasDatabaseUpdateErrors = false;
+            bool hasNpmInstallErrors = false;
+
+            Console.WriteLine("[INFO] Generating files for the app...");
+            try
+            {
+                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
+                Console.WriteLine("[SUCCESS] Finished generating files for the app.");
+            }
+            catch (Exception ex)
+            {
+                if (ex is BusinessException)
+                {
+                    Console.WriteLine($"[ERROR] Error occurred:\n{ex.Message}");
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] Error occurred:\n{ex}");
+                }
+
+                hasNetAndAngularInitErrors = true;
+            }
 
             string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
             string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Angular");
 
-            Console.WriteLine("\nAdding EF migration...");
+            Console.WriteLine("\n[INFO] Generating the database migration...");
             if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
             {
-                Console.WriteLine("\nFailed to add EF migration.");
-                hasErrors = true;
+                Console.WriteLine("\n[ERROR] Failed to generate the database migration.");
+                hasEfMigrationErrors = true;
             }
 
-            Console.WriteLine("\nUpdating database...");
+            Console.WriteLine("\n[INFO] Updating the database...");
             if (!await RunCommand("dotnet", @$"ef database update --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
             {
-                Console.WriteLine("\nFailed to update database.");
-                hasErrors = true;
+                Console.WriteLine("\n[ERROR] Failed to update the database.");
+                hasDatabaseUpdateErrors = true;
             }
 
-            Console.WriteLine("\nNpm install...");
+            Console.WriteLine("\n[INFO] Installing frontend packages...");
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
             if (!await RunCommand(npmCmd, npmArgs, frontendPath))
             {
-                Console.WriteLine("\nFailed to npm install.");
-                hasErrors = true;
+                Console.WriteLine("\n[ERROR] Failed to install frontend packages.");
+                hasNpmInstallErrors = true;
             }
 
-            if (hasErrors)
+            if (hasNetAndAngularInitErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
             {
-                Console.WriteLine("You had some errors. Please solve them, then continue with the Step 4 from the getting started guide.");
+                if (hasNetAndAngularInitErrors)
+                {
+                    Console.WriteLine("Error occurred while generating files for the app.");
+                }
+                else if (hasEfMigrationErrors)
+                {
+                    Console.WriteLine("Error occurred while doing EF Core migration.");
+                }
+                else if (hasDatabaseUpdateErrors)
+                {
+                    Console.WriteLine("Error occurred while initializing the database.");
+                }
+                else if (hasNpmInstallErrors)
+                {
+                    Console.WriteLine("Error occurred while installing the frontend packages.");
+                }
+
+                Console.WriteLine("Please solve the errors, then continue with the Step 4 from the getting started guide.");
             }
             else
             {
-                Console.WriteLine("App initialized successfully!");
+                Console.WriteLine("App initialized successfully, continue with the Step 4 from the getting started guide!");
             }
         }
 

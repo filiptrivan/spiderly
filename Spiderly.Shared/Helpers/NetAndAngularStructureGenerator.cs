@@ -9,10 +9,8 @@ namespace Spiderly.Shared.Helpers
 {
     public static class NetAndAngularStructureGenerator
     {
-        public static bool Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
+        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
         {
-            bool hasErrors = false;
-
             string jwtKey = GenerateJwtSecretKey();
 
             SpiderlyFolder appStructure = new SpiderlyFolder
@@ -546,27 +544,7 @@ namespace Spiderly.Shared.Helpers
                 }
             };
 
-            try
-            {
-                GenerateProjectStructure(appStructure, outputPath);
-            }
-            catch (Exception ex)
-            {
-                if (ex is BusinessException)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-                else
-                {
-                    Console.WriteLine(ex);
-                    hasErrors = true;
-                }
-            }
-
-            Console.WriteLine("Backend initialized.");
-            Console.WriteLine("Frontend initialized.");
-
-            return hasErrors;
+            GenerateProjectStructure(appStructure, outputPath);
         }
 
         private static void GenerateProjectStructure(SpiderlyFolder appStructure, string path)
@@ -3120,7 +3098,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "BlobStorageUrl": "{{blobStorageUrl}}",
       "BlobStorageContainerName": "files",
 
-      "ConnectionString": "Data source=localhost{{GetSqlServerExtension()}};Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
+      "ConnectionString": "Data source=localhost;Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
 
       "RequestsLimitNumber": 70,
       "RequestsLimitWindow": 60
@@ -3142,17 +3120,6 @@ namespace {{appName}}.WebAPI.GeneratorSettings
   }
 }
 """;
-        }
-
-        private static string GetSqlServerExtension()
-        {
-            Console.WriteLine(Helper.HasSqlExpressInstalled());
-            if (Helper.HasSqlExpressInstalled())
-            {
-                return """\\SQLEXPRES""";
-            }
-
-            return "";
         }
 
         private static string GetLaunchSettingsJsonData()
@@ -3335,6 +3302,9 @@ namespace {{appName}}.WebAPI.DI
 
 	<ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.1">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
 		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
 		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />

@@ -136,30 +136,6 @@ namespace Spiderly.Shared.Helpers
             return parts.Last(); // FT: The file could be .abc.png
         }
 
-        public static bool HasSqlExpressInstalled()
-        {
-            try
-            {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM SqlServiceAdvancedProperty WHERE PropertyName = 'SKUNAME'");
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    string edition = obj["PropertyStrValue"]?.ToString();
-
-                    if (!string.IsNullOrEmpty(edition) &&
-                        edition.IndexOf("Express", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        return true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while checking for SQL Server Edition: {ex.Message}");
-            }
-
-            return false;
-        }
-
         #region Emailing
 
         public static async Task SendEmailAsync(string recipient, string subject, string body)
