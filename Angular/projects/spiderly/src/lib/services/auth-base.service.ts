@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, firstValueFrom, Observable, of, Subject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { map, tap, delay, finalize } from 'rxjs/operators';
 import { SocialUser, SocialAuthService } from '@abacritt/angularx-social-login';
 import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, Registration, RegistrationVerificationResult, RefreshTokenRequest, User } from '../entities/security-entities';

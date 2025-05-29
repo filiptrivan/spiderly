@@ -5,7 +5,7 @@
     <label>{{getTranslatedLabel()}}</label>
     <required *ngIf="control?.required"></required>
   </div>
-  <div class="p-inputgroup p-fluid">
+  <div class="p-inputgroup">
     <input
       *ngIf="control"
       [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
@@ -14,8 +14,9 @@
       [id]="control.label"
       (blur)="control.markAsDirty()"
       [placeholder]="placeholder"
+      [fluid]="true"
       />
-      <span *ngIf="showButton" (click)="buttonClick()" class="p-inputgroup-addon" style="cursor: pointer; background-color: var(--primary-color); border-color: var(--primary-color);">
+      <span *ngIf="showButton" (click)="buttonClick()" class="p-inputgroup-addon" style="cursor: pointer; background-color: var(--p-primary-color); border-color: var(--p-primary-color);">
         <i class="pi {{buttonIcon}}" style="color: #fff;"></i>
       </span>
   </div>

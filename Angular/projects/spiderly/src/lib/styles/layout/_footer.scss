@@ -1,3 +1,5 @@
+@use './_variables' as *;
+
 .layout-footer {
     transition: margin-left $transitionDuration;
     display: flex;

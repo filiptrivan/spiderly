@@ -31,9 +31,8 @@ import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button
 @Component({
     selector: 'role-base-details',
     templateUrl: 'role-base-details.component.html',
-    standalone: true,
     imports: [
-        CommonModule, 
+        CommonModule,
         FormsModule,
         ReactiveFormsModule,
         PrimengModule,

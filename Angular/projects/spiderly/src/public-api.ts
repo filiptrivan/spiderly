@@ -5,7 +5,6 @@
 export * from './lib/modules/core.module';
 export * from './lib/modules/primeng.module';
 export * from './lib/modules/spiderly-transloco.module';
-export * from './lib/components/auth/auth.module';
 
 export * from './lib/controls/spiderly-autocomplete/spiderly-autocomplete.component';
 export * from './lib/controls/spiderly-calendar/spiderly-calendar.component';
@@ -31,6 +30,8 @@ export * from './lib/components/card-skeleton/card-skeleton.component';
 export * from './lib/components/auth/partials/login-verification.component';
 export * from './lib/components/auth/partials/registration-verification.component';
 export * from './lib/components/auth/partials/verification-wrapper.component';
+export * from './lib/components/auth/login/login.component';
+export * from './lib/components/auth/registration/registration.component';
 export * from './lib/components/footer/footer.component';
 export * from './lib/components/spiderly-buttons/google-button/google-button.component';
 export * from './lib/components/index-card/index-card.component';

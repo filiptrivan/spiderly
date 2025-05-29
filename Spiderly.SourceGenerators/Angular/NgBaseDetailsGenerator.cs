@@ -100,7 +100,7 @@ namespace Spiderly.SourceGenerators.Angular
                 result.Add($$"""
 @Component({
     selector: '{{entity.Name.FromPascalToKebabCase()}}-base-details',
-    template:`
+    template: `
 <ng-container *transloco="let t">
     <spiderly-panel [isFirstMultiplePanel]="isFirstMultiplePanel" [isMiddleMultiplePanel]="isMiddleMultiplePanel" [isLastMultiplePanel]="isLastMultiplePanel" [showPanelHeader]="showPanelHeader" >
         <panel-header [title]="panelTitle" [icon]="panelIcon"></panel-header>
@@ -127,9 +127,8 @@ namespace Spiderly.SourceGenerators.Angular
     </spiderly-panel>
 </ng-container>
     `,
-    standalone: true,
     imports: [
-        CommonModule, 
+        CommonModule,
         FormsModule,
         ReactiveFormsModule,
         PrimengModule,

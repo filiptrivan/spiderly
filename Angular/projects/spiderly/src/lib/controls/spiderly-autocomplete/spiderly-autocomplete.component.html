@@ -5,8 +5,8 @@
       <required *ngIf="control?.required"></required>
     </div>
   
-    <div class="p-inputgroup p-fluid">
-      <p-autoComplete
+    <p-inputgroup>
+      <p-autocomplete
       *ngIf="control"
       [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
       [id]="label"
@@ -22,15 +22,15 @@
       (onHide)="dropdownMarkAsDirty()"
       (onSelect)="select($event)"
       [completeOnFocus]="true"
-      [style]="{'width':'100%', 'position' : 'relative'}"
-      [inputStyle]="{'width':'100%'}"
+      [style]="{'width': '100%'}"
+      [fluid]="true"
       [appendTo]="appendTo"
       [emptyMessage]="emptyMessage"
       [lazy]="true"
       />
-      <span *ngIf="showAddon" (click)="addonClick()" class="p-inputgroup-addon" style="cursor: pointer; background-color: var(--primary-color); border-color: var(--primary-color);">
+      <p-inputgroup-addon *ngIf="showAddon" (click)="addonClick()" [style]="{'cursor': 'pointer', 'background-color': 'var(--p-primary-color)', 'border-color': 'var(--p-primary-color)'}">
         <i class="{{addonIcon}}" style="color: #fff;"></i>
-      </span>
-    </div>
+      </p-inputgroup-addon>
+    </p-inputgroup>
   </div>
 </ng-container>

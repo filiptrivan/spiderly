@@ -8,7 +8,8 @@ import { TranslocoService } from '@jsverse/transloco';
     selector: 'base-control',
     template: '',
     styles: [],
-  })
+    standalone: false
+})
   export class BaseControl {
     @Input() control: SpiderlyFormControl; // FT: if you name it formControl: https://stackoverflow.com/a/54755671/21209982
     @Input() disabled: boolean = false;

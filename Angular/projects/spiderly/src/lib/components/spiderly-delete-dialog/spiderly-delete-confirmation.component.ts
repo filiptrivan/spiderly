@@ -6,18 +6,17 @@ import { PrimengModule } from '../../modules/primeng.module';
 import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
 
 @Component({
-  selector: 'spiderly-delete-confirmation',
-  templateUrl: './spiderly-delete-confirmation.component.html',
-  styles: [],
-  standalone: true,
-  imports: [
-    PrimengModule,
-    SpiderlyButtonComponent,
-    TranslocoDirective,
-  ],
-  providers: [
-    ConfirmationService
-  ]
+    selector: 'spiderly-delete-confirmation',
+    templateUrl: './spiderly-delete-confirmation.component.html',
+    styles: [],
+    imports: [
+        PrimengModule,
+        SpiderlyButtonComponent,
+        TranslocoDirective,
+    ],
+    providers: [
+        ConfirmationService
+    ]
 })
 export class SpiderlyDeleteConfirmationComponent {
 

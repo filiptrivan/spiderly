@@ -4,7 +4,7 @@
     justify-content: space-between; 
     gap: 10px; 
     border-top: 1px solid #dee2e6;
-    border-bottom-right-radius: 12px;
-    border-bottom-left-radius: 12px;
-    padding: 1rem;
+    border-bottom-right-radius: var(--p-content-border-radius);
+    border-bottom-left-radius: var(--p-content-border-radius);
+    padding: 18px;
 }

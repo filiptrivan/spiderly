@@ -7,16 +7,15 @@ import { ButtonModule } from "primeng/button";
 import { SpiderlyButtonComponent } from "../spiderly-button/spiderly-button.component";
 
 @Component({
-  selector: 'return-button',
-  templateUrl: './return-button.component.html',
-  styles: [],
-  imports: [
-    CommonModule,
-    ButtonModule,
-    SpiderlyButtonComponent,
-    TranslocoDirective,
-  ],
-  standalone: true,
+    selector: 'return-button',
+    templateUrl: './return-button.component.html',
+    styles: [],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        SpiderlyButtonComponent,
+        TranslocoDirective,
+    ]
 })
 export class SpiderlyReturnButtonComponent {
   @Input() navigateUrl: string;

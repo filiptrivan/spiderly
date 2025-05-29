@@ -15,7 +15,6 @@ import { SpiderlyMessageService } from '../../../services/spiderly-message.servi
 @Component({
     selector: 'verification-wrapper',
     templateUrl: './verification-wrapper.component.html',
-    standalone: true,
     imports: [
         CommonModule,
         PrimengModule,

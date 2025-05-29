@@ -11,7 +11,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-autocomplete',
     templateUrl: './spiderly-autocomplete.component.html',
     styles: [],
-    standalone: true,
     imports: [
         ReactiveFormsModule,
         FormsModule,

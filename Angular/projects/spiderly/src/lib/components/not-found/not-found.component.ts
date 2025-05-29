@@ -5,7 +5,6 @@ import { RouterModule } from '@angular/router';
 @Component({
     selector: 'not-found',
     templateUrl: './not-found.component.html',
-    standalone: true,
     imports: [
         RouterModule
     ]

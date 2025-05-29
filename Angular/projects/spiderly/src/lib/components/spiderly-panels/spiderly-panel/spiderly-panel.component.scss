@@ -1,0 +1,11 @@
+    :host {
+      ::ng-deep {
+        .p-panel{
+          overflow: hidden;
+        }
+        .p-panel-icons{
+          display: flex;
+          align-items: center;
+        }
+      }
+    }

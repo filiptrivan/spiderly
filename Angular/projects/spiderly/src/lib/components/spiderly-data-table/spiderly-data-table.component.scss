@@ -32,3 +32,18 @@
 		}
 	}
 }
+
+:host {
+	::ng-deep {
+		.p-datatable-thead{
+			position: unset !important;
+		}
+		.p-datatable-header{
+			border-radius: 6px 6px 0 0;
+		}
+		.p-datatable {
+			border-radius: var(--p-content-border-radius);
+			border: 1px solid var(--p-datatable-border-color);
+		}
+	}
+}

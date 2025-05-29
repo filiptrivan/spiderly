@@ -9,9 +9,7 @@ import { PrimengModule } from '../../modules/primeng.module';
 @Component({
     selector: 'spiderly-multiselect',
     templateUrl: './spiderly-multiselect.component.html',
-    styles: [
-    ],
-    standalone: true,
+    styles: [],
     imports: [
         CommonModule,
         ReactiveFormsModule,

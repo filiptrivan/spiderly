@@ -4,20 +4,20 @@ import { BaseAutocompleteControl } from '../base-autocomplete-control';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { PrimengModule } from '../../modules/primeng.module';
 
 @Component({
     selector: 'spiderly-multiautocomplete',
     templateUrl: './spiderly-multiautocomplete.component.html',
     styles: [],
-    standalone: true,
     imports: [
         ReactiveFormsModule,
         FormsModule,
         PrimengModule,
         CommonModule,
-        RequiredComponent
+        RequiredComponent,
+        TranslocoDirective,
     ]
 })
 export class SpiderlyMultiAutocompleteComponent extends BaseAutocompleteControl implements OnInit {

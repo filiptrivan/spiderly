@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -32,9 +32,9 @@ import { TranslocoDirective } from '@jsverse/transloco';
             transition('collapsed <=> expanded', animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'))
         ])
     ],
-    standalone: true,
     imports: [
         CommonModule,
+        RouterModule,
         PrimengModule,
         TranslocoDirective,
         SpiderlyControlsModule,

@@ -8,15 +8,14 @@ import { MenuItem } from "primeng/api";
 import { SpiderlyButtonBaseComponent } from "../spiderly-button-base/spiderly-button-base";
 
 @Component({
-  selector: 'spiderly-button',
-  templateUrl: './spiderly-button.component.html',
-  styles: [],
-  imports: [
-    CommonModule,
-    ButtonModule,
-    SplitButtonModule
-  ],
-  standalone: true,
+    selector: 'spiderly-button',
+    templateUrl: './spiderly-button.component.html',
+    styles: [],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        SplitButtonModule
+    ]
 })
 export class SpiderlyButtonComponent extends SpiderlyButtonBaseComponent {
 

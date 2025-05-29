@@ -8,7 +8,7 @@
         *ngIf="control"
         [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid" 
         [formControl]="control"
-        [label]="inlineLabel ? label : null"
+        [value]="inlineLabel ? label : null"
         [id]="label"
         [binary]="true"
         />

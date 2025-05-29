@@ -10,7 +10,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-textarea',
     templateUrl: './spiderly-textarea.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

@@ -1,5 +1,5 @@
 import { TranslocoService } from '@jsverse/transloco';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { filter, Subscription } from 'rxjs';
 import { AuthBaseService } from '../../../services/auth-base.service';
@@ -21,12 +21,11 @@ interface SpiderlyMenuItem {
 @Component({
     selector: 'topbar',
     templateUrl: './topbar.component.html',
-    styles: [
-    ],
-    standalone: true,
+    styles: [],
     imports: [
-      CommonModule,
-      PrimengModule
+        CommonModule,
+        PrimengModule,
+        RouterModule
     ]
 })
 export class AppTopBarComponent implements OnDestroy {

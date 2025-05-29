@@ -22,7 +22,7 @@
     <p-avatar
         *ngIf="showProfileIcon"
         [label]="avatarLabel"
-        [style]="{ 'background-color': 'var(--primary-color)', 'color': '#fff', 'cursor': 'pointer', 'width': '34px', 'height': '34px', 'font-size': '21px' }"
+        [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'width': '34px', 'height': '34px', 'font-size': '21px' }"
         pBadge 
         [badgeStyleClass]="'p-badge-danger'"
         [badgeDisabled]="unreadNotificationsCount == 0 || unreadNotificationsCount == null"
@@ -38,7 +38,7 @@
         <p-avatar
           [label]="avatarLabel"
           size="xlarge"
-          [style]="{ 'background-color': 'var(--primary-color)', 'color': '#fff', 'cursor': 'pointer' }"
+          [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'margin': 'auto' }"
           (click)="routeToUserPage()"
           />
         <div>{{currentUser?.email}}</div>

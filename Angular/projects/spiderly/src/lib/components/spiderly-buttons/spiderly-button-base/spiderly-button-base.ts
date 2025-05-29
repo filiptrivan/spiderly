@@ -7,15 +7,14 @@ import { Router } from "@angular/router";
 import { MenuItem } from "primeng/api";
 
 @Component({
-  selector: 'spiderly-button-base',
-  template: ``,
-  styles: [],
-  imports: [
-    CommonModule,
-    ButtonModule,
-    SplitButtonModule
-  ],
-  standalone: true,
+    selector: 'spiderly-button-base',
+    template: ``,
+    styles: [],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        SplitButtonModule
+    ]
 })
 export class SpiderlyButtonBaseComponent {
   @Input() icon: string;

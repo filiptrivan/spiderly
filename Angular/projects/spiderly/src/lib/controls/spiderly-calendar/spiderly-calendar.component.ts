@@ -10,7 +10,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-calendar',
     templateUrl: './spiderly-calendar.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

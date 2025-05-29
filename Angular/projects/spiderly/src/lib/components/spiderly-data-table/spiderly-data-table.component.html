@@ -1,6 +1,6 @@
 <ng-container *transloco="let t">
   <div [class]="showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''">
-    <p-table #dt [value]="items" [rows]="rows" [rowHover]="true" styleClass="p-datatable-gridlines" [paginator]="showPaginator" responsiveLayout="scroll" [lazy]="hasLazyLoad"
+    <p-table #dt [value]="items" [rows]="rows" [rowHover]="true" [paginator]="showPaginator" responsiveLayout="scroll" [lazy]="hasLazyLoad"
     (onLazyLoad)="lazyLoad($event)" [totalRecords]="totalRecords" class="spiderly-table" [loading]="(items === undefined || loading === true)" [selectionMode]="selectionMode" dataKey="id" 
     (onFilter)="filter($event)"> 
       <ng-template pTemplate="caption">

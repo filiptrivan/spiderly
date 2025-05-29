@@ -7,15 +7,14 @@ import { ConfigBaseService } from "../../../services/config-base.service";
 import { AuthBaseService } from "../../../services/auth-base.service";
 
 @Component({
-  selector: 'auth',
-  templateUrl: './auth.component.html',
-  styles: [],
-  imports: [
-    CommonModule,
-    GoogleButtonComponent,
-    TranslocoDirective,
-  ],
-  standalone: true,
+    selector: 'auth',
+    templateUrl: './auth.component.html',
+    styles: [],
+    imports: [
+        CommonModule,
+        GoogleButtonComponent,
+        TranslocoDirective,
+    ]
 })
 export class AuthComponent {
   private initCompanyAuthDialogDetailsSubscription: Subscription | null = null;

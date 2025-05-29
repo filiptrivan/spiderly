@@ -8,12 +8,11 @@ import { PrimengModule } from '../../modules/primeng.module';
 @Component({
     selector: 'index-card',
     templateUrl: './index-card.component.html',
-    standalone: true,
     imports: [
-    CommonModule,
-    PrimengModule,
-    SpiderlyPanelsModule
-]
+        CommonModule,
+        PrimengModule,
+        SpiderlyPanelsModule
+    ]
 })
 export class IndexCardComponent {
     @Input() last: boolean;

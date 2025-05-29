@@ -1,8 +1,14 @@
-import { provideTransloco, provideTranslocoLoader, TranslocoModule } from '@jsverse/transloco';
-import { ModuleWithProviders, NgModule } from '@angular/core';
+import { provideTransloco, TranslocoModule } from '@jsverse/transloco';
+import { EnvironmentProviders, importProvidersFrom, ModuleWithProviders, NgModule } from '@angular/core';
 
 import { SpiderlyTranslocoLoader } from '../services/spiderly-transloco-loader';
 import { provideTranslocoPreloadLangs } from '@jsverse/transloco-preload-langs';
+
+export function provideSpiderlyTransloco(config?: SpiderlyTranslocoConfig): EnvironmentProviders {
+  return importProvidersFrom(
+    SpiderlyTranslocoModule.forRoot(config)
+  );
+}
 
 @NgModule({
   imports: [TranslocoModule],

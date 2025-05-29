@@ -12,7 +12,8 @@ import { TranslocoService } from '@jsverse/transloco';
     selector: 'base-dropdown-control',
     template: '',
     styles: [],
-  })
+    standalone: false
+})
   export class BaseDropdownControl extends BaseControl {
     @Input() options: PrimengOption[];
     @Input() showAddon: boolean = false;

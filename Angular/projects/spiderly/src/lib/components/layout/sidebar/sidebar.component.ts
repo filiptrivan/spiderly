@@ -4,7 +4,6 @@ import { SidebarMenuComponent, SpiderlyMenuItem } from './sidebar-menu.component
 @Component({
     selector: 'sidebar',
     templateUrl: './sidebar.component.html',
-    standalone: true,
     imports: [
         SidebarMenuComponent
     ]

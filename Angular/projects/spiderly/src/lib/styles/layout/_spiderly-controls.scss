@@ -1,3 +1,5 @@
+@use './_variables' as *;
+
 .spiderly-tooltip-invalid.p-tooltip .p-tooltip-text {
   background-color: $errorColorLight !important;
   color: $errorColor !important;

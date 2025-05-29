@@ -2,11 +2,10 @@ import { Component, Input } from "@angular/core";
 import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
-  selector: 'card-skeleton',
-  templateUrl: './card-skeleton.component.html',
-  styles: [],
-  standalone: true,
-  imports: [SkeletonModule]
+    selector: 'card-skeleton',
+    templateUrl: './card-skeleton.component.html',
+    styles: [],
+    imports: [SkeletonModule]
 })
 export class CardSkeletonComponent {
   @Input() height: number = 400;

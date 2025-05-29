@@ -43,7 +43,7 @@ export class LayoutBaseService implements OnDestroy {
         colorScheme: 'light',
         theme: 'lara-light-indigo',
         scale: 14,
-        color: `var(--primary-color)`,
+        color: `var(--p-primary-color)`,
     };
 
     state: LayoutState = {

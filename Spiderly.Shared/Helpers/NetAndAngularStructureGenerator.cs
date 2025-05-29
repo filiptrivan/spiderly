@@ -3,6 +3,7 @@ using Spiderly.Shared.Extensions;
 using CaseConverter;
 using System.Security.Cryptography;
 using Spiderly.Shared.Exceptions;
+using Microsoft.AspNetCore.Routing;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -147,10 +148,6 @@ namespace Spiderly.Shared.Helpers
                                                         }
                                                     },
                                                 },
-                                                Files =
-                                                {
-                                                    new SpiderlyFile { Name = "business.module.ts", Data = GetBusinessModuleTsData() }
-                                                }
                                             },
                                             new SpiderlyFolder
                                             {
@@ -213,7 +210,7 @@ namespace Spiderly.Shared.Helpers
                                                         Name = "dashboard",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "dashboard.component.html", Data = GetDashboardComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "dashboard.component.html", Data = GetDashboardComponentHtmlData(appName) },
                                                             new SpiderlyFile { Name = "dashboard.component.ts", Data = GetDashboardComponentTsData() },
                                                             new SpiderlyFile { Name = "dashboard.module.ts", Data = GetDashboardModuleTsData() },
                                                         }
@@ -272,10 +269,10 @@ namespace Spiderly.Shared.Helpers
                                         },
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "app-routing.module.ts", Data = GetAppRoutingModuleTsData() },
+                                            new SpiderlyFile { Name = "app-routes.ts", Data = GetAppRoutesTsData() },
                                             new SpiderlyFile { Name = "app.component.html", Data = GetAppComponentHtmlData() },
                                             new SpiderlyFile { Name = "app.component.ts", Data = GetAppComponentTsData() },
-                                            new SpiderlyFile { Name = "app.module.ts", Data = GetAppModuleTsData() },
+                                            new SpiderlyFile { Name = "app.config.ts", Data = GetAppConfigTsData() },
                                         }
                                     },
                                     new SpiderlyFolder
@@ -313,8 +310,8 @@ namespace Spiderly.Shared.Helpers
                                         },
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "shared.scss", Data = "" },
-                                            new SpiderlyFile { Name = "styles.scss", Data = GetStylesScssCode(isFromNuget) },
+                                            new SpiderlyFile { Name = "primeng-theme.ts", Data = GetPrimeNGThemeTsData() },
+                                            new SpiderlyFile { Name = "styles.scss", Data = GetStylesScssData(isFromNuget) },
                                         }
                                     },
                                     new SpiderlyFolder
@@ -323,7 +320,7 @@ namespace Spiderly.Shared.Helpers
                                         Files =
                                         {
                                             new SpiderlyFile { Name = "environment.prod.ts", Data = "" },
-                                            new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsCode(appName, primaryColor) },
+                                            new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName, primaryColor) },
                                         }
                                     }
                                 },
@@ -643,6 +640,7 @@ import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, S
     selector: 'notification-details',
     templateUrl: './notification-details.component.html',
     styles: [],
+    standalone: false,
 })
 export class NotificationDetailsComponent extends BaseFormCopy implements OnInit {
     notificationFormGroup = new SpiderlyFormGroup<Notification>({});
@@ -726,7 +724,8 @@ import { Notification } from 'src/app/business/entities/business-entities.genera
 @Component({
     selector: 'notification-table',
     templateUrl: './notification-table.component.html',
-    styles: []
+    styles: [],
+    standalone: false,
 })
 export class NotificationTableComponent implements OnInit {
     cols: Column<Notification>[];
@@ -786,6 +785,7 @@ import { Role, SpiderlyMessageService, BaseFormCopy, BaseFormService, SpiderlyFo
     selector: 'role-details',
     templateUrl: './role-details.component.html',
     styles: [],
+    standalone: false,
 })
 export class RoleDetailsComponent extends BaseFormCopy implements OnInit {
     roleFormGroup = new SpiderlyFormGroup<Role>({});
@@ -833,7 +833,8 @@ import { Column, Role } from 'spiderly';
 @Component({
     selector: 'role-table',
     templateUrl: './role-table.component.html',
-    styles: []
+    styles: [],
+    standalone: false,
 })
 export class RoleTableComponent implements OnInit {
     cols: Column<Role>[];
@@ -898,6 +899,7 @@ import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.g
     selector: 'user-details',
     templateUrl: './user-details.component.html',
     styles: [],
+    standalone: false,
 })
 export class UserDetailsComponent extends BaseFormCopy implements OnInit {
     userExtendedFormGroup = new SpiderlyFormGroup<UserExtended>({});
@@ -990,7 +992,8 @@ import { Column } from 'spiderly';
 @Component({
     selector: 'user-table',
     templateUrl: './user-table.component.html',
-    styles: []
+    styles: [],
+    standalone: false,
 })
 export class UserTableComponent implements OnInit {
     cols: Column[];
@@ -1093,11 +1096,13 @@ export class AdministrationModule { }
 """;
         }
 
-        private static string GetDashboardComponentHtmlData()
+        private static string GetDashboardComponentHtmlData(string appName)
         {
             return $$"""
 <ng-container *transloco="let t">
-    Welcome!
+    <info-card header="Hello, {{appName}}">
+        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#step-10">Step 10</a> in the Getting Started guide.
+    </info-card>
 </ng-container>
 """;
         }
@@ -1108,7 +1113,8 @@ export class AdministrationModule { }
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  templateUrl: './dashboard.component.html',
+    templateUrl: './dashboard.component.html',
+    standalone: false,
 })
 export class DashboardComponent implements OnInit {
 
@@ -1136,6 +1142,7 @@ import { NgModule } from '@angular/core';
 import { DashboardComponent } from './dashboard.component';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { RouterModule, Routes } from '@angular/router';
+import { InfoCardComponent } from 'spiderly';
 
 const routes: Routes = [
     {
@@ -1146,9 +1153,10 @@ const routes: Routes = [
 
 @NgModule({
     imports: [
-    RouterModule.forChild(routes),
-    TranslocoDirective,
-],
+        RouterModule.forChild(routes),
+        TranslocoDirective,
+        InfoCardComponent,
+    ],
     declarations: [DashboardComponent],
     providers:[]
 })
@@ -1257,11 +1265,10 @@ import { SpiderlyPanelsModule } from 'spiderly';
 import { ConfigService } from 'src/app/business/services/config.service';
 
 @Component({
-  templateUrl: './privacy-policy.component.html',
-  standalone: true,
-  imports: [
+    templateUrl: './privacy-policy.component.html',
+    imports: [
     SpiderlyPanelsModule
-  ]
+    ]
 })
 export class PrivacyPolicyComponent implements OnInit {
   companyName = this.config.companyName;
@@ -1376,11 +1383,10 @@ import { SpiderlyPanelsModule } from 'spiderly';
 import { ConfigService } from 'src/app/business/services/config.service';
 
 @Component({
-  templateUrl: './user-agreement.component.html',
-  standalone: true,
-  imports: [
+    templateUrl: './user-agreement.component.html',
+    imports: [
     SpiderlyPanelsModule
-  ]
+    ]
 })
 export class UserAgreementComponent implements OnInit {
   companyName = this.config.companyName;
@@ -1609,74 +1615,81 @@ export class NotificationModule { }
 """;
         }
 
-        private static string GetAppRoutingModuleTsData()
+        private static string GetAppRoutesTsData()
         {
             return $$"""
-import { PreloadAllModules, RouterModule } from '@angular/router';
-import { NgModule } from '@angular/core';
+import {
+    InMemoryScrollingOptions,
+    RouterConfigOptions,
+    Routes,
+} from '@angular/router';
 import { AuthGuard, NotAuthGuard, NotFoundComponent } from 'spiderly';
 import { LayoutComponent } from './business/layout/layout.component';
 
-@NgModule({
-    imports: [
-        RouterModule.forRoot([
-            {
-                path: '', 
-                component: LayoutComponent,
-                children: [
-                    {
-                        path: '',
-                        loadChildren: () => import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
-                        canActivate: [AuthGuard]
-                    },
-                    { 
-                        path: 'administration',
-                        loadChildren: () => import('./features/administration/administration.module').then(m => m.AdministrationModule),
-                        canActivate: [AuthGuard]
-                    },
-                    { 
-                        path: '',
-                        loadChildren: () => import('./features/notification/notification.module').then(m => m.NotificationModule),
-                        canActivate: [AuthGuard]
-                    },
-                ],
-            },
+export const routes: Routes = [
+    {
+        path: '', 
+        component: LayoutComponent,
+        children: [
             {
                 path: '',
-                children: [
-                    { 
-                        path: '',
-                        loadChildren: () => import('spiderly').then(m => m.AuthModule),
-                        canActivate: [NotAuthGuard],
-                    },
-                ],
+                loadChildren: () => import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
+                canActivate: [AuthGuard]
             },
+            { 
+                path: 'administration',
+                loadChildren: () => import('./features/administration/administration.module').then(m => m.AdministrationModule),
+                canActivate: [AuthGuard]
+            },
+            { 
+                path: '',
+                loadChildren: () => import('./features/notification/notification.module').then(m => m.NotificationModule),
+                canActivate: [AuthGuard]
+            },
+        ],
+    },
+    {
+        path: 'login',
+        loadComponent: () => import('spiderly').then((m) => m.LoginComponent),
+        canActivate: [NotAuthGuard],
+    },
+    {
+        path: 'registration',
+        loadComponent: () =>
+            import('spiderly').then((m) => m.RegistrationComponent),
+        canActivate: [NotAuthGuard],
+    },
+    {
+        path: '',
+        children: [
             {
                 path: '',
-                children: [
-                    { 
-                        path: '',
-                        loadChildren: () => import('./features/legal/legal.module').then(m => m.LegalModule),
-                    },
-                ],
+                loadChildren: () =>
+                    import('./features/legal/legal.module').then(
+                        (m) => m.LegalModule
+                    ),
             },
-            // { path: 'landing', loadChildren: () => import('./layout/components/landing/landing.module').then(m => m.LandingModule) },
-            { path: 'not-found', component: NotFoundComponent },
-            { path: '**', redirectTo: 'not-found' },
-        ], { scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled', onSameUrlNavigation: 'reload', preloadingStrategy: PreloadAllModules })
-    ],
-    exports: [RouterModule]
-})
-export class AppRoutingModule {
-}
+        ],
+    },
+    { path: 'not-found', component: NotFoundComponent },
+    { path: '**', redirectTo: 'not-found' },
+];
+    
+export const scrollConfig: InMemoryScrollingOptions = {
+    scrollPositionRestoration: 'top',
+    anchorScrolling: 'enabled',
+};
 
+export const routerConfigOptions: RouterConfigOptions = {
+    onSameUrlNavigation: 'reload',
+};
 """;
         }
 
         private static string GetAppComponentHtmlData()
         {
             return $$"""
-<!-- FT HACK: I don't know why, but translations on the layout component work only if we wrap everything with transloco -->
+<!-- NOTE: Translations on the layout component work only if we wrap everything with transloco -->
 <ng-container *transloco="let t">
 
     <router-outlet></router-outlet>
@@ -1701,67 +1714,96 @@ export class AppRoutingModule {
         private static string GetAppComponentTsData()
         {
             return $$"""
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { PrimeNGConfig } from 'primeng/api';
+import { PrimeNG } from 'primeng/config';
+import { NgxSpinnerModule } from 'ngx-spinner';
+import { ToastModule } from 'primeng/toast'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
+import { RouterModule } from '@angular/router';
 
 @Component({
     selector: 'app-root',
-    templateUrl: './app.component.html'
+    templateUrl: './app.component.html',
+    imports: [
+        RouterModule,
+        TranslocoDirective,
+        NgxSpinnerModule,
+        ToastModule,
+        ConfirmDialogModule,
+    ]
 })
 export class AppComponent implements OnInit {
 
     constructor(
-        private primengConfig: PrimeNGConfig, 
+        private primengConfig: PrimeNG, 
         private translocoService: TranslocoService
     ) {
 
     }
 
     async ngOnInit() {
-        this.primengConfig.ripple = true;
+        this.primengConfig.ripple.set(true);
 
         this.translocoService.selectTranslateObject('Primeng').subscribe((primengTranslations) => {
             this.primengConfig.setTranslation(primengTranslations);
         });
     }
 }
-
 """;
         }
 
-        private static string GetAppModuleTsData()
+        private static string GetAppConfigTsData()
         {
             return $$"""
-import { NgModule } from '@angular/core';
-import { AppComponent } from './app.component';
-import { NgxSpinnerModule } from 'ngx-spinner';
-import { SocialAuthServiceConfig } from '@abacritt/angularx-social-login';
-import { GoogleLoginProvider } from '@abacritt/angularx-social-login';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { PreloadAllModules, provideRouter, withInMemoryScrolling, withPreloading, withRouterConfig } from '@angular/router';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { routes, scrollConfig, routerConfigOptions } from './app.routes';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { providePrimeNG } from 'primeng/config';
+import { ThemePreset } from 'src/assets/primeng-theme';
+import { AuthBaseService, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, provideSpiderlyCore, provideSpiderlyTransloco, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { provideSpinnerConfig } from 'ngx-spinner';
+import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
-import { BusinessModule } from './business/business.module';
 import { TranslateLabelsService } from './business/services/translates/merge-labels';
 import { ValidatorService } from './business/services/validators/validators';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { ConfigService } from './business/services/config.service';
-import { AppRoutingModule } from './app-routing.module';
-import { MessageService } from 'primeng/api';
-import { AuthBaseService, ConfigBaseService, CoreModule, LayoutBaseService, SpiderlyTranslocoModule, TranslateLabelsAbstractService, ValidatorAbstractService } from 'spiderly';
 import { LayoutService } from './business/services/layout/layout.service';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-  ],
-  imports: [
-    AppRoutingModule,
-    SpiderlyTranslocoModule.forRoot(),
-    NgxSpinnerModule.forRoot({ type: 'ball-clip-rotate-multiple' }),
-    BusinessModule,
-    CoreModule,
-  ],
+export const appConfig: ApplicationConfig = {
   providers: [
-    MessageService,
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideAnimationsAsync(),
+    provideHttpClient(withFetch()),
+    provideSpiderlyTransloco({
+      availableLangs: [
+        'en', 'en.generated',
+        'sr-Latn-RS', 'sr-Latn-RS.generated',
+      ],
+      defaultLang: 'en',
+      fallbackLang: 'en.generated',
+    }),
+    providePrimeNG({
+      theme: {
+        preset: ThemePreset,
+        options: {
+          darkModeSelector: '.dark'
+        }
+      }
+    }),
+    provideRouter(
+      routes,
+      withPreloading(PreloadAllModules),
+      withInMemoryScrolling(scrollConfig),
+      withRouterConfig(routerConfigOptions)
+    ),
+    provideSpinnerConfig({type: 'ball-clip-rotate-multiple'}),
+    provideClientHydration(withEventReplay()),
+    provideSpiderlyCore(),
     {
       provide: 'SocialAuthServiceConfig',
       useValue: {
@@ -1770,12 +1812,11 @@ import { LayoutService } from './business/services/layout/layout.service';
           {
             id: GoogleLoginProvider.PROVIDER_ID,
             provider: new GoogleLoginProvider(
-              environment.GoogleClientId, 
+              environment.GoogleClientId,
               {
                 scopes: 'email',
                 oneTapEnabled: false,
                 prompt: 'none',
-                // plugin_name: 'the name of the Google OAuth project you created'
               },
             )
           },
@@ -1793,22 +1834,26 @@ import { LayoutService } from './business/services/layout/layout.service';
       provide: TranslateLabelsAbstractService,
       useClass: TranslateLabelsService,
     },
-    { 
-      provide: AuthBaseService, 
-      useExisting: AuthService 
+    {
+      provide: AuthBaseService,
+      useExisting: AuthService
     },
-    { 
-      provide: ConfigBaseService, 
-      useExisting: ConfigService 
+    {
+      provide: ConfigBaseService,
+      useExisting: ConfigService
     },
-    { 
-      provide: LayoutBaseService, 
-      useExisting: LayoutService 
+    {
+      provide: LayoutBaseService,
+      useExisting: LayoutService
     },
-  ],
-  bootstrap: [AppComponent],
-})
-export class AppModule {}
+    provideHttpClient(withInterceptors([
+      httpLoadingInterceptor,
+      jsonHttpInterceptor,
+      jwtInterceptor,
+      unauthorizedInterceptor,
+    ])),
+  ]
+};
 """;
         }
 
@@ -3075,7 +3120,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "BlobStorageUrl": "{{blobStorageUrl}}",
       "BlobStorageContainerName": "files",
 
-      "ConnectionString": "Data source=localhost;Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
+      "ConnectionString": "Data source=localhost{{GetSqlServerExtension()}};Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
 
       "RequestsLimitNumber": 70,
       "RequestsLimitWindow": 60
@@ -3097,6 +3142,17 @@ namespace {{appName}}.WebAPI.GeneratorSettings
   }
 }
 """;
+        }
+
+        private static string GetSqlServerExtension()
+        {
+            Console.WriteLine(Helper.HasSqlExpressInstalled());
+            if (Helper.HasSqlExpressInstalled())
+            {
+                return """\\SQLEXPRES""";
+            }
+
+            return "";
         }
 
         private static string GetLaunchSettingsJsonData()
@@ -3278,6 +3334,7 @@ namespace {{appName}}.WebAPI.DI
 	</ItemGroup>
 
 	<ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.1">
 		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
 		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
@@ -3740,6 +3797,7 @@ namespace {{appName}}.Business.DataMappers
 """, isFromNuget)}} 
     },
     "outDir": "./dist/out-tsc",
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "noImplicitOverride": true,
@@ -3748,7 +3806,6 @@ namespace {{appName}}.Business.DataMappers
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "declaration": false,
-    "downlevelIteration": true,
     "importHelpers": true,
     "module": "ES2022",
     "moduleResolution": "node",
@@ -3802,7 +3859,7 @@ namespace {{appName}}.Business.DataMappers
         {
             return $$"""
 {
-    "name": "{{appName.ToLower()}}.spa",
+    "name": "{{appName}}",
     "version": "0.0.0",
     "scripts": {
         "ng": "ng",
@@ -3816,34 +3873,33 @@ namespace {{appName}}.Business.DataMappers
     "private": true,
     "dependencies": {
         "@abacritt/angularx-social-login": "2.2.0",
-        "@angular/animations": "17.3.12",
-        "@angular/cdk": "17.3.10",
-        "@angular/common": "17.3.12",
-        "@angular/compiler": "17.3.12",
-        "@angular/core": "17.3.12",
-        "@angular/forms": "17.3.12",
-        "@angular/platform-browser": "17.3.12",
-        "@angular/platform-browser-dynamic": "17.3.12",
-        "@angular/router": "17.3.12",
+        "@angular/animations": "19.2.13",
+        "@angular/common": "19.2.13",
+        "@angular/compiler": "19.2.13",
+        "@angular/core": "19.2.13",
+        "@angular/forms": "19.2.13",
+        "@angular/platform-browser": "19.2.13",
+        "@angular/platform-browser-dynamic": "19.2.13",
+        "@angular/router": "19.2.13",
         "@jsverse/transloco": "7.5.0",
         "@jsverse/transloco-preload-langs": "7.0.1",
-        "spiderly": "latest",
         "file-saver": "2.0.5",
         "json-parser": "3.1.2",
-        "ngx-spinner": "17.0.0",
+        "ngx-spinner": "19.0.0",
         "primeflex": "3.3.1",
         "primeicons": "7.0.0",
-        "primeng": "17.18.9",
+        "primeng": "19.1.3",
+        "@primeng/themes": "19.1.3",
         "quill": "2.0.2",
         "rxjs": "7.8.1",
         "tslib": "2.3.0",
         "webpack-dev-server": "4.15.1",
-        "zone.js": "0.14.10"
+        "zone.js": "0.15.1"
     },
     "devDependencies": {
-        "@angular-devkit/build-angular": "17.3.11",
-        "@angular/cli": "17.3.11",
-        "@angular/compiler-cli": "17.3.12",
+        "@angular-devkit/build-angular": "19.2.13",
+        "@angular/cli": "19.2.13",
+        "@angular/compiler-cli": "19.2.13",
         "@jsverse/transloco-keys-manager": "5.1.0",
         "@types/jasmine": "5.1.0",
         "jasmine-core": "5.1.0",
@@ -3852,7 +3908,7 @@ namespace {{appName}}.Business.DataMappers
         "karma-coverage": "2.2.0",
         "karma-jasmine": "5.1.0",
         "karma-jasmine-html-reporter": "2.1.0",
-        "typescript": "5.2.2"
+        "typescript": "5.5.4"
     }
 }
 """;
@@ -3936,7 +3992,7 @@ module.exports = function (plop) {
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "{{appName}}.SPA": {
+    "{{appName}}": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -3958,7 +4014,7 @@ module.exports = function (plop) {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "preserveSymlinks": true,
-            "outputPath": "dist/{{appName}}.SPA",
+            "outputPath": "dist/{{appName}}",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -4014,10 +4070,10 @@ module.exports = function (plop) {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "{{appName}}.SPA:build:production"
+              "buildTarget": "{{appName}}:build:production"
             },
             "development": {
-              "buildTarget": "{{appName}}.SPA:build:development"
+              "buildTarget": "{{appName}}:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -4025,7 +4081,7 @@ module.exports = function (plop) {
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "{{appName}}.SPA:build"
+            "buildTarget": "{{appName}}:build"
           }
         },
         "test": {
@@ -4081,13 +4137,12 @@ trim_trailing_whitespace = false
         private static string GetMainTsData()
         {
             return $$"""
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+import { appConfig } from './app/app.config';
 
-import { AppModule } from './app/app.module';
-
-
-platformBrowserDynamic().bootstrapModule(AppModule)
-  .catch(err => console.error(err));
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
 """;
         }
 
@@ -4114,7 +4169,7 @@ platformBrowserDynamic().bootstrapModule(AppModule)
 """;
         }
 
-        private static string GetEnvironmentTsCode(string appName, string primaryColor)
+        private static string GetEnvironmentTsData(string appName, string primaryColor)
         {
             return $$"""
 // In environment putting only the variables which are different in dev and prod, and which the client would change ocasionaly so we don't need to redeploy the app
@@ -4129,34 +4184,74 @@ export const environment = {
 """;
         }
 
-        private static string GetStylesScssCode(bool isFromNuget)
+        private static string GetPrimeNGThemeTsData()
+        {
+            return $$"""
+import Aura from '@primeng/themes/aura';
+import { definePreset } from '@primeng/themes';
+
+export const ThemePreset = definePreset(Aura, {
+  semantic: {
+    surface: {
+      0: '#e5e7eb',
+    },
+    primary: {
+      50: '{pink.50}',
+      100: '{pink.100}',
+      200: '{pink.200}',
+      300: '{pink.300}',
+      400: '{pink.400}',
+      500: '{pink.500}',
+      600: '{pink.600}',
+      700: '{pink.700}',
+      800: '{pink.800}',
+      900: '{pink.900}',
+      950: '{pink.950}',
+      color: '{pink.600}',
+      contrastColor: '{surface.0}',
+      hoverColor: '{pink.500}',
+      activeColor: '{pink.400}',
+    },
+  },
+  components: {
+    panel: {
+      colorScheme: {
+        dark: {
+          root: {
+            header: {
+              background: '{surface.900}',
+            },
+            background: '{surface.800}',
+          },
+        },
+      },
+    },
+  },
+});
+""";
+        }
+
+        private static string GetStylesScssData(bool isFromNuget)
         {
             return $$"""
 //#region PrimeNG
 
-@import "../../node_modules/primeng/resources/primeng.min.css";
-$gutter: 1rem; // For primeflex grid system, it needs to be rigth above primeflex import!
-@import "../../node_modules/primeflex/primeflex.scss";
-@import "../../node_modules/primeicons/primeicons.css";
-/* PrimeNG editor */
-@import "../../node_modules/quill/dist/quill.core.css";
-@import "../../node_modules/quill/dist/quill.snow.css";
+@use "../../node_modules/primeflex/primeflex.scss";
+@use "../../node_modules/primeicons/primeicons.css";
 
 //#endregion
 
 //#region Spiderly
 
 {{SlashCommented("""
-@import "../../../../../Spiderly/spiderly/Angular/projects/spiderly/src/lib/styles/styles.scss";
+@use "../../../../../Spiderly/spiderly/Angular/projects/spiderly/src/lib/styles/styles.scss";
 """, isFromNuget)}}
 
 {{SlashCommented("""
-@import "../../node_modules/spiderly/styles/styles/styles.scss";
+@use "../../node_modules/spiderly/styles/styles/styles.scss";
 """, !isFromNuget)}}
 
 //#endregion
-
-@import "shared.scss";
 """;
         }
 
@@ -4757,28 +4852,6 @@ $gutter: 1rem; // For primeflex grid system, it needs to be rigth above primefle
 """;
         }
 
-        private static string GetBusinessModuleTsData()
-        {
-            return $$"""
-import { CommonModule } from '@angular/common';
-import { NgModule, Optional, SkipSelf } from '@angular/core';
-
-@NgModule({
-  declarations: [],
-  imports: [CommonModule],
-  providers: [
-  ],
-})
-export class BusinessModule {
-  constructor(@Optional() @SkipSelf() Business: BusinessModule) {
-    if (Business) {
-      throw new Error('Business Module can only be imported to AppModule.');
-    }
-  }
-}
-""";
-        }
-
         private static string GetValidatorsTsCode()
         {
             return $$"""
@@ -5175,7 +5248,6 @@ import { SecurityPermissionCodes } from 'spiderly';
 @Component({
     selector: 'layout',
     templateUrl: './layout.component.html',
-    standalone: true,
     imports: [
         CommonModule,
         FormsModule,

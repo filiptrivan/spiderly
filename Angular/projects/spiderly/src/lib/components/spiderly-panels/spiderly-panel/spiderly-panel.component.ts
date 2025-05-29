@@ -3,8 +3,10 @@ import { MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 
 @Component({
-  selector: 'spiderly-panel',
-  templateUrl: './spiderly-panel.component.html',
+    selector: 'spiderly-panel',
+    templateUrl: './spiderly-panel.component.html',
+    styleUrl: './spiderly-panel.component.scss',
+    standalone: false
 })
 export class SpiderlyPanelComponent implements OnInit {
   @Input() isFirstMultiplePanel: boolean = false;

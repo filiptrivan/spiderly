@@ -8,7 +8,7 @@
   <textarea
     *ngIf="control"
     [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
-    pInputTextarea
+    pTextarea
     [formControl]="control"
     [id]="control.label"
     (blur)="control.markAsDirty()"

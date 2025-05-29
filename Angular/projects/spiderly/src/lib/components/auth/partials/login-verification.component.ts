@@ -7,7 +7,6 @@ import { AuthBaseService } from '../../../services/auth-base.service';
 @Component({
     selector: 'login-verification',
     templateUrl: './login-verification.component.html',
-    standalone: true,
     imports: [
         VerificationWrapperComponent
     ]

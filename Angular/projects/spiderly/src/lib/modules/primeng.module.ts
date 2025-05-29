@@ -1,12 +1,11 @@
 import { NgModule } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputSwitchModule } from 'primeng/inputswitch';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { PasswordModule } from 'primeng/password';
 import { TableModule } from 'primeng/table';
@@ -36,6 +35,7 @@ import { CardModule } from 'primeng/card';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { FileUploadModule } from 'primeng/fileupload';
 import { DataViewModule } from 'primeng/dataview';
+import { DatePickerModule } from 'primeng/datepicker';
 
 @NgModule({
   imports: [
@@ -43,13 +43,12 @@ import { DataViewModule } from 'primeng/dataview';
     ButtonModule,
     MultiSelectModule,
     InputTextModule,
-    InputTextareaModule,
-    DropdownModule,
+    TextareaModule,
+    SelectModule,
     TooltipModule,
     InputSwitchModule,
     DialogModule,
-    CalendarModule,
-    CalendarModule,
+    DatePickerModule,
     CheckboxModule,
     PasswordModule,
     ToastModule,
@@ -82,13 +81,12 @@ import { DataViewModule } from 'primeng/dataview';
     ButtonModule,
     MultiSelectModule,
     InputTextModule,
-    InputTextareaModule,
-    DropdownModule,
+    TextareaModule,
+    SelectModule,
     TooltipModule,
     InputSwitchModule,
     DialogModule,
-    CalendarModule,
-    CalendarModule,
+    DatePickerModule,
     CheckboxModule,
     PasswordModule,
     ToastModule,

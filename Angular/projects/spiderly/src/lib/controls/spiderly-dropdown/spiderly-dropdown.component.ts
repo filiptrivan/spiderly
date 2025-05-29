@@ -11,7 +11,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-dropdown',
     templateUrl: './spiderly-dropdown.component.html',
     styles: [],
-    standalone: true,
     imports: [
         ReactiveFormsModule,
         FormsModule,

@@ -13,8 +13,9 @@ export const httpLoadingInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     finalize(() => {
-      if (!shouldSkipSpinner)
+      if (!shouldSkipSpinner){
         spinner.hide();
+      }
     })
   ) as Observable<HttpEvent<any>>;
 }

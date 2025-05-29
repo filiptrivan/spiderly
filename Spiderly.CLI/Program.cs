@@ -82,7 +82,6 @@ namespace Spiderly.CLI
             bool hasErrors = NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
 
             string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
-            string backendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API");
             string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Angular");
 
             Console.WriteLine("\nAdding EF migration...");
@@ -111,7 +110,7 @@ namespace Spiderly.CLI
 
             if (hasErrors)
             {
-                Console.WriteLine("You had some errors. Please solve them, then run the same command (`spiderly init`) again with the same app name to continue.");
+                Console.WriteLine("You had some errors. Please solve them, then continue with the Step 4 from the getting started guide.");
             }
             else
             {

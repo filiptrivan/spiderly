@@ -10,7 +10,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-textbox',
     templateUrl: './spiderly-textbox.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

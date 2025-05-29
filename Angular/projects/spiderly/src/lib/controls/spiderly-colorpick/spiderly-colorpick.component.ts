@@ -10,7 +10,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     selector: 'spiderly-colorpick',
     templateUrl: './spiderly-colorpick.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

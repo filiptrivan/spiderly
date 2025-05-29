@@ -10,7 +10,8 @@ import { BaseDropdownControl } from './base-dropdown-control';
     selector: 'base-autocomplete-control',
     template: '',
     styles: [],
-  })
+    standalone: false
+})
   export class BaseAutocompleteControl extends BaseDropdownControl {
     @Output() onTextInput: EventEmitter<AutoCompleteCompleteEvent> = new EventEmitter();
   }

@@ -17,9 +17,10 @@ import { BaseEntity } from '../../entities/base-entity';
 import { LastMenuIconIndexClicked } from '../../entities/last-menu-icon-index-clicked';
 
 @Component({
-  selector: 'base-form',
-  template: '',
-  styles: [],
+    selector: 'base-form',
+    template: '',
+    styles: [],
+    standalone: false
 })
 export class BaseFormCopy implements OnInit { 
   formGroup: SpiderlyFormGroup = new SpiderlyFormGroup({});

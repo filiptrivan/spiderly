@@ -1,4 +1,4 @@
-@import './layout/variables';
+@use './layout/variables' as *;
 
 .spiderly-panel{
 	.p-panel-content{
@@ -14,18 +14,18 @@
 }
 
 .multiple-panel-first-without-header{
-	.p-panel .p-panel-content {
+	.p-panel {
 		border-bottom-left-radius: 0px;
 		border-bottom-right-radius: 0px;
 		border-top: 1px solid var(--surface-border);
-		border-top-left-radius: 12px;
-		border-top-right-radius: 12px;
+		border-top-left-radius: var(--p-content-border-radius);
+		border-top-right-radius: var(--p-content-border-radius);
 		border-bottom: none;
 	}
 }
 
 .multiple-panel-middle-without-header{
-	.p-panel .p-panel-content {
+	.p-panel {
 		border-bottom-left-radius: 0px;
 		border-bottom-right-radius: 0px;
 		border-top: 1px solid var(--surface-border);
@@ -36,9 +36,9 @@
 }
 
 .multiple-panel-last-without-header{
-	.p-panel .p-panel-content {
-		border-bottom-left-radius: 12px;
-		border-bottom-right-radius: 12px;
+	.p-panel {
+		border-bottom-left-radius: var(--p-content-border-radius);
+		border-bottom-right-radius: var(--p-content-border-radius);
 		border-top: 1px solid var(--surface-border);
 		border-top-left-radius: 0px;
 		border-top-right-radius: 0px;
@@ -46,7 +46,7 @@
 }
 
 .multiple-panel-first{
-	.p-panel .p-panel-content {
+	.p-panel {
 		border-bottom-left-radius: 0px;
 		border-bottom-right-radius: 0px;
 		border-bottom: none;
@@ -54,28 +54,22 @@
 }
 
 .panel-border{
-	.p-panel .p-panel-content {
-		border-bottom-left-radius: 12px;
-		border-bottom-right-radius: 12px;
+	.p-panel {
+		border-bottom-left-radius: var(--p-content-border-radius);
+		border-bottom-right-radius: var(--p-content-border-radius);
 		border-bottom: 1px solid var(--surface-border);
 	}
 }
 
-.multiple-panel-middle{
-	.p-panel-header {
-		border-top-left-radius: 0px;
-		border-top-right-radius: 0px;
-	}
-
-	.p-panel .p-panel-content {
-		border-bottom-left-radius: 0px;
-		border-bottom-right-radius: 0px;
+.multiple-panel-middle {
+	.p-panel {
+		border-radius: 0px;
 		border-bottom: none;
 	}
 }
 
-.multiple-panel-last{
-	.p-panel-header {
+.multiple-panel-last {
+	.p-panel {
 		border-top-left-radius: 0px;
 		border-top-right-radius: 0px;
 	}
@@ -92,8 +86,7 @@
 }
 
 .panel-body-wrapper{
-	padding: 28px; 
-	padding-bottom: 14px;
+	padding: 18px; 
 }
 
 @media (max-width: 600px) {
@@ -230,7 +223,7 @@
 
 .control-error-border{
 	outline: 1px solid $errorColor;
-	border-radius: 12px;
+	border-radius: var(--p-content-border-radius);
 }
 
 .error-color{
@@ -258,15 +251,15 @@
 }
 
 .primary-color{
-	color: var(--primary-color);
+	color: var(--p-primary-color);
 }
 
 .primary-color-background{
-	background-color: var(--primary-color);
+	background-color: var(--p-primary-color);
 }
 
 .primary-lighter-color-background{
-	background-color: var(--primary-lighter-color);
+	background-color: var(--p-primary-200);
 }
 
 .secondary-color-background{
@@ -278,7 +271,7 @@
 }
 
 .separator{
-	border-top: 1px solid var(--primary-color);
+	border-top: 1px solid var(--p-primary-color);
 	width: 100%;
 }
 
@@ -294,12 +287,12 @@
 
 .hover-card {
 	padding: 10px;
-	border-radius: 12px;
+	border-radius: var(--p-content-border-radius);
 	cursor: pointer;
 }
 
 .hover-card:hover {
-	background-color: $disabled;
+	background-color: var(--p-surface-100);
 }
 
 .dialog{
@@ -318,7 +311,7 @@
 
 .header-separator{
 	margin-top: 7px;
-	border-top: 3px solid var(--primary-color);
+	border-top: 3px solid var(--p-primary-color);
 	width: 60px;
 }
 
@@ -333,7 +326,7 @@
 
 .bold-header-separator{
 	margin-top: 7px;
-	border-top: 6px solid var(--primary-color);
+	border-top: 6px solid var(--p-primary-color);
 	width: 100px;
 }
 
@@ -348,7 +341,7 @@
 }
 
 .link{
-	color: var(--primary-color);
+	color: var(--p-primary-color);
 	cursor: pointer;
 }
 
@@ -357,7 +350,7 @@
 }
 
 .blockHead {
-	background-color: var(--primary-color);
+	background-color: var(--p-primary-color);
 	/*width: 150px; */
 	height: 60px;
 	line-height: 60px;
@@ -366,7 +359,7 @@
   }
   
 .blockHead:after {
-	color: var(--primary-color);
+	color: var(--p-primary-color);
 	border-left: 30px solid;
 	border-top: 30px solid transparent;
 	border-bottom: 30px solid transparent;
@@ -392,20 +385,20 @@
 }
 
 .transparent-card{
-	border-top: 1px solid var(--primary-light-color);
-	border-left: 1px solid var(--primary-light-color);
-	border-right: 1px solid var(--primary-light-color);
+	border-top: 1px solid var(--p-primary-400);
+	border-left: 1px solid var(--p-primary-400);
+	border-right: 1px solid var(--p-primary-400);
 	padding: 18px;
 }
 
 .transparent-card:last-child {
-    border-bottom: 1px solid var(--primary-light-color);
+    border-bottom: 1px solid var(--p-primary-400);
 }
 
 .card-overflow-icon{
     text-align: center;
 	transform: rotate(30deg);
-	color: var(--primary-light-color);
+	color: var(--p-primary-400);
 	opacity: 0.2;
 	position: absolute; 
 	overflow: hidden; 
@@ -516,4 +509,20 @@
 	margin: 0; 
 	font-weight: normal;
 	font-size: 14px;
+}
+
+.grid {
+	margin: 0;
+}
+
+.grid [class^="col-"] {
+    padding: 14px 9px;
+}
+
+.p-colorpicker-preview {
+	border: 1px solid var(--p-form-field-border-color) !important; // Doing this only because of white color preview
+}
+
+.p-overlay-badge > .p-badge {
+	inset-inline-end: -9px !important;
 }

@@ -1,7 +1,7 @@
 import { ActivatedRoute, Router } from '@angular/router';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { BaseFormCopy } from '../../base-form/base-form copy';
 import { Login } from '../../../entities/security-entities';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
@@ -9,10 +9,25 @@ import { SpiderlyMessageService } from '../../../services/spiderly-message.servi
 import { BaseFormService } from '../../../services/base-form.service';
 import { AuthBaseService } from '../../../services/auth-base.service';
 import { ConfigBaseService } from '../../../services/config-base.service';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { AuthComponent } from '../partials/auth.component';
+import { PrimengModule } from '../../../modules/primeng.module';
+import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
+import { LoginVerificationComponent } from '../partials/login-verification.component';
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
+    imports: [
+      CommonModule,
+      ReactiveFormsModule,
+      AuthComponent,
+      PrimengModule,
+      SpiderlyControlsModule,
+      LoginVerificationComponent,
+      TranslocoDirective,
+    ]
 })
 export class LoginComponent extends BaseFormCopy implements OnInit {
     loginFormGroup = new SpiderlyFormGroup<Login>({});

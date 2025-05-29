@@ -4,15 +4,14 @@ import { ButtonModule } from "primeng/button";
 import { SpiderlyButtonComponent } from "../spiderly-button/spiderly-button.component";
 
 @Component({
-  selector: 'google-button',
-  templateUrl: './google-button.component.html',
-  styles: [],
-  imports: [
-    ButtonModule,
-    TranslocoDirective,
-    SpiderlyButtonComponent
-  ],
-  standalone: true,
+    selector: 'google-button',
+    templateUrl: './google-button.component.html',
+    styles: [],
+    imports: [
+        ButtonModule,
+        TranslocoDirective,
+        SpiderlyButtonComponent
+    ]
 })
 export class GoogleButtonComponent { // Custom styling of the google button - https://medium.com/simform-engineering/implement-custom-google-sign-in-using-angular-16-9c93aeff6252
   // @Output() onClick: EventEmitter<any> = new EventEmitter();

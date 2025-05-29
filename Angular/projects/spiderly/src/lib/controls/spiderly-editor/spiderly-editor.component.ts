@@ -12,7 +12,6 @@ import { Tooltip } from 'primeng/tooltip';
     selector: 'spiderly-editor',
     templateUrl: './spiderly-editor.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

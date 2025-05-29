@@ -16,7 +16,6 @@ export interface SpiderlyMenuItem extends MenuItem{
 @Component({
     selector: 'sidebar-menu', // FT: Don't chane selector to 'menu', because other style will apply to it
     templateUrl: './sidebar-menu.component.html',
-    standalone: true,
     imports: [
         CommonModule,
         MenuitemComponent

@@ -1,6 +1,3 @@
-@import "./layout/layout.scss";
+@use "./layout/layout.scss";
 
-/* PrimeNG */
-@import "./theme/saga/saga-blue/theme.scss";
-
-@import "./shared.scss"
+@use "./shared.scss"

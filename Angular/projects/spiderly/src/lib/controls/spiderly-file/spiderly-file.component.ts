@@ -14,7 +14,6 @@ import { SpiderlyButtonComponent } from '../../components/spiderly-buttons/spide
     selector: 'spiderly-file',
     templateUrl: './spiderly-file.component.html',
     styles: [],
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,

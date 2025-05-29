@@ -2,13 +2,14 @@ import { TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit, Input } from '@angular/core';
 
 @Component({
-  selector: 'panel-header',
-  templateUrl: './panel-header.component.html',
-  styles: [`
+    selector: 'panel-header',
+    templateUrl: './panel-header.component.html',
+    styles: [`
     .p-panel-icons-end {
       font-size: 50px;
     }
-  `]
+  `],
+    standalone: false
 })
 export class PanelHeaderComponent implements OnInit {
   @Input() title: string;

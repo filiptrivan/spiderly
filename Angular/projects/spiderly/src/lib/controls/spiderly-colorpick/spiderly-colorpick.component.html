@@ -21,13 +21,13 @@
       (blur)="control.markAsDirty()"
       />
   </div>
-    <p-colorPicker
+    <p-colorpicker
     *ngIf="control"
     [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
     [formControl]="control"
     [id]="control.label"
     (blur)="control.markAsDirty()"
     appendTo="body"
-    ></p-colorPicker>
+    ></p-colorpicker>
   </div>
 </div>

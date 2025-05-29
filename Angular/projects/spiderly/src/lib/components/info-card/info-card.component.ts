@@ -7,12 +7,11 @@ import { PrimengModule } from '../../modules/primeng.module';
 @Component({
     selector: 'info-card',
     templateUrl: './info-card.component.html',
-    standalone: true,
     imports: [
-    CommonModule,
-    PrimengModule,
-    SpiderlyPanelsModule
-]
+        CommonModule,
+        PrimengModule,
+        SpiderlyPanelsModule
+    ]
 })
 export class InfoCardComponent {
     @Input() public header: string = '';

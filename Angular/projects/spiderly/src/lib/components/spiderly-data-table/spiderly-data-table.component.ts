@@ -19,10 +19,10 @@ import { TableFilter } from '../../entities/table-filter';
 import { PrimengModule } from '../../modules/primeng.module';
 
 @Component({
-  selector: 'spiderly-data-table',
-  templateUrl: './spiderly-data-table.component.html',
-  styleUrl: 'spiderly-data-table.component.scss',
-  styles: [`
+    selector: 'spiderly-data-table',
+    templateUrl: './spiderly-data-table.component.html',
+    styleUrl: 'spiderly-data-table.component.scss',
+    styles: [`
   	:host {
 		  ::ng-deep {
 		    .remove-button-border-focus:focus, 
@@ -35,14 +35,13 @@ import { PrimengModule } from '../../modules/primeng.module';
 		  }
 	  }
   `],
-  imports: [
-    FormsModule,
-    CommonModule,
-    PrimengModule,
-    TranslocoDirective,
-    SpiderlyControlsModule,
-  ],
-  standalone: true,
+    imports: [
+        FormsModule,
+        CommonModule,
+        PrimengModule,
+        TranslocoDirective,
+        SpiderlyControlsModule,
+    ]
 })
 export class SpiderlyDataTableComponent implements OnInit {
   @ViewChild('dt') table: Table;
