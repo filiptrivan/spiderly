@@ -2808,23 +2808,23 @@ EndGlobal
         private static string GetInitializeScriptSqlData(string appName)
         {
             return $$"""
--- First you need to register the user in the app
+-- These permissions will be assigned to the first registered user in the application.
 
 begin transaction;
 
 use {{appName}}
 
-insert into Permission(Name, Description, Code) values(N'Pregled korisnika', null, N'ReadUserExtended');
-insert into Permission(Name, Description, Code) values(N'Promena postojećih korisnika', null, N'UpdateUserExtended');
-insert into Permission(Name, Description, Code) values(N'Brisanje korisnika', null, N'DeleteUserExtended');
-insert into Permission(Name, Description, Code) values(N'Pregled notifikacija', null, N'ReadNotification');
-insert into Permission(Name, Description, Code) values(N'Promena postojećih notifikacija', null, N'UpdateNotification');
-insert into Permission(Name, Description, Code) values(N'Dodavanje novih notifikacija', null, N'InsertNotification');
-insert into Permission(Name, Description, Code) values(N'Brisanje notifikacija', null, N'DeleteNotification');
-insert into Permission(Name, Description, Code) values(N'Pregled uloga', null, N'ReadRole');
-insert into Permission(Name, Description, Code) values(N'Promena postojećih uloga', null, N'UpdateRole');
-insert into Permission(Name, Description, Code) values(N'Dodavanje novih uloga', null, N'InsertRole');
-insert into Permission(Name, Description, Code) values(N'Brisanje uloga', null, N'DeleteRole');
+insert into Permission(Name, Description, Code) values(N'View users', null, N'ReadUserExtended');
+insert into Permission(Name, Description, Code) values(N'Edit existing users', null, N'UpdateUserExtended');
+insert into Permission(Name, Description, Code) values(N'Delete users', null, N'DeleteUserExtended');
+insert into Permission(Name, Description, Code) values(N'View notifications', null, N'ReadNotification');
+insert into Permission(Name, Description, Code) values(N'Edit existing notifications', null, N'UpdateNotification');
+insert into Permission(Name, Description, Code) values(N'Add new notifications', null, N'InsertNotification');
+insert into Permission(Name, Description, Code) values(N'Delete notifications', null, N'DeleteNotification');
+insert into Permission(Name, Description, Code) values(N'View roles', null, N'ReadRole');
+insert into Permission(Name, Description, Code) values(N'Edit existing roles', null, N'UpdateRole');
+insert into Permission(Name, Description, Code) values(N'Add new roles', null, N'InsertRole');
+insert into Permission(Name, Description, Code) values(N'Delete roles', null, N'DeleteRole');
 
 INSERT INTO Role (Version, Name, CreatedAt, ModifiedAt) VALUES (1, N'Admin', getdate(), getdate());
 
