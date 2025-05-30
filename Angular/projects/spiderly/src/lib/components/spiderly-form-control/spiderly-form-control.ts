@@ -6,7 +6,7 @@ export interface SpiderlyValidatorFn extends ValidatorFn {
     hasNotEmptyRule?: boolean;
 }
 
-// FT: It's made like generic type because of <number>, <string> etc. not to put class like User.
+// It's made like generic type because of <number>, <string> etc. not to put class like User.
 export class SpiderlyFormControl<T = any> extends FormControl<T> {
     public label: string;
     public labelForDisplay: string;
@@ -19,7 +19,7 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
         this.required = required;
      }
 
-    override getRawValue(): T { // FT: Doing this because .value gets only not disabled values
+    override getRawValue(): T { // Doing this because .value gets only not disabled values
         return super.getRawValue() as T;
     }
 
@@ -40,11 +40,11 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
         super(controls);
     }
 
-    override getRawValue(): TValue { // FT: Doing this because .value gets only not disabled values
+    override getRawValue(): TValue { // Doing this because .value gets only not disabled values
         return super.getRawValue() as TValue;
     }
 
-    public name?: string; // FT: Using for nested form groups
+    public name?: string; // Using for nested form groups
     public mainDTOName?: string;
     public saveObservableMethod?: (saveBody: any) => Observable<any>;
     public initSaveBody?: () => BaseEntity = () => null;
@@ -52,7 +52,7 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
 }
 
 export class SpiderlyFormArray<TValue = any> extends FormArray {
-    override value: TValue[]; // FT: There is no getRawValue in FormArray
+    override value: TValue[]; // There is no getRawValue in FormArray
     public required: boolean;
     public modelConstructor: TValue;
     public translationKey: string;

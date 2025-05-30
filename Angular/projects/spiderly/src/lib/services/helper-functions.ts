@@ -239,7 +239,7 @@ export function capitalizeFirstLetter(inputString: string): string {
   export function getPrimengDropdownNamebookOptions(getDropdownListObservable: (parentEntityId?: number) => Observable<Namebook[]>, parentEntityId?: number): Observable<PrimengOption[]>{
       return getDropdownListObservable(parentEntityId ?? 0).pipe(
           map(res => {
-              return res.map(x => ({ label: x.displayName, value: x.id }));
+              return res.map(x => ({ label: x.displayName, code: x.id }));
           })
       );
   }
@@ -247,7 +247,7 @@ export function capitalizeFirstLetter(inputString: string): string {
   export function getPrimengDropdownCodebookOptions(getDropdownListObservable: () => Observable<Codebook[]>): Observable<PrimengOption[]>{
       return getDropdownListObservable().pipe(
           map(res => {
-              return res.map(x => ({ label: x.displayName, value: x.code }));
+              return res.map(x => ({ label: x.displayName, code: x.code }));
           })
       );
   }
@@ -255,7 +255,7 @@ export function capitalizeFirstLetter(inputString: string): string {
   export function getPrimengAutocompleteNamebookOptions(getAutocompleteListObservable: (limit: number, query: string, parentEntityId?: number) => Observable<Namebook[]>, limit: number, query: string, parentEntityId?: number): Observable<PrimengOption[]>{
       return getAutocompleteListObservable(limit, query, parentEntityId ?? 0).pipe(
           map(res => {
-              return res.map(x => ({ label: x.displayName, value: x.id }));
+              return res.map(x => ({ label: x.displayName, code: x.id }));
           })
       );
   }
@@ -263,7 +263,7 @@ export function capitalizeFirstLetter(inputString: string): string {
   export function getPrimengAutocompleteCodebookOptions(getAutocompleteListObservable: (limit: number, query: string) => Observable<Codebook[]>, limit: number, query: string): Observable<PrimengOption[]>{
       return getAutocompleteListObservable(limit, query).pipe(
           map(res => {
-              return res.map(x => ({ label: x.displayName, value: x.code }));
+              return res.map(x => ({ label: x.displayName, code: x.code }));
           })
       );
   }

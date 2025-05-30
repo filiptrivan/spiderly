@@ -30,7 +30,7 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     @Input() objectId: number;
     @Input() fileData: string;
     @Input() acceptedFileTypes: Array<'image/*' | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' | 'application/vnd.ms-excel' | '.xlsx' | '.xls'> = ['image/*'];
-    @Input() required: boolean; // FT: It's okay for this control, because for the custom uploads where we are not initializing the control from the backend, there is no need for formControl.
+    @Input() required: boolean; // It's okay for this control, because for the custom uploads where we are not initializing the control from the backend, there is no need for formControl.
     @Input() multiple: boolean = false;
     
     acceptedFileTypesCommaSeparated: string;
@@ -72,7 +72,7 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
         this.onFileRemoved.next(null);
     }
 
-    // FT: Put inside global functions if you need it
+    // Put inside global functions if you need it
     base64ToFile(base64String: string){
         const [header, base64Content] = base64String.split(';base64,');
         const fileName = header.split('=')[1];

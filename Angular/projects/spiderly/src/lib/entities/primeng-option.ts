@@ -3,21 +3,21 @@ import { BaseEntity } from "../entities/base-entity";
 export class PrimengOption extends BaseEntity
 {
     label?: string;
-    value?: any;
+    code?: any; // Can't be value: https://github.com/primefaces/primeng/issues/17332#issuecomment-2922861294
   
     constructor(
     {
         label,
-        value,
+        code,
     }:{
         label?: string;
-        value?: any;
+        code?: any;
     } = {}
     ) {
         super('PrimengOption');
 
         this.label = label;
-        this.value = value;
+        this.code = code;
     }
 
 }

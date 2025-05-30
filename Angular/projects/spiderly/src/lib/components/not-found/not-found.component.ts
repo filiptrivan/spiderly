@@ -1,12 +1,14 @@
 import { Component } from '@angular/core';
 import { ConfigBaseService } from '../../services/config-base.service';
 import { RouterModule } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
     selector: 'not-found',
     templateUrl: './not-found.component.html',
     imports: [
-        RouterModule
+        RouterModule,
+        ButtonModule,
     ]
 })
 export class NotFoundComponent { 

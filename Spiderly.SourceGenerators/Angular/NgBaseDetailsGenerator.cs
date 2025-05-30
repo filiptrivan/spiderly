@@ -569,7 +569,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsMultiAutocompleteControlType()))
             {
                 result.Add($$"""
-            saveBody.selected{{property.Name}}Ids = this.selected{{property.Name}}For{{entity.Name}}.getRawValue()?.map(n => n.value);
+            saveBody.selected{{property.Name}}Ids = this.selected{{property.Name}}For{{entity.Name}}.getRawValue()?.map(n => n.code);
 """);
             }
 
@@ -600,7 +600,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 result.Add($$"""
                     this.selected{{property.Name}}For{{entity.Name}}.setValue(
-                        mainUIFormDTO.{{property.Name.FirstCharToLower()}}NamebookDTOList.map(n => ({ label: n.displayName, value: n.id }))
+                        mainUIFormDTO.{{property.Name.FirstCharToLower()}}NamebookDTOList.map(n => ({ label: n.displayName, code: n.id }))
                     );
 """);
             }

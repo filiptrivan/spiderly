@@ -96,11 +96,11 @@ namespace Spiderly.CLI
             bool hasDatabaseUpdateErrors = false;
             bool hasNpmInstallErrors = false;
 
-            Console.WriteLine("[INFO] Generating files for the app...");
+            Console.WriteLine("\nGenerating files for the app...");
             try
             {
                 NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
-                Console.WriteLine("[SUCCESS] Finished generating files for the app.");
+                Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
             {
@@ -119,21 +119,21 @@ namespace Spiderly.CLI
             string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
             string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Angular");
 
-            Console.WriteLine("\n[INFO] Generating the database migration...");
+            Console.WriteLine("\nGenerating the database migration...");
             if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
             {
                 Console.WriteLine("\n[ERROR] Failed to generate the database migration.");
                 hasEfMigrationErrors = true;
             }
 
-            Console.WriteLine("\n[INFO] Updating the database...");
+            Console.WriteLine("\nUpdating the database...");
             if (!await RunCommand("dotnet", @$"ef database update --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
             {
                 Console.WriteLine("\n[ERROR] Failed to update the database.");
                 hasDatabaseUpdateErrors = true;
             }
 
-            Console.WriteLine("\n[INFO] Installing frontend packages...");
+            Console.WriteLine("\nInstalling frontend packages...");
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
@@ -147,26 +147,26 @@ namespace Spiderly.CLI
             {
                 if (hasNetAndAngularInitErrors)
                 {
-                    Console.WriteLine("Error occurred while generating files for the app.");
+                    Console.WriteLine("\nError occurred while generating files for the app.");
                 }
                 else if (hasEfMigrationErrors)
                 {
-                    Console.WriteLine("Error occurred while doing EF Core migration.");
+                    Console.WriteLine("\nError occurred while generating database migration.");
                 }
                 else if (hasDatabaseUpdateErrors)
                 {
-                    Console.WriteLine("Error occurred while initializing the database.");
+                    Console.WriteLine("\nError occurred while initializing the database.");
                 }
                 else if (hasNpmInstallErrors)
                 {
-                    Console.WriteLine("Error occurred while installing the frontend packages.");
+                    Console.WriteLine("\nError occurred while installing frontend packages.");
                 }
 
-                Console.WriteLine("Please solve the errors, then continue with the Step 4 from the getting started guide.");
+                Console.WriteLine("\nPlease fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
             }
             else
             {
-                Console.WriteLine("App initialized successfully, continue with the Step 4 from the getting started guide!");
+                Console.WriteLine("\nApp initialized successfully, continue with the Step 4 from the getting started guide!");
             }
         }
 

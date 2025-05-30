@@ -20,7 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Spiderly.Shared.Exceptions;
 using System.ComponentModel;
-using System.Management;
+using Microsoft.Data.SqlClient;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -130,11 +130,79 @@ namespace Spiderly.Shared.Helpers
         {
             List<string> parts = fileName.Split('.').ToList();
 
-            if (parts.Count < 2) // FT: It could be only 2, it's not the same validation as spliting with '-'
+            if (parts.Count < 2) // It could be only 2, it's not the same validation as spliting with '-'
                 throw new HackerException($"Invalid file name format ({fileName}).");
 
-            return parts.Last(); // FT: The file could be .abc.png
+            return parts.Last(); // The file could be .abc.png
         }
+
+        #region SQL Server
+
+        /// <summary>
+        /// Attempts to connect using the default SQL Server instance.
+        /// If it fails, falls back to SQL Express instance.
+        /// </summary>
+        public static string GetAvailableSqlServerConnectionString(string databaseName)
+        {
+            SqlConnectionStringBuilder defaultInstance = BuildConnectionString(useSqlExpress: false);
+
+            if (TryConnect(defaultInstance))
+            {
+                defaultInstance.InitialCatalog = databaseName;
+                return defaultInstance.ConnectionString;
+            }
+
+            SqlConnectionStringBuilder expressInstance = BuildConnectionString(useSqlExpress: true);
+
+            if (TryConnect(expressInstance))
+            {
+                expressInstance.InitialCatalog = databaseName;
+                expressInstance.DataSource = @"localhost\\SQLEXPRESS";
+                return expressInstance.ConnectionString;
+            }
+
+            return defaultInstance.ConnectionString;
+        }
+
+        /// <summary>
+        /// Constructs a SQL Server connection string for either the default or SQL Express instance.
+        /// </summary>
+        public static SqlConnectionStringBuilder BuildConnectionString(bool useSqlExpress)
+        {
+            string dataSource = useSqlExpress ? @"localhost\SQLEXPRESS" : "localhost";
+
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder
+            {
+                DataSource = dataSource,
+                InitialCatalog = "master",
+                IntegratedSecurity = true,
+                Encrypt = false,
+                MultipleActiveResultSets = true,
+            };
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Tries to open a connection using the provided connection string.
+        /// </summary>
+        private static bool TryConnect(SqlConnectionStringBuilder connectionString)
+        {
+            try
+            {
+                connectionString.ConnectTimeout = 2;
+                using SqlConnection connection = new SqlConnection(connectionString.ConnectionString);
+                connection.Open();
+                connectionString.ConnectTimeout = 15;
+                return true;
+            }
+            catch (Exception) { }
+
+            connectionString.ConnectTimeout = 15;
+            return false;
+        }
+
+        #endregion
 
         #region Emailing
 
@@ -145,7 +213,7 @@ namespace Spiderly.Shared.Helpers
             {
                 Subject = subject,
                 Body = body,
-                BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                 IsBodyHtml = true,
             })
             {
@@ -168,7 +236,7 @@ namespace Spiderly.Shared.Helpers
 Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
 {{unhandledEx}}
 """,
-                        BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                        BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                         IsBodyHtml = true,
                     })
                     {

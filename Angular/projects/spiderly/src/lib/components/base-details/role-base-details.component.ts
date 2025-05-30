@@ -6,7 +6,6 @@ import { ActivatedRoute } from '@angular/router';
 import { combineLatest, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { MenuItem } from 'primeng/api';
 import { PrimengModule } from '../../modules/primeng.module';
-import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
 import { CardSkeletonComponent } from '../card-skeleton/card-skeleton.component';
 import { SpiderlyFormArray, SpiderlyFormControl, SpiderlyFormGroup } from '../spiderly-form-control/spiderly-form-control';
 import { BaseEntity } from '../../entities/base-entity';
@@ -36,7 +35,6 @@ import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button
         FormsModule,
         ReactiveFormsModule,
         PrimengModule,
-        // SpiderlyControlsModule,
         TranslocoDirective,
         CardSkeletonComponent,
         SpiderlyTextboxComponent,
@@ -83,8 +81,8 @@ export class RoleBaseDetailsComponent {
             let saveBody = new RoleSaveBody();
             saveBody.roleDTO = this.roleFormGroup.getRawValue();
 
+            saveBody.selectedUsersIds = this.selectedUsersForRole.getRawValue()?.map(n => n.code);
             saveBody.selectedPermissionsIds = this.selectedPermissionsForRole.getRawValue();
-            saveBody.selectedUsersIds = this.selectedUsersForRole.getRawValue()?.map(n => n.value);
 
             return saveBody;
         }
@@ -110,9 +108,9 @@ export class RoleBaseDetailsComponent {
                         mainUIFormDTO.permissionsNamebookDTOList.map(n => { return n.id })
                     );
                     this.selectedUsersForRole.setValue(
-                        mainUIFormDTO.usersNamebookDTOList.map(n => ({ label: n.displayName, value: n.id }))
+                        mainUIFormDTO.usersNamebookDTOList.map(n => ({label: n.displayName, code: n.id }))
                     );
-
+                    
                     this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
                     this.loading = false;
                 });

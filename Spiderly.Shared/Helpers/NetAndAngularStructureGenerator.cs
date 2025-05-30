@@ -13,6 +13,8 @@ namespace Spiderly.Shared.Helpers
         {
             string jwtKey = GenerateJwtSecretKey();
 
+            string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
+
             SpiderlyFolder appStructure = new SpiderlyFolder
             {
                 Name = appName.ToKebabCase(),
@@ -267,7 +269,7 @@ namespace Spiderly.Shared.Helpers
                                         },
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "app-routes.ts", Data = GetAppRoutesTsData() },
+                                            new SpiderlyFile { Name = "app.routes.ts", Data = GetAppRoutesTsData() },
                                             new SpiderlyFile { Name = "app.component.html", Data = GetAppComponentHtmlData() },
                                             new SpiderlyFile { Name = "app.component.ts", Data = GetAppComponentTsData() },
                                             new SpiderlyFile { Name = "app.config.ts", Data = GetAppConfigTsData() },
@@ -497,7 +499,15 @@ namespace Spiderly.Shared.Helpers
                                 },
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName, emailSender: null, emailSenderPassword: null, jwtKey: jwtKey, blobStorageConnectionString: null, blobStorageUrl: null) },
+                                    new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(
+                                        appName, 
+                                        emailSender: null, 
+                                        emailSenderPassword: null, 
+                                        jwtKey: jwtKey, 
+                                        blobStorageConnectionString: null, 
+                                        blobStorageUrl: null,
+                                        sqlServerConnectionString: sqlServerConnectionString
+                                    )},
                                     new SpiderlyFile { Name = "GeneratorSettings.cs", Data = GetWebAPIGeneratorSettingsData(appName) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, version, isFromNuget) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
@@ -596,6 +606,7 @@ namespace Spiderly.Shared.Helpers
         [isLastMultiplePanel]="true"
         [additionalButtons]="additionalButtons"
         (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
+        (onNotificationFormGroupInitFinish)="onNotificationFormGroupInitFinish()"
         />
 
     </spiderly-card>
@@ -644,7 +655,6 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
 
     override ngOnInit() {
         this.sendEmailNotificationButton.onClick = this.sendEmailNotification;
-        this.additionalButtons.push(this.sendEmailNotificationButton);
     }
 
     isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
@@ -655,6 +665,12 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         }
         else{
             this.isMarkedAsRead.disable();
+        }
+    }
+
+    onNotificationFormGroupInitFinish() {
+        if (this.notificationFormGroup.controls.id.value > 0) {
+            this.additionalButtons.push(this.sendEmailNotificationButton);
         }
     }
 
@@ -853,6 +869,7 @@ export class RoleTableComponent implements OnInit {
     (onSave)="onSave()" 
     [showIsDisabledForUserExtended]="showIsDisabledControl"
     [showHasLoggedInWithExternalProviderForUserExtended]="showHasLoggedInWithExternalProvider"
+    [showReturnButton]="false"
     [authorizedForSaveObservable]="authorizedForSaveObservable"
     (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
     ></user-extended-base-details>
@@ -1479,6 +1496,7 @@ import { TableResponse, TableFilter, TableFilterContext, SpiderlyMessageService 
 
 @Component({
   templateUrl: './notification.component.html',
+  standalone: false,
 })
 export class NotificationComponent implements OnInit {
   currentUserNotifications: TableResponse<Notification>;
@@ -3038,7 +3056,15 @@ namespace {{appName}}.WebAPI.GeneratorSettings
 """;
         }
 
-        private static string GetAppSettingsJsonData(string appName, string emailSender, string emailSenderPassword, string jwtKey, string blobStorageConnectionString, string blobStorageUrl)
+        private static string GetAppSettingsJsonData(
+            string appName, 
+            string emailSender, 
+            string emailSenderPassword, 
+            string jwtKey, 
+            string blobStorageConnectionString, 
+            string blobStorageUrl, 
+            string sqlServerConnectionString
+        )
         {
             return $$"""
 {
@@ -3096,11 +3122,11 @@ namespace {{appName}}.WebAPI.GeneratorSettings
 
       "BlobStorageConnectionString": "{{blobStorageConnectionString}}",
       "BlobStorageUrl": "{{blobStorageUrl}}",
-      "BlobStorageContainerName": "files",
+      "BlobStorageContainerName": "files-dev",
 
-      "ConnectionString": "Data source=localhost;Initial Catalog={{appName}};Integrated Security=True;Encrypt=false;MultipleActiveResultSets=True;",
+      "ConnectionString": "{{sqlServerConnectionString}}",
 
-      "RequestsLimitNumber": 70,
+      "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
     },
     "Spiderly.Security": {
@@ -3842,6 +3868,7 @@ namespace {{appName}}.Business.DataMappers
     },
     "private": true,
     "dependencies": {
+        "spiderly": "latest",
         "@abacritt/angularx-social-login": "2.2.0",
         "@angular/animations": "19.2.13",
         "@angular/common": "19.2.13",

@@ -21,11 +21,10 @@ import { PrimengModule } from '../../modules/primeng.module';
     ]
 })
 export class SpiderlyAutocompleteComponent extends BaseAutocompleteControl implements OnInit {
-    // @Input() required: boolean = true; // TODO FT: delete if you don't need through whole app
     @Input() appendTo: any = 'body';
     @Input() showClear: boolean = true;
     @Input() emptyMessage: string;
-    @Input() displayName: string; // FT: Added because when we initialize the object options are null
+    @Input() displayName: string; // Added because when we initialize the object options are null
 
     constructor(
         protected override translocoService: TranslocoService,
@@ -38,7 +37,7 @@ export class SpiderlyAutocompleteComponent extends BaseAutocompleteControl imple
 
         if (this.options == null && this.control.value != null) {
             this.options = [
-                { label: this.displayName, value: this.control.value }
+                { label: this.displayName, code: this.control.value }
             ];
         }
 

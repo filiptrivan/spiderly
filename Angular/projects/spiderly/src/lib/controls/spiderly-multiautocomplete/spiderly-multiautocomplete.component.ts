@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { BaseAutocompleteControl } from '../base-autocomplete-control';
 import { CommonModule } from '@angular/common';
@@ -21,8 +21,6 @@ import { PrimengModule } from '../../modules/primeng.module';
     ]
 })
 export class SpiderlyMultiAutocompleteComponent extends BaseAutocompleteControl implements OnInit {
-    // @Input() required: boolean = true; // TODO FT: delete if you don't need through whole app
-    
     constructor(
         protected override translocoService: TranslocoService,
     ) { 

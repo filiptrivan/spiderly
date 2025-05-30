@@ -28,7 +28,7 @@ export class SpiderlyColorpickComponent extends BaseControl implements OnInit {
 
     override ngOnInit(){
         this.control.valueChanges.subscribe((value) => {
-            this.control.setValue(value, { emitEvent: false }); // FT: Preventing infinite loop
+            this.control.setValue(value, { emitEvent: false }); // Preventing infinite loop
         });
 
         if (this.control.value == null)

@@ -35,7 +35,7 @@
                 >
                 <ng-container *ngIf="isDropOrMulti(col.filterType)">
                   <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                    <p-multiSelect [ngModel]="value" [options]="col.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="value" [style]="{'width':'240px'}">
+                    <p-multiSelect [ngModel]="value" [options]="col.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="code" [style]="{'width':'240px'}">
                       <ng-template let-item pTemplate="item">
                         <div class="p-multiselect-representative-option">
                           <span class="ml-2">{{ item.label }}</span>

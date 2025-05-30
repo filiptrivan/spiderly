@@ -526,3 +526,22 @@
 .p-overlay-badge > .p-badge {
 	inset-inline-end: -9px !important;
 }
+
+.gradient-title {
+  font-weight: bold;
+  display: inline-block;
+  white-space: normal;
+
+  background-image: linear-gradient(
+    to right,
+    var(--p-primary-700),
+    var(--p-primary-color),
+  );
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  @media (min-width: 600px) {
+    font-size: 4.5rem;
+  }
+}

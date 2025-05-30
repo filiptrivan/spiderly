@@ -73,7 +73,7 @@ export class LayoutBaseService implements OnDestroy {
 
     initUnreadNotificationsCountForCurrentUser = () => {
         this.initUnreadNotificationsCountForCurrentUserObservable().pipe(
-            delay(1), // FT HACK: Adding delay so both additionalObservable and user emits single null value when logout
+            delay(1), // HACK: Adding delay so both additionalObservable and user emits single null value when logout
             withLatestFrom(this.authService.user$) // Triggers when unread notifications change
         ).subscribe(([additionalObservable, user]) => {
             if (user != null && additionalObservable !== undefined) {

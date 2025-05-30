@@ -6,6 +6,7 @@
     </div>
 
     <!-- Don't support p-inputgroup -->
+    <!-- Showing label fix: https://github.com/primefaces/primeng/issues/17332#issuecomment-2922861294 -->
     <p-autocomplete 
     *ngIf="control"
     [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
@@ -15,15 +16,15 @@
     [suggestions]="options"
     (completeMethod)="search($event)"
     [forceSelection]="true"
-    [multiple]="true" 
+    [multiple]="true"
     [dropdown]="false"
     [showClear]="true"
     (onHide)="dropdownMarkAsDirty()"
     [completeOnFocus]="true"
     dropdownIcon="pi pi-plus"
     [fluid]="true"
-    [style]="{'width':'100%'}"
-    [inputStyle]="{'width':'100%'}"
-    />
+    [style]="{'width': '100%'}"
+    >
+    </p-autocomplete>
   </div>
 </ng-container>
