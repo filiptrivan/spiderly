@@ -1094,7 +1094,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             {{entityIdType}} {{entity.Name.FirstCharToLower()}}Id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
-            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(file, {{entity.Name.FirstCharToLower()}}Id); // FT: Validate
+            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(file, {{entity.Name.FirstCharToLower()}}Id); // Validate
 
             if ({{entity.Name.FirstCharToLower()}}Id > 0 && authorizeUpdate)
             {

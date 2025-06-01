@@ -2979,7 +2979,6 @@ namespace {{appName}}.WebAPI
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
-		<PackageReference Include="NucleusFramework.Core" Version="6.1.9" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
         <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
         <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
@@ -3216,7 +3215,8 @@ namespace {{appName}}.WebAPI.DI
     {
         public virtual void Compose(IServiceRegistry registry)
         {
-            // Framework
+            #region Spiderly
+
             registry.Register<AuthenticationService>();
             registry.Register<AuthorizationService>();
             registry.Register<SecurityBusinessService<UserExtended>>();
@@ -3229,11 +3229,16 @@ namespace {{appName}}.WebAPI.DI
             registry.RegisterSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             registry.RegisterSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
-            // Business
+            #endregion
+
+            #region Business
+
             registry.Register<{{appName}}.Business.Services.{{appName}}BusinessService>();
             registry.Register<{{appName}}.Business.Services.BusinessServiceGenerated>();
             registry.Register<{{appName}}.Business.Services.AuthorizationBusinessService>();
             registry.Register<{{appName}}.Business.Services.AuthorizationBusinessServiceGenerated>();
+
+            #endregion
         }
     }
 }

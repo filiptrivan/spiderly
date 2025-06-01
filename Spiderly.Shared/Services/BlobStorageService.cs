@@ -22,11 +22,16 @@ namespace Spiderly.Shared.Services
         }
 
         /// <returns>Newly generated file name</returns>
-        public async Task<string> UploadFileAsync(string fileName, string objectType, string objectProperty, string objectId, Stream content)
+        public async Task<string> UploadFileAsync(
+            string fileName, 
+            string objectType, 
+            string objectProperty, 
+            string objectId, 
+            Stream content
+        )
         {
             string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
 
-            // TODO FT: Delete class name and prop name if you don't need it
             // TODO FT: Validate if user has changed ContentType to something we don't handle
             string blobName = $"{objectId}-{Guid.NewGuid()}.{fileExtension}";
 
@@ -46,10 +51,10 @@ namespace Spiderly.Shared.Services
             return blobName;
         }
 
-        // FT: Before this in save method the authorization is being done, so we don't need to do it here also
+        // Before this in save method the authorization is being done, so we don't need to do it here also
         public async Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId)
         {
-            if (objectId == "0") // FT: If we delete 0, we will delete the blob for multiple users/partners/etc.
+            if (objectId == "0") // If we delete 0, we will delete the blob for multiple users/partners/etc.
                 return;
 
             AsyncPageable<TaggedBlobItem> blobs = _blobContainerClient.FindBlobsByTagsAsync($"\"objectType\"='{objectType}' AND \"objectProperty\"='{objectProperty}' AND \"objectId\"='{objectId}'");

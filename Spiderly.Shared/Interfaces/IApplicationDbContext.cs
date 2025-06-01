@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Nucleus.Core.BusinessObject;
 
 namespace Spiderly.Shared.Interfaces
 {
