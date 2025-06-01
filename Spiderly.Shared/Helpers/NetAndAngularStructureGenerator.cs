@@ -550,7 +550,6 @@ namespace Spiderly.Shared.Helpers
                 Files =
                 {
                     new SpiderlyFile { Name = ".gitignore", Data = GetGitIgnoreData() },
-                    new SpiderlyFile { Name = "License", Data = GetMitLicenseData() },
                 }
             };
 
@@ -3165,7 +3164,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5173",
       "environmentVariables": {
@@ -3175,7 +3174,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "swagger",
       "applicationUrl": "https://localhost:7068;http://localhost:5173",
       "environmentVariables": {
@@ -3184,7 +3183,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
     },
     "IIS Express": {
       "commandName": "IISExpress",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -5354,6 +5353,7 @@ export class LayoutComponent extends LayoutBaseComponent implements OnInit, OnDe
 **/*.user
 **/*.suo
 **/*.pdb
+**/appsettings*.json
 
 # Angular
 **/dist/
@@ -5400,33 +5400,6 @@ export class LayoutComponent extends LayoutBaseComponent implements OnInit, OnDe
 # System files
 **/.DS_Store
 **/Thumbs.db
-""";
-        }
-
-        private static string GetMitLicenseData()
-        {
-            return $$"""
-MIT License
-
-Copyright (c) 2024 Filip Trivan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 """;
         }
 

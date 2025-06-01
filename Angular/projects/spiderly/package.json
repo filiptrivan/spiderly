@@ -1,6 +1,6 @@
 ﻿{
     "name":  "spiderly",
-    "version":  "19.0.0",
+    "version":  "19.0.2",
     "author":  "Filip Trivan",
     "license":  "MIT",
     "description":  "Spiderly Angular Library to use in combination with Spiderly.",
@@ -21,7 +21,9 @@
         "angular spiderly framework",
         "spiderly framework angular",
         "spiderly code generator",
-        "spiderly .net code generator"
+        "spiderly .net code generator",
+        ".net (c#) web app boilerplate code generator",
+        ".net (c#) + angular web app boilerplate code generator"
     ],
     "private":  false,
     "peerDependencies":  {

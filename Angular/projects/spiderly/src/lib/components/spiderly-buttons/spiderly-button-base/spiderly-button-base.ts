@@ -4,7 +4,6 @@ import { ButtonModule } from "primeng/button";
 import { SplitButtonModule } from "primeng/splitbutton";
 import { Subject, Subscription, throttleTime } from "rxjs";
 import { Router } from "@angular/router";
-import { MenuItem } from "primeng/api";
 
 @Component({
     selector: 'spiderly-button-base',
@@ -25,7 +24,7 @@ export class SpiderlyButtonBaseComponent {
   @Input() routerLink: string;
   @Input() style: { [klass: string]: any; };
   @Input() class: string;
-  @Input() severity: 'success' | 'info' | 'warning' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined;
+  @Input() severity: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined;
   @Input() disabled: boolean = false;
 
   @Output() onClick = new EventEmitter<Event>();

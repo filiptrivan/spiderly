@@ -383,6 +383,9 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldGenerateAutocompleteControllerMethod(this SpiderlyProperty property)
         {
+            if (property.Type.IsManyToOneType() && property.Attributes.Any(x => x.Name == "UIControlType") == false)
+                return true;
+
             return property.IsAutocompleteControlType() || property.IsMultiAutocompleteControlType();
         }
 
