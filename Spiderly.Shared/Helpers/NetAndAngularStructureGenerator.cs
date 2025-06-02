@@ -1095,7 +1095,7 @@ export class AdministrationModule { }
             return $$"""
 <ng-container *transloco="let t">
     <info-card header="Hello, {{appName}}">
-        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#step-10">Step 10</a> in the Getting Started guide.
+        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#step-9" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
     </info-card>
 </ng-container>
 """;
@@ -2722,17 +2722,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{D485BCE8-A950-457D-A710-566D559BD585}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "{{appName}}.WebAPI", "{{appName}}.WebAPI\{{appName}}.WebAPI.csproj", "{1063DCDA-9291-4FAA-87B2-555E12511EE2}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.Security", "..\..\..\Spiderly\spiderly\Spiderly.Security\Spiderly.Security.csproj", "{3B328631-AB3B-4B28-9FA5-4DA790670199}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.Shared", "..\..\..\Spiderly\spiderly\Spiderly.Shared\Spiderly.Shared.csproj", "{53565A13-28F1-424F-B5A0-34125EF303CD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.Infrastructure", "..\..\..\Spiderly\spiderly\Spiderly.Infrastructure\Spiderly.Infrastructure.csproj", "{587D08A6-A975-4673-90A4-77CF61B7B526}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spiderly.SourceGenerators", "..\..\..\Spiderly\spiderly\Spiderly.SourceGenerators\Spiderly.SourceGenerators.csproj", "{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "{{appName}}.Infrastructure", "{{appName}}.Infrastructure\{{appName}}.Infrastructure.csproj", "{8E0E2A3B-7A46-452E-9695-80E2BB1F4E9C}"
 EndProject
@@ -2826,7 +2816,7 @@ INSERT INTO Role (Version, Name, CreatedAt, ModifiedAt) VALUES (1, N'Admin', get
 DECLARE @AdminRoleId INT;
 DECLARE @AdminUserId INT;
 SELECT @AdminRoleId = Id FROM Role WHERE Name = N'Admin';
-SELECT @AdminUserId = Id FROM [User] WHERE Id = 1;
+SELECT TOP 1 @AdminUserId = Id FROM [User] ORDER BY Id;
 
 INSERT INTO UserRole (UserId, RoleId) VALUES (@AdminUserId, @AdminRoleId);
 
@@ -3107,7 +3097,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "ApplicationName": "{{appName}}",
       "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}", // Email address used to send verification emails during login or registration.
       "EmailSenderPassword": "{{emailSenderPassword ?? "xxxx xxxx xxxx xxxx"}}",
-      "UnhandledExceptionRecipients": [ // Email address that will receive notifications when an unhandled exception occurs.
+      "UnhandledExceptionRecipients": [ // Email addresses that will receive notifications when an unhandled exception occurs in production.
         "{{emailSender ?? "youremail@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
@@ -3115,7 +3105,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the SPA sends request exactly when it expires.
+      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
       "FrontendUrl": "http://localhost:4200",
 
       "BlobStorageConnectionString": "{{blobStorageConnectionString}}",
@@ -3131,7 +3121,7 @@ namespace {{appName}}.WebAPI.GeneratorSettings
       "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the SPA sends request exactly when it expires. 
+      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires. 
       "AccessTokenExpiration": 20,
       "RefreshTokenExpiration": 1440, // 24 hours
       "VerificationTokenExpiration": 5,
