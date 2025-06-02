@@ -16,7 +16,7 @@ namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
     /// Generates an Angular `ValidatorServiceGenerated` (`validators.generated.ts`)
-    /// within the `{your-app-name}\Angular\src\app\business\services\validators` directory.
+    /// within the `{your-app-name}\Frontend\src\app\business\services\validators` directory.
     /// This service provides methods to dynamically set Angular form validators based on validation attributes
     /// defined on your C# DTO properties.
     /// </summary>
@@ -66,8 +66,8 @@ namespace Spiderly.SourceGenerators.Angular
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;
 
-            // ...\API\PlayertyLoyals.Business -> ...\Angular\src\app\business\services\validators
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\API\", @"\Angular\src\app\business\services\validators");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\validators
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\validators");
 
             referencedProjectClasses = referencedProjectClasses.OrderBy(x => x.Name).ToList();
 
@@ -198,7 +198,7 @@ export class ValidatorServiceGenerated {
             if (ruleProperty.Type == "DateTime" || ruleProperty.Type == "DateTime?")
             {
                 return $$"""
-        control.updateValueAndValidity(); // FT: It's necessary only for Date Angular type
+        control.updateValueAndValidity(); // It's necessary only for Date Angular type
 """;
             }
 

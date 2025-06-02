@@ -18,7 +18,7 @@ using Spiderly.SourceGenerators;
 namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
-    /// This generator produces an Angular `ApiService` (`{your-app-name}\Angular\src\app\business\services\api\api.service.generated.ts`)
+    /// This generator produces an Angular `ApiService` (`{your-app-name}\Frontend\src\app\business\services\api\api.service.generated.ts`)
     /// containing strongly-typed methods for interacting with your .NET Web API controllers.
     /// It analyzes C# controller classes (within the '.Controllers' namespace) and referenced entity and DTO classes
     /// to create corresponding Angular `HttpClient` calls.
@@ -69,8 +69,8 @@ namespace Spiderly.SourceGenerators.Angular
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;
 
-            // ...\API\PlayertyLoyals.Business -> ...\Angular\src\app\business\services\api\api.service.generated.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\API\", @"\Angular\src\app\business\services\api\api.service.generated.ts");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\api\api.service.generated.ts
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\api\api.service.generated.ts");
 
             List<SpiderlyClass> spiderClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
 

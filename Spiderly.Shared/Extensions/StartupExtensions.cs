@@ -204,7 +204,7 @@ namespace Spiderly.Shared.Extensions
 
             app.SpiderlyConfigureLocalization();
 
-            app.SpiderlyConfigureCors(); // Allow CORS to connect with the Angular frontend
+            app.SpiderlyConfigureCors(); // Allow CORS to connect with the frontend
 
             app.SpiderlyConfigureSwagger();
 

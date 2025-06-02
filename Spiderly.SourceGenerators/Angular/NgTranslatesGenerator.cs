@@ -18,7 +18,7 @@ namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
     /// Generates Angular translation services (`class-names.generated.ts` and `labels.generated.ts`)
-    /// within the `{your-app-name}\Angular\src\app\business\services\translates` directory.
+    /// within the `{your-app-name}\Frontend\src\app\business\services\translates` directory.
     /// These services leverage Transloco to provide basic translation capabilities for class names and DTO property labels
     /// based on your backend DTO classes.
     /// </summary>
@@ -68,8 +68,8 @@ namespace Spiderly.SourceGenerators.Angular
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;
 
-            // ...\API\PlayertyLoyals.Business -> ...\Angular\src\app\business\services\translates
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\API\", @"\Angular\src\app\business\services\translates");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\translates
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\translates");
 
             StringBuilder sbClassNames = new();
             StringBuilder sbLabels = new();

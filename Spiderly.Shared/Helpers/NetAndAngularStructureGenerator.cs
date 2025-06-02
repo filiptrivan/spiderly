@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Helpers
                 {
                     new SpiderlyFolder
                     {
-                        Name = "Angular",
+                        Name = "Frontend",
                         ChildFolders =
                         {
                             new SpiderlyFolder
@@ -151,7 +151,7 @@ namespace Spiderly.Shared.Helpers
                                             },
                                             new SpiderlyFolder
                                             {
-                                                Name = "features",
+                                                Name = "pages",
                                                 ChildFolders =
                                                 {
                                                     new SpiderlyFolder
@@ -161,43 +161,36 @@ namespace Spiderly.Shared.Helpers
                                                         {
                                                             new SpiderlyFolder
                                                             {
-                                                                Name = "pages",
-                                                                ChildFolders =
+                                                                Name = "notification",
+                                                                Files =
                                                                 {
-                                                                    new SpiderlyFolder
-                                                                    {
-                                                                        Name = "notification",
-                                                                        Files =
-                                                                        {
-                                                                            new SpiderlyFile { Name = "notification-details.component.html", Data = GetNotificationDetailsComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "notification-details.component.ts", Data = GetNotificationDetailsComponentTsData() },
-                                                                            new SpiderlyFile { Name = "notification-table.component.html", Data = GetNotificationTableComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "notification-table.component.ts", Data = GetNotificationTableComponentTsData() },
-                                                                        }
-                                                                    },
-                                                                    new SpiderlyFolder
-                                                                    {
-                                                                        Name = "user",
-                                                                        Files =
-                                                                        {
-                                                                            new SpiderlyFile { Name = "user-details.component.html", Data = GetUserDetailsComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "user-details.component.ts", Data = GetUserDetailsComponentTsData() },
-                                                                            new SpiderlyFile { Name = "user-table.component.html", Data = GetUserTableComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "user-table.component.ts", Data = GetUserTableComponentTsData() },
-                                                                        }
-                                                                    },
-                                                                    new SpiderlyFolder
-                                                                    {
-                                                                        Name = "role",
-                                                                        Files =
-                                                                        {
-                                                                            new SpiderlyFile { Name = "role-details.component.html", Data = GetRoleDetailsComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "role-details.component.ts", Data = GetRoleDetailsComponentTsData() },
-                                                                            new SpiderlyFile { Name = "role-table.component.html", Data = GetRoleTableComponentHtmlData() },
-                                                                            new SpiderlyFile { Name = "role-table.component.ts", Data = GetRoleTableComponentTsData() },
-                                                                        }
-                                                                    },
-                                                                },
+                                                                    new SpiderlyFile { Name = "notification-details.component.html", Data = GetNotificationDetailsComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "notification-details.component.ts", Data = GetNotificationDetailsComponentTsData() },
+                                                                    new SpiderlyFile { Name = "notification-table.component.html", Data = GetNotificationTableComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "notification-table.component.ts", Data = GetNotificationTableComponentTsData() },
+                                                                }
+                                                            },
+                                                            new SpiderlyFolder
+                                                            {
+                                                                Name = "user",
+                                                                Files =
+                                                                {
+                                                                    new SpiderlyFile { Name = "user-details.component.html", Data = GetUserDetailsComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "user-details.component.ts", Data = GetUserDetailsComponentTsData() },
+                                                                    new SpiderlyFile { Name = "user-table.component.html", Data = GetUserTableComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "user-table.component.ts", Data = GetUserTableComponentTsData() },
+                                                                }
+                                                            },
+                                                            new SpiderlyFolder
+                                                            {
+                                                                Name = "role",
+                                                                Files =
+                                                                {
+                                                                    new SpiderlyFile { Name = "role-details.component.html", Data = GetRoleDetailsComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "role-details.component.ts", Data = GetRoleDetailsComponentTsData() },
+                                                                    new SpiderlyFile { Name = "role-table.component.html", Data = GetRoleTableComponentHtmlData() },
+                                                                    new SpiderlyFile { Name = "role-table.component.ts", Data = GetRoleTableComponentTsData() },
+                                                                }
                                                             },
                                                         },
                                                         Files =
@@ -247,20 +240,10 @@ namespace Spiderly.Shared.Helpers
                                                     new SpiderlyFolder
                                                     {
                                                         Name = "notification",
-                                                        ChildFolders =
-                                                        {
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "pages",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "notification.component.html", Data = GetClientNotificationComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "notification.component.ts", Data = GetClientNotificationComponentTsData() },
-                                                                },
-                                                            },
-                                                        },
                                                         Files =
                                                         {
+                                                            new SpiderlyFile { Name = "notification.component.html", Data = GetClientNotificationComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "notification.component.ts", Data = GetClientNotificationComponentTsData() },
                                                             new SpiderlyFile { Name = "notification.module.ts", Data = GetClientNotificationModuleTsData() },
                                                         }
                                                     },
@@ -346,7 +329,7 @@ namespace Spiderly.Shared.Helpers
                     },
                     new SpiderlyFolder
                     {
-                        Name = "API",
+                        Name = "Backend",
                         ChildFolders =
                         {
                             new SpiderlyFolder
@@ -1026,12 +1009,12 @@ import { NotificationBaseDetailsComponent, UserExtendedBaseDetailsComponent } fr
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent, RoleBaseDetailsComponent } from 'spiderly';
-import { NotificationDetailsComponent } from './pages/notification/notification-details.component';
-import { NotificationTableComponent } from './pages/notification/notification-table.component';
-import { RoleDetailsComponent } from './pages/role/role-details.component';
-import { RoleTableComponent } from './pages/role/role-table.component';
-import { UserDetailsComponent } from './pages/user/user-details.component';
-import { UserTableComponent } from './pages/user/user-table.component';
+import { NotificationDetailsComponent } from './notification/notification-details.component';
+import { NotificationTableComponent } from './notification/notification-table.component';
+import { RoleDetailsComponent } from './role/role-details.component';
+import { RoleTableComponent } from './role/role-table.component';
+import { UserDetailsComponent } from './user/user-details.component';
+import { UserTableComponent } from './user/user-table.component';
 
 const routes: Routes = [
     {
@@ -1579,7 +1562,7 @@ export class NotificationComponent implements OnInit {
         {
             return $$"""
 import { RouterModule, Routes } from "@angular/router";
-import { NotificationComponent } from "./pages/notification.component";
+import { NotificationComponent } from "./notification.component";
 import { NgModule } from "@angular/core";
 import { TranslocoDirective } from "@jsverse/transloco";
 import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent } from 'spiderly';
@@ -1628,17 +1611,17 @@ export const routes: Routes = [
         children: [
             {
                 path: '',
-                loadChildren: () => import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
+                loadChildren: () => import('./pages/dashboard/dashboard.module').then(m => m.DashboardModule),
                 canActivate: [AuthGuard]
             },
             { 
                 path: 'administration',
-                loadChildren: () => import('./features/administration/administration.module').then(m => m.AdministrationModule),
+                loadChildren: () => import('./pages/administration/administration.module').then(m => m.AdministrationModule),
                 canActivate: [AuthGuard]
             },
             { 
                 path: '',
-                loadChildren: () => import('./features/notification/notification.module').then(m => m.NotificationModule),
+                loadChildren: () => import('./pages/notification/notification.module').then(m => m.NotificationModule),
                 canActivate: [AuthGuard]
             },
         ],
@@ -1660,7 +1643,7 @@ export const routes: Routes = [
             {
                 path: '',
                 loadChildren: () =>
-                    import('./features/legal/legal.module').then(
+                    import('./pages/legal/legal.module').then(
                         (m) => m.LegalModule
                     ),
             },
@@ -4169,7 +4152,7 @@ export const environment = {
   apiUrl: 'https://localhost:44388/api',
   frontendUrl: 'http://localhost:4200',
   GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
-  companyName: '{{appName.ToTitleCase()}}',
+  companyName: '{{appName}}',
   primaryColor: '{{primaryColor}}',
 };
 """;

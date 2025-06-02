@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Helpers
 {
     /// <summary>
-    /// FT: In Angular there is an built in class MimeType
+    /// In Angular there is an built-in class MimeType
     /// </summary>
     public class MimeTypes
     {

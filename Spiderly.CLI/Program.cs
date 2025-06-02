@@ -31,7 +31,12 @@ namespace Spiderly.CLI
 
             if (args.HasArg("init"))
             {
-                await HandleProjectInit();
+                await Init();
+            }
+
+            if (args.HasArg("add-new-page"))
+            {
+                await AddNewPage();
             }
 
             IConfiguration config = new ConfigurationBuilder()
@@ -52,6 +57,7 @@ namespace Spiderly.CLI
             Console.WriteLine("Commands:");
             Console.WriteLine("  --help               Display this help message.");
             Console.WriteLine("  init                 Initialize a new project.");
+            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
             Console.WriteLine("  app-name             Specify the name of the application. (No spaces allowed.)");
@@ -59,9 +65,12 @@ namespace Spiderly.CLI
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly --help");
             Console.WriteLine("  spiderly init");
+            Console.WriteLine("  spiderly add-new-page");
         }
 
-        private static async Task HandleProjectInit()
+        #region Init
+
+        private static async Task Init()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -116,8 +125,8 @@ namespace Spiderly.CLI
                 hasNetAndAngularInitErrors = true;
             }
 
-            string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}API{_s_}{appName}.Infrastructure");
-            string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Angular");
+            string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Backend{_s_}{appName}.Infrastructure");
+            string frontendPath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Frontend");
 
             Console.WriteLine("\nGenerating the database migration...");
             if (!await RunCommand("dotnet", @$"ef migrations add InitialCreate --project .{_s_}{appName}.Infrastructure.csproj --startup-project ..{_s_}{appName}.WebAPI{_s_}{appName}.WebAPI.csproj", infrastructurePath))
@@ -199,6 +208,18 @@ namespace Spiderly.CLI
 
             return process.ExitCode == 0;
         }
+
+        #endregion
+
+        #region Add New Page
+
+        private static async Task AddNewPage()
+        {
+            // 1. Get the current 
+            // 1. Add controller 
+        }
+
+        #endregion
 
         private static bool HasArg(this string[] args, string arg)
         {

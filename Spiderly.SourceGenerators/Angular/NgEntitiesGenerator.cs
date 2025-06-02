@@ -16,7 +16,7 @@ using Spiderly.SourceGenerators.Enums;
 namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
-    /// Generates Angular entity and DTO classes (`{your-app-name}\Angular\src\app\business\entities\{your-app-name}-entities.generated.ts`)
+    /// Generates Angular entity and DTO classes (`{your-app-name}\Frontend\src\app\business\entities\{your-app-name}-entities.generated.ts`)
     /// based on corresponding C# classes within the '.Entities' and '.DTO' namespaces.
     /// This generator simplifies frontend data modeling by automatically creating TypeScript interfaces/classes
     /// that mirror your backend data structures.
@@ -73,8 +73,8 @@ namespace Spiderly.SourceGenerators.Angular
             string namespaceValue = currentProjectClasses[0].Namespace;
             string projectName = Helpers.GetProjectName(namespaceValue);
 
-            // ...\API\PlayertyLoyals.Business -> ...\Angular\src\app\business\entities\{projectName}-entities.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\API\", $@"\Angular\src\app\business\entities\{projectName.FromPascalToKebabCase()}-entities.generated.ts");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\entities\{projectName}-entities.ts
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\entities\{projectName.FromPascalToKebabCase()}-entities.generated.ts");
 
             StringBuilder sb = new();
             StringBuilder sbImports = new();
@@ -91,7 +91,7 @@ import { BaseEntity, TableFilter, TableFilterContext, TableFilterSortMeta, MimeT
                 foreach (SpiderlyClass DTOClass in DTOClassGroup) // It can only be 2 here
                     DTOProperties.AddRange(DTOClass.Properties);
 
-                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties); // FT: If, in some moment, we want to make another aproach set this to false, now it doesn't matter
+                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties); // If, in some moment, we want to make another aproach set this to false, now it doesn't matter
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
                 sbImports.Append(string.Join("\n", Helpers.GetAngularImports(DTOProperties, projectName)));

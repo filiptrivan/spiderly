@@ -77,8 +77,8 @@ namespace Spiderly.SourceGenerators.Net
             Helpers.WriteResourceFile(dataEn, Path.Combine(sharedBusinessProjectPath, GetTermsFilePath(LanguageCodes.En)));
             Helpers.WriteResourceFile(dataSrLatnRS, Path.Combine(sharedBusinessProjectPath, GetTermsFilePath(LanguageCodes.SrLatnRS)));
 
-            // E:\Projects\PlayertyLoyals\API\PlayertyLoyals.Shared -> E:\Projects\PlayertyLoyals\Angular\src\assets\i18n
-            string angulari18nFolderPath = callingProjectDirectory.ReplaceEverythingAfter(@"\API\", @"\Angular\src\assets\i18n");
+            // your-app-name\Backend\YourAppName.Shared -> your-app-name\Frontend\src\assets\i18n
+            string angulari18nFolderPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\assets\i18n");
 
             Helpers.WriteToTheFile(GetJsonFromDictionaryList(dataEn), Path.Combine(angulari18nFolderPath, GetAngulari18nFilePath(LanguageCodes.En)));
             Helpers.WriteToTheFile(GetJsonFromDictionaryList(dataSrLatnRS), Path.Combine(angulari18nFolderPath, GetAngulari18nFilePath(LanguageCodes.SrLatnRS)));
