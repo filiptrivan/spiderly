@@ -149,7 +149,7 @@ export class MenuitemComponent implements OnInit, OnDestroy {
         return this.active && !this.root;
     }
 
-    //#region FT HACK: Partner
+    //#region HACK: Partner
 
     searchPartners(event: AutoCompleteCompleteEvent) {
         this.layoutService.searchPartners(event).subscribe(po => {

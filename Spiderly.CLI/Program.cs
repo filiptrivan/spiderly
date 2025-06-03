@@ -1,5 +1,7 @@
 ﻿using CaseConverter;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
@@ -8,6 +10,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Spiderly.CLI
 {
@@ -23,7 +26,7 @@ namespace Spiderly.CLI
 
         static async Task Main(string[] args)
         {
-            if (args.HasArg("--help"))
+            if (args.HasArg("--help") || args.HasArg("-help") || args.HasArg("help"))
             {
                 ShowHelp();
                 return;
@@ -32,16 +35,21 @@ namespace Spiderly.CLI
             if (args.HasArg("init"))
             {
                 await Init();
+                return;
             }
 
             if (args.HasArg("add-new-page"))
             {
                 await AddNewPage();
+                return;
             }
 
-            IConfiguration config = new ConfigurationBuilder()
-                .AddCommandLine(args)
-                .Build();
+            Console.WriteLine("\nUnrecognized command. Type 'spiderly help' to see a list of available commands.");
+
+
+            //IConfiguration config = new ConfigurationBuilder()
+            //    .AddCommandLine(args)
+            //    .Build();
 
             //string initType = config["init"];
             //string primaryColor = config["primary-color"];
@@ -60,7 +68,7 @@ namespace Spiderly.CLI
             Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
-            Console.WriteLine("  app-name             Specify the name of the application. (No spaces allowed.)");
+            Console.WriteLine("  app-name             Specify the name of the application (no spaces allowed).");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly --help");
@@ -108,7 +116,7 @@ namespace Spiderly.CLI
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularStructureGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
@@ -215,8 +223,104 @@ namespace Spiderly.CLI
 
         private static async Task AddNewPage()
         {
-            // 1. Get the current 
-            // 1. Add controller 
+            string entityName = null;
+
+            while (true)
+            {
+                Console.Write("Entity name without spaces (e.g., YourNewEntityName): ");
+                entityName = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(entityName))
+                {
+                    Console.WriteLine("Entity name can't be null or empty.");
+                    continue;
+                }
+
+                if (entityName.Contains(" "))
+                {
+                    Console.WriteLine("Entity name can't have spaces.");
+                    continue;
+                }
+
+                break;
+            }
+
+            string rootPath = Directory.GetCurrentDirectory();
+
+            string[] folders = rootPath.Split('\\');
+            string kebabAppName = folders[folders.Length - 1];
+            string appName = kebabAppName.ToPascalCase();
+
+            Console.WriteLine("\nGenerating files for the entity...");
+
+            string backendControllersPath = Path.Combine(rootPath, "Backend", $"{appName}.WebAPI", "Controllers");
+            if (!Directory.Exists(backendControllersPath))
+            {
+                Console.WriteLine($"\n[WARNING] Controllers folder not found: {backendControllersPath}");
+            }
+            else
+            {
+                string controllerFileName = $"{entityName}Controller.cs";
+                string controllerFilePath = Path.Combine(backendControllersPath, controllerFileName);
+
+                if (File.Exists(controllerFilePath))
+                {
+                    Console.WriteLine($"\n[WARNING] Controller file already exists: {controllerFileName}");
+                }
+                else
+                {
+                    string controllerTemplate = NetAndAngularFilesGenerator.GetSpiderlyControllerTemplate(entityName, appName);
+                    await File.WriteAllTextAsync(controllerFilePath, controllerTemplate, Encoding.UTF8);
+                    Console.WriteLine($"\nController successfully generated: {controllerFilePath}");
+                }
+            }
+
+            string pagesFolderPath = Path.Combine(rootPath, "Frontend", "src", "app", "pages");
+            if (!Directory.Exists(pagesFolderPath))
+            {
+                Console.WriteLine($"\n[WARNING] Pages folder not found: {pagesFolderPath}");
+            }
+            else
+            {
+                string kebabEntityName = entityName.ToKebabCase();
+
+                string newPageFolderPath = Path.Combine(pagesFolderPath, kebabEntityName);
+                if (Directory.Exists(newPageFolderPath))
+                {
+                    Console.WriteLine($"\n[WARNING] Page folder already exists: {kebabEntityName}");
+                }
+                else
+                {
+                    Directory.CreateDirectory(newPageFolderPath);
+
+                    string tableTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-table.component.ts");
+                    string tableTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableTsTemplate(entityName);
+                    await File.WriteAllTextAsync(tableTsPath, tableTsTemplate, Encoding.UTF8);
+                    Console.WriteLine($"Table ts file successfully generated: {tableTsPath}");
+
+                    string tableHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-table.component.html");
+                    string tableHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableHtmlTemplate(entityName);
+                    await File.WriteAllTextAsync(tableHtmlPath, tableHtmlTemplate, Encoding.UTF8);
+                    Console.WriteLine($"Table html file successfully generated: {tableHtmlPath}");
+
+                    string detailsTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.ts");
+                    string detailsTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsTsTemplate(entityName);
+                    await File.WriteAllTextAsync(detailsTsPath, detailsTsTemplate, Encoding.UTF8);
+                    Console.WriteLine($"Details ts successfully generated: {detailsTsPath}");
+
+                    string detailsHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.html");
+                    string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
+                    await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
+                    Console.WriteLine($"Details html successfully generated: {detailsHtmlPath}");
+
+                    string moduleTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}.module.ts");
+                    string moduleTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularModuleTsTemplate(entityName);
+                    await File.WriteAllTextAsync(moduleTsPath, moduleTsTemplate, Encoding.UTF8);
+                    Console.WriteLine($"Module ts file successfully generated: {moduleTsPath}");
+                }
+            }
+
+            Console.WriteLine("\nCommand execution completed.");
         }
 
         #endregion

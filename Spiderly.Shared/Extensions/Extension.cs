@@ -39,19 +39,6 @@ namespace Spiderly.Shared.Extensions
                 return stringList.FirstOrDefault();
         }
 
-        public static string FromPascalToKebabCase(this string pascalCaseString)
-        {
-            if (string.IsNullOrEmpty(pascalCaseString))
-            {
-                return string.Empty;
-            }
-
-            string kebabCaseString = Regex.Replace(pascalCaseString, "([a-z])([A-Z])", "$1-$2");
-            kebabCaseString = kebabCaseString.ToLower();
-
-            return kebabCaseString;
-        }
-
         public static List<T> StructToList<T>(this T structValue)
             where T : struct
         {

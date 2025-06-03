@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Spiderly.Shared.Helpers
 {
-    public static class NetAndAngularStructureGenerator
+    public static class NetAndAngularFilesGenerator
     {
         public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
         {
@@ -507,7 +507,7 @@ namespace Spiderly.Shared.Helpers
                     },
                     new SpiderlyFolder
                     {
-                        Name = "Data",
+                        Name = "Database",
                         ChildFolders =
                         {
                             new SpiderlyFolder
@@ -524,10 +524,6 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = "initialize-data.xlsx", Data = "" },
                             new SpiderlyFile { Name = "initialize-script.sql", Data = GetInitializeScriptSqlData(appName) }
                         }
-                    },
-                    new SpiderlyFolder
-                    {
-                        Name = "Documentation",
                     }
                 },
                 Files =
@@ -564,6 +560,219 @@ namespace Spiderly.Shared.Helpers
             Helper.FileOverrideCheck(filePath);
 
             Helper.WriteToFile(file.Data, filePath);
+        }
+
+        public static string GetSpiderlyControllerTemplate(string entityName, string appName)
+        {
+            return $$"""
+using Microsoft.AspNetCore.Mvc;
+using Spiderly.Shared.Attributes;
+using Spiderly.Shared.Interfaces;
+using Azure.Storage.Blobs;
+using Spiderly.Security.Services;
+using {{appName}}.Business.Services;
+using {{appName}}.Business.DTO;
+
+namespace {{appName}}.WebAPI.Controllers
+{
+    [ApiController]
+    [Route("/api/[controller]/[action]")]
+    public class {{entityName}}Controller : {{entityName}}BaseController
+    {
+        private readonly IApplicationDbContext _context;
+        private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
+        private readonly AuthenticationService _authenticationService;
+
+        public {{entityName}}Controller(
+            IApplicationDbContext context, 
+            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService, 
+            AuthenticationService authenticationService
+        )
+            : base(context, {{appName.FirstCharToLower()}}BusinessService)
+        {
+            _context = context;
+            _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
+            _authenticationService = authenticationService;
+        }
+
+    }
+}
+""";
+        }
+
+        public static string GetSpiderlyAngularDetailsTsTemplate(string entityName)
+        {
+            string kebabEntityName = entityName.ToKebabCase();
+
+            return $$"""
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
+import { ApiService } from 'src/app/business/services/api/api.service';
+import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService } from 'spiderly';
+
+@Component({
+    selector: '{{kebabEntityName}}-details',
+    templateUrl: './{{kebabEntityName}}-details.component.html',
+    styles: [],
+    standalone: false,
+})
+export class {{entityName}}DetailsComponent extends BaseFormCopy implements OnInit {
+    {{entityName.FirstCharToLower()}}FormGroup = new SpiderlyFormGroup<{{entityName}}>({});
+
+    constructor(
+        protected override differs: KeyValueDiffers,
+        protected override http: HttpClient,
+        protected override messageService: SpiderlyMessageService, 
+        protected override changeDetectorRef: ChangeDetectorRef,
+        protected override router: Router, 
+        protected override route: ActivatedRoute,
+        protected override translocoService: TranslocoService,
+        protected override baseFormService: BaseFormService,
+        private apiService: ApiService,
+    ) {
+        super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
+    }
+
+    override ngOnInit() {
+
+    }
+
+    override onBeforeSave = (): void => {
+
+    }
+}
+""";
+        }
+
+        public static string GetSpiderlyAngularDetailsHtmlTemplate(string entityName)
+        {
+            string kebabEntityName = entityName.ToKebabCase();
+
+            return $$"""
+<ng-container *transloco="let t">
+    <spiderly-card [title]="t('{{entityName}}')" icon="pi pi-file-edit">
+
+        <{{kebabEntityName}}-base-details
+        [formGroup]="formGroup" 
+        [{{entityName.FirstCharToLower()}}FormGroup]="{{entityName.FirstCharToLower()}}FormGroup" 
+        (onSave)="onSave()"
+        [getCrudMenuForOrderedData]="getCrudMenuForOrderedData"
+        />
+
+    </spiderly-card>
+</ng-container>
+""";
+        }
+
+        public static string GetSpiderlyAngularTableTsTemplate(string entityName)
+        {
+            string kebabEntityName = entityName.ToKebabCase();
+
+            return $$"""
+import { ApiService } from 'src/app/business/services/api/api.service';
+import { TranslocoService } from '@jsverse/transloco';
+import { Component, OnInit } from '@angular/core';
+import { Column } from 'spiderly';
+import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+
+@Component({
+    selector: '{{kebabEntityName}}-table',
+    templateUrl: './{{kebabEntityName}}-table.component.html',
+    styles: [],
+    standalone: false,
+})
+export class {{entityName}}TableComponent implements OnInit {
+    cols: Column<{{entityName}}>[];
+
+    get{{entityName}}TableDataObservableMethod = this.apiService.get{{entityName}}TableData;
+    export{{entityName}}TableDataToExcelObservableMethod = this.apiService.export{{entityName}}TableDataToExcel;
+    delete{{entityName}}ObservableMethod = this.apiService.delete{{entityName}};
+
+    constructor(
+        private apiService: ApiService,
+        private translocoService: TranslocoService,
+    ) { }
+
+    ngOnInit(){
+        this.cols = [
+            {name: this.translocoService.translate('Actions'), actions:[
+                {name: this.translocoService.translate('Details'), field: 'Details'},
+                {name:  this.translocoService.translate('Delete'), field: 'Delete'},
+            ]},
+            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
+        ]
+    }
+}
+""";
+        }
+
+        public static string GetSpiderlyAngularTableHtmlTemplate(string entityName)
+        {
+            return $$"""
+<ng-container *transloco="let t">
+
+    <spiderly-data-table [tableTitle]="t('{{entityName}}List')" 
+    [cols]="cols" 
+    [getTableDataObservableMethod]="get{{entityName}}TableDataObservableMethod" 
+    [exportTableDataToExcelObservableMethod]="export{{entityName}}TableDataToExcelObservableMethod"
+    [deleteItemFromTableObservableMethod]="delete{{entityName}}ObservableMethod"
+    [showAddButton]="true"
+    ></spiderly-data-table>
+
+</ng-container>
+""";
+        }
+
+        public static string GetSpiderlyAngularModuleTsTemplate(string entityName)
+        {
+            string kebabEntityName = entityName.ToKebabCase();
+
+            return $$"""
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { TranslocoDirective } from '@jsverse/transloco';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent, RoleBaseDetailsComponent } from 'spiderly';
+import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { {{entityName}}DetailsComponent } from './{{kebabEntityName}}-details.component';
+import { {{entityName}}TableComponent } from './{{kebabEntityName}}-table.component';
+
+const routes: Routes = [
+    {
+        path: '{{kebabEntityName}}-list',
+        component: UserTableComponent,
+    },
+    {
+        path: '{{kebabEntityName}}-list/:id',
+        component: UserDetailsComponent,
+    },
+];
+
+@NgModule({
+    imports: [
+        RouterModule.forChild(routes),
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        PrimengModule,
+        SpiderlyDataTableComponent,
+        SpiderlyControlsModule,
+        CardSkeletonComponent,
+        TranslocoDirective,
+        {{entityName}}BaseDetailsComponent,
+    ],
+    declarations: [
+        {{entityName}}TableComponent,
+        {{entityName}}DetailsComponent,
+    ],
+    providers:[]
+})
+export class {{entityName}}Module { }
+""";
         }
 
         private static string GetNotificationDetailsComponentHtmlData()
