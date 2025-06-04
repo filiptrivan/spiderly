@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { Table, TableFilterEvent, TableLazyLoadEvent } from 'primeng/table';
+import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { CommonModule, formatDate } from '@angular/common';
@@ -16,7 +16,10 @@ import { TableResponse } from '../../entities/table-response';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { exportListToExcel } from '../../services/helper-functions';
 import { TableFilter } from '../../entities/table-filter';
-import { PrimengModule } from '../../modules/primeng.module';
+import { TooltipModule } from 'primeng/tooltip';
+import { ButtonModule } from 'primeng/button';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { CheckboxModule } from 'primeng/checkbox';
 
 @Component({
     selector: 'spiderly-data-table',
@@ -38,9 +41,13 @@ import { PrimengModule } from '../../modules/primeng.module';
     imports: [
         FormsModule,
         CommonModule,
-        PrimengModule,
         TranslocoDirective,
         SpiderlyControlsModule,
+        TableModule,
+        ButtonModule,
+        MultiSelectModule,
+        CheckboxModule,
+        TooltipModule,
     ]
 })
 export class SpiderlyDataTableComponent implements OnInit {

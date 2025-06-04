@@ -27,25 +27,6 @@ namespace Spiderly.Shared.Helpers
                         {
                             new SpiderlyFolder
                             {
-                                Name = "plop",
-                                ChildFolders =
-                                {
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "output"
-                                    }
-                                },
-                                Files =
-                                {
-                                    new SpiderlyFile { Name = "spiderly-controller-cs-template.hbs", Data = GetSpiderlyControllerCsTemplateHbsData(appName) },
-                                    new SpiderlyFile { Name = "spiderly-details-html-template.hbs", Data = GetSpiderDetailsHtmlTemplateHbsData() },
-                                    new SpiderlyFile { Name = "spiderly-details-ts-template.hbs", Data = GetSpiderDetailsTsTemplateHbsData() },
-                                    new SpiderlyFile { Name = "spiderly-table-html-template.hbs", Data = GetSpiderTableHtmlTemplateHbsData() },
-                                    new SpiderlyFile { Name = "spiderly-table-ts-template.hbs", Data = GetSpiderTableTsTemplateHbsData() },
-                                }
-                            },
-                            new SpiderlyFolder
-                            {
                                 Name = "src",
                                 ChildFolders =
                                 {
@@ -193,49 +174,33 @@ namespace Spiderly.Shared.Helpers
                                                                 }
                                                             },
                                                         },
+                                                    },
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "homepage",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "administration.module.ts", Data = GetAdministrationModuleTsData() }
+                                                            new SpiderlyFile { Name = "homepage.component.html", Data = GetHomepageComponentHtmlData(appName) },
+                                                            new SpiderlyFile { Name = "homepage.component.ts", Data = GetHomepageComponentTsData() },
                                                         }
                                                     },
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "dashboard",
+                                                        Name = "privacy-policy",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "dashboard.component.html", Data = GetDashboardComponentHtmlData(appName) },
-                                                            new SpiderlyFile { Name = "dashboard.component.ts", Data = GetDashboardComponentTsData() },
-                                                            new SpiderlyFile { Name = "dashboard.module.ts", Data = GetDashboardModuleTsData() },
-                                                        }
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "legal",
-                                                        ChildFolders =
-                                                        {
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "privacy-policy",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "privacy-policy.component.html", Data = GetPrivacyPolicyComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "privacy-policy.component.ts", Data = GetPrivacyPolicyComponentTsData() },
-                                                                },
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "user-agreement",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "user-agreement.component.html", Data = GetUserAgreementComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "user-agreement.component.ts", Data = GetUserAgreementComponentTsData() },
-                                                                },
-                                                            },
+                                                            new SpiderlyFile { Name = "privacy-policy.component.html", Data = GetPrivacyPolicyComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "privacy-policy.component.ts", Data = GetPrivacyPolicyComponentTsData() },
                                                         },
+                                                    },
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "user-agreement",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "legal.module.ts", Data = GetLegalModuleTsData() },
-                                                        }
+                                                            new SpiderlyFile { Name = "user-agreement.component.html", Data = GetUserAgreementComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "user-agreement.component.ts", Data = GetUserAgreementComponentTsData() },
+                                                        },
                                                     },
                                                     new SpiderlyFolder
                                                     {
@@ -319,7 +284,6 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = ".editorconfig", Data = GetEditOrConfigData() },
                             new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
                             new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName) },
-                            new SpiderlyFile { Name = "plopfile.js", Data = GetPlopFileJsData() },
                             new SpiderlyFile { Name = "README.md", Data = "" },
                             new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
                             new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isFromNuget) },
@@ -608,16 +572,21 @@ namespace {{appName}}.WebAPI.Controllers
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService } from 'spiderly';
+import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
 
 @Component({
     selector: '{{kebabEntityName}}-details',
     templateUrl: './{{kebabEntityName}}-details.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        SpiderlyControlsModule,
+        {{entityName}}BaseDetailsComponent
+    ]
 })
 export class {{entityName}}DetailsComponent extends BaseFormCopy implements OnInit {
     {{entityName.FirstCharToLower()}}FormGroup = new SpiderlyFormGroup<{{entityName}}>({});
@@ -673,16 +642,18 @@ export class {{entityName}}DetailsComponent extends BaseFormCopy implements OnIn
 
             return $$"""
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { Column } from 'spiderly';
 import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+import { Column, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
     selector: '{{kebabEntityName}}-table',
     templateUrl: './{{kebabEntityName}}-table.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyDataTableComponent
+    ]
 })
 export class {{entityName}}TableComponent implements OnInit {
     cols: Column<{{entityName}}>[];
@@ -726,55 +697,6 @@ export class {{entityName}}TableComponent implements OnInit {
 """;
         }
 
-        public static string GetSpiderlyAngularModuleTsTemplate(string entityName)
-        {
-            string kebabEntityName = entityName.ToKebabCase();
-
-            return $$"""
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { TranslocoDirective } from '@jsverse/transloco';
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent, RoleBaseDetailsComponent } from 'spiderly';
-import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { {{entityName}}DetailsComponent } from './{{kebabEntityName}}-details.component';
-import { {{entityName}}TableComponent } from './{{kebabEntityName}}-table.component';
-
-const routes: Routes = [
-    {
-        path: '{{kebabEntityName}}-list',
-        component: UserTableComponent,
-    },
-    {
-        path: '{{kebabEntityName}}-list/:id',
-        component: UserDetailsComponent,
-    },
-];
-
-@NgModule({
-    imports: [
-        RouterModule.forChild(routes),
-        CommonModule,
-        FormsModule,
-        ReactiveFormsModule,
-        PrimengModule,
-        SpiderlyDataTableComponent,
-        SpiderlyControlsModule,
-        CardSkeletonComponent,
-        TranslocoDirective,
-        {{entityName}}BaseDetailsComponent,
-    ],
-    declarations: [
-        {{entityName}}TableComponent,
-        {{entityName}}DetailsComponent,
-    ],
-    providers:[]
-})
-export class {{entityName}}Module { }
-""";
-        }
-
         private static string GetNotificationDetailsComponentHtmlData()
         {
             return $$"""
@@ -811,16 +733,21 @@ export class {{entityName}}Module { }
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Notification } from 'src/app/business/entities/business-entities.generated';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent } from 'spiderly';
+import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
 
 @Component({
     selector: 'notification-details',
     templateUrl: './notification-details.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        SpiderlyControlsModule,
+        NotificationBaseDetailsComponent
+    ]
 })
 export class NotificationDetailsComponent extends BaseFormCopy implements OnInit {
     notificationFormGroup = new SpiderlyFormGroup<Notification>({});
@@ -901,16 +828,18 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         {
             return $$"""
 import { Component, OnInit } from '@angular/core';
-import { TranslocoService } from '@jsverse/transloco';
-import { Column } from 'spiderly';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { Column, SpiderlyDataTableComponent } from 'spiderly';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { Notification } from 'src/app/business/entities/business-entities.generated';
 
 @Component({
     selector: 'notification-table',
     templateUrl: './notification-table.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyDataTableComponent
+    ]
 })
 export class NotificationTableComponent implements OnInit {
     cols: Column<Notification>[];
@@ -963,14 +892,18 @@ export class NotificationTableComponent implements OnInit {
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
-import { Role, SpiderlyMessageService, BaseFormCopy, BaseFormService, SpiderlyFormGroup } from 'spiderly';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { Role, SpiderlyMessageService, BaseFormCopy, BaseFormService, SpiderlyFormGroup, SpiderlyControlsModule, SpiderlyPanelsModule, RoleBaseDetailsComponent } from 'spiderly';
 
 @Component({
     selector: 'role-details',
     templateUrl: './role-details.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        SpiderlyControlsModule,
+        RoleBaseDetailsComponent
+    ]
 })
 export class RoleDetailsComponent extends BaseFormCopy implements OnInit {
     roleFormGroup = new SpiderlyFormGroup<Role>({});
@@ -1011,15 +944,17 @@ export class RoleDetailsComponent extends BaseFormCopy implements OnInit {
         {
             return $$"""
 import { Component, OnInit } from '@angular/core';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { Column, Role } from 'spiderly';
+import { Column, Role, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
     selector: 'role-table',
     templateUrl: './role-table.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyDataTableComponent
+    ]
 })
 export class RoleTableComponent implements OnInit {
     cols: Column<Role>[];
@@ -1074,18 +1009,23 @@ export class RoleTableComponent implements OnInit {
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { UserExtended } from 'src/app/business/entities/business-entities.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent } from 'spiderly';
+import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent, SpiderlyControlsModule, SpiderlyPanelsModule } from 'spiderly';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { combineLatest, delay, map, Observable } from 'rxjs';
 import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.generated';
+import { UserExtendedBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
 
 @Component({
     selector: 'user-details',
     templateUrl: './user-details.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        SpiderlyControlsModule,
+        UserExtendedBaseDetailsComponent,
+    ]
 })
 export class UserDetailsComponent extends BaseFormCopy implements OnInit {
     userExtendedFormGroup = new SpiderlyFormGroup<UserExtended>({});
@@ -1170,16 +1110,18 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
         private static string GetUserTableComponentTsData()
         {
             return $$"""
-import { ApiService } from '../../../../business/services/api/api.service';
-import { TranslocoService } from '@jsverse/transloco';
+import { ApiService } from '../../../business/services/api/api.service';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { Column } from 'spiderly';
+import { Column, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
     selector: 'user-table',
     templateUrl: './user-table.component.html',
-    styles: [],
-    standalone: false,
+    imports: [
+        TranslocoDirective,
+        SpiderlyDataTableComponent,
+    ]
 })
 export class UserTableComponent implements OnInit {
     cols: Column[];
@@ -1208,81 +1150,7 @@ export class UserTableComponent implements OnInit {
 """;
         }
 
-        private static string GetAdministrationModuleTsData()
-        {
-            return $$"""
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { TranslocoDirective } from '@jsverse/transloco';
-import { NotificationBaseDetailsComponent, UserExtendedBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent, RoleBaseDetailsComponent } from 'spiderly';
-import { NotificationDetailsComponent } from './notification/notification-details.component';
-import { NotificationTableComponent } from './notification/notification-table.component';
-import { RoleDetailsComponent } from './role/role-details.component';
-import { RoleTableComponent } from './role/role-table.component';
-import { UserDetailsComponent } from './user/user-details.component';
-import { UserTableComponent } from './user/user-table.component';
-
-const routes: Routes = [
-    {
-        path: 'users',
-        component: UserTableComponent,
-    },
-    {
-        path: 'users/:id',
-        component: UserDetailsComponent,
-    },
-    {
-        path: 'roles',
-        component: RoleTableComponent,
-    },
-    {
-        path: 'roles/:id',
-        component: RoleDetailsComponent,
-    },
-    {
-        path: 'notifications',
-        component: NotificationTableComponent,
-    },
-    {
-        path: 'notifications/:id',
-        component: NotificationDetailsComponent,
-    },
-];
-
-@NgModule({
-    imports: [
-    RouterModule.forChild(routes),
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    PrimengModule,
-    SpiderlyDataTableComponent,
-    SpiderlyControlsModule,
-    CardSkeletonComponent,
-    TranslocoDirective,
-    NotificationBaseDetailsComponent,
-    UserExtendedBaseDetailsComponent,
-    RoleBaseDetailsComponent,
-],
-declarations: [
-        UserTableComponent,
-        UserDetailsComponent, 
-        RoleTableComponent,
-        RoleDetailsComponent,
-        NotificationTableComponent,
-        NotificationDetailsComponent,
-    ],
-    providers:[]
-})
-export class AdministrationModule { }
-
-""";
-        }
-
-        private static string GetDashboardComponentHtmlData(string appName)
+        private static string GetHomepageComponentHtmlData(string appName)
         {
             return $$"""
 <ng-container *transloco="let t">
@@ -1293,16 +1161,16 @@ export class AdministrationModule { }
 """;
         }
 
-        private static string GetDashboardComponentTsData()
+        private static string GetHomepageComponentTsData()
         {
             return $$"""
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-    templateUrl: './dashboard.component.html',
+    templateUrl: './homepage.component.html',
     standalone: false,
 })
-export class DashboardComponent implements OnInit {
+export class HomepageComponent implements OnInit {
 
   constructor(
 
@@ -1317,36 +1185,6 @@ export class DashboardComponent implements OnInit {
   }
 
 }
-
-""";
-        }
-
-        private static string GetDashboardModuleTsData()
-        {
-            return $$"""
-import { NgModule } from '@angular/core';
-import { DashboardComponent } from './dashboard.component';
-import { TranslocoDirective } from '@jsverse/transloco';
-import { RouterModule, Routes } from '@angular/router';
-import { InfoCardComponent } from 'spiderly';
-
-const routes: Routes = [
-    {
-        path: '', 
-        component: DashboardComponent
-    }
-];
-
-@NgModule({
-    imports: [
-        RouterModule.forChild(routes),
-        TranslocoDirective,
-        InfoCardComponent,
-    ],
-    declarations: [DashboardComponent],
-    providers:[]
-})
-export class DashboardModule { }
 
 """;
         }
@@ -1591,38 +1429,6 @@ export class UserAgreementComponent implements OnInit {
 """;
         }
 
-        private static string GetLegalModuleTsData()
-        {
-            return $$"""
-import { RouterModule, Routes } from "@angular/router";
-import { NgModule } from "@angular/core";
-import { PrivacyPolicyComponent } from "./privacy-policy/privacy-policy.component";
-import { UserAgreementComponent } from "./user-agreement/user-agreement.component";
-
-const routes: Routes = [
-    {
-        path: 'privacy-policy',
-        component: PrivacyPolicyComponent,
-    },
-    {
-        path: 'user-agreement',
-        component: UserAgreementComponent,
-    },
-];
-
-@NgModule({
-    imports: [
-        RouterModule.forChild(routes),
-    ],
-    declarations: [
-    ],
-    providers:[]
-})
-export class LegalModule { }
-
-""";
-        }
-
         private static string GetClientNotificationComponentHtmlData()
         {
             return $$$"""
@@ -1774,7 +1580,7 @@ import { RouterModule, Routes } from "@angular/router";
 import { NotificationComponent } from "./notification.component";
 import { NgModule } from "@angular/core";
 import { TranslocoDirective } from "@jsverse/transloco";
-import { PrimengModule, SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent } from 'spiderly';
+import { SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent } from 'spiderly';
 
 const routes: Routes = [
     {
@@ -1805,12 +1611,8 @@ export class NotificationModule { }
         private static string GetAppRoutesTsData()
         {
             return $$"""
-import {
-    InMemoryScrollingOptions,
-    RouterConfigOptions,
-    Routes,
-} from '@angular/router';
-import { AuthGuard, NotAuthGuard, NotFoundComponent } from 'spiderly';
+import { InMemoryScrollingOptions, RouterConfigOptions, Routes } from '@angular/router';
+import { AuthGuard, NotAuthGuard } from 'spiderly';
 import { LayoutComponent } from './business/layout/layout.component';
 
 export const routes: Routes = [
@@ -1820,48 +1622,61 @@ export const routes: Routes = [
         children: [
             {
                 path: '',
-                loadChildren: () => import('./pages/dashboard/dashboard.module').then(m => m.DashboardModule),
+                loadComponent: () => import('./pages/homepage/homepage.component').then(c => c.HomepageComponent),
                 canActivate: [AuthGuard]
             },
-            { 
-                path: 'administration',
-                loadChildren: () => import('./pages/administration/administration.module').then(m => m.AdministrationModule),
-                canActivate: [AuthGuard]
+            {
+                path: 'administration/users',
+                loadComponent: () => import('./pages/administration/user/user-table.component').then(c => c.UserTableComponent),
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'administration/users/:id',
+                loadComponent: () => import('./pages/administration/user/user-details.component').then(c => c.UserDetailsComponent),
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'administration/roles',
+                loadComponent: () => import('./pages/administration/role/role-table.component').then(c => c.RoleTableComponent),
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'administration/roles/:id',
+                loadComponent: () => import('./pages/administration/role/role-details.component').then(c => c.RoleDetailsComponent),
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'administration/notifications',
+                loadComponent: () => import('./pages/administration/notification/notification-table.component').then(c => c.NotificationTableComponent),
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'administration/notifications/:id',
+                loadComponent: () => import('./pages/administration/notification/notification-details.component').then(c => c.NotificationDetailsComponent),
+                canActivate: [AuthGuard],
             },
             { 
-                path: '',
-                loadChildren: () => import('./pages/notification/notification.module').then(m => m.NotificationModule),
+                path: 'notifications',
+                loadComponent: () => import('./pages/notification/notification.component').then(c => c.NotificationComponent),
                 canActivate: [AuthGuard]
             },
         ],
     },
     {
         path: 'login',
-        loadComponent: () => import('spiderly').then((m) => m.LoginComponent),
+        loadComponent: () => import('spiderly').then(c => c.LoginComponent),
         canActivate: [NotAuthGuard],
     },
     {
-        path: 'registration',
-        loadComponent: () =>
-            import('spiderly').then((m) => m.RegistrationComponent),
+        path: 'registration', loadComponent: () => import('spiderly').then(c => c.RegistrationComponent),
         canActivate: [NotAuthGuard],
     },
-    {
-        path: '',
-        children: [
-            {
-                path: '',
-                loadChildren: () =>
-                    import('./pages/legal/legal.module').then(
-                        (m) => m.LegalModule
-                    ),
-            },
-        ],
-    },
-    { path: 'not-found', component: NotFoundComponent },
+    { path: 'privacy-policy', loadComponent: () => import('./pages/privacy-policy/privacy-policy.component').then(c => c.PrivacyPolicyComponent) },
+    { path: 'user-agreement', loadComponent: () => import('./pages/user-agreement/user-agreement.component').then(c => c.UserAgreementComponent) },
+    { path: 'not-found', loadComponent: () => import('spiderly').then(c => c.NotFoundComponent) },
     { path: '**', redirectTo: 'not-found' },
 ];
-    
+
 export const scrollConfig: InMemoryScrollingOptions = {
     scrollPositionRestoration: 'top',
     anchorScrolling: 'enabled',
@@ -4097,76 +3912,6 @@ namespace {{appName}}.Business.DataMappers
 """;
         }
 
-        private static string GetPlopFileJsData()
-        {
-            return $$$"""
-module.exports = function (plop) {
-  plop.setHelper('toKebab', function (text) {
-      return text
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/\s+/g, '-')
-        .toLowerCase();
-  });
-
-  plop.setHelper('firstCharToLower', function (text) {
-      return text.charAt(0).toLowerCase() + text.slice(1);
-  });
-
-  plop.setGenerator('generate-complete', {
-    description: 'Generate complete',
-    prompts: [
-      {
-        type: 'input',
-        name: 'filenames',
-        message: 'Write entity names (comma-separated): ',
-      }
-    ],
-    actions: function (data) {
-      const filenames = data.filenames.split(',').map(name => name.trim());
-      let actions = [];
-
-      filenames.forEach(filename => {
-        actions.push(
-          {
-            type: 'add',
-            path: 'plop/output/{{filename}}/{{toKebab filename}}-details.component.html',
-            templateFile: 'plop/spiderly-details-html-template.hbs',
-            data: {filename}
-          },
-          {
-            type: 'add',
-            path: 'plop/output/{{filename}}/{{toKebab filename}}-details.component.ts',
-            templateFile: 'plop/spiderly-details-ts-template.hbs',
-            data: {filename}
-          },
-          {
-            type: 'add',
-            path: 'plop/output/{{filename}}/{{toKebab filename}}-table.component.html',
-            templateFile: 'plop/spiderly-table-html-template.hbs',
-            data: {filename}
-          },
-          {
-            type: 'add',
-            path: 'plop/output/{{filename}}/{{toKebab filename}}-table.component.ts',
-            templateFile: 'plop/spiderly-table-ts-template.hbs',
-            data: {filename}
-          },
-          {
-            type: 'add',
-            path: 'plop/output/{{filename}}/{{filename}}Controller.cs',
-            templateFile: 'plop/spiderly-controller-cs-template.hbs',
-            data: {filename}
-          },
-        );
-      });
-
-      return actions;
-    } 
-  });
-};
-""";
-        }
-
         private static string GetAngularJsonData(string appName)
         {
             return $$"""
@@ -5235,164 +4980,6 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
 """;
         }
 
-        private static string GetSpiderlyControllerCsTemplateHbsData(string appName)
-        {
-            return $$$"""
-using Microsoft.AspNetCore.Mvc;
-using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Interfaces;
-using Azure.Storage.Blobs;
-using Spiderly.Security.Services;
-using {{{appName}}}.Business.Services;
-using {{{appName}}}.Business.DTO;
-
-namespace {{{appName}}}.WebAPI.Controllers
-{
-    [ApiController]
-    [Route("/api/[controller]/[action]")]
-    public class {{filename}}Controller : {{filename}}BaseController
-    {
-        private readonly IApplicationDbContext _context;
-        private readonly {{{appName}}}BusinessService _{{{appName.FirstCharToLower()}}}BusinessService;
-        private readonly AuthenticationService _authenticationService;
-
-        public {{filename}}Controller(
-            IApplicationDbContext context, 
-            {{{appName}}}BusinessService {{{appName.FirstCharToLower()}}}BusinessService, 
-            AuthenticationService authenticationService
-        )
-            : base(context, {{{appName.FirstCharToLower()}}}BusinessService)
-        {
-            _context = context;
-            _{{{appName.FirstCharToLower()}}}BusinessService = {{{appName.FirstCharToLower()}}}BusinessService;
-            _authenticationService = authenticationService;
-        }
-
-    }
-}
-
-""";
-        }
-
-        private static string GetSpiderDetailsHtmlTemplateHbsData()
-        {
-            return $$$"""
-<ng-container *transloco="let t">
-    <spiderly-card [title]="t('{{filename}}')" icon="pi pi-file-edit">
-
-        <{{toKebab filename}}-base-details
-        [formGroup]="formGroup" 
-        [{{firstCharToLower filename}}FormGroup]="{{firstCharToLower filename}}FormGroup" 
-        (onSave)="onSave()"
-        [getCrudMenuForOrderedData]="getCrudMenuForOrderedData"
-        />
-
-    </spiderly-card>
-</ng-container>
-""";
-        }
-
-        private static string GetSpiderDetailsTsTemplateHbsData()
-        {
-            return $$$"""
-import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { {{filename}} } from 'src/app/business/entities/business-entities.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService } from 'spiderly';
-
-@Component({
-    selector: '{{toKebab filename}}-details',
-    templateUrl: './{{toKebab filename}}-details.component.html',
-    styles: [],
-})
-export class {{filename}}DetailsComponent extends BaseFormCopy implements OnInit {
-    {{firstCharToLower filename}}FormGroup = new SpiderlyFormGroup<{{filename}}>({});
-
-    constructor(
-        protected override differs: KeyValueDiffers,
-        protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService, 
-        protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router, 
-        protected override route: ActivatedRoute,
-        protected override translocoService: TranslocoService,
-        protected override baseFormService: BaseFormService,
-        private apiService: ApiService,
-    ) {
-        super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
-    }
-
-    override ngOnInit() {
-
-    }
-
-    override onBeforeSave = (): void => {
-
-    }
-}
-
-""";
-        }
-
-        private static string GetSpiderTableHtmlTemplateHbsData()
-        {
-            return $$$"""
-<ng-container *transloco="let t">
-
-    <spiderly-data-table [tableTitle]="t('{{filename}}List')" 
-    [cols]="cols" 
-    [getTableDataObservableMethod]="get{{filename}}TableDataObservableMethod" 
-    [exportTableDataToExcelObservableMethod]="export{{filename}}TableDataToExcelObservableMethod"
-    [deleteItemFromTableObservableMethod]="delete{{filename}}ObservableMethod"
-    [showAddButton]="true"
-    ></spiderly-data-table>
-
-</ng-container>
-""";
-        }
-
-        private static string GetSpiderTableTsTemplateHbsData()
-        {
-            return $$$"""
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { TranslocoService } from '@jsverse/transloco';
-import { Component, OnInit } from '@angular/core';
-import { Column } from 'spiderly';
-import { {{filename}} } from 'src/app/business/entities/business-entities.generated';
-
-@Component({
-    selector: '{{toKebab filename}}-table',
-    templateUrl: './{{toKebab filename}}-table.component.html',
-    styles: []
-})
-export class {{filename}}TableComponent implements OnInit {
-    cols: Column<{{filename}}>[];
-
-    get{{filename}}TableDataObservableMethod = this.apiService.get{{filename}}TableData;
-    export{{filename}}TableDataToExcelObservableMethod = this.apiService.export{{filename}}TableDataToExcel;
-    delete{{filename}}ObservableMethod = this.apiService.delete{{filename}};
-
-    constructor(
-        private apiService: ApiService,
-        private translocoService: TranslocoService,
-    ) { }
-
-    ngOnInit(){
-        this.cols = [
-            {name: this.translocoService.translate('Actions'), actions:[
-                {name: this.translocoService.translate('Details'), field: 'Details'},
-                {name:  this.translocoService.translate('Delete'), field: 'Delete'},
-            ]},
-            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
-        ]
-    }
-}
-""";
-        }
-
         private static string GetLayoutComponentHtmlCode()
         {
             return $"""
@@ -5420,10 +5007,9 @@ import { Component, OnDestroy, OnInit, Renderer2 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { ConfigService } from 'src/app/business/services/config.service';
-import { Subscription } from 'rxjs';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { FooterComponent, LayoutBaseComponent, AppSidebarComponent, AppTopBarComponent, LayoutBaseService, PrimengModule, SpiderlyMenuItem} from 'spiderly';
+import { FooterComponent, LayoutBaseComponent, AppSidebarComponent, AppTopBarComponent, LayoutBaseService, SpiderlyMenuItem} from 'spiderly';
 import { CommonModule } from '@angular/common';
 import { BusinessPermissionCodes } from '../enums/business-enums.generated';
 import { SecurityPermissionCodes } from 'spiderly';
@@ -5436,7 +5022,6 @@ import { SecurityPermissionCodes } from 'spiderly';
         FormsModule,
         HttpClientModule,
         RouterModule,
-        PrimengModule,
         FooterComponent,
         AppSidebarComponent,
         AppTopBarComponent,

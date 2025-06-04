@@ -5,7 +5,8 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { BaseDropdownControl } from '../base-dropdown-control';
 import { TranslocoService } from '@jsverse/transloco';
 import { DropdownChangeEvent } from 'primeng/dropdown';
-import { PrimengModule } from '../../modules/primeng.module';
+import { SelectModule } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-dropdown',
@@ -14,7 +15,8 @@ import { PrimengModule } from '../../modules/primeng.module';
     imports: [
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        SelectModule,
+        TooltipModule,
         CommonModule,
         RequiredComponent
     ]

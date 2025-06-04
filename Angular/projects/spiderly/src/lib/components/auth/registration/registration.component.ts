@@ -12,7 +12,6 @@ import { BaseFormService } from '../../../services/base-form.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AuthComponent } from '../partials/auth.component';
-import { PrimengModule } from '../../../modules/primeng.module';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { RegistrationVerificationComponent } from '../partials/registration-verification.component';
 
@@ -23,7 +22,6 @@ import { RegistrationVerificationComponent } from '../partials/registration-veri
         CommonModule,
         ReactiveFormsModule,
         AuthComponent,
-        PrimengModule,
         SpiderlyControlsModule,
         RegistrationVerificationComponent,
         TranslocoDirective,

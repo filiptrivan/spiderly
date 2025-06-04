@@ -4,17 +4,18 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-textbox',
     templateUrl: './spiderly-textbox.component.html',
-    styles: [],
     imports: [
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        InputTextModule,
+        TooltipModule,
         RequiredComponent
     ]
 })

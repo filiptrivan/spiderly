@@ -4,9 +4,8 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
-import { Editor } from 'primeng/editor';
-import { Tooltip } from 'primeng/tooltip';
+import { Editor, EditorModule } from 'primeng/editor';
+import { Tooltip, TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-editor',
@@ -16,7 +15,8 @@ import { Tooltip } from 'primeng/tooltip';
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        EditorModule,
+        TooltipModule,
         RequiredComponent
     ]
 })

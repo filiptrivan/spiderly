@@ -2,17 +2,17 @@ import { ConfirmationService } from 'primeng/api';
 import { Component } from "@angular/core";
 import { DynamicDialogConfig, DynamicDialogRef } from "primeng/dynamicdialog";
 import { TranslocoDirective } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
 import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 @Component({
     selector: 'spiderly-delete-confirmation',
     templateUrl: './spiderly-delete-confirmation.component.html',
     styles: [],
     imports: [
-        PrimengModule,
         SpiderlyButtonComponent,
         TranslocoDirective,
+        ConfirmDialogModule,
     ],
     providers: [
         ConfirmationService

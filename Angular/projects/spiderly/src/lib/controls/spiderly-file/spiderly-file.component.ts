@@ -3,11 +3,10 @@ import { BaseControl } from '../base-control';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { CommonModule } from '@angular/common';
-import { FileSelectEvent } from 'primeng/fileupload';
+import { FileSelectEvent, FileUploadModule } from 'primeng/fileupload';
 import { getMimeTypeForFileName, isExcelFileType, isImageFileType } from '../../services/helper-functions';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { BaseEntity } from '../../entities/base-entity';
-import { PrimengModule } from '../../modules/primeng.module';
 import { SpiderlyButtonComponent } from '../../components/spiderly-buttons/spiderly-button/spiderly-button.component';
 
 @Component({
@@ -18,7 +17,7 @@ import { SpiderlyButtonComponent } from '../../components/spiderly-buttons/spide
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        FileUploadModule,
         RequiredComponent,
         SpiderlyButtonComponent,
         TranslocoDirective

@@ -4,17 +4,18 @@ import { CommonModule } from '@angular/common';
 import { RequiredComponent } from '../../components/required/required.component';
 import { BaseDropdownControl } from '../base-dropdown-control';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-multiselect',
     templateUrl: './spiderly-multiselect.component.html',
-    styles: [],
     imports: [
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        MultiSelectModule,
+        TooltipModule,
         RequiredComponent
     ]
 })

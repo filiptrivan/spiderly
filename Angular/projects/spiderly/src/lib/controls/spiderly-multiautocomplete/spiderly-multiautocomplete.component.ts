@@ -1,20 +1,20 @@
 import { Component, OnInit } from '@angular/core';
-import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { BaseAutocompleteControl } from '../base-autocomplete-control';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-multiautocomplete',
     templateUrl: './spiderly-multiautocomplete.component.html',
-    styles: [],
     imports: [
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        AutoCompleteModule,
+        TooltipModule,
         CommonModule,
         RequiredComponent,
         TranslocoDirective,

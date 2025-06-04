@@ -13,7 +13,6 @@ import { AuthBaseService } from '../../../services/auth-base.service';
 import { ApiSecurityService } from '../../../services/api.service.security';
 import { ConfigBaseService } from '../../../services/config-base.service';
 import { CommonModule } from '@angular/common';
-import { PrimengModule } from '../../../modules/primeng.module';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { TranslocoDirective } from '@jsverse/transloco';
 
@@ -35,7 +34,6 @@ import { TranslocoDirective } from '@jsverse/transloco';
     imports: [
         CommonModule,
         RouterModule,
-        PrimengModule,
         TranslocoDirective,
         SpiderlyControlsModule,
     ]

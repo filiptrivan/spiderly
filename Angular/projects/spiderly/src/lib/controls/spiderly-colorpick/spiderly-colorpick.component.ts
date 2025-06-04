@@ -4,7 +4,8 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { ColorPickerModule } from 'primeng/colorpicker';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-colorpick',
@@ -14,7 +15,8 @@ import { PrimengModule } from '../../modules/primeng.module';
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        ColorPickerModule,
+        TooltipModule,
         RequiredComponent
     ]
 })

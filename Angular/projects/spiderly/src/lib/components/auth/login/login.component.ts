@@ -12,7 +12,6 @@ import { ConfigBaseService } from '../../../services/config-base.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AuthComponent } from '../partials/auth.component';
-import { PrimengModule } from '../../../modules/primeng.module';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { LoginVerificationComponent } from '../partials/login-verification.component';
 
@@ -23,7 +22,6 @@ import { LoginVerificationComponent } from '../partials/login-verification.compo
       CommonModule,
       ReactiveFormsModule,
       AuthComponent,
-      PrimengModule,
       SpiderlyControlsModule,
       LoginVerificationComponent,
       TranslocoDirective,

@@ -3,7 +3,6 @@
  */
 
 export * from './lib/modules/core.module';
-export * from './lib/modules/primeng.module';
 export * from './lib/modules/spiderly-transloco.module';
 
 export * from './lib/controls/spiderly-autocomplete/spiderly-autocomplete.component';

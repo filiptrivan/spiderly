@@ -9,18 +9,20 @@ import { BaseFormService } from '../../../services/base-form.service';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { VerificationTokenRequest } from '../../../entities/security-entities';
-import { PrimengModule } from '../../../modules/primeng.module';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
+import { SpiderlyPanelsModule } from 'spiderly';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
     selector: 'verification-wrapper',
     templateUrl: './verification-wrapper.component.html',
     imports: [
         CommonModule,
-        PrimengModule,
         FormsModule,
         ReactiveFormsModule,
         SpiderlyControlsModule,
+        SpiderlyPanelsModule,
+        ButtonModule,
         TranslocoDirective,
     ]
 })

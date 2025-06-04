@@ -8,7 +8,8 @@ import { ApiSecurityService } from '../../../services/api.service.security';
 import { ConfigBaseService } from '../../../services/config-base.service';
 import { User } from '../../../entities/security-entities';
 import { CommonModule } from '@angular/common';
-import { PrimengModule } from '../../../modules/primeng.module';
+import { AvatarModule } from 'primeng/avatar';
+import { BadgeModule } from 'primeng/badge';
 
 interface SpiderlyMenuItem {
   label?: string;
@@ -21,11 +22,11 @@ interface SpiderlyMenuItem {
 @Component({
     selector: 'topbar',
     templateUrl: './topbar.component.html',
-    styles: [],
     imports: [
         CommonModule,
-        PrimengModule,
-        RouterModule
+        RouterModule,
+        AvatarModule,
+        BadgeModule,
     ]
 })
 export class AppTopBarComponent implements OnDestroy {

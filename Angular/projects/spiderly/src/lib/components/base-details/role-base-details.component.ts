@@ -5,7 +5,6 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { ActivatedRoute } from '@angular/router';
 import { combineLatest, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { MenuItem } from 'primeng/api';
-import { PrimengModule } from '../../modules/primeng.module';
 import { CardSkeletonComponent } from '../card-skeleton/card-skeleton.component';
 import { SpiderlyFormArray, SpiderlyFormControl, SpiderlyFormGroup } from '../spiderly-form-control/spiderly-form-control';
 import { BaseEntity } from '../../entities/base-entity';
@@ -34,7 +33,6 @@ import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button
         CommonModule,
         FormsModule,
         ReactiveFormsModule,
-        PrimengModule,
         TranslocoDirective,
         CardSkeletonComponent,
         SpiderlyTextboxComponent,

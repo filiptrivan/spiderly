@@ -4,17 +4,18 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-checkbox',
     templateUrl: './spiderly-checkbox.component.html',
-    styles: [],
     imports: [
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        CheckboxModule,
+        TooltipModule,
         RequiredComponent
     ]
 })

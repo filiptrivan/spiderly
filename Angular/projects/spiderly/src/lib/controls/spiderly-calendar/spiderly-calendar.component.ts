@@ -4,7 +4,8 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoService } from '@jsverse/transloco';
-import { PrimengModule } from '../../modules/primeng.module';
+import { DatePickerModule } from 'primeng/datepicker';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
     selector: 'spiderly-calendar',
@@ -14,7 +15,8 @@ import { PrimengModule } from '../../modules/primeng.module';
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        PrimengModule,
+        DatePickerModule,
+        TooltipModule,
         RequiredComponent
     ]
 })
