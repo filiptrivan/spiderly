@@ -209,7 +209,6 @@ namespace Spiderly.Shared.Helpers
                                                         {
                                                             new SpiderlyFile { Name = "notification.component.html", Data = GetClientNotificationComponentHtmlData() },
                                                             new SpiderlyFile { Name = "notification.component.ts", Data = GetClientNotificationComponentTsData() },
-                                                            new SpiderlyFile { Name = "notification.module.ts", Data = GetClientNotificationModuleTsData() },
                                                         }
                                                     },
                                                 }
@@ -472,20 +471,8 @@ namespace Spiderly.Shared.Helpers
                     new SpiderlyFolder
                     {
                         Name = "Database",
-                        ChildFolders =
-                        {
-                            new SpiderlyFolder
-                            {
-                                Name = "test-data"
-                            },
-                            new SpiderlyFolder
-                            {
-                                Name = "update-scripts"
-                            },
-                        },
                         Files =
                         {
-                            new SpiderlyFile { Name = "initialize-data.xlsx", Data = "" },
                             new SpiderlyFile { Name = "initialize-script.sql", Data = GetInitializeScriptSqlData(appName) }
                         }
                     }
@@ -1165,10 +1152,15 @@ export class UserTableComponent implements OnInit {
         {
             return $$"""
 import { Component, OnInit } from '@angular/core';
+import { TranslocoDirective } from '@jsverse/transloco';
+import { InfoCardComponent } from 'spiderly';
 
 @Component({
     templateUrl: './homepage.component.html',
-    standalone: false,
+    imports: [
+      InfoCardComponent,
+      TranslocoDirective
+    ],
 })
 export class HomepageComponent implements OnInit {
 
@@ -1291,7 +1283,7 @@ import { ConfigService } from 'src/app/business/services/config.service';
 @Component({
     templateUrl: './privacy-policy.component.html',
     imports: [
-    SpiderlyPanelsModule
+        SpiderlyPanelsModule
     ]
 })
 export class PrivacyPolicyComponent implements OnInit {
@@ -1409,8 +1401,8 @@ import { ConfigService } from 'src/app/business/services/config.service';
 @Component({
     templateUrl: './user-agreement.component.html',
     imports: [
-    SpiderlyPanelsModule
-    ]
+        SpiderlyPanelsModule
+    ],
 })
 export class UserAgreementComponent implements OnInit {
   companyName = this.config.companyName;
@@ -1481,19 +1473,23 @@ export class UserAgreementComponent implements OnInit {
         private static string GetClientNotificationComponentTsData()
         {
             return $$"""
-import { LayoutService } from './../../../business/services/layout/layout.service';
+import { LayoutService } from './../../business/services/layout/layout.service';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { MenuItem } from 'primeng/api';
-import { PaginatorState } from 'primeng/paginator';
-import { TranslocoService } from '@jsverse/transloco';
+import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Notification } from 'src/app/business/entities/business-entities.generated';
-import { Menu } from 'primeng/menu';
+import { Menu, MenuModule } from 'primeng/menu';
 import { TableResponse, TableFilter, TableFilterContext, SpiderlyMessageService } from 'spiderly';
 
 @Component({
   templateUrl: './notification.component.html',
-  standalone: false,
+  imports: [
+    TranslocoDirective,
+    MenuModule,
+    PaginatorModule
+  ],
 })
 export class NotificationComponent implements OnInit {
   currentUserNotifications: TableResponse<Notification>;
@@ -1569,41 +1565,6 @@ export class NotificationComponent implements OnInit {
   }
 
 }
-
-""";
-        }
-
-        private static string GetClientNotificationModuleTsData()
-        {
-            return $$"""
-import { RouterModule, Routes } from "@angular/router";
-import { NotificationComponent } from "./notification.component";
-import { NgModule } from "@angular/core";
-import { TranslocoDirective } from "@jsverse/transloco";
-import { SpiderlyDataTableComponent, SpiderlyControlsModule, CardSkeletonComponent } from 'spiderly';
-
-const routes: Routes = [
-    {
-        path: 'notifications',
-        component: NotificationComponent,
-    },
-];
-
-@NgModule({
-    imports: [
-        RouterModule.forChild(routes),
-        PrimengModule,
-        SpiderlyDataTableComponent,
-        SpiderlyControlsModule,
-        CardSkeletonComponent,
-        TranslocoDirective,
-    ],
-    declarations: [
-        NotificationComponent,
-    ],
-    providers:[]
-})
-export class NotificationModule { }
 
 """;
         }
@@ -2745,22 +2706,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{3B328631-AB3B-4B28-9FA5-4DA790670199}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B328631-AB3B-4B28-9FA5-4DA790670199}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B328631-AB3B-4B28-9FA5-4DA790670199}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B328631-AB3B-4B28-9FA5-4DA790670199}.Release|Any CPU.Build.0 = Release|Any CPU
-		{53565A13-28F1-424F-B5A0-34125EF303CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{53565A13-28F1-424F-B5A0-34125EF303CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{53565A13-28F1-424F-B5A0-34125EF303CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{53565A13-28F1-424F-B5A0-34125EF303CD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{587D08A6-A975-4673-90A4-77CF61B7B526}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{587D08A6-A975-4673-90A4-77CF61B7B526}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{587D08A6-A975-4673-90A4-77CF61B7B526}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{587D08A6-A975-4673-90A4-77CF61B7B526}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1063DCDA-9291-4FAA-87B2-555E12511EE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1063DCDA-9291-4FAA-87B2-555E12511EE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1063DCDA-9291-4FAA-87B2-555E12511EE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -2782,10 +2727,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{3B328631-AB3B-4B28-9FA5-4DA790670199} = {D485BCE8-A950-457D-A710-566D559BD585}
-		{53565A13-28F1-424F-B5A0-34125EF303CD} = {D485BCE8-A950-457D-A710-566D559BD585}
-		{587D08A6-A975-4673-90A4-77CF61B7B526} = {D485BCE8-A950-457D-A710-566D559BD585}
-		{A30DFD0D-9EDD-4FD2-8CAF-85492EEEE6F1} = {D485BCE8-A950-457D-A710-566D559BD585}
 		{8E0E2A3B-7A46-452E-9695-80E2BB1F4E9C} = {F2AA00F3-29C7-4A82-B4C0-5BD998C67912}
 		{50AD9ADA-4E90-4E69-97BB-92FA455115DE} = {F2AA00F3-29C7-4A82-B4C0-5BD998C67912}
 		{2D65E133-33C4-4169-A175-D744800941D6} = {F2AA00F3-29C7-4A82-B4C0-5BD998C67912}

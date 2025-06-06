@@ -312,11 +312,6 @@ namespace Spiderly.CLI
                     string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
                     await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
                     Console.WriteLine($"Details html successfully generated: {detailsHtmlPath}");
-
-                    string moduleTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}.module.ts");
-                    string moduleTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularModuleTsTemplate(entityName);
-                    await File.WriteAllTextAsync(moduleTsPath, moduleTsTemplate, Encoding.UTF8);
-                    Console.WriteLine($"Module ts file successfully generated: {moduleTsPath}");
                 }
             }
 
