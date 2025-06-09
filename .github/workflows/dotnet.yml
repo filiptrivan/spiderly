@@ -27,8 +27,7 @@ jobs:
 
      - name: Build .NET project
        run: |
-        output = $(dotnet build Spiderly.CLI/Spiderly.CLI.csproj--no-restore)
-        echo "$output" 
+         dotnet build Spiderly.CLI/Spiderly.CLI.csproj
      - name: Install SQL Server Express
        run: |
           choco install sql-server-express -y
