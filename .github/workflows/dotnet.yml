@@ -77,4 +77,4 @@ jobs:
             "default"
           ) -join "`r`n"
 
-          $inputs | spider init
+          $inputs | spiderly init
