@@ -71,6 +71,7 @@ These two classes alone will generate app like this:
 </div>
 
 ## Documentation
+For detailed documentation, please visit the [official documentation page](https://www.spiderly.dev/docs/getting-started) on our website.
 
 ### Spiderly.CLI
 By using the [Spiderly.CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI), you properly initialize the app, allowing all other Spiderly libraries to function.
@@ -94,6 +95,30 @@ We welcome contributions from the community! Whether you have ideas, found a bug
 - [Start a discussion](https://github.com/filiptrivan/spiderly/discussions) to explore ideas or ask questions
 
 Every contribution is appreciated and helps make this project better for everyone.
+
+### Getting Started
+To set up your development environment for contributing to Spiderly, follow these steps:
+1. **Choose a Working Directory**
+   - Select a location on your local machine where you want to store the project files. For example, you might choose: `C:\Users\your-name\Documents`
+2. **Clone the Spiderly Repository**
+   - Open a terminal or Git Bash, navigate to your chosen directory, and clone the repository:
+  ```bash
+  git clone https://github.com/your-org/spiderly.git
+  ```
+3. **Create a New Project Directory**
+   - Inside your chosen working directory, create a folder named `SpiderlyProjects`.
+4. **Generate a New App**
+   - Make sure to create the new app inside the `SpiderlyProjects` directory you just made by following the official [Spiderly Getting Started Guide](https://www.spiderly.dev/docs/getting-started).
+5. **Configure the Backend Project (Visual Studio)**
+   - Open the backend project of the app you generated in step 4 using Visual Studio.
+   - Locate all `.csproj` files.
+   - Delete any NuGet package references to Spiderly components.
+   - Uncomment the lines that reference local Spiderly projects using project references (typically `<ProjectReference>` tags).
+6. **Configure the Frontend Project (Visual Studio Code)**
+   - Open the frontend project of the app you generated in step 4 using Visual Studio Code.
+   - Locate the `tsconfig.json` file.
+   - Uncomment the 7th line that sets up the path mapping to your local Spiderly Angular library.
+   - This enables your app to reference the local version of Spiderly Angular instead of the published package.
 
 ### Good First Issues
 To help you get your feet wet and get you familiar with our contribution process, we have a [list of good first issues](https://github.com/filiptrivan/spiderly/issues?q=is%3Aissue%20state%3Aopen%20label%3A"good%20first%20issue"), this is a great place to get started.
