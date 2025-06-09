@@ -56,15 +56,23 @@ jobs:
           Start-Service MSSQL`$SQLEXPRESS
        shell: powershell
       
-     - name: Install the CLI tool from Existing .nupkg
+     - name: Pack, install, and run Spiderly CLI with inputs
+       shell: powershell
        run: |
-         dotnet tool install --global --add-source ./nupkg/Spiderly.CLI.19.0.2.nupkg
-
-     - name: Run Spider init with simulated input
-       run: |
-        $inputs = @(
-          "test"
-          "default"
-        ) -join "`r`n"
-
-        $inputs | Spider init
+            # Uninstall existing global tool (ignore errors if not installed)
+            dotnet tool uninstall --global Spiderly.CLI -ErrorAction SilentlyContinue
+        
+            # Pack the project (adjust path if needed)
+            dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -o ./nupkg
+        
+            # Install the tool globally from the local nupkg folder
+            dotnet tool install --global Spiderly.CLI --add-source ./nupkg
+        
+            # Simulate interactive input for 'spider init'
+            $inputs = @(
+              "test"       # Enter file name
+              "default"    # Enter template
+            ) -join "`r`n"
+        
+            # Run spider init with the simulated input
+            $inputs | spider init
