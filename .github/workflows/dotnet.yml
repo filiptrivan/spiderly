@@ -32,28 +32,23 @@ jobs:
      - name: Install SQL Server Express
        shell: powershell
        run: |
-          # Confirm which shell we're in
-          Write-Host "Shell Path: $PSVersionTable"
+        Write-Host "Shell Path: $PSVersionTable"
 
-          # Confirm if Chocolatey exists
-          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Write-Host "Chocolatey not found—installing..."
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          } else {
-            Write-Host "Chocolatey found"
-          }
+        if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+          Write-Host "Chocolatey not found - installing..."
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+        } else {
+          Write-Host "Chocolatey found"
+        }
 
-          # Verify choco installation
-          choco --version
+        choco --version
 
-          # Install SQL Server Express
-          choco install sql-server-express -y
+        choco install sql-server-express -y
 
-          # Start the SQL Server service
-          Start-Service MSSQL`$SQLEXPRESS
-          Write-Host "SQL Server Express installation complete."
+        Start-Service MSSQL`$SQLEXPRESS
+        Write-Host "SQL Server Express installation complete."
 
 
      - name: Start SQL Server Express
