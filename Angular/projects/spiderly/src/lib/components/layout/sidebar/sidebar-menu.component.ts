@@ -8,13 +8,13 @@ import { ConfigBaseService } from '../../../services/config-base.service';
 import { MenuitemComponent } from './menuitem.component';
 import { CommonModule } from '@angular/common';
 
-export interface SpiderlyMenuItem extends MenuItem{
+export interface SpiderlyMenuItem extends MenuItem {
     hasPermission?: (permissionCodes: string[]) => boolean;
     showPartnerDialog?: boolean; 
 }
 
 @Component({
-    selector: 'sidebar-menu', // FT: Don't chane selector to 'menu', because other style will apply to it
+    selector: 'sidebar-menu', // FT: Don't change selector to 'menu', because other style will apply to it
     templateUrl: './sidebar-menu.component.html',
     imports: [
         CommonModule,

@@ -267,7 +267,7 @@ namespace Spiderly.Shared.Helpers
                                         Files =
                                         {
                                             new SpiderlyFile { Name = "environment.prod.ts", Data = "" },
-                                            new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName, primaryColor) },
+                                            new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName) },
                                         }
                                     }
                                 },
@@ -1139,9 +1139,9 @@ export class UserTableComponent implements OnInit {
 
         private static string GetHomepageComponentHtmlData(string appName)
         {
-            return $$"""
+            return $$$"""
 <ng-container *transloco="let t">
-    <info-card header="Hello, {{appName}}">
+    <info-card header="Hello, {{companyName}}">
         🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#step-9" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
     </info-card>
 </ng-container>
@@ -1154,18 +1154,20 @@ export class UserTableComponent implements OnInit {
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { InfoCardComponent } from 'spiderly';
+import { ConfigService } from 'src/app/business/services/config.service';
 
 @Component({
     templateUrl: './homepage.component.html',
     imports: [
       InfoCardComponent,
-      TranslocoDirective
+      TranslocoDirective,
     ],
 })
 export class HomepageComponent implements OnInit {
+  companyName = this.config.companyName;
 
   constructor(
-
+    private config: ConfigService
   ) {}
 
   ngOnInit() {
@@ -1177,7 +1179,6 @@ export class HomepageComponent implements OnInit {
   }
 
 }
-
 """;
         }
 
@@ -4038,17 +4039,15 @@ bootstrapApplication(AppComponent, appConfig)
 """;
         }
 
-        private static string GetEnvironmentTsData(string appName, string primaryColor)
+        private static string GetEnvironmentTsData(string appName)
         {
             return $$"""
-// In environment putting only the variables which are different in dev and prod, and which the client would change ocasionaly so we don't need to redeploy the app
 export const environment = {
   production: false,
   apiUrl: 'https://localhost:44388/api',
   frontendUrl: 'http://localhost:4200',
   GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',
-  primaryColor: '{{primaryColor}}',
 };
 """;
         }
@@ -4924,19 +4923,7 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
         private static string GetLayoutComponentHtmlCode()
         {
             return $"""
-<div class="layout-wrapper" [ngClass]="containerClass">
-    <topbar></topbar>
-    <div class="layout-sidebar">
-        <sidebar [menu]="menu"></sidebar>
-    </div>
-    <div class="layout-main-container">
-        <div class="layout-main">
-            <router-outlet></router-outlet>
-        </div>
-        <footer></footer>
-    </div>
-    <div class="layout-mask"></div>
-</div>
+<spiderly-layout [menu]="menu"></spiderly-layout>
 """;
         }
 
@@ -4963,23 +4950,16 @@ import { SecurityPermissionCodes } from 'spiderly';
         FormsModule,
         HttpClientModule,
         RouterModule,
-        FooterComponent,
-        AppSidebarComponent,
-        AppTopBarComponent,
+        SpiderlyLayoutComponent,
     ]
 })
-export class LayoutComponent extends LayoutBaseComponent implements OnInit, OnDestroy {
+export class LayoutComponent {
     menu: SpiderlyMenuItem[];
 
     constructor(
-        protected override layoutService: LayoutBaseService, 
-        protected override renderer: Renderer2, 
-        protected override router: Router,
-        private authService: AuthService,
         private config: ConfigService,
         private translocoService: TranslocoService
     ) {
-        super(layoutService, renderer, router);
     }
 
     ngOnInit(): void {
@@ -5045,9 +5025,6 @@ export class LayoutComponent extends LayoutBaseComponent implements OnInit, OnDe
         ];
     }
 
-    override onAfterNgDestroy = () => {
-        
-    }
 }
 
 """;

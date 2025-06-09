@@ -1,17 +1,33 @@
-import { Component, OnDestroy, Renderer2, ViewChild } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { Component, ElementRef, Input, OnDestroy, Renderer2, ViewChild } from '@angular/core';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { AppSidebarComponent } from './sidebar/sidebar.component';
-import { AppTopBarComponent } from './topbar/topbar.component';
+import { SideMenuTopBarComponent } from './sidemenu-topbar/sidemenu-topbar.component';
 import { LayoutBaseService } from '../../services/app-layout-base.service';
+import { SpiderlyMenuItem } from './sidebar/sidebar-menu.component';
+import { CommonModule } from '@angular/common';
+import { FooterComponent } from '../footer/footer.component';
+import { MegaMenuItem, MenuItem } from 'primeng/api';
+import { TopBarComponent } from './topbar/topbar.component';
 
 @Component({
-    selector: 'layout-base',
-    template: '',
-    standalone: true
+    selector: 'spiderly-layout',
+    templateUrl: './layout.component.html',
+    imports: [
+    CommonModule,
+    RouterModule,
+    AppSidebarComponent,
+    FooterComponent,
+    SideMenuTopBarComponent,
+    TopBarComponent,
+]
 })
-export class LayoutBaseComponent implements OnDestroy {
-
+export class SpiderlyLayoutComponent implements OnDestroy {
+    @Input() menu: SpiderlyMenuItem[] = [];
+    sideMenu: MenuItem[] = [];
+    topMenu: MegaMenuItem[] = [];
+    @Input() isSideMenuLayout: boolean = true;
+    
     overlayMenuOpenSubscription: Subscription;
 
     menuOutsideClickListener: any;
@@ -20,7 +36,9 @@ export class LayoutBaseComponent implements OnDestroy {
 
     @ViewChild(AppSidebarComponent) appSidebar!: AppSidebarComponent;
 
-    @ViewChild(AppTopBarComponent) appTopbar!: AppTopBarComponent;
+    @ViewChild(SideMenuTopBarComponent) sidemenuTopbar!: SideMenuTopBarComponent;
+
+    @ViewChild('topbarmenu') topbarmenu!: ElementRef;
 
     constructor(
         protected layoutService: LayoutBaseService, 
@@ -31,10 +49,10 @@ export class LayoutBaseComponent implements OnDestroy {
             if (!this.menuOutsideClickListener) {
                 this.menuOutsideClickListener = this.renderer.listen('document', 'click', event => {
                     const isOutsideClicked = !(
-                        this.appSidebar.el.nativeElement.isSameNode(event.target) || 
-                        this.appSidebar.el.nativeElement.contains(event.target) ||
-                        this.appTopbar.menuButton.nativeElement.isSameNode(event.target) || 
-                        this.appTopbar.menuButton.nativeElement.contains(event.target) ||
+                        this.appSidebar?.el.nativeElement.isSameNode(event.target) || 
+                        this.appSidebar?.el.nativeElement.contains(event.target) ||
+                        this.sidemenuTopbar?.menuButton?.nativeElement.isSameNode(event.target) || 
+                        this.sidemenuTopbar?.menuButton?.nativeElement.contains(event.target) ||
                         (event.target.closest('.p-autocomplete-items')) ||
                         (event.target.closest('.p-autocomplete-clear-icon'))
                     );
@@ -48,8 +66,8 @@ export class LayoutBaseComponent implements OnDestroy {
             if (!this.profileMenuOutsideClickListener) {
                 this.profileMenuOutsideClickListener = this.renderer.listen('document', 'click', event => {
                     const isOutsideClicked = !(
-                        this.appTopbar.menu.nativeElement.isSameNode(event.target) || 
-                        this.appTopbar.menu.nativeElement.contains(event.target)
+                        this.topbarmenu?.nativeElement.isSameNode(event.target) || 
+                        this.topbarmenu?.nativeElement.contains(event.target)
                     );
 
                     if (isOutsideClicked) {
@@ -68,6 +86,15 @@ export class LayoutBaseComponent implements OnDestroy {
                 this.hideMenu();
                 this.hideProfileMenu();
             });
+    }
+
+    ngOnInit() {
+        if (this.isSideMenuLayout) {
+            this.addSideMenuItems();
+        }
+        else{
+            this.addTopParentMenuItems(this.menu[0].items);
+        }
     }
 
     hideMenu() {
@@ -120,6 +147,39 @@ export class LayoutBaseComponent implements OnDestroy {
             'p-input-filled': this.layoutService.layoutConfig.inputStyle === 'filled',
             'p-ripple-disabled': !this.layoutService.layoutConfig.ripple
         }
+    }
+
+    addSideMenuItems = () => {
+        this.sideMenu = [...this.menu];
+    }
+
+    addTopParentMenuItems = (menuItems: SpiderlyMenuItem[]) => {
+        menuItems.forEach(menuItem => {
+            let megaMenuItem: MegaMenuItem = {
+                label: menuItem.label,
+                icon: menuItem.icon,
+                routerLink: menuItem.routerLink,
+                visible: menuItem.visible,
+                hasPermission: menuItem.hasPermission,
+                items: [],
+            };
+            
+            if (menuItem.items) {
+                this.addTopParentChildMenuItems(menuItem.items, megaMenuItem);
+            }
+            
+            this.topMenu.push(megaMenuItem);
+        });
+    }
+
+    addTopParentChildMenuItems = (menuItems: MenuItem[], parentMenuItem?: MegaMenuItem) => {
+        menuItems.forEach(menuItem => {
+            let menuItemHelper: MenuItem = {
+                items: [menuItem]
+            };
+
+            parentMenuItem.items.push([menuItemHelper]);
+        });
     }
 
     ngOnDestroy() {

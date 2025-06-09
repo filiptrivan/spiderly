@@ -542,3 +542,13 @@
     font-size: 4.5rem;
   }
 }
+
+ul, ol {
+  padding-left: 25px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+li:last-child {
+  margin-bottom: 8px;
+}

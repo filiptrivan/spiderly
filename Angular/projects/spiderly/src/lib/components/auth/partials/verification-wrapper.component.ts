@@ -10,8 +10,8 @@ import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-con
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { VerificationTokenRequest } from '../../../entities/security-entities';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { SpiderlyPanelsModule } from 'spiderly';
 import { ButtonModule } from 'primeng/button';
+import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.module';
 
 @Component({
     selector: 'verification-wrapper',

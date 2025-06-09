@@ -53,8 +53,9 @@ export * from './lib/components/spiderly-panels/spiderly-panels.module';
 export * from './lib/components/layout/sidebar/sidebar-menu.component';
 export * from './lib/components/layout/sidebar/menuitem.component';
 export * from './lib/components/layout/sidebar/sidebar.component';
+export * from './lib/components/layout/sidemenu-topbar/sidemenu-topbar.component';
+export * from './lib/components/layout/layout.component';
 export * from './lib/components/layout/topbar/topbar.component';
-export * from './lib/components/layout/layout-base.component';
 
 export * from './lib/entities/base-entity';
 export * from './lib/entities/codebook';

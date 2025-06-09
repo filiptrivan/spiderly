@@ -1,64 +1,20 @@
-<div class="layout-topbar">
-  <a class="layout-topbar-logo" routerLink="/">
-    <span>{{companyName?.toLocaleUpperCase()}}</span>
-  </a>
-
-  <button
-    #menubutton
-    class="p-link layout-menu-button layout-topbar-button"
-    (click)="layoutService.onMenuToggle()"
-  >
-    <i class="pi pi-bars"></i>
-  </button>
-
-  <div
-    #topbarmenu
-    class="profile-button"
-    >
-    <div
-      #topbarprofiledropdownmenubutton
-      (click)="layoutService.showProfileDropdownSidebar()"
-    >
-    <p-avatar
-        *ngIf="showProfileIcon"
-        [label]="avatarLabel"
-        [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'width': '34px', 'height': '34px', 'font-size': '21px' }"
-        pBadge 
-        [badgeStyleClass]="'p-badge-danger'"
-        [badgeDisabled]="unreadNotificationsCount == 0 || unreadNotificationsCount == null"
-        [value]="unreadNotificationsCount"
-        />
-    </div>
-    <div
-      #topbarprofiledropdownmenu
-      (document:click)="onDocumentClick($event)"
-    >
-    <div *ngIf="layoutService.state.profileDropdownSidebarVisible" style="width: 280px; position: absolute; right: 26px; top: 60px; padding: 15px;" class="card">
-      <div style="display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 10px;">
-        <p-avatar
-          [label]="avatarLabel"
-          size="xlarge"
-          [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'margin': 'auto' }"
-          (click)="routeToUserPage()"
-          />
-        <div>{{currentUser?.email}}</div>
-      </div>
-      <div style="margin-top: 15px;">
-        <div *ngFor="let item of menuItems" [style]="item.showSeparator ? 'margin-top: 5px;' : ''">
-          <div *ngIf="item.showSeparator" class="gray-separator"></div>
-          <div (click)="item.onClick()" class="hover-card" style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
-            <i 
-              class="pi pi-fw {{item.icon}} primary-color" 
-              style="font-size: 16px; position: relative;"
-              >
-              <span *ngIf="item.showNotificationBadge && unreadNotificationsCount != 0" class="badge"></span>
-            </i>
-            <div> {{item.label}} </div>
+<div class="header-wrapper">
+  <nav class="header">
+    <p-megamenu [model]="menu" [style]="{ 'border-radius': '0', display: 'flex', border: '0' }">
+      <ng-template #start>
+        <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" src="/assets/images/logo/logo.svg" alt="Logo">
+      </ng-template>
+      <ng-template #item let-item>
+        <spiderly-topbar-menuitem [item]="item"></spiderly-topbar-menuitem>
+      </ng-template>
+      <ng-template #end>
+        <div style="margin-right: 11px; display: flex; gap: 10px; align-items: center;">
+          <div>
+            <ng-content select="[ACTIONS]"></ng-content>
           </div>
+          <spiderly-profile-avatar></spiderly-profile-avatar>
         </div>
-      </div>
-    </div>
-    </div>
-  </div>
+      </ng-template>
+    </p-megamenu>
+  </nav>
 </div>
-  

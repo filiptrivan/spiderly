@@ -63,7 +63,7 @@ namespace Spiderly.CLI
             Console.WriteLine("Usage: [command] [options]");
             Console.WriteLine();
             Console.WriteLine("Commands:");
-            Console.WriteLine("  help               Display this help message.");
+            Console.WriteLine("  help                 Display this help message.");
             Console.WriteLine("  init                 Initialize a new project.");
             Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
             Console.WriteLine();

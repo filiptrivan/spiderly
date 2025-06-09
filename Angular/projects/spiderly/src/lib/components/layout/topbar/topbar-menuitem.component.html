@@ -1,0 +1,7 @@
+<a *ngIf="item.visible" [routerLink]="item.routerLink" style="color: var(--p-text-color); padding: 10px;" class="flex items-center justify-content-between cursor-pointer mb-1 lg:mb-0 gap-2">
+    <div class="flex items-center gap-2">
+        <i style="margin: auto; font-size: 15px;" [ngClass]="item.icon"></i>
+        <span style="font-size: 15px;">{{ item.label }}</span>
+    </div>
+    <i *ngIf="item?.items?.length > 0" style="margin-top: auto; margin-bottom: auto;" class="pi pi-angle-down"></i>
+</a>
