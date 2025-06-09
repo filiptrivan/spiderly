@@ -27,11 +27,21 @@ jobs:
 
      - name: Build .NET project
        run: |
-         dotnet build Spiderly.CLI/Spiderly.CLI.csproj
+        output = $(dotnet build Spiderly.CLI/Spiderly.CLI.csproj--no-restore)
+        echo "$output" 
      - name: Install SQL Server Express
-       run: |
-          choco install sql-server-express -y
        shell: powershell
+       run: |
+        # Ensure Chocolatey is available (usually pre-installed, but this ensures it works)
+        if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+        }
+
+        # Install SQL Server Express
+        choco install sql-server-express -y
+
 
      - name: Start SQL Server Express
        run: |
