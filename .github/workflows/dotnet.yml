@@ -59,6 +59,7 @@ jobs:
      - name: Pack, install, and run Spiderly CLI with inputs
        shell: powershell
        run: |
+          dotnet tool install -g dotnet-ef
           try {
             dotnet tool uninstall --global Spiderly.CLI
           } catch {
@@ -77,4 +78,4 @@ jobs:
             "default"
           ) -join "`r`n"
 
-          $inputs | spiderly init
+          $inputs | spider init
