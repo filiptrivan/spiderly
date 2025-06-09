@@ -59,20 +59,22 @@ jobs:
      - name: Pack, install, and run Spiderly CLI with inputs
        shell: powershell
        run: |
-            # Uninstall existing global tool (ignore errors if not installed)
-            dotnet tool uninstall --global Spiderly.CLI -ErrorAction SilentlyContinue
-        
-            # Pack the project (adjust path if needed)
-            dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -o ./nupkg
-        
-            # Install the tool globally from the local nupkg folder
-            dotnet tool install --global Spiderly.CLI --add-source ./nupkg
-        
-            # Simulate interactive input for 'spider init'
-            $inputs = @(
-              "test"       # Enter file name
-              "default"    # Enter template
-            ) -join "`r`n"
-        
-            # Run spider init with the simulated input
-            $inputs | spider init
+          try {
+            dotnet tool uninstall --global Spiderly.CLI
+          } catch {
+            Write-Host "Tool not installed, skipping uninstall."
+          }
+
+          dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -o ./nupkg
+
+          dotnet tool install --global Spiderly.CLI --add-source ./nupkg
+
+          # Add dotnet global tools to PATH in this session
+          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+
+          $inputs = @(
+            "test"
+            "default"
+          ) -join "`r`n"
+
+          $inputs | spider init
