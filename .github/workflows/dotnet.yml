@@ -1,0 +1,53 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET CLI Test
+
+on:
+  workflow_dispatch : #manual trigger on deployment
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+     - name: Checkout repository
+       uses: actions/checkout@v3
+
+      # Setup .NET
+     - name: Setup .NET
+       uses: actions/setup-dotnet@v3
+       with:
+        dotnet-version: '9.0.x'
+
+     - name: Restore .NET dependencies
+       run: dotnet restore Spiderly.CLI/Spiderly.CLI.csproj
+
+     - name: Build .NET project
+       run: |
+        output = $(dotnet build Spiderly.CLI/Spiderly.CLI.csproj--no-restore)
+        echo "$output" 
+     - name: Install SQL Server Express
+       run: |
+          choco install sql-server-express -y
+       shell: powershell
+
+     - name: Start SQL Server Express
+       run: |
+          Start-Service MSSQL`$SQLEXPRESS
+       shell: powershell
+      
+     - name: Install the CLI tool from Existing .nupkg
+       run: |
+         dotnet tool install --global --add-source ./nupkg/Spiderly.CLI.19.0.2.nupkg
+
+     - name: Run Spider init with simulated input
+       run: |
+        $inputs = @(
+          "test"
+          "default"
+        ) -join "`r`n"
+
+        $inputs | Spider init
