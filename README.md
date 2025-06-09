@@ -96,7 +96,7 @@ We welcome contributions from the community! Whether you have ideas, found a bug
 
 Every contribution is appreciated and helps make this project better for everyone.
 
-### Getting Started
+### Getting Started as a Contributor
 To set up your development environment for contributing to Spiderly, follow these steps:
 1. **Choose a Working Directory**
    - Select a location on your local machine where you want to store the project files. For example, you might choose: `C:\Users\your-name\Documents`
@@ -119,6 +119,9 @@ To set up your development environment for contributing to Spiderly, follow thes
    - Locate the `tsconfig.json` file.
    - Uncomment the 7th line that sets up the path mapping to your local Spiderly Angular library.
    - This enables your app to reference the local version of Spiderly Angular instead of the published package.
+
+#### Developing and Testing `Spiderly.CLI`
+If you want to make changes to the `Spiderly.CLI` project and test them immediately, run the PowerShell script `cli-local-pack.ps1` located in that project. You’ll need to execute this script each time you want to test your changes.
 
 ### Good First Issues
 To help you get your feet wet and get you familiar with our contribution process, we have a [list of good first issues](https://github.com/filiptrivan/spiderly/issues?q=is%3Aissue%20state%3Aopen%20label%3A"good%20first%20issue"), this is a great place to get started.
