@@ -6,7 +6,6 @@ name: .NET CLI Test
 on:
   workflow_dispatch : #manual trigger on deployment
 
-
 jobs:
   build:
 
@@ -77,5 +76,4 @@ jobs:
             "test"
             "default"
           ) -join "`r`n"
-
           $inputs | spiderly init
