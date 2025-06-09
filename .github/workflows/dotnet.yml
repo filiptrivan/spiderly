@@ -27,7 +27,7 @@ jobs:
 
      - name: Build .NET project
        run: |
-         dotnet build Spiderly.CLI/Spiderly.CLI.csproj--no-restore
+         dotnet build Spiderly.CLI/Spiderly.CLI.csproj
      - name: Install SQL Server Express
        shell: powershell
        run: |
