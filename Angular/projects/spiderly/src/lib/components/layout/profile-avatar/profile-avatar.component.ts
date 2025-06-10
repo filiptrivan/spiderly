@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
@@ -32,6 +32,8 @@ interface ProfileAvatarModalMenuItem {
 ]
 })
 export class ProfileAvatarComponent {
+  @Input() isSideMenuLayout = true;
+
   private initTopBarSubscription: Subscription | null = null;
 
   currentUser: User;
@@ -39,7 +41,7 @@ export class ProfileAvatarComponent {
   unreadNotificationsCount: number;
   menuItems: ProfileAvatarModalMenuItem[] = [];
   avatarLabel: string;
-  showProfileIcon: boolean = false;
+  showProfileIcon = false;
 
   notificationMenuItem: ProfileAvatarModalMenuItem =
   {

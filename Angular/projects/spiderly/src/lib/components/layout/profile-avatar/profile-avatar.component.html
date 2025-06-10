@@ -21,7 +21,11 @@
       #topbarprofiledropdownmenu
       (document:click)="onDocumentClick($event)"
     >
-    <div *ngIf="layoutService.state.profileDropdownSidebarVisible" style="width: 280px; position: absolute; right: 26px; top: 60px; padding: 15px;" class="card">
+    <div 
+    *ngIf="layoutService.state.profileDropdownSidebarVisible" 
+    [ngStyle]="{'right': isSideMenuLayout ? '26px' : '0', 'top': isSideMenuLayout ? '60px' : '40px'}" 
+    style="width: 280px; position: absolute; padding: 15px;" 
+    class="card">
       <div style="display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 10px;">
         <p-avatar
           [label]="avatarLabel"

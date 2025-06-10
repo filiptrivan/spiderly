@@ -7,7 +7,7 @@ import { LayoutBaseService } from '../../services/app-layout-base.service';
 import { SpiderlyMenuItem } from './sidebar/sidebar-menu.component';
 import { CommonModule } from '@angular/common';
 import { FooterComponent } from '../footer/footer.component';
-import { MegaMenuItem, MenuItem } from 'primeng/api';
+import { MenuItem } from 'primeng/api';
 import { TopBarComponent } from './topbar/topbar.component';
 
 @Component({
@@ -25,7 +25,7 @@ import { TopBarComponent } from './topbar/topbar.component';
 export class SpiderlyLayoutComponent implements OnDestroy {
     @Input() menu: SpiderlyMenuItem[] = [];
     sideMenu: MenuItem[] = [];
-    topMenu: MegaMenuItem[] = [];
+    topMenu: MenuItem[] = [];
     @Input() isSideMenuLayout: boolean = true;
     
     overlayMenuOpenSubscription: Subscription;
@@ -90,10 +90,10 @@ export class SpiderlyLayoutComponent implements OnDestroy {
 
     ngOnInit() {
         if (this.isSideMenuLayout) {
-            this.addSideMenuItems();
+            this.sideMenu = [...this.menu];
         }
         else{
-            this.addTopParentMenuItems(this.menu[0].items);
+            this.topMenu = [...this.menu[0].items];
         }
     }
 
@@ -147,39 +147,6 @@ export class SpiderlyLayoutComponent implements OnDestroy {
             'p-input-filled': this.layoutService.layoutConfig.inputStyle === 'filled',
             'p-ripple-disabled': !this.layoutService.layoutConfig.ripple
         }
-    }
-
-    addSideMenuItems = () => {
-        this.sideMenu = [...this.menu];
-    }
-
-    addTopParentMenuItems = (menuItems: SpiderlyMenuItem[]) => {
-        menuItems.forEach(menuItem => {
-            let megaMenuItem: MegaMenuItem = {
-                label: menuItem.label,
-                icon: menuItem.icon,
-                routerLink: menuItem.routerLink,
-                visible: menuItem.visible,
-                hasPermission: menuItem.hasPermission,
-                items: [],
-            };
-            
-            if (menuItem.items) {
-                this.addTopParentChildMenuItems(menuItem.items, megaMenuItem);
-            }
-            
-            this.topMenu.push(megaMenuItem);
-        });
-    }
-
-    addTopParentChildMenuItems = (menuItems: MenuItem[], parentMenuItem?: MegaMenuItem) => {
-        menuItems.forEach(menuItem => {
-            let menuItemHelper: MenuItem = {
-                items: [menuItem]
-            };
-
-            parentMenuItem.items.push([menuItemHelper]);
-        });
     }
 
     ngOnDestroy() {

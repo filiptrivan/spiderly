@@ -1,20 +1,17 @@
-<div class="header-wrapper">
-  <nav class="header">
-    <p-megamenu [model]="menu" [style]="{ 'border-radius': '0', display: 'flex', border: '0' }">
+<div class="topbar-wrapper">
+  <nav class="topbar">
+    <p-menubar [model]="menu" [style]="{ border: '0' }">
       <ng-template #start>
         <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" src="/assets/images/logo/logo.svg" alt="Logo">
       </ng-template>
-      <ng-template #item let-item>
-        <spiderly-topbar-menuitem [item]="item"></spiderly-topbar-menuitem>
-      </ng-template>
       <ng-template #end>
-        <div style="margin-right: 11px; display: flex; gap: 10px; align-items: center;">
+        <div style="margin-right: 11px; display: flex; gap: 10px; align-items: center; position: relative;">
           <div>
             <ng-content select="[ACTIONS]"></ng-content>
           </div>
-          <spiderly-profile-avatar></spiderly-profile-avatar>
+          <spiderly-profile-avatar [isSideMenuLayout]="false"></spiderly-profile-avatar>
         </div>
       </ng-template>
-    </p-megamenu>
+    </p-menubar>
   </nav>
 </div>

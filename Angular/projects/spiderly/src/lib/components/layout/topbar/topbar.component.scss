@@ -1,6 +1,4 @@
-$header-height: 70px;
-
-.header-wrapper {
+.topbar-wrapper {
   background-color: var(--p-content-background); 
   width: 100%; 
   border-bottom: 1px solid var(--p-content-border-color); 
@@ -11,26 +9,20 @@ $header-height: 70px;
   z-index: 1000;
 }
 
-.header {
+.topbar {
   max-width: 1100px;
   margin: auto;
 }
 
 ::ng-deep{
-  .p-megamenu-overlay {
-    z-index: 1005 !important;
+  .p-menubar-item-link {
+    padding: 10px !important;
+    font-size: 15px !important;
+    .pi {
+      font-size: 15px;
+    }
   }
-  .p-megamenu-submenu {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  .p-megamenu-submenu-label {
-    display: none;
-  }
-  .p-megamenu-col-12 {
-    padding: 0 !important;
-  }
-  .p-megamenu-button {
+  .p-menubar-button {
     width: 35px !important;
     height: 35px !important;
     .p-icon {
