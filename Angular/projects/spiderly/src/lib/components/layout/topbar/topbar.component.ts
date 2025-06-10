@@ -22,6 +22,7 @@ import { MenubarModule } from "primeng/menubar";
 export class TopBarComponent {
   @Input() menu: MenuItem[];
   companyName = this.config.companyName;
+  logoPath = this.config.logoPath;
   isSideMenuActive = false;
 
   constructor(

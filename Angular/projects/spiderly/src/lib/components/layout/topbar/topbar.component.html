@@ -2,7 +2,7 @@
   <nav class="topbar">
     <p-menubar [model]="menu" [style]="{ border: '0' }">
       <ng-template #start>
-        <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" src="/assets/images/logo/logo.svg" alt="Logo">
+        <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" [src]="logoPath" alt="Logo">
       </ng-template>
       <ng-template #end>
         <div style="margin-right: 11px; display: flex; gap: 10px; align-items: center; position: relative;">
