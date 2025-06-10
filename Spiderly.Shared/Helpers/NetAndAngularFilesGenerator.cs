@@ -9,7 +9,7 @@ namespace Spiderly.Shared.Helpers
 {
     public static class NetAndAngularFilesGenerator
     {
-        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor)
+        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor, bool hasTopNavbar)
         {
             string jwtKey = GenerateJwtSecretKey();
 
@@ -72,7 +72,7 @@ namespace Spiderly.Shared.Helpers
                                                         Name = "layout",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode() },
+                                                            new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopNavbar) },
                                                             new SpiderlyFile { Name = "layout.component.ts", Data = GetLayoutComponentTsCode() },
                                                         }
                                                     },
@@ -266,7 +266,7 @@ namespace Spiderly.Shared.Helpers
                                         Name = "environments",
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "environment.prod.ts", Data = "" },
+                                            new SpiderlyFile { Name = "environment.prod.ts", Data = GetEnvironmentProdTsData(appName) },
                                             new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName) },
                                         }
                                     }
@@ -3909,7 +3909,7 @@ namespace {{appName}}.Business.DataMappers
                 {
                   "type": "initial",
                   "maximumWarning": "1mb",
-                  "maximumError": "2mb"
+                  "maximumError": "3mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -4036,6 +4036,19 @@ bootstrapApplication(AppComponent, appConfig)
   <app-root></app-root>
 </body>
 </html>
+""";
+        }
+
+        private static string GetEnvironmentProdTsData(string appName)
+        {
+            return $$"""
+export const environment = {
+  production: true,
+  apiUrl: 'https://your-prod-api-url/api',
+  frontendUrl: 'http://your-prod-frontend-url',
+  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+  companyName: '{{appName}}',
+};
 """;
         }
 
@@ -4920,10 +4933,10 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
 """;
         }
 
-        private static string GetLayoutComponentHtmlCode()
+        private static string GetLayoutComponentHtmlCode(bool hasTopNavbar)
         {
-            return $"""
-<spiderly-layout [menu]="menu"></spiderly-layout>
+            return $$"""
+<spiderly-layout [menu]="menu" {{(hasTopNavbar ? "[isSideMenuLayout]=\"false\"" : "")}}></spiderly-layout>
 """;
         }
 

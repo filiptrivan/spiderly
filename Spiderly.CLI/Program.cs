@@ -34,7 +34,13 @@ namespace Spiderly.CLI
 
             if (args.HasArg("init"))
             {
-                await Init();
+                bool hasTopNavbar = false;
+                if (args.HasArg("--top-navbar"))
+                {
+                    hasTopNavbar = true;
+                }
+
+                await Init(hasTopNavbar);
                 return;
             }
 
@@ -45,7 +51,6 @@ namespace Spiderly.CLI
             }
 
             Console.WriteLine("\nUnrecognized command. Type 'spiderly help' to see a list of available commands.");
-
 
             //IConfiguration config = new ConfigurationBuilder()
             //    .AddCommandLine(args)
@@ -68,7 +73,7 @@ namespace Spiderly.CLI
             Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
-            Console.WriteLine("  app-name             Specify the name of the application (no spaces allowed).");
+            Console.WriteLine("  --top-navbar         Use a top navigation bar layout instead of the default side navigation bar.");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly help");
@@ -78,7 +83,7 @@ namespace Spiderly.CLI
 
         #region Init
 
-        private static async Task Init()
+        private static async Task Init(bool hasTopNavbar)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -116,7 +121,7 @@ namespace Spiderly.CLI
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, primaryColor: null, hasTopNavbar);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
