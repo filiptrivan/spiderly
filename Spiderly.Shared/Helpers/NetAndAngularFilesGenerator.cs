@@ -9,7 +9,7 @@ namespace Spiderly.Shared.Helpers
 {
     public static class NetAndAngularFilesGenerator
     {
-        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor, bool hasTopNavbar)
+        public static void Generate(string outputPath, string appName, string version, bool isFromNuget, string primaryColor, bool hasTopMenu)
         {
             string jwtKey = GenerateJwtSecretKey();
 
@@ -72,7 +72,7 @@ namespace Spiderly.Shared.Helpers
                                                         Name = "layout",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopNavbar) },
+                                                            new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopMenu) },
                                                             new SpiderlyFile { Name = "layout.component.ts", Data = GetLayoutComponentTsCode() },
                                                         }
                                                     },
@@ -706,7 +706,7 @@ export class {{entityName}}TableComponent implements OnInit {
         [isLastMultiplePanel]="true"
         [additionalButtons]="additionalButtons"
         (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
-        (onNotificationFormGroupInitFinish)="onNotificationFormGroupInitFinish()"
+        (onAfterFormGroupInit)="onAfterFormGroupInit()" 
         />
 
     </spiderly-card>
@@ -773,7 +773,7 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         }
     }
 
-    onNotificationFormGroupInitFinish() {
+    onAfterFormGroupInit() {
         if (this.notificationFormGroup.controls.id.value > 0) {
             this.additionalButtons.push(this.sendEmailNotificationButton);
         }
@@ -1499,10 +1499,9 @@ export class NotificationComponent implements OnInit {
   @ViewChild('menu') menu: Menu;
   lastMenuToggledNotification: Notification;
 
-  tableFilter: TableFilter = new TableFilter({
+  tableFilter: TableFilter<Notification> = new TableFilter({
     first: 0,
     rows: 10,
-    filters: new Map<string, TableFilterContext[]>()
   });
 
   constructor(
@@ -4933,10 +4932,10 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
 """;
         }
 
-        private static string GetLayoutComponentHtmlCode(bool hasTopNavbar)
+        private static string GetLayoutComponentHtmlCode(bool hasTopMenu)
         {
             return $$"""
-<spiderly-layout [menu]="menu" {{(hasTopNavbar ? "[isSideMenuLayout]=\"false\"" : "")}}></spiderly-layout>
+<spiderly-layout [menu]="menu" {{(hasTopMenu ? "[isSideMenuLayout]=\"false\"" : "")}}></spiderly-layout>
 """;
         }
 

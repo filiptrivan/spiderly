@@ -78,6 +78,7 @@ export * from './lib/entities/is-authorized-for-save-event';
 
 export * from './lib/enums/security-enums';
 export * from './lib/enums/verification-type-codes';
+export * from './lib/enums/match-mode-enum-codes';
 
 export * from './lib/guards/auth.guard';
 export * from './lib/guards/not-auth.guard';

@@ -2,9 +2,9 @@ import { BaseEntity } from "../entities/base-entity";
 import { TableFilterContext } from "../entities/table-filter-context";
 import { TableFilterSortMeta } from "../entities/table-filter-sort-meta";
 
-export class TableFilter extends BaseEntity
+export class TableFilter<T extends BaseEntity=any> extends BaseEntity
 {
-    filters?: Map<string, TableFilterContext[]>;
+    filters?: Partial<Record<keyof T, TableFilterContext[]>>;
     first?: number;
     rows?: number;
     sortField?: string;
@@ -24,7 +24,7 @@ export class TableFilter extends BaseEntity
         additionalFilterIdInt,
         additionalFilterIdLong,
     }:{
-        filters?: Map<string, TableFilterContext[]>;
+        filters?: Partial<Record<keyof T, TableFilterContext[]>>;
         first?: number;
         rows?: number;
         sortField?: string;

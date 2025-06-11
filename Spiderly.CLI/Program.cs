@@ -34,13 +34,13 @@ namespace Spiderly.CLI
 
             if (args.HasArg("init"))
             {
-                bool hasTopNavbar = false;
-                if (args.HasArg("--top-navbar"))
+                bool hasTopMenu = false;
+                if (args.HasArg("--top-menu"))
                 {
-                    hasTopNavbar = true;
+                    hasTopMenu = true;
                 }
 
-                await Init(hasTopNavbar);
+                await Init(hasTopMenu);
                 return;
             }
 
@@ -73,7 +73,7 @@ namespace Spiderly.CLI
             Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for an entity.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
-            Console.WriteLine("  --top-navbar         Use a top navigation bar layout instead of the default side navigation bar.");
+            Console.WriteLine("  --top-menu           Use a top menu layout instead of the default side menu layout.");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly help");
@@ -83,7 +83,7 @@ namespace Spiderly.CLI
 
         #region Init
 
-        private static async Task Init(bool hasTopNavbar)
+        private static async Task Init(bool hasTopMenu)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -121,7 +121,7 @@ namespace Spiderly.CLI
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, primaryColor: null, hasTopNavbar);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, primaryColor: null, hasTopMenu);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
