@@ -6,7 +6,7 @@ export interface SpiderlyValidatorFn extends ValidatorFn {
     hasNotEmptyRule?: boolean;
 }
 
-export interface DateSpiderlyFormControl extends SpiderlyFormControl<Date> {
+export interface SpiderlyDateFormControl extends SpiderlyFormControl<Date> {
   showTime?: boolean;
 }
 
@@ -40,7 +40,7 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
 
 type SpiderlyControlsOfType<TValue> = {
   [P in keyof TValue]: TValue[P] extends Date
-    ? DateSpiderlyFormControl
+    ? SpiderlyDateFormControl
     : SpiderlyFormControl<TValue[P]>;
 };
 

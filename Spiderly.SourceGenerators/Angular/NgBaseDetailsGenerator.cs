@@ -140,7 +140,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{entity.Name}}BaseDetailsComponent {
     @Output() onSave = new EventEmitter<void>();
-    @Output() on{{entity.Name}}FormGroupInitFinish = new EventEmitter<void>();
+    @Output() onAfterFormGroupInit = new EventEmitter<void>();
     @Input() getCrudMenuForOrderedData: (formArray: SpiderlyFormArray, modelConstructor: BaseEntity, lastMenuIconIndexClicked: LastMenuIconIndexClicked, adjustFormArrayManually: boolean) => MenuItem[];
     @Input() formGroup: SpiderlyFormGroup;
     @Input() {{entity.Name.FirstCharToLower()}}FormGroup: SpiderlyFormGroup<{{entity.Name}}>;
@@ -234,7 +234,7 @@ export class {{entity.Name}}BaseDetailsComponent {
         );
         this.{{entity.Name.FirstCharToLower()}}FormGroup.mainDTOName = this.{{entity.Name.FirstCharToLower()}}SaveBodyName;
 
-        this.on{{entity.Name}}FormGroupInitFinish.next();
+        this.onAfterFormGroupInit.next();
     }
 
     handleAuthorizationForSave = () => {
