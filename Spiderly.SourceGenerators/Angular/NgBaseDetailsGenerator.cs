@@ -867,7 +867,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                if (property.IsColorControlType())
+                if (property.IsColorControlType() || property.Type == "DateTime")
                 {
                     result.Add($"'{property.Name.FirstCharToLower()}'");
                 }

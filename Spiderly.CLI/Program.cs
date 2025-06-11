@@ -70,7 +70,7 @@ namespace Spiderly.CLI
             Console.WriteLine("Commands:");
             Console.WriteLine("  help                 Display this help message.");
             Console.WriteLine("  init                 Initialize a new project.");
-            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
+            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for an entity.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
             Console.WriteLine("  --top-navbar         Use a top navigation bar layout instead of the default side navigation bar.");
@@ -232,7 +232,7 @@ namespace Spiderly.CLI
 
             while (true)
             {
-                Console.Write("Entity name without spaces (e.g., YourNewEntityName): ");
+                Console.Write("Entity name without spaces (e.g., YourEntityName): ");
                 entityName = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(entityName))

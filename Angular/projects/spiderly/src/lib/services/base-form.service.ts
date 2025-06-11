@@ -60,6 +60,7 @@ export class BaseFormService {
 
       formControl.label = formControlName;
       formControl.labelForDisplay = this.getTranslatedLabel(formControlName);
+      formControl.parentClassName = modelConstructor.typeName;
 
       formGroup.setControl(formControlName, formControl); // FT: Use setControl because it will update formControl if it already exists
 

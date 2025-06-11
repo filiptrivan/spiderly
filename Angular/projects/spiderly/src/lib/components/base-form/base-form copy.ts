@@ -96,7 +96,7 @@ export class BaseFormCopy implements OnInit {
                 formArray.clear();
               }
               else{
-                // FT: This is okay because when we have M2M association with additional fields, we will not give back the list because we are not checking version on the server.
+                // This is okay because when we have M2M association with additional fields, we will not give back the list because we are not checking version on the server.
                 // console.error(`You returned empty array for control: ${formArray.translationKey}.`);
               }
 
@@ -115,7 +115,7 @@ export class BaseFormCopy implements OnInit {
               formControl.patchValue(res[key]);
             }
           }else{
-            // FT: It's okay to do this.
+            // It's okay to do this.
             // console.error('You returned something that is not in the save DTO.');
           }
         });
@@ -136,7 +136,6 @@ export class BaseFormCopy implements OnInit {
 
   rerouteToSavedObject = (rerouteId: number | string): void => {
     if(rerouteId == null){
-      // console.error('You do not have rerouteId in your DTO.')
       const currentUrl = this.router.url;
       const parentUrl: string = getParentUrl(currentUrl);
       this.router.navigateByUrl(parentUrl);
