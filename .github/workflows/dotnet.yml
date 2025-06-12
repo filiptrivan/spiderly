@@ -77,16 +77,18 @@ jobs:
           }
         shell: powershell
 
-      - name: Run Angular frontend
-        shell: powershell
+      - name: Run Angular frontend in background
+        shell: bash
         run: |
-          Write-Host "Starting Angular frontend..."
-          Start-Process powershell -ArgumentList "cd ./test/frontend; ng serve --port 4200 --disable-host-check"
+          echo "Starting Angular frontend..."
+          cd ./test/frontend
+          npm install
+          nohup npx ng serve --port 4200 --host 0.0.0.0 > ng.log 2>&1 &
 
-      - name: Verify frontend is up
+      - name: Wait and verify frontend is up
+        shell: bash
         run: |
           echo "Waiting 90 seconds for frontend to start..."
-          sleep 100
+          sleep 90
           echo "Checking frontend at http://localhost:4200"
           curl -I http://localhost:4200 || echo "Frontend is not responding"
-        shell: bash
