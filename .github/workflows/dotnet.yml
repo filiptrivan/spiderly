@@ -66,7 +66,14 @@ jobs:
 
           $inputs | spiderly init
 
-      - name: List generated files
-        run: dir /s /b
+      - name: Show appname folder structure
+        run: Get-ChildItem -Path ./appname -Recurse
         shell: powershell
+
+      - name: Run Angular frontend
+        run: |
+          Start-Process powershell -ArgumentList "cd ./appname/frontend; ng serve --port 4200"
+        shell: powershell
+ 
+
 
