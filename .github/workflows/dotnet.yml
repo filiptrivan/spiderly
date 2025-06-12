@@ -65,13 +65,6 @@ jobs:
 
           $inputs | spiderly init
 
-      - name: Show working directory
-        run: |
-          Write-Host "Current Directory: $(Get-Location)"
-          Write-Host "Listing all files to locate 'test' folder..."
-          Get-ChildItem -Recurse
-        shell: powershell
-
       - name: Show 'test' folder structure
         run: |
           if (Test-Path "./test") {
@@ -92,8 +85,8 @@ jobs:
 
       - name: Verify frontend is up
         run: |
-          echo "Waiting 30 seconds for frontend to start..."
-          sleep 30
+          echo "Waiting 90 seconds for frontend to start..."
+          sleep 100
           echo "Checking frontend at http://localhost:4200"
           curl -I http://localhost:4200 || echo "Frontend is not responding"
         shell: bash
