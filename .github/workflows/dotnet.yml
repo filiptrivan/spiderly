@@ -1,0 +1,72 @@
+name: .NET CLI Test
+
+on:
+  workflow_dispatch: # manual trigger
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore .NET dependencies
+        run: dotnet restore Spiderly.CLI/Spiderly.CLI.csproj
+
+      - name: Build .NET project
+        run: dotnet build Spiderly.CLI/Spiderly.CLI.csproj
+
+      - name: Install SQL Server Express
+        shell: powershell
+        run: |
+          Write-Host "Shell Path: $PSVersionTable"
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Host "Chocolatey not found - installing..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          } else {
+            Write-Host "Chocolatey found"
+          }
+
+          choco install sql-server-express -y
+          Start-Service MSSQL`$SQLEXPRESS
+
+      - name: Start SQL Server Express
+        run: Start-Service MSSQL`$SQLEXPRESS
+        shell: powershell
+
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli
+
+      - name: Setup and run Spiderly CLI
+        shell: powershell
+        run: |
+          dotnet tool install -g dotnet-ef
+          try {
+            dotnet tool uninstall --global Spiderly.CLI
+          } catch {
+            Write-Host "Tool not installed, skipping uninstall."
+          }
+
+          dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -o ./nupkg
+          dotnet tool install --global Spiderly.CLI --add-source ./nupkg
+          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+
+          $inputs = @(
+            "test"
+            "default"
+          ) -join "`r`n"
+
+          $inputs | spiderly init
+
+      - name: List generated files
+        run: dir /s /b
+        shell: powershell
+
