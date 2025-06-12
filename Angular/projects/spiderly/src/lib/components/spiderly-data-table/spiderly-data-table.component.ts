@@ -46,7 +46,7 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() rows: number = 10;
   @Input() cols: Column[];
   @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
-  @Input() showCardWrapper: boolean = true;
+  @Input() showCardWrapper: boolean = false;
   @Input() readonly: boolean = false;
   totalRecords: number;
   @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();
@@ -74,8 +74,6 @@ export class SpiderlyDataTableComponent implements OnInit {
   
   matchModeDateOptions: SelectItem[] = [];
   matchModeNumberOptions: SelectItem[] = [];
-  matchModeTextOptions: SelectItem[] = [];
-  matchModeBoolOptions: SelectItem[] = [];
   @Input() showAddButton: boolean = true; 
   @Input() showExportToExcelButton: boolean = true;
   @Input() showReloadTableButton: boolean = false;
@@ -105,10 +103,6 @@ export class SpiderlyDataTableComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.matchModeTextOptions = [
-      { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Contains },
-    ];
-
     this.matchModeDateOptions = [
       { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Equals },
       { label: this.translocoService.translate('DatesBefore'), value: MatchModeCodes.LessThan },
@@ -117,8 +111,8 @@ export class SpiderlyDataTableComponent implements OnInit {
 
     this.matchModeNumberOptions = [
       { label: this.translocoService.translate('Equals'), value: MatchModeCodes.Equals },
-      { label: this.translocoService.translate('MoreThan'), value: MatchModeCodes.GreaterThan },
       { label: this.translocoService.translate('LessThan'), value: MatchModeCodes.LessThan },
+      { label: this.translocoService.translate('MoreThan'), value: MatchModeCodes.GreaterThan },
     ];
 
     if (this.hasLazyLoad === false) {
@@ -129,7 +123,6 @@ export class SpiderlyDataTableComponent implements OnInit {
   lazyLoad(event: TableLazyLoadEvent) {
     this.lastLazyLoadEvent = event;
 
-    console.log(event.filters)
     let tableFilter: TableFilter = event as unknown as TableFilter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
 
@@ -254,13 +247,13 @@ export class SpiderlyDataTableComponent implements OnInit {
         case 'text':
           return MatchModeCodes.Contains;
         case 'date':
-          return -1;
+          return MatchModeCodes.Equals;
         case 'multiselect':
           return MatchModeCodes.In;
         case 'boolean':
           return MatchModeCodes.Equals;
         case 'numeric':
-          return -1;
+          return MatchModeCodes.Equals
         default:
           return null;
       }
@@ -522,7 +515,7 @@ export class Action {
 }
 
 export class Column<T = any> {
-  name: string;
+  name?: string;
   field?: string & keyof T;
   filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
   filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';

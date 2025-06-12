@@ -656,11 +656,11 @@ export class {{entityName}}TableComponent implements OnInit {
 
     ngOnInit(){
         this.cols = [
-            {name: this.translocoService.translate('Actions'), actions:[
+            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
+            {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name:  this.translocoService.translate('Delete'), field: 'Delete'},
             ]},
-            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
         ]
     }
 }
@@ -842,12 +842,12 @@ export class NotificationTableComponent implements OnInit {
 
     ngOnInit(){
         this.cols = [
-            {name: this.translocoService.translate('Actions'), actions:[
+            {name: this.translocoService.translate('Title'), filterType: 'text', field: 'title'},
+            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
+            {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name: this.translocoService.translate('Delete'), field: 'Delete'},
             ]},
-            {name: this.translocoService.translate('Title'), filterType: 'text', field: 'title'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
         ]
     }
 
@@ -957,12 +957,12 @@ export class RoleTableComponent implements OnInit {
 
     ngOnInit(){
         this.cols = [
-            {name: this.translocoService.translate('Actions'), actions:[
+            {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'},
+            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
+            {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name: this.translocoService.translate('Delete'), field: 'Delete'},
             ]},
-            {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
         ]
     }
 }
@@ -1124,12 +1124,12 @@ export class UserTableComponent implements OnInit {
 
     ngOnInit(){
         this.cols = [
-            {name: this.translocoService.translate('Actions'), actions:[
+            {name: this.translocoService.translate('Email'), filterType: 'text', field: 'email'},
+            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
+            {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name:  this.translocoService.translate('Delete'), field: 'Delete'},
             ]},
-            {name: this.translocoService.translate('Email'), filterType: 'text', field: 'email'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
         ]
     }
 }

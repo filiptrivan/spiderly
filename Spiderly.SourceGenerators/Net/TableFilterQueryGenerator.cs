@@ -294,7 +294,7 @@ using {{item}};
                                         condition = x => values.Contains(x.{{entityDotNotation}});
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid numerical match mode!");
+                                        throw new ArgumentException("Invalid numeric match mode!");
                                 }
                                 predicate = predicate.And(condition);
                                 break;
