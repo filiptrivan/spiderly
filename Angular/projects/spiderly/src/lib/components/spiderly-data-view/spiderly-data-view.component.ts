@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ContentChild, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -20,7 +20,7 @@ import { SelectItem } from 'primeng/api';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { SelectChangeEvent, SelectModule } from 'primeng/select';
+import { SelectModule } from 'primeng/select';
 
 @Component({
     selector: 'spiderly-data-view',
@@ -44,7 +44,7 @@ import { SelectChangeEvent, SelectModule } from 'primeng/select';
 })
 export class SpiderlyDataViewComponent<T> implements OnInit {
   @ViewChild('dt') table: Table;
-  @Input() items: any[]; // Pass only when hasLazyLoad === false
+  @Input() items: T[]; // Pass only when hasLazyLoad === false
   @Input() rows: number = 10;
   @Input() cols: Column[];
   totalRecords: number;
@@ -55,18 +55,31 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
 
   lastLazyLoadEvent: TableLazyLoadEvent;
   loading: boolean = true;
+
+  matchModeDateOptions: SelectItem[] = [];
+  matchModeNumberOptions: SelectItem[] = [];
   
+  @ContentChild('cardBody', { read: TemplateRef }) cardBody!: TemplateRef<any>;
+
   constructor(
     private router: Router,
-    private dialogService: DialogService,
     private route: ActivatedRoute,
-    private messageService: SpiderlyMessageService,
     private translocoService: TranslocoService,
     @Inject(LOCALE_ID) private locale: string
   ) {}
 
   ngOnInit(): void {
+    this.matchModeDateOptions = [
+      { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Equals },
+      { label: this.translocoService.translate('DatesBefore'), value: MatchModeCodes.LessThan },
+      { label: this.translocoService.translate('DatesAfter'), value: MatchModeCodes.GreaterThan },
+    ];
 
+    this.matchModeNumberOptions = [
+      { label: this.translocoService.translate('Equals'), value: MatchModeCodes.Equals },
+      { label: this.translocoService.translate('LessThan'), value: MatchModeCodes.LessThan },
+      { label: this.translocoService.translate('MoreThan'), value: MatchModeCodes.GreaterThan },
+    ];
   }
   
   lazyLoad(event: TableLazyLoadEvent) {
@@ -109,32 +122,8 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
 
   filter(event: TableFilterEvent){
   }
-
-  t = false;
-  filterText(event: Event){
-    console.log(event)
-    if (this.t == true) {
-      this.table.filter(event, 'name', 1 as any)
-      this.t = false;
-    }
-    else{
-      this.table.filter(event, 'name', 2 as any)
-      this.t = true;
-    }
-
-  }
-
-  filterNumeric(event: Event){
-    this.table.filter(event, 'id', 2 as any)
-  }
-
-  filterBoolean(event: SelectChangeEvent){
-  }
-
-  filterDate(event: Date){
-  }
   
-  getColMatchMode(filterType: string): any {
+  getDefaultMatchMode(filterType: string): any {
     switch (filterType) {
         case 'text':
           return MatchModeCodes.Contains;
@@ -148,6 +137,23 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
           return MatchModeCodes.Equals
         default:
           return null;
+      }
+  }
+
+  getMatchModeOptions(filterType: string){
+    switch (filterType) {
+        case 'text':
+          return [];
+        case 'date':
+          return this.matchModeDateOptions;
+        case 'multiselect':
+          return [];
+        case 'boolean':
+          return [];
+        case 'numeric':
+          return this.matchModeNumberOptions;
+        default:
+          return [];
       }
   }
 
@@ -169,11 +175,17 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     return `${index}${item.field}`
   }
 
-  test(event){
-console.log(event)
+  applyFilters = () => {
+    this.table._filter();
   }
 
-  clear(table: Table) {
-    table.clear();
+  clearFilters() {
+    this.table.clear();
   }
+}
+
+export interface DataViewCardBody<T> {
+  $implicit: T;
+  item: T;
+  index: number;
 }

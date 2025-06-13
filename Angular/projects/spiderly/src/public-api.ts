@@ -103,3 +103,5 @@ export * from './lib/services/spiderly-transloco-loader';
 export * from './lib/services/translate-labels-abstract.service';
 export * from './lib/services/validator-abstract.service';
 export * from './lib/services/app-layout-base.service';
+
+export * from './lib/directives/template-type.directive';

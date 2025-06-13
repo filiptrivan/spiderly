@@ -15,57 +15,19 @@
     [filterDelay]="500"
     > 
       <ng-template #caption>
-        <div class="grid">
+        <div class="data-view-grid">
            @for (filter of cols; track $index) {
-            <div class="col-4">
-             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div>
+             <div style="display: flex; flex-direction: column; gap: 0.5rem; position: relative;">
                 <div>
                   <label>
                     {{filter.name}}
                   </label>
                 </div>
 
-                <!-- <p-columnFilter *ngIf="filter.filterType != null" [type]="filter.filterType" [field]="filter.filterField ?? filter.field" display="row" [placeholder]="filter.filterPlaceholder" 
-                [showOperator]="false" [showMenu]="false" [showMatchModes]="false" [matchMode]="getColMatchMode(filter.filterType)" [showClearButton]="false" 
-                > -->
-                  <!-- Text -->
-                  <ng-container *ngIf="filter.filterType === 'text'">
-                    <input 
-                    [ngModel]="filter.editable"
-                    pInputText 
-                    [placeholder]="filter.filterPlaceholder ?? ''" 
-                    (ngModelChange)="filterText($event)">
-                  </ng-container>
-
-                  <!-- Date -->
-                  <ng-container *ngIf="filter.filterType === 'date'">
-                    <p-datepicker 
-                    (onSelect)="filterDate($event)"
-                    [placeholder]="filter.filterPlaceholder" 
-                    appendTo="body"
-                    ></p-datepicker>
-                  </ng-container>
-
-                  <!-- Boolean -->
-                  <ng-container *ngIf="filter.filterType === 'boolean'">
-                    <p-select  
-                    [placeholder]="filter.filterPlaceholder" 
-                    appendTo="body"
-                    [options]="[{label: 'Yes', value: true}, {label: 'No', value: false}, {label: 'None', value: null}]"
-                    (onChange)="filterBoolean($event)"
-                    ></p-select>
-                  </ng-container>
-
-                  <!-- Numeric -->
-                  <ng-container *ngIf="filter.filterType === 'numeric'">
-                    <p-inputNumber 
-                    [ngModel]="filter.editable"
-                    [placeholder]="filter.filterPlaceholder ?? ''"
-                    (ngModelChange)="filterNumeric($event)"
-                    [showButtons]="true"
-                    ></p-inputNumber>
-                  </ng-container>
-
+                <p-columnFilter *ngIf="filter.filterType != null" [type]="filter.filterType" [field]="filter.filterField ?? filter.field" display="row" [placeholder]="filter.filterPlaceholder" 
+                [showOperator]="false" [showMenu]="filter.showMatchModes" [showMatchModes]="true" [showClearButton]="false" [matchMode]="getDefaultMatchMode(filter.filterType)" [matchModeOptions]="getMatchModeOptions(filter.filterType)" 
+                >
                   <!-- Multiselect -->
                   <ng-container *ngIf="filter.filterType == 'multiselect'">
                     <ng-template pTemplate="filter" let-value let-filter="filterCallback">
@@ -78,16 +40,21 @@
                       </p-multiSelect>
                     </ng-template>
                   </ng-container>
-                <!-- </p-columnFilter> -->
+                </p-columnFilter>
               </div>
             </div>
            }
         </div>
+        <div style="display: flex; gap: 12px;">
+          <spiderly-button label="Apply filters" (onClick)="applyFilters()" icon="pi pi-search"></spiderly-button>
+          <spiderly-button label="Clear all filters" (onClick)="clearFilters()" icon="pi pi-filter-slash"></spiderly-button>
+        </div>
       </ng-template>
-      <ng-template #body let-rowData>
+      <ng-template #body let-rowData let-index="rowIndex">
         <tr class="card" style="padding: 0; margin-bottom: 0;">
-          <td style="display: block; border: 0; cursor: pointer;">
-            {{rowData.name}}
+          <td (click)="navigateToDetails(rowData.id)" style="display: block; border: 0; cursor: pointer;">
+            <ng-container *ngTemplateOutlet="cardBody; context: { $implicit: rowData, item: rowData, index: index }">
+            </ng-container>
           </td>
         </tr>
       </ng-template>
