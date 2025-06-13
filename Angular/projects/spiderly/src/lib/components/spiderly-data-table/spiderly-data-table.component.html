@@ -27,8 +27,6 @@
             <th [style]="getColHeaderWidth(col.filterType)">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 {{col.name}}
-                <!-- <p-sortIcon field=""></p-sortIcon> -->
-                <!-- <p-columnFilter type="date" field="date" display="menu"></p-columnFilter> -->
                 <p-columnFilter *ngIf="col.filterType != null" [type]="col.filterType" [field]="col.filterField ?? col.field" display="menu" [placeholder]="col.filterPlaceholder" 
                 [showOperator]="false" [showMatchModes]="col.showMatchModes" [showAddButton]="col.showAddButton" [matchModeOptions]="getColMatchModeOptions(col.filterType)"
                 [matchMode]="getColMatchMode(col.filterType)"

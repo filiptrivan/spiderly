@@ -1,0 +1,30 @@
+::ng-deep{
+	.p-datatable-tbody {
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+
+	.p-datatable-header {
+		margin-bottom: 18px;
+		border: 0 !important;
+		padding: 0 !important;
+		background-color: transparent !important;
+	}
+
+	.p-fluid {
+		width: 100% !important;
+	}
+
+	.p-inputtext {
+		width: 100% !important;
+	}
+
+	.p-inputnumber {
+		width: 100% !important;
+	}
+
+	.p-datepicker {
+		width: 100% !important;
+	}
+}

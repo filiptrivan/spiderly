@@ -3,7 +3,7 @@
     align-items: center; 
     justify-content: space-between; 
     gap: 10px; 
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--p-content-border-color);
     border-bottom-right-radius: var(--p-content-border-radius);
     border-bottom-left-radius: var(--p-content-border-radius);
     padding: 18px;
