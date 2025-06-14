@@ -119,7 +119,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             {
                 string controllerName = controllerClass.Name.Replace("Controller", "");
 
-                if (controllerClass.BaseType != "SpiderBaseController")
+                if (controllerClass.BaseType != "SpiderlyBaseController")
                     entityNamesForGeneration.Add(controllerClass.BaseType.Replace("BaseController", ""));
 
                 foreach (SpiderMethod controllerMethod in controllerClass.Methods)

@@ -18,7 +18,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
     /// This controller is designed to be extended for specific user types.
     /// </summary>
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
-    public class SecurityBaseController<TUser> : SpiderBaseController where TUser : class, IUser, new()
+    public class SecurityBaseController<TUser> : SpiderlyBaseController where TUser : class, IUser, new()
     {
         private readonly SecurityBusinessService<TUser> _securityBusinessService;
         private readonly IJwtAuthManager _jwtAuthManagerService;

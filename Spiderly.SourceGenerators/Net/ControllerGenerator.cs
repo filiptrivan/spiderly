@@ -122,7 +122,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 string businessServiceName = businessServiceClass.Name;
 
                 result.Add($$"""
-    public class {{referencedProjectEntityGroupedClasses.Key}}BaseController : SpiderBaseController
+    public class {{referencedProjectEntityGroupedClasses.Key}}BaseController : SpiderlyBaseController
     {
         private readonly IApplicationDbContext _context;
         private readonly {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} _businessService;
