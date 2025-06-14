@@ -20,24 +20,12 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ButtonModule } from 'primeng/button';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
+import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
 
 @Component({
     selector: 'spiderly-data-table',
     templateUrl: './spiderly-data-table.component.html',
     styleUrl: 'spiderly-data-table.component.scss',
-    styles: [`
-  	:host {
-		  ::ng-deep {
-		    .remove-button-border-focus:focus, 
-        .remove-button-border-focus:enabled:focus {
-        box-shadow: none;
-        -webkit-box-shadow: none;
-        -moz-box-shadow: none;
-        background-color: var(--gray-200);
-		    }
-		  }
-	  }
-  `],
     imports: [
         FormsModule,
         CommonModule,
@@ -54,11 +42,11 @@ export class SpiderlyDataTableComponent implements OnInit {
   @ViewChild('dt') table: Table;
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
-  @Input() items: any[]; // FT: Pass only when hasLazyLoad === false
+  @Input() items: any[]; // Pass only when hasLazyLoad === false
   @Input() rows: number = 10;
   @Input() cols: Column[];
-  @Input() showPaginator: boolean = true; // FT: Pass only when hasLazyLoad === false
-  @Input() showCardWrapper: boolean = true;
+  @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
+  @Input() showCardWrapper: boolean = false;
   @Input() readonly: boolean = false;
   totalRecords: number;
   @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();
@@ -71,14 +59,14 @@ export class SpiderlyDataTableComponent implements OnInit {
   loading: boolean = true;
   
   @Input() newlySelectedItems: number[] = [];
-  fakeSelectedItems: number[] = []; // FT: Only for showing checkboxes, we will not send this to the backend
-  currentPageSelectedItemsFromDb: number[] = []; // FT: Made so we can add only newly selected items to the newlySelectedItems
+  fakeSelectedItems: number[] = []; // Only for showing checkboxes, we will not send this to the backend
+  currentPageSelectedItemsFromDb: number[] = []; // Made so we can add only newly selected items to the newlySelectedItems
   @Input() unselectedItems: number[] = [];
   @Input() selectionMode: 'single' | 'multiple' | undefined | null;
   @Output() onLazyLoad: EventEmitter<TableFilter> = new EventEmitter();
   rowsSelectedNumber: number = 0;
   isAllSelected: boolean = null;
-  fakeIsAllSelected: boolean = false; // FT: Only for showing checkboxes, we will not send this to the backend
+  fakeIsAllSelected: boolean = false; // Only for showing checkboxes, we will not send this to the backend
   isFirstTimeLazyLoad: boolean = true;
   @Output() onIsAllSelectedChange: EventEmitter<AllClickEvent> = new EventEmitter();
   @Input() selectedLazyLoadObservableMethod: (tableFilter: TableFilter) => Observable<LazyLoadSelectedIdsResult>;
@@ -93,13 +81,13 @@ export class SpiderlyDataTableComponent implements OnInit {
   deleteRef: DynamicDialogRef;
 
   // Client side table
-  // @Input() formArrayItems: any[]; // FT: Pass this only if you have some additional logic for showing data
+  // @Input() formArrayItems: any[]; // Pass this only if you have some additional logic for showing data
   @Input() getFormArrayItems: (additionalIndexes?: any) => any[];
   @Input() hasLazyLoad: boolean = true; 
-  selectedItemIds: number[] = []; // FT: Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
-  @Input() getAlreadySelectedItemIds: (additionalIndexes?: any) => number[]; // FT: Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
-  selectedItems: any[] = []; // FT: Pass only when hasLazyLoad === false
-  @Input() getAlreadySelectedItems: (additionalIndexes?: any) => any[]; // FT: Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
+  selectedItemIds: number[] = []; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
+  @Input() getAlreadySelectedItemIds: (additionalIndexes?: any) => number[]; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
+  selectedItems: any[] = []; // Pass only when hasLazyLoad === false
+  @Input() getAlreadySelectedItems: (additionalIndexes?: any) => any[]; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
   @Input() getFormControl: (formControlName: string, index: number, additionalIndexes?: any) => SpiderlyFormControl;
   @Input() additionalIndexes: any;
   @Output() onRowSelect: EventEmitter<RowClickEvent> = new EventEmitter();
@@ -116,15 +104,15 @@ export class SpiderlyDataTableComponent implements OnInit {
 
   ngOnInit(): void {
     this.matchModeDateOptions = [
-      { label: this.translocoService.translate('OnDate'), value: 'equals' },
-      { label: this.translocoService.translate('DatesBefore'), value: 'dateBefore' },
-      { label: this.translocoService.translate('DatesAfter'), value: 'dateAfter' },
+      { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Equals },
+      { label: this.translocoService.translate('DatesBefore'), value: MatchModeCodes.LessThan },
+      { label: this.translocoService.translate('DatesAfter'), value: MatchModeCodes.GreaterThan },
     ];
 
     this.matchModeNumberOptions = [
-      { label: this.translocoService.translate('Equals'), value: 'equals' },
-      { label: this.translocoService.translate('MoreThan'), value: 'gte' },
-      { label: this.translocoService.translate('LessThan'), value: 'lte' },
+      { label: this.translocoService.translate('Equals'), value: MatchModeCodes.Equals },
+      { label: this.translocoService.translate('LessThan'), value: MatchModeCodes.LessThan },
+      { label: this.translocoService.translate('MoreThan'), value: MatchModeCodes.GreaterThan },
     ];
 
     if (this.hasLazyLoad === false) {
@@ -160,10 +148,10 @@ export class SpiderlyDataTableComponent implements OnInit {
           if (this.isAllSelected == true) {
             let idsToInsert = [...this.items.map(x => x.id)];
             idsToInsert = idsToInsert.filter(x => this.unselectedItems.includes(x) == false);
-            this.fakeSelectedItems = [...idsToInsert]; // FT: Only for showing checkboxes, we will not send this to the backend
+            this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
           }
           else if (this.isAllSelected == false) {
-            this.fakeSelectedItems = [...this.newlySelectedItems]; // FT: Only for showing checkboxes, we will not send this to the backend
+            this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
           }
           else if (this.isAllSelected == null) {
             let idsToInsert = [...selectedRowsMethodResult.selectedIds, ...this.newlySelectedItems];
@@ -201,7 +189,7 @@ export class SpiderlyDataTableComponent implements OnInit {
 
   filter(event: TableFilterEvent){
     if (this.hasLazyLoad && this.selectionMode === 'multiple')
-      this.selectAll(false); // FT: We need to do it like this because: totalRecords: 1 -> selectedRecords from earlyer selection 2 -> unselect current -> all checkbox is set to true
+      this.selectAll(false); // We need to do it like this because: totalRecords: 1 -> selectedRecords from earlyer selection 2 -> unselect current -> all checkbox is set to true
 
     if (this.hasLazyLoad === false && this.selectionMode === 'multiple') {
       if (this.clientFilterCount === 0) {
@@ -254,18 +242,18 @@ export class SpiderlyDataTableComponent implements OnInit {
       }
   }
   
-  getColMatchMode(filterType: string){
+  getColMatchMode(filterType: string): any {
     switch (filterType) {
         case 'text':
-          return 'contains';
+          return MatchModeCodes.Contains;
         case 'date':
-          return null;
+          return MatchModeCodes.Equals;
         case 'multiselect':
-          return 'in';
+          return MatchModeCodes.In;
         case 'boolean':
-          return 'equals';
+          return MatchModeCodes.Equals;
         case 'numeric':
-          return null;
+          return MatchModeCodes.Equals
         default:
           return null;
       }
@@ -358,7 +346,7 @@ export class SpiderlyDataTableComponent implements OnInit {
         case 'boolean':
           return rowData[col.field] == true ? this.translocoService.translate('Yes') : this.translocoService.translate('No');
         case 'numeric':
-          // TODO FT: make decimal pipe
+          // TODO make decimal pipe
           return rowData[col.field];
         default:
           return null;
@@ -450,7 +438,7 @@ export class SpiderlyDataTableComponent implements OnInit {
 
     const index = this.unselectedItems.indexOf(id);
     if (index !== -1) {
-      this.unselectedItems.splice(index, 1); // FT: Splice is mutating the array
+      this.unselectedItems.splice(index, 1); // Splice is mutating the array
     }
 
     this.setFakeIsAllSelected();
@@ -468,13 +456,13 @@ export class SpiderlyDataTableComponent implements OnInit {
     const nonLazyLoadIndex = this.selectedItemIds.indexOf(id);
 
     if (index !== -1) {
-      this.newlySelectedItems.splice(index, 1); // FT: Splice is mutating the array
+      this.newlySelectedItems.splice(index, 1); // Splice is mutating the array
     }
     if (fakeIndex !== -1) {
-      this.fakeSelectedItems.splice(fakeIndex, 1); // FT: Splice is mutating the array
+      this.fakeSelectedItems.splice(fakeIndex, 1); // Splice is mutating the array
     }
     if (nonLazyLoadIndex !== -1) {
-      this.selectedItemIds.splice(nonLazyLoadIndex, 1); // FT: Splice is mutating the array
+      this.selectedItemIds.splice(nonLazyLoadIndex, 1); // Splice is mutating the array
     }
 
     this.setFakeIsAllSelected();
@@ -483,7 +471,7 @@ export class SpiderlyDataTableComponent implements OnInit {
 
   //#region Client side table
 
-  // FT: Can do it with Id also, because we are never adding the new record in the table at the same page.
+  // Can do it with Id also, because we are never adding the new record in the table at the same page.
   getFormArrayControlByIndex(formControlName: string, index: number): SpiderlyFormControl{
     if (this.getFormControl) {
       return this.getFormControl(formControlName, index, this.additionalIndexes);
@@ -527,9 +515,9 @@ export class Action {
 }
 
 export class Column<T = any> {
-  name: string;
+  name?: string;
   field?: string & keyof T;
-  filterField?: string & keyof T; // FT: Made specificaly for multiautocomplete, maybe for something more in the future
+  filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
   filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
   filterPlaceholder?: string;
   showMatchModes?: boolean;
@@ -555,7 +543,7 @@ export class Column<T = any> {
     }:{
       name?: string;
       field?: string & keyof T;
-      filterField?: string & keyof T; // FT: Made specificaly for multiautocomplete, maybe for something more in the future;
+      filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future;
       filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
       filterPlaceholder?: string;
       showMatchModes?: boolean;

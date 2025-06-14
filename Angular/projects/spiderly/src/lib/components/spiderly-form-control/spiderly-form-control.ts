@@ -1,4 +1,4 @@
-import { FormArray, FormControl, FormControlOptions, FormControlState, FormGroup, ValidatorFn } from '@angular/forms';
+import { FormArray, FormControl, FormControlOptions, FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { BaseEntity } from '../../entities/base-entity';
 
@@ -11,6 +11,7 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
     public label: string;
     public labelForDisplay: string;
     public required: boolean;
+    public parentClassName: string;
     private _spiderlyValidator: SpiderlyValidatorFn | null;
 
     constructor(value: any, opts: FormControlOptions=null, required:boolean=false) {
@@ -33,10 +34,14 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
     }
 }
 
-export class SpiderlyFormGroup<TValue = any> extends FormGroup {
-    declare controls: { [P in keyof TValue]: SpiderlyFormControl<TValue[P]> };
+type SpiderlyControlsOfType<TValue> = {
+  [P in keyof TValue]: SpiderlyFormControl<TValue[P]>;
+};
 
-    constructor(controls: { [P in keyof TValue]: SpiderlyFormControl<TValue[P]> }) {
+export class SpiderlyFormGroup<TValue = any> extends FormGroup {
+    declare controls: SpiderlyControlsOfType<TValue>;
+
+    constructor(controls: SpiderlyControlsOfType<TValue>) {
         super(controls);
     }
 

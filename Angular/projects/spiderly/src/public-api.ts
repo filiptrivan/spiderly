@@ -42,6 +42,7 @@ export * from './lib/components/spiderly-buttons/spiderly-button/spiderly-button
 export * from './lib/components/spiderly-buttons/spiderly-split-button/spiderly-split-button.component';
 export * from './lib/components/spiderly-buttons/spiderly-button-base/spiderly-button-base';
 export * from './lib/components/spiderly-data-table/spiderly-data-table.component';
+export * from './lib/components/spiderly-data-view/spiderly-data-view.component';
 export * from './lib/components/spiderly-delete-dialog/spiderly-delete-confirmation.component';
 export * from './lib/components/spiderly-form-control/spiderly-form-control';
 export * from './lib/components/spiderly-panels/panel-body/panel-body.component';
@@ -53,8 +54,9 @@ export * from './lib/components/spiderly-panels/spiderly-panels.module';
 export * from './lib/components/layout/sidebar/sidebar-menu.component';
 export * from './lib/components/layout/sidebar/menuitem.component';
 export * from './lib/components/layout/sidebar/sidebar.component';
+export * from './lib/components/layout/sidemenu-topbar/sidemenu-topbar.component';
+export * from './lib/components/layout/layout.component';
 export * from './lib/components/layout/topbar/topbar.component';
-export * from './lib/components/layout/layout-base.component';
 
 export * from './lib/entities/base-entity';
 export * from './lib/entities/codebook';
@@ -77,6 +79,7 @@ export * from './lib/entities/is-authorized-for-save-event';
 
 export * from './lib/enums/security-enums';
 export * from './lib/enums/verification-type-codes';
+export * from './lib/enums/match-mode-enum-codes';
 
 export * from './lib/guards/auth.guard';
 export * from './lib/guards/not-auth.guard';
@@ -100,3 +103,5 @@ export * from './lib/services/spiderly-transloco-loader';
 export * from './lib/services/translate-labels-abstract.service';
 export * from './lib/services/validator-abstract.service';
 export * from './lib/services/app-layout-base.service';
+
+export * from './lib/directives/template-type.directive';

@@ -276,13 +276,13 @@
 }
 
 .gray-separator{
-	border-top: 1px solid $shade400;
+	border-top: 1px solid var(--p-content-border-color);
 	width: 100%;
 }
 
 // FT: You need to manually adjust the height
 .vertical-gray-separator{
-	border-left: 1px solid $shade400;
+	border-left: 1px solid var(--p-content-border-color);
 }
 
 .hover-card {
@@ -292,7 +292,7 @@
 }
 
 .hover-card:hover {
-	background-color: var(--p-surface-100);
+	background-color: var(--p-content-hover-background);
 }
 
 .dialog{
@@ -428,7 +428,7 @@
 }
 
 .icon-hover:hover {
-	background-color: $shade200;
+	background-color: var(--p-content-hover-background);
 }
 
 .gray-color {
@@ -541,4 +541,10 @@
   @media (min-width: 600px) {
     font-size: 4.5rem;
   }
+}
+
+ul, ol {
+  padding-left: 25px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }

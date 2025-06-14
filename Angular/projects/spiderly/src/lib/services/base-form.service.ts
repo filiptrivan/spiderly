@@ -28,7 +28,7 @@ export class BaseFormService {
       return null;
 
     if (formGroup == null)
-      console.error('FT: You need to instantiate the form group.')
+      console.error('Spiderly: You need to instantiate the form group.')
 
     this.initFormGroup(formGroup, modelConstructor, updateOnChangeControls);
     parentFormGroup.setControl(propertyNameInSaveBody, formGroup); // FT: Use setControl because it will update formGroup if it already exists
@@ -42,7 +42,7 @@ export class BaseFormService {
     updateOnChangeControls?: (keyof T)[]
   ) => {
     if (formGroup == null)
-      console.error('FT: You need to instantiate the form group.')
+      console.error('Spiderly: You need to instantiate the form group.')
 
     Object.keys(modelConstructor).forEach((formControlName) => {
       let formControl: SpiderlyFormControl;
@@ -60,6 +60,7 @@ export class BaseFormService {
 
       formControl.label = formControlName;
       formControl.labelForDisplay = this.getTranslatedLabel(formControlName);
+      formControl.parentClassName = modelConstructor.typeName;
 
       formGroup.setControl(formControlName, formControl); // FT: Use setControl because it will update formControl if it already exists
 
@@ -147,7 +148,7 @@ export class BaseFormService {
 
   //#region Helpers
 
-  // FT: If you want to call single method
+  // If you want to call single method
   checkFormGroupValidity = <T>(formGroup: SpiderlyFormGroup<T>): boolean => {
     if (formGroup.invalid) {
       Object.keys(formGroup.controls).forEach(key => {

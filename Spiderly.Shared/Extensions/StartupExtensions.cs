@@ -42,7 +42,7 @@ namespace Spiderly.Shared.Extensions
 
             services.AddCors();
 
-            services.SpiderlyConfigureCulture(); // FT: It's mandatory to be before AddControllers
+            services.SpiderlyConfigureCulture(); // It's mandatory to be before AddControllers
 
             services.SpiderAddControllers();
 

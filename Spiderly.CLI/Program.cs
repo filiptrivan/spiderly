@@ -34,7 +34,13 @@ namespace Spiderly.CLI
 
             if (args.HasArg("init"))
             {
-                await Init();
+                bool hasTopMenu = false;
+                if (args.HasArg("--top-menu"))
+                {
+                    hasTopMenu = true;
+                }
+
+                await Init(hasTopMenu);
                 return;
             }
 
@@ -45,7 +51,6 @@ namespace Spiderly.CLI
             }
 
             Console.WriteLine("\nUnrecognized command. Type 'spiderly help' to see a list of available commands.");
-
 
             //IConfiguration config = new ConfigurationBuilder()
             //    .AddCommandLine(args)
@@ -63,12 +68,12 @@ namespace Spiderly.CLI
             Console.WriteLine("Usage: [command] [options]");
             Console.WriteLine();
             Console.WriteLine("Commands:");
-            Console.WriteLine("  help               Display this help message.");
+            Console.WriteLine("  help                 Display this help message.");
             Console.WriteLine("  init                 Initialize a new project.");
-            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations.");
+            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for an entity.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
-            Console.WriteLine("  app-name             Specify the name of the application (no spaces allowed).");
+            Console.WriteLine("  --top-menu           Use a top menu layout instead of the default side menu layout.");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  spiderly help");
@@ -78,7 +83,7 @@ namespace Spiderly.CLI
 
         #region Init
 
-        private static async Task Init()
+        private static async Task Init(bool hasTopMenu)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -116,7 +121,7 @@ namespace Spiderly.CLI
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, null);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isFromNuget: true, primaryColor: null, hasTopMenu);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
@@ -227,7 +232,7 @@ namespace Spiderly.CLI
 
             while (true)
             {
-                Console.Write("Entity name without spaces (e.g., YourNewEntityName): ");
+                Console.Write("Entity name without spaces (e.g., YourEntityName): ");
                 entityName = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(entityName))

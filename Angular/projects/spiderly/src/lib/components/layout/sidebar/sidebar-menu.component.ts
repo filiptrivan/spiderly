@@ -9,14 +9,17 @@ import { MenuitemComponent } from './menuitem.component';
 import { CommonModule } from '@angular/common';
 import { PrimeNGIcon } from '../../../entities/primeng-icon.enum';
 
+
 export interface SpiderlyMenuItem extends Omit<MenuItem, 'icon'> {
+
+export interface SpiderlyMenuItem extends MenuItem {
     hasPermission?: (permissionCodes: string[]) => boolean;
     showPartnerDialog?: boolean;
     icon?: PrimeNGIcon;
 }
 
 @Component({
-    selector: 'sidebar-menu', // FT: Don't chane selector to 'menu', because other style will apply to it
+    selector: 'sidebar-menu', // FT: Don't change selector to 'menu', because other style will apply to it
     templateUrl: './sidebar-menu.component.html',
     imports: [
         CommonModule,

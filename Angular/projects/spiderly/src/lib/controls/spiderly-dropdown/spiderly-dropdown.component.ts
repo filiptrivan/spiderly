@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
@@ -18,11 +18,11 @@ import { TooltipModule } from 'primeng/tooltip';
         SelectModule,
         TooltipModule,
         CommonModule,
-        RequiredComponent
+        RequiredComponent,
     ]
 })
 export class SpiderlyDropdownComponent extends BaseDropdownControl implements OnInit {
-    @Output() onChange: EventEmitter<DropdownChangeEvent> = new EventEmitter();
+    @Output() onChange = new EventEmitter<DropdownChangeEvent>();
 
     constructor(
         protected override translocoService: TranslocoService,

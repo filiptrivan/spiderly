@@ -1,0 +1,60 @@
+<ng-container *transloco="let t">
+  <div
+  *ngIf="this.currentUser != null"
+  #topbarmenu
+  >
+    <div
+      #topbarprofiledropdownmenubutton
+      (click)="layoutService.showProfileDropdownSidebar()"
+    >
+    <p-avatar
+        *ngIf="showProfileIcon"
+        [label]="avatarLabel"
+        [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'width': '34px', 'height': '34px', 'font-size': '21px' }"
+        pBadge 
+        [badgeStyleClass]="'p-badge-danger'"
+        [badgeDisabled]="unreadNotificationsCount == 0 || unreadNotificationsCount == null"
+        [value]="unreadNotificationsCount"
+        />
+    </div>
+    <div
+      #topbarprofiledropdownmenu
+      (document:click)="onDocumentClick($event)"
+    >
+    <div 
+    *ngIf="layoutService.state.profileDropdownSidebarVisible" 
+    [ngStyle]="{'right': isSideMenuLayout ? '26px' : '0', 'top': isSideMenuLayout ? '60px' : '40px'}" 
+    style="width: 280px; position: absolute; padding: 15px;" 
+    class="card">
+      <div style="display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 10px;">
+        <p-avatar
+          [label]="avatarLabel"
+          size="xlarge"
+          [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'margin': 'auto' }"
+          (click)="routeToUserPage()"
+          />
+        <div style="font-size: 15px;">{{currentUser?.email}}</div>
+      </div>
+      <div style="margin-top: 15px;">
+        <div *ngFor="let item of menuItems" [style]="item.showSeparator ? 'margin-top: 5px;' : ''">
+          <div *ngIf="item.showSeparator" class="gray-separator"></div>
+          <div (click)="item.onClick()" class="hover-card" style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+            <i 
+              class="pi pi-fw {{item.icon}} primary-color" 
+              style="font-size: 16px; position: relative;"
+              >
+              <span *ngIf="item.showNotificationBadge && unreadNotificationsCount != 0" class="badge"></span>
+            </i>
+            <div style="font-size: 15px;"> {{item.label}} </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+  <div *ngIf="this.currentUser == null">
+    <spiderly-button [label]="t('Login')" icon="pi pi-sign-in" [routerLink]="this.config.loginSlug"></spiderly-button>
+  </div>
+</ng-container>

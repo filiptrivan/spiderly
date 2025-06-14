@@ -1,0 +1,33 @@
+.topbar-wrapper {
+  background-color: var(--p-content-background); 
+  width: 100%; 
+  border-bottom: 1px solid var(--p-content-border-color); 
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: sticky; 
+  top: 0; 
+  left: 0; 
+  z-index: 1000;
+}
+
+.topbar {
+  max-width: 1100px;
+  margin: auto;
+}
+
+::ng-deep{
+  .p-menubar-item-link {
+    padding: 10px !important;
+    font-size: 15px !important;
+    .pi {
+      font-size: 15px;
+    }
+  }
+  .p-menubar-button {
+    width: 35px !important;
+    height: 35px !important;
+    .p-icon {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}

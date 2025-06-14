@@ -1,0 +1,65 @@
+<ng-container *transloco="let t">
+  <div [class]="showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''">
+    <p-table 
+    #dt 
+    [value]="items" 
+    [rows]="rows" 
+    [rowHover]="true" 
+    responsiveLayout="scroll" 
+    [lazy]="true"
+    (onLazyLoad)="lazyLoad($event)" 
+    [totalRecords]="totalRecords" class="spiderly-table" 
+    [loading]="(items === undefined || loading === true)" 
+    dataKey="id" 
+    (onFilter)="filter($event)"
+    [filterDelay]="500"
+    > 
+      <ng-template #caption>
+        <div *ngIf="filters.length !== 0">
+          <div class="data-view-grid">
+            @for (filter of filters; track $index) {
+              <div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; position: relative;">
+                  <div>
+                    <label>
+                      {{filter.name}}
+                    </label>
+                  </div>
+
+                  <p-columnFilter *ngIf="filter.filterType != null" [type]="filter.filterType" [field]="filter.filterField ?? filter.field" display="row" [placeholder]="filter.filterPlaceholder" 
+                  [showOperator]="false" [showMenu]="filter.showMatchModes" [showMatchModes]="true" [showClearButton]="false" [matchMode]="getDefaultMatchMode(filter.filterType)" [matchModeOptions]="getMatchModeOptions(filter.filterType)" 
+                  >
+                    <!-- Multiselect -->
+                    <ng-container *ngIf="filter.filterType == 'multiselect'">
+                      <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                        <p-multiSelect [ngModel]="value" [options]="filter.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="code" [style]="{'width':'240px'}">
+                          <ng-template let-item pTemplate="item">
+                            <div class="p-multiselect-representative-option">
+                              <span class="ml-2">{{ item.label }}</span>
+                            </div>
+                          </ng-template>
+                        </p-multiSelect>
+                      </ng-template>
+                    </ng-container>
+                  </p-columnFilter>
+                </div>
+              </div>
+            }
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <spiderly-button [label]="t('ApplyFilters')" (onClick)="applyFilters()" icon="pi pi-search"></spiderly-button>
+            <spiderly-button [label]="t('ClearFilters')" (onClick)="clearFilters()" icon="pi pi-filter-slash"></spiderly-button>
+          </div>
+        </div>
+      </ng-template>
+      <ng-template #body let-rowData let-index="rowIndex">
+        <tr class="card" style="padding: 0; margin-bottom: 0;">
+          <td (click)="navigateToDetails(rowData.id)" style="display: block; border: 0; cursor: pointer;">
+            <ng-container *ngTemplateOutlet="cardBody; context: { $implicit: rowData, item: rowData, index: index }">
+            </ng-container>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</ng-container>

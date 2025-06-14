@@ -30,6 +30,8 @@ export class ConfigBaseService
         params: new HttpParams().set('X-Skip-Spinner', 'true')
     };
 
+    logoPath = 'assets/images/logo/logo.svg';
+
     constructor(
     ) {
     }

@@ -1,5 +1,5 @@
 export class TableFilterSortMeta
 {
-    Field: string;
-    Order: number;
+    field: string;
+    order: number;
 }

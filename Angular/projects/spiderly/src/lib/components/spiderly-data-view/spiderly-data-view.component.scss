@@ -1,0 +1,50 @@
+::ng-deep{
+	.p-datatable-tbody {
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+
+	.p-datatable-header {
+		margin-bottom: 36px;
+		border: 0 !important;
+		padding: 0 !important;
+		background-color: transparent !important;
+	}
+
+	.p-fluid {
+		width: 100% !important;
+	}
+
+	.p-inputtext {
+		width: 100% !important;
+	}
+
+	.p-inputnumber {
+		width: 100% !important;
+	}
+
+	.p-datepicker {
+		width: 100% !important;
+	}
+}
+
+.data-view-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1fr 1fr 1fr;
+	margin-bottom: 18px;
+}
+
+@media (max-width: 1080px) {
+    .data-view-grid {
+        gap: 12px;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 500px) {
+    .data-view-grid {
+        grid-template-columns: 1fr;
+    }
+}

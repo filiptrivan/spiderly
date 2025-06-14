@@ -1,10 +1,11 @@
 import { BaseEntity } from "../entities/base-entity";
 import { TableFilterContext } from "../entities/table-filter-context";
 import { TableFilterSortMeta } from "../entities/table-filter-sort-meta";
+import { MatchModeCodes } from "../enums/match-mode-enum-codes";
 
-export class TableFilter extends BaseEntity
+export class TableFilter<T extends BaseEntity=any> extends BaseEntity
 {
-    filters?: Map<string, TableFilterContext[]>;
+    filters?: { [K in keyof T]?: { value: any; matchMode: MatchModeCodes }[] };
     first?: number;
     rows?: number;
     sortField?: string;
@@ -24,7 +25,7 @@ export class TableFilter extends BaseEntity
         additionalFilterIdInt,
         additionalFilterIdLong,
     }:{
-        filters?: Map<string, TableFilterContext[]>;
+        filters?: { [K in keyof T]?: { value: any; matchMode: MatchModeCodes }[] };
         first?: number;
         rows?: number;
         sortField?: string;

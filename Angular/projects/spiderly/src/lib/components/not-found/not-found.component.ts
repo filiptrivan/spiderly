@@ -13,6 +13,7 @@ import { ButtonModule } from 'primeng/button';
 })
 export class NotFoundComponent { 
     companyName = this.config.companyName;
+    logoPath: string = this.config.logoPath;
 
     constructor(
         private config: ConfigBaseService
