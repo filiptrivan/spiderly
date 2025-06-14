@@ -24,8 +24,8 @@ import { TopBarComponent } from './topbar/topbar.component';
 })
 export class SpiderlyLayoutComponent implements OnDestroy {
     @Input() menu: SpiderlyMenuItem[] = [];
-    sideMenu: MenuItem[] = [];
-    topMenu: MenuItem[] = [];
+    sideMenu: SpiderlyMenuItem[] = [];
+    topMenu: SpiderlyMenuItem[] = [];
     @Input() isSideMenuLayout: boolean = true;
     
     overlayMenuOpenSubscription: Subscription;
