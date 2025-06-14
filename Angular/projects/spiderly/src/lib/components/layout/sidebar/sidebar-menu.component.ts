@@ -7,10 +7,12 @@ import { AuthBaseService } from '../../../services/auth-base.service';
 import { ConfigBaseService } from '../../../services/config-base.service';
 import { MenuitemComponent } from './menuitem.component';
 import { CommonModule } from '@angular/common';
+import { PrimeNGIcon } from '../../../entities/primeng-icon.enum';
 
-export interface SpiderlyMenuItem extends MenuItem{
+export interface SpiderlyMenuItem extends Omit<MenuItem, 'icon'> {
     hasPermission?: (permissionCodes: string[]) => boolean;
-    showPartnerDialog?: boolean; 
+    showPartnerDialog?: boolean;
+    icon?: PrimeNGIcon;
 }
 
 @Component({
