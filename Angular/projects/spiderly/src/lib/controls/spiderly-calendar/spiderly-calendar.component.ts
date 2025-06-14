@@ -6,7 +6,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { TranslocoService } from '@jsverse/transloco';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
-import { SpiderlyDateFormControl } from '../../components/spiderly-form-control/spiderly-form-control';
 
 @Component({
     selector: 'spiderly-calendar',
@@ -22,7 +21,6 @@ import { SpiderlyDateFormControl } from '../../components/spiderly-form-control/
     ]
 })
 export class SpiderlyCalendarComponent extends BaseControl implements OnInit {
-    override control: SpiderlyDateFormControl;
     @Input() showTime: boolean = false;
 
     constructor(
@@ -32,7 +30,6 @@ export class SpiderlyCalendarComponent extends BaseControl implements OnInit {
     }
 
     override ngOnInit(){
-        this.showTime = this.control.showTime;
         super.ngOnInit();
     }
 

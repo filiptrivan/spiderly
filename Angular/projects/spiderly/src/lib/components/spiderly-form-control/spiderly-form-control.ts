@@ -1,13 +1,9 @@
-import { FormArray, FormControl, FormControlOptions, FormControlState, FormGroup, ValidatorFn } from '@angular/forms';
+import { FormArray, FormControl, FormControlOptions, FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { BaseEntity } from '../../entities/base-entity';
 
 export interface SpiderlyValidatorFn extends ValidatorFn {
     hasNotEmptyRule?: boolean;
-}
-
-export interface SpiderlyDateFormControl extends SpiderlyFormControl<Date> {
-  showTime?: boolean;
 }
 
 // It's made like generic type because of <number>, <string> etc. not to put class like User.
@@ -39,9 +35,7 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
 }
 
 type SpiderlyControlsOfType<TValue> = {
-  [P in keyof TValue]: TValue[P] extends Date
-    ? SpiderlyDateFormControl
-    : SpiderlyFormControl<TValue[P]>;
+  [P in keyof TValue]: SpiderlyFormControl<TValue[P]>;
 };
 
 export class SpiderlyFormGroup<TValue = any> extends FormGroup {

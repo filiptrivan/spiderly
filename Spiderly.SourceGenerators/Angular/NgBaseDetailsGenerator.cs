@@ -166,11 +166,13 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetPrimengOptionVariables(entity.Properties, entity, allEntities))}}
 
-{{string.Join("\n", GetSpiderlyFormControls(entity))}}
+{{string.Join("\n", GetCustomSpiderlyFormControls(entity))}}
 
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoadVariables(entity, allEntities))}}
 
 {{GetShowFormBlocksVariables(entity, allEntities, customDTOClasses)}}
+
+{{GetHelperVariables(entity, allEntities, customDTOClasses)}}
 
     constructor(
         private apiService: ApiService,
@@ -298,21 +300,48 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static string GetShowFormBlocksVariables(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
+        private static string GetShowFormBlocksVariables(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             StringBuilder sb = new();
 
-            List<AngularFormBlock> formBlocks = GetAngularFormBlocks(entity, allEntities, customDTOClasses);
+            List<AngularFormBlock> formBlocks = GetAngularFormBlocks(entity, entities, customDTOClasses);
 
             foreach (AngularFormBlock formBlock in formBlocks)
             {
                 sb.AppendLine($$"""
-    @Input() show{{formBlock.Property.Name}}For{{formBlock.Property.EntityName}}: boolean = true;
+    @Input() show{{formBlock.Property.Name}}For{{formBlock.Property.EntityName}} = true;
 """);
             }
 
             return sb.ToString();
         }
+
+        private static string GetHelperVariables(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        {
+            StringBuilder sb = new();
+
+            List<SpiderlyProperty> properties = GetAllFormControlProperties(entity.Properties.ToList(), entities);
+
+            foreach (SpiderlyProperty property in properties)
+            {
+                if (property.IsDropdownControlType())
+                {               
+                sb.AppendLine($$"""
+    @Output() on{{property.Name}}For{{property.EntityName}}Change = new EventEmitter<DropdownChangeEvent>();
+""");
+                }
+                else if (property.Type.StartsWith("DateTime"))
+                {
+                    sb.AppendLine($$"""
+    @Input() showTimeOn{{property.Name}}For{{property.EntityName}} = false;
+""");
+                }
+            }
+
+            return sb.ToString();
+        }
+
+
 
         private static string GetAdditionalPermissionCodes(SpiderlyClass entity)
         {
@@ -645,7 +674,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetSpiderlyFormControls(SpiderlyClass entity)
+        private static List<string> GetCustomSpiderlyFormControls(SpiderlyClass entity)
         {
             List<string> result = new();
 
@@ -1134,7 +1163,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                         x.IsMultiAutocompleteControlType() ||
                         x.HasSimpleManyToManyTableLazyLoadAttribute()
                     ) &&
-                    x.Attributes.Any(x => x.Name == "UIDoNotGenerate") == false
+                    x.HasUIDoNotGenerateAttribute() == false
                 )
                 .OrderBy(x =>
                     x.Attributes.Any(attr => attr.Name == "BlobName") ? 0 :
@@ -1146,6 +1175,51 @@ export class {{entity.Name}}BaseDetailsComponent {
                 .ToList();
 
             return orderedProperties;
+        }
+
+        private static List<SpiderlyProperty> GetAllFormControlProperties(List<SpiderlyProperty> properties, List<SpiderlyClass> entities)
+        {
+            List<SpiderlyProperty> result = new();
+
+            List<SpiderlyProperty> filteredProperties = properties
+                .Where(x =>
+                    x.Name != "Version" &&
+                    x.Name != "Id" &&
+                    x.Name != "CreatedAt" &&
+                    x.Name != "ModifiedAt" &&
+                    (
+                        x.Type.IsEnumerable() == false ||
+                        x.HasUIOrderedOneToManyAttribute() ||
+                        x.IsMultiSelectControlType() ||
+                        x.IsMultiAutocompleteControlType() ||
+                        x.HasSimpleManyToManyTableLazyLoadAttribute()
+                    ) &&
+                    x.HasUIDoNotGenerateAttribute() == false
+                )
+                .ToList();
+
+            foreach (SpiderlyProperty property in filteredProperties)
+            {
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    
+                    List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
+                        .Where(x =>
+                            x.WithMany() != property.Name &&
+                            x.Type.IsEnumerable() == false
+                        )
+                        .ToList();
+
+                    result.AddRange(GetAllFormControlProperties(extractedProperties, entities));
+
+                    continue;
+                }
+
+                result.Add(property);
+            }
+
+            return result;
         }
 
         private static string GetFormControlName(SpiderlyProperty property)
@@ -1164,13 +1238,17 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [decimal]=\"true\" [maxFractionDigits]=\"{property.GetDecimalScale()}\"";
             }
+            else if (controlType == UIControlTypeCodes.Calendar)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
+            }
             else if (controlType == UIControlTypeCodes.File)
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [fileData]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event)\" [disabled]=\"!isAuthorizedForSave\"";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
             }
             else if (controlType == UIControlTypeCodes.Autocomplete)
             {
@@ -1362,6 +1440,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             return $$"""
 import { ValidatorService } from 'src/app/business/services/validators/validators';
+import { DropdownChangeEvent } from 'primeng/dropdown';
 import { TranslateLabelsService } from '../../services/translates/merge-labels';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';

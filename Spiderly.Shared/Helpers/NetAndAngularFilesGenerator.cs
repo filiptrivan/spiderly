@@ -4390,6 +4390,7 @@ export const ThemePreset = definePreset(Aura, {
     },
     "EmptyMessage": "Nema rezultata",
     "ClearFilters": "Uklonite sve filtere",
+    "ApplyFilters": "Primeni filtere",
     "YouDoNotHaveAnyNotifications": "Nemate nijednu notifikaciju.",
     "BadRequestDetails": "Sistem ne može da obradi zahtev. Molimo vas da proverite zahtev i pokušate ponovo."
 }
@@ -4719,6 +4720,7 @@ export const ThemePreset = definePreset(Aura, {
   "LeftCornerPartnersEmptyMessage": "You don't have a profile for any partner",
   "EmptyMessage": "No results",
   "ClearFilters": "Clear all filters",
+  "ApplyFilters": "Apply filters",
   "PartnerNotificationList": "Notifications",
   "PartnerUserList": "Users",
   "YouDoNotHaveAnyNotification": "You do not have any notifications.",

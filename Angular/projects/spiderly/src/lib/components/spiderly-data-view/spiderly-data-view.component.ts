@@ -1,10 +1,8 @@
 import { Component, ContentChild, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
-import { DialogService } from 'primeng/dynamicdialog';
-import { CommonModule, formatDate } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { Observable } from 'rxjs';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
@@ -21,6 +19,8 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
+import { BaseEntity } from '../../entities/base-entity';
+import { PrimengOption } from '../../entities/primeng-option';
 
 @Component({
     selector: 'spiderly-data-view',
@@ -46,7 +46,7 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   @ViewChild('dt') table: Table;
   @Input() items: T[]; // Pass only when hasLazyLoad === false
   @Input() rows: number = 10;
-  @Input() cols: Column[];
+  @Input() filters: Filter<T>[] = [];
   totalRecords: number;
   @Input() showCardWrapper: boolean = true;
   @Output() onLazyLoad: EventEmitter<TableFilter> = new EventEmitter();
@@ -188,4 +188,14 @@ export interface DataViewCardBody<T> {
   $implicit: T;
   item: T;
   index: number;
+}
+
+export interface Filter<T extends BaseEntity> {
+  name?: string;
+  field?: string & keyof T;
+  filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
+  filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
+  filterPlaceholder?: string;
+  showMatchModes?: boolean;
+  dropdownOrMultiselectValues?: PrimengOption[];
 }
