@@ -4,6 +4,12 @@ using CaseConverter;
 using System.Security.Cryptography;
 using Spiderly.Shared.Exceptions;
 using Microsoft.AspNetCore.Routing;
+using Spiderly.Shared.Helpers;
+using Spiderly.Shared.Emailing;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.FluentValidation;
+using Spiderly.Shared.DTO;
 
 namespace Spiderly.Shared.Helpers
 {
