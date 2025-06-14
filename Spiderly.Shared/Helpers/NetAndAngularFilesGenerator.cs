@@ -4944,13 +4944,12 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
         {
             return $$"""
 import { TranslocoService } from '@jsverse/transloco';
-import { Component, OnDestroy, OnInit, Renderer2 } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { AuthService } from 'src/app/business/services/auth/auth.service';
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
 import { ConfigService } from 'src/app/business/services/config.service';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { FooterComponent, LayoutBaseComponent, AppSidebarComponent, AppTopBarComponent, LayoutBaseService, SpiderlyMenuItem} from 'spiderly';
+import { SpiderlyLayoutComponent, SpiderlyMenuItem} from 'spiderly';
 import { CommonModule } from '@angular/common';
 import { BusinessPermissionCodes } from '../enums/business-enums.generated';
 import { SecurityPermissionCodes } from 'spiderly';
