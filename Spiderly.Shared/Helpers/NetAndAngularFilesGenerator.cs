@@ -1100,6 +1100,7 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
 import { ApiService } from '../../../business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
+import { UserExtended } from 'src/app/business/entities/business-entities.generated';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
@@ -1111,7 +1112,7 @@ import { Column, SpiderlyDataTableComponent } from 'spiderly';
     ]
 })
 export class UserTableComponent implements OnInit {
-    cols: Column[];
+    cols: Column<UserExtended>[];
 
     getUserTableDataObservableMethod = this.apiService.getUserExtendedTableData;
     exportUserTableDataToExcelObservableMethod = this.apiService.exportUserExtendedTableDataToExcel;

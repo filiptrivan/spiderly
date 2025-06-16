@@ -63,7 +63,7 @@
       <ng-template pTemplate="emptymessage">
         {{t('NoRecordsFound')}}
       </ng-template>
-      <ng-template pTemplate="paginatorleft">
+      <ng-template *ngIf="showTotalRecordsNumber" pTemplate="paginatorleft">
         {{t('TotalRecords')}}: {{totalRecords}}
       </ng-template>
       <ng-template *ngIf="showPaginatorRightData" pTemplate="paginatorright">

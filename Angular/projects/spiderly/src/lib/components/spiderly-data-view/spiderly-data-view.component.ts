@@ -59,6 +59,7 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
    * Defaults to `false`.
    */
   @Input() showPaginatorRightData: boolean = false;
+  @Input() showTotalRecordsNumber: boolean = false;
   @Input() applyFiltersIcon: string = 'pi pi-filter';
   @Input() clearFiltersIcon: string = 'pi pi-filter-slash';
   

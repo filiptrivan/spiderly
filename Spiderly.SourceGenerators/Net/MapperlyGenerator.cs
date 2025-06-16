@@ -136,11 +136,7 @@ namespace {{basePartOfNamespace}}.DataMappers
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                // FT: This was the code if we store images in our database, delete if you don't need
-//                if (property.Type == "byte[]")
-//                    result.Add($$"""
-//                .Map(dest => dest.{{property.Name}}, src => src.{{property.Name}} == null ? null : Convert.FromBase64String(src.{{property.Name}}))
-//""");
+
             }
 
             return result;

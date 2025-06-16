@@ -27,7 +27,7 @@
             <th [style]="getColHeaderWidth(col.filterType)">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 {{col.name}}
-                <p-columnFilter *ngIf="col.filterType != null" [type]="col.filterType" [field]="col.filterField ?? col.field" display="menu" [placeholder]="col.filterPlaceholder" 
+                <p-columnFilter *ngIf="col.filterType != null && col.filterType !== 'blob'" [type]="col.filterType" [field]="col.filterField ?? col.field" display="menu" [placeholder]="col.filterPlaceholder" 
                 [showOperator]="false" [showMatchModes]="col.showMatchModes" [showAddButton]="col.showAddButton" [matchModeOptions]="getColMatchModeOptions(col.filterType)"
                 [matchMode]="getColMatchMode(col.filterType)"
                 >
@@ -54,13 +54,18 @@
               <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData.id, rowData.index)" [ngModel]="isRowSelected(rowData.id)" [binary]="true"></p-checkbox>
           </td>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
-            <td [pTooltip]="getRowData(rowData, col)" [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
+            <td [pTooltip]="col.filterType !== 'blob' ? getRowData(rowData, col) : ''" [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
               <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
                 <ng-container *ngFor="let action of col.actions; trackBy: actionTrackByFn" >
                   <span [pTooltip]="action.name" [class]="getClassForAction(action)" (click)="getMethodForAction(action, rowData)"></span>
                 </ng-container>
               </div>
-              {{getRowData(rowData, col)}}
+               <ng-container *ngIf="col.filterType === 'blob'">
+                <img height="45" [src]="getRowData(rowData, col)">
+               </ng-container>
+               <ng-container *ngIf="col.filterType !== 'blob'">
+                {{getRowData(rowData, col)}}
+               </ng-container>
             </td>
             <td *ngIf="col.editable">
               <spiderly-number [control]="getFormArrayControlByIndex(col.field, rowData.index)" [showLabel]="false"></spiderly-number>

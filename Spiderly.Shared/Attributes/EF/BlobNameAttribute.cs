@@ -16,7 +16,8 @@ namespace Spiderly.Shared.Attributes.EF
     /// public class User : BusinessObject&lt;long&gt;
     /// {
     ///     [BlobName]
-    ///     public string ProfilePictureBlobName { get; set; }
+    ///     [StringLength(80, MinimumLength = 30)] // GUID length
+    ///     public string ProfilePicture { get; set; }
     /// }
     /// </code>
     /// </summary>

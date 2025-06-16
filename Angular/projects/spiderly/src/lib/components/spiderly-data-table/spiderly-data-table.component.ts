@@ -14,7 +14,7 @@ import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module'
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 import { TableResponse } from '../../entities/table-response';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
-import { exportListToExcel } from '../../services/helper-functions';
+import { exportListToExcel, getHtmlImgDisplayString64 } from '../../services/helper-functions';
 import { TableFilter } from '../../entities/table-filter';
 import { TooltipModule } from 'primeng/tooltip';
 import { ButtonModule } from 'primeng/button';
@@ -348,6 +348,10 @@ export class SpiderlyDataTableComponent implements OnInit {
         case 'numeric':
           // TODO make decimal pipe
           return rowData[col.field];
+        case 'blob':
+          console.log(rowData[col.field])
+          return getHtmlImgDisplayString64(rowData[col.field]);
+          // return `<img src="getHtmlImgDisplayString64(rowData[col.field])">`;
         default:
           return null;
       }
@@ -518,7 +522,7 @@ export class Column<T = any> {
   name?: string;
   field?: string & keyof T;
   filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
-  filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
+  filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
   filterPlaceholder?: string;
   showMatchModes?: boolean;
   showAddButton?: boolean;

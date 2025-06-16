@@ -211,13 +211,13 @@ namespace {{basePartOfNamespace}}.Services
         public async virtual Task<TableResponseDTO<{{entity.Name}}DTO>> Get{{entity.Name}}TableData(TableFilterDTO tableFilterPayload, IQueryable<{{entity.Name}}> query, bool authorize)
         {
             PaginationResult<{{entity.Name}}> paginationResult = new();
-            List<{{entity.Name}}DTO> data = null;
+            List<{{entity.Name}}DTO> dtoList = null;
 
             await _context.WithTransactionAsync(async () =>
             {
                 paginationResult = await Get{{entity.Name}}ListForPagination(tableFilterPayload, query);
 
-                data = await paginationResult.Query
+                dtoList = await paginationResult.Query
                     .Skip(tableFilterPayload.First)
                     .Take(tableFilterPayload.Rows)
                     .ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ProjectToConfig())
@@ -225,32 +225,34 @@ namespace {{basePartOfNamespace}}.Services
 
                 if (authorize)
                 {
-                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "data.Select(x => x.Id).ToList()")}}
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
                 }
+
+{{GetPopulateDTOWithBlobPartsForDTOList(entity, entity.Properties)}}
             });
 
-            return new TableResponseDTO<{{entity.Name}}DTO> { Data = data, TotalRecords = paginationResult.TotalRecords };
+            return new TableResponseDTO<{{entity.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
         }
 
         public async Task<byte[]> Export{{entity.Name}}TableDataToExcel(TableFilterDTO tableFilterPayload, IQueryable<{{entity.Name}}> query, bool authorize)
         {
             PaginationResult<{{entity.Name}}> paginationResult = new();
-            List<{{entity.Name}}DTO> data = null;
+            List<{{entity.Name}}DTO> dtoList = null;
 
             await _context.WithTransactionAsync(async () =>
             {
                 paginationResult = await Get{{entity.Name}}ListForPagination(tableFilterPayload, query);
 
-                data = await paginationResult.Query.ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ExcelProjectToConfig()).ToListAsync();
+                dtoList = await paginationResult.Query.ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ExcelProjectToConfig()).ToListAsync();
 
                 if (authorize)
                 {
-                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "data.Select(x => x.Id).ToList()")}}
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
                 }
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
-            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(data, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
+            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
         }
 
         public async Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query, bool authorize)
