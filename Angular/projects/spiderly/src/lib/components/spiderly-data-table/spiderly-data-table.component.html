@@ -61,7 +61,7 @@
                 </ng-container>
               </div>
                <ng-container *ngIf="col.filterType === 'blob'">
-                <img height="45" [src]="getRowData(rowData, col)">
+                <img height="45" [src]="getRowData(rowData, col)" alt="">
                </ng-container>
                <ng-container *ngIf="col.filterType !== 'blob'">
                 {{getRowData(rowData, col)}}

@@ -200,7 +200,7 @@ export interface Filter<T extends BaseEntity> {
   name?: string;
   field?: string & keyof T;
   filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
-  filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
+  filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
   filterPlaceholder?: string;
   showMatchModes?: boolean;
   dropdownOrMultiselectValues?: PrimengOption[];
