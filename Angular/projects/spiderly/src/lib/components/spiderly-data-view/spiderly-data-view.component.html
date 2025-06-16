@@ -4,7 +4,7 @@
     #dt 
     [value]="items" 
     [rows]="rows" 
-    [rowHover]="true" 
+    [rowHover]="false" 
     responsiveLayout="scroll" 
     [lazy]="true"
     (onLazyLoad)="lazyLoad($event)" 
@@ -13,6 +13,7 @@
     dataKey="id" 
     (onFilter)="filter($event)"
     [filterDelay]="500"
+    [paginator]="true"
     > 
       <ng-template #caption>
         <div *ngIf="filters.length !== 0">
@@ -29,7 +30,6 @@
                   <p-columnFilter *ngIf="filter.filterType != null" [type]="filter.filterType" [field]="filter.filterField ?? filter.field" display="row" [placeholder]="filter.filterPlaceholder" 
                   [showOperator]="false" [showMenu]="filter.showMatchModes" [showMatchModes]="true" [showClearButton]="false" [matchMode]="getDefaultMatchMode(filter.filterType)" [matchModeOptions]="getMatchModeOptions(filter.filterType)" 
                   >
-                    <!-- Multiselect -->
                     <ng-container *ngIf="filter.filterType == 'multiselect'">
                       <ng-template pTemplate="filter" let-value let-filter="filterCallback">
                         <p-multiSelect [ngModel]="value" [options]="filter.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="code" [style]="{'width':'240px'}">
@@ -47,18 +47,27 @@
             }
           </div>
           <div style="display: flex; gap: 12px;">
-            <spiderly-button [label]="t('ApplyFilters')" (onClick)="applyFilters()" icon="pi pi-search"></spiderly-button>
-            <spiderly-button [label]="t('ClearFilters')" (onClick)="clearFilters()" icon="pi pi-filter-slash"></spiderly-button>
+            <spiderly-button [label]="t('ApplyFilters')" (onClick)="applyFilters()" [icon]="applyFiltersIcon"></spiderly-button>
+            <spiderly-button [label]="t('ClearFilters')" (onClick)="clearFilters()" [icon]="clearFiltersIcon"></spiderly-button>
           </div>
         </div>
       </ng-template>
       <ng-template #body let-rowData let-index="rowIndex">
-        <tr class="card" style="padding: 0; margin-bottom: 0;">
-          <td (click)="navigateToDetails(rowData.id)" style="display: block; border: 0; cursor: pointer;">
+        <tr style="padding: 0; margin-bottom: 0;">
+          <td style="display: block; border: 0; padding: 0;">
             <ng-container *ngTemplateOutlet="cardBody; context: { $implicit: rowData, item: rowData, index: index }">
             </ng-container>
           </td>
         </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        {{t('NoRecordsFound')}}
+      </ng-template>
+      <ng-template pTemplate="paginatorleft">
+        {{t('TotalRecords')}}: {{totalRecords}}
+      </ng-template>
+      <ng-template *ngIf="showPaginatorRightData" pTemplate="paginatorright">
+        <ng-content select="[PAGINATORRIGHT]"></ng-content>
       </ng-template>
     </p-table>
   </div>

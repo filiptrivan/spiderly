@@ -15,7 +15,13 @@
 }
 
 ::ng-deep{
+  .show-hover-bg-on-root-items {
+    .p-menubar-root-list > .p-menubar-item > .p-menubar-item-content {
+      background-color: transparent !important;
+    }
+  }
   .p-menubar-item-link {
+    background-color: transparent !important;
     padding: 10px !important;
     font-size: 15px !important;
     .pi {

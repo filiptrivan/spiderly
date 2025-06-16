@@ -7,7 +7,6 @@ import { LayoutBaseService } from '../../services/app-layout-base.service';
 import { SpiderlyMenuItem } from './sidebar/sidebar-menu.component';
 import { CommonModule } from '@angular/common';
 import { FooterComponent } from '../footer/footer.component';
-import { MenuItem } from 'primeng/api';
 import { TopBarComponent } from './topbar/topbar.component';
 
 @Component({
@@ -27,6 +26,11 @@ export class SpiderlyLayoutComponent implements OnDestroy {
     sideMenu: SpiderlyMenuItem[] = [];
     topMenu: SpiderlyMenuItem[] = [];
     @Input() isSideMenuLayout: boolean = true;
+    /**
+     * Determines whether to show background color on hover
+     * for root top menu items. Defaults to `false`.
+     */
+    @Input() showHoverBgOnRootTopMenuItems: boolean = false;
     
     overlayMenuOpenSubscription: Subscription;
 

@@ -1,5 +1,4 @@
 import { Component, ContentChild, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, TemplateRef, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -44,12 +43,24 @@ import { PrimengOption } from '../../entities/primeng-option';
 })
 export class SpiderlyDataViewComponent<T> implements OnInit {
   @ViewChild('dt') table: Table;
-  @Input() items: T[]; // Pass only when hasLazyLoad === false
+  /**
+   * List of items in the table.
+   * Should be provided only when `hasLazyLoad === false`.
+  */
+  @Input() items: T[];
   @Input() rows: number = 10;
   @Input() filters: Filter<T>[] = [];
   totalRecords: number;
-  @Input() showCardWrapper: boolean = true;
   @Output() onLazyLoad: EventEmitter<TableFilter> = new EventEmitter();
+
+  @Input() showCardWrapper: boolean = true;
+  /**
+   * Whether to display additional data on the right side of the paginator.
+   * Defaults to `false`.
+   */
+  @Input() showPaginatorRightData: boolean = false;
+  @Input() applyFiltersIcon: string = 'pi pi-filter';
+  @Input() clearFiltersIcon: string = 'pi pi-filter-slash';
   
   @Input() getTableDataObservableMethod: (tableFilter: TableFilter) => Observable<TableResponse>;
 
@@ -62,8 +73,6 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   @ContentChild('cardBody', { read: TemplateRef }) cardBody!: TemplateRef<any>;
 
   constructor(
-    private router: Router,
-    private route: ActivatedRoute,
     private translocoService: TranslocoService,
     @Inject(LOCALE_ID) private locale: string
   ) {}
@@ -155,10 +164,6 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
         default:
           return [];
       }
-  }
-
-  navigateToDetails(rowId: number){
-    this.router.navigate([rowId], {relativeTo: this.route});
   }
 
   reload(){

@@ -1,3 +1,4 @@
+
 ::ng-deep{
 	.p-datatable-tbody {
 		display: flex;
@@ -10,6 +11,10 @@
 		border: 0 !important;
 		padding: 0 !important;
 		background-color: transparent !important;
+	}
+
+	.p-paginator {
+		padding: 18px 9px 0px 9px !important;
 	}
 
 	.p-fluid {
@@ -28,6 +33,7 @@
 		width: 100% !important;
 	}
 }
+
 
 .data-view-grid {
     display: grid;

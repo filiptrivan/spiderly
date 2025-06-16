@@ -25,6 +25,11 @@ export class TopBarComponent {
   @Input() menu: SpiderlyMenuItem[] = [];
   companyName = this.config.companyName;
   logoPath = this.config.logoPath;
+  /**
+ * Determines whether to show background color on hover
+ * for root menu items. Defaults to `false`.
+ */
+  @Input() showHoverBgOnRootItems: boolean = false;
 
   private permissionSubscription: Subscription | null = null;
 

@@ -4392,6 +4392,7 @@ export const ThemePreset = definePreset(Aura, {
     "ClearFilters": "Uklonite sve filtere",
     "ApplyFilters": "Primeni filtere",
     "YouDoNotHaveAnyNotifications": "Nemate nijednu notifikaciju.",
+    "LoginRequired": "Morate biti prijavljeni da biste izvršili ovu radnju. Molimo prijavite se i pokušajte ponovo.",
     "BadRequestDetails": "Sistem ne može da obradi zahtev. Molimo vas da proverite zahtev i pokušate ponovo."
 }
 """;
@@ -4726,6 +4727,7 @@ export const ThemePreset = definePreset(Aura, {
   "YouDoNotHaveAnyNotification": "You do not have any notifications.",
   "YouDoNotHaveAnyAchievement": "You haven't earned any points yet.",
   "PointsHistory": "Points History",
+  "LoginRequired": "You need to be logged in to perform this action. Please log in and try again.",
   "BadRequestDetails": "The system cannot process the request. Please check your request and try again.",
   "BusinessSystemList": "Business systems",
   "BusinessSystem": "Business system"

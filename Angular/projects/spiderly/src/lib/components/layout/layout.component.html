@@ -13,7 +13,7 @@
 </div>
 
 <div *ngIf="isSideMenuLayout === false">
-    <spiderly-topbar [menu]="topMenu">
+    <spiderly-topbar [menu]="topMenu" [showHoverBgOnRootItems]="showHoverBgOnRootTopMenuItems">
         <ng-content ACTIONS select="[ACTIONS]"></ng-content>
     </spiderly-topbar>
     <main style="max-width: 1100px; margin: auto; padding: 18px;">

@@ -1,5 +1,5 @@
 <div class="topbar-wrapper">
-  <nav class="topbar">
+  <nav class="topbar {{showHoverBgOnRootItems ? '' : 'show-hover-bg-on-root-items'}}">
     <p-menubar [model]="menu" [style]="{ border: '0' }">
       <ng-template #start>
         <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" [src]="logoPath" alt="Logo">

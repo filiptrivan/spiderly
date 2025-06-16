@@ -28,6 +28,22 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       );
       return of(err.message);
     } 
+    else if (err.status == 400) {
+      messageService.warningMessage(
+        errorResponse.message ?? translocoService.translate('BadRequestDetails'),
+        translocoService.translate('Warning'),
+      );
+
+      return of(err.message);
+    } 
+    else if (err.status == 401) {
+      messageService.warningMessage(
+        errorResponse.message ?? translocoService.translate('LoginRequired'),
+        translocoService.translate('Warning'),
+      );
+
+      return of(err.message);
+    } 
     else if (err.status == 403) {
       messageService.warningMessage(
         translocoService.translate('PermissionErrorDetails'),
@@ -42,19 +58,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       );
       return of(err.message);
     } 
-    else if (err.status == 400 || err.status == 401) {
-      messageService.warningMessage(
-        errorResponse.message ?? translocoService.translate('BadRequestDetails'),
-        translocoService.translate('Warning'),
-      );
-
-      if(err.status == 401) {
-        // authService.logout();
-      }
-
-      return of(err.message);
-    } 
-    else if (err.status == 419) { // FT: We don't want to show error message to the user, we just log him out.
+    else if (err.status == 419) { // Access token expired
       return of(err.message);
     } 
     else {
