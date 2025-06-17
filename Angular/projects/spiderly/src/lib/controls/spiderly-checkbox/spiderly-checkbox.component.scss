@@ -1,0 +1,23 @@
+::ng-deep {
+    .p-checkbox-false {
+        .p-checkbox-box {
+            border-color: var(--p-checkbox-checked-border-color);
+            background: var(--p-checkbox-checked-background);
+        }
+        .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {
+            border-color: var(--p-checkbox-checked-hover-border-color);
+            background: var(--p-checkbox-checked-hover-background);
+        }
+        .p-checkbox-false:has(.p-checkbox.p-disabled) .p-checkbox-false-icon {
+            color: var(--p-checkbox-icon-disabled-color);
+        }
+    }
+}
+
+.p-checkbox-false-icon {
+    position: absolute; 
+    top: 3px; 
+    left: 2.7px; 
+    font-size: 12.25px; 
+    color: var(--p-checkbox-icon-checked-color);
+}

@@ -346,12 +346,10 @@ export class SpiderlyDataTableComponent implements OnInit {
         case 'boolean':
           return rowData[col.field] == true ? this.translocoService.translate('Yes') : this.translocoService.translate('No');
         case 'numeric':
-          // TODO make decimal pipe
+          // TODO: make decimal pipe
           return rowData[col.field];
         case 'blob':
-          console.log(rowData[col.field])
           return getHtmlImgDisplayString64(rowData[col.field]);
-          // return `<img src="getHtmlImgDisplayString64(rowData[col.field])">`;
         default:
           return null;
       }

@@ -32,7 +32,7 @@ import { TranslocoService } from '@jsverse/transloco';
       if(this.control != null && this.disabled == true)
         this.control.disable();
 
-       this.errorMessageTooltipEvent = window.innerWidth > 1000 ? 'hover' : 'focus'
+      this.errorMessageTooltipEvent = window.innerWidth > 1000 ? 'hover' : 'focus'
     }
 
     ngAfterViewInit(){

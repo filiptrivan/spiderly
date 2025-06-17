@@ -3,14 +3,21 @@
       <label>{{getTranslatedLabel()}}</label>
       <required *ngIf="control?.required"></required>
     </div>
-    <div class="p-inputgroup p-fluid" style="margin-top: 0.5rem;">
+    <div style="margin-top: 0.5rem; position: relative;">
         <p-checkbox
+        [class]="control.value === false ? 'p-checkbox-false' : ''"
         *ngIf="control"
         [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid" 
         [formControl]="control"
         [value]="inlineLabel ? label : null"
         [id]="label"
         [binary]="true"
+        (onChange)="change()"
         />
+        <i 
+        *ngIf="control.value === false" 
+        class="pi pi-times p-checkbox-false-icon" 
+        [style.color]="control.disabled ? 'var(--p-checkbox-icon-disabled-color)' : 'var(--p-checkbox-icon-checked-color)'"
+        ></i>
     </div>
 </div>
