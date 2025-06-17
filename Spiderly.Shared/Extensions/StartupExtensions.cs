@@ -28,7 +28,7 @@ namespace Spiderly.Shared.Extensions
     {
         #region ConfigureServices
 
-        public static void SpiderlyConfigureServices<TDbContext>(this IServiceCollection services) where TDbContext : DbContext, IApplicationDbContext
+        public static void SpiderlyConfigureServices<TDbContext>(this IServiceCollection services, string languageTag = "en") where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddMemoryCache();
 
@@ -42,7 +42,7 @@ namespace Spiderly.Shared.Extensions
 
             services.AddCors();
 
-            services.SpiderlyConfigureCulture(); // It's mandatory to be before AddControllers
+            services.SpiderlyConfigureCulture(languageTag); // It's mandatory to be before AddControllers
 
             services.SpiderAddControllers();
 
@@ -91,16 +91,16 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyConfigureCulture(this IServiceCollection services)
+        public static void SpiderlyConfigureCulture(this IServiceCollection services, string languageTag)
         {
             services.Configure<RequestLocalizationOptions>(options =>
             {
                 CultureInfo[] supportedCultures = new[]
                 {
-                    new CultureInfo("sr-Latn-RS")
+                    new CultureInfo(languageTag)
                 };
 
-                options.DefaultRequestCulture = new RequestCulture("sr-Latn-RS");
+                options.DefaultRequestCulture = new RequestCulture(languageTag);
                 options.SupportedCultures = supportedCultures;
                 options.SupportedUICultures = supportedCultures;
             });
