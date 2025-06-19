@@ -311,21 +311,10 @@ namespace Spiderly.Shared.Helpers
                                     new SpiderlyFolder
                                     {
                                         Name = "DTO",
-                                        ChildFolders =
+                                        Files = new List<SpiderlyFile>
                                         {
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "Partials",
-                                                Files = new List<SpiderlyFile>
-                                                {
-                                                    new SpiderlyFile { Name = "NotificationDTO.cs", Data = GetNotificationDTOCsData(appName) },
-                                                    new SpiderlyFile { Name = "NotificationSaveBodyDTO.cs", Data = GetNotificationSaveBodyDTOCsData(appName) },
-                                                }
-                                            },
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "Helpers"
-                                            },
+                                            new SpiderlyFile { Name = "NotificationDTO.cs", Data = GetNotificationDTOCsData(appName) },
+                                            new SpiderlyFile { Name = "NotificationSaveBodyDTO.cs", Data = GetNotificationSaveBodyDTOCsData(appName) },
                                         }
                                     },
                                     new SpiderlyFolder
