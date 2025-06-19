@@ -2,73 +2,56 @@
 using Microsoft.EntityFrameworkCore;
 using Spiderly.Shared.Attributes.EF;
 using System.Reflection;
-using Spiderly.Shared.Helpers;
 using System.ComponentModel.DataAnnotations;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.BaseEntities;
+using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Infrastructure
 {
     public static class Extensions
     {
-        public static void ConfigureReferenceTypesSetNull(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
-        {
-            foreach (IMutableEntityType entityType in mutableEntityTypes)
-            {
-                Type clrType = entityType.ClrType;
-
-                foreach (PropertyInfo property in clrType.GetProperties())
-                {
-                    SetNullAttribute setNullAttribute = property.GetCustomAttribute<SetNullAttribute>();
-
-                    if (setNullAttribute == null)
-                        continue;
-
-                    WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
-
-                    modelBuilder.Entity(clrType)
-                        .HasOne(property.PropertyType, property.Name)
-                        .WithMany(withManyAttribute.WithMany)
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired(false)
-                        .HasForeignKey($"{property.Name}Id");
-                }
-            }
-        }
-
         public static void ConfigureManyToManyRelationships(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
         {
             foreach (IMutableEntityType entityType in mutableEntityTypes)
             {
                 Type clrType = entityType.ClrType;
-                List<PropertyInfo> properties = clrType.GetProperties().ToList();
 
-                var m2mMaintanceEntity = properties
-                    .Where(x => x != null && x.GetCustomAttribute<M2MMaintanceEntityAttribute>() != null)
-                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MMaintanceEntityAttribute>() })
-                    .SingleOrDefault();
-
-                var m2mEntity = properties
-                    .Where(x => x != null && x.GetCustomAttribute<M2MEntityAttribute>() != null)
-                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MEntityAttribute>() })
-                    .SingleOrDefault();
-
-                if (m2mMaintanceEntity == null || m2mEntity == null)
+                if (clrType.IsM2MEntity() == false)
                     continue;
 
-                PropertyInfo m2mMaintanceEntityWithManyProperty = mutableEntityTypes
-                    .Where(x => x.Name == m2mMaintanceEntity.Property.PropertyType.FullName)
+                List<PropertyInfo> properties = clrType.GetProperties().ToList();
+
+                List<PropertyInfo> m2mProperties = properties
+                    .Where(x => x != null && x.GetCustomAttribute<M2MWithManyAttribute>() != null)
+                    .ToList();
+
+                if (m2mProperties.Count != 2)
+                    throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {clrType.Name}.");
+
+                var m2mEntity_1 = m2mProperties
+                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>() })
+                    .First();
+
+                var m2mEntity_2 = m2mProperties
+                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>() })
+                    .Last();
+
+                PropertyInfo m2mWithManyProperty_1 = mutableEntityTypes
+                    .Where(x => x.Name == m2mEntity_1.Property.PropertyType.FullName)
                     .SelectMany(x => x.ClrType.GetProperties())
-                    .Where(x => x.Name == m2mMaintanceEntity.Attribute.WithManyProperty)
+                    .Where(x => x.Name == m2mEntity_1.Attribute.WithManyProperty)
                     .SingleOrDefault();
-                PropertyInfo m2mEntityWithManyProperty = mutableEntityTypes
-                    .Where(x => x.Name == m2mEntity.Property.PropertyType.FullName)
+                PropertyInfo m2mWithManyProperty_2 = mutableEntityTypes
+                    .Where(x => x.Name == m2mEntity_2.Property.PropertyType.FullName)
                     .SelectMany(x => x.ClrType.GetProperties())
-                    .Where(x => x.Name == m2mEntity.Attribute.WithManyProperty)
+                    .Where(x => x.Name == m2mEntity_2.Attribute.WithManyProperty)
                     .SingleOrDefault();
 
-                if (m2mMaintanceEntityWithManyProperty == null || m2mEntityWithManyProperty == null)
+                if (m2mWithManyProperty_1 == null || m2mWithManyProperty_2 == null)
                     throw new Exception($"Bad WithManyProperty definitions for {clrType.Name}.");
 
-                List<string> primaryKeys = [$"{m2mMaintanceEntity.Property.Name}Id", $"{m2mEntity.Property.Name}Id"];
+                List<string> primaryKeys = [$"{m2mEntity_1.Property.Name}Id", $"{m2mEntity_2.Property.Name}Id"];
 
                 foreach (PropertyInfo property in properties.Where(x => x != null && x.GetCustomAttribute<KeyAttribute>() != null))
                     primaryKeys.Add($"{property.Name}Id");
@@ -76,84 +59,90 @@ namespace Spiderly.Infrastructure
                 modelBuilder.Entity(clrType)
                     .HasKey(primaryKeys.ToArray());
 
-                if (properties.Count == 2 || (m2mMaintanceEntityWithManyProperty.PropertyType.ToString() != m2mEntityWithManyProperty.PropertyType.ToString()))
+                if (properties.Count == 2 || (m2mWithManyProperty_1.PropertyType.ToString() != m2mWithManyProperty_2.PropertyType.ToString()))
                 {
-                    modelBuilder.Entity(m2mMaintanceEntity.Property.PropertyType)
-                        .HasMany(m2mMaintanceEntity.Attribute.WithManyProperty)
-                        .WithMany(m2mEntity.Attribute.WithManyProperty)
+                    modelBuilder.Entity(m2mEntity_1.Property.PropertyType)
+                        .HasMany(m2mEntity_1.Attribute.WithManyProperty)
+                        .WithMany(m2mEntity_2.Attribute.WithManyProperty)
                         .UsingEntity(
                             clrType,
-                            j => j.HasOne(m2mEntity.Property.Name)
+                            j => j.HasOne(m2mEntity_2.Property.Name)
                                   .WithMany()
-                                  .HasForeignKey($"{m2mEntity.Property.Name}Id"),
-                            j => j.HasOne(m2mMaintanceEntity.Property.Name)
+                                  .HasForeignKey($"{m2mEntity_2.Property.Name}Id"),
+                            j => j.HasOne(m2mEntity_1.Property.Name)
                                   .WithMany()
-                                  .HasForeignKey($"{m2mMaintanceEntity.Property.Name}Id")
+                                  .HasForeignKey($"{m2mEntity_1.Property.Name}Id")
                         );
                 }
                 else
                 {
-                    modelBuilder.Entity(m2mMaintanceEntity.Property.PropertyType)
-                        .HasMany(clrType, m2mMaintanceEntityWithManyProperty.Name)
-                        .WithOne(m2mMaintanceEntity.Property.Name)
-                        .HasForeignKey($"{m2mMaintanceEntity.Property.Name}Id");
+                    modelBuilder.Entity(m2mEntity_1.Property.PropertyType)
+                        .HasMany(clrType, m2mWithManyProperty_1.Name)
+                        .WithOne(m2mEntity_1.Property.Name)
+                        .HasForeignKey($"{m2mEntity_1.Property.Name}Id");
 
-                    modelBuilder.Entity(m2mEntity.Property.PropertyType)
-                        .HasMany(clrType, m2mEntityWithManyProperty.Name)
-                        .WithOne(m2mEntity.Property.Name)
-                        .HasForeignKey($"{m2mEntity.Property.Name}Id");
+                    modelBuilder.Entity(m2mEntity_2.Property.PropertyType)
+                        .HasMany(clrType, m2mWithManyProperty_2.Name)
+                        .WithOne(m2mEntity_2.Property.Name)
+                        .HasForeignKey($"{m2mEntity_2.Property.Name}Id");
                 }
 
             }
         }
 
-        public static void ConfigureManyToOneRequired(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
+        public static void ConfigureManyToOneRelationships(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
         {
             foreach (IMutableEntityType entityType in mutableEntityTypes)
             {
                 Type clrType = entityType.ClrType;
 
+                if (clrType.IsBusinessOrReadonlyEntity() == false)
+                    continue;
+
                 foreach (PropertyInfo property in clrType.GetProperties())
                 {
-                    ManyToOneRequiredAttribute manyToOneRequiredAttribute = property.GetCustomAttribute<ManyToOneRequiredAttribute>();
-
-                    if (manyToOneRequiredAttribute == null)
+                    if (property.IsManyToOneType() == false)
                         continue;
 
                     WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
 
+                    if (withManyAttribute == null)
+                        throw new Exception($"[WithMany({property.Name}.YourOneToManyProperty)] attribute is required for ManyToOne property: {clrType.Name}.{property.Name}.");
+
+                    RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
+
+                    SetNullAttribute setNullAttribute = property.GetCustomAttribute<SetNullAttribute>();
+
+                    DeleteBehavior deleteBehavior;
+                    if (setNullAttribute == null)
+                        deleteBehavior = DeleteBehavior.NoAction;
+                    else
+                        deleteBehavior = DeleteBehavior.SetNull;
+
                     modelBuilder.Entity(clrType)
                         .HasOne(property.PropertyType, property.Name)
                         .WithMany(withManyAttribute.WithMany)
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired(true)
+                        .OnDelete(deleteBehavior)
+                        .IsRequired(requiredAttribute != null)
                         .HasForeignKey($"{property.Name}Id");
                 }
             }
         }
 
-        public static void ConfigureManyToOneCascadeDelete(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
+        private static bool IsBusinessOrReadonlyEntity(this Type type)
         {
-            foreach (IMutableEntityType entityType in mutableEntityTypes)
-            {
-                Type clrType = entityType.ClrType;
+            return
+                type.BaseType == typeof(BusinessObject<byte>) ||
+                type.BaseType == typeof(BusinessObject<int>) ||
+                type.BaseType == typeof(BusinessObject<long>) ||
+                type.BaseType == typeof(ReadonlyObject<byte>) ||
+                type.BaseType == typeof(ReadonlyObject<int>) ||
+                type.BaseType == typeof(ReadonlyObject<long>);
+        }
 
-                foreach (PropertyInfo property in clrType.GetProperties())
-                {
-                    CascadeDeleteAttribute manyToOneCascadeDeleteAttribute = property.GetCustomAttribute<CascadeDeleteAttribute>();
-                    WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
-
-                    if (manyToOneCascadeDeleteAttribute == null || withManyAttribute == null)
-                        continue;
-
-                    modelBuilder.Entity(clrType)
-                        .HasOne(property.PropertyType, property.Name)
-                        .WithMany(withManyAttribute.WithMany)
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired(false)
-                        .HasForeignKey($"{property.Name}Id");
-                }
-            }
+        private static bool IsM2MEntity(this Type type)
+        {
+            return type.GetCustomAttribute<M2MAttribute>() != null;
         }
 
     }

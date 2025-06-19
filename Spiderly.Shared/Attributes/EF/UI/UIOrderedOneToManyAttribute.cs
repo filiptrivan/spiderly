@@ -23,7 +23,7 @@
     ///     [Required]
     ///     public int OrderNumber { get; set; } // Needs to be called OrderNumber
     ///
-    ///     [ManyToOneRequired] // The course item can't exist without the course
+    ///     [Required] // The course item can't exist without the course
     ///     [WithMany(nameof(Course.CourseItems))]
     ///     public virtual Course Course { get; set; }
     /// }

@@ -74,10 +74,8 @@ namespace Spiderly.Infrastructure
                 modelBuilder.Entity<Permission>().Ignore(x => x.DescriptionLatin);
             }
 
-            mutableEntityTypes.ConfigureReferenceTypesSetNull(modelBuilder);
             mutableEntityTypes.ConfigureManyToManyRelationships(modelBuilder);
-            mutableEntityTypes.ConfigureManyToOneRequired(modelBuilder);
-            mutableEntityTypes.ConfigureManyToOneCascadeDelete(modelBuilder);
+            mutableEntityTypes.ConfigureManyToOneRelationships(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }

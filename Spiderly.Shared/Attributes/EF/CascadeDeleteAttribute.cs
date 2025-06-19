@@ -11,8 +11,7 @@ namespace Spiderly.Shared.Attributes.EF
     /// all entities that reference it will automatically be deleted as well. <br/> <br/>
     /// 
     /// <b>This attribute is useful when:</b>
-    /// - Child entities should not exist without their parent<br/>
-    /// - You want cascade delete but don't need the strict validation of <i>[ManyToOneRequired]</i> <br/> <br/>
+    /// - Child entities should not exist without their parent<br/> <br/>
     /// 
     /// <b>Example:</b>
     /// <code>

@@ -14,7 +14,7 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class Extensions
     {
-        #region Case
+        #region Case Extensions
 
         /// <summary>
         /// There is more performant way but this is NET2
@@ -40,73 +40,6 @@ namespace Spiderly.SourceGenerators.Shared
                 case "": return null;
                 default: return input.First().ToString().ToLower() + input.Substring(1);
             }
-        }
-
-        public static string Pluralize(this string word)
-        {
-            if (string.IsNullOrEmpty(word))
-                return word;
-
-            Dictionary<string, string> irregulars = new Dictionary<string, string>
-            {
-                { "Child", "Children" },
-                { "Person", "People" },
-                { "Man", "Men" },
-                { "Woman", "Women" },
-                { "Mouse", "Mice" },
-                { "Foot", "Feet" },
-                { "Tooth", "Teeth" },
-                { "Goose", "Geese" },
-                { "Cactus", "Cacti" },
-                { "Focus", "Foci" },
-                { "Phenomenon", "Phenomena" },
-                { "Analysis", "Analyses" },
-                { "Thesis", "Theses" }
-            };
-
-            if (irregulars.TryGetValue(word, out string plural))
-                return plural;
-
-            HashSet<string> uncountableNouns = new HashSet<string>
-            {
-                "Fish", "Sheep", "Deer", "Species", "Aircraft", "Moose", "Series"
-            };
-
-            if (uncountableNouns.Contains(word))
-                return word;
-
-            if (word.EndsWith("y", StringComparison.OrdinalIgnoreCase) && !IsVowel(word[word.Length - 2]))
-                return word.Substring(0, word.Length - 1) + "ies";
-
-            if (word.EndsWith("s", StringComparison.OrdinalIgnoreCase) ||
-                word.EndsWith("x", StringComparison.OrdinalIgnoreCase) ||
-                word.EndsWith("z", StringComparison.OrdinalIgnoreCase) ||
-                word.EndsWith("ch", StringComparison.OrdinalIgnoreCase) ||
-                word.EndsWith("sh", StringComparison.OrdinalIgnoreCase))
-                return word + "es";
-
-            if (word.EndsWith("f", StringComparison.OrdinalIgnoreCase) && !word.EndsWith("ff", StringComparison.OrdinalIgnoreCase))
-                return word.Substring(0, word.Length - 1) + "ves";
-
-            if (word.EndsWith("fe", StringComparison.OrdinalIgnoreCase) && !word.EndsWith("ffe", StringComparison.OrdinalIgnoreCase))
-                return word.Substring(0, word.Length - 2) + "ves";
-
-            return word + "s";
-        }
-
-        private static bool IsVowel(char c)
-        {
-            return "aeiou".IndexOf(char.ToLower(c)) >= 0;
-        }
-
-        public static string ToCommaSeparatedString<T>(this List<T> input)
-        {
-            List<string> stringList = input.Select(item => item?.ToString() ?? string.Empty).ToList();
-
-            if (stringList.Count > 1)
-                return $"{string.Join(", ", stringList.Take(stringList.Count - 1))} and {stringList.Last()}";
-            else
-                return stringList.FirstOrDefault();
         }
 
         public static string FromPascalToKebabCase(this string pascalCaseString)
@@ -228,7 +161,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         #endregion
 
-        #region IsType
+        #region Is Type
 
         /// <summary>
         /// User -> true
@@ -246,33 +179,6 @@ namespace Spiderly.SourceGenerators.Shared
             return true;
         }
 
-        public static bool IsManyToMany(this SpiderlyClass c)
-        {
-            if (c.BaseType == null)
-                return true;
-
-            return false;
-        }
-
-        public static bool IsAbstract(this ClassDeclarationSyntax c)
-        {
-            return c.Modifiers.Any(x => x.Text == "abstract");
-        }
-
-        /// <summary>
-        /// User : BusinessObject<long> -> true
-        /// User : ReadonlyObject<long> -> false
-        /// </summary>
-        public static bool IsBusinessObject(this SpiderlyClass c)
-        {
-            return c.BaseType?.Contains($"{Helpers.BusinessObject}<") == true;
-        }
-
-        public static bool IsReadonlyObject(this SpiderlyClass c)
-        {
-            return c.BaseType?.Contains($"{Helpers.ReadonlyObject}<") == true;
-        }
-
         public static bool IsEnumerable(this string type)
         {
             return type.Contains("List") || type.Contains("IList") || type.Contains("[]");
@@ -281,11 +187,6 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool IsOneToManyType(this string type)
         {
             return type.Contains("List");
-        }
-
-        public static bool IsEnum(this string type)
-        {
-            return type.EndsWith("Codes") || type.EndsWith("Codes>");
         }
 
         public static bool IsBaseDataType(this string propType)
@@ -316,6 +217,39 @@ namespace Spiderly.SourceGenerators.Shared
                 propType == "Guid?";
         }
 
+        public static bool IsManyToMany(this SpiderlyClass c)
+        {
+            if (c.BaseType == null)
+                return true;
+
+            return false;
+        }
+
+        public static bool IsAbstract(this ClassDeclarationSyntax c)
+        {
+            return c.Modifiers.Any(x => x.Text == "abstract");
+        }
+
+        /// <summary>
+        /// User : BusinessObject<long> -> true
+        /// User : ReadonlyObject<long> -> false
+        /// </summary>
+        public static bool IsBusinessObject(this SpiderlyClass c)
+        {
+            return c.BaseType?.Contains($"{Helpers.BusinessObject}<") == true;
+        }
+
+        public static bool IsReadonlyObject(this SpiderlyClass c)
+        {
+            return c.BaseType?.Contains($"{Helpers.ReadonlyObject}<") == true;
+        }
+
+
+        public static bool IsEnum(this string type)
+        {
+            return type.EndsWith("Codes") || type.EndsWith("Codes>");
+        }
+
         public static bool IsBlob(this SpiderlyProperty property)
         {
             SpiderlyAttribute blobNameAttribute = property.Attributes.Where(x => x.Name == "BlobName").SingleOrDefault();
@@ -324,14 +258,6 @@ namespace Spiderly.SourceGenerators.Shared
                 return false;
 
             return true;
-        }
-
-        public static bool IsTypeNullable(this string dataType)
-        {
-            if (dataType.Contains("?"))
-                return true;
-            else
-                return false;
         }
 
         /// <summary>
@@ -401,16 +327,6 @@ namespace Spiderly.SourceGenerators.Shared
             return entity.Attributes.Any(x => x.Name == "DoNotAuthorize");
         }
 
-        public static bool HasBlobNameAttribute(this List<SpiderlyProperty> properties)
-        {
-            return properties.SelectMany(x => x.Attributes).Any(x => x.Name == "BlobName");
-        }
-
-        public static bool HasExcludeFromDTOAttribute(this SpiderlyProperty property)
-        {
-            return property.Attributes.Any(x => x.Name == "ExcludeFromDTO");
-        }
-
         public static bool HasRequiredAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "Required");
@@ -446,16 +362,6 @@ namespace Spiderly.SourceGenerators.Shared
             return parameter.Attributes.Any(x => x.Name == "FromForm");
         }
 
-        public static bool HasM2MMaintanceEntityAttribute(this SpiderlyProperty property)
-        {
-            return property.Attributes.Any(x => x.Name == "M2MMaintanceEntity");
-        }
-
-        public static bool HasM2MEntityAttribute(this SpiderlyProperty property)
-        {
-            return property.Attributes.Any(x => x.Name == "M2MEntity");
-        }
-
         public static bool HasUIDoNotGenerateAttribute(this SpiderMethod method)
         {
             return method.Attributes.Any(x => x.Name == "UIDoNotGenerate");
@@ -483,11 +389,6 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool IsMultiAutocompleteControlType(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "UIControlType" && x.Value == UIControlTypeCodes.MultiAutocomplete.ToString());
-        }
-
-        public static bool IsTableControlType(this SpiderlyProperty property)
-        {
-            return property.Attributes.Any(x => x.Name == "UIControlType" && x.Value == UIControlTypeCodes.Table.ToString());
         }
 
         public static bool IsDropdownControlType(this SpiderlyProperty property)
@@ -638,7 +539,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)
         {
-            if (property.Attributes.Any(x => x.Name == "ExcludeFromDTO" || x.Name == "M2MMaintanceEntityKey" || x.Name == "M2MEntityKey") ||
+            if (property.Attributes.Any(x => x.Name == "ExcludeFromDTO") ||
                (property.Type.IsOneToManyType() && !property.HasGenerateCommaSeparatedDisplayNameAttribute() && !property.HasIncludeInDTOAttribute())
             )
             {
@@ -678,34 +579,6 @@ namespace Spiderly.SourceGenerators.Shared
 
             // Get the part before the key and append the new value.
             return $"{source.Substring(0, index)}{valueToInsert}";
-        }
-
-        public static string ReplaceEverythingAfterTo(this string source, string keyForReplace, string to, string valueToInsert)
-        {
-            if (string.IsNullOrEmpty(source))
-                return null;
-
-            int keyIndex = source.IndexOf(keyForReplace, StringComparison.Ordinal);
-            if (keyIndex == -1)
-                return source;
-
-            int searchStartIndex = keyIndex + keyForReplace.Length;
-
-            int toIndex = source.IndexOf(to, searchStartIndex, StringComparison.Ordinal);
-            if (toIndex == -1)
-                return source;
-
-            int secondToIndex = source.IndexOf(to, toIndex, StringComparison.Ordinal);
-            if (secondToIndex != -1)
-                toIndex = secondToIndex; // FT: If there are "))" in the source i want to get index of the second
-
-            // Construct the new string:
-            // 1. Everything before keyForReplace remains unchanged.
-            // 2. Insert the new value.
-            // 3. Append everything from 'to' onward.
-            string beforeKey = source.Substring(0, keyIndex);
-            string afterTo = source.Substring(toIndex);
-            return $"{beforeKey}{valueToInsert}{afterTo}";
         }
 
         public static Dictionary<string, string> PrepareForTranslation(this IEnumerable<Dictionary<string, string>> data)

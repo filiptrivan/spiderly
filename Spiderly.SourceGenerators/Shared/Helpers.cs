@@ -235,7 +235,7 @@ namespace Spiderly.SourceGenerators.Shared
                 .SelectMany(x => x.Properties)
                 .Where(prop => 
                     prop.Type.IsManyToOneType() &&
-                    prop.Attributes.Any(x => x.Name == "ManyToOneRequired" || x.Name == "CascadeDelete") &&
+                    prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
                     prop.Type == entityName
                 )
                 .ToList();
@@ -308,18 +308,7 @@ namespace Spiderly.SourceGenerators.Shared
             return entities
                 .Where(x => x.BaseType == null && x.Properties
                     .Any(x => x.Type == entity.Name && x.Attributes
-                        .Any(x => (x.Name == "M2MEntity" || x.Name == "M2MMaintanceEntity") && x.Value == attributeValue)))
-                .SingleOrDefault();
-        }
-
-        public static SpiderlyProperty GetManyToManyPropertyWithAttributeValue(SpiderlyClass manyToManyEntity, string attributeValue)
-        {
-            if (manyToManyEntity == null)
-                return null;
-
-            return manyToManyEntity.Properties
-                .Where(x => x.Attributes
-                    .Any(x => (x.Name == "M2MEntity" || x.Name == "M2MMaintanceEntity") && x.Value == attributeValue))
+                        .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)))
                 .SingleOrDefault();
         }
 
@@ -330,19 +319,19 @@ namespace Spiderly.SourceGenerators.Shared
             if (manyToManyEntity == null)
                 return null;
 
-            SpiderlyProperty manyToManyProperty = GetManyToManyPropertyWithAttributeValue(manyToManyEntity, oneToManyProperty.Name);
-            SpiderlyProperty oppositeManyToManyProperty = null;
+            List<SpiderlyProperty> m2mWithManyProperties = manyToManyEntity.Properties
+                .Where(x => x.Attributes.Any(x => x.Name == "M2MWithMany"))
+                .ToList();
 
-            if (manyToManyProperty.HasM2MMaintanceEntityAttribute())
-            {
-                oppositeManyToManyProperty = manyToManyEntity.Properties.Where(x => x.HasM2MEntityAttribute()).Single();
-            }
-            else if (manyToManyProperty.HasM2MEntityAttribute())
-            {
-                oppositeManyToManyProperty = manyToManyEntity.Properties.Where(x => x.HasM2MMaintanceEntityAttribute()).Single();
-            }
+            if (m2mWithManyProperties.Count != 2)
+                throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {manyToManyEntity.Name}.");
 
-            string propertyName = oppositeManyToManyProperty.Attributes.Where(x => x.Name == "M2MMaintanceEntity" || x.Name == "M2MEntity").Select(x => x.Value).SingleOrDefault();
+            SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties
+                .Where(x => x.Attributes
+                    .Any(x => x.Value != oneToManyProperty.Name))
+                .Single();
+
+            string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single();
 
             return extractedPropertyEntity.Properties.Where(x => x.Name == propertyName).SingleOrDefault();
         }
@@ -985,7 +974,6 @@ namespace Spiderly.SourceGenerators.Shared
                 switch (attribute.Name)
                 {
                     case "Required":
-                    case "ManyToOneRequired":
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "NotEmpty",
@@ -1038,8 +1026,8 @@ namespace Spiderly.SourceGenerators.Shared
                 }
             }
 
-            // FT: If there is no Required nor ManyToOneRequired attribute, we should let user save null to database
-            if (ruleParts.Count > 0 && property.Attributes.Any(x => x.Name == "Required" || x.Name == "ManyToOneRequired") == false)
+            // If there is no Required attribute, we should let user save null to database
+            if (ruleParts.Count > 0 && property.Attributes.Any(x => x.Name == "Required") == false)
             {
                 if (property.Type == "string")
                 {

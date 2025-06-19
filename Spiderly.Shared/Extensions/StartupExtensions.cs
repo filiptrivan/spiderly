@@ -28,11 +28,27 @@ namespace Spiderly.Shared.Extensions
     {
         #region ConfigureServices
 
+        /// <summary>
+        /// The SpiderlyConfigureServices method is an extension method for IServiceCollection that centralizes the registration of various services in a .NET application. It performs the following tasks in sequence: <br/>
+        /// 1. Adds memory caching. <br/>
+        /// 2. Configures JWT-based authentication. <br/>
+        /// 3. Adds authorization support. <br/>
+        /// 4. Registers HttpContextAccessor and HTTP client services. <br/>
+        /// 5. Configures CORS policies. <br/>
+        /// 6. Sets up request localization for a specified culture. <br/>
+        /// 7. Adds controllers with JSON options. <br/>
+        /// 8. Registers Azure Blob Storage clients. <br/>
+        /// 9. Configures the application's database context. <br/>
+        /// 10.	Adds Swagger for API documentation. <br/>
+        /// 11.	Configures rate limiting for requests. <br/>
+        /// <br/>
+        /// This method simplifies service configuration by consolidating related setup logic into one reusable method. <br/>
+        /// </summary>
         public static void SpiderlyConfigureServices<TDbContext>(this IServiceCollection services, string languageTag = "en") where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddMemoryCache();
 
-            services.SpiderAddAuthentication();
+            services.SpiderlyAddAuthentication();
 
             services.AddAuthorization();
 
@@ -44,18 +60,18 @@ namespace Spiderly.Shared.Extensions
 
             services.SpiderlyConfigureCulture(languageTag); // It's mandatory to be before AddControllers
 
-            services.SpiderAddControllers();
+            services.SpiderlyAddControllers();
 
-            services.SpiderAddAzureClients();
+            services.SpiderlyAddAzureClients();
 
-            services.SpiderAddDbContext<TDbContext>(); // https://youtu.be/bN57EDYD6M0?si=CVztRqlj0hBSrFXb
+            services.SpiderlyAddDbContext<TDbContext>(); // https://youtu.be/bN57EDYD6M0?si=CVztRqlj0hBSrFXb
 
-            services.SpiderAddSwaggerGen();
+            services.SpiderlyAddSwaggerGen();
 
             services.AddRateLimiters();
         }
 
-        public static void SpiderAddAuthentication(this IServiceCollection services)
+        public static void SpiderlyAddAuthentication(this IServiceCollection services)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -106,7 +122,7 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderAddControllers(this IServiceCollection services)
+        public static void SpiderlyAddControllers(this IServiceCollection services)
         {
             services
                 .AddControllers()
@@ -117,7 +133,7 @@ namespace Spiderly.Shared.Extensions
                 });
         }
 
-        public static void SpiderAddAzureClients(this IServiceCollection services)
+        public static void SpiderlyAddAzureClients(this IServiceCollection services)
         {
             if (string.IsNullOrEmpty(SettingsProvider.Current.BlobStorageConnectionString))
                 return;
@@ -139,7 +155,7 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderAddDbContext<TDbContext>(this IServiceCollection services) where TDbContext : DbContext, IApplicationDbContext
+        public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services) where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddDbContext<IApplicationDbContext, TDbContext>(options =>
             {
@@ -154,7 +170,7 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderAddSwaggerGen(this IServiceCollection services)
+        public static void SpiderlyAddSwaggerGen(this IServiceCollection services)
         {
             services.AddSwaggerGen(options =>
             {

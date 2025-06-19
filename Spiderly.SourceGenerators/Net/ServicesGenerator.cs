@@ -500,7 +500,7 @@ namespace {{basePartOfNamespace}}.Services
 
                 string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities); // int
 
-                if (extractedPropertyEntityIdType == null) // FT: M2M List, maybe do something else in the future.
+                if (extractedPropertyEntityIdType == null) // M2M List, maybe do something else in the future.
                     continue;
 
                 string extractedPropertyEntityDisplayName = Helpers.GetDisplayNameProperty(extractedPropertyEntity); // Name
@@ -1252,38 +1252,50 @@ namespace {{basePartOfNamespace}}.Services
             if (entity.Properties.Count == Settings.NumberOfPropertiesWithoutAdditionalManyToManyProperties)
                 return null;
 
-            List<SpiderlyProperty> manyToManyProperties = entity.Properties;
+            List<SpiderlyProperty> properties = entity.Properties;
 
-            SpiderlyProperty mainEntityProperty = manyToManyProperties
-                .Where(x => x.Attributes.Any(x => x.Name == "M2MMaintanceEntity"))
-                .SingleOrDefault(); // eg. Category
-            SpiderlyAttribute mainEntityAttribute = mainEntityProperty.Attributes.Where(x => x.Name == "M2MMaintanceEntity").SingleOrDefault();
+            List<SpiderlyProperty> m2mWithManyProperties = properties
+                .Where(x => x.Attributes.Any(x => x.Name == "M2MWithMany"))
+                .ToList();
 
-            SpiderlyProperty extendEntityProperty = manyToManyProperties
-                .Where(x => x.Attributes.Any(x => x.Name == "M2MEntity"))
-                .SingleOrDefault();
-            SpiderlyAttribute extendEntityAttribute = extendEntityProperty.Attributes.Where(x => x.Name == "M2MEntity").SingleOrDefault();
+            if (m2mWithManyProperties.Count != 2)
+                return "YouNeedToDefineTwoM2MWithManyProperties";
 
-            if (mainEntityProperty == null)
+            SpiderlyProperty m2mWithManyProperty_1 = m2mWithManyProperties[0];
+            SpiderlyAttribute m2mWithManyAttribute_1 = m2mWithManyProperty_1.Attributes.Where(x => x.Name == "M2MWithMany").Single();
+
+            SpiderlyProperty m2mWithManyProperty_2 = properties[1];
+            SpiderlyAttribute m2mWithManyAttribute_2 = m2mWithManyProperty_2.Attributes.Where(x => x.Name == "M2MWithMany").Single();
+
+            if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
                 return null;
 
-            if (extendEntityProperty == null)
-                return "YouNeedToDefineExtendEntityAlso";
+            SpiderlyClass m2mEntity_1 = allEntityClasses.Where(x => x.Name == m2mWithManyProperty_1.Type).Single();
+            string m2mEntityIdType_1 = m2mEntity_1.GetIdType(allEntityClasses);
 
-            if (mainEntityAttribute?.Value != extendEntityAttribute?.Value) // FT HACK, FT TODO: For now, when we migrate UserNotification and PartnerUserPartnerNotification, we should change this.
-                return null;
+            SpiderlyClass m2mEntity_2 = allEntityClasses.Where(x => x.Name == m2mWithManyProperty_2.Type).Single();
+            string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
 
-            SpiderlyClass mainEntityClass = allEntityClasses.Where(x => x.Name == mainEntityProperty.Type).Single();
-            string mainEntityIdType = mainEntityClass.GetIdType(allEntityClasses);
+            return $$"""
+{{GetAdditionalFieldsManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity)}}
 
-            SpiderlyClass extendEntityClass = allEntityClasses.Where(x => x.Name == extendEntityProperty.Type).Single();
-            string extendEntityIdType = extendEntityClass.GetIdType(allEntityClasses);
+{{GetAdditionalFieldsManyToManyAdministrationMethod(m2mWithManyProperty_2, m2mWithManyProperty_1, m2mEntityIdType_2, m2mEntityIdType_1, entity)}}
+""";
+        }
 
+        public static string GetAdditionalFieldsManyToManyAdministrationMethod(
+            SpiderlyProperty m2mWithManyProperty_1,
+            SpiderlyProperty m2mWithManyProperty_2,
+            string m2mEntityIdType_1,
+            string m2mEntityIdType_2,
+            SpiderlyClass entity
+        )
+        {
             return $$"""
         /// <summary>
         /// Call this method when you have additional fields in M2M association
         /// </summary>
-        public async Task Update{{extendEntityProperty.Type}}ListFor{{mainEntityProperty.Type}}({{mainEntityIdType}} {{mainEntityProperty.Name.FirstCharToLower()}}Id, List<{{entity.Name}}DTO> selected{{entity.Name}}DTOList)
+        public async Task Update{{m2mWithManyProperty_1.Type}}ListFor{{m2mWithManyProperty_2.Type}}({{m2mEntityIdType_2}} {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id, List<{{entity.Name}}DTO> selected{{entity.Name}}DTOList)
         {
             if (selected{{entity.Name}}DTOList == null)
                 return;
@@ -1292,23 +1304,23 @@ namespace {{basePartOfNamespace}}.Services
 
             await _context.WithTransactionAsync(async () =>
             {
-                // FT: Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
+                // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
 
                 var dbSet = _context.DbSet<{{entity.Name}}>();
-                var {{entity.Name.FirstCharToLower()}}List = await dbSet.Where(x => x.{{mainEntityProperty.Name}}.Id == {{mainEntityProperty.Name.FirstCharToLower()}}Id).ToListAsync();
+                var {{entity.Name.FirstCharToLower()}}List = await dbSet.Where(x => x.{{m2mWithManyProperty_2.Name}}.Id == {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id).ToListAsync();
 
                 foreach ({{entity.Name}}DTO selected{{entity.Name}}DTO in selectedDTOListHelper)
                 {
                     var validationRules = new {{entity.Name}}DTOValidationRules();
                     DefaultValidatorExtensions.ValidateAndThrow(validationRules, selected{{entity.Name}}DTO);
 
-                    var {{entity.Name.FirstCharToLower()}} = {{entity.Name.FirstCharToLower()}}List.Where(x => x.{{extendEntityProperty.Name}}.Id == selected{{entity.Name}}DTO.{{extendEntityProperty.Name}}Id).SingleOrDefault();
+                    var {{entity.Name.FirstCharToLower()}} = {{entity.Name.FirstCharToLower()}}List.Where(x => x.{{m2mWithManyProperty_1.Name}}.Id == selected{{entity.Name}}DTO.{{m2mWithManyProperty_1.Name}}Id).SingleOrDefault();
 
                     if ({{entity.Name.FirstCharToLower()}} == null)
                     {
                         {{entity.Name.FirstCharToLower()}} = TypeAdapter.Adapt<{{entity.Name}}>(selected{{entity.Name}}DTO, Mapper.{{entity.Name}}DTOToEntityConfig());
-                        {{entity.Name.FirstCharToLower()}}.{{mainEntityProperty.Name}} = await GetInstanceAsync<{{mainEntityProperty.Type}}, {{mainEntityIdType}}>({{mainEntityProperty.Name.FirstCharToLower()}}Id, null);
-                        {{entity.Name.FirstCharToLower()}}.{{extendEntityProperty.Name}} = await GetInstanceAsync<{{extendEntityProperty.Type}}, {{extendEntityIdType}}>(selected{{entity.Name}}DTO.{{extendEntityProperty.Name}}Id.Value, null);
+                        {{entity.Name.FirstCharToLower()}}.{{m2mWithManyProperty_2.Name}} = await GetInstanceAsync<{{m2mWithManyProperty_2.Type}}, {{m2mEntityIdType_2}}>({{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id, null);
+                        {{entity.Name.FirstCharToLower()}}.{{m2mWithManyProperty_1.Name}} = await GetInstanceAsync<{{m2mWithManyProperty_1.Type}}, {{m2mEntityIdType_1}}>(selected{{entity.Name}}DTO.{{m2mWithManyProperty_1.Name}}Id.Value, null);
                         dbSet.Add({{entity.Name.FirstCharToLower()}});
                     }
                     else

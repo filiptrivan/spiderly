@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Resources;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,6 +14,8 @@ namespace Spiderly.Shared.Extensions
 {
     public static class Extension
     {
+        #region Case Extensions
+
         public static string FirstCharToUpper(this string input) =>
             input switch
             {
@@ -54,6 +57,28 @@ namespace Spiderly.Shared.Extensions
 
             return false;
         }
+
+        #endregion
+
+        #region Is Type
+
+        /// <summary>
+        /// User -> true
+        /// string -> false
+        /// List<User> -> false
+        /// </summary>
+        public static bool IsManyToOneType(this PropertyInfo property)
+        {
+            Type type = property.PropertyType;
+
+            return type.IsClass &&
+               type != typeof(string) &&
+               !type.Namespace.StartsWith("System") &&
+               !type.Name.StartsWith("Dictionary") &&
+               !type.Name.StartsWith("List");
+        }
+
+        #endregion
 
         #region ResourceManager
 
