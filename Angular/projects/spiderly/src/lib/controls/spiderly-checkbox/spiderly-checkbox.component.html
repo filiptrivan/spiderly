@@ -12,7 +12,7 @@
         [value]="inlineLabel ? label : null"
         [id]="label"
         [binary]="true"
-        (onChange)="change()"
+        (onChange)="change($event)"
         />
         <i 
         *ngIf="control.value === false" 

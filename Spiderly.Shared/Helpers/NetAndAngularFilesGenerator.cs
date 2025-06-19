@@ -1744,9 +1744,9 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withFetch()),
     provideSpiderlyTransloco({
+      preloadLangs: ['en'],
       availableLangs: [
         'en', 'en.generated',
-        'sr-Latn-RS', 'sr-Latn-RS.generated',
       ],
       defaultLang: 'en',
       fallbackLang: 'en.generated',

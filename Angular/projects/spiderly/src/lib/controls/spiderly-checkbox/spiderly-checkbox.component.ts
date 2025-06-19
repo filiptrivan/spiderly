@@ -1,10 +1,10 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { BaseControl } from '../base-control';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoService } from '@jsverse/transloco';
-import { CheckboxModule } from 'primeng/checkbox';
+import { CheckboxChangeEvent, CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
@@ -24,6 +24,7 @@ export class SpiderlyCheckboxComponent extends BaseControl implements OnInit {
     @Input() fakeLabel = true;
     @Input() initializeToFalse = false;
     @Input() inlineLabel = false;
+    @Output() onChange = new EventEmitter<CheckboxChangeEvent>();
 
     constructor(
         protected override translocoService: TranslocoService,
@@ -38,12 +39,16 @@ export class SpiderlyCheckboxComponent extends BaseControl implements OnInit {
         super.ngOnInit();
     }
 
-    change = () => {
+    change = (event: CheckboxChangeEvent) => {
         if (this.control.value === false) 
             this.control.setValue(null);
         else if (this.control.value === true) 
             this.control.setValue(false);
         else 
             this.control.setValue(true);
+
+        event.checked = this.control.value;
+
+        this.onChange.next(event);
     }
 }

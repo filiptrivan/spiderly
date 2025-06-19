@@ -59,8 +59,8 @@ namespace Spiderly.SourceGenerators.Angular
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
         {
-            if (classes.Count <= 1)
-                return; // FT: one because of config settings
+            if (classes.Count <= 1) // 1 because of config settings
+                return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
@@ -334,6 +334,12 @@ export class {{entity.Name}}BaseDetailsComponent {
                 {
                     sb.AppendLine($$"""
     @Input() showTimeOn{{property.Name}}For{{property.EntityName}} = false;
+""");
+                }
+                else if (property.Type.StartsWith("bool"))
+                {
+                    sb.AppendLine($$"""
+    @Output() on{{property.Name}}For{{property.EntityName}}Change = new EventEmitter<CheckboxChangeEvent>();
 """);
                 }
             }
@@ -1242,6 +1248,10 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
             }
+            else if (controlType == UIControlTypeCodes.CheckBox)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
+            }
             else if (controlType == UIControlTypeCodes.File)
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [fileData]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event)\" [disabled]=\"!isAuthorizedForSave\"";
@@ -1441,6 +1451,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return $$"""
 import { ValidatorService } from 'src/app/business/services/validators/validators';
 import { DropdownChangeEvent } from 'primeng/dropdown';
+import { CheckboxChangeEvent } from 'primeng/checkbox';
 import { TranslateLabelsService } from '../../services/translates/merge-labels';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';

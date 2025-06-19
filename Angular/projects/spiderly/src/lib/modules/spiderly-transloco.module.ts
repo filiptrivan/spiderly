@@ -20,7 +20,7 @@ export class SpiderlyTranslocoModule {
     return {
       ngModule: SpiderlyTranslocoModule,
       providers: [
-        provideTranslocoPreloadLangs(['sr-Latn-RS']),
+        provideTranslocoPreloadLangs(config.preloadLangs ?? ['en']),
         provideTransloco({
           config: {
             availableLangs: config?.availableLangs ?? [
@@ -45,6 +45,7 @@ export class SpiderlyTranslocoModule {
 
 export interface SpiderlyTranslocoConfig {
   availableLangs: string[];
+  preloadLangs: string[];
   defaultLang: string;
   fallbackLang: string;
 }
