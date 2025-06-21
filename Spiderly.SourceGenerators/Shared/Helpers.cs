@@ -992,7 +992,7 @@ namespace Spiderly.SourceGenerators.Shared
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "PrecisionScale",
-                            MethodParametersBody = $"{attribute.Value}, false" // FT: only here the attribute.Value should be two values eg. 6, 7
+                            MethodParametersBody = $"{attribute.Value}, false" // Only here the attribute.Value should be two values eg. 6, 7
                         });
                         break;
                     case "Range":

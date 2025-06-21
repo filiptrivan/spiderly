@@ -4,7 +4,7 @@ using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;

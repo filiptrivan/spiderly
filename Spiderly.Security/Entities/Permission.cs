@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Spiderly.Shared.Attributes.EF;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
 using System;
 using System.Collections.Generic;

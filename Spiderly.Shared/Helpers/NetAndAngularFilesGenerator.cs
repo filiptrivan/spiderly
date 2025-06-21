@@ -1132,7 +1132,7 @@ export class UserTableComponent implements OnInit {
             return $$$"""
 <ng-container *transloco="let t">
     <info-card header="Hello, {{companyName}}">
-        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#step-9" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
+        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#connect-to-sql-server" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
     </info-card>
 </ng-container>
 """;
@@ -2305,7 +2305,7 @@ namespace {{appName}}.Shared.Resources {
         private static string GetUserNotificationCsData(string appName)
         {
             return $$"""
-using Spiderly.Shared.Attributes.EF;
+using Spiderly.Shared.Attributes.Entity;
 
 namespace {{appName}}.Business.Entities
 {
@@ -2351,9 +2351,9 @@ using Microsoft.EntityFrameworkCore;
 using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Attributes.EF;
-using Spiderly.Shared.Attributes.EF.Translation;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.Translation;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
 using System.ComponentModel.DataAnnotations;
 
@@ -2389,7 +2389,7 @@ namespace {{appName}}.Business.Entities
 using Microsoft.AspNetCore.Mvc;
 using Azure.Storage.Blobs;
 using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.DTO;
 using {{appName}}.Business.DTO;
@@ -2573,8 +2573,8 @@ namespace {{appName}}.WebAPI.Controllers
         private static string GetNotificationCsData(string appName)
         {
             return $$"""
-using Spiderly.Shared.Attributes.EF;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
 using Spiderly.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
@@ -2627,7 +2627,7 @@ namespace {{appName}}.Business.DTO
         private static string GetNotificationDTOCsData(string appName)
         {
             return $$"""
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity.UI;
 
 namespace {{appName}}.Business.DTO
 {

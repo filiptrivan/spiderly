@@ -1,6 +1,6 @@
-using Spiderly.Shared.Attributes.EF;
-using Spiderly.Shared.Attributes.EF.Translation;
-using Spiderly.Shared.Attributes.EF.UI;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.Translation;
+using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
 using Spiderly.Shared.Enums;
 using System;

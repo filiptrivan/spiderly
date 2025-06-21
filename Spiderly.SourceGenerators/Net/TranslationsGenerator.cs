@@ -88,9 +88,9 @@ namespace Spiderly.SourceGenerators.Net
         {
             Dictionary<string, string> dictionary = new()
             {
-                { $"{entity.Name}", entity.Translate(TranslationCodes.Singular, language) },
-                { $"{entity.Name}List", entity.Translate(TranslationCodes.Plural, language) },
-                { $"{entity.Name}ExcelExportName", entity.Translate(TranslationCodes.Excel, language) ?? entity.Translate(TranslationCodes.Plural, language).ToTrainCase() },
+                { $"{entity.Name}", entity.Translate(language) },
+                { $"{entity.Name}List", entity.Translate(language, TranslationCodes.Plural) },
+                { $"{entity.Name}ExcelExportName", entity.Translate(language, TranslationCodes.Excel) ?? entity.Translate(language, TranslationCodes.Plural).ToTrainCase() },
             };
 
             foreach (SpiderlyProperty property in entity.Properties)

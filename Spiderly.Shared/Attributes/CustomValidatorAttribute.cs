@@ -7,25 +7,25 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies a custom validation rule to be applied to the decorated property. <br/>
-    /// Multiple validation rules can be chained together using dot notation e.g. <i>EmailAddress().Length(5, 10)</i> <br/> <br/>
-    /// 
-    /// <b>Example:</b>
+    /// <b>Usage:</b> Defines custom validation rules for the decorated property or class (can be used on DTOs as well as entities). <br/>
+    /// Multiple rules can be chained using dot notation, e.g., <i>EmailAddress().Length(5, 50)</i>. <br/><br/>
+    ///
+    /// <b>Examples:</b>
     /// <code>
-    /// // Class Example
-    /// [CustomValidator("RuleFor(x => x.Email).EmailAddress().Length(5, 50);")] // Validates email format and length
-    /// [CustomValidator("RuleFor(x => x.Name).Length(2, 100);")] // Validates name length
+    /// // Class-level validation
+    /// [CustomValidator("RuleFor(x => x.Email).EmailAddress().Length(5, 50);")]
+    /// [CustomValidator("RuleFor(x => x.Name).Length(2, 100);")]
     /// public class User : BusinessObject&lt;long&gt;
     /// {
     ///     public string Email { get; set; }
-    ///     
     ///     public string Name { get; set; }
     /// }
-    /// 
-    /// // Property Example
+    ///
+    /// // Property-level validation
     /// public class User : BusinessObject&lt;long&gt;
     /// {
-    ///     [CustomValidator("EmailAddress().Length(5, 50)")] // Validates email format and length
+    ///     [CustomValidator("EmailAddress()")]
+    ///     [CustomValidator("Length(5, 50)")]
     ///     public string Email { get; set; }
     /// }
     /// </code>

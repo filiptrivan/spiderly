@@ -478,14 +478,14 @@ namespace Spiderly.SourceGenerators.Shared
                 });
         }
 
-        public static string Translate(this SpiderlyClass entity, TranslationCodes translation, LanguageCodes language)
+        public static string Translate(this SpiderlyClass entity, LanguageCodes language, TranslationCodes? translation = null)
         {
             return entity.Attributes.Where(x => x.Name == $"Translate{translation}{language}").Select(x => x.Value).SingleOrDefault();
         }
 
         public static string Translate(this SpiderlyProperty property, LanguageCodes language)
         {
-            return property.Attributes.Where(x => x.Name == $"TranslateSingular{language}").Select(x => x.Value).SingleOrDefault();
+            return property.Attributes.Where(x => x.Name == $"Translate{language}").Select(x => x.Value).SingleOrDefault();
         }
 
         public static string GetDecimalScale(this SpiderlyProperty property)

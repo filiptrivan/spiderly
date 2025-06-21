@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore;
-using Spiderly.Shared.Attributes.EF;
+using Spiderly.Shared.Attributes.Entity;
 using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 using Spiderly.Shared.Extensions;
