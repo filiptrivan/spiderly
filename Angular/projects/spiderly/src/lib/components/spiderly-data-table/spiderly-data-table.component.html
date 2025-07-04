@@ -49,7 +49,9 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rowData let-index="rowIndex" let-editing="editing">
-        <tr>
+        <tr *ngFor="let item of items"
+        [class.Clikable-row]="navigateOnRowClick"
+        (click)="onRowClick(item)">
           <td *ngIf="selectionMode == 'multiple'">
               <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData.id, rowData.index)" [ngModel]="isRowSelected(rowData.id)" [binary]="true"></p-checkbox>
           </td>
@@ -57,7 +59,7 @@
             <td [pTooltip]="col.filterType !== 'blob' ? getRowData(rowData, col) : ''" [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
               <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
                 <ng-container *ngFor="let action of col.actions; trackBy: actionTrackByFn" >
-                  <span [pTooltip]="action.name" [class]="getClassForAction(action)" (click)="getMethodForAction(action, rowData)"></span>
+                  <span [pTooltip]="action.name" [class]="getClassForAction(action)" (click)="getMethodForAction(action, rowData); $event.stopPropagation()"></span>
                 </ng-container>
               </div>
                <ng-container *ngIf="col.filterType === 'blob'">

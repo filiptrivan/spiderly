@@ -36,6 +36,7 @@ import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
         MultiSelectModule,
         CheckboxModule,
         TooltipModule,
+
     ]
 })
 export class SpiderlyDataTableComponent implements OnInit {
@@ -92,6 +93,9 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() additionalIndexes: any;
   @Output() onRowSelect: EventEmitter<RowClickEvent> = new EventEmitter();
   @Output() onRowUnselect: EventEmitter<RowClickEvent> = new EventEmitter();
+  @Input() navigateOnRowClick: boolean = false; // If true, it will navigate to the details page of the row when clicked
+  @Input() rowNavigationPath: string = ''; // Relative path to the details page of the row, e.g. 'details'
+
 
   constructor(
     private router: Router,
@@ -120,6 +124,18 @@ export class SpiderlyDataTableComponent implements OnInit {
       this.clientLoad();
     }
   }
+
+  onRowClick(row: any) {
+    if (!this.navigateOnRowClick || !row?.id) return;
+
+    const targetPath = this.rowNavigationPath
+    ? `${this.rowNavigationPath}/${row.id}`
+    : `${row.id}`;
+
+    this.router.navigate([targetPath], {relativeTo: this.route});
+  }
+
+
   
   lazyLoad(event: TableLazyLoadEvent) {
     this.lastLazyLoadEvent = event;
