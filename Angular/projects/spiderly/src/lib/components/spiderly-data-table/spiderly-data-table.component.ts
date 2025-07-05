@@ -96,6 +96,7 @@ export class SpiderlyDataTableComponent implements OnInit {
   /**
    * if true, clicking a row will navigate to the details page.
    * Set to false to disable row navigation.
+   * Default is false.
    */
   @Input()  navigateOnRowClick: boolean = false;
 
