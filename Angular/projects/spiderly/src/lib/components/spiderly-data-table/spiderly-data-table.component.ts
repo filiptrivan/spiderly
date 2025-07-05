@@ -92,6 +92,19 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() additionalIndexes: any;
   @Output() onRowSelect: EventEmitter<RowClickEvent> = new EventEmitter();
   @Output() onRowUnselect: EventEmitter<RowClickEvent> = new EventEmitter();
+    /**
+   * if true, clicking a row will navigate to the details page.
+   * Set to false to disable row navigation.
+   * Default is false.
+   */
+  @Input()  navigateOnRowClick: boolean = false;
+
+  /**
+   * Path to navigate to when clicking a row.
+   * If not provided, it will use the current route with the row ID.
+   * Example: 'details' will navigate to '/details/{rowId}'.
+   */
+  @Input()  rowNavigationPath: string;
 
   constructor(
     private router: Router,
@@ -269,9 +282,33 @@ export class SpiderlyDataTableComponent implements OnInit {
     }
   }
 
-  navigateToDetails(rowId: number){
-    this.router.navigate([rowId], {relativeTo: this.route});
+/*
+  * Navigate to details page based on rowId and rowNavigationPath.
+  * If rowNavigationPath is provided, it will navigate to that path with the rowId.
+  * If not, it will navigate to the current route with the rowId.
+*/
+navigateToDetails(rowId: number): void{
+  if (!rowId) return;
+
+  if (this.rowNavigationPath){
+    const cleanPath = this.rowNavigationPath.replace(/^\/|\/$/g, ''); // Remove leading and trailing slashes
+
+    this.router.navigateByUrl(`/${cleanPath}/${rowId}`);
+
   }
+  else {
+
+    this.router.navigate([rowId], { relativeTo: this.route });
+  }
+ }
+
+  /* 
+  * Handle row click event.
+ */
+ onRowClick(row: any): void {
+  if (!this.navigateOnRowClick || !row?.id) return;
+  this.navigateToDetails(row.id);
+ }
 
   deleteObject(rowId: number){
     this.deleteRef = this.dialogService.open(SpiderlyDeleteConfirmationComponent, 
