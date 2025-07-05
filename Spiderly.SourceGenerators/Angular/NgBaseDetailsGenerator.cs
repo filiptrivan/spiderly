@@ -136,6 +136,7 @@ namespace Spiderly.SourceGenerators.Angular
         CardSkeletonComponent,
         IndexCardComponent,
         SpiderlyDataTableComponent,
+        SpiderlyPanelsModule,
     ]
 })
 export class {{entity.Name}}BaseDetailsComponent {
@@ -1479,7 +1480,7 @@ import { ActivatedRoute } from '@angular/router';
 import { combineLatest, firstValueFrom, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { MenuItem } from 'primeng/api';
 import { AuthService } from '../../services/auth/auth.service';
-import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, getControl, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions } from 'spiderly';
+import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, getControl, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule } from 'spiderly';
 {{string.Join("\n", GetDynamicNgImports(imports))}}
 """;
         }

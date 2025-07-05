@@ -2,9 +2,6 @@
  * Public API Surface of spiderly
  */
 
-export * from './lib/modules/core.module';
-export * from './lib/modules/spiderly-transloco.module';
-
 export * from './lib/controls/spiderly-autocomplete/spiderly-autocomplete.component';
 export * from './lib/controls/spiderly-calendar/spiderly-calendar.component';
 export * from './lib/controls/spiderly-checkbox/spiderly-checkbox.component';
@@ -57,6 +54,7 @@ export * from './lib/components/layout/sidebar/sidebar.component';
 export * from './lib/components/layout/sidemenu-topbar/sidemenu-topbar.component';
 export * from './lib/components/layout/layout.component';
 export * from './lib/components/layout/topbar/topbar.component';
+export * from './lib/components/layout/profile-avatar/profile-avatar.component';
 
 export * from './lib/entities/base-entity';
 export * from './lib/entities/codebook';
@@ -85,7 +83,6 @@ export * from './lib/guards/auth.guard';
 export * from './lib/guards/not-auth.guard';
 
 export * from './lib/handlers/spiderly-error-handler';
-export * from './lib/handlers/spiderly-transloco-fallback-strategy';
 
 export * from './lib/interceptors/http-loading.interceptor';
 export * from './lib/interceptors/json-parser.interceptor';

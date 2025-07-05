@@ -4,7 +4,6 @@ import { Component, Input, OnInit } from '@angular/core';
     selector: 'spiderly-card',
     templateUrl: './spiderly-card.component.html',
     styles: [],
-    standalone: false
 })
 export class SpiderlyCardComponent implements OnInit {
   @Input() icon: string = 'pi pi-file-edit';

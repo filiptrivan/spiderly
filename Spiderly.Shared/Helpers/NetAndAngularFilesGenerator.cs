@@ -1478,7 +1478,7 @@ export class UserAgreementComponent implements OnInit {
       @for (notification of currentUserNotifications?.data; track $index) {
         <div [class]="(notification.isMarkedAsRead ? 'primary-lighter-color-background opacity-70' : '') + ' transparent-card'" style="margin: 0px;">
           <div class="text-wrapper">
-            <div class="header" style="margin-bottom: 10px; display: flex; justify-content: space-between; position: relative;">
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; position: relative; font-size: 17.5px;">
               <div>
                 <div [class]="notification.isMarkedAsRead ? '' : 'bold'">{{notification.title}}</div>
                 <div class="header-separator"></div>
@@ -1762,7 +1762,7 @@ export class AppComponent implements OnInit {
         private static string GetAppConfigTsData()
         {
             return $$"""
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, ErrorHandler, PLATFORM_ID, provideZoneChangeDetection } from '@angular/core';
 import { PreloadAllModules, provideRouter, withInMemoryScrolling, withPreloading, withRouterConfig } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
@@ -1770,7 +1770,7 @@ import { routes, scrollConfig, routerConfigOptions } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
-import { AuthBaseService, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, provideSpiderlyCore, provideSpiderlyTransloco, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { AuthBaseService, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
 import { provideSpinnerConfig } from 'ngx-spinner';
 import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
@@ -1779,19 +1779,30 @@ import { ValidatorService } from './business/services/validators/validators';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { ConfigService } from './business/services/config.service';
 import { LayoutService } from './business/services/layout/layout.service';
+import { provideTransloco } from '@jsverse/transloco';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { DialogService } from 'primeng/dynamicdialog';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideAnimationsAsync(),
     provideHttpClient(withFetch()),
-    provideSpiderlyTransloco({
-      preloadLangs: ['en'],
-      availableLangs: [
-        'en', 'en.generated',
-      ],
-      defaultLang: 'en',
-      fallbackLang: 'en.generated',
+    provideTransloco({
+      config: {
+        availableLangs: [
+          'en', 'en.generated',
+        ],
+        defaultLang: 'en',
+        fallbackLang: 'en.generated',
+        failedRetries: 0,
+        missingHandler: {
+          useFallbackTranslation: true,
+          logMissingKey: false,
+        },
+        reRenderOnLangChange: true,
+      },
+      loader: SpiderlyTranslocoLoader
     }),
     providePrimeNG({
       theme: {
@@ -1809,7 +1820,19 @@ export const appConfig: ApplicationConfig = {
     ),
     provideSpinnerConfig({type: 'ball-clip-rotate-multiple'}),
     provideClientHydration(withEventReplay()),
-    provideSpiderlyCore(),
+    MessageService,
+    ConfirmationService,
+    DialogService,
+    {
+      provide: ErrorHandler,
+      useClass: SpiderlyErrorHandler,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: authInitializer,
+      multi: true,
+      deps: [AuthService, PLATFORM_ID],
+    },
     {
       provide: 'SocialAuthServiceConfig',
       useValue: {
@@ -3891,7 +3914,6 @@ namespace {{appName}}.Business.DataMappers
         "@angular/platform-browser-dynamic": "19.2.13",
         "@angular/router": "19.2.13",
         "@jsverse/transloco": "7.5.0",
-        "@jsverse/transloco-preload-langs": "7.0.1",
         "file-saver": "2.0.5",
         "json-parser": "3.1.2",
         "ngx-spinner": "19.0.0",
@@ -4955,7 +4977,7 @@ export class ApiService extends ApiGeneratedService {
         private static string GetAuthServiceTsCode()
         {
             return $$"""
-import { Injectable, OnDestroy } from '@angular/core';
+import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from 'src/app/business/services/api/api.service';
@@ -4974,8 +4996,9 @@ export class AuthService extends AuthBaseService implements OnDestroy {
     protected override externalAuthService: SocialAuthService,
     protected override apiService: ApiService,
     protected override config: ConfigService,
+    @Inject(PLATFORM_ID) protected override platformId: Object,
   ) {
-    super(router, http, externalAuthService, apiService, config);
+    super(router, http, externalAuthService, apiService, config, platformId);
   }
 
 }

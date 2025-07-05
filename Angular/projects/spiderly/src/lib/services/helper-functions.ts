@@ -286,3 +286,24 @@ export function capitalizeFirstLetter(inputString: string): string {
       return null;
     }
   }
+
+  export function firstCharToUpper(input: string): string {
+    return input.charAt(0).toUpperCase() + input.slice(1);
+  }
+
+  export function splitPascalCase(input: string) {
+    const regex = /($[a-z])|[A-Z][^A-Z]+/g;
+    return input.match(regex).join(" ");
+  }
+
+  export function capitalizeFirstChar(str: string): string {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  export function kebabToTitleCase(input: string): string {
+    return input
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }

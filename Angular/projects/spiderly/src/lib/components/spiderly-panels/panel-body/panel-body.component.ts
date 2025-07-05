@@ -3,7 +3,7 @@ import { Component, Input, OnInit } from '@angular/core';
 @Component({
     selector: 'panel-body',
     templateUrl: './panel-body.component.html',
-    styles: [],
+    styleUrl: './panel-body.component.scss',
     standalone: false
 })
 export class PanelBodyComponent implements OnInit {

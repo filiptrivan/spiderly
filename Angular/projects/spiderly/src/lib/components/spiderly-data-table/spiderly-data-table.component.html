@@ -7,7 +7,7 @@
         <div class="table-header overflow-auto">
           <div style="display: flex; align-items: center; gap: 8px;">
             <i class="{{tableIcon}} text-2xl primary-color"></i>
-            <h5 style="margin: 0px;">{{tableTitle}}</h5>
+            <div style="margin: 0px;">{{tableTitle}}</div>
           </div>
           <div style="display: flex; gap: 8px;">
             <button pButton [label]="t('ClearFilters')" class="p-button-outlined" style="flex: none;" icon="pi pi-filter-slash" (click)="clear(dt)"></button>
@@ -58,7 +58,7 @@
             <td [pTooltip]="col.filterType !== 'blob' ? getRowData(rowData, col) : ''" [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
               <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
                 <ng-container *ngFor="let action of col.actions; trackBy: actionTrackByFn" >
-                  <span [pTooltip]="action.name" [class]="getClassForAction(action)" (click)="getMethodForAction(action, rowData)"></span>
+                  <span [pTooltip]="action.name" [class]="getClassForAction(action)" [style]="getStyleForAction(action)" (click)="getMethodForAction(action, rowData)"></span>
                 </ng-container>
               </div>
                <ng-container *ngIf="col.filterType === 'blob'">

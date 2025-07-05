@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
@@ -8,12 +8,13 @@ import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, Registra
 import { ConfigBaseService } from './config-base.service';
 import { ApiSecurityService } from './api.service.security';
 import { InitCompanyAuthDialogDetails } from '../entities/init-company-auth-dialog-details';
+import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthBaseService implements OnDestroy {
-  private readonly apiUrl = this.config.apiUrl;
+  private readonly apiUrl: string = this.config.apiUrl;
   private timer?: Subscription;
 
   protected _currentUserPermissionCodes = new BehaviorSubject<string[] | null>(undefined);
@@ -34,8 +35,11 @@ export class AuthBaseService implements OnDestroy {
     protected externalAuthService: SocialAuthService,
     protected apiService: ApiSecurityService,
     protected config: ConfigBaseService,
+    @Inject(PLATFORM_ID) protected platformId: Object
   ) {
-    window.addEventListener('storage', this.storageEventListener);
+    if (isPlatformBrowser(platformId)) {
+      window.addEventListener('storage', this.storageEventListener);
+    }
 
     // Google auth
     this.externalAuthService.authState.subscribe((user) => {
@@ -142,7 +146,7 @@ export class AuthBaseService implements OnDestroy {
   }
 
   refreshToken(): Observable<AuthResult> {
-    let refreshToken = localStorage.getItem(this.config.refreshTokenKey);
+    const refreshToken = localStorage.getItem(this.config.refreshTokenKey);
 
     if (!refreshToken) {
       this.clearLocalStorage();
@@ -150,7 +154,7 @@ export class AuthBaseService implements OnDestroy {
     }
 
     const browserId = this.getBrowserId();
-    let body: RefreshTokenRequest = new RefreshTokenRequest();
+    const body = new RefreshTokenRequest();
     body.browserId = browserId;
     body.refreshToken = refreshToken;
     
@@ -217,7 +221,11 @@ export class AuthBaseService implements OnDestroy {
   }
 
   getAccessToken(): string {
-    return localStorage.getItem(this.config.accessTokenKey);
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem(this.config.accessTokenKey);
+    }
+
+    return null;
   }
 
   private startTokenTimer() {
@@ -263,7 +271,10 @@ export class AuthBaseService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('storage', this.storageEventListener.bind(this));
+    if (isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('storage', this.storageEventListener.bind(this));
+    }
+      
     this.onAfterNgOnDestroy();
   }
 

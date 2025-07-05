@@ -23,9 +23,14 @@
     >
     <div 
     *ngIf="layoutService.state.profileDropdownSidebarVisible" 
-    [ngStyle]="{'right': isSideMenuLayout ? '26px' : '0', 'top': isSideMenuLayout ? '60px' : '40px'}" 
-    style="width: 280px; position: absolute; padding: 15px;" 
-    class="card">
+    style="width: 280px; position: absolute; padding: 15px; background: var(--p-content-background);" 
+    class="card"
+    [ngClass]="{
+      'side-menu-profile-dialog': isSideMenuLayout,
+      'top-menu-profile-dialog': !isSideMenuLayout,
+    }
+    "
+    >
       <div style="display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 10px;">
         <p-avatar
           [label]="avatarLabel"
@@ -38,9 +43,9 @@
       <div style="margin-top: 15px;">
         <div *ngFor="let item of menuItems" [style]="item.showSeparator ? 'margin-top: 5px;' : ''">
           <div *ngIf="item.showSeparator" class="gray-separator"></div>
-          <div (click)="item.onClick()" class="hover-card" style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+          <div (click)="item.onClick()" class="hover-card" style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
             <i 
-              class="pi pi-fw {{item.icon}} primary-color" 
+              class="pi pi-fw {{item.icon}}" 
               style="font-size: 16px; position: relative;"
               >
               <span *ngIf="item.showNotificationBadge && unreadNotificationsCount != 0" class="badge"></span>
@@ -54,7 +59,14 @@
   </div>
 
 
-  <div *ngIf="this.currentUser == null">
-    <spiderly-button [label]="t('Login')" icon="pi pi-sign-in" [routerLink]="this.config.loginSlug"></spiderly-button>
+  <div *ngIf="this.currentUser == null && this.showLoginButton">
+    <spiderly-button 
+    [label]="t('Login')" 
+    (onClick)="loginButtonClick()" 
+    icon="pi pi-sign-in" 
+    [outlined]="loginButtonOutlined" 
+    [severity]="loginButtonSeverity"
+    [size]="loginButtonSize"
+    ></spiderly-button>
   </div>
 </ng-container>

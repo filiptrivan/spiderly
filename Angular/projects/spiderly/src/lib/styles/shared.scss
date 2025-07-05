@@ -1,108 +1,12 @@
 @use './layout/variables' as *;
 
-.spiderly-panel{
-	.p-panel-content{
-		padding: 0;
-	}
-}
-
-.buttons-wrapper{
-    gap: 0.5rem;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.multiple-panel-first-without-header{
-	.p-panel {
-		border-bottom-left-radius: 0px;
-		border-bottom-right-radius: 0px;
-		border-top: 1px solid var(--surface-border);
-		border-top-left-radius: var(--p-content-border-radius);
-		border-top-right-radius: var(--p-content-border-radius);
-		border-bottom: none;
-	}
-}
-
-.multiple-panel-middle-without-header{
-	.p-panel {
-		border-bottom-left-radius: 0px;
-		border-bottom-right-radius: 0px;
-		border-top: 1px solid var(--surface-border);
-		border-top-left-radius: 0px;
-		border-top-right-radius: 0px;
-		border-bottom: none;
-	}
-}
-
-.multiple-panel-last-without-header{
-	.p-panel {
-		border-bottom-left-radius: var(--p-content-border-radius);
-		border-bottom-right-radius: var(--p-content-border-radius);
-		border-top: 1px solid var(--surface-border);
-		border-top-left-radius: 0px;
-		border-top-right-radius: 0px;
-	}
-}
-
-.multiple-panel-first{
-	.p-panel {
-		border-bottom-left-radius: 0px;
-		border-bottom-right-radius: 0px;
-		border-bottom: none;
-	}
-}
-
-.panel-border{
-	.p-panel {
-		border-bottom-left-radius: var(--p-content-border-radius);
-		border-bottom-right-radius: var(--p-content-border-radius);
-		border-bottom: 1px solid var(--surface-border);
-	}
-}
-
-.multiple-panel-middle {
-	.p-panel {
-		border-radius: 0px;
-		border-bottom: none;
-	}
-}
-
-.multiple-panel-last {
-	.p-panel {
-		border-top-left-radius: 0px;
-		border-top-right-radius: 0px;
-	}
-}
-
-.non-grid-panel-bottom-padding{
-	padding-bottom: 14px;
-}
-
-@media (max-width: 600px) {
-	.non-grid-panel-bottom-padding{
-		padding-bottom: 0px;
-	}
-}
-
-.panel-body-wrapper{
-	padding: 18px; 
-}
-
-@media (max-width: 600px) {
-	.panel-body-wrapper{
-		padding: 14px; 
-		padding-bottom: 0px;
-	}
-}
-
 @media (max-width: 600px) {
 	.panel-add-button{
 		margin-bottom: 14px;
 	}
 }
 
-.c-dashboard-item {
+.spiderly-dashboard-item {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -280,7 +184,7 @@
 	width: 100%;
 }
 
-// FT: You need to manually adjust the height
+// You need to manually adjust the height
 .vertical-gray-separator{
 	border-left: 1px solid var(--p-content-border-color);
 }
@@ -303,10 +207,6 @@
 	.dialog{
 		width: 100%;
 	}
-}
-
-.header{
-	font-size: 17.5px;
 }
 
 .header-separator{
@@ -524,7 +424,7 @@
 	inset-inline-end: -9px !important;
 }
 
-.gradient-title {
+.spiderly-gradient-title {
   font-weight: bold;
   display: inline-block;
   white-space: normal;

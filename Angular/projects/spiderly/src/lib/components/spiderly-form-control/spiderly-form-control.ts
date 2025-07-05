@@ -57,6 +57,8 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
 }
 
 export class SpiderlyFormArray<TValue = any> extends FormArray {
+    public label: string;
+    public labelForDisplay: string;
     override value: TValue[]; // There is no getRawValue in FormArray
     public required: boolean;
     public modelConstructor: TValue;

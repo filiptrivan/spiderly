@@ -8,3 +8,10 @@
     border-bottom-left-radius: var(--p-content-border-radius);
     padding: 18px;
 }
+
+.buttons-wrapper{
+    gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}

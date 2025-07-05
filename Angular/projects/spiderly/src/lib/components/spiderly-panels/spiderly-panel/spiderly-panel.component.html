@@ -9,8 +9,10 @@
     'multiple-panel-last': isLastMultiplePanel,
     'panel-border': !isFirstMultiplePanel,
     'spiderly-panel': true,
+    'panel-header-cursor-pointer': toggler === 'header' && toggleable
 }"
 [toggleable]="toggleable"
+[toggler]="toggler"
 [collapsed]="toggleable && collapsed"
 expandIcon="pi pi-chevron-up"
 collapseIcon="pi pi-chevron-down"
@@ -18,6 +20,7 @@ collapseIcon="pi pi-chevron-down"
     <ng-template pTemplate="header">
         <div>
             <ng-content select="panel-header"></ng-content>
+            <ng-content select="[panelHeader]"></ng-content>
         </div>
     </ng-template>
 

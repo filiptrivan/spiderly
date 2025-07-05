@@ -25,6 +25,7 @@ export class SpiderlyButtonBaseComponent {
   @Input() style: { [klass: string]: any; };
   @Input() class: string;
   @Input() severity: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined;
+  @Input() size: 'small' | 'large' | undefined;
   @Input() disabled: boolean = false;
 
   @Output() onClick = new EventEmitter<Event>();

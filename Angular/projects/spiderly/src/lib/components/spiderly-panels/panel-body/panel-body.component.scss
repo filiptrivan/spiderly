@@ -1,0 +1,9 @@
+.non-grid-panel-bottom-padding{
+	padding-bottom: 14px;
+}
+
+@media (max-width: 600px) {
+	.non-grid-panel-bottom-padding{
+		padding-bottom: 0px;
+	}
+}

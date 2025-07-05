@@ -1,5 +1,4 @@
-import { Component, EventEmitter, Output } from "@angular/core";
-import { TranslocoDirective } from "@jsverse/transloco";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { ButtonModule } from "primeng/button";
 import { SpiderlyButtonComponent } from "../spiderly-button/spiderly-button.component";
 
@@ -9,15 +8,12 @@ import { SpiderlyButtonComponent } from "../spiderly-button/spiderly-button.comp
     styles: [],
     imports: [
         ButtonModule,
-        TranslocoDirective,
         SpiderlyButtonComponent
     ]
 })
 export class GoogleButtonComponent { // Custom styling of the google button - https://medium.com/simform-engineering/implement-custom-google-sign-in-using-angular-16-9c93aeff6252
-  // @Output() onClick: EventEmitter<any> = new EventEmitter();
+  @Input() label: string;
   @Output() loginWithGoogle: EventEmitter<any> = new EventEmitter<any>();
-
-  constructor() {}
 
   createFakeGoogleWrapper = () => {
     const googleLoginWrapper = document.createElement('div');

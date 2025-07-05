@@ -1,11 +1,95 @@
-    :host {
-      ::ng-deep {
-        .p-panel{
-          overflow: hidden;
-        }
-        .p-panel-icons{
-          display: flex;
-          align-items: center;
-        }
+:host {
+  ::ng-deep {
+    .spiderly-panel{
+      .p-panel-content{
+        padding: 0;
       }
     }
+    .p-panel{
+      overflow: hidden;
+    }
+    .p-panel-icons{
+      display: flex;
+      align-items: center;
+    }
+    
+		.panel-header-cursor-pointer {
+			.p-panel-header {
+				cursor: pointer !important;
+			}
+		}
+  }
+}
+
+.multiple-panel-first-without-header{
+	.p-panel {
+		border-bottom-left-radius: 0px;
+		border-bottom-right-radius: 0px;
+		border-top: 1px solid var(--surface-border);
+		border-top-left-radius: var(--p-content-border-radius);
+		border-top-right-radius: var(--p-content-border-radius);
+		border-bottom: none;
+	}
+}
+
+.multiple-panel-middle-without-header{
+	.p-panel {
+		border-bottom-left-radius: 0px;
+		border-bottom-right-radius: 0px;
+		border-top: 1px solid var(--surface-border);
+		border-top-left-radius: 0px;
+		border-top-right-radius: 0px;
+		border-bottom: none;
+	}
+}
+
+.multiple-panel-last-without-header{
+	.p-panel {
+		border-bottom-left-radius: var(--p-content-border-radius);
+		border-bottom-right-radius: var(--p-content-border-radius);
+		border-top: 1px solid var(--surface-border);
+		border-top-left-radius: 0px;
+		border-top-right-radius: 0px;
+	}
+}
+
+.multiple-panel-first{
+	.p-panel {
+		border-bottom-left-radius: 0px;
+		border-bottom-right-radius: 0px;
+		border-bottom: none;
+	}
+}
+
+.panel-border{
+	.p-panel {
+		border-bottom-left-radius: var(--p-content-border-radius);
+		border-bottom-right-radius: var(--p-content-border-radius);
+		border-bottom: 1px solid var(--surface-border);
+	}
+}
+
+.multiple-panel-middle {
+	.p-panel {
+		border-radius: 0px;
+		border-bottom: none;
+	}
+}
+
+.multiple-panel-last {
+	.p-panel {
+		border-top-left-radius: 0px;
+		border-top-right-radius: 0px;
+	}
+}
+
+.panel-body-wrapper{
+	padding: 18px; 
+}
+
+@media (max-width: 600px) {
+	.panel-body-wrapper{
+		padding: 14px; 
+		padding-bottom: 0px;
+	}
+}

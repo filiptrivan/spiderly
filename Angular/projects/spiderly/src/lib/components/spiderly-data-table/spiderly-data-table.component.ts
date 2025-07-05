@@ -348,11 +348,20 @@ navigateToDetails(rowId: number): void{
   getClassForAction(action: Action): string{
     switch(action.field){
       case 'Details':
-        return 'pi pi-pencil text-lg cursor-pointer primary-color';
+        return 'pi pi-pencil';
       case 'Delete':
-        return 'pi pi-trash text-lg text-red-500 cursor-pointer';
+        return 'pi pi-trash';
       default:
-        return `${action.icon} ${action.style} text-lg cursor-pointer`;
+        return `${action.icon} ${action.styleClass}`;
+    }
+  }
+
+  getStyleForAction(action: Action): string{
+    switch(action.field){
+      case 'Delete':
+        return 'cursor: pointer; color: var(--p-button-danger-background);';
+      default:
+        return `cursor: pointer; ${action.style}`;
     }
   }
 
@@ -529,6 +538,7 @@ export class Action {
   field?: string;
   icon?: string;
   style?: string;
+  styleClass?: string;
   onClick?: (id: number) => void;
 
   constructor(
@@ -537,12 +547,14 @@ export class Action {
       field,
       icon,
       style,
+      styleClass,
       onClick,
     }:{
       name?: string;
       field?: string;
       icon?: string;
       style?: string;
+      styleClass?: string;
       onClick?: () => void;
     } = {}
     ) {
@@ -550,6 +562,7 @@ export class Action {
       this.field = field;
       this.icon = icon;
       this.style = style;
+      this.styleClass = styleClass;
       this.onClick = onClick;
   }
 }

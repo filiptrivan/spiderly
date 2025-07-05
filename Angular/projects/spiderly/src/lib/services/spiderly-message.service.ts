@@ -33,17 +33,6 @@ export class SpiderlyMessageService { // TODO FT: nece da prikaze poruku ako je 
     });
   }
 
-  warningMessageWithTimeout(detail: string, title: string = this.translocoService.translate('Warning')){
-    setTimeout(() => {
-      this.messageService.add({
-        severity: 'warn',
-        summary: title,
-        detail: detail,
-        life: 10000,
-      });
-    }, 100);
-  }
-
   errorMessage(detail: string, title: string = this.translocoService.translate('Error')){
     this.messageService.add({
       severity: 'error',

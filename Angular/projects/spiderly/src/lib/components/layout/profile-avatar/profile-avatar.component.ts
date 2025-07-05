@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
@@ -22,6 +22,7 @@ interface ProfileAvatarModalMenuItem {
 @Component({
   selector: 'spiderly-profile-avatar',
   templateUrl: './profile-avatar.component.html',
+  styleUrl: './profile-avatar.component.scss',
   imports: [
     CommonModule,
     RouterModule,
@@ -33,6 +34,12 @@ interface ProfileAvatarModalMenuItem {
 })
 export class ProfileAvatarComponent {
   @Input() isSideMenuLayout = true;
+  @Input() showLoginButton = true;
+  @Input() routeToLoginPage = true;
+  @Input() loginButtonOutlined = false;
+  @Input() loginButtonSeverity: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined = 'primary';
+  @Input() loginButtonSize: 'small' | 'large' | undefined;
+  @Output() onLoginButtonClick = new EventEmitter();
 
   private initTopBarSubscription: Subscription | null = null;
 
@@ -119,6 +126,14 @@ export class ProfileAvatarComponent {
 
   routeToUserPage(){
     this.router.navigateByUrl(this.userProfilePath);
+  }
+
+  loginButtonClick() {
+    if (this.routeToLoginPage) {
+      this.router.navigateByUrl(this.config.loginSlug);
+    }
+    
+    this.onLoginButtonClick.next(null);
   }
 
   ngOnDestroy(): void {

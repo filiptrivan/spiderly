@@ -22,10 +22,12 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       errorResponse = JSON.parse(err.error);
 
     if (err.status == 0) {
-      messageService.warningMessageWithTimeout( // FT: Had problem when the server is shut down, and try to refresh token, warning message didn't appear
-        translocoService.translate('ServerLostConnectionDetails'),
-        translocoService.translate('ServerLostConnectionTitle'),
-      );
+      setTimeout(() => { // Had problem when the server is shut down, and try to refresh token, warning message didn't appear
+        messageService.warningMessage( 
+          translocoService.translate('ServerLostConnectionDetails'),
+          translocoService.translate('ServerLostConnectionTitle'),
+        );
+      }, 100);
       return of(err.message);
     } 
     else if (err.status == 400) {

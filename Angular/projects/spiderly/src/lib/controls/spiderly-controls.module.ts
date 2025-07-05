@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core';
-import { SpiderlyPanelsModule } from '../components/spiderly-panels/spiderly-panels.module';
 import { SpiderlyMultiAutocompleteComponent } from './spiderly-multiautocomplete/spiderly-multiautocomplete.component';
 import { SpiderlyPasswordComponent } from './spiderly-password/spiderly-password.component';
 import { SpiderlyTextboxComponent } from './spiderly-textbox/spiderly-textbox.component';
@@ -24,7 +23,6 @@ import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/re
     SpiderlyCalendarComponent,
     SpiderlyReturnButtonComponent,
     SpiderlyButtonComponent,
-    SpiderlyPanelsModule,
     SpiderlyPasswordComponent,
     SpiderlyAutocompleteComponent,
     SpiderlyMultiAutocompleteComponent,
@@ -42,7 +40,6 @@ import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/re
     SpiderlyCalendarComponent,
     SpiderlyReturnButtonComponent,
     SpiderlyButtonComponent,
-    SpiderlyPanelsModule,
     SpiderlyPasswordComponent,
     SpiderlyAutocompleteComponent,
     SpiderlyMultiAutocompleteComponent,

@@ -31,7 +31,7 @@ export class BaseFormService {
       console.error('Spiderly: You need to instantiate the form group.')
 
     this.initFormGroup(formGroup, modelConstructor, updateOnChangeControls);
-    parentFormGroup.setControl(propertyNameInSaveBody, formGroup); // FT: Use setControl because it will update formGroup if it already exists
+    parentFormGroup.setControl(propertyNameInSaveBody, formGroup); // Use setControl because it will update formGroup if it already exists
 
     return formGroup;
   }
@@ -62,7 +62,7 @@ export class BaseFormService {
       formControl.labelForDisplay = this.getTranslatedLabel(formControlName);
       formControl.parentClassName = modelConstructor.typeName;
 
-      formGroup.setControl(formControlName, formControl); // FT: Use setControl because it will update formControl if it already exists
+      formGroup.setControl(formControlName, formControl); // Use setControl because it will update formControl if it already exists
 
       this.validatorService.setValidator(formControl, modelConstructor.typeName);
     });
@@ -125,7 +125,7 @@ export class BaseFormService {
       formArray.push(helperFormGroup);
     });
 
-    parentFormGroup.setControl(formArraySaveBodyName, formArray); // FT: Use setControl because it will update formArray if it already exists
+    parentFormGroup.setControl(formArraySaveBodyName, formArray); // Use setControl because it will update formArray if it already exists
 
     return formArray;
   }
@@ -152,7 +152,7 @@ export class BaseFormService {
   checkFormGroupValidity = <T>(formGroup: SpiderlyFormGroup<T>): boolean => {
     if (formGroup.invalid) {
       Object.keys(formGroup.controls).forEach(key => {
-        formGroup.controls[key].markAsDirty(); // this.formGroup.markAsDirty(); // FT: For some reason this doesnt work
+        formGroup.controls[key].markAsDirty(); // this.formGroup.markAsDirty(); // For some reason this doesnt work
       });
 
       this.showInvalidFieldsMessage();
