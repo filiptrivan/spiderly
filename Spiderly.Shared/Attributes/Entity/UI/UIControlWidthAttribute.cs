@@ -10,21 +10,21 @@ namespace Spiderly.Shared.Attributes.Entity.UI
     /// <b>Usage:</b> Specifies the width of a UI field using PrimeNG (PrimeFlex) column classes. <br/> <br/>
     /// 
     /// <b>Default values:</b>
-    /// - <i>"col-12"</i> for TextArea and Editor controls <br/>
-    /// - <i>"col-12 md:col-6"</i> for all other controls <br/> <br/>
+    /// - <i>"col-8"</i> for TextArea and Editor controls <br/>
+    /// - <i>"col-8 md:col-4"</i> for all other controls <br/> <br/>
     /// 
     /// <b>Example:</b>
     /// <code>
     /// public class Article : &lt;long&gt;
     /// {
-    ///     [UIControlWidth("col-12")]
+    ///     [UIControlWidth("col-8")]
     ///     [UIControlType(nameof(UIControlTypeCodes.TextArea))]
     ///     public string Content { get; set; }
     ///     
-    ///     [UIControlWidth("col-3")]
+    ///     [UIControlWidth("col-2")]
     ///     public string Author { get; set; }
     ///     
-    ///     // Uses default "col-12 md:col-6"
+    ///     // Uses default "col-8 md:col-4"
     ///     public string Title { get; set; }
     /// }
     /// </code>

@@ -107,7 +107,7 @@ namespace Spiderly.SourceGenerators.Angular
 
         <panel-body>
             @defer (when loading === false) {
-                <form class="grid">
+                <form class="spiderly-grid">
                     <ng-content select="[BEFORE]"></ng-content>
 {{string.Join("\n", GetPropertyBlocks(entity.Properties.ToList(), entity, allEntities, customDTOClasses, isFromOrderedOneToMany: false))}}
                     <ng-content select="[AFTER]"></ng-content>
@@ -876,7 +876,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                 .ToList();
 
             return $$"""
-                     <div *ngIf="show{{property.Name}}For{{property.EntityName}}" class="col-12">
+                     <div *ngIf="show{{property.Name}}For{{property.EntityName}}" class="col-8">
                         <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}PanelCollapsed">
                             <panel-header [title]="t('{{property.Name}}')" icon="pi pi-list"></panel-header>
                             <panel-body [normalBottomPadding]="true">
@@ -888,7 +888,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                                     [showCrudMenu]="isAuthorizedForSave"
                                     (onMenuIconClick)="{{property.Name.FirstCharToLower()}}LastIndexClicked.index = $event"
                                     >
-                                        <form [formGroup]="{{extractedEntity.Name.FirstCharToLower()}}FormGroup" class="grid">
+                                        <form [formGroup]="{{extractedEntity.Name.FirstCharToLower()}}FormGroup" class="spiderly-grid">
 {{string.Join("\n", GetPropertyBlocks(propertyBlocks, extractedEntity, allEntities, customDTOClasses, isFromOrderedOneToMany: true))}}
                                         </form>
                                     </index-card>
@@ -1330,10 +1330,10 @@ export class {{entity.Name}}BaseDetailsComponent {
                 controlType == UIControlTypeCodes.Table ||
                 controlType == UIControlTypeCodes.Editor)
             {
-                return "col-12";
+                return "col-8";
             }
 
-            return "col-12 md:col-6";
+            return "col-8 md:col-4";
         }
 
         private static UIControlTypeCodes GetUIControlType(SpiderlyProperty property)

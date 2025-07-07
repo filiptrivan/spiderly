@@ -6,14 +6,17 @@ import { SpiderlyPanelsModule } from "../spiderly-panels/spiderly-panels.module"
 @Component({
     selector: 'info-card',
     templateUrl: './info-card.component.html',
+    styleUrl: './info-card.component.scss',
     imports: [
         CommonModule,
         SpiderlyPanelsModule
     ]
 })
 export class InfoCardComponent {
-    @Input() public header: string = '';
-    @Input() public description: string;
+    @Input() header = '';
+    @Input() showSmallIcon = true;
+    @Input() icon = 'pi pi-info-circle';
+    @Input() textColor = '';
     
     constructor(
         protected formBuilder: FormBuilder,

@@ -728,8 +728,8 @@ export class {{entityName}}ListComponent implements OnInit {
     <spiderly-card [title]="t('Notification')" icon="pi pi-bell">
         <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
             <panel-body>
-                <div class="grid">
-                    <div class="col-12">
+                <div class="spiderly-grid">
+                    <div class="col-8">
                         <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')"/>
                     </div>
                 </div>
@@ -2504,7 +2504,7 @@ namespace {{appName}}.Business.Entities
     public class User : BusinessObject<long>, IUser
     {
         [UIDoNotGenerate]
-        [UIControlWidth("col-12")]
+        [UIControlWidth("col-8")]
         [DisplayName]
         [CustomValidator("EmailAddress()")]
         [StringLength(70, MinimumLength = 5)]
@@ -2726,7 +2726,7 @@ namespace {{appName}}.Business.Entities
 {
     public class Notification : BusinessObject<long>, INotification<User>
     {
-        [UIControlWidth("col-12")]
+        [UIControlWidth("col-8")]
         [DisplayName]
         [StringLength(100, MinimumLength = 1)]
         [Required]

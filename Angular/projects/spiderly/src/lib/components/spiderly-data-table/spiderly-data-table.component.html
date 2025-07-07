@@ -60,7 +60,7 @@
               <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData.id, rowData.index)" [ngModel]="isRowSelected(rowData.id)" [binary]="true"></p-checkbox>
           </td>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
-            <td [pTooltip]="col.filterType !== 'blob' ? getRowData(rowData, col) : ''" [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
+            <td [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
               <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
                 <ng-container *ngFor="let action of col.actions; trackBy: actionTrackByFn" >
                   <span [pTooltip]="action.name" [class]="getClassForAction(action)" [style]="getStyleForAction(action)" (click)="getMethodForAction(action, rowData)"></span>

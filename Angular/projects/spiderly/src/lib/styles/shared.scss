@@ -449,8 +449,8 @@ ul, ol {
   margin-bottom: 10px;
 }
 
-$grid-columns: 12;
-$grid-gap: 1rem;
+$grid-columns: 8;
+$grid-gap: 2rem;
 $breakpoints: (
   sm: 640px,
   md: 768px,
@@ -461,6 +461,7 @@ $breakpoints: (
   display: grid;
   grid-template-columns: repeat($grid-columns, 1fr);
   gap: $grid-gap;
+  padding: 1rem 0;
 }
 
 @for $i from 1 through $grid-columns {
