@@ -1,0 +1,17 @@
+.spiderly-inputgroup {
+    display: flex;
+    gap: 8px;
+}
+
+.spiderly-inputgroup-addon {
+    width: 38px;
+    cursor: pointer; 
+    background-color: var(--p-primary-color); 
+    border-color: var(--p-primary-color);
+    border-radius: var(--p-content-border-radius);
+    display: flex;
+
+    i {
+        margin: auto;
+    }
+}

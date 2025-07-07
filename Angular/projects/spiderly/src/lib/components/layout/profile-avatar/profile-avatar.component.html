@@ -35,7 +35,7 @@
         <p-avatar
           [label]="avatarLabel"
           size="xlarge"
-          [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'cursor': 'pointer', 'margin': 'auto' }"
+          [style]="{ 'background-color': 'var(--p-primary-color)', 'color': '#fff', 'margin': 'auto', 'cursor': routeOnLargeProfileAvatarClick ? 'pointer' : '' }"
           (click)="routeToUserPage()"
           />
         <div style="font-size: 15px;">{{currentUser?.email}}</div>

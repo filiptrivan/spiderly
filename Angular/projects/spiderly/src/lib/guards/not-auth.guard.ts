@@ -21,9 +21,10 @@ export class NotAuthGuard implements CanActivate {
     return this.authService.user$.pipe(
       map((user) => {
         if (user) {
-          this.authService.navigateToDashboard(); // FT: If there is a user and he went to the login page, push him to the dashboard i try to load partner.
+          this.authService.navigateToDashboard();
           return false;
-        } else {
+        } 
+        else {
           return true;
         }
       })

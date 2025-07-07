@@ -1,5 +1,5 @@
 <ng-container *transloco="let t">
-    <div class="flex flex-column gap-2">
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
             <label>{{getTranslatedLabel()}}</label>
             <!-- It's okay for this control, because for the custom uploads where we are not initializing the control from the backend, there is no need for formControl. -->

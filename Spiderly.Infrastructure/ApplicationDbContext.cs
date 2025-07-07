@@ -6,6 +6,7 @@ using System.Reflection;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Spiderly.Infrastructure.Converters;
 
 namespace Spiderly.Infrastructure
 {
@@ -119,7 +120,7 @@ namespace Spiderly.Infrastructure
 
         void HandleBusinessObjectChanges<T>(BusinessObject<T> businessObject, EntityEntry changedEntity) where T : struct
         {
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
 
             switch (changedEntity.State)
             {
@@ -135,6 +136,28 @@ namespace Spiderly.Infrastructure
                     businessObject.SetVersion(businessObject.Version + 1);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Configures global conventions for the Entity Framework model to automatically handle UTC conversion for all DateTime properties.
+        /// </summary>
+        /// <param name="configurationBuilder">The builder used to configure conventions for the model.</param>
+        /// <remarks>
+        /// This method applies UTC conversion to all DateTime and DateTime? properties across the entire data model:
+        /// <list type="bullet">
+        /// <item><description>When saving: Converts DateTime values to UTC if not already in UTC</description></item>
+        /// <item><description>When reading: Ensures DateTime values are marked with DateTimeKind.Utc</description></item>
+        /// <item><description>Handles both nullable and non-nullable DateTime properties</description></item>
+        /// </list>
+        /// This eliminates the need for manual UTC conversion throughout the application.
+        /// </remarks>
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            configurationBuilder.Properties<DateTime>()
+                .HaveConversion<DateTimeUtcConverter>();
+
+            configurationBuilder.Properties<DateTime?>()
+                .HaveConversion<NullableDateTimeUtcConverter>();
         }
 
     }

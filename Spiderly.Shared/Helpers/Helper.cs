@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Hosting;
 using Spiderly.Shared.Exceptions;
 using System.ComponentModel;
 using Microsoft.Data.SqlClient;
+using System.Security.Cryptography;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -331,6 +332,25 @@ Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Generates a cryptographically secure JWT secret key as a Base64 string. <br/><br/>
+        /// The strength depends on the byte size (default 64 bytes = 512 bits ~ 88 characters).
+        /// </summary>
+        /// <param name="byteSize">Number of random bytes (default: 64)</param>
+        /// <returns>Base64-encoded secret key</returns>
+        public static string GenerateJwtSecretKey(int byteSize = 64)
+        {
+            if (byteSize < 1)
+                throw new ArgumentException("Byte size must be at least 1.", nameof(byteSize));
+
+            byte[] randomBytes = new byte[byteSize];
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomBytes);
+            }
+            return Convert.ToBase64String(randomBytes);
         }
 
         #endregion

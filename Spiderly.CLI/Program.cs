@@ -255,15 +255,11 @@ namespace Spiderly.CLI
                 break;
             }
 
-            string rootPath = Directory.GetCurrentDirectory();
-
-            string[] folders = rootPath.Split('\\');
-            string kebabAppName = folders[folders.Length - 1];
-            string appName = kebabAppName.ToPascalCase();
+            string frontendPath = Directory.GetCurrentDirectory();
 
             Console.WriteLine("\nGenerating files for the entity...");
 
-            string pagesFolderPath = Path.Combine(rootPath, "Frontend", "src", "app", "pages");
+            string pagesFolderPath = Path.Combine(frontendPath, "src", "app", "pages");
             if (!Directory.Exists(pagesFolderPath))
             {
                 Console.WriteLine($"\n[WARNING] Pages folder not found: {pagesFolderPath}");

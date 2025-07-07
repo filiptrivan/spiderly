@@ -65,7 +65,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
     } 
     else {
       messageService.errorMessage(
-        errorResponse.message,
+        translocoService.translate('UnexpectedErrorDetails'),
         translocoService.translate('UnexpectedErrorTitle'),
       );
 

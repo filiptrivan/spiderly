@@ -6,8 +6,8 @@
       <ng-template pTemplate="caption">
         <div class="table-header overflow-auto">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <i class="{{tableIcon}} text-2xl primary-color"></i>
-            <div style="margin: 0px;">{{tableTitle}}</div>
+            <i class="{{tableIcon}}" style="font-size: 20px;"></i>
+            <div style="margin: 0px; font-size: 17.5px;">{{tableTitle}}</div>
           </div>
           <div style="display: flex; gap: 8px;">
             <button pButton [label]="t('ClearFilters')" class="p-button-outlined" style="flex: none;" icon="pi pi-filter-slash" (click)="clear(dt)"></button>
@@ -31,8 +31,7 @@
                 [showOperator]="false" [showMatchModes]="col.showMatchModes" [showAddButton]="col.showAddButton" [matchModeOptions]="getColMatchModeOptions(col.filterType)"
                 [matchMode]="getColMatchMode(col.filterType)"
                 >
-                <ng-container *ngIf="isDropOrMulti(col.filterType)">
-                  <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                  <ng-template *ngIf="isDropOrMulti(col.filterType)" pTemplate="filter" let-value let-filter="filterCallback">
                     <p-multiSelect [ngModel]="value" [options]="col.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="code" [style]="{'width':'240px'}">
                       <ng-template let-item pTemplate="item">
                         <div class="p-multiselect-representative-option">
@@ -41,7 +40,13 @@
                       </ng-template>
                     </p-multiSelect>
                   </ng-template>
-                </ng-container>
+                  <ng-template *ngIf="col.filterType == 'date'" pTemplate="filter" let-value let-filter="filterCallback">
+                      <p-datepicker 
+                      [ngModel]="value" 
+                      [showTime]="col.showTime"
+                      (onSelect)="filter($event)"
+                      ></p-datepicker>
+                  </ng-template>
               </p-columnFilter>
               </div>
             </th>

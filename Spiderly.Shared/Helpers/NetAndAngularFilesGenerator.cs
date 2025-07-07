@@ -15,7 +15,7 @@ namespace Spiderly.Shared.Helpers
         /// </summary>
         public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu)
         {
-            string jwtKey = GenerateJwtSecretKey();
+            string jwtKey = Helper.GenerateJwtSecretKey();
 
             string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
 
@@ -1771,7 +1771,6 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
 import { AuthBaseService, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
-import { provideSpinnerConfig } from 'ngx-spinner';
 import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
 import { TranslateLabelsService } from './business/services/translates/merge-labels';
@@ -1818,7 +1817,6 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling(scrollConfig),
       withRouterConfig(routerConfigOptions)
     ),
-    provideSpinnerConfig({type: 'ball-clip-rotate-multiple'}),
     provideClientHydration(withEventReplay()),
     MessageService,
     ConfirmationService,
@@ -2959,6 +2957,16 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        app.UseCors(builder =>
+        {
+            builder
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+                .WithOrigins(new[] { {{appName}}.WebAPI.SettingsProvider.Current.FrontendUrl })
+                .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
+        });
+
         app.SpiderlyConfigure(env);
 
         app.UseEndpoints(endpoints =>
@@ -2983,6 +2991,8 @@ namespace {{appName}}.WebAPI
 
     public class Settings
     {
+        public string FrontendUrl { get; set; }
+
         public string ExcelContentType { get; set; }
     }
 }
@@ -3141,6 +3151,7 @@ namespace {{appName}}.WebAPI
   "AppSettings": {
     "AllowedHosts": "*",
     "{{appName}}.WebAPI": {
+      "FrontendUrl": "http://localhost:4200",
       "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     },
     "{{appName}}.Business": {
@@ -3162,7 +3173,6 @@ namespace {{appName}}.WebAPI
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
-      "FrontendUrl": "http://localhost:4200",
 
       "BlobStorageConnectionString": "{{blobStorageConnectionString}}",
       "BlobStorageUrl": "{{blobStorageUrl}}",
@@ -3989,8 +3999,7 @@ namespace {{appName}}.Business.DataMappers
               "src/robots.txt"
             ],
             "styles": [
-              "src/assets/styles.scss",
-              "node_modules/ngx-spinner/animations/ball-clip-rotate-multiple.css"
+              "src/assets/styles.scss"
             ],
             "scripts": []
           },
@@ -4209,6 +4218,7 @@ export const ThemePreset = definePreset(Aura, {
 
 @use "../../node_modules/primeflex/primeflex.scss";
 @use "../../node_modules/primeicons/primeicons.css";
+@use "../../node_modules/ngx-spinner/animations/ball-clip-rotate-multiple.css";
 
 //#endregion
 
@@ -5050,10 +5060,9 @@ import { RouterModule } from '@angular/router';
 import { ConfigService } from 'src/app/business/services/config.service';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { SpiderlyLayoutComponent, SpiderlyMenuItem} from 'spiderly';
+import { SpiderlyLayoutComponent, SpiderlyMenuItem, SecurityPermissionCodes } from 'spiderly';
 import { CommonModule } from '@angular/common';
 import { BusinessPermissionCodes } from '../enums/business-enums.generated';
-import { SecurityPermissionCodes } from 'spiderly';
 
 @Component({
     selector: 'layout',
@@ -5261,16 +5270,6 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
             }
 
             return input;
-        }
-
-        static string GenerateJwtSecretKey(int size = 64)
-        {
-            var randomBytes = new byte[size];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomBytes);
-            }
-            return Convert.ToBase64String(randomBytes);
         }
 
         #endregion

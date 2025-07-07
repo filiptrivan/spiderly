@@ -28,7 +28,6 @@ namespace Spiderly.Shared
         public string JwtIssuer { get; set; }
         public string JwtAudience { get; set; }
         public int ClockSkewMinutes { get; set; }
-        public string FrontendUrl { get; set; }
 
 
         public string BlobStorageConnectionString { get; set; }

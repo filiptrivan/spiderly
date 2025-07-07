@@ -21,6 +21,7 @@ import { ButtonModule } from 'primeng/button';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import { DatePickerModule } from 'primeng/datepicker';
 
 @Component({
     selector: 'spiderly-data-table',
@@ -34,6 +35,7 @@ import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
         TableModule,
         ButtonModule,
         MultiSelectModule,
+        DatePickerModule,
         CheckboxModule,
         TooltipModule,
     ]

@@ -94,7 +94,7 @@ namespace Spiderly.Security.Services
                 IpAddress = ipAddress,
                 BrowserId = browserId,
                 TokenString = GenerateRandomTokenString(),
-                ExpireAt = DateTime.Now.AddMinutes(SettingsProvider.Current.RefreshTokenExpiration),
+                ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.RefreshTokenExpiration),
             };
 
             lock (_generateAccessAndRefreshTokensLock)
@@ -137,7 +137,7 @@ namespace Spiderly.Security.Services
                 SettingsProvider.Current.JwtIssuer,
                 shouldAddAudienceClaim ? SettingsProvider.Current.JwtAudience : string.Empty,
                 claims,
-                expires: DateTime.Now.AddMinutes(verificationExpiration ?? SettingsProvider.Current.AccessTokenExpiration),
+                expires: DateTime.UtcNow.AddMinutes(verificationExpiration ?? SettingsProvider.Current.AccessTokenExpiration),
                 signingCredentials: credentials);
 
             string accessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
@@ -232,7 +232,7 @@ namespace Spiderly.Security.Services
 
         public void RemoveExpiredRefreshTokens()
         {
-            var expiredTokens = _usersRefreshTokens.Where(x => x.Value.ExpireAt < DateTime.Now).ToList();
+            var expiredTokens = _usersRefreshTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
             foreach (var expiredToken in expiredTokens)
                 _usersRefreshTokens.TryRemove(expiredToken.Key, out _);
         }
@@ -310,7 +310,7 @@ namespace Spiderly.Security.Services
                 Email = userEmail,
                 UserId = userId,
                 BrowserId = browserId,
-                ExpireAt = DateTime.Now.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
+                ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
             };
 
             string code = GenerateVerificationCodeKey();
@@ -350,7 +350,7 @@ namespace Spiderly.Security.Services
             {
                 Email = userEmail,
                 BrowserId = browserId,
-                ExpireAt = DateTime.Now.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
+                ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
             };
 
             string code = GenerateVerificationCodeKey();
@@ -379,7 +379,7 @@ namespace Spiderly.Security.Services
 
         private void RemoveExpiredLoginVerificationTokens()
         {
-            var expiredTokens = _usersLoginVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.Now).ToList();
+            var expiredTokens = _usersLoginVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
             foreach (var expiredToken in expiredTokens)
             {
                 _usersLoginVerificationTokens.TryRemove(expiredToken.Key, out _);
@@ -397,7 +397,7 @@ namespace Spiderly.Security.Services
 
         private void RemoveExpiredRegistrationVerificationTokens()
         {
-            var expiredTokens = _usersRegistrationVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.Now).ToList();
+            var expiredTokens = _usersRegistrationVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
             foreach (var expiredToken in expiredTokens)
             {
                 _usersRegistrationVerificationTokens.TryRemove(expiredToken.Key, out _);

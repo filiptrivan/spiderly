@@ -667,7 +667,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                 return null;
 
             if (postAndPutParameter == null || postAndPutParameter.Count == 0)
-                return null;
+                return ", {}";
 
             return $", {string.Join(", ", postAndPutParameter.Select(p => p.Key))}";
         }

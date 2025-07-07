@@ -1,11 +1,11 @@
 <!-- Can't put (onBlur) in this control -->
 
-<div class="flex flex-column gap-2">
+<div style="display: flex; flex-direction: column; gap: 0.5rem;">
   <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
     <label>{{getTranslatedLabel()}}</label>
-    <required *ngIf="control?.required"></required>
+    <required *ngIf="control?.required && showRequired"></required>
   </div>
-  <div class="p-inputgroup">
+  <div class="spiderly-inputgroup">
     <input
       *ngIf="control"
       [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
@@ -16,8 +16,8 @@
       [placeholder]="placeholder"
       [fluid]="true"
       />
-      <span *ngIf="showButton" (click)="buttonClick()" class="p-inputgroup-addon" style="cursor: pointer; background-color: var(--p-primary-color); border-color: var(--p-primary-color);">
-        <i class="pi {{buttonIcon}}" style="color: #fff;"></i>
+      <span *ngIf="showButton" (click)="buttonClick()" class="spiderly-inputgroup-addon">
+        <i class="{{buttonIcon}}"></i>
       </span>
   </div>
 </div>

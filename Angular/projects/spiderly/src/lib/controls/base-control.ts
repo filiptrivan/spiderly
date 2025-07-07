@@ -14,6 +14,7 @@ import { TranslocoService } from '@jsverse/transloco';
     @Input() control: SpiderlyFormControl; // If you name it formControl: https://stackoverflow.com/a/54755671/21209982
     @Input() disabled: boolean = false;
     @Input() showLabel: boolean = true;
+    @Input() showRequired: boolean = true;
     @Input() label: string = null; // NgModel/Want custom translation
     @Input() controlValid: boolean = true; // NgModel
     @Input() placeholder: string = '';

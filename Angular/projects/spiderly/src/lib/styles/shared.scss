@@ -448,3 +448,33 @@ ul, ol {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
+$grid-columns: 12;
+$grid-gap: 1rem;
+$breakpoints: (
+  sm: 640px,
+  md: 768px,
+  lg: 1024px
+);
+
+.spiderly-grid {
+  display: grid;
+  grid-template-columns: repeat($grid-columns, 1fr);
+  gap: $grid-gap;
+}
+
+@for $i from 1 through $grid-columns {
+  .col-#{$i} {
+    grid-column: span #{$i};
+  }
+}
+
+@each $breakpoint, $size in $breakpoints {
+  @media (min-width: #{$size}) {
+    @for $i from 1 through $grid-columns {
+      .#{$breakpoint}\:col-#{$i} {
+        grid-column: span #{$i};
+      }
+    }
+  }
+}

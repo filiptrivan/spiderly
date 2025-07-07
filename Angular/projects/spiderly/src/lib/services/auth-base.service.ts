@@ -48,7 +48,7 @@ export class AuthBaseService implements OnDestroy {
         idToken: user.idToken
       }
       this.loginExternal(externalAuth).subscribe(() => {
-        this.navigateToDashboard();
+        this.onAfterLoginExternal();
       });
       this.extAuthChangeSub.next(user);
     });
@@ -97,6 +97,8 @@ export class AuthBaseService implements OnDestroy {
     return this.handleLoginResult(loginResultObservable);
   }
 
+  onAfterLoginExternal = () => {}
+
   sendRegistrationVerificationEmail(body: Registration): Observable<RegistrationVerificationResult> {
     const browserId = this.getBrowserId();
     body.browserId = browserId;
@@ -135,7 +137,6 @@ export class AuthBaseService implements OnDestroy {
           this._user.next(null);
           this.onAfterLogout();
           this.stopTokenTimer();
-          this.router.navigate([this.config.loginSlug]);
         })
       )
       .subscribe();
@@ -246,10 +247,6 @@ export class AuthBaseService implements OnDestroy {
 
   navigateToDashboard(){
     this.router.navigate(['/']);
-  }
-
-  logoutGoogle = () => {
-    this.externalAuthService.signOut();
   }
 
   initCompanyAuthDialogDetails = (): Observable<InitCompanyAuthDialogDetails> => {

@@ -10,6 +10,7 @@ import { TooltipModule } from 'primeng/tooltip';
 @Component({
     selector: 'spiderly-textbox',
     templateUrl: './spiderly-textbox.component.html',
+    styleUrl: '../base-controls.scss',
     imports: [
         CommonModule,
         ReactiveFormsModule,

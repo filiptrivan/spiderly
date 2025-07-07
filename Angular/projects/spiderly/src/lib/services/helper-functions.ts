@@ -9,6 +9,7 @@ import { Namebook } from "../entities/namebook";
 import { Codebook } from "../entities/codebook";
 import { PrimengOption } from "../entities/primeng-option";
 import { SpiderlyTab } from "../components/spiderly-panels/panel-header/panel-header.component";
+import { isPlatformBrowser } from "@angular/common";
 
 // Helper function for PrecisionScale validation (to be added in the TypeScript output):
 export function validatePrecisionScale(value: any, precision: number, scale: number, ignoreTrailingZeros: boolean): boolean {
@@ -115,195 +116,221 @@ export function capitalizeFirstLetter(inputString: string): string {
     return inputString.charAt(0).toUpperCase() + inputString.slice(1);
   }
 
-  // export function getMonth(number: number): string {
-  //   const months: string[] = [
-  //     "January", "February", "March", "April", "May", "June",
-  //     "July", "August", "September", "October", "November", "December"
-  //   ];
-    
-  //   if (number < 1 || number > 12) {
-  //     throw new Error("Invalid month number. It should be between 1 and 12.");
-  //   }
-    
-  //   return months[number - 1];
-  // }
-
-  export function getMonth(numberOfTheMonth: number): string {
-    const meseci: string[] = [
-      "Januar", "Februar", "Mart", "April", "Maj", "Jun",
-      "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"
-    ];
-    
-    if (numberOfTheMonth < 1 || numberOfTheMonth > 12) {
-      console.error("Nevažeći broj meseca. Broj treba biti između 1 i 12.");
-    }
-    
-    return meseci[numberOfTheMonth - 1];
-  }
-
-  export function singleOrDefault <T>(array: T[], predicate: (item: T) => boolean): T | undefined {
-    const filtered = array.filter(predicate);
-    if (filtered.length > 1) {
-      throw new Error("Sequence contains more than one matching element.");
-    }
-    return filtered[0];
-  };
-
-  export function pushAction(cols: Column[], action: Action){
-    const actionsColumn = singleOrDefault(cols, x => x.actions != null);
-    if (actionsColumn) {
-        actionsColumn.actions = [...actionsColumn.actions, action];
-    }
-  }
-
-  export function deleteAction(cols: Column[], actionField: string): void {
-    const actionsColumn = singleOrDefault(cols, x => x.actions != null);
-
-    if (actionsColumn && actionsColumn.actions) {
-      const index = actionsColumn.actions.findIndex(a => a.field === actionField);
-      if (index !== -1) {
-        actionsColumn.actions.splice(index, 1);
-      }
-    }
-  }
-
-  export function getFileNameFromContentDisposition(
-    resp: HttpResponse<Blob>,
-    defaultName: string
-  ): string {
-    let fileName;
-    if (resp && resp.headers && resp.headers.get('Content-Disposition')) {
-      let val = resp.headers.get('Content-Disposition');
-      let start = val.indexOf('filename=');
-      if (start != -1) {
-        let end = val.indexOf(';', start);
-        fileName =
-          end != -1 ? val.substring(start + 9, end) : val.substring(start + 9);
-        fileName = fileName.split('"').join('');
-      }
-    }
-    return fileName ?? defaultName;
-  }
-
-  export const getControl = <T extends BaseEntity>(formControlName: string & keyof T, formGroup: SpiderlyFormGroup<T>) => {
-      if (formGroup == null)
-        return null; // FT: When we initialized form group again this will happen
+// export function getMonth(number: number): string {
+//   const months: string[] = [
+//     "January", "February", "March", "April", "May", "June",
+//     "July", "August", "September", "October", "November", "December"
+//   ];
   
-      if(formGroup.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
-        formGroup.controlNamesFromHtml.push(formControlName);
+//   if (number < 1 || number > 12) {
+//     throw new Error("Invalid month number. It should be between 1 and 12.");
+//   }
   
-      let formControl = formGroup.controls[formControlName];
-      if (formControl == null) {
-        console.error(`FT: The property ${formControlName} in the form group ${formGroup.getRawValue().typeName} doesn't exist`);
-        return null;
-      }
-    
-      return formControl;
+//   return months[number - 1];
+// }
+
+export function getMonth(numberOfTheMonth: number): string {
+  const meseci: string[] = [
+    "Januar", "Februar", "Mart", "April", "Maj", "Jun",
+    "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"
+  ];
+  
+  if (numberOfTheMonth < 1 || numberOfTheMonth > 12) {
+    console.error("Nevažeći broj meseca. Broj treba biti između 1 i 12.");
   }
+  
+  return meseci[numberOfTheMonth - 1];
+}
 
-  export function toCommaSeparatedString<T>(input: T[]): string {
-    const stringList = input.map(item => (item?.toString() ?? ''));
+export function singleOrDefault <T>(array: T[], predicate: (item: T) => boolean): T | undefined {
+  const filtered = array.filter(predicate);
+  if (filtered.length > 1) {
+    throw new Error("Sequence contains more than one matching element.");
+  }
+  return filtered[0];
+};
 
-    if (stringList.length > 1) {
-        return `${stringList.slice(0, -1).join(', ')} and ${stringList[stringList.length - 1]}`;
-    } else {
-        return stringList[0] ?? '';
+export function pushAction(cols: Column[], action: Action){
+  const actionsColumn = singleOrDefault(cols, x => x.actions != null);
+  if (actionsColumn) {
+      actionsColumn.actions = [...actionsColumn.actions, action];
+  }
+}
+
+export function deleteAction(cols: Column[], actionField: string): void {
+  const actionsColumn = singleOrDefault(cols, x => x.actions != null);
+
+  if (actionsColumn && actionsColumn.actions) {
+    const index = actionsColumn.actions.findIndex(a => a.field === actionField);
+    if (index !== -1) {
+      actionsColumn.actions.splice(index, 1);
     }
   }
+}
 
-  export function isImageFileType(mimeType: string): boolean {
-    if (mimeType.startsWith('image/')) {
+export function getFileNameFromContentDisposition(
+  resp: HttpResponse<Blob>,
+  defaultName: string
+): string {
+  let fileName;
+  if (resp && resp.headers && resp.headers.get('Content-Disposition')) {
+    let val = resp.headers.get('Content-Disposition');
+    let start = val.indexOf('filename=');
+    if (start != -1) {
+      let end = val.indexOf(';', start);
+      fileName =
+        end != -1 ? val.substring(start + 9, end) : val.substring(start + 9);
+      fileName = fileName.split('"').join('');
+    }
+  }
+  return fileName ?? defaultName;
+}
+
+export const getControl = <T extends BaseEntity>(formControlName: string & keyof T, formGroup: SpiderlyFormGroup<T>) => {
+    if (formGroup == null)
+      return null; // FT: When we initialized form group again this will happen
+
+    if(formGroup.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
+      formGroup.controlNamesFromHtml.push(formControlName);
+
+    let formControl = formGroup.controls[formControlName];
+    if (formControl == null) {
+      console.error(`FT: The property ${formControlName} in the form group ${formGroup.getRawValue().typeName} doesn't exist`);
+      return null;
+    }
+  
+    return formControl;
+}
+
+export function toCommaSeparatedString<T>(input: T[]): string {
+  const stringList = input.map(item => (item?.toString() ?? ''));
+
+  if (stringList.length > 1) {
+      return `${stringList.slice(0, -1).join(', ')} and ${stringList[stringList.length - 1]}`;
+  } else {
+      return stringList[0] ?? '';
+  }
+}
+
+export function isImageFileType(mimeType: string): boolean {
+  if (mimeType.startsWith('image/')) {
+      return true;
+  }
+
+  return false;
+}
+
+export function isExcelFileType(mimeType: string): boolean {
+    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        mimeType === 'application/vnd.ms-excel'
+    ) {
         return true;
     }
 
     return false;
+}
+
+export function exportListToExcel(exportListToExcelObservableMethod: (filter: Filter) => Observable<any>, filter: Filter) {
+  exportListToExcelObservableMethod(filter).subscribe(res => {
+      let fileName = getFileNameFromContentDisposition(res, "ExcelExport.xlsx");
+      FileSaver.saveAs(res.body, decodeURIComponent(fileName));
+  });
+}
+
+export function getPrimengDropdownNamebookOptions(getDropdownListObservable: (parentEntityId?: number) => Observable<Namebook[]>, parentEntityId?: number): Observable<PrimengOption[]>{
+    return getDropdownListObservable(parentEntityId ?? 0).pipe(
+        map(res => {
+            return res.map(x => ({ label: x.displayName, code: x.id }));
+        })
+    );
+}
+
+export function getPrimengDropdownCodebookOptions(getDropdownListObservable: () => Observable<Codebook[]>): Observable<PrimengOption[]>{
+    return getDropdownListObservable().pipe(
+        map(res => {
+            return res.map(x => ({ label: x.displayName, code: x.code }));
+        })
+    );
+}
+
+export function getPrimengAutocompleteNamebookOptions(getAutocompleteListObservable: (limit: number, query: string, parentEntityId?: number) => Observable<Namebook[]>, limit: number, query: string, parentEntityId?: number): Observable<PrimengOption[]>{
+    return getAutocompleteListObservable(limit, query, parentEntityId ?? 0).pipe(
+        map(res => {
+            return res.map(x => ({ label: x.displayName, code: x.id }));
+        })
+    );
+}
+
+export function getPrimengAutocompleteCodebookOptions(getAutocompleteListObservable: (limit: number, query: string) => Observable<Codebook[]>, limit: number, query: string): Observable<PrimengOption[]>{
+    return getAutocompleteListObservable(limit, query).pipe(
+        map(res => {
+            return res.map(x => ({ label: x.displayName, code: x.code }));
+        })
+    );
+}
+
+export const isNullOrEmpty = (input: string) => {
+  if(input == null || input === ''){
+    return true;
   }
+  
+  return false;
+}
 
-  export function isExcelFileType(mimeType: string): boolean {
-      if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          mimeType === 'application/vnd.ms-excel'
-      ) {
-          return true;
-      }
+export const selectedTab = (tabs: SpiderlyTab[]): number => {
+  const tab = singleOrDefault(tabs, x => x.isSelected);
 
-      return false;
+  if (tab) {
+    return tab.id;
   }
-
-  export function exportListToExcel(exportListToExcelObservableMethod: (filter: Filter) => Observable<any>, filter: Filter) {
-    exportListToExcelObservableMethod(filter).subscribe(res => {
-        let fileName = getFileNameFromContentDisposition(res, "ExcelExport.xlsx");
-        FileSaver.saveAs(res.body, decodeURIComponent(fileName));
-    });
+  else{
+    return null;
   }
+}
 
-  export function getPrimengDropdownNamebookOptions(getDropdownListObservable: (parentEntityId?: number) => Observable<Namebook[]>, parentEntityId?: number): Observable<PrimengOption[]>{
-      return getDropdownListObservable(parentEntityId ?? 0).pipe(
-          map(res => {
-              return res.map(x => ({ label: x.displayName, code: x.id }));
-          })
-      );
-  }
+export function firstCharToUpper(input: string): string {
+  return input.charAt(0).toUpperCase() + input.slice(1);
+}
 
-  export function getPrimengDropdownCodebookOptions(getDropdownListObservable: () => Observable<Codebook[]>): Observable<PrimengOption[]>{
-      return getDropdownListObservable().pipe(
-          map(res => {
-              return res.map(x => ({ label: x.displayName, code: x.code }));
-          })
-      );
-  }
+export function splitPascalCase(input: string) {
+  const regex = /($[a-z])|[A-Z][^A-Z]+/g;
+  return input.match(regex).join(" ");
+}
 
-  export function getPrimengAutocompleteNamebookOptions(getAutocompleteListObservable: (limit: number, query: string, parentEntityId?: number) => Observable<Namebook[]>, limit: number, query: string, parentEntityId?: number): Observable<PrimengOption[]>{
-      return getAutocompleteListObservable(limit, query, parentEntityId ?? 0).pipe(
-          map(res => {
-              return res.map(x => ({ label: x.displayName, code: x.id }));
-          })
-      );
-  }
+export function capitalizeFirstChar(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
-  export function getPrimengAutocompleteCodebookOptions(getAutocompleteListObservable: (limit: number, query: string) => Observable<Codebook[]>, limit: number, query: string): Observable<PrimengOption[]>{
-      return getAutocompleteListObservable(limit, query).pipe(
-          map(res => {
-              return res.map(x => ({ label: x.displayName, code: x.code }));
-          })
-      );
-  }
+export function kebabToTitleCase(input: string): string {
+  return input
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
-  export const isNullOrEmpty = (input: string) => {
-    if(input == null || input === ''){
-      return true;
-    }
-    
-    return false;
-  }
+/**
+ * Custom styling of the google button - https://medium.com/simform-engineering/implement-custom-google-sign-in-using-angular-16-9c93aeff6252
+*/
+export function createFakeGoogleWrapper() { 
+  const googleLoginWrapper = document.createElement('div');
+  googleLoginWrapper.style.display = 'none';
+  googleLoginWrapper.classList.add('custom-google-button');
 
-  export const selectedTab = (tabs: SpiderlyTab[]): number => {
-    const tab = singleOrDefault(tabs, x => x.isSelected);
+  document.body.appendChild(googleLoginWrapper);
 
-    if (tab) {
-      return tab.id;
-    }
-    else{
-      return null;
-    }
-  }
+  window.google.accounts.id.renderButton(googleLoginWrapper, {
+    type: 'icon',
+    width: '200',
+  });
 
-  export function firstCharToUpper(input: string): string {
-    return input.charAt(0).toUpperCase() + input.slice(1);
-  }
+  const googleLoginWrapperButton = googleLoginWrapper.querySelector(
+    'div[role=button]'
+  ) as HTMLElement;
 
-  export function splitPascalCase(input: string) {
-    const regex = /($[a-z])|[A-Z][^A-Z]+/g;
-    return input.match(regex).join(" ");
-  }
-
-  export function capitalizeFirstChar(str: string): string {
-    if (!str) return str;
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  export function kebabToTitleCase(input: string): string {
-    return input
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
+  return {
+    click: () => {
+      googleLoginWrapperButton?.click();
+    },
+  };
+};

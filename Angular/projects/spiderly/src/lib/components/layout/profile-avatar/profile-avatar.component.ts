@@ -11,14 +11,6 @@ import { BadgeModule } from 'primeng/badge';
 import { SpiderlyButtonComponent } from "../../spiderly-buttons/spiderly-button/spiderly-button.component";
 import { ConfigBaseService } from '../../../services/config-base.service';
 
-interface ProfileAvatarModalMenuItem {
-  label?: string;
-  icon?: string;
-  showSeparator?: boolean;
-  onClick?: () => void;
-  showNotificationBadge?: boolean;
-}
-
 @Component({
   selector: 'spiderly-profile-avatar',
   templateUrl: './profile-avatar.component.html',
@@ -34,19 +26,20 @@ interface ProfileAvatarModalMenuItem {
 })
 export class ProfileAvatarComponent {
   @Input() isSideMenuLayout = true;
+  @Input() routeOnLargeProfileAvatarClick = true;
   @Input() showLoginButton = true;
   @Input() routeToLoginPage = true;
   @Input() loginButtonOutlined = false;
   @Input() loginButtonSeverity: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined = 'primary';
   @Input() loginButtonSize: 'small' | 'large' | undefined;
   @Output() onLoginButtonClick = new EventEmitter();
+  @Input() menuItems: ProfileAvatarModalMenuItem[] = [];
 
   private initTopBarSubscription: Subscription | null = null;
 
   currentUser: UserBase;
   userProfilePath: string;
   unreadNotificationsCount: number;
-  menuItems: ProfileAvatarModalMenuItem[] = [];
   avatarLabel: string;
   showProfileIcon = false;
 
@@ -74,25 +67,27 @@ export class ProfileAvatarComponent {
   }
 
   async ngOnInit(){
-    this.menuItems = [
-      {
-        label: this.translocoService.translate('YourProfile'),
-        icon: 'pi-user',
-        showSeparator: true,
-        onClick: () => {
-          this.routeToUserPage();
+    if (this.menuItems.length === 0) {
+      this.menuItems = [
+        {
+          label: this.translocoService.translate('YourProfile'),
+          icon: 'pi-user',
+          showSeparator: true,
+          onClick: () => {
+            this.routeToUserPage();
+          }
+        },
+        this.notificationMenuItem,
+        {
+          label: this.translocoService.translate('Logout'),
+          icon: 'pi-sign-out',
+          showSeparator: true,
+          onClick: () => {
+            this.authService.logout();
+          }
         }
-      },
-      this.notificationMenuItem,
-      {
-        label: this.translocoService.translate('Logout'),
-        icon: 'pi-sign-out',
-        showSeparator: true,
-        onClick: () => {
-          this.authService.logout();
-        }
-      }
-    ];
+      ];
+    }
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -125,7 +120,9 @@ export class ProfileAvatarComponent {
   }
 
   routeToUserPage(){
-    this.router.navigateByUrl(this.userProfilePath);
+    if (this.routeOnLargeProfileAvatarClick) {
+      this.router.navigateByUrl(this.userProfilePath);
+    }
   }
 
   loginButtonClick() {
@@ -142,4 +139,12 @@ export class ProfileAvatarComponent {
     }
   }
 
+}
+
+export interface ProfileAvatarModalMenuItem {
+  label?: string;
+  icon?: string;
+  showSeparator?: boolean;
+  onClick?: () => void;
+  showNotificationBadge?: boolean;
 }

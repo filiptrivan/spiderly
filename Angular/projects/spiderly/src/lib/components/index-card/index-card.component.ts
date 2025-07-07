@@ -32,7 +32,6 @@ export class IndexCardComponent {
     }
 
     ngOnInit(){
-        // console.log(this.last);
     }
 
     menuIconClick(index: number){

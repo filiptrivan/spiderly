@@ -3,7 +3,7 @@
         <div style="display: flex; align-items: center; gap: 8px;">
             <span *ngIf="index != null" class="number-circle">{{index + 1}}</span>
             <i class="{{icon}} primary-color" [style]="showBigTitle ? 'font-size: 21px' : 'font-size: 16px;'"></i> 
-            <div [style]="(showBigTitle ? 'font-size: 17.5px; font-weight: 500;' : '')" class="remove-h-css">{{title}}</div>
+            <div [style]="(showBigTitle ? 'font-size: 17.5px; font-weight: 500;' : '')">{{title}}</div>
         </div>
     }
     @else {

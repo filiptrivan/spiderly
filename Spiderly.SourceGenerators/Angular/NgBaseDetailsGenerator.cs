@@ -118,7 +118,7 @@ namespace Spiderly.SourceGenerators.Angular
         </panel-body>
 
         <panel-footer>
-            <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
+            <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
             @for (button of additionalButtons; track button.label) {
                 <spiderly-button (onClick)="button.onClick()" [disabled]="button.disabled" [label]="button.label" [icon]="button.icon"></spiderly-button>
             }

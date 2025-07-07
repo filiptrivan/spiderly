@@ -220,8 +220,6 @@ namespace Spiderly.Shared.Extensions
 
             app.SpiderlyConfigureLocalization();
 
-            app.SpiderlyConfigureCors(); // Allow CORS to connect with the frontend
-
             app.SpiderlyConfigureSwagger();
 
             if (env.IsProduction())
@@ -246,19 +244,6 @@ namespace Spiderly.Shared.Extensions
                 .GetRequiredService<IOptions<RequestLocalizationOptions>>().Value;
 
             app.UseRequestLocalization(localizationOptions);
-        }
-
-        public static void SpiderlyConfigureCors(this IApplicationBuilder app)
-        {
-            app.UseCors(builder =>
-            {
-                builder
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials()
-                    .WithOrigins(new[] { SettingsProvider.Current.FrontendUrl })
-                    .WithExposedHeaders("Content-Disposition"); // to know how to parse the Excel file name on the front end
-            });
         }
 
         public static void SpiderlyConfigureSwagger(this IApplicationBuilder app)

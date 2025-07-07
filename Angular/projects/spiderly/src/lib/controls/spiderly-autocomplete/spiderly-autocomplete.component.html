@@ -1,8 +1,8 @@
 <ng-container *transloco="let t">
-  <div class="flex flex-column gap-2">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
     <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null"> <!-- By passing an empty string we remove the label entirely -->
       <label>{{getTranslatedLabel()}}</label>
-      <required *ngIf="control?.required"></required>
+      <required *ngIf="control?.required && showRequired"></required>
     </div>
   
     <!-- Don't support p-inputgroup -->
