@@ -96,13 +96,15 @@ namespace Spiderly.Infrastructure
             {
                 Type clrType = entityType.ClrType;
 
-                if (clrType.IsBusinessOrReadonlyEntity() == false)
-                    continue;
-
                 foreach (PropertyInfo property in clrType.GetProperties())
                 {
-                    if (property.IsManyToOneType() == false)
+                    if (
+                        property.IsManyToOneType() == false ||
+                        property.GetCustomAttribute<M2MWithManyAttribute>() != null
+                    )
+                    {
                         continue;
+                    }
 
                     WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
 
