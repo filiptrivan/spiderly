@@ -53,7 +53,7 @@ export class RegistrationComponent extends BaseFormCopy implements OnInit {
     }
     
     initRegistrationFormGroup(model: Registration){
-        this.initFormGroup(this.registrationFormGroup, this.formGroup, model, model.typeName, []);
+        this.initFormGroup(this.registrationFormGroup, this.formGroup, model, model.typeName, ['email']);
     }
 
     companyNameChange(companyName: string){

@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ButtonModule } from "primeng/button";
 import { SplitButtonModule } from "primeng/splitbutton";
@@ -20,5 +20,6 @@ export class SpiderlyButtonComponent extends SpiderlyButtonBaseComponent {
   //   super();
     
   // }
+  @Input() type: 'button' | 'submit' | 'reset' = 'button';
 
 }
