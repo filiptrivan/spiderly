@@ -54,7 +54,7 @@ export class LoginComponent extends BaseFormCopy implements OnInit {
     }
     
     initLoginFormGroup(model: Login){
-      this.initFormGroup(this.loginFormGroup, this.formGroup, model, model.typeName, []);
+      this.initFormGroup(this.loginFormGroup, this.formGroup, model, model.typeName, ['email']);
     }
 
     companyNameChange(companyName: string){

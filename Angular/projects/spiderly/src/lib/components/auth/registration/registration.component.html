@@ -14,7 +14,7 @@
                     </div>
                     
                     <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <spiderly-button [label]="t('AgreeAndJoin')" (onClick)="sendRegistrationVerificationEmail()" [outlined]="true" [style]="{width: '100%'}"></spiderly-button>
+                        <spiderly-button [label]="t('AgreeAndJoin')" (onClick)="sendRegistrationVerificationEmail()" [outlined]="true" [style]="{width: '100%'}" type="submit"></spiderly-button>
                         <!-- TODO FT: Add possibility to change this name from the specific project -->
                         <spiderly-button [label]="t('AlreadyHasAccount', {companyName: companyName})" routerLink="/login" [style]="{width: '100%'}"></spiderly-button>
                     </div>
