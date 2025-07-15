@@ -1,0 +1,44 @@
+name: Append Contributor Guide to Issues
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  append-guide:
+    if: github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if label matches
+        id: label_check
+        run: |
+          echo "LABEL_MATCH=false" >> $GITHUB_ENV
+          if [[ "${{ github.event_name }}" == "labeled" ]]; then
+            if [[ "${{ github.event.label.name }}" == "good first issue" || "${{ github.event.label.name }}" == "help wanted" ]]; then
+              echo "LABEL_MATCH=true" >> $GITHUB_ENV
+            fi
+          elif [[ "${{ github.event_name }}" == "opened" ]]; then
+            for label in "${{ toJson(github.event.issue.labels) }}"; do
+              if [[ "$label" == *"good first issue"* || "$label" == *"help wanted"* ]]; then
+                echo "LABEL_MATCH=true" >> $GITHUB_ENV
+              fi
+            done
+          fi
+
+      - name: Append Contributor Guide
+        if: env.LABEL_MATCH == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.issue.number;
+            const body = context.payload.issue.body || '';
+            const guideText = `\n\n---\n\n🆕 First-time contributor? Check out the [Contributor Getting Started Guide](https://yourproject.com/contributing)`;
+
+            if (!body.includes(guideText.trim())) {
+              const updatedBody = `${body}${guideText}`;
+              await github.rest.issues.update({
+                ...context.issue,
+                body: updatedBody
+              });
+            }
