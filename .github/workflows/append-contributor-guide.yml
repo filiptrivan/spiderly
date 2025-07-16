@@ -20,7 +20,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const body = context.payload.issue.body || '';
-            const guide = '\n\n---\n\nFirst-time contributor? Check out the [Contributor Getting Started Guide](https://github.com/filiptrivan/spiderly?tab=readme-ov-file#getting-started-as-a-contributor)';
+            const guide = '\n\n---\n\nFirst-time contributor? Check out the [Contributor Getting Started Guide](https://github.com/filiptrivan/spiderly?tab=readme-ov-file#getting-started-as-a-contributor).';
             if (!body.includes('Contributor Getting Started Guide')) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
