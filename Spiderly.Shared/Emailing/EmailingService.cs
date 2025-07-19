@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using Spiderly.Shared.DTO;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Resources;
@@ -21,14 +22,12 @@ namespace Spiderly.Shared.Emailing
             _smtpClient = Helper.GetSmtpClient();
         }
 
-        public async Task SendVerificationEmailAsync(string toEmail, string verificationCode)
-        {
-            string body = GetVerificationEmailBody(verificationCode);
-
+        public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
+        {         
             using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, toEmail)
             {
-                Subject = SharedTerms.EmailAccountVerificationTitle,
-                Body = body,
+                Subject = template.Subject,
+                Body = template.Body,
                 BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
                 IsBodyHtml = true
             })
@@ -96,13 +95,5 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private string GetVerificationEmailBody(string verificationCode)
-        {
-            string body = $$"""
-{{verificationCode}}
-""";
-
-            return body;
-        }
     }
 }

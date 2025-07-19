@@ -72,7 +72,8 @@ namespace Spiderly.Security.Services
 
             try
             {
-                await _emailingService.SendVerificationEmailAsync(userEmail, verificationCode);
+                EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+                await _emailingService.SendVerificationEmailAsync(userEmail, EmailTemplate);
             }
             catch (Exception)
             {
@@ -80,6 +81,17 @@ namespace Spiderly.Security.Services
                 throw;
             }
         }
+
+         protected virtual EmailVerifyUIDTO CreateEmailTemplate(string verificationCode)
+         {
+            return new EmailVerifyUIDTO
+            {
+
+                Subject = "Verify  Your Login",
+                Body = $"Your Verification Code is: {verificationCode}"
+            };
+         }
+
 
         public AuthResultDTO Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
@@ -149,7 +161,8 @@ namespace Spiderly.Security.Services
 
                     try
                     {
-                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, verificationCode);
+                        EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
                     }
                     catch (Exception)
                     {
