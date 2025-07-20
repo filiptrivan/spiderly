@@ -69,10 +69,10 @@ namespace Spiderly.Security.Services
             });
 
             string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
-
+            EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
             try
             {
-                EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+                
                 await _emailingService.SendVerificationEmailAsync(userEmail, EmailTemplate);
             }
             catch (Exception)
@@ -82,13 +82,12 @@ namespace Spiderly.Security.Services
             }
         }
 
-         protected virtual EmailVerifyUIDTO CreateEmailTemplate(string verificationCode)
+         public virtual EmailVerifyUIDTO CreateEmailTemplate(string verificationCode)
          {
             return new EmailVerifyUIDTO
             {
-
-                Subject = "Verify  Your Login",
-                Body = $"Your Verification Code is: {verificationCode}"
+                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Body = verificationCode
             };
          }
 
