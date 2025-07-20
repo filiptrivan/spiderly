@@ -72,10 +72,11 @@ namespace Spiderly.Security.Services
             });
 
             string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
-
+            EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
             try
             {
-                await _emailingService.SendVerificationEmailAsync(userEmail, verificationCode);
+                
+                await _emailingService.SendVerificationEmailAsync(userEmail, EmailTemplate);
             }
             catch (Exception)
             {
@@ -83,6 +84,16 @@ namespace Spiderly.Security.Services
                 throw;
             }
         }
+
+         public virtual EmailVerifyUIDTO CreateEmailTemplate(string verificationCode)
+         {
+            return new EmailVerifyUIDTO
+            {
+                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Body = verificationCode
+            };
+         }
+
 
         public AuthResultDTO Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
@@ -154,7 +165,8 @@ namespace Spiderly.Security.Services
 
                     try
                     {
-                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, verificationCode);
+                        EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
                     }
                     catch (Exception)
                     {
