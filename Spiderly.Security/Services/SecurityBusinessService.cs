@@ -157,10 +157,10 @@ namespace Spiderly.Security.Services
                 if (user == null)
                 {
                     string verificationCode = _jwtAuthManagerService.GenerateAndSaveRegistrationVerificationCode(registrationDTO.Email, registrationDTO.BrowserId);
+                    EmailVerifyUIDTO EmailTemplate = CreateRegistrationEmailTemplate(verificationCode);
 
                     try
-                    {
-                        EmailVerifyUIDTO EmailTemplate = CreateRegistrationEmailTemplate(verificationCode);
+                    {                        
                         await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
                     }
                     catch (Exception)
