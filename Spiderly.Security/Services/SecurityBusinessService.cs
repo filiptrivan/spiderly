@@ -72,7 +72,7 @@ namespace Spiderly.Security.Services
             });
 
             string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
-            EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+            EmailVerifyUIDTO EmailTemplate = CreateLoginEmailTemplate(verificationCode);
             try
             {
                 
@@ -85,7 +85,7 @@ namespace Spiderly.Security.Services
             }
         }
 
-         public virtual EmailVerifyUIDTO CreateEmailTemplate(string verificationCode)
+         public virtual EmailVerifyUIDTO CreateLoginEmailTemplate(string verificationCode)
          {
             return new EmailVerifyUIDTO
             {
@@ -162,10 +162,10 @@ namespace Spiderly.Security.Services
                 if (user == null)
                 {
                     string verificationCode = _jwtAuthManagerService.GenerateAndSaveRegistrationVerificationCode(registrationDTO.Email, registrationDTO.BrowserId);
+                    EmailVerifyUIDTO EmailTemplate = CreateRegistrationEmailTemplate(verificationCode);
 
                     try
-                    {
-                        EmailVerifyUIDTO EmailTemplate = CreateEmailTemplate(verificationCode);
+                    {                        
                         await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
                     }
                     catch (Exception)
@@ -181,6 +181,15 @@ namespace Spiderly.Security.Services
             });
 
             return registrationResultDTO;
+        }
+
+        public virtual EmailVerifyUIDTO CreateRegistrationEmailTemplate(string verificationCode)
+        {
+            return new EmailVerifyUIDTO
+            {
+                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Body = verificationCode
+            };
         }
 
         public async Task<AuthResultDTO> Register(VerificationTokenRequestDTO verificationRequestDTO)
