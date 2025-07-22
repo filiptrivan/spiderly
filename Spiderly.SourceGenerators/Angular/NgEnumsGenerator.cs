@@ -59,9 +59,16 @@ namespace Spiderly.SourceGenerators.Angular
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (((enums, classDeclarations), referencedProjectClasses), callingPath) = source;
+            var (((enums, classDeclarations), referencedProjectClasses), callingPath) = source;
 
+            try
+            {
                 Execute(enums, classDeclarations, referencedProjectClasses, callingPath, spc);
+            }
+            catch (Exception exception)
+            {
+                    Diagnostics.ReportException(spc, nameof(NgEnumsGenerator), exception);
+                }
             });
         }
 

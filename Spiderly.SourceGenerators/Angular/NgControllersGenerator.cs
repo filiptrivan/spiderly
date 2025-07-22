@@ -56,8 +56,16 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 var (classesAndEntities, callingPath) = source;
                 var (classes, referencedClasses) = classesAndEntities;
-
-                Execute(classes, referencedClasses, callingPath, spc);
+               
+                try
+                {
+                    Execute(classes, referencedClasses, callingPath, spc);
+                }
+                catch (Exception exception) 
+                {
+                    Diagnostics.ReportException(spc, nameof(NgControllersGenerator), exception);
+                } 
+                
             });
         }
 
@@ -115,6 +123,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 
         private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> currentAppEntities, List<SpiderlyClass> referencedProjectEntities, List<SpiderlyClass> referencedDTOClasses)
         {
+
             List<string> result = new();
             HashSet<string> alreadyAddedMethods = new HashSet<string>();
 
