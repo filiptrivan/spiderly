@@ -16,7 +16,7 @@
     <spiderly-topbar [menu]="topMenu" [showHoverBgOnRootItems]="showHoverBgOnRootTopMenuItems">
         <ng-content ACTIONS select="[ACTIONS]"></ng-content>
     </spiderly-topbar>
-    <main style="max-width: 1100px; margin: auto; padding: 18px;">
+    <main [style.max-width]="maxWidth" style="margin: auto; padding: 18px;">
         <router-outlet></router-outlet>
     </main>
 </div>

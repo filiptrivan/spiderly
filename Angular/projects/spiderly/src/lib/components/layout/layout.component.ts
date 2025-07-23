@@ -31,7 +31,13 @@ export class SpiderlyLayoutComponent implements OnDestroy {
      * for root top menu items. Defaults to `false`.
      */
     @Input() showHoverBgOnRootTopMenuItems: boolean = false;
-    
+
+    /**
+     * default max-width for the main content area.
+     */
+  
+    @Input() maxWidth: string = '1100px';
+  
     overlayMenuOpenSubscription: Subscription;
 
     menuOutsideClickListener: any;
