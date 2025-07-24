@@ -53,7 +53,16 @@ namespace Spiderly.SourceGenerators.Angular
                 var (classesAndEntities, callingPath) = source;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+               // Execute(classes, referencedClasses, callingPath, spc);
+                
+                try
+                {
+                    Execute(classes, referencedClasses, callingPath, spc);
+                }
+                catch (Exception exception)
+                {
+                    Diagnostics.ReportException(spc, nameof(NgBaseDetailsGenerator), exception);
+                }
             });
         }
 
@@ -67,6 +76,12 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
+
+            if(currentProjectClasses == null || currentProjectClasses.Count == 0)
+            {
+                Console.WriteLine(currentProjectClasses.Count);
+                return;
+            }
 
             string namespaceValue = currentProjectClasses[0].Namespace;
             string projectName = Helpers.GetProjectName(namespaceValue);
