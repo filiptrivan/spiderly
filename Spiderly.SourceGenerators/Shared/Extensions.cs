@@ -561,8 +561,7 @@ namespace Spiderly.SourceGenerators.Shared
             int index = source.IndexOf(keyForReplace, StringComparison.Ordinal);
 
             if (index == -1)
-                throw new InvalidOperationException(
-                    $"Expected '{keyForReplace}' to exist in path '{source}', but it was not found.");
+                throw new InvalidOperationException();
 
             // Get the part before the key and append the new value.
             return $"{source.Substring(0, index)}{valueToInsert}";

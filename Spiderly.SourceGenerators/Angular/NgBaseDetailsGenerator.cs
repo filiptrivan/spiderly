@@ -53,18 +53,51 @@ namespace Spiderly.SourceGenerators.Angular
                 var (classesAndEntities, callingPath) = source;
                 var (classes, referencedClasses) = classesAndEntities;
 
-               // Execute(classes, referencedClasses, callingPath, spc);
-                
                 try
                 {
+
                     Execute(classes, referencedClasses, callingPath, spc);
                 }
                 catch (Exception exception)
                 {
-                    Diagnostics.ReportException(spc, nameof(NgBaseDetailsGenerator), exception);
+                    // Report a diagnostic for each input class
+                    foreach (var classDecl in classes)
+                    {
+                        var diagnostic = Diagnostic.Create(
+                            new DiagnosticDescriptor(
+                                id: "NGGEN001",
+                                title: "NgBaseDetailsGenerator Error",
+                                messageFormat: "Exception while processing class '{0}': " + exception.Message + "\n\n" + exception.StackTrace,
+                                category: "Spiderly.Generators",
+                                DiagnosticSeverity.Error,
+                                isEnabledByDefault: true
+                            ),
+                            classDecl.Identifier.GetLocation(),
+                            classDecl.Identifier.Text
+                        );
+
+                        spc.ReportDiagnostic(diagnostic);
+                    }
+
+                    // Also report a fallback diagnostic with no location
+                    var fallback = Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            id: "NGGEN002",
+                            title: "NgBaseDetailsGenerator General Error",
+                            messageFormat: "Unhandled error in NgBaseDetailsGenerator: " + exception.Message + "\n\n" + exception.StackTrace,
+                            category: "Spiderly.Generators",
+                            DiagnosticSeverity.Warning,
+                            isEnabledByDefault: true
+                        ),
+                        Location.None
+                    );
+
+                    spc.ReportDiagnostic(fallback);
                 }
             });
+
         }
+
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
         {
