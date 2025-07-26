@@ -707,7 +707,12 @@ namespace Spiderly.SourceGenerators.Shared
                 return false;
             }
 
-            return string.Equals(outputAttr.Value, "false", StringComparison.OrdinalIgnoreCase);
+            if (bool.TryParse(outputAttr.Value, out bool isEnabled))
+            {
+                return !isEnabled;
+            }
+
+            return false;
         }
 
         #region DTO
