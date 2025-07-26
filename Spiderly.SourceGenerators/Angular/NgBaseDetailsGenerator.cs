@@ -55,7 +55,6 @@ namespace Spiderly.SourceGenerators.Angular
 
                 try
                 {
-
                     Execute(classes, referencedClasses, callingPath, spc);
                 }
                 catch (Exception exception)
@@ -105,6 +104,8 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            if (Helpers.ShouldSkipGenerator(nameof(NgBaseDetailsGenerator), currentProjectClasses))
+                return;
             List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
