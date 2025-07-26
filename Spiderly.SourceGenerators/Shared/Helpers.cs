@@ -690,6 +690,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
         {
             SpiderlyClass settingClass = GetSettingsClass(currentProjectClasses);
+
             if(settingClass == null)
             {
                 return false;
