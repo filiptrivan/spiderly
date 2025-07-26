@@ -689,28 +689,25 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
         {
-            var settingClass = GetSettingsClass(currentProjectClasses);
+            SpiderlyClass settingClass = GetSettingsClass(currentProjectClasses);
             if(settingClass == null)
             {
                 return false;
             }
 
-            var property = settingClass.Properties
-                .FirstOrDefault(p => p.Name == generatorName);
-
+            SpiderlyProperty property = settingClass.Properties.FirstOrDefault(p => p.Name == generatorName);
             if(property == null)
             {
                 return false;
-
             }
 
-            var outputAttributeValue = property.Attributes
-                .FirstOrDefault(attr => attr.Name == "Output")?.Value;
+            SpiderlyAttribute outputAttr = property.Attributes.FirstOrDefault(attr => attr.Name == "Output");
+            if(outputAttr == null)
+            {
+                return false;
+            }
 
-            if (bool.TryParse(outputAttributeValue, out bool enabled))
-                return !enabled;
-
-            return false;
+            return string.Equals(outputAttr.Value, "false", StringComparison.OrdinalIgnoreCase);
         }
 
         #region DTO
