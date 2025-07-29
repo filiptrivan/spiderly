@@ -689,13 +689,13 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
         {
-            var settingClass = GetSettingsClass(currentProjectClasses);
+            SpiderlyClass settingClass = GetSettingsClass(currentProjectClasses);
             if(settingClass == null)
             {
                 return false;
             }
 
-            var property = settingClass.Properties
+            SpiderlyProperty property = settingClass.Properties
                 .FirstOrDefault(p => p.Name == generatorName);
 
             if(property == null)
@@ -704,7 +704,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             }
 
-            var outputAttributeValue = property.Attributes
+            string outputAttributeValue = property.Attributes
                 .FirstOrDefault(attr => attr.Name == "Output")?.Value;
 
             if (bool.TryParse(outputAttributeValue, out bool enabled))
