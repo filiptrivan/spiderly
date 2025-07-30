@@ -66,38 +66,58 @@ namespace Spiderly.SourceGenerators.Angular
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
         {
-            if (classes.Count <= 1) // 1 because of config settings
-                return;
-
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
-            if (Helpers.ShouldSkipGenerator(nameof(NgBaseDetailsGenerator), currentProjectClasses))
-                return;
-            List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
-            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
-
-            if(currentProjectClasses == null || currentProjectClasses.Count == 0)
+            try
             {
-                Console.WriteLine(currentProjectClasses.Count);
-                return;
+
+                if (classes.Count <= 1) // 1 because of config settings
+                    return;
+
+                List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+                if (Helpers.ShouldSkipGenerator(nameof(NgBaseDetailsGenerator), currentProjectClasses))
+                    return;
+                List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
+                List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
+                List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
+                List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
+
+                 /* Validate that we have clasess to work with */ 
+                if (currentProjectClasses == null || currentProjectClasses.Count == 0)
+                {
+                    Diagnostics.ReportMissingRequiredAttribute(context, Location.None, "Entity or DTO clasess", "project");
+                    return;
+                }
+
+                /* Validate namespace consitency */
+                string namespaceValue = currentProjectClasses[0].Namespace;
+                if (string.IsNullOrEmpty(namespaceValue))
+                {
+                    Diagnostics.ReportInvalidAttributeUsage(context, Location.None, "Namspace", currentProjectClasses[0].Name, "Name is null or empty");
+                }
+
+                string projectName = Helpers.GetProjectName(namespaceValue);
+
+                if (string.IsNullOrEmpty(callingProjectDirectory))
+                {
+                    Diagnostics.ReportInvalidAttributeUsage(context, Location.None, "CallingProjectDirectory", projectName, "Calling project directory is null or empty");
+                }
+
+                string outputPath =
+                    Helpers.GetGeneratorOutputPath(nameof(NgBaseDetailsGenerator), currentProjectClasses) ??
+                    // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details\{projectName}.ts
+                    callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details\{projectName.FromPascalToKebabCase()}-base-details.generated.ts");
+
+                string result = $$"""
+    {{GetImports(customDTOClasses, allEntities)}}
+
+    {{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
+    """;
+
+                Helpers.WriteToTheFile(result, outputPath);
             }
-
-            string namespaceValue = currentProjectClasses[0].Namespace;
-            string projectName = Helpers.GetProjectName(namespaceValue);
-
-            string outputPath =
-                Helpers.GetGeneratorOutputPath(nameof(NgBaseDetailsGenerator), currentProjectClasses) ??
-                // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details\{projectName}.ts
-                callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details\{projectName.FromPascalToKebabCase()}-base-details.generated.ts");
-
-            string result = $$"""
-{{GetImports(customDTOClasses, allEntities)}}
-
-{{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
-""";
-
-            Helpers.WriteToTheFile(result, outputPath);
+            catch (Exception exception)
+            {
+                Diagnostics.ReportException(context, nameof(NgBaseDetailsGenerator), exception, classes);
+            }
         }
 
         private static List<string> GetAngularBaseDetailsComponents(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
