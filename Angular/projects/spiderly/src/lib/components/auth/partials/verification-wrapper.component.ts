@@ -51,7 +51,7 @@ export class VerificationWrapperComponent extends BaseFormCopy implements OnInit
     }
 
     initVerificationTokenRequestFormGroup(model: VerificationTokenRequest){
-        this.initFormGroup(this.verificationTokenRequestFormGroup, this.formGroup, model, model.typeName, []);
+    this.initFormGroup(this.verificationTokenRequestFormGroup, this.formGroup, model, model.typeName, ['verificationCode']);
     }
 
     codeSubmit(){

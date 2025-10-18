@@ -1,0 +1,31 @@
+name: Append Contributor Guide
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  append-contributor-guide:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.label.name == 'good first issue' || 
+      github.event.label.name == 'help wanted'
+    steps:
+      - name: Append contributor guide link
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const body = context.payload.issue.body || '';
+            const guide = '\n\n---\n\nFirst-time contributor? Check out the [Contributor Getting Started Guide](https://github.com/filiptrivan/spiderly?tab=readme-ov-file#getting-started-as-a-contributor)';
+            if (!body.includes('Contributor Getting Started Guide')) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body + guide
+              });
+            }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
@@ -685,6 +686,32 @@ namespace Spiderly.SourceGenerators.Shared
                 })
                 .OrderBy(x => x.Name)
                 .ToList();
+        }
+
+        public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
+        {
+            var settingClass = GetSettingsClass(currentProjectClasses);
+            if(settingClass == null)
+            {
+                return false;
+            }
+
+            var property = settingClass.Properties
+                .FirstOrDefault(p => p.Name == generatorName);
+
+            if(property == null)
+            {
+                return false;
+
+            }
+
+            var outputAttributeValue = property.Attributes
+                .FirstOrDefault(attr => attr.Name == "Output")?.Value;
+
+            if (bool.TryParse(outputAttributeValue, out bool enabled))
+                return !enabled;
+
+            return false;
         }
 
         #region DTO

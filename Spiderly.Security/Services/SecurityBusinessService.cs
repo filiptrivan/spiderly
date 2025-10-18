@@ -72,10 +72,11 @@ namespace Spiderly.Security.Services
             });
 
             string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
-
+            EmailVerifyUIDTO EmailTemplate = CreateLoginEmailTemplate(verificationCode);
             try
             {
-                await _emailingService.SendVerificationEmailAsync(userEmail, verificationCode);
+                
+                await _emailingService.SendVerificationEmailAsync(userEmail, EmailTemplate);
             }
             catch (Exception)
             {
@@ -83,6 +84,16 @@ namespace Spiderly.Security.Services
                 throw;
             }
         }
+
+         public virtual EmailVerifyUIDTO CreateLoginEmailTemplate(string verificationCode)
+         {
+            return new EmailVerifyUIDTO
+            {
+                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Body = verificationCode
+            };
+         }
+
 
         public AuthResultDTO Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
@@ -151,10 +162,11 @@ namespace Spiderly.Security.Services
                 if (user == null)
                 {
                     string verificationCode = _jwtAuthManagerService.GenerateAndSaveRegistrationVerificationCode(registrationDTO.Email, registrationDTO.BrowserId);
+                    EmailVerifyUIDTO EmailTemplate = CreateRegistrationEmailTemplate(verificationCode);
 
                     try
-                    {
-                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, verificationCode);
+                    {                        
+                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
                     }
                     catch (Exception)
                     {
@@ -169,6 +181,15 @@ namespace Spiderly.Security.Services
             });
 
             return registrationResultDTO;
+        }
+
+        public virtual EmailVerifyUIDTO CreateRegistrationEmailTemplate(string verificationCode)
+        {
+            return new EmailVerifyUIDTO
+            {
+                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Body = verificationCode
+            };
         }
 
         public async Task<AuthResultDTO> Register(VerificationTokenRequestDTO verificationRequestDTO)
