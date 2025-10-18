@@ -15,6 +15,7 @@ using Spiderly.Shared.DTO;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Shared.Resources;
 using Spiderly.Security.ValidationRules;
+using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Security.Services
 {
@@ -56,6 +57,8 @@ namespace Spiderly.Security.Services
 
         public async Task SendLoginVerificationEmail(LoginDTO loginDTO)
         {
+            SpiderlyLicenseManager.VerifyToken();
+
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
             string userEmail = null;
@@ -85,7 +88,7 @@ namespace Spiderly.Security.Services
         {
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
-            // FT: Can not be null, if its null it already has thrown
+            // Can not be null, if its null it already has thrown
             LoginVerificationTokenDTO loginVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTO(
                 verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email);
 
@@ -96,11 +99,13 @@ namespace Spiderly.Security.Services
 
         public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string googleClientId)
         {
+            SpiderlyLicenseManager.VerifyToken();
+
             GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
 
             return await _context.WithTransactionAsync(async () =>
             {
-                TUser user = await GetUserByEmailAsync(payload.Email); // FT: Check if user already exist in the database
+                TUser user = await GetUserByEmailAsync(payload.Email); // Check if user already exist in the database
                 DbSet<TUser> userDbSet = _context.DbSet<TUser>();
 
                 if (user == null)
@@ -171,7 +176,7 @@ namespace Spiderly.Security.Services
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
             RegistrationVerificationTokenDTO registrationVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetRegistrationVerificationTokenDTO(
-                verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email); // FT: Can not be null, if its null it already has thrown
+                verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email); // Can not be null, if its null it already has thrown
 
             TUser user = null;
 
@@ -186,8 +191,8 @@ namespace Spiderly.Security.Services
                 await _context.SaveChangesAsync();
             });
 
-            JwtAuthResultDTO jwtAuthResultDTO = GetJwtAuthResultWithRefreshDTO(user.Id, user.Email, verificationRequestDTO.BrowserId); // FT: User can't be null, it would throw earlier if he is
-            //await SaveLogin(loginDTO); // FT: Is ipAddress == null is checked here // TODO FT: Log it
+            JwtAuthResultDTO jwtAuthResultDTO = GetJwtAuthResultWithRefreshDTO(user.Id, user.Email, verificationRequestDTO.BrowserId); // User can't be null, it would throw earlier if he is
+            //await SaveLogin(loginDTO); // Is ipAddress == null is checked here // TODO: Log it
 
             return GetAuthResultDTO(user.Id, user.Email, jwtAuthResultDTO);
         }
@@ -197,7 +202,7 @@ namespace Spiderly.Security.Services
         public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
-                throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // FT: It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
+                throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
             string accessToken = await _authenticationService.GetAccessTokenAsync();
             List<Claim> claims = _jwtAuthManagerService.GetClaimsForTheAccessToken(refreshTokenRequestDTO, accessToken);
@@ -285,7 +290,7 @@ namespace Spiderly.Security.Services
                 Audience = new List<string>() { clientId }
             };
 
-            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings); // TODO FT: Try to pass the wrong token
+            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings); // TODO: Try to pass the wrong token
             return payload;
         }
 

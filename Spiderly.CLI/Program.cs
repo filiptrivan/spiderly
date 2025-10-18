@@ -72,7 +72,7 @@ namespace Spiderly.CLI
             Console.WriteLine("Commands:");
             Console.WriteLine("  help                 Display this help message.");
             Console.WriteLine("  init                 Initialize a new project.");
-            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for an entity.");
+            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for a new entity.");
             Console.WriteLine();
             Console.WriteLine("Options for init:");
             Console.WriteLine("  --top-menu           Use a top menu layout instead of the default side menu layout.");

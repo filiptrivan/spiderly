@@ -283,7 +283,7 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
                             new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isRunningFromNuget) },
                             new SpiderlyFile { Name = "tsconfig.spec.json", Data = GetTsConfigSpecJsonData() },
-                            new SpiderlyFile { Name = "vercel.json", Data = GetVercelJsonData() },
+                            new SpiderlyFile { Name = "vercel.json", Data = GetVercelJsonData(appName) },
                         }
                     },
                     new SpiderlyFolder
@@ -728,11 +728,7 @@ export class {{entityName}}ListComponent implements OnInit {
     <spiderly-card [title]="t('Notification')" icon="pi pi-bell">
         <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
             <panel-body>
-                <div class="spiderly-grid">
-                    <div class="col-8">
-                        <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')"/>
-                    </div>
-                </div>
+                <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')"/>
             </panel-body>
         </spiderly-panel>
 
@@ -742,10 +738,12 @@ export class {{entityName}}ListComponent implements OnInit {
         [notificationFormGroup]="notificationFormGroup" 
         (onSave)="onSave()"
         [isLastMultiplePanel]="true"
-        [additionalButtons]="additionalButtons"
         (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
-        (onAfterFormGroupInit)="onAfterFormGroupInit()" 
-        />
+        >
+            <div buttons *ngIf="notificationFormGroup.controls.id?.value > 0 && isAuthorizedForSave">
+                <spiderly-button [label]="t('SendEmailNotification')" (onClick)="sendEmailNotification()" icon="pi pi-send"/>
+            </div>
+        </notification-base-details>
 
     </spiderly-card>
 </ng-container>
@@ -779,8 +777,7 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
 
     isMarkedAsRead = new SpiderlyFormControl<boolean>(true, {updateOn: 'change'});
 
-    additionalButtons: SpiderlyButton[] = [];
-    sendEmailNotificationButton = new SpiderlyButton({label: this.translocoService.translate('SendEmailNotification'), icon: 'pi pi-send', disabled: true});
+    isAuthorizedForSave = false;
 
     constructor(
         protected override differs: KeyValueDiffers,
@@ -797,11 +794,11 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
     }
 
     override ngOnInit() {
-        this.sendEmailNotificationButton.onClick = this.sendEmailNotification;
+        
     }
 
     isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
-        this.sendEmailNotificationButton.disabled = !event.isAuthorizedForSave;
+        this.isAuthorizedForSave = event.isAuthorizedForSave;
 
         if (event.isAuthorizedForSave) {
             this.isMarkedAsRead.enable();
@@ -811,13 +808,6 @@ export class NotificationDetailsComponent extends BaseFormCopy implements OnInit
         }
     }
 
-    onAfterFormGroupInit() {
-        if (this.notificationFormGroup.controls.id.value > 0) {
-            this.additionalButtons.push(this.sendEmailNotificationButton);
-        }
-    }
-
-    // We must to do it like arrow function
     sendEmailNotification = () => {
         this.apiService.sendNotificationEmail(this.notificationFormGroup.controls.id.value, this.notificationFormGroup.controls.version.value).subscribe(() => {
             this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
@@ -1702,7 +1692,7 @@ export const routerConfigOptions: RouterConfigOptions = {
 
     <p-confirmDialog 
     [acceptLabel]="t('Confirm')" 
-    [rejectLabel]="t('Cancle')" 
+    [rejectLabel]="t('Cancel')" 
     rejectButtonStyleClass="p-button-secondary" 
     [style]="{width: '400px'}" 
     [header]="t('AreYouSure')"
@@ -3792,11 +3782,12 @@ namespace {{appName}}.Business.DataMappers
 
         #region Angular
 
-        private static string GetVercelJsonData()
+        private static string GetVercelJsonData(string appName)
         {
             return $$"""
 {
-    "rewrites": [{ "source": "/(.*)", "destination": "/src/index.html" }]
+    "rewrites": [{ "source": "/(.*)", "destination": "/src/index.html" }],
+    "outputDirectory": "dist/{{appName}}/browser"
 }
 """;
         }
@@ -4282,7 +4273,7 @@ export const ThemePreset = definePreset(Aura, {
     "ResetPassword": "Promenite lozinku",
     "DragAndDropFilesHereToUpload": "Ovde prevucite i otpustite datoteke da biste ih otpremili.",
     "PleaseConfirmToProceed": "Molimo Vas potvrdite da biste nastavili.",
-    "Cancle": "Odustanite",
+    "Cancel": "Odustanite",
     "Confirm": "Potvrdite",
     "Clear": "Uklonite",
     "ExportToExcel": "Izvezite u Excel",
@@ -4555,7 +4546,7 @@ export const ThemePreset = definePreset(Aura, {
   "ResetPassword": "Reset password",
   "DragAndDropFilesHereToUpload": "Drag and drop files here to upload.",
   "PleaseConfirmToProceed": "Please confirm to proceed.",
-  "Cancle": "Cancel",
+  "Cancel": "Cancel",
   "Confirm": "Confirm",
   "Clear": "Clear",
   "ExportToExcel": "Export to Excel",

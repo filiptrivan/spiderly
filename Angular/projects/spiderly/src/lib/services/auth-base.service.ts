@@ -47,7 +47,7 @@ export class AuthBaseService implements OnDestroy {
         // provider: user.provider,
         idToken: user.idToken
       }
-      this.loginExternal(externalAuth).subscribe(() => {
+      this.loginExternal(externalAuth).subscribe(authResult => {
         this.onAfterLoginExternal();
       });
       this.extAuthChangeSub.next(user);
@@ -97,7 +97,9 @@ export class AuthBaseService implements OnDestroy {
     return this.handleLoginResult(loginResultObservable);
   }
 
-  onAfterLoginExternal = () => {}
+  onAfterLoginExternal = () => {
+    this.navigateToDashboard();
+  }
 
   sendRegistrationVerificationEmail(body: Registration): Observable<RegistrationVerificationResult> {
     const browserId = this.getBrowserId();

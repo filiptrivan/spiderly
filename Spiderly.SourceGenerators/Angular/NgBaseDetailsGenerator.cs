@@ -108,9 +108,9 @@ namespace Spiderly.SourceGenerators.Angular
         <panel-body>
             @defer (when loading === false) {
                 <form class="spiderly-grid">
-                    <ng-content select="[BEFORE]"></ng-content>
+                    <ng-content select="[before]"></ng-content>
 {{string.Join("\n", GetPropertyBlocks(entity.Properties.ToList(), entity, allEntities, customDTOClasses, isFromOrderedOneToMany: false))}}
-                    <ng-content select="[AFTER]"></ng-content>
+                    <ng-content select="[after]"></ng-content>
                 </form>
             } @placeholder {
                 <card-skeleton [height]="502"></card-skeleton>
@@ -119,9 +119,7 @@ namespace Spiderly.SourceGenerators.Angular
 
         <panel-footer>
             <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
-            @for (button of additionalButtons; track button.label) {
-                <spiderly-button (onClick)="button.onClick()" [disabled]="button.disabled" [label]="button.label" [icon]="button.icon"></spiderly-button>
-            }
+            <ng-content select="[buttons]"></ng-content>
             <return-button *ngIf="showReturnButton" ></return-button>
         </panel-footer>
     </spiderly-panel>
@@ -145,7 +143,6 @@ export class {{entity.Name}}BaseDetailsComponent {
     @Input() getCrudMenuForOrderedData: (formArray: SpiderlyFormArray, modelConstructor: BaseEntity, lastMenuIconIndexClicked: LastMenuIconIndexClicked, adjustFormArrayManually: boolean) => MenuItem[];
     @Input() formGroup: SpiderlyFormGroup;
     @Input() {{entity.Name.FirstCharToLower()}}FormGroup: SpiderlyFormGroup<{{entity.Name}}>;
-    @Input() additionalButtons: SpiderlyButton[] = [];
     @Input() isFirstMultiplePanel: boolean = false;
     @Input() isMiddleMultiplePanel: boolean = false;
     @Input() isLastMultiplePanel: boolean = false;

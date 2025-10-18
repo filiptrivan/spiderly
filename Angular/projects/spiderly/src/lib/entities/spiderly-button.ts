@@ -1,30 +1,11 @@
-import { BaseEntity } from "../entities/base-entity";
-
-export class SpiderlyButton extends BaseEntity
+export interface SpiderlyButton
 {
     label?: string;
     icon?: string;
     disabled?: boolean;
     onClick?: () => void;
-  
-    constructor(
-    {
-        label,
-        icon,
-        disabled,
-        onClick,
-    }:{
-        label?: string;
-        icon?: string;
-        disabled?: boolean;
-        onClick?: () => void;
-    } = {}
-    ) {
-        super('SpiderlyButton');
-
-        this.label = label;
-        this.icon = icon;
-        this.disabled = disabled;
-        this.onClick = onClick;
-    }
+    outlined?: boolean;
+    severity?: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined;
+    rounded?: boolean;
+    size?: 'small' | 'large' | undefined;
 }

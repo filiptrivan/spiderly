@@ -37,5 +37,9 @@ namespace Spiderly.Shared
         public int RequestsLimitNumber { get; set; }
         public int RequestsLimitWindow { get; set; }
         public string RateLimitingFixedByIpPolicy { get; } = "fixed-by-ip";
+
+        public string SpiderlySecretLicenseToken { get; set; }
+        public string SpiderlyPublicLicenseKey { get; } = @"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq58peHBU8tzIXs8WEhUVKKWQ6ZadWRAnzm1UwkGEoAIcz0uObTXuBqeh4WvDIRwnqUrhZ0s7wCuuujwH7bm7aw==";
+
     }
 }
