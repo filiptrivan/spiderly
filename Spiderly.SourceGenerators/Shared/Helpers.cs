@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
@@ -38,8 +37,7 @@ namespace Spiderly.SourceGenerators.Shared
             "FilterRule",
             "FilterSortMeta",
             "LazyLoadSelectedIdsResult",
-            "BusinessObjectCodebook", // Nucleus
-            "BusinessObjectNamebook", // Nucleus
+            "EmailVerifyUI"
         };
 
         #region Source Generator
@@ -234,7 +232,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             return entities
                 .SelectMany(x => x.Properties)
-                .Where(prop => 
+                .Where(prop =>
                     prop.Type.IsManyToOneType() &&
                     prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
                     prop.Type == entityName
@@ -284,12 +282,12 @@ namespace Spiderly.SourceGenerators.Shared
         private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax typeGeneric, ClassDeclarationSyntax baseClass)
         {
             List<SpiderlyAttribute> attributes = GetAllAttributesOfTheMember(prop);
-            SpiderlyProperty newProp = new SpiderlyProperty 
-            { 
-                Type = prop.Type.ToString(), 
+            SpiderlyProperty newProp = new SpiderlyProperty
+            {
+                Type = prop.Type.ToString(),
                 Name = prop.Identifier.Text,
                 EntityName = baseClass.Identifier.Text,
-                Attributes = attributes, 
+                Attributes = attributes,
             };
 
             if (prop.Type.ToString() == "T") // If some property has type of T, we change it to long for example
@@ -691,7 +689,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
         {
             var settingClass = GetSettingsClass(currentProjectClasses);
-            if(settingClass == null)
+            if (settingClass == null)
             {
                 return false;
             }
@@ -699,7 +697,7 @@ namespace Spiderly.SourceGenerators.Shared
             var property = settingClass.Properties
                 .FirstOrDefault(p => p.Name == generatorName);
 
-            if(property == null)
+            if (property == null)
             {
                 return false;
 

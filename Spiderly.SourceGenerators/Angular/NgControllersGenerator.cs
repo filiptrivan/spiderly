@@ -1,19 +1,12 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Spiderly.SourceGenerators.Enums;
+using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
-using System.Diagnostics;
-using Spiderly.SourceGenerators.Shared;
-using System.Reflection;
-using Spiderly.SourceGenerators.Models;
-using System.Runtime.Serialization.Json;
-using System.Collections.Immutable;
-using System.Data;
-using Spiderly.SourceGenerators.Enums;
-using Spiderly.SourceGenerators;
 
 namespace Spiderly.SourceGenerators.Angular
 {
@@ -28,12 +21,12 @@ namespace Spiderly.SourceGenerators.Angular
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Controllers,
@@ -210,16 +203,16 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
 
             bool skipSpinner = controllerMethod.Attributes.Any(attr => attr.Name == "SkipSpinner");
 
-            if (skipSpinner || 
-                controllerMethod.ReturnType.Contains("NamebookDTO") || 
-                controllerMethod.ReturnType.Contains("CodebookDTO") || 
+            if (skipSpinner ||
+                controllerMethod.ReturnType.Contains("NamebookDTO") ||
+                controllerMethod.ReturnType.Contains("CodebookDTO") ||
                 controllerMethod.ReturnType.Contains("PaginatedResultDTO") ||
                 controllerMethod.ReturnType.Contains("LazyLoadSelectedIdsResultDTO"))
             {
                 return Settings.HttpOptionsSkipSpinner;
             }
 
-            return Settings.HttpOptionsBase;    
+            return Settings.HttpOptionsBase;
         }
 
         private static HttpTypeCodes GetHttpType(SpiderMethod controllerMethod)
@@ -320,7 +313,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
         formData.append('{{property.Name}}', dto.{{property.Name.FirstCharToLower()}}.toString());
 """);
                 }
-                
+
             }
 
             return result;
@@ -518,10 +511,10 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                         continue;
 
                     Dictionary<string, string> getAndDeleteParameters = new()
-                    { 
-                        { "limit", "number" }, 
-                        { "filter", "string" }, 
-                        { $"{entity.Name.FirstCharToLower()}Id?", "number"} 
+                    {
+                        { "limit", "number" },
+                        { "filter", "string" },
+                        { $"{entity.Name.FirstCharToLower()}Id?", "number"}
                     };
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
@@ -544,7 +537,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                     if (alreadyAddedMethods.Contains(methodName))
                         continue;
 
-                    Dictionary<string, string> getAndDeleteParameters = new() { { $"{entity.Name.FirstCharToLower()}Id?", "number"} };
+                    Dictionary<string, string> getAndDeleteParameters = new() { { $"{entity.Name.FirstCharToLower()}Id?", "number" } };
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
                 }
@@ -562,7 +555,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
 
             Dictionary<string, string> getAndDeleteParameters = new() { { "id", "number" } };
 
-            return GetAngularControllerMethod(methodName, getAndDeleteParameters, returnType:$"{entity.Name}MainUIForm", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, getAndDeleteParameters, returnType: $"{entity.Name}MainUIForm", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase);
         }
 
         private static string GetBaseGetAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)

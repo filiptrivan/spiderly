@@ -1,10 +1,6 @@
-﻿using Spiderly.Shared.Classes;
+﻿using CaseConverter;
+using Spiderly.Shared.Classes;
 using Spiderly.Shared.Extensions;
-using CaseConverter;
-using System.Security.Cryptography;
-using Spiderly.Shared.Exceptions;
-using Microsoft.AspNetCore.Routing;
-using System;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -423,11 +419,11 @@ namespace Spiderly.Shared.Helpers
                                 Files =
                                 {
                                     new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(
-                                        appName, 
-                                        emailSender: null, 
-                                        emailSenderPassword: null, 
-                                        jwtKey: jwtKey, 
-                                        blobStorageConnectionString: null, 
+                                        appName,
+                                        emailSender: null,
+                                        emailSenderPassword: null,
+                                        jwtKey: jwtKey,
+                                        blobStorageConnectionString: null,
                                         blobStorageUrl: null,
                                         sqlServerConnectionString: sqlServerConnectionString
                                     )},
@@ -1760,7 +1756,7 @@ import { routes, scrollConfig, routerConfigOptions } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
-import { AuthBaseService, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { AuthBaseService, authInitializer, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
 import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
 import { TranslateLabelsService } from './business/services/translates/merge-labels';
@@ -3101,12 +3097,12 @@ namespace {{appName}}.WebAPI
         }
 
         private static string GetAppSettingsJsonData(
-            string appName, 
-            string emailSender, 
-            string emailSenderPassword, 
-            string jwtKey, 
-            string blobStorageConnectionString, 
-            string blobStorageUrl, 
+            string appName,
+            string emailSender,
+            string emailSenderPassword,
+            string jwtKey,
+            string blobStorageConnectionString,
+            string blobStorageUrl,
             string sqlServerConnectionString
         )
         {
@@ -3903,8 +3899,7 @@ namespace {{appName}}.Business.DataMappers
     "dependencies": {
 {{(isRunningFromNuget /* Note: Can't comment it out because it's json */ ? $$"""
         "spiderly": "{{version}}",
-""" : "")
-}}
+""" : "")}}
         "@abacritt/angularx-social-login": "2.2.0",
         "@angular/animations": "19.2.13",
         "@angular/common": "19.2.13",
