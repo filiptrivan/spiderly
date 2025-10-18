@@ -57,8 +57,6 @@ namespace Spiderly.Security.Services
 
         public async Task SendLoginVerificationEmail(LoginDTO loginDTO)
         {
-            SpiderlyLicenseManager.VerifyToken();
-
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
             string userEmail = null;
@@ -110,8 +108,6 @@ namespace Spiderly.Security.Services
 
         public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string googleClientId)
         {
-            SpiderlyLicenseManager.VerifyToken();
-
             GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
 
             return await _context.WithTransactionAsync(async () =>

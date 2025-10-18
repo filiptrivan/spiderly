@@ -35,14 +35,12 @@ namespace Spiderly.Security.Services
 
         public string GetCurrentUserEmail()
         {
-            SpiderlyLicenseManager.VerifyToken();
             return Helper.GetCurrentUserEmail(_httpContextAccessor.HttpContext);
         }
 
 
         public string GetCurrentUserEmailOrDefault()
         {
-            SpiderlyLicenseManager.VerifyToken();
             return Helper.GetCurrentUserEmailOrDefault(_httpContextAccessor.HttpContext);
         }
 

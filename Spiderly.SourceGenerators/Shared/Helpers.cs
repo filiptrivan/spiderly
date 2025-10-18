@@ -93,11 +93,11 @@ namespace Spiderly.SourceGenerators.Shared
         {
             if (c == null) return null;
 
-            ClassDeclarationSyntax cHelper = SyntaxFactory.ClassDeclaration(c.Identifier).WithBaseList(c.BaseList).WithAttributeLists(c.AttributeLists); // FT: Doing this because of reference type, we don't want to change c
+            ClassDeclarationSyntax cHelper = SyntaxFactory.ClassDeclaration(c.Identifier).WithBaseList(c.BaseList).WithAttributeLists(c.AttributeLists); // Doing this because of reference type, we don't want to change c
             List<SpiderlyAttribute> attributes = new List<SpiderlyAttribute>();
 
             TypeSyntax baseType = cHelper.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass
-            // FT: Getting the attributes for all base classes also
+            // Getting the attributes for all base classes also
             do
             {
                 attributes.AddRange(cHelper.AttributeLists
