@@ -5,6 +5,7 @@ using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Services;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
+using System.Security.Claims;
 
 namespace Spiderly.Security.Services
 {
@@ -34,7 +35,15 @@ namespace Spiderly.Security.Services
 
         public string GetCurrentUserEmail()
         {
+            SpiderlyLicenseManager.VerifyToken();
             return Helper.GetCurrentUserEmail(_httpContextAccessor.HttpContext);
+        }
+
+
+        public string GetCurrentUserEmailOrDefault()
+        {
+            SpiderlyLicenseManager.VerifyToken();
+            return Helper.GetCurrentUserEmailOrDefault(_httpContextAccessor.HttpContext);
         }
 
         public async Task<TUser> GetCurrentUser<TUser>() where TUser : class, IUser, new()

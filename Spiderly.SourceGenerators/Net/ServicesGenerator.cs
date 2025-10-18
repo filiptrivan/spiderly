@@ -163,6 +163,8 @@ namespace {{basePartOfNamespace}}.Services
             return $$"""
         public async virtual Task<{{entity.Name}}MainUIFormDTO> Get{{entity.Name}}MainUIFormDTO({{entityIdType}} id, bool authorize)
         {
+            SpiderlyLicenseManager.VerifyToken();
+
             return await _context.WithTransactionAsync(async () =>
             {
                 if (authorize)

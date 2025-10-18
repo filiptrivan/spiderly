@@ -100,7 +100,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             foreach (EnumDeclarationSyntax enume in currentProjectEnums.OrderBy(x => x.Identifier.Text).ToList())
             {
-                List<SpiderEnumItem> enumItems = Helpers.GetEnumItems(enume);
+                List<SpiderlyEnumItem> enumItems = Helpers.GetEnumItems(enume);
                 List<string> angularEnumItemNameValuePairs = GetAngularEnumItemNameValuePairs(enumItems);
 
                 sb.AppendLine($$"""
@@ -115,11 +115,11 @@ export enum {{enume.Identifier.Text}}
             return sb.ToString();
         }
 
-        private static List<string> GetAngularEnumItemNameValuePairs(List<SpiderEnumItem> enumItems)
+        private static List<string> GetAngularEnumItemNameValuePairs(List<SpiderlyEnumItem> enumItems)
         {
             List<string> result = new();
 
-            foreach (SpiderEnumItem enume in enumItems)
+            foreach (SpiderlyEnumItem enume in enumItems)
             {
                 if(enume.Value != null)
                     result.Add($"{enume.Name} = {enume.Value},");

@@ -134,6 +134,8 @@ namespace {{basePartOfNamespace}}.Controllers
             {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} businessService
         )
         {
+            SpiderlyLicenseManager.VerifyToken();
+
             _context = context;
             _businessService = businessService;
         }

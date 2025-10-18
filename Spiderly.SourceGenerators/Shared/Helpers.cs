@@ -152,6 +152,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Type = prop.Type.ToString(),
                     Name = prop.Identifier.Text,
+                    StringValue = prop.Initializer?.Value?.ToString()?.Trim('"'), // Trimming because: "\"John\"" --> "John"
                     EntityName = c.Identifier.Text,
                     Attributes = prop.AttributeLists
                         .SelectMany(x => x.Attributes)
@@ -1278,15 +1279,15 @@ namespace Spiderly.SourceGenerators.Shared
 
         #region Permissions
 
-        public static List<SpiderEnumItem> GetEnumItems(EnumDeclarationSyntax enume)
+        public static List<SpiderlyEnumItem> GetEnumItems(EnumDeclarationSyntax enume)
         {
-            List<SpiderEnumItem> enumMembers = new();
+            List<SpiderlyEnumItem> enumMembers = new();
 
             foreach (EnumMemberDeclarationSyntax member in enume.Members)
             {
                 string name = member.Identifier.Text;
                 string value = member.EqualsValue != null ? member.EqualsValue.Value.ToString() : null;
-                enumMembers.Add(new SpiderEnumItem { Name = name, Value = value });
+                enumMembers.Add(new SpiderlyEnumItem { Name = name, Value = value });
             }
 
             return enumMembers;

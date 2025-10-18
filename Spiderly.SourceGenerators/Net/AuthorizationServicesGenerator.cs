@@ -104,7 +104,7 @@ namespace {{basePartOfNamespace}}.Services
                 sb.AppendLine($$"""
         #region {{entity.Name}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"{entityIdType}? {entity.Name.FirstCharToLower()}IdToRead", projectName, isSecurityProject)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"{entityIdType}? {entity.Name.FirstCharToLower()}IdToRead", projectName, isSecurityProject, checkLicense: true)}}
 
 {{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}IdListToRead", projectName, isSecurityProject)}}
 
@@ -142,17 +142,26 @@ namespace {{basePartOfNamespace}}.Services
             return sb.ToString();
         }
 
-        private static string GetAuthorizeEntityMethod(string authorizeEntityMethodFirstPart, SpiderlyClass entity, CrudCodes crudCode, string parametersBody, string projectName, bool isSecurityProject)
+        private static string GetAuthorizeEntityMethod(
+            string authorizeEntityMethodFirstPart, 
+            SpiderlyClass entity, 
+            CrudCodes crudCode, 
+            string parametersBody, 
+            string projectName, 
+            bool isSecurityProject, 
+            bool checkLicense=false
+        )
         {
             string methodName = Helpers.GetAuthorizeEntityMethodName(authorizeEntityMethodFirstPart, crudCode);
-            return GetAuthorizeMethod(methodName, parametersBody, crudCode, entity, projectName, isSecurityProject);
+            return GetAuthorizeMethod(methodName, parametersBody, crudCode, entity, projectName, isSecurityProject, checkLicense);
         }
 
-        private static string GetAuthorizeMethod(string methodName, string parametersBody, CrudCodes permissionCodePrefix, SpiderlyClass entity, string projectName, bool isSecurityProject)
+        private static string GetAuthorizeMethod(string methodName, string parametersBody, CrudCodes permissionCodePrefix, SpiderlyClass entity, string projectName, bool isSecurityProject, bool checkLicense)
         {
             return $$"""
         public virtual async Task {{methodName}}({{parametersBody}})
         {
+            {{(checkLicense ? "SpiderlyLicenseManager.VerifyToken();" : "")}}
             await _context.WithTransactionAsync(async () =>
             {
                 await AuthorizeAndThrowAsync<{{(isSecurityProject ? "TUser" : "User")}}>({{projectName}}PermissionCodes.{{permissionCodePrefix}}{{entity.Name}});
@@ -172,6 +181,7 @@ using Spiderly.Security.Services;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Helpers;
 """;
         }
     }
