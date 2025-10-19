@@ -1,17 +1,6 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using Spiderly.Security.DTO;
 using System.Collections.Immutable;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Spiderly.Security.DTO;
-using System.Net;
 
 namespace Spiderly.Security.Interfaces
 {
@@ -19,7 +8,6 @@ namespace Spiderly.Security.Interfaces
     public interface IJwtAuthManager
     {
         IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary { get; }
-        IImmutableDictionary<string, RegistrationVerificationTokenDTO> UsersRegistrationVerificationTokensReadOnlyDictionary { get; }
         IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary { get; }
 
         #region Refresh
@@ -43,12 +31,5 @@ namespace Spiderly.Security.Interfaces
 
         #endregion
 
-        #region Registration verification
-
-        RegistrationVerificationTokenDTO ValidateAndGetRegistrationVerificationTokenDTO(string verificationToken, string browserId, string email);
-        string GenerateAndSaveRegistrationVerificationCode(string userEmail, string browserId);
-        void RemoveRegistrationVerificationTokensByEmail(string email);
-
-        #endregion
     }
 }

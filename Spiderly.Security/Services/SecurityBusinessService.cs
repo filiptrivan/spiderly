@@ -1,21 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Spiderly.Security.DTO;
-using System.Security.Claims;
-using Spiderly.Shared.Excel;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Exceptions;
+﻿using FluentValidation;
 using Google.Apis.Auth;
-using Spiderly.Security.Interfaces;
-using Spiderly.Shared.Extensions;
-using FluentValidation;
-using Spiderly.Shared.Emailing;
-using Spiderly.Security.Enums;
-using Spiderly.Security.Entities;
-using Spiderly.Shared.DTO;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Spiderly.Shared.Resources;
+using Spiderly.Security.DTO;
+using Spiderly.Security.Entities;
+using Spiderly.Security.Enums;
+using Spiderly.Security.Interfaces;
 using Spiderly.Security.ValidationRules;
-using Spiderly.Shared.Helpers;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Emailing;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Resources;
+using System.Security.Claims;
 
 namespace Spiderly.Security.Services
 {
@@ -34,12 +33,12 @@ namespace Spiderly.Security.Services
         private readonly EmailingService _emailingService;
 
         public SecurityBusinessService(
-            IApplicationDbContext context, 
-            IJwtAuthManager jwtAuthManagerService, 
-            EmailingService emailingService, 
-            AuthenticationService authenticationService, 
+            IApplicationDbContext context,
+            IJwtAuthManager jwtAuthManagerService,
+            EmailingService emailingService,
+            AuthenticationService authenticationService,
             AuthorizationBusinessService<TUser> authorizationService,
-            ExcelService excelService, 
+            ExcelService excelService,
             IFileManager fileManager
         )
             : base(context, excelService, authorizationService, fileManager)
@@ -70,11 +69,11 @@ namespace Spiderly.Security.Services
             });
 
             string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
-            EmailVerifyUIDTO EmailTemplate = CreateLoginEmailTemplate(verificationCode);
+            EmailVerifyUIDTO emailTemplate = CreateLoginEmailTemplate(verificationCode);
+
             try
             {
-                
-                await _emailingService.SendVerificationEmailAsync(userEmail, EmailTemplate);
+                await _emailingService.SendVerificationEmailAsync(userEmail, emailTemplate);
             }
             catch (Exception)
             {
@@ -83,17 +82,17 @@ namespace Spiderly.Security.Services
             }
         }
 
-         public virtual EmailVerifyUIDTO CreateLoginEmailTemplate(string verificationCode)
-         {
+        public virtual EmailVerifyUIDTO CreateLoginEmailTemplate(string verificationCode)
+        {
             return new EmailVerifyUIDTO
             {
                 Subject = SharedTerms.EmailAccountVerificationTitle,
                 Body = verificationCode
             };
-         }
+        }
 
 
-        public AuthResultDTO Login(VerificationTokenRequestDTO verificationRequestDTO)
+        public async Task<AuthResultDTO> Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
@@ -101,9 +100,31 @@ namespace Spiderly.Security.Services
             LoginVerificationTokenDTO loginVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTO(
                 verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email);
 
-            JwtAuthResultDTO jwtAuthResultDTO = GetJwtAuthResultWithRefreshDTO(loginVerificationTokenDTO.UserId, loginVerificationTokenDTO.Email, loginVerificationTokenDTO.BrowserId);
+            return await _context.WithTransactionAsync(async () =>
+            {
+                TUser user = await GetUserByEmailAsync(loginVerificationTokenDTO.Email); // Check if user already exist in the database
+                DbSet<TUser> userDbSet = _context.DbSet<TUser>();
 
-            return GetAuthResultDTO(loginVerificationTokenDTO.UserId, loginVerificationTokenDTO.Email, jwtAuthResultDTO);
+                if (user == null)
+                {
+                    user = new TUser
+                    {
+                        Email = loginVerificationTokenDTO.Email,
+                    };
+
+                    await userDbSet.AddAsync(user);
+                    await _context.SaveChangesAsync(); // Adding the new user which is logged in first time
+                }
+                else
+                {
+                    if (user.IsDisabled == true)
+                        throw new BusinessException(SharedTerms.DisabledAccountException);
+                }
+
+                JwtAuthResultDTO jwtAuthResultDTO = GetJwtAuthResultWithRefreshDTO(user.Id, user.Email, loginVerificationTokenDTO.BrowserId);
+
+                return GetAuthResultDTO(user.Id, user.Email, jwtAuthResultDTO);
+            });
         }
 
         public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string googleClientId)
@@ -139,79 +160,6 @@ namespace Spiderly.Security.Services
 
                 return GetAuthResultDTO(user.Id, user.Email, jwtAuthResultDTO);
             });
-        }
-
-        #endregion
-
-        #region Registration
-
-        public async Task<RegistrationVerificationResultDTO> SendRegistrationVerificationEmail(RegistrationDTO registrationDTO)
-        {
-            RegistrationVerificationResultDTO registrationResultDTO = new();
-
-            new RegistrationDTOValidationRules().ValidateAndThrow(registrationDTO);
-
-            await _context.WithTransactionAsync(async () =>
-            {
-                TUser user = await GetUserByEmailAsync(registrationDTO.Email);
-
-                if (user == null)
-                {
-                    string verificationCode = _jwtAuthManagerService.GenerateAndSaveRegistrationVerificationCode(registrationDTO.Email, registrationDTO.BrowserId);
-                    EmailVerifyUIDTO EmailTemplate = CreateRegistrationEmailTemplate(verificationCode);
-
-                    try
-                    {                        
-                        await _emailingService.SendVerificationEmailAsync(registrationDTO.Email, EmailTemplate);
-                    }
-                    catch (Exception)
-                    {
-                        _jwtAuthManagerService.RemoveRegistrationVerificationTokensByEmail(registrationDTO.Email); // We didn't send email, set all verification tokens invalid then
-                        throw;
-                    }
-                }
-                else
-                {
-                    throw new BusinessException(SharedTerms.SameEmailAlreadyExistsException);
-                }
-            });
-
-            return registrationResultDTO;
-        }
-
-        public virtual EmailVerifyUIDTO CreateRegistrationEmailTemplate(string verificationCode)
-        {
-            return new EmailVerifyUIDTO
-            {
-                Subject = SharedTerms.EmailAccountVerificationTitle,
-                Body = verificationCode
-            };
-        }
-
-        public async Task<AuthResultDTO> Register(VerificationTokenRequestDTO verificationRequestDTO)
-        {
-            new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
-
-            RegistrationVerificationTokenDTO registrationVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetRegistrationVerificationTokenDTO(
-                verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email); // Can not be null, if its null it already has thrown
-
-            TUser user = null;
-
-            await _context.WithTransactionAsync(async () =>
-            {
-                user = new TUser
-                {
-                    Email = registrationVerificationTokenDTO.Email,
-                };
-
-                await _context.DbSet<TUser>().AddAsync(user);
-                await _context.SaveChangesAsync();
-            });
-
-            JwtAuthResultDTO jwtAuthResultDTO = GetJwtAuthResultWithRefreshDTO(user.Id, user.Email, verificationRequestDTO.BrowserId); // User can't be null, it would throw earlier if he is
-            //await SaveLogin(loginDTO); // Is ipAddress == null is checked here // TODO: Log it
-
-            return GetAuthResultDTO(user.Id, user.Email, jwtAuthResultDTO);
         }
 
         #endregion
@@ -291,7 +239,7 @@ namespace Spiderly.Security.Services
                     .SingleOrDefaultAsync();
 
                 if (currentUser == null)
-                    throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+                    return null;
 
                 if (currentUser.IsDisabled == true)
                     throw new BusinessException(SharedTerms.DisabledAccountException);
@@ -395,7 +343,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        protected override async Task OnAfterSaveRoleAndReturnSaveBodyDTO(RoleDTO savedDTO, RoleSaveBodyDTO saveBodyDTO) 
+        protected override async Task OnAfterSaveRoleAndReturnSaveBodyDTO(RoleDTO savedDTO, RoleSaveBodyDTO saveBodyDTO)
         {
             await _context.WithTransactionAsync(async () =>
             {
