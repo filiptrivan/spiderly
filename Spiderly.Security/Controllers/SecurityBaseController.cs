@@ -49,13 +49,10 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             await _securityBusinessService.SendLoginVerificationEmail(loginDTO);
         }
 
-        /// <summary>
-        /// Made it async because of potential override
-        /// </summary>
         [HttpPost]
         public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO request)
         {
-            return _securityBusinessService.Login(request);
+            return await _securityBusinessService.Login(request);
         }
 
         [HttpPost]
@@ -63,18 +60,6 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO) // TODO FT: Add enum for which external provider you should login user
         {
             return await _securityBusinessService.LoginExternal(externalProviderDTO, SettingsProvider.Current.GoogleClientId);
-        }
-
-        [HttpPost]
-        public async Task<RegistrationVerificationResultDTO> SendRegistrationVerificationEmail(RegistrationDTO registrationDTO)
-        {
-            return await _securityBusinessService.SendRegistrationVerificationEmail(registrationDTO);
-        }
-
-        [HttpPost]
-        public virtual async Task<AuthResultDTO> Register(VerificationTokenRequestDTO request)
-        {
-            return await _securityBusinessService.Register(request);
         }
 
         [HttpGet]

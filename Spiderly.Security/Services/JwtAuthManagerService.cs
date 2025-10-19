@@ -25,9 +25,6 @@ namespace Spiderly.Security.Services
         // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
         private readonly ConcurrentDictionary<string, RefreshTokenDTO> _usersRefreshTokens = new();
 
-        public IImmutableDictionary<string, RegistrationVerificationTokenDTO> UsersRegistrationVerificationTokensReadOnlyDictionary => _usersRegistrationVerificationTokens.ToImmutableDictionary();
-        private readonly ConcurrentDictionary<string, RegistrationVerificationTokenDTO> _usersRegistrationVerificationTokens = new();
-
         public IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary => _usersLoginVerificationTokens.ToImmutableDictionary();
         private readonly ConcurrentDictionary<string, LoginVerificationTokenDTO> _usersLoginVerificationTokens = new();
 
@@ -308,53 +305,12 @@ namespace Spiderly.Security.Services
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {
                 Email = userEmail,
-                UserId = userId,
                 BrowserId = browserId,
                 ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
             };
 
             string code = GenerateVerificationCodeKey();
             _usersLoginVerificationTokens.AddOrUpdate(code, loginVerificationTokenDTO, (_, _) => loginVerificationTokenDTO);
-            return code;
-        }
-
-        #endregion
-
-        #region Registration
-
-        public RegistrationVerificationTokenDTO ValidateAndGetRegistrationVerificationTokenDTO(string verificationTokenKey, string browserId, string email)
-        {
-            RemoveExpiredRegistrationVerificationTokens();
-
-            // FT: Doing this because there is a chance of generating two same codes.
-            RegistrationVerificationTokenDTO registrationVerificationTokenDTO = _usersRegistrationVerificationTokens
-                .Where(x => x.Key == verificationTokenKey && x.Value.Email == email && x.Value.BrowserId == browserId).SingleOrDefault().Value;
-
-            if (registrationVerificationTokenDTO == null)
-                throw new ExpiredVerificationException(); // We can not give allow user to send again from here, because it is deleted
-
-            KeyValuePair<string, RegistrationVerificationTokenDTO> lastVerificationToken = _usersRegistrationVerificationTokens
-                .Where(x => x.Value.Email == registrationVerificationTokenDTO.Email)
-                .OrderByDescending(x => x.Value.ExpireAt)
-                .FirstOrDefault();
-
-            if (verificationTokenKey != lastVerificationToken.Key)
-                throw new ExpiredVerificationException(SharedTerms.LatestVerificationCodeException);
-
-            return registrationVerificationTokenDTO;
-        }
-
-        public string GenerateAndSaveRegistrationVerificationCode(string userEmail, string browserId)
-        {
-            RegistrationVerificationTokenDTO registrationVerificationTokenDTO = new RegistrationVerificationTokenDTO
-            {
-                Email = userEmail,
-                BrowserId = browserId,
-                ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
-            };
-
-            string code = GenerateVerificationCodeKey();
-            _usersRegistrationVerificationTokens.AddOrUpdate(code, registrationVerificationTokenDTO, (_, _) => registrationVerificationTokenDTO);
             return code;
         }
 
@@ -383,24 +339,6 @@ namespace Spiderly.Security.Services
             foreach (var expiredToken in expiredTokens)
             {
                 _usersLoginVerificationTokens.TryRemove(expiredToken.Key, out _);
-            }
-        }
-
-        public void RemoveRegistrationVerificationTokensByEmail(string email)
-        {
-            var verificationTokens = _usersRegistrationVerificationTokens.Where(x => x.Value.Email == email).ToList();
-            foreach (var verificationToken in verificationTokens)
-            {
-                _usersRegistrationVerificationTokens.TryRemove(verificationToken.Key, out _);
-            }
-        }
-
-        private void RemoveExpiredRegistrationVerificationTokens()
-        {
-            var expiredTokens = _usersRegistrationVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
-            foreach (var expiredToken in expiredTokens)
-            {
-                _usersRegistrationVerificationTokens.TryRemove(expiredToken.Key, out _);
             }
         }
 
