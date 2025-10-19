@@ -1,27 +1,19 @@
-﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Globalization;
-using System.Resources;
-using Spiderly.Shared.BaseEntities;
-using System.Net.Mail;
-using Serilog;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Linq;
+using Serilog;
 using Spiderly.Shared.Exceptions;
 using System.ComponentModel;
-using Microsoft.Data.SqlClient;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Net.Mail;
+using System.Net.Sockets;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -219,19 +211,19 @@ namespace Spiderly.Shared.Helpers
             }
         }
 
-        public static void SendUnhandledExceptionEmails(string userEmail, long? userId, IWebHostEnvironment env, Exception unhandledEx)
+        public static void SendUnhandledExceptionEmails(long? userId, IWebHostEnvironment env, Exception unhandledEx)
         {
-            Task.Run((Func<Task>)(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
                     using (SmtpClient smtpClient = GetSmtpClient())
                     using (MailMessage mailMessage = new MailMessage
                     {
-                        From = new MailAddress((string)SettingsProvider.Current.EmailSender),
+                        From = new MailAddress(SettingsProvider.Current.EmailSender),
                         Subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception",
                         Body = $$"""
-Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
+Currently authenticated user id: {{userId}}); <br>
 {{unhandledEx}}
 """,
                         BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
@@ -249,11 +241,11 @@ Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
                 {
                     Log.Error(
                         ex,
-                        "Unhandled Exception email is not sent; Currently authenticated user: {userEmail} (id: {userId});",
-                        userEmail, userId
+                        "Unhandled Exception email is not sent; Currently authenticated user id: {userId});",
+                        userId
                     );
                 }
-            }));
+            });
         }
 
         public static SmtpClient GetSmtpClient()
@@ -287,16 +279,6 @@ Currently authenticated user: {{userEmail}} (id: {{userId}}); <br>
                 return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid).Value);
 
             return null;
-        }
-
-        public static string GetCurrentUserEmail(HttpContext context)
-        {
-            return context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email).Value;
-        }
-
-        public static string GetCurrentUserEmailOrDefault(HttpContext context)
-        {
-            return context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
         }
 
         #endregion

@@ -27,35 +27,6 @@ export class UserBase extends BaseEntity
     }
 }
 
-export class JwtAuthResult extends BaseEntity
-{
-    userId?: number;
-	userEmail?: string;
-	accessToken?: string;
-	token?: RefreshToken;
-
-    constructor(
-    {
-        userId,
-		userEmail,
-		accessToken,
-		token
-    }:{
-        userId?: number;
-		userEmail?: string;
-		accessToken?: string;
-		token?: RefreshToken;     
-    } = {}
-    ) {
-        super('JwtAuthResult'); 
-
-        this.userId = userId;
-		this.userEmail = userEmail;
-		this.accessToken = accessToken;
-		this.token = token;
-    }
-}
-
 
 export class RolePermission extends BaseEntity
 {
@@ -382,40 +353,6 @@ export class RoleSaveBody extends BaseEntity
         this.roleDTO = roleDTO;
 		this.selectedPermissionsIds = selectedPermissionsIds;
 		this.selectedUsersIds = selectedUsersIds;
-    }
-}
-
-
-export class RefreshToken extends BaseEntity
-{
-    email?: string;
-	ipAddress?: string;
-	browserId?: string;
-	tokenString?: string;
-	expireAt?: Date;
-
-    constructor(
-    {
-        email,
-		ipAddress,
-		browserId,
-		tokenString,
-		expireAt
-    }:{
-        email?: string;
-		ipAddress?: string;
-		browserId?: string;
-		tokenString?: string;
-		expireAt?: Date;     
-    } = {}
-    ) {
-        super('RefreshToken'); 
-
-        this.email = email;
-		this.ipAddress = ipAddress;
-		this.browserId = browserId;
-		this.tokenString = tokenString;
-		this.expireAt = expireAt;
     }
 }
 

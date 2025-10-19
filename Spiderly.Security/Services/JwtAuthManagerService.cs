@@ -42,11 +42,11 @@ namespace Spiderly.Security.Services
         /// 3. Stole access but no refresh
         /// 4. Stole both - we can't do anything to him, we only try to stop him if he's on a different ip address
         /// </summary>
-        public JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long userIdFromAccessToken, string userEmailFromAccessToken)
+        public JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long userIdFromAccessToken)
         {
             RemoveExpiredRefreshTokens();
             // FT: We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
-            RemoveTokensForMoreThenAllowedBrowsers(userEmailFromAccessToken);
+            RemoveTokensForMoreThenAllowedBrowsers(userIdFromAccessToken);
 
             // FT: Sometimes in development mode, when the multiple tabs are open, on the save of the angular app we refresh the tabs in the same time, so we don't even manage to change the value of the refresh token in the local storage,
             // and we send another request with the same refresh token as the previous one, and since we deleted it, it doesn't exist
@@ -57,21 +57,21 @@ namespace Spiderly.Security.Services
             // Unauthenticating both user, this could happen if someone stoled access token (aleksa.trivan), and has own valid refresh token (filip.trivan), he could indefinedly generate access tokens for the (aleksa.trivan) then
             // This is not solving this problem (hacker can not change claims in the jwt token): https://stackoverflow.com/questions/27301557/if-you-can-decode-jwt-how-are-they-secure we are doing that with Decoding JWT token.
             // It is not posible for the user to change the email of the refresh token, even if it is, if the user change the email in the refresh token, it doesn't matter, we will find based on the refresh token code not email
-            if (existingRefreshToken.Email != userEmailFromAccessToken) // FT: Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
+            if (existingRefreshToken.UserId != userIdFromAccessToken) // FT: Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
             {
-                RemoveRefreshTokenByEmail(existingRefreshToken.Email);
-                RemoveRefreshTokenByEmail(userEmailFromAccessToken);
-                throw new HackerException("The email can't be different in refresh and access token.");
+                RemoveRefreshTokenByUserId(existingRefreshToken.UserId);
+                RemoveRefreshTokenByUserId(userIdFromAccessToken);
+                throw new HackerException("The user id can't be different in refresh and access token.");
             }
-            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && IsRefreshTokenWithNewIpAddress(existingRefreshToken.Email, existingRefreshToken.IpAddress) == true)
+            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && IsRefreshTokenWithNewIpAddress(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
             {
                 // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
                 // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
-                RemoveRefreshTokenByEmail(existingRefreshToken.Email); // Don't need to delete for userDTO also, because we already did that
+                RemoveRefreshTokenByUserId(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
                 throw new SecurityTokenException(SharedTerms.TwoDifferentIpAddressesRefreshException);
             }
 
-            return GenerateAccessAndRefreshTokens(userIdFromAccessToken, userEmailFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
+            return GenerateAccessAndRefreshTokens(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
         }
 
         private readonly object _generateAccessAndRefreshTokensLock = new();
@@ -79,15 +79,15 @@ namespace Spiderly.Security.Services
         /// <summary>
         /// Password and verificationExpiration (minutes) are only needed if we are registering the account, for email verification
         /// </summary>
-        public JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string userEmail, string ipAddress, string browserId)
+        public JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string ipAddress, string browserId)
         {
-            List<Claim> claims = GenerateClaims(userId, userEmail);
+            List<Claim> claims = GenerateClaims(userId);
 
             string accessToken = GenerateAccessToken(claims);
 
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO
             {
-                Email = userEmail,
+                UserId = userId,
                 IpAddress = ipAddress,
                 BrowserId = browserId,
                 TokenString = GenerateRandomTokenString(),
@@ -96,7 +96,7 @@ namespace Spiderly.Security.Services
 
             lock (_generateAccessAndRefreshTokensLock)
             {
-                RemoveLastRefreshTokenFromTheSameBrowserAndEmail(browserId, userEmail); // FT: Email also because the hacker could manipulate browserId, but he can't email
+                RemoveLastRefreshTokenFromTheSameBrowserAndUserId(browserId, userId); // FT: userId also because the hacker could manipulate browserId, but he can't userId
 
                 // It will always generate new token,
                 // it is beneficial if the user open the application from different devices
@@ -107,18 +107,16 @@ namespace Spiderly.Security.Services
             return new JwtAuthResultDTO
             {
                 UserId = userId,
-                UserEmail = userEmail,
                 AccessToken = accessToken,
                 Token = refreshTokenDTO
             };
         }
 
-        public List<Claim> GenerateClaims(long userId, string userEmail)
+        public List<Claim> GenerateClaims(long userId)
         {
             return new List<Claim>
             {
                 new Claim(ClaimTypes.PrimarySid, userId.ToString()),
-                new Claim(ClaimTypes.Email, userEmail),
             };
         }
 
@@ -193,13 +191,13 @@ namespace Spiderly.Security.Services
         /// <summary>
         /// FT: If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
         /// </summary>
-        public void Logout(string browserId, string email)
+        public void Logout(string browserId, long userId)
         {
-            bool foundTheUser = RemoveLastRefreshTokenFromTheSameBrowserAndEmail(browserId, email);
+            bool foundTheUser = RemoveLastRefreshTokenFromTheSameBrowserAndUserId(browserId, userId);
 
             if (foundTheUser == false)
             {
-                RemoveRefreshTokenByEmail(email);
+                RemoveRefreshTokenByUserId(userId);
             }
         }
 
@@ -207,12 +205,12 @@ namespace Spiderly.Security.Services
         /// If we found the user => true
         /// If we didn't find the user => false
         /// </summary>
-        public bool RemoveLastRefreshTokenFromTheSameBrowserAndEmail(string browserId, string email)
+        public bool RemoveLastRefreshTokenFromTheSameBrowserAndUserId(string browserId, long userId)
         {
             // TODO FT: Log if the email or browser id is null
 
             // FT: ToList() because it somehow happened that the same user clicks fast two times and send two requests with 
-            KeyValuePair<string, RefreshTokenDTO> refreshToken = _usersRefreshTokens.Where(x => x.Value.BrowserId == browserId && x.Value.Email == email).SingleOrDefault();
+            KeyValuePair<string, RefreshTokenDTO> refreshToken = _usersRefreshTokens.Where(x => x.Value.BrowserId == browserId && x.Value.UserId == userId).SingleOrDefault();
 
             if (string.IsNullOrEmpty(refreshToken.Key))
             {
@@ -234,9 +232,9 @@ namespace Spiderly.Security.Services
                 _usersRefreshTokens.TryRemove(expiredToken.Key, out _);
         }
 
-        public void RemoveRefreshTokenByEmail(string email)
+        public void RemoveRefreshTokenByUserId(long userId)
         {
-            var refreshTokens = _usersRefreshTokens.Where(x => x.Value.Email == email).ToList();
+            var refreshTokens = _usersRefreshTokens.Where(x => x.Value.UserId == userId).ToList();
             foreach (var refreshToken in refreshTokens)
                 _usersRefreshTokens.TryRemove(refreshToken.Key, out _);
         }
@@ -249,17 +247,17 @@ namespace Spiderly.Security.Services
             return Base64UrlEncoder.Encode(randomNumber); // FT: Making it url safe
         }
 
-        private bool IsRefreshTokenWithNewIpAddress(string email, string ipAddress)
+        private bool IsRefreshTokenWithNewIpAddress(long userId, string ipAddress)
         {
-            if (_usersRefreshTokens.Where(x => x.Value.Email == email).OrderByDescending(x => x.Value.ExpireAt).FirstOrDefault().Value?.IpAddress != ipAddress)
+            if (_usersRefreshTokens.Where(x => x.Value.UserId == userId).OrderByDescending(x => x.Value.ExpireAt).FirstOrDefault().Value?.IpAddress != ipAddress)
                 return true;
             else
                 return false;
         }
 
-        private void RemoveTokensForMoreThenAllowedBrowsers(string email)
+        private void RemoveTokensForMoreThenAllowedBrowsers(long userId)
         {
-            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = _usersRefreshTokens.Where(x => x.Value.Email == email).ToList();
+            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = _usersRefreshTokens.Where(x => x.Value.UserId == userId).ToList();
             if (refreshTokens.Count > SettingsProvider.Current.AllowedBrowsersForTheSingleUser)
             {
                 List<KeyValuePair<string, RefreshTokenDTO>> excessBrowserRefreshTokens = refreshTokens.OrderBy(x => x.Value.ExpireAt).Take(refreshTokens.Count - SettingsProvider.Current.AllowedBrowsersForTheSingleUser).ToList();

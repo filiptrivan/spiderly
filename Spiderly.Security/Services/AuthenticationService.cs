@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Spiderly.Security.Interfaces;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Services;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
-using System.Security.Claims;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
 
 namespace Spiderly.Security.Services
 {
@@ -19,7 +19,7 @@ namespace Spiderly.Security.Services
         private readonly IApplicationDbContext _context;
 
         public AuthenticationService(
-            IHttpContextAccessor httpContextAccessor, 
+            IHttpContextAccessor httpContextAccessor,
             IApplicationDbContext context
         )
             : base(context)
@@ -27,21 +27,20 @@ namespace Spiderly.Security.Services
             _httpContextAccessor = httpContextAccessor;
             _context = context;
         }
-        
+
         public long GetCurrentUserId()
         {
             return Helper.GetCurrentUserId(_httpContextAccessor.HttpContext);
         }
 
-        public string GetCurrentUserEmail()
+        public async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()
         {
-            return Helper.GetCurrentUserEmail(_httpContextAccessor.HttpContext);
-        }
+            long currentUserId = GetCurrentUserId();
 
-
-        public string GetCurrentUserEmailOrDefault()
-        {
-            return Helper.GetCurrentUserEmailOrDefault(_httpContextAccessor.HttpContext);
+            return await _context.WithTransactionAsync(async () =>
+            {
+                return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Id == currentUserId).Select(x => x.Email).SingleAsync();
+            });
         }
 
         public async Task<TUser> GetCurrentUser<TUser>() where TUser : class, IUser, new()

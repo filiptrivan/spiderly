@@ -12,14 +12,14 @@ namespace Spiderly.Security.Interfaces
 
         #region Refresh
 
-        JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string userEmail, string ipAddress, string browserId);
-        List<Claim> GenerateClaims(long userId, string userEmail);
-        JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long dbUserId, string dbUserEmail);
+        JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string ipAddress, string browserId);
+        List<Claim> GenerateClaims(long userId);
+        JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long dbUserId);
         List<Claim> GetClaimsForTheAccessToken(RefreshTokenRequestDTO request, string accessToken);
         void RemoveExpiredRefreshTokens();
-        void RemoveRefreshTokenByEmail(string email);
-        public void Logout(string browserId, string email);
-        bool RemoveLastRefreshTokenFromTheSameBrowserAndEmail(string browserId, string email);
+        void RemoveRefreshTokenByUserId(long userId);
+        public void Logout(string browserId, long userId);
+        bool RemoveLastRefreshTokenFromTheSameBrowserAndUserId(string browserId, long userId);
 
         #endregion
 
