@@ -32,7 +32,6 @@ export class LoginComponent extends BaseFormCopy implements OnInit {
 
     companyName: string;
     showEmailSentDialog: boolean = false;
-    usersCanRegister: boolean = this.config.usersCanRegister;
 
     constructor(
       protected override differs: KeyValueDiffers,

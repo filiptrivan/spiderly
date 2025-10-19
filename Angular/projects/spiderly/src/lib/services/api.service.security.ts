@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Namebook } from '../entities/namebook';
 import { Filter } from '../entities/filter';
-import { Login, Registration, RegistrationVerificationResult, RefreshTokenRequest, AuthResult, Role, UserBase, ExternalProvider, VerificationTokenRequest, RoleSaveBody, RoleMainUIForm } from '../entities/security-entities';
+import { Login, RefreshTokenRequest, AuthResult, Role, UserBase, ExternalProvider, VerificationTokenRequest, RoleSaveBody, RoleMainUIForm } from '../entities/security-entities';
 import { ConfigBaseService } from './config-base.service';
 import { PaginatedResult } from '../entities/paginated-result';
 
@@ -21,14 +21,6 @@ export class ApiSecurityService {
 
     //#region Authentication
 
-    register = (request: VerificationTokenRequest): Observable<AuthResult> => { 
-        return this.http.post<AuthResult>(`${this.config.apiUrl}/Security/Register`, request, this.config.httpOptions);
-    }
-
-    sendRegistrationVerificationEmail = (registrationDTO: Registration): Observable<RegistrationVerificationResult> => { 
-        return this.http.post<RegistrationVerificationResult>(`${this.config.apiUrl}/Security/SendRegistrationVerificationEmail`, registrationDTO, this.config.httpOptions);
-    }
-    
     login = (request: VerificationTokenRequest): Observable<AuthResult> => { 
         return this.http.post<AuthResult>(`${this.config.apiUrl}/Security/Login`, request, this.config.httpOptions);
     }

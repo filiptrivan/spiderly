@@ -14,7 +14,6 @@ export class ConfigBaseService
     primaryColor = '#111b2c';
     
     googleAuth = true;
-    usersCanRegister = true;
 
     /* URLs */
     loginSlug = 'login';

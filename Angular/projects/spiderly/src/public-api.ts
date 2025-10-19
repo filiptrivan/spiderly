@@ -24,10 +24,8 @@ export * from './lib/components/base-details/role-base-details.component'
 export * from './lib/components/base-form/base-form copy';
 export * from './lib/components/card-skeleton/card-skeleton.component';
 export * from './lib/components/auth/partials/login-verification.component';
-export * from './lib/components/auth/partials/registration-verification.component';
 export * from './lib/components/auth/partials/verification-wrapper.component';
 export * from './lib/components/auth/login/login.component';
-export * from './lib/components/auth/registration/registration.component';
 export * from './lib/components/footer/footer.component';
 export * from './lib/components/spiderly-buttons/google-button/google-button.component';
 export * from './lib/components/index-card/index-card.component';

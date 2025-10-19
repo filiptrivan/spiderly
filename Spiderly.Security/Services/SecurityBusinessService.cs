@@ -107,6 +107,9 @@ namespace Spiderly.Security.Services
 
                 if (user == null)
                 {
+                    if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                        throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+
                     user = new TUser
                     {
                         Email = loginVerificationTokenDTO.Email,
@@ -138,6 +141,9 @@ namespace Spiderly.Security.Services
 
                 if (user == null)
                 {
+                    if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                        throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+
                     user = new TUser
                     {
                         Email = payload.Email,
@@ -183,7 +189,7 @@ namespace Spiderly.Security.Services
 
             return new AuthResultDTO
             {
-                UserId = (long)jwtResult.UserId, // Here it will always be user, if there is not, it will break earlier
+                UserId = jwtResult.UserId, // Here it will always be user, if there is not, it will break earlier
                 Email = jwtResult.UserEmail,
                 AccessToken = jwtResult.AccessToken,
                 RefreshToken = jwtResult.Token.TokenString
@@ -325,7 +331,7 @@ namespace Spiderly.Security.Services
 
         #region Role
 
-        public async override Task<RoleMainUIFormDTO> GetRoleMainUIFormDTO(int id, bool authorize)
+        public override async Task<RoleMainUIFormDTO> GetRoleMainUIFormDTO(int id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
