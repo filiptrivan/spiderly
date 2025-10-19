@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { map, tap, delay, finalize } from 'rxjs/operators';
 import { SocialUser, SocialAuthService } from '@abacritt/angularx-social-login';
-import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, Registration, RegistrationVerificationResult, RefreshTokenRequest, UserBase } from '../entities/security-entities';
+import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, RefreshTokenRequest, UserBase } from '../entities/security-entities';
 import { ConfigBaseService } from './config-base.service';
 import { ApiSecurityService } from './api.service.security';
 import { InitCompanyAuthDialogDetails } from '../entities/init-company-auth-dialog-details';
@@ -101,19 +101,6 @@ export class AuthBaseService implements OnDestroy {
     this.navigateToDashboard();
   }
 
-  sendRegistrationVerificationEmail(body: Registration): Observable<RegistrationVerificationResult> {
-    const browserId = this.getBrowserId();
-    body.browserId = browserId;
-    return this.apiService.sendRegistrationVerificationEmail(body);
-  }
-  
-  register(body: VerificationTokenRequest): Observable<Promise<AuthResult>> {
-    const browserId = this.getBrowserId();
-    body.browserId = browserId;
-    const loginResultObservable = this.apiService.register(body);
-    return this.handleLoginResult(loginResultObservable);
-  }
-
   handleLoginResult(loginResultObservable: Observable<AuthResult>){
     return loginResultObservable.pipe(
       map(async (loginResult: AuthResult) => {
@@ -146,6 +133,7 @@ export class AuthBaseService implements OnDestroy {
 
   onAfterLogout = () => {
     this._currentUserPermissionCodes.next(null);
+    this.router.navigate([this.config.loginSlug]);
   }
 
   refreshToken(): Observable<AuthResult> {

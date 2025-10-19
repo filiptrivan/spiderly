@@ -3,7 +3,6 @@ import { Filter } from "./filter";
 import { FilterRule } from "./filter-rule";
 import { FilterSortMeta } from "./filter-sort-meta";
 import { MimeTypes } from "./mime-type";
-import { RegistrationVerificationResultStatusCodes } from "../enums/security-enums";
 import { Namebook } from "./namebook";
 
 
@@ -162,54 +161,6 @@ export class VerificationTokenRequest extends BaseEntity
 }
 
 
-export class RegistrationVerificationResult extends BaseEntity
-{
-    status?: RegistrationVerificationResultStatusCodes;
-	message?: string;
-
-    constructor(
-    {
-        status,
-		message
-    }:{
-        status?: RegistrationVerificationResultStatusCodes;
-		message?: string;     
-    } = {}
-    ) {
-        super('RegistrationVerificationResult'); 
-
-        this.status = status;
-		this.message = message;
-    }
-}
-
-
-export class RegistrationVerificationToken extends BaseEntity
-{
-    email?: string;
-	browserId?: string;
-	expireAt?: Date;
-
-    constructor(
-    {
-        email,
-		browserId,
-		expireAt
-    }:{
-        email?: string;
-		browserId?: string;
-		expireAt?: Date;     
-    } = {}
-    ) {
-        super('RegistrationVerificationToken'); 
-
-        this.email = email;
-		this.browserId = browserId;
-		this.expireAt = expireAt;
-    }
-}
-
-
 export class ExternalProvider extends BaseEntity
 {
     idToken?: string;
@@ -341,28 +292,6 @@ export class RefreshTokenRequest extends BaseEntity
         super('RefreshTokenRequest'); 
 
         this.refreshToken = refreshToken;
-		this.browserId = browserId;
-    }
-}
-
-
-export class Registration extends BaseEntity
-{
-    email?: string;
-	browserId?: string;
-
-    constructor(
-    {
-        email,
-		browserId
-    }:{
-        email?: string;
-		browserId?: string;     
-    } = {}
-    ) {
-        super('Registration'); 
-
-        this.email = email;
 		this.browserId = browserId;
     }
 }
