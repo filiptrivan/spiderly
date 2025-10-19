@@ -999,8 +999,7 @@ export class RoleListComponent implements OnInit {
             return $$"""
 <ng-container *transloco="let t">
     <user-base-details
-    [panelTitle]="userFormGroup.getRawValue().email ?? null"
-    [showBigPanelTitle]="false"
+    [panelTitle]="t('Profile')"
     panelIcon="pi pi-user"
     [formGroup]="formGroup" 
     [userFormGroup]="userFormGroup" 
@@ -1083,7 +1082,8 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
 
     showIsDisabledAndExternalLoggedInControlsForPermissions = (currentUserPermissionCodes: string[]) => {
         return currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
-               currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser);
+               currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
+               currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser);
     }
 
     isCurrentUserPage = (currentUserId: number) => {
@@ -1114,7 +1114,6 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
     [getPaginatedListObservableMethod]="getPaginatedUserListObservableMethod" 
     [exportListToExcelObservableMethod]="exportUserListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteUserObservableMethod"
-    [showAddButton]="false"
     ></spiderly-data-table>
 </ng-container>
 """;
@@ -2485,7 +2484,6 @@ namespace {{appName}}.Business.Entities
     [Index(nameof(Email), IsUnique = true)]
     public class User : BusinessObject<long>, IUser
     {
-        [UIDoNotGenerate]
         [UIControlWidth("col-8")]
         [DisplayName]
         [CustomValidator("EmailAddress()")]
@@ -2856,6 +2854,7 @@ use {{appName}}
 
 insert into Permission(Name, Description, Code) values(N'View users', null, N'ReadUser');
 insert into Permission(Name, Description, Code) values(N'Edit existing users', null, N'UpdateUser');
+insert into Permission(Name, Description, Code) values(N'Add new users', null, N'InsertUser');
 insert into Permission(Name, Description, Code) values(N'Delete users', null, N'DeleteUser');
 insert into Permission(Name, Description, Code) values(N'View notifications', null, N'ReadNotification');
 insert into Permission(Name, Description, Code) values(N'Edit existing notifications', null, N'UpdateNotification');
@@ -3177,7 +3176,8 @@ namespace {{appName}}.WebAPI
       "AllowTheUseOfAppWithDifferentIpAddresses": true,
       "AllowedBrowsersForTheSingleUser": 5,
       "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "OnlyAdminCanAddUsers": false
     }
   }
 }
@@ -3466,14 +3466,14 @@ namespace {{appName}}.Business
         private static string GetAuthorizationServiceCsData(string appName)
         {
             return $$"""
-using Azure.Storage.Blobs;
-using Spiderly.Security.Services;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Extensions;
-using Spiderly.Shared.Exceptions;
-using {{appName}}.Business.Entities;
 using {{appName}}.Business.DTO;
+using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
+using Spiderly.Security.Services;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Resources;
 
 namespace {{appName}}.Business.Services
 {
@@ -3481,15 +3481,18 @@ namespace {{appName}}.Business.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
+        private readonly SecurityBusinessService<User> _securityBusinessService;
 
         public AuthorizationBusinessService(
             IApplicationDbContext context, 
-            AuthenticationService authenticationService
+            AuthenticationService authenticationService,
+            SecurityBusinessService<User> securityBusinessService
         )
             : base(context, authenticationService)
         {
             _context = context;
             _authenticationService = authenticationService;
+            _securityBusinessService = securityBusinessService;
         }
 
         #region User
@@ -3510,23 +3513,46 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
+                User user = await GetInstanceAsync<User, long>(userDTO.Id, null);
+
+                if (user.Email != userDTO.Email)
+                {
+                    User existingUser = await _securityBusinessService.GetUserByEmailAsync(userDTO.Email);
+
+                    if (existingUser != null)
+                    {
+                        throw new BusinessException(SharedTerms.SameEmailAlreadyExistsException);
+                    }
+                }
+
+                if (userDTO.HasLoggedInWithExternalProvider != user.HasLoggedInWithExternalProvider)
+                    throw new HackerException($"No one can change {nameof(userDTO.HasLoggedInWithExternalProvider)} from the main UI form.");
+
                 bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(BusinessPermissionCodes.UpdateUser);
                 if (hasAdminUpdatePermission)
                     return;
 
                 long currentUserId = _authenticationService.GetCurrentUserId();
                 if (currentUserId != userDTO.Id)
-                    throw new UnauthorizedException();
+                    throw new HackerException($"User without admin update permission which is not current user tryed to update user.");
 
-                User user = await GetInstanceAsync<User, long>(userDTO.Id, null);
+                if (userDTO.IsDisabled != user.IsDisabled)
+                    throw new HackerException($"User without admin update permission tryed to change {nameof(userDTO.IsDisabled)}.");
+            });
+        }
 
-                if (
-                    userDTO.IsDisabled != user.IsDisabled ||
-                    userDTO.HasLoggedInWithExternalProvider != user.HasLoggedInWithExternalProvider
-                )
-                {
-                    throw new UnauthorizedException();
-                }
+        public override async Task AuthorizeUserInsertAndThrow(UserDTO userDTO)
+        {
+            await _context.WithTransactionAsync(async () =>
+            {
+                if (userDTO.HasLoggedInWithExternalProvider != null)
+                    throw new HackerException($"No one can init {nameof(userDTO.HasLoggedInWithExternalProvider)} from the main UI form.");
+
+                bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(BusinessPermissionCodes.InsertUser);
+                if (hasAdminInsertPermission)
+                    return;
+
+                throw new HackerException("User without admin insert permission tryed to add new user.");
             });
         }
 
@@ -3540,25 +3566,17 @@ namespace {{appName}}.Business.Services
         private static string GetBusinessServiceCsData(string appName)
         {
             return $$"""
-using {{appName}}.Business.Services;
-using {{appName}}.Business.Entities;
-using {{appName}}.Business.DTO;
-using {{appName}}.Business.Enums;
-using {{appName}}.Business.DataMappers;
-using {{appName}}.Business.ValidationRules;
-using Spiderly.Shared.DTO;
-using Spiderly.Shared.Excel;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Extensions;
-using Spiderly.Shared.Helpers;
-using Spiderly.Security.DTO;
-using Spiderly.Security.Services;
-using Spiderly.Shared.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using Mapster;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using {{appName}}.Business.DTO;
+using {{appName}}.Business.Entities;
+using {{appName}}.Business.Enums;
+using Spiderly.Security.Services;
+using Spiderly.Shared.DTO;
 using Spiderly.Shared.Emailing;
-using Azure.Storage.Blobs;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Interfaces;
 
 namespace {{appName}}.Business.Services
 {
@@ -3571,11 +3589,11 @@ namespace {{appName}}.Business.Services
         private readonly EmailingService _emailingService;
 
         public {{appName}}BusinessService(
-            IApplicationDbContext context, 
-            ExcelService excelService, 
-            {{appName}}.Business.Services.AuthorizationBusinessService authorizationService, 
-            SecurityBusinessService<User> securityBusinessService, 
-            AuthenticationService authenticationService, 
+            IApplicationDbContext context,
+            ExcelService excelService,
+            {{appName}}.Business.Services.AuthorizationBusinessService authorizationService,
+            SecurityBusinessService<User> securityBusinessService,
+            AuthenticationService authenticationService,
             EmailingService emailingService,
             IFileManager fileManager
         )
@@ -3587,32 +3605,6 @@ namespace {{appName}}.Business.Services
             _authenticationService = authenticationService;
             _emailingService = emailingService;
         }
-
-        #region User
-
-        /// <summary>
-        /// IsDisabled is handled inside authorization service
-        /// </summary>
-        protected override async Task OnBeforeSaveUserAndReturnSaveBodyDTO(UserSaveBodyDTO userSaveBodyDTO)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                if (userSaveBodyDTO.UserDTO.Id <= 0)
-                    throw new HackerException("You can't add new user.");
-
-                User user = await GetInstanceAsync<User, long>(userSaveBodyDTO.UserDTO.Id, userSaveBodyDTO.UserDTO.Version);
-
-                if (userSaveBodyDTO.UserDTO.Email != user.Email ||
-                    userSaveBodyDTO.UserDTO.HasLoggedInWithExternalProvider != user.HasLoggedInWithExternalProvider
-                //userSaveBodyDTO.UserDTO.AccessedTheSystem != user.AccessedTheSystem
-                )
-                {
-                    throw new HackerException("You can't change Email, HasLoggedInWithExternalProvider nor AccessedTheSystem from the main UI form.");
-                }
-            });
-        }
-
-        #endregion
 
         #region Notification
 
@@ -4287,6 +4279,7 @@ export const ThemePreset = definePreset(Aura, {
     "Email": "Email",
     "Slug": "Url putanja",
     "YourProfile": "Vaš profil",
+    "Profile": "Profil",
     "Logout": "Odjavite se",
     "Home": "Početna",
     "SuperAdministration": "Super administracija",
@@ -4563,6 +4556,7 @@ export const ThemePreset = definePreset(Aura, {
   "Email": "Email",
   "Slug": "URL path",
   "YourProfile": "Your profile",
+  "Profile": "Profile",
   "Logout": "Log out",
   "Home": "Home",
   "SuperAdministration": "Super Administration",

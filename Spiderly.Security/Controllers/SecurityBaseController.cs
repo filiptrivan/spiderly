@@ -66,8 +66,8 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [AuthGuard]
         public ActionResult Logout(string browserId)
         {
-            string email = _authenticationService.GetCurrentUserEmail();
-            _jwtAuthManagerService.Logout(browserId, email); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
+            long userId = _authenticationService.GetCurrentUserId();
+            _jwtAuthManagerService.Logout(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
 
             return Ok();
         }

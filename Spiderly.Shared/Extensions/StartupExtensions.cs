@@ -1,26 +1,26 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Localization;
-using Microsoft.Extensions.Azure;
-using Azure.Storage.Blobs;
-using Microsoft.Extensions.Hosting;
-using System.Globalization;
-using System.Text;
-using Spiderly.Shared.Helpers;
-using Spiderly.Shared.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+﻿using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
-using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Resources;
 using Microsoft.AspNetCore.Hosting;
-using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Resources;
+using System.Globalization;
+using System.Text;
+using System.Threading.RateLimiting;
 
 namespace Spiderly.Shared.Extensions
 {
@@ -276,7 +276,6 @@ namespace Spiderly.Shared.Extensions
 
                         string message;
                         LogEventLevel logLevel;
-                        string userEmail = Helper.GetCurrentUserEmailOrDefault(context);
                         long? userId = Helper.GetCurrentUserIdOrDefault(context);
 
                         if (ex is BusinessException businessEx)
@@ -305,7 +304,7 @@ namespace Spiderly.Shared.Extensions
                         }
                         else
                         {
-                            Helper.SendUnhandledExceptionEmails(userEmail, userId, env, ex);
+                            Helper.SendUnhandledExceptionEmails(userId, env, ex);
                             message = $"{SharedTerms.GlobalError}";
                             logLevel = LogEventLevel.Error;
                         }
@@ -313,8 +312,8 @@ namespace Spiderly.Shared.Extensions
                         Log.Write(
                             logLevel,
                             ex,
-                            "Currently authenticated user: {userEmail} (id: {userId});",
-                            userEmail, userId
+                            "Currently authenticated user id: {userId});",
+                            userId
                         );
 
                         await context.Response.WriteAsJsonAsync(new
