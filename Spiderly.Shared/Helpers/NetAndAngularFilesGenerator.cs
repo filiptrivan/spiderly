@@ -27,6 +27,13 @@ namespace Spiderly.Shared.Helpers
                         {
                             new SpiderlyFolder
                             {
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() }
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
                                 Name = "src",
                                 ChildFolders =
                                 {
@@ -273,6 +280,7 @@ namespace Spiderly.Shared.Helpers
                         Files =
                         {
                             new SpiderlyFile { Name = ".editorconfig", Data = GetEditOrConfigData() },
+                            new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
                             new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
                             new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
                             new SpiderlyFile { Name = "README.md", Data = GetFrontendREADMEData(appName, spiderlyVersion) },
@@ -3766,6 +3774,20 @@ namespace {{appName}}.Business.DataMappers
 
         #region Angular
 
+        private static string GetSettingsJsonData()
+        {
+            return """
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+        "source.fixAll": true,
+        "source.organizeImports": true
+    }
+}
+""";
+        }
+
         private static string GetVercelJsonData(string appName)
         {
             return $$"""
@@ -4075,6 +4097,15 @@ quote_type = single
 [*.md]
 max_line_length = off
 trim_trailing_whitespace = false
+""";
+        }
+
+        private static string GetPrettierRcData()
+        {
+            return """
+{
+    "printWidth": 120
+}
 """;
         }
 
