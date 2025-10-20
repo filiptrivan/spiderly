@@ -1,15 +1,12 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System;
-using System.Diagnostics;
-using System.Reflection;
 
 namespace Spiderly.SourceGenerators.Net
 {
@@ -26,12 +23,12 @@ namespace Spiderly.SourceGenerators.Net
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
@@ -488,7 +485,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region One To Many
 
-        static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             string entityIdType = entity.GetIdType(entities);
 
@@ -749,7 +746,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Save
 
-        static string GetSavingData(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static string GetSavingData(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (entity.IsAbstract || entity.IsReadonlyObject())
                 return null;
@@ -1007,7 +1004,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #endregion
 
-        static List<string> GetManyToOneInstancesForSave(SpiderlyClass entityClass, List<SpiderlyClass> allEntityClasses)
+        private static List<string> GetManyToOneInstancesForSave(SpiderlyClass entityClass, List<SpiderlyClass> allEntityClasses)
         {
             List<string> result = new();
 
@@ -1055,7 +1052,7 @@ namespace {{basePartOfNamespace}}.Services
             return result;
         }
 
-        static SpiderlyClass GetClassOfManyToOneProperty(string propType, List<SpiderlyClass> allEntityClasses)
+        private static SpiderlyClass GetClassOfManyToOneProperty(string propType, List<SpiderlyClass> allEntityClasses)
         {
             SpiderlyClass manyToOneclass = allEntityClasses.Where(x => x.Name == propType).SingleOrDefault();
 
@@ -1193,7 +1190,7 @@ namespace {{basePartOfNamespace}}.Services
                 await DeleteEntitiesAsync<{{entity.Name}}, {{entityIdType}}>(listForDelete_{{deleteIterator}});
             });
         }
-"""; 
+""";
         }
 
         private static List<string> GetManyToOneDeleteQueries(SpiderlyClass entity, List<SpiderlyClass> allEntities, string listForDeleteVariableName, int deleteIterator)
@@ -1264,7 +1261,7 @@ namespace {{basePartOfNamespace}}.Services
             SpiderlyProperty m2mWithManyProperty_1 = m2mWithManyProperties[0];
             SpiderlyAttribute m2mWithManyAttribute_1 = m2mWithManyProperty_1.Attributes.Where(x => x.Name == "M2MWithMany").Single();
 
-            SpiderlyProperty m2mWithManyProperty_2 = properties[1];
+            SpiderlyProperty m2mWithManyProperty_2 = m2mWithManyProperties[1];
             SpiderlyAttribute m2mWithManyAttribute_2 = m2mWithManyProperty_2.Attributes.Where(x => x.Name == "M2MWithMany").Single();
 
             if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
