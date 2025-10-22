@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -107,7 +108,7 @@ namespace {{basePartOfNamespace}}.Services
                     result.Add($$"""
         #region {{entity.Name}} - M2M
 
-{{GetManyToManyData(entity, allEntityClasses)}}
+{{GetManyToManyData(entity, allEntityClasses, projectName)}}
 
         #endregion
 """);
@@ -139,7 +140,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region One To Many
 
-{{string.Join("\n\n", GetOneToManyMethods(entity, allEntityClasses))}}
+{{string.Join("\n\n", GetOneToManyMethods(entity, allEntityClasses, projectName))}}
 
         #endregion
 
@@ -485,34 +486,52 @@ namespace {{basePartOfNamespace}}.Services
 
         #region One To Many
 
-        private static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses, string projectName)
         {
-            string entityIdType = entity.GetIdType(entities);
+            string entityIdType = entity.GetIdType(allEntityClasses);
 
             List<string> result = new();
 
             foreach (SpiderlyProperty oneToManyProperty in entity.Properties.Where(prop => prop.Type.IsOneToManyType())) // List<Role> Roles
             {
-                SpiderlyClass extractedPropertyEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)).Single(); // Role
+                SpiderlyClass extractedPropertyEntity = allEntityClasses.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)).Single(); // Role
 
-                string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities); // int
+                string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(allEntityClasses); // int
 
-                if (extractedPropertyEntityIdType == null) // M2M List, maybe do something else in the future.
+                if (extractedPropertyEntityIdType == null) // Complex M2M List
+                {
+                    if (oneToManyProperty.HasComplexManyToManyReadonlyTableAttribute())
+                    {
+                        SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
+                            .Where(x =>
+                                x.HasM2MWithManyAttribute() &&
+                                x.Type == entity.Name &&
+                                x.Attributes.Any(x => x.Value == oneToManyProperty.Name)
+                            )
+                            .SingleOrDefault();
+
+                        if (m2mProperty == null)
+                            throw new Exception("You didn't specify correct M2MWithMany attribute");
+
+                        result.Add(GetPaginatedListForComplexM2MMethod(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, projectName, allEntityClasses));
+                    }
+
                     continue;
+                }
 
                 string extractedPropertyEntityDisplayName = Helpers.GetDisplayNameProperty(extractedPropertyEntity); // Name
 
-                SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, entities);
+                SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
                 SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, oneToManyProperty.Name);
 
                 if (manyToOneProperty != null)
                 {
                     result.Add($$"""
-{{GetOneToManyNamebookListForEntity(oneToManyProperty, extractedPropertyEntity, manyToOneProperty, entity, entities)}}
+{{GetOneToManyNamebookListForEntity(oneToManyProperty, extractedPropertyEntity, manyToOneProperty, entity, allEntityClasses)}}
 
-{{GetOneToManyListForEntity(oneToManyProperty, extractedPropertyEntity, manyToOneProperty, entity, entities)}}
+{{GetOneToManyListForEntity(oneToManyProperty, extractedPropertyEntity, manyToOneProperty, entity, allEntityClasses)}}
 
-{{GetOrderedOneToManyMethod(oneToManyProperty, entity, entities)}}
+{{GetOrderedOneToManyMethod(oneToManyProperty, entity, allEntityClasses)}}
 """);
                 }
                 else if (extractedEntityManyToManyProperty != null)
@@ -617,7 +636,7 @@ namespace {{basePartOfNamespace}}.Services
             return lazyLoadSelectedIdsResultDTO;
         }
 
-{{GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(oneToManyProperty, entity, entities)}}
+{{GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(oneToManyProperty, entity, allEntityClasses)}}
 """);
                 }
                 else if (extractedPropertyEntity == null)
@@ -672,6 +691,67 @@ namespace {{basePartOfNamespace}}.Services
         }
 """;
         }
+
+        private static string GetPaginatedListForComplexM2MMethod(SpiderlyClass listEntitty, SpiderlyProperty oneToManyProperty, SpiderlyProperty m2mProperty, SpiderlyClass entity, string projectName, List<SpiderlyClass> allEntityClasses)
+        {
+            return $$"""
+        public async Task<PaginatedResult<{{listEntitty.Name}}>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query)
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
+            });
+        }
+
+        public async virtual Task<PaginatedResultDTO<{{listEntitty.Name}}DTO>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
+        {
+            PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
+            List<{{listEntitty.Name}}DTO> dtoList = null;
+
+            await _context.WithTransactionAsync(async () =>
+            {
+                paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
+
+                dtoList = await paginationResult.Query
+                    .Skip(filterDTO.First)
+                    .Take(filterDTO.Rows)
+                    .ProjectToType<{{listEntitty.Name}}DTO>(Mapper.{{listEntitty.Name}}ProjectToConfig())
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"dtoList.Select(x => ({entity.GetIdType(allEntityClasses)})x.{m2mProperty.Name}Id).ToList()")}}
+                }
+
+{{GetPopulateDTOWithBlobPartsForDTOList(entity, entity.Properties)}}
+            });
+
+            return new PaginatedResultDTO<{{listEntitty.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
+        }
+
+        public async Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
+        {
+            PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
+            List<{{listEntitty.Name}}DTO> dtoList = null;
+
+            await _context.WithTransactionAsync(async () =>
+            {
+                paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
+
+                dtoList = await paginationResult.Query.ProjectToType<{{listEntitty.Name}}DTO>(Mapper.{{listEntitty.Name}}ExcelProjectToConfig()).ToListAsync();
+
+                if (authorize)
+                {
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"dtoList.Select(x => ({entity.GetIdType(allEntityClasses)})x.{m2mProperty.Name}Id).ToList()")}}
+                }
+            });
+
+            string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
+            return _excelService.FillReportTemplate<{{listEntitty.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
+        }
+""";
+        }
+
 
         private static string GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
@@ -1244,7 +1324,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region M2M
 
-        private static string GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
+        private static string GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses, string projectName)
         {
             if (entity.Properties.Count == Settings.NumberOfPropertiesWithoutAdditionalManyToManyProperties)
                 return null;
@@ -1252,7 +1332,7 @@ namespace {{basePartOfNamespace}}.Services
             List<SpiderlyProperty> properties = entity.Properties;
 
             List<SpiderlyProperty> m2mWithManyProperties = properties
-                .Where(x => x.Attributes.Any(x => x.Name == "M2MWithMany"))
+                .Where(x => x.HasM2MWithManyAttribute())
                 .ToList();
 
             if (m2mWithManyProperties.Count != 2)
@@ -1265,7 +1345,7 @@ namespace {{basePartOfNamespace}}.Services
             SpiderlyAttribute m2mWithManyAttribute_2 = m2mWithManyProperty_2.Attributes.Where(x => x.Name == "M2MWithMany").Single();
 
             if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
-                return null;
+                return null; // It's simple M2M
 
             SpiderlyClass m2mEntity_1 = allEntityClasses.Where(x => x.Name == m2mWithManyProperty_1.Type).Single();
             string m2mEntityIdType_1 = m2mEntity_1.GetIdType(allEntityClasses);
@@ -1274,13 +1354,13 @@ namespace {{basePartOfNamespace}}.Services
             string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
 
             return $$"""
-{{GetAdditionalFieldsManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity)}}
+{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity)}}
 
-{{GetAdditionalFieldsManyToManyAdministrationMethod(m2mWithManyProperty_2, m2mWithManyProperty_1, m2mEntityIdType_2, m2mEntityIdType_1, entity)}}
+{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_2, m2mWithManyProperty_1, m2mEntityIdType_2, m2mEntityIdType_1, entity)}}
 """;
         }
 
-        public static string GetAdditionalFieldsManyToManyAdministrationMethod(
+        public static string GetComplexManyToManyAdministrationMethod(
             SpiderlyProperty m2mWithManyProperty_1,
             SpiderlyProperty m2mWithManyProperty_2,
             string m2mEntityIdType_1,

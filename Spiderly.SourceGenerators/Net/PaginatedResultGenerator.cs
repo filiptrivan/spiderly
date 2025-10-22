@@ -1,9 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,7 +51,7 @@ namespace Spiderly.SourceGenerators.Net
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, SourceProductionContext context)
         {
-            if (classes.Count <= 1) 
+            if (classes.Count <= 1)
                 return;
 
             List<SpiderlyClass> spiderlyClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
@@ -85,11 +85,6 @@ namespace {{basePartOfNamespace}}.Filtering
 """);
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
-                string baseType = entity.BaseType;
-
-                if (baseType == null)
-                    continue;
-
                 sb.AppendLine($$"""
         public static async Task<PaginatedResult<{{entity.Name}}>> Build(IQueryable<{{entity.Name}}> query, FilterDTO filterDTO)
         {

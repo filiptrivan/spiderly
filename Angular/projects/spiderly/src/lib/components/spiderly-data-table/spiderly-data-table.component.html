@@ -56,7 +56,7 @@
       <ng-template pTemplate="body" let-rowData let-index="rowIndex" let-editing="editing">
         <tr>
           <td *ngIf="selectionMode == 'multiple'">
-              <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData.id, rowData.index)" [ngModel]="isRowSelected(rowData.id)" [binary]="true"></p-checkbox>
+              <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData[idField], rowData.index)" [ngModel]="isRowSelected(rowData[idField])" [binary]="true"></p-checkbox>
           </td>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
             <td [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">

@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace Spiderly.SourceGenerators.Shared
 {
@@ -340,6 +339,16 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool HasSimpleManyToManyTableLazyLoadAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "SimpleManyToManyTableLazyLoad");
+        }
+
+        public static bool HasComplexManyToManyReadonlyTableAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "ComplexManyToManyReadonlyTable");
+        }
+
+        public static bool HasM2MWithManyAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "M2MWithMany");
         }
 
         public static bool HasGenerateCommaSeparatedDisplayNameAttribute(this SpiderlyProperty property)

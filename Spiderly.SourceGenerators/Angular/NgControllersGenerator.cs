@@ -370,9 +370,14 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                 }
                 else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
                 {
-                    result.Add(GetBaseSimpleManyToManyTableDataAngularControllerMethod(property, entity, allEntities, alreadyAddedMethods));
-                    result.Add(GetBaseSimpleManyToManyTableDataExportAngularControllerMethod(property, entity, alreadyAddedMethods));
+                    result.Add(GetBaseManyToManyTableDataAngularControllerMethod(property, entity, allEntities, alreadyAddedMethods));
+                    result.Add(GetBaseManyToManyTableDataExportAngularControllerMethod(property, entity, alreadyAddedMethods));
                     result.Add(GetBaseSimpleManyToManyTableLazyLoadAngularControllerMethod(property, entity, alreadyAddedMethods));
+                }
+                else if (property.HasComplexManyToManyReadonlyTableAttribute())
+                {
+                    result.Add(GetBaseManyToManyTableDataAngularControllerMethod(property, entity, allEntities, alreadyAddedMethods));
+                    result.Add(GetBaseManyToManyTableDataExportAngularControllerMethod(property, entity, alreadyAddedMethods));
                 }
             }
 
@@ -393,7 +398,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
             return GetAngularControllerMethod(methodName, postAndPutParameter, "LazyLoadSelectedIdsResult", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
         }
 
-        private static string GetBaseSimpleManyToManyTableDataAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities, HashSet<string> alreadyAddedMethods)
+        private static string GetBaseManyToManyTableDataAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"GetPaginated{property.Name}ListFor{entity.Name}";
 
@@ -407,7 +412,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
             return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{extractedEntity.Name}>", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
         }
 
-        private static string GetBaseSimpleManyToManyTableDataExportAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string GetBaseManyToManyTableDataExportAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"Export{property.Name}ListToExcelFor{entity.Name}";
 

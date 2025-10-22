@@ -1,14 +1,11 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
-using System;
+using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 
 namespace Spiderly.SourceGenerators.Net
@@ -23,12 +20,12 @@ namespace Spiderly.SourceGenerators.Net
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
@@ -332,6 +329,10 @@ namespace {{basePartOfNamespace}}.Controllers
                 {
                     result.Add(GetSimpleManyToManyTableLazyLoadControllerMethod(property, referencedProjectEntityClass, referencedProjectEntities));
                 }
+                else if (property.HasComplexManyToManyReadonlyTableAttribute())
+                {
+                    result.Add(GetComplexManyToManyReadonlyTableControllerMethod(property, referencedProjectEntityClass, referencedProjectEntities));
+                }
             }
 
             return result;
@@ -367,6 +368,32 @@ namespace {{basePartOfNamespace}}.Controllers
         public virtual async Task<LazyLoadSelectedIdsResultDTO<{{extractedEntityIdType}}>> LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO)
         {
             return await _businessService.LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+        }
+""";
+        }
+
+        private static string GetComplexManyToManyReadonlyTableControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+
+            return $$"""
+        [HttpPost]
+        [AuthGuard]
+        public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
+        {
+            return await _businessService.GetPaginated{{property.Name}}ListFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+        }
+
+        [HttpPost]
+        [AuthGuard]
+        public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
+        {
+            byte[] fileContent = await _businessService.Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return File(
+                fileContent, 
+                SettingsProvider.Current.ExcelContentType, 
+                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+            );
         }
 """;
         }

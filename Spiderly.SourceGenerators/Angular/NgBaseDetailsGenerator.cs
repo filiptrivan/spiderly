@@ -1,13 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Spiderly.SourceGenerators.Angular;
 using Spiderly.SourceGenerators.Enums;
-using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -111,7 +108,7 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
-            if(currentProjectClasses == null || currentProjectClasses.Count == 0)
+            if (currentProjectClasses == null || currentProjectClasses.Count == 0)
             {
                 Console.WriteLine(currentProjectClasses.Count);
                 return;
@@ -216,7 +213,9 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetCustomSpiderlyFormControls(entity))}}
 
-{{string.Join("\n", GetSimpleManyToManyTableLazyLoadVariables(entity, allEntities))}}
+{{string.Join("\n", GetManyToManyTableVariables(entity, allEntities))}}
+
+{{string.Join("\n", GetSimpleManyToManyTableLazyLoadVariables(entity))}}
 
 {{GetShowFormBlocksVariables(entity, allEntities, customDTOClasses)}}
 
@@ -250,7 +249,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             this.modelId = params['id'];
 
 {{string.Join("\n", GetManyToManyMultiSelectListForDropdownMethods(entity, allEntities))}}
-{{string.Join("\n", GetSimpleManyToManyTableLazyLoadColsInitializations(entity, allEntities, customDTOClasses))}}
+{{string.Join("\n", GetManyToManyTableColsInitializations(entity, allEntities, customDTOClasses))}}
 
             if(this.modelId > 0){
                 forkJoin({
@@ -375,8 +374,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                 UIControlTypeCodes controlType = GetUIControlType(property);
 
                 if (controlType == UIControlTypeCodes.Dropdown)
-                {               
-                sb.AppendLine($$"""
+                {
+                    sb.AppendLine($$"""
     @Output() on{{property.Name}}For{{property.EntityName}}Change = new EventEmitter<DropdownChangeEvent>();
 """);
                 }
@@ -489,17 +488,23 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetSimpleManyToManyTableLazyLoadColsInitializations(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        private static List<string> GetManyToManyTableColsInitializations(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
+            foreach (SpiderlyProperty property in entity.Properties)
             {
-                result.Add($$"""
+                if (
+                    property.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                    property.HasComplexManyToManyReadonlyTableAttribute()
+                )
+                {
+                    result.Add($$"""
             this.{{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}} = [
 {{string.Join(",\n", GetSimpleManyToManyTableLazyLoadCols(property, entity, entities, customDTOClasses))}}
             ];
 """);
+                }
             }
 
             return result;
@@ -616,18 +621,37 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetSimpleManyToManyTableLazyLoadVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetManyToManyTableVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.Properties)
+            {
+                if (
+                    property.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                    property.HasComplexManyToManyReadonlyTableAttribute()
+                )
+                {
+                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+
+                    result.Add($$"""
+    {{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}: Column<{{extractedEntity.Name}}>[];
+    getPaginated{{property.Name}}ListObservableMethodFor{{entity.Name}} = this.apiService.getPaginated{{property.Name}}ListFor{{entity.Name}};
+    export{{property.Name}}ListToExcelObservableMethodFor{{entity.Name}} = this.apiService.export{{property.Name}}ListToExcelFor{{entity.Name}};
+""");
+                }
+            }
+
+            return result;
+        }
+
+        private static List<string> GetSimpleManyToManyTableLazyLoadVariables(SpiderlyClass entity)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-
                 result.Add($$"""
-    {{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}: Column<{{extractedEntity.Name}}>[];
-    getPaginated{{property.Name}}ListObservableMethodFor{{entity.Name}} = this.apiService.getPaginated{{property.Name}}ListFor{{entity.Name}};
-    export{{property.Name}}ListToExcelObservableMethodFor{{entity.Name}} = this.apiService.export{{property.Name}}ListToExcelFor{{entity.Name}};
     newlySelected{{property.Name}}IdsFor{{entity.Name}}: number[] = [];
     unselected{{property.Name}}IdsFor{{entity.Name}}: number[] = [];
     areAll{{property.Name}}SelectedFor{{entity.Name}}: boolean = null;
@@ -1120,7 +1144,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
 
-            foreach (SpiderlyProperty property in GetPropertiesForUIBlocks(properties))
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties))
             {
                 if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
                 {
@@ -1156,7 +1180,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
 
-            foreach (SpiderlyProperty property in GetPropertiesForUIBlocks(properties))
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties))
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
@@ -1210,7 +1234,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return $"control('{GetFormControlName(property)}', {entity.Name.FirstCharToLower()}FormGroup)";
         }
 
-        private static List<SpiderlyProperty> GetPropertiesForUIBlocks(List<SpiderlyProperty> properties)
+        private static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
         {
             List<SpiderlyProperty> orderedProperties = properties
                 .Where(x =>
@@ -1223,7 +1247,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                         x.HasUIOrderedOneToManyAttribute() ||
                         x.IsMultiSelectControlType() ||
                         x.IsMultiAutocompleteControlType() ||
-                        x.HasSimpleManyToManyTableLazyLoadAttribute()
+                        x.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                        x.HasComplexManyToManyReadonlyTableAttribute()
                     ) &&
                     x.HasUIDoNotGenerateAttribute() == false
                 )
@@ -1248,29 +1273,14 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
 
-            List<SpiderlyProperty> filteredProperties = properties
-                .Where(x =>
-                    x.Name != "Version" &&
-                    x.Name != "Id" &&
-                    x.Name != "CreatedAt" &&
-                    x.Name != "ModifiedAt" &&
-                    (
-                        x.Type.IsEnumerable() == false ||
-                        x.HasUIOrderedOneToManyAttribute() ||
-                        x.IsMultiSelectControlType() ||
-                        x.IsMultiAutocompleteControlType() ||
-                        x.HasSimpleManyToManyTableLazyLoadAttribute()
-                    ) &&
-                    x.HasUIDoNotGenerateAttribute() == false
-                )
-                .ToList();
+            List<SpiderlyProperty> filteredProperties = GetOrderedPropertiesForUIBlocks(properties);
 
             foreach (SpiderlyProperty property in filteredProperties)
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-                    
+
                     List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
                         .Where(x =>
                             x.WithMany() != property.Name &&
@@ -1333,7 +1343,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\" [label]=\"t('{property.Name}')\"";
             }
-            else if (controlType == UIControlTypeCodes.Table)
+            else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
             {
                 return $$"""
 
@@ -1350,6 +1360,18 @@ export class {{entity.Name}}BaseDetailsComponent {
                             (onLazyLoad)="on{{property.Name}}LazyLoadFor{{entity.Name}}($event)"
                             [selectedLazyLoadObservableMethod]="selected{{property.Name}}LazyLoadMethodFor{{entity.Name}}" 
                             (onIsAllSelectedChange)="areAll{{property.Name}}SelectedChangeFor{{entity.Name}}($event)"
+""";
+            }
+            else if (property.HasComplexManyToManyReadonlyTableAttribute())
+            {
+                return $$"""
+
+                            [tableTitle]="t('{{property.Name}}')" 
+                            [cols]="{{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}" 
+                            [getPaginatedListObservableMethod]="getPaginated{{property.Name}}ListObservableMethodFor{{entity.Name}}" 
+                            [exportListToExcelObservableMethod]="export{{property.Name}}ListToExcelObservableMethodFor{{entity.Name}}"
+                            [showAddButton]="false" 
+                            [readonly]="true"
 """;
             }
             else if (controlType == UIControlTypeCodes.ColorPicker)
@@ -1399,6 +1421,9 @@ export class {{entity.Name}}BaseDetailsComponent {
                 return UIControlTypeCodes.Autocomplete;
 
             if (property.HasSimpleManyToManyTableLazyLoadAttribute())
+                return UIControlTypeCodes.Table;
+
+            if (property.HasComplexManyToManyReadonlyTableAttribute())
                 return UIControlTypeCodes.Table;
 
             switch (property.Type)
