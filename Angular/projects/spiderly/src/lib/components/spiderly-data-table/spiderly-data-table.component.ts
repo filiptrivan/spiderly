@@ -1,27 +1,27 @@
-import { Component, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { SelectItem } from 'primeng/api';
-import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { CommonModule, formatDate } from '@angular/common';
+import { Component, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SpiderlyMessageService } from '../../services/spiderly-message.service';
-import { firstValueFrom, Observable } from 'rxjs';
-import { PrimengOption } from '../../entities/primeng-option';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
-import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
-import { PaginatedResult } from '../../entities/paginated-result';
-import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
-import { exportListToExcel, getHtmlImgDisplayString64 } from '../../services/helper-functions';
-import { Filter } from '../../entities/filter';
-import { TooltipModule } from 'primeng/tooltip';
+import { SelectItem } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
-import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
 import { DatePickerModule } from 'primeng/datepicker';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
+import { firstValueFrom, Observable } from 'rxjs';
+import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
+import { Filter } from '../../entities/filter';
+import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
+import { PaginatedResult } from '../../entities/paginated-result';
+import { PrimengOption } from '../../entities/primeng-option';
+import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import { exportListToExcel, getHtmlImgDisplayString64 } from '../../services/helper-functions';
+import { SpiderlyMessageService } from '../../services/spiderly-message.service';
+import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
+import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 
 @Component({
     selector: 'spiderly-data-table',
@@ -50,6 +50,7 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
   @Input() showCardWrapper: boolean = false;
   @Input() readonly: boolean = false;
+  @Input() idField = 'id';
   totalRecords: number;
   @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();
   
@@ -118,7 +119,6 @@ export class SpiderlyDataTableComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    let a = new Filter<any>();
     this.matchModeDateOptions = [
       { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Equals },
       { label: this.translocoService.translate('DatesBefore'), value: MatchModeCodes.LessThan },
@@ -162,7 +162,7 @@ export class SpiderlyDataTableComponent implements OnInit {
           }
   
           if (this.isAllSelected == true) {
-            let idsToInsert = [...this.items.map(x => x.id)];
+            let idsToInsert = [...this.items.map(x => x[this.idField])];
             idsToInsert = idsToInsert.filter(x => this.unselectedItems.includes(x) == false);
             this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
           }
@@ -370,11 +370,11 @@ navigateToDetails(rowId: number): void{
   getMethodForAction(action: Action, rowData: any){
     switch(action.field){
       case 'Details':
-        return this.navigateToDetails(rowData.id);
+        return this.navigateToDetails(rowData[this.idField]);
       case 'Delete':
-        return this.deleteObject(rowData.id);
+        return this.deleteObject(rowData[this.idField]);
       default:
-        return action.onClick(rowData.id);
+        return action.onClick(rowData[this.idField]);
     }
   }
 
@@ -441,8 +441,8 @@ navigateToDetails(rowId: number): void{
       this.fakeIsAllSelected = true;
       this.onIsAllSelectedChange.next(new AllClickEvent({checked: true, additionalIndexes: this.additionalIndexes}));
       this.rowsSelectedNumber = this.totalRecords;
-      this.fakeSelectedItems = [...this.items.map(x => x.id)];
-      this.selectedItemIds = [...this.items.map(x => x.id)]
+      this.fakeSelectedItems = [...this.items.map(x => x[this.idField])];
+      this.selectedItemIds = [...this.items.map(x => x[this.idField])]
     }
     else{
       this.isAllSelected = false;
