@@ -185,7 +185,12 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool IsOneToManyType(this string type)
         {
-            return type.Contains("List");
+            if (!type.IsEnumerable())
+                return false;
+
+            // Extract inner generic type (e.g., "long" from "List<long>")
+            string extractedType = Helpers.ExtractTypeFromGenericType(type);
+            return !extractedType.IsBaseDataType();
         }
 
         public static bool IsBaseDataType(this string propType)

@@ -109,7 +109,7 @@ export class ApiGeneratedService extends ApiSecurityService {
         private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> currentAppEntities, List<SpiderlyClass> referencedProjectEntities, List<SpiderlyClass> referencedDTOClasses)
         {
             List<string> result = new();
-            HashSet<string> alreadyAddedMethods = new HashSet<string>();
+            HashSet<string> alreadyAddedMethods = new();
 
             foreach (SpiderlyClass controllerClass in controllerClasses)
             {
@@ -482,7 +482,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
             if (alreadyAddedMethods.Contains(methodName))
                 return null;
 
-            Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "file", "any" } };
+            Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "file", "FormData" } };
 
             return GetAngularControllerMethod(methodName, postAndPutParameter, "string", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsText);
         }

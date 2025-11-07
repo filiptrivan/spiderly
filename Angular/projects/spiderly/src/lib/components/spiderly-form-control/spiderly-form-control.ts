@@ -1,6 +1,10 @@
 import { FormArray, FormControl, FormControlOptions, FormGroup, ValidatorFn } from '@angular/forms';
+import { TranslocoService } from '@jsverse/transloco';
+import { MenuItem } from 'primeng/api';
 import { Observable } from 'rxjs';
-import { BaseEntity } from '../../entities/base-entity';
+import { BaseEntity, SchemaAwareConstructor } from '../../entities/base-entity';
+import { Namebook } from '../../entities/namebook';
+import { BaseFormService } from '../../services/base-form.service';
 
 export interface SpiderlyValidatorFn extends ValidatorFn {
     hasNotEmptyRule?: boolean;
@@ -12,6 +16,7 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
     public labelForDisplay: string;
     public required: boolean;
     public parentClassName: string;
+    public type: string; // number, Date, string, Namebook[], number[]...
     private _spiderlyValidator: SpiderlyValidatorFn | null;
 
     constructor(value: any, opts: FormControlOptions=null, required:boolean=false) {
@@ -35,7 +40,16 @@ export class SpiderlyFormControl<T = any> extends FormControl<T> {
 }
 
 type SpiderlyControlsOfType<TValue> = {
-  [P in keyof TValue]: SpiderlyFormControl<TValue[P]>;
+  [P in keyof TValue]:
+    TValue[P] extends (infer U)[]
+      ? U extends Namebook | string | number | Date | boolean
+        ? SpiderlyFormControl<TValue[P]>
+        : SpiderlyFormArray<U>
+      : TValue[P] extends object
+        ? TValue[P] extends Date
+          ? SpiderlyFormControl<TValue[P]>
+          : SpiderlyFormGroup<TValue[P]>
+        : SpiderlyFormControl<TValue[P]>;
 };
 
 export class SpiderlyFormGroup<TValue = any> extends FormGroup {
@@ -49,19 +63,91 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
         return super.getRawValue() as TValue;
     }
 
+    public targetClass: SchemaAwareConstructor<TValue>;
+    public trackingId: string = crypto.randomUUID();
     public name?: string; // Using for nested form groups
-    public mainDTOName?: string;
     public saveObservableMethod?: (saveBody: any) => Observable<any>;
     public initSaveBody?: () => BaseEntity = () => null;
     public controlNamesFromHtml?: string[] = [];
+
+    public getControl = (formControlName: string & keyof TValue) => {
+    if(this.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
+      this.controlNamesFromHtml.push(formControlName);
+
+    let formControl = this.controls[formControlName];
+    if (formControl == null) {
+      console.error(`Spiderly: The property ${formControlName} in the form group ${this.targetClass.typeName} doesn't exist`);
+      return null;
+    }
+  
+    return formControl;
+    }
 }
 
-export class SpiderlyFormArray<TValue = any> extends FormArray {
+export class SpiderlyFormArray<TValue extends BaseEntity = any> extends FormArray {
+    constructor(
+        controls: SpiderlyControlsOfType<TValue>[],
+        private translocoService: TranslocoService,
+        private baseFormService: BaseFormService
+    ) {
+        super(controls);
+    }
+
     public label: string;
     public labelForDisplay: string;
     override value: TValue[]; // There is no getRawValue in FormArray
     public required: boolean;
-    public modelConstructor: TValue;
-    public translationKey: string;
+    public formGroupInitialValues: Partial<TValue> = {};
+    public targetClass: SchemaAwareConstructor<TValue>;
     public controlNamesFromHtml?: string[] = [];
+    public lastMenuIconIndexClicked: number;
+
+    public getCrudMenuForOrderedData = () => {
+        let crudMenuForOrderedData: MenuItem[] = [
+            {label: this.translocoService.translate('Remove'), icon: 'pi pi-minus', command: () => {
+                this.baseFormService.removeFormControlFromTheFormArray(this, this.lastMenuIconIndexClicked);
+            }},
+            {label: this.translocoService.translate('AddAbove'), icon: 'pi pi-arrow-up', command: () => {
+                this.baseFormService.addNewFormGroupToFormArray(
+                this, this.targetClass, this.formGroupInitialValues, this.lastMenuIconIndexClicked
+                );
+            }},
+            {label: this.translocoService.translate('AddBelow'), icon: 'pi pi-arrow-down', command: () => {
+                this.baseFormService.addNewFormGroupToFormArray(
+                this, this.targetClass, this.formGroupInitialValues, this.lastMenuIconIndexClicked + 1
+                );
+            }},
+        ];
+
+        return crudMenuForOrderedData;
+    };
+
+    public addNewFormGroup = (index: number) => {
+        this.baseFormService.addNewFormGroupToFormArray(
+            this,
+            this.targetClass,
+            this.formGroupInitialValues,
+            index
+        );
+    }
+
+    public getFormGroups = () => {
+        return this.controls as SpiderlyFormGroup<TValue>[]
+    }
+
+    disableAllFormControls(){
+        this.controls.forEach((segmentationItemFormGroup: SpiderlyFormGroup) => {
+            Object.keys(segmentationItemFormGroup.controls).forEach(key => {
+                segmentationItemFormGroup.controls[key].disable();
+            });
+        });
+    }
+
+    enableAllFormControls(){
+        this.controls.forEach((segmentationItemFormGroup: SpiderlyFormGroup) => {
+            Object.keys(segmentationItemFormGroup.controls).forEach(key => {
+                segmentationItemFormGroup.controls[key].enable();
+            });
+        });
+    }
 }

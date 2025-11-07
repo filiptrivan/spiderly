@@ -341,13 +341,13 @@ namespace Spiderly.Security.Services
                 return new RoleMainUIFormDTO
                 {
                     RoleDTO = await GetRoleDTO(id, false),
-                    PermissionsNamebookDTOList = await GetPermissionsNamebookListForRole(id, false),
+                    PermissionsIds = await GetPermissionsIdsForRole(id, false),
                     UsersNamebookDTOList = await GetUsersNamebookListForRole(id, false),
                 };
             });
         }
 
-        protected override async Task OnAfterSaveRoleAndReturnSaveBodyDTO(RoleDTO savedDTO, RoleSaveBodyDTO saveBodyDTO)
+        protected override async Task OnAfterSaveRoleAndReturnMainUIFormDTO(RoleDTO savedDTO, RoleSaveBodyDTO saveBodyDTO)
         {
             await _context.WithTransactionAsync(async () =>
             {

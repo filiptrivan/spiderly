@@ -14,10 +14,11 @@ export class PrimengOption extends BaseEntity
         code?: any;
     } = {}
     ) {
-        super('PrimengOption');
+        super();
 
         this.label = label;
         this.code = code;
     }
 
+    static readonly typeName = 'PrimengOption' as const;
 }

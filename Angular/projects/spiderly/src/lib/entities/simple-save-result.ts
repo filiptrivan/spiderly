@@ -12,8 +12,10 @@ export class SimpleSaveResult extends BaseEntity
         id?: string;
     } = {}
     ) {
-        super('SimpleSaveResult');
+        super();
 
         this.id = id;
     }
+
+    static typeName = 'SimpleSaveResult' as const;
 }

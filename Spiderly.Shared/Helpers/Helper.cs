@@ -116,7 +116,7 @@ namespace Spiderly.Shared.Helpers
             if (TypeDescriptor.GetConverter(typeof(ID)).IsValid(idPart))
                 return (ID)TypeDescriptor.GetConverter(typeof(ID)).ConvertFromString(idPart);
 
-            throw new InvalidCastException($"Cannot convert '{idPart}' to {typeof(ID)}.");
+            throw new InvalidCastException($"Cannot convert '{idPart}' to {typeof(ID)}. Id part can't be null, for new objects it should be 0.");
         }
 
         public static string GetFileExtensionFromFileName(string fileName)

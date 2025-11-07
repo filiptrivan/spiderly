@@ -1,30 +1,29 @@
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { combineLatest, forkJoin, map, Observable, of, Subscription } from 'rxjs';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { MenuItem } from 'primeng/api';
-import { CardSkeletonComponent } from '../card-skeleton/card-skeleton.component';
-import { SpiderlyFormArray, SpiderlyFormControl, SpiderlyFormGroup } from '../spiderly-form-control/spiderly-form-control';
-import { BaseEntity } from '../../entities/base-entity';
-import { LastMenuIconIndexClicked } from '../../entities/last-menu-icon-index-clicked';
-import { Role, RoleSaveBody } from '../../entities/security-entities';
-import { SpiderlyButton } from '../../entities/spiderly-button';
-import { getControl, getPrimengAutocompleteNamebookOptions, getPrimengDropdownNamebookOptions, nameof } from '../../services/helper-functions';
-import { BaseFormService } from '../../services/base-form.service';
-import { ApiSecurityService } from '../../services/api.service.security';
-import { PrimengOption } from '../../entities/primeng-option';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { IsAuthorizedForSaveEvent } from '../../entities/is-authorized-for-save-event';
-import { AuthBaseService } from '../../services/auth-base.service';
-import { SpiderlyTextboxComponent } from '../../controls/spiderly-textbox/spiderly-textbox.component';
-import { SpiderlyTextareaComponent } from '../../controls/spiderly-textarea/spiderly-textarea.component';
+import { combineLatest, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { SpiderlyMultiAutocompleteComponent } from '../../controls/spiderly-multiautocomplete/spiderly-multiautocomplete.component';
 import { SpiderlyMultiSelectComponent } from '../../controls/spiderly-multiselect/spiderly-multiselect.component';
-import { SpiderlyPanelsModule } from '../spiderly-panels/spiderly-panels.module';
-import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
+import { SpiderlyTextareaComponent } from '../../controls/spiderly-textarea/spiderly-textarea.component';
+import { SpiderlyTextboxComponent } from '../../controls/spiderly-textbox/spiderly-textbox.component';
+import { BaseEntity } from '../../entities/base-entity';
+import { IsAuthorizedForSaveEvent } from '../../entities/is-authorized-for-save-event';
+import { LastMenuIconIndexClicked } from '../../entities/last-menu-icon-index-clicked';
+import { Role, RoleMainUIForm, RoleSaveBody } from '../../entities/security-entities';
+import { SpiderlyButton } from '../../entities/spiderly-button';
+import { ApiSecurityService } from '../../services/api.service.security';
+import { AuthBaseService } from '../../services/auth-base.service';
+import { BaseFormService } from '../../services/base-form.service';
+import { CardSkeletonComponent } from '../card-skeleton/card-skeleton.component';
 import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button/return-button.component';
+import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
+import { SpiderlyFormArray, SpiderlyFormGroup } from '../spiderly-form-control/spiderly-form-control';
+import { SpiderlyPanelsModule } from '../spiderly-panels/spiderly-panels.module';
+import { Namebook } from '../../entities/namebook';
 
 @Component({
     selector: 'role-base-details',
@@ -46,10 +45,9 @@ import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button
 })
 export class RoleBaseDetailsComponent {
     @Output() onSave = new EventEmitter<void>();
-    @Output() onRoleFormGroupInitFinish = new EventEmitter<void>();
+    @Output() onAfterFormGroupInit = new EventEmitter<void>();
     @Input() getCrudMenuForOrderedData: (formArray: SpiderlyFormArray, modelConstructor: BaseEntity, lastMenuIconIndexClicked: LastMenuIconIndexClicked, adjustFormArrayManually: boolean) => MenuItem[];
-    @Input() formGroup: SpiderlyFormGroup;
-    @Input() roleFormGroup: SpiderlyFormGroup<Role>;
+    @Input() parentFormGroup: SpiderlyFormGroup<RoleMainUIForm>;
     @Input() additionalButtons: SpiderlyButton[] = [];
     @Input() panelTitle: string;
     @Input() showBigPanelTitle: boolean = true;
@@ -62,13 +60,9 @@ export class RoleBaseDetailsComponent {
     
     modelId: number;
     loading: boolean = true;
-    roleSaveBodyName: string = nameof<RoleSaveBody>('roleDTO');
 
-    usersForRoleOptions: PrimengOption[];
-    permissionsForRoleOptions: PrimengOption[];
-
-    selectedUsersForRole = new SpiderlyFormControl<PrimengOption[]>(null, {updateOn: 'change'});
-    selectedPermissionsForRole = new SpiderlyFormControl<number[]>(null, {updateOn: 'change'});
+    usersForRoleOptions: Namebook[];
+    permissionsForRoleOptions: Namebook[];
 
     constructor(
         private apiService: ApiSecurityService,
@@ -78,23 +72,18 @@ export class RoleBaseDetailsComponent {
     ) {}
 
     ngOnInit(){
-        this.formGroup.initSaveBody = () => { 
+        this.parentFormGroup.initSaveBody = () => { 
             let saveBody = new RoleSaveBody();
-            saveBody.roleDTO = this.roleFormGroup.getRawValue();
-
-            saveBody.selectedUsersIds = this.selectedUsersForRole.getRawValue()?.map(n => n.code);
-            saveBody.selectedPermissionsIds = this.selectedPermissionsForRole.getRawValue();
-
+            saveBody = this.baseFormService.mapMainUIFormToSaveBody(RoleMainUIForm, this.parentFormGroup.getRawValue());
             return saveBody;
         }
 
-        this.formGroup.saveObservableMethod = this.apiService.saveRole;
-        this.formGroup.mainDTOName = this.roleSaveBodyName;
+        this.parentFormGroup.saveObservableMethod = this.apiService.saveRole;
 
         this.route.params.subscribe(async (params) => {
             this.modelId = params['id'];
 
-            getPrimengDropdownNamebookOptions(this.apiService.getPermissionsDropdownListForRole).subscribe(po => {
+            this.apiService.getPermissionsDropdownListForRole().subscribe(po => {
                 this.permissionsForRoleOptions = po;
             });
 
@@ -103,38 +92,20 @@ export class RoleBaseDetailsComponent {
                     mainUIFormDTO: this.apiService.getRoleMainUIFormDTO(this.modelId)
                 })
                 .subscribe(({ mainUIFormDTO }) => {
-                    this.initRoleFormGroup(new Role(mainUIFormDTO.roleDTO));
-
-                    this.selectedPermissionsForRole.setValue(
-                        mainUIFormDTO.permissionsNamebookDTOList.map(n => { return n.id })
-                    );
-                    this.selectedUsersForRole.setValue(
-                        mainUIFormDTO.usersNamebookDTOList.map(n => ({label: n.displayName, code: n.id }))
-                    );
-                    
+                    this.baseFormService.initFormGroup(this.parentFormGroup, RoleMainUIForm, mainUIFormDTO);
                     this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
+                    this.onAfterFormGroupInit.next();
                     this.loading = false;
                 });
             }
             else{
-                this.initRoleFormGroup(new Role({id: 0}));
-
+                this.baseFormService.initFormGroup(this.parentFormGroup, RoleMainUIForm, new RoleMainUIForm({roleDTO: new Role({id: 0})}));
+                
                 this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
+                this.onAfterFormGroupInit.next();
                 this.loading = false;
             }
         });
-    }
-
-    initRoleFormGroup(role: Role) {
-        this.baseFormService.addFormGroup<Role>(
-            this.roleFormGroup, 
-            this.formGroup, 
-            role, 
-            this.roleSaveBodyName,
-            []
-        );
-        this.roleFormGroup.mainDTOName = this.roleSaveBodyName;
-        this.onRoleFormGroupInitFinish.next();
     }
     
     handleAuthorizationForSave = () => {
@@ -147,16 +118,10 @@ export class RoleBaseDetailsComponent {
                         isAuthorizedForSave;
 
                     if (this.isAuthorizedForSave) { 
-                        this.roleFormGroup.controls.name.enable();
-                        this.roleFormGroup.controls.description.enable();
-                        this.selectedUsersForRole.enable();
-                        this.selectedPermissionsForRole.enable();
+                        this.parentFormGroup.enable();
                     }
                     else{
-                        this.roleFormGroup.controls.name.disable();
-                        this.roleFormGroup.controls.description.disable();
-                        this.selectedUsersForRole.disable();
-                        this.selectedPermissionsForRole.disable();
+                        this.parentFormGroup.disable();
                     }
 
                     this.onIsAuthorizedForSaveChange.next(new IsAuthorizedForSaveEvent({
@@ -169,17 +134,9 @@ export class RoleBaseDetailsComponent {
     }
 
     searchUsersForRole(event: AutoCompleteCompleteEvent) {
-        getPrimengAutocompleteNamebookOptions(this.apiService.getUsersAutocompleteListForRole, 50, event?.query ?? '').subscribe(po => {
-            this.usersForRoleOptions = po;
+        this.apiService.getUsersAutocompleteListForRole(50, event?.query ?? '').subscribe(no => {
+            this.usersForRoleOptions = no;
         });
-    }
-
-    control(formControlName: string, formGroup: SpiderlyFormGroup){
-        return getControl(formControlName, formGroup);
-    }
-
-    getFormArrayGroups<T>(formArray: SpiderlyFormArray): SpiderlyFormGroup<T>[]{
-        return this.baseFormService.getFormArrayGroups<T>(formArray);
     }
 
     save(){

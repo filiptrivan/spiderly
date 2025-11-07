@@ -1,15 +1,13 @@
-import { Action, Column } from "../components/spiderly-data-table/spiderly-data-table.component";
 import { HttpResponse } from "@angular/common/http";
-import { BaseEntity } from "../entities/base-entity";
-import { SpiderlyFormGroup } from "../components/spiderly-form-control/spiderly-form-control";
-import { map, Observable } from 'rxjs';
 import * as FileSaver from 'file-saver';
+import 'reflect-metadata';
+import { map, Observable } from 'rxjs';
+import { Action, Column } from "../components/spiderly-data-table/spiderly-data-table.component";
+import { SpiderlyTab } from "../components/spiderly-panels/panel-header/panel-header.component";
+import { Codebook } from "../entities/codebook";
 import { Filter } from "../entities/filter";
 import { Namebook } from "../entities/namebook";
-import { Codebook } from "../entities/codebook";
 import { PrimengOption } from "../entities/primeng-option";
-import { SpiderlyTab } from "../components/spiderly-panels/panel-header/panel-header.component";
-import { isPlatformBrowser } from "@angular/common";
 
 // Helper function for PrecisionScale validation (to be added in the TypeScript output):
 export function validatePrecisionScale(value: any, precision: number, scale: number, ignoreTrailingZeros: boolean): boolean {
@@ -112,10 +110,6 @@ export function getParentUrl(currentUrl: string){
     return parentUrl;
 }
 
-export function capitalizeFirstLetter(inputString: string): string {
-    return inputString.charAt(0).toUpperCase() + inputString.slice(1);
-  }
-
 // export function getMonth(number: number): string {
 //   const months: string[] = [
 //     "January", "February", "March", "April", "May", "June",
@@ -184,22 +178,6 @@ export function getFileNameFromContentDisposition(
     }
   }
   return fileName ?? defaultName;
-}
-
-export const getControl = <T extends BaseEntity>(formControlName: string & keyof T, formGroup: SpiderlyFormGroup<T>) => {
-    if (formGroup == null)
-      return null; // FT: When we initialized form group again this will happen
-
-    if(formGroup.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
-      formGroup.controlNamesFromHtml.push(formControlName);
-
-    let formControl = formGroup.controls[formControlName];
-    if (formControl == null) {
-      console.error(`FT: The property ${formControlName} in the form group ${formGroup.getRawValue().typeName} doesn't exist`);
-      return null;
-    }
-  
-    return formControl;
 }
 
 export function toCommaSeparatedString<T>(input: T[]): string {
@@ -334,3 +312,12 @@ export function createFakeGoogleWrapper() {
     },
   };
 };
+
+export const PROPS_KEY = Symbol('props');
+
+export function ReflectProp (target: any, propertyKey: string) {
+  const props = Reflect.getMetadata(PROPS_KEY, target) || [];
+  Reflect.defineMetadata(PROPS_KEY, [...props, propertyKey], target);
+}
+
+export const primitiveArrayTypes = ['Namebook[]', 'number[]', 'Date[]', 'string[]'];

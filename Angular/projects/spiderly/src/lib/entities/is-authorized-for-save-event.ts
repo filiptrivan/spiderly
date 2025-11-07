@@ -14,9 +14,11 @@ export class IsAuthorizedForSaveEvent extends BaseEntity
         currentUserPermissionCodes?: string[];
     } = {}
     ) {
-        super('IsAuthorizedForSaveEvent'); 
+        super(); 
 
         this.isAuthorizedForSave = isAuthorizedForSave;
         this.currentUserPermissionCodes = currentUserPermissionCodes;
     }
+
+    static readonly typeName = 'IsAuthorizedForSaveEvent' as const;
 }

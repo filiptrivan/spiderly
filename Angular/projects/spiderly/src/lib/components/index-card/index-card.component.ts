@@ -28,9 +28,8 @@ export class IndexCardComponent {
     constructor(
         protected formBuilder: FormBuilder,
     ) {
-
     }
-
+    
     ngOnInit(){
     }
 

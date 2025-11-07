@@ -1,10 +1,12 @@
-import { TranslocoService } from '@jsverse/transloco';
 import { Injectable } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { SpiderlyFormArray, SpiderlyFormControl, SpiderlyFormGroup } from '../components/spiderly-form-control/spiderly-form-control';
-import { BaseEntity } from '../entities/base-entity';
+import { BaseEntity, SchemaAwareConstructor } from '../entities/base-entity';
+import { SpiderlyError } from '../errors/spiderly-error';
+import { capitalizeFirstChar } from './helper-functions';
+import { SpiderlyMessageService } from './spiderly-message.service';
 import { TranslateLabelsAbstractService } from './translate-labels-abstract.service';
 import { ValidatorAbstractService } from './validator-abstract.service';
-import { SpiderlyMessageService } from './spiderly-message.service';
 
 @Injectable({
   providedIn: 'root',
@@ -17,55 +19,68 @@ export class BaseFormService {
     private translocoService: TranslocoService
   ) {}
 
-  addFormGroup = <T>(
+  initFormGroup = <T extends BaseEntity>(
     formGroup: SpiderlyFormGroup<T>, 
-    parentFormGroup: SpiderlyFormGroup, 
-    modelConstructor: any, 
-    propertyNameInSaveBody: string,
+    targetClass: SchemaAwareConstructor<T>,
+    initialValues?: T, 
     updateOnChangeControls?: (keyof T)[]
   ) => {
-    if (modelConstructor == null)
-      return null;
+    if (!formGroup)
+      throw new SpiderlyError('You need to instantiate the form group.')
 
-    if (formGroup == null)
-      console.error('Spiderly: You need to instantiate the form group.')
+    if (!targetClass)
+      throw new SpiderlyError('You need to pass targetClass.')
 
-    this.initFormGroup(formGroup, modelConstructor, updateOnChangeControls);
-    parentFormGroup.setControl(propertyNameInSaveBody, formGroup); // Use setControl because it will update formGroup if it already exists
+    if (!initialValues)
+      initialValues = {} as T;
 
-    return formGroup;
-  }
-
-  initFormGroup = <T>(
-    formGroup: SpiderlyFormGroup<T>, 
-    modelConstructor: T & BaseEntity, 
-    updateOnChangeControls?: (keyof T)[]
-  ) => {
-    if (formGroup == null)
-      console.error('Spiderly: You need to instantiate the form group.')
-
-    Object.keys(modelConstructor).forEach((formControlName) => {
-      let formControl: SpiderlyFormControl;
+    Object.keys(targetClass.schema).forEach((formControlName) => {
+      let control: SpiderlyFormControl | SpiderlyFormGroup<any> | SpiderlyFormArray<any>;
       
-      const formControlValue = modelConstructor[formControlName];
+      const propSchema = targetClass.schema[formControlName];
+      const propInitialValue = initialValues[formControlName];
       
-      if (updateOnChangeControls?.includes(formControlName as keyof T) ||
-        (formControlName.endsWith('Id') && formControlName.length > 2)
-      ){
-        formControl = new SpiderlyFormControl(formControlValue, { updateOn: 'change' });
+      if (
+        propSchema.type.endsWith('[]') &&
+        propSchema.nestedConstructor &&
+        propSchema.type !== 'Namebook[]'
+      ) {
+        const formArray = this.initFormArray(propSchema.nestedConstructor, propInitialValue)
+        control = formArray;
+
+        control.label = formControlName;
+        control.labelForDisplay = this.getTranslatedLabel(formControlName);
+      }
+      else if (
+        propSchema.nestedConstructor &&
+        propSchema.type !== 'Namebook[]'
+      ) {
+        control = new SpiderlyFormGroup({});
+        this.initFormGroup(control, propSchema.nestedConstructor, propInitialValue)
       }
       else{
-        formControl = new SpiderlyFormControl(formControlValue, { updateOn: 'blur' });
+        if (updateOnChangeControls?.includes(formControlName as keyof T) ||
+          (formControlName.endsWith('Id') && formControlName.length > 2) ||
+          propSchema.type === 'Date' ||
+          propSchema.type === 'Namebook[]'
+        ){
+          control = new SpiderlyFormControl(propInitialValue, { updateOn: 'change' });
+        }
+        else{
+          control = new SpiderlyFormControl(propInitialValue, { updateOn: 'blur' });
+        }
+  
+        control.label = formControlName;
+        control.labelForDisplay = this.getTranslatedLabel(formControlName);
+        control.parentClassName = targetClass.typeName;
+
+        this.validatorService.setValidator(control, targetClass.typeName);
       }
 
-      formControl.label = formControlName;
-      formControl.labelForDisplay = this.getTranslatedLabel(formControlName);
-      formControl.parentClassName = modelConstructor.typeName;
-
-      formGroup.setControl(formControlName, formControl); // Use setControl because it will update formControl if it already exists
-
-      this.validatorService.setValidator(formControl, modelConstructor.typeName);
+      formGroup.setControl(formControlName, control); // Use setControl because it will update formControl if it already exists
     });
+
+    formGroup.targetClass = targetClass;
 
     return formGroup;
   }
@@ -81,17 +96,14 @@ export class BaseFormService {
     return this.translateLabelsService.translate(formControlName);
   }
 
-  getFormArrayGroups<T>(formArray: SpiderlyFormArray<T>): SpiderlyFormGroup<T>[]{
-    return formArray.controls as SpiderlyFormGroup<T>[]
-  }
-
-  addNewFormGroupToFormArray<T>(
+  addNewFormGroupToFormArray<T extends BaseEntity>(
     formArray: SpiderlyFormArray<T>, 
-    modelConstructor: T & BaseEntity,
+    targetClass: SchemaAwareConstructor<T>,
+    initialValues: T,
     index: number,
   ) : SpiderlyFormGroup {
     let helperFormGroup = new SpiderlyFormGroup({});
-    this.initFormGroup(helperFormGroup, modelConstructor);
+    this.initFormGroup(helperFormGroup, targetClass, initialValues);
     
     if (index == null) {
       formArray.push(helperFormGroup);
@@ -102,48 +114,37 @@ export class BaseFormService {
     return helperFormGroup;
   }
 
-  initFormArray<T>(
-    parentFormGroup: SpiderlyFormGroup, 
-    modelList: (T & BaseEntity)[], 
-    modelConstructor: T & BaseEntity, 
-    formArraySaveBodyName: string, 
-    formArrayTranslationKey: string, 
-    required: boolean = false)
+  removeFormControlFromTheFormArray(formArray: SpiderlyFormArray, index: number) {
+    if(index == null)
+      throw new SpiderlyError('Can not pass null index.');
+
+    formArray.removeAt(index);
+  }
+
+  initFormArray<T extends BaseEntity>(
+    targetClass: SchemaAwareConstructor<T>,
+    initialValues: T[],
+  )
   {
-    if (modelList == null)
-      return null;
+    if (!targetClass)
+      throw new SpiderlyError('You did not initialize targetClass');  
+    
+    if (!initialValues)
+      initialValues = [];
 
-    let formArray = new SpiderlyFormArray<T>([]);
-    formArray.required = required;
-    formArray.modelConstructor = modelConstructor;
-    formArray.translationKey = formArrayTranslationKey;
+    let formArray = new SpiderlyFormArray<T>([], this.translocoService, this);
 
-    modelList.forEach(model => {
-      Object.assign(modelConstructor, model);
+    // formArray.required = required;
+    formArray.formGroupInitialValues = {}; // When we need we can pass formGroupInitialValues to this method instead of assigning it to empty object
+    formArray.targetClass = targetClass;
+
+    initialValues.forEach(model => {
       let helperFormGroup: SpiderlyFormGroup = new SpiderlyFormGroup({});
-      this.initFormGroup(helperFormGroup, formArray.modelConstructor);
+      this.initFormGroup(helperFormGroup, targetClass, model);
       formArray.push(helperFormGroup);
     });
 
-    parentFormGroup.setControl(formArraySaveBodyName, formArray); // Use setControl because it will update formArray if it already exists
-
     return formArray;
-  }
-
-  disableAllFormControls<T>(formArray: SpiderlyFormArray<T>){
-    formArray.controls.forEach((segmentationItemFormGroup: SpiderlyFormGroup) => {
-        Object.keys(segmentationItemFormGroup.controls).forEach(key => {
-            segmentationItemFormGroup.controls[key].disable();
-        });
-    });
-  }
-
-  enableAllFormControls<T>(formArray: SpiderlyFormArray<T>){
-    formArray.controls.forEach((segmentationItemFormGroup: SpiderlyFormGroup) => {
-        Object.keys(segmentationItemFormGroup.controls).forEach(key => {
-            segmentationItemFormGroup.controls[key].enable();
-        });
-    });
   }
 
   //#region Helpers
@@ -172,6 +173,47 @@ export class BaseFormService {
 
   generateNewNegativeId<T extends BaseEntity>(formArray: SpiderlyFormArray<T>){
     return -formArray.getRawValue().filter(x => x.id < 0).length - 1;
+  }
+
+  getSaveBodyMainDTOKey = (saveBodyClass: SchemaAwareConstructor<any>) => {
+    const schema = saveBodyClass.schema;
+    return Object.keys(schema).find(k => schema[k].isSaveBodyMainDTO === true);
+  }
+
+  mapMainUIFormToSaveBody = <T extends BaseEntity>(mainUIFormClass: SchemaAwareConstructor<T>, mainUIFormValues: T) => {
+    let saveBody = {};
+
+    Object.keys(mainUIFormClass.schema).forEach(propName => {
+      const property = mainUIFormClass.schema[propName];
+      const value = mainUIFormValues[propName];
+      
+      // Handle ordered one-to-many (e.g., "orderedItemsMainUIFormDTO" -> "orderedItemsSaveBodyDTO")
+      if (propName.startsWith('Ordered') && propName.endsWith('MainUIFormDTO')) {
+        const newKey = propName.replace('MainUIFormDTO', 'SaveBodyDTO');
+        // Recursively map nested DTOs
+        const relatedEntity = property.nestedConstructor;
+        saveBody[newKey] = value?.map(item => 
+          this.mapMainUIFormToSaveBody(relatedEntity, item)
+        ) ?? [];
+      }
+      // Handle multi-select (e.g., "itemsIds" -> "selectedItemsIds")
+      else if (propName.endsWith('Ids')) {
+        saveBody[`selected${capitalizeFirstChar(propName)}`] = value ?? [];
+      }
+      // Handle multi-autocomplete (e.g., "itemsNamebookDTOList" -> "selectedItemsIds")
+      else if (propName.endsWith('NamebookDTOList')) {
+        const propertyName = propName.replace('NamebookDTOList', '');
+        // Extract IDs from NamebookDTO objects
+        const ids = value?.map(item => item.id) ?? [];
+        saveBody[`selected${capitalizeFirstChar(propertyName)}Ids`] = ids;
+      }
+      // Handle the main DTO object (e.g., "entityDTO")
+      else{
+        saveBody[propName] = value;
+      }
+    });
+
+    return saveBody;
   }
 
   //#endregion

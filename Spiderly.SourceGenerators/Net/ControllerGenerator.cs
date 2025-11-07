@@ -427,9 +427,9 @@ namespace {{basePartOfNamespace}}.Controllers
                 result.Add($$"""
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}DTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
-            return await _businessService.GetOrdered{{property.Name}}For{{entity.Name}}(id, false);
+            return await _businessService.GetOrdered{{property.Name}}For{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """);
             }
@@ -468,9 +468,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return $$"""
         [HttpPut]
         [AuthGuard]
-        public virtual async Task<{{entity.Name}}SaveBodyDTO> Save{{entity.Name}}({{entity.Name}}SaveBodyDTO saveBodyDTO)
+        public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}({{entity.Name}}SaveBodyDTO saveBodyDTO)
         {
-            return await _businessService.Save{{entity.Name}}AndReturnSaveBodyDTO(saveBodyDTO, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _businessService.Save{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """;
         }

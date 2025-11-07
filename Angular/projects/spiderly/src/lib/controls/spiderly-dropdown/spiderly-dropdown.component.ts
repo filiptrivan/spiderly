@@ -34,9 +34,9 @@ export class SpiderlyDropdownComponent extends BaseDropdownControl implements On
     override ngOnInit(){
         if (this.isBooleanPicker) {
             this.options = [
-                {label: this.translocoService.translate('True'), code: true},
-                {label: this.translocoService.translate('False'), code: false},
-                {label: this.translocoService.translate('Empty'), code: null},
+                {displayName: this.translocoService.translate('True'), id: true},
+                {displayName: this.translocoService.translate('False'), id: false},
+                {displayName: this.translocoService.translate('Empty'), id: null},
             ]
         }
 

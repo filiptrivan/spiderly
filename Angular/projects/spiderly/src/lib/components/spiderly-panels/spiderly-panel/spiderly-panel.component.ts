@@ -13,7 +13,7 @@ export class SpiderlyPanelComponent implements OnInit {
   @Input() isMiddleMultiplePanel: boolean = false;
   @Input() isLastMultiplePanel: boolean = false;
   @Input() toggleable: boolean = false;
-  @Input() toggler: 'header' | 'icon' | null = null;
+  @Input() toggler: 'header' | 'icon' | null = 'icon';
   @Input() collapsed: boolean = false;
   @Input() crudMenu: MenuItem[];
   @Input() showCrudMenu: boolean = true;

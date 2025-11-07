@@ -1,16 +1,16 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, KeyValueDiffers, OnInit, Output } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef, Component, EventEmitter, Input, KeyValueDiffers, OnInit, Output } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { BaseFormCopy } from '../../base-form/base-form copy';
-import { BaseFormService } from '../../../services/base-form.service';
-import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
+import { ButtonModule } from 'primeng/button';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { VerificationTokenRequest } from '../../../entities/security-entities';
+import { BaseFormService } from '../../../services/base-form.service';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { ButtonModule } from 'primeng/button';
+import { BaseFormCopy } from '../../base-form/base-form copy';
+import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
 import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.module';
 
 @Component({
@@ -51,7 +51,7 @@ export class VerificationWrapperComponent extends BaseFormCopy implements OnInit
     }
 
     initVerificationTokenRequestFormGroup(model: VerificationTokenRequest){
-    this.initFormGroup(this.verificationTokenRequestFormGroup, this.formGroup, model, model.typeName, ['verificationCode']);
+        this.baseFormService.initFormGroup(this.verificationTokenRequestFormGroup, VerificationTokenRequest, model, ['verificationCode']);
     }
 
     codeSubmit(){

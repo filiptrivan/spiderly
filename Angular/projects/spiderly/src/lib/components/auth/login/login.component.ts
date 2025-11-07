@@ -1,18 +1,18 @@
-import { ActivatedRoute, Router } from '@angular/router';
-import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { BaseFormCopy } from '../../base-form/base-form copy';
-import { Login } from '../../../entities/security-entities';
-import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
-import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { BaseFormService } from '../../../services/base-form.service';
-import { AuthBaseService } from '../../../services/auth-base.service';
-import { ConfigBaseService } from '../../../services/config-base.service';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { AuthComponent } from '../partials/auth.component';
+import { ActivatedRoute, Router } from '@angular/router';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
+import { Login } from '../../../entities/security-entities';
+import { AuthBaseService } from '../../../services/auth-base.service';
+import { BaseFormService } from '../../../services/base-form.service';
+import { ConfigBaseService } from '../../../services/config-base.service';
+import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
+import { BaseFormCopy } from '../../base-form/base-form copy';
+import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
+import { AuthComponent } from '../partials/auth.component';
 import { LoginVerificationComponent } from '../partials/login-verification.component';
 
 @Component({
@@ -53,7 +53,7 @@ export class LoginComponent extends BaseFormCopy implements OnInit {
     }
     
     initLoginFormGroup(model: Login){
-      this.initFormGroup(this.loginFormGroup, this.formGroup, model, model.typeName, ['email']);
+      this.baseFormService.initFormGroup(this.loginFormGroup, Login, model, ['email']);
     }
 
     companyNameChange(companyName: string){

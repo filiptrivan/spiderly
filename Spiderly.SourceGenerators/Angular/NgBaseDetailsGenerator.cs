@@ -186,9 +186,7 @@ namespace Spiderly.SourceGenerators.Angular
 export class {{entity.Name}}BaseDetailsComponent {
     @Output() onSave = new EventEmitter<void>();
     @Output() onAfterFormGroupInit = new EventEmitter<void>();
-    @Input() getCrudMenuForOrderedData: (formArray: SpiderlyFormArray, modelConstructor: BaseEntity, lastMenuIconIndexClicked: LastMenuIconIndexClicked, adjustFormArrayManually: boolean) => MenuItem[];
-    @Input() formGroup: SpiderlyFormGroup;
-    @Input() {{entity.Name.FirstCharToLower()}}FormGroup: SpiderlyFormGroup<{{entity.Name}}>;
+    @Input() parentFormGroup: SpiderlyFormGroup<{{entity.Name}}MainUIForm>;
     @Input() isFirstMultiplePanel: boolean = false;
     @Input() isMiddleMultiplePanel: boolean = false;
     @Input() isLastMultiplePanel: boolean = false;
@@ -205,13 +203,9 @@ export class {{entity.Name}}BaseDetailsComponent {
     modelId: number;
     loading: boolean = true;
 
-    {{entity.Name.FirstCharToLower()}}SaveBodyName: string = nameof<{{entity.Name}}SaveBody>('{{entity.Name.FirstCharToLower()}}DTO');
-
-{{string.Join("\n\n", GetOrderedOneToManyVariables(entity, allEntities))}}
+{{string.Join("\n", GetOrderedOneToManyVariables(entity, allEntities))}}
 
 {{string.Join("\n", GetPrimengOptionVariables(entity.Properties, entity, allEntities))}}
-
-{{string.Join("\n", GetCustomSpiderlyFormControls(entity))}}
 
 {{string.Join("\n", GetManyToManyTableVariables(entity, allEntities))}}
 
@@ -232,18 +226,14 @@ export class {{entity.Name}}BaseDetailsComponent {
     ) {}
 
     ngOnInit(){
-        this.formGroup.initSaveBody = () => { 
+        this.parentFormGroup.initSaveBody = () => { 
             let saveBody = new {{entity.Name}}SaveBody();
-            saveBody.{{entity.Name.FirstCharToLower()}}DTO = this.{{entity.Name.FirstCharToLower()}}FormGroup.getRawValue();
-{{string.Join("\n", GetOrderedOneToManySaveBodyAssignements(entity, allEntities))}}
-{{string.Join("\n", GetManyToManyMultiSelectSaveBodyAssignements(entity))}}
-{{string.Join("\n", GetManyToManyMultiAutocompleteSaveBodyAssignements(entity))}}
+            saveBody = this.baseFormService.mapMainUIFormToSaveBody({{entity.Name}}MainUIForm, this.parentFormGroup.getRawValue());
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoadSaveBodyAssignements(entity))}}
             return saveBody;
         }
 
-        this.formGroup.saveObservableMethod = this.apiService.save{{entity.Name}};
-        this.formGroup.mainDTOName = this.{{entity.Name.FirstCharToLower()}}SaveBodyName;
+        this.parentFormGroup.saveObservableMethod = this.apiService.save{{entity.Name}};
 
         this.route.params.subscribe(async (params) => {
             this.modelId = params['id'];
@@ -256,34 +246,19 @@ export class {{entity.Name}}BaseDetailsComponent {
                     mainUIFormDTO: this.apiService.get{{entity.Name}}MainUIFormDTO(this.modelId),
                 })
                 .subscribe(({ mainUIFormDTO }) => {
-                    this.init{{entity.Name}}FormGroup(new {{entity.Name}}(mainUIFormDTO.{{entity.Name.FirstCharToLower()}}DTO));
-{{string.Join("\n", GetOrderedOneToManyInitFormGroupForExistingObject(entity))}}
-{{string.Join("\n", GetManyToManyMultiSelectInitFormControls(entity))}}
-{{string.Join("\n", GetManyToManyMultiAutocompleteInitFormControls(entity))}}
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, mainUIFormDTO);
                     this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
                     this.loading = false;
+                    this.onAfterFormGroupInit.next();
                 });
             }
             else{
-                this.init{{entity.Name}}FormGroup(new {{entity.Name}}({id: 0}));
-{{string.Join("\n", GetOrderedOneToManyInitFormGroupForNonExistingObject(entity))}}
+                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, new {{entity.Name}}MainUIForm({{{entity.Name.FirstCharToLower()}}DTO: new {{entity.Name}}({id: 0})}));
                 this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
                 this.loading = false;
+                this.onAfterFormGroupInit.next();
             }
         });
-    }
-
-    init{{entity.Name}}FormGroup({{entity.Name.FirstCharToLower()}}: {{entity.Name}}) {
-        this.baseFormService.addFormGroup<{{entity.Name}}>(
-            this.{{entity.Name.FirstCharToLower()}}FormGroup, 
-            this.formGroup, 
-            {{entity.Name.FirstCharToLower()}}, 
-            this.{{entity.Name.FirstCharToLower()}}SaveBodyName,
-            [{{string.Join(", ", GetCustomOnChangeProperties(entity))}}]
-        );
-        this.{{entity.Name.FirstCharToLower()}}FormGroup.mainDTOName = this.{{entity.Name.FirstCharToLower()}}SaveBodyName;
-
-        this.onAfterFormGroupInit.next();
     }
 
     handleAuthorizationForSave = () => {
@@ -312,23 +287,11 @@ export class {{entity.Name}}BaseDetailsComponent {
         );
     }
 
-{{string.Join("\n", GetOrderedOneToManyInitFormArrayMethods(entity, allEntities))}}
-
-{{string.Join("\n", GetOrderedOneToManyAddNewItemMethods(entity, allEntities))}}
-
 {{string.Join("\n", GetSimpleManyToManyMethods(entity, allEntities))}}
 
 {{string.Join("\n", GetAutocompleteSearchMethods(entity.Properties, entity, allEntities))}}
 
 {{string.Join("\n", GetUploadImageMethods(entity.Properties, entity, allEntities))}}
-
-    control(formControlName: string, formGroup: SpiderlyFormGroup){
-        return getControl(formControlName, formGroup);
-    }
-
-    getFormArrayGroups<T>(formArray: SpiderlyFormArray): SpiderlyFormGroup<T>[]{
-        return this.baseFormService.getFormArrayGroups<T>(formArray);
-    }
 
     save(){
         this.onSave.next();
@@ -402,8 +365,6 @@ export class {{entity.Name}}BaseDetailsComponent {
             return sb.ToString();
         }
 
-
-
         private static string GetAdditionalPermissionCodes(SpiderlyClass entity)
         {
             StringBuilder sb = new();
@@ -435,7 +396,8 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (AngularFormBlock formBlock in formBlocks)
             {
-                if (formBlock.FormControlName != null &&
+                if (
+                    formBlock.FormControlName != null &&
                    (formBlock.Property.IsMultiSelectControlType() || formBlock.Property.IsMultiAutocompleteControlType())
                 )
                 {
@@ -443,22 +405,11 @@ export class {{entity.Name}}BaseDetailsComponent {
                         this.{{formBlock.FormControlName}}.{{(disable ? "disable" : "enable")}}();
 """);
                 }
-                else if (formBlock.FormControlName == null &&
-                         formBlock.Property.Type.IsOneToManyType() &&
-                         formBlock.Property.HasUIOrderedOneToManyAttribute()
-                )
-                {
-                    sb.AppendLine($$"""
-                        this.baseFormService.{{(disable ? "disable" : "enable")}}AllFormControls(this.{{formBlock.Property.Name.FirstCharToLower()}}FormArray);
-""");
-                }
-                else if (formBlock.FormControlName != null)
-                {
-                    sb.AppendLine($$"""
-                        this.{{entity.Name.FirstCharToLower()}}FormGroup.controls.{{formBlock.FormControlName}}.{{(disable ? "disable" : "enable")}}();
-""");
-                }
             }
+
+            sb.AppendLine($$"""
+                        this.parentFormGroup.{{(disable ? "disable" : "enable")}}();
+""");
 
             return sb.ToString();
         }
@@ -662,66 +613,6 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetManyToManyMultiSelectSaveBodyAssignements(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsMultiSelectControlType()))
-            {
-                result.Add($$"""
-            saveBody.selected{{property.Name}}Ids = this.selected{{property.Name}}For{{entity.Name}}.getRawValue();
-""");
-            }
-
-            return result;
-        }
-
-        private static List<string> GetManyToManyMultiAutocompleteSaveBodyAssignements(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsMultiAutocompleteControlType()))
-            {
-                result.Add($$"""
-            saveBody.selected{{property.Name}}Ids = this.selected{{property.Name}}For{{entity.Name}}.getRawValue()?.map(n => n.code);
-""");
-            }
-
-            return result;
-        }
-
-        private static List<string> GetManyToManyMultiSelectInitFormControls(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsMultiSelectControlType()))
-            {
-                result.Add($$"""
-                    this.selected{{property.Name}}For{{entity.Name}}.setValue(
-                        mainUIFormDTO.{{property.Name.FirstCharToLower()}}NamebookDTOList.map(n => { return n.id })
-                    );
-""");
-            }
-
-            return result;
-        }
-
-        private static List<string> GetManyToManyMultiAutocompleteInitFormControls(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsMultiAutocompleteControlType()))
-            {
-                result.Add($$"""
-                    this.selected{{property.Name}}For{{entity.Name}}.setValue(
-                        mainUIFormDTO.{{property.Name.FirstCharToLower()}}NamebookDTOList.map(n => ({ label: n.displayName, code: n.id }))
-                    );
-""");
-            }
-
-            return result;
-        }
-
         private static List<string> GetManyToManyMultiSelectListForDropdownMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             List<string> result = new();
@@ -734,8 +625,8 @@ export class {{entity.Name}}BaseDetailsComponent {
             )
             {
                 result.Add($$"""
-            getPrimengDropdownNamebookOptions(this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}, this.modelId).subscribe(po => {
-                this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = po;
+            this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}(this.modelId).subscribe(no => {
+                this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
             });
 """);
             }
@@ -760,98 +651,18 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetCustomSpiderlyFormControls(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties)
-            {
-                if (property.IsMultiSelectControlType())
-                {
-                    result.Add($$"""
-    selected{{property.Name}}For{{entity.Name}} = new SpiderlyFormControl<number[]>(null, {updateOn: 'change'});
-""");
-                }
-                else if (property.IsMultiAutocompleteControlType())
-                {
-                    result.Add($$"""
-    selected{{property.Name}}For{{entity.Name}} = new SpiderlyFormControl<PrimengOption[]>(null, {updateOn: 'change'});
-""");
-                }
-            }
-
-            return result;
-        }
-
         #region Ordered One To Many
 
-        private static List<string> GetOrderedOneToManyAddNewItemMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOrderedOneToManyForkJoinParameters(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single();
 
-                result.Add($$"""
-    addNewItemTo{{property.Name}}(index: number){ 
-        this.baseFormService.addNewFormGroupToFormArray(
-            this.{{property.Name.FirstCharToLower()}}FormArray, 
-            new {{extractedEntity.Name}}({id: 0}), 
-            index
-        );
-    }
-""");
-            }
+                result.AddRange(GetOrderedOneToManyForkJoinParameters(extractedEntity, allEntities));
 
-            return result;
-        }
-
-        private static List<string> GetOrderedOneToManyInitFormArrayMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-
-                result.Add($$"""
-    init{{property.Name}}FormArray({{property.Name.FirstCharToLower()}}: {{extractedEntity.Name}}[]){
-        this.{{property.Name.FirstCharToLower()}}FormArray = this.baseFormService.initFormArray(
-            this.formGroup, 
-            {{property.Name.FirstCharToLower()}}, 
-            this.{{property.Name.FirstCharToLower()}}Model, 
-            this.{{property.Name.FirstCharToLower()}}SaveBodyName, 
-            this.{{property.Name.FirstCharToLower()}}TranslationKey, 
-            true
-        );
-        this.{{property.Name.FirstCharToLower()}}CrudMenu = this.getCrudMenuForOrderedData(this.{{property.Name.FirstCharToLower()}}FormArray, new {{extractedEntity.Name}}({id: 0}), this.{{property.Name.FirstCharToLower()}}LastIndexClicked, false);
-{{GetFormArrayEmptyValidator(property)}}
-    }
-""");
-            }
-
-            return result;
-        }
-
-        private static string GetFormArrayEmptyValidator(SpiderlyProperty property)
-        {
-            if (property.HasRequiredAttribute())
-            {
-                return $$"""
-        this.{{property.Name.FirstCharToLower()}}FormArray.validator = this.validatorService.isFormArrayEmpty(this.{{property.Name.FirstCharToLower()}}FormArray);
-""";
-            }
-
-            return null;
-        }
-
-        private static List<string> GetOrderedOneToManyForkJoinParameters(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
                 result.Add($$"""
                     {{property.Name.FirstCharToLower()}}For{{entity.Name}}: this.apiService.getOrdered{{property.Name}}For{{entity.Name}}(this.modelId),
 """);
@@ -860,67 +671,18 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetOrderedOneToManyInitFormGroupForExistingObject(SpiderlyClass entity)
+        private static List<string> GetOrderedOneToManyVariables(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
                 result.Add($$"""
-                    this.init{{property.Name}}FormArray(mainUIFormDTO.ordered{{property.Name}}DTO);
+    @Input() {{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed: boolean = false;
 """);
-            }
 
-            return result;
-        }
-
-        private static List<string> GetOrderedOneToManyInitFormGroupForNonExistingObject(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                result.Add($$"""
-                this.init{{property.Name}}FormArray([]);
-""");
-            }
-
-            return result;
-        }
-
-        private static List<string> GetOrderedOneToManySaveBodyAssignements(SpiderlyClass entity, List<SpiderlyClass> entities)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-
-                result.Add($$"""
-            saveBody.{{property.Name.FirstCharToLower()}}DTO = this.{{property.Name.FirstCharToLower()}}FormArray.getRawValue();
-""");
-            }
-
-            return result;
-        }
-
-        private static List<string> GetOrderedOneToManyVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-
-                result.Add($$"""
-    {{property.Name.FirstCharToLower()}}Model = new {{extractedEntity.Name}}();
-    {{property.Name.FirstCharToLower()}}SaveBodyName: string = nameof<{{entity.Name}}SaveBody>('{{property.Name.FirstCharToLower()}}DTO');
-    {{property.Name.FirstCharToLower()}}TranslationKey: string = new {{extractedEntity.Name}}().typeName;
-    {{property.Name.FirstCharToLower()}}FormArray: SpiderlyFormArray<{{extractedEntity.Name}}>;
-    {{property.Name.FirstCharToLower()}}LastIndexClicked = new LastMenuIconIndexClicked();
-    {{property.Name.FirstCharToLower()}}CrudMenu: MenuItem[] = [];
-    @Input() {{property.Name.FirstCharToLower()}}PanelCollapsed: boolean = false;
-""");
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                result.AddRange(GetOrderedOneToManyVariables(extractedEntity, allEntities));
             }
 
             return result;
@@ -933,30 +695,33 @@ export class {{entity.Name}}BaseDetailsComponent {
         /// <param name="allEntities"></param>
         /// <param name="customDTOClasses"></param>
         /// <returns></returns>
-        private static string GetOrderedOneToManyBlock(SpiderlyProperty property, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
+        private static string GetOrderedOneToManyBlock(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses,
+            bool isFromOrderedOneToMany
+        )
         {
             SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault(); // eg. SegmentationItem
 
-            // Every property of SegmentationItem without the many to one reference (Segmentation) and enumerable properties
+            // Every property of SegmentationItem without the many to one reference (Segmentation)
             List<SpiderlyProperty> propertyBlocks = extractedEntity.Properties
-                .Where(x =>
-                    x.WithMany() != property.Name &&
-                    x.Type.IsEnumerable() == false
-                )
+                .Where(x => x.WithMany() != property.Name)
                 .ToList();
 
             return $$"""
-                     <div *ngIf="show{{property.Name}}For{{property.EntityName}}" class="col-8">
-                        <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}PanelCollapsed">
+                     <div class="col-8">
+                        <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed">
                             <panel-header [title]="t('{{property.Name}}')" icon="pi pi-list"></panel-header>
                             <panel-body [normalBottomPadding]="true">
-                                @for ({{extractedEntity.Name.FirstCharToLower()}}FormGroup of getFormArrayGroups({{property.Name.FirstCharToLower()}}FormArray); track {{extractedEntity.Name.FirstCharToLower()}}FormGroup; let index = $index; let last = $last) {
+                                @for ({{extractedEntity.Name.FirstCharToLower()}}FormGroup of {{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.getFormGroups(); track {{extractedEntity.Name.FirstCharToLower()}}FormGroup.trackingId; let index = $index; let last = $last) {
                                     <index-card 
                                     [index]="index" 
                                     [last]="false" 
-                                    [crudMenu]="{{property.Name.FirstCharToLower()}}CrudMenu" 
+                                    [crudMenu]="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.getCrudMenuForOrderedData()" 
                                     [showCrudMenu]="isAuthorizedForSave"
-                                    (onMenuIconClick)="{{property.Name.FirstCharToLower()}}LastIndexClicked.index = $event"
+                                    (onMenuIconClick)="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.lastMenuIconIndexClicked = $event"
                                     >
                                         <form [formGroup]="{{extractedEntity.Name.FirstCharToLower()}}FormGroup" class="spiderly-grid">
 {{string.Join("\n", GetPropertyBlocks(propertyBlocks, extractedEntity, allEntities, customDTOClasses, isFromOrderedOneToMany: true))}}
@@ -965,13 +730,21 @@ export class {{entity.Name}}BaseDetailsComponent {
                                 }
 
                                 <div class="panel-add-button">
-                                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="addNewItemTo{{property.Name}}(null)" [label]="t('AddNew{{Helpers.ExtractTypeFromGenericType(property.Type)}}')" icon="pi pi-plus"></spiderly-button>
+                                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.addNewFormGroup(null)" [label]="t('AddNew{{Helpers.ExtractTypeFromGenericType(property.Type)}}')" icon="pi pi-plus"></spiderly-button>
                                 </div>
 
                             </panel-body>
                         </spiderly-panel>
                     </div>
 """;
+        }
+
+        private static string GetOrderedOneToManyFormArray(SpiderlyClass entity, SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.ordered{property.Name}MainUIFormDTO";
+            else
+                return $"this.parentFormGroup.controls.ordered{property.Name}MainUIFormDTO";
         }
 
         #endregion
@@ -1020,7 +793,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                     controlType == UIControlTypeCodes.MultiSelect)
                 {
                     result.Add($$"""
-    {{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}}: PrimengOption[];
+    {{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}}: Namebook[];
 """);
 
                 }
@@ -1057,8 +830,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                 {
                     result.Add($$"""
     search{{property.Name}}For{{entity.Name}}(event: AutoCompleteCompleteEvent) {
-        getPrimengAutocompleteNamebookOptions(this.apiService.get{{property.Name}}AutocompleteListFor{{entity.Name}}, 50, event?.query ?? '').subscribe(po => {
-            this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = po;
+        this.apiService.get{{property.Name}}AutocompleteListFor{{entity.Name}}(50, event?.query ?? '').subscribe(no => {
+            this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
         });
     }
 """);
@@ -1079,14 +852,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-                    List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
-                        .Where(x =>
-                            x.WithMany() != property.Name &&
-                            x.Type.IsEnumerable() == false
-                        )
-                        .ToList();
 
-                    GetUploadImageMethods(extractedProperties, extractedEntity, entities);
+                    result.AddRange(GetUploadImageMethods(extractedEntity.Properties, extractedEntity, entities));
 
                     continue;
                 }
@@ -1096,9 +863,9 @@ export class {{entity.Name}}BaseDetailsComponent {
                 if (controlType == UIControlTypeCodes.File)
                 {
                     result.Add($$"""
-    upload{{property.Name}}For{{entity.Name}}(event: SpiderlyFileSelectEvent){
+    upload{{property.Name}}For{{entity.Name}}(event: SpiderlyFileSelectEvent, formGroup: SpiderlyFormGroup){
         this.apiService.upload{{property.Name}}For{{entity.Name}}(event.formData).subscribe((completeFileName: string) => {
-            this.{{entity.Name.FirstCharToLower()}}FormGroup.controls.{{property.Name.FirstCharToLower()}}.setValue(completeFileName);
+            formGroup.controls['{{property.Name.FirstCharToLower()}}'].setValue(completeFileName);
         });
     }
 """);
@@ -1148,7 +915,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
                 {
-                    result.Add(GetOrderedOneToManyBlock(property, allEntities, customDTOClasses));
+                    result.Add(GetOrderedOneToManyBlock(entity, property, allEntities, customDTOClasses, isFromOrderedOneToMany));
 
                     continue;
                 }
@@ -1157,7 +924,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
                 result.Add($$"""
                     <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property)}}">
-                        <{{controlType}} {{GetControlAttributes(property, entity)}}></{{controlType}}>
+                        <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
                     </div>
 """);
             }
@@ -1186,29 +953,26 @@ export class {{entity.Name}}BaseDetailsComponent {
                 {
                     result.Add(new AngularFormBlock // FT: Name is null because there is no form control for the one to many properties
                     {
-                        Property = property
+                        Property = property,
+                        Entity = entity,
                     });
+
+                    SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+
+                    result.AddRange(GetAngularFormBlocks(extractedEntity, allEntities, customDTOClasses));
 
                     continue;
                 }
 
                 UIControlTypeCodes controlType = GetUIControlType(property);
 
-                if (property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
-                {
-                    result.Add(new AngularFormBlock
-                    {
-                        FormControlName = $"selected{property.Name}For{entity.Name}",
-                        Property = property,
-                    });
-                }
-                else if (controlType != UIControlTypeCodes.Table)
+                if (controlType != UIControlTypeCodes.Table)
                 {
                     result.Add(new AngularFormBlock
                     {
                         FormControlName = GetFormControlName(property),
                         Property = property,
+                        Entity = entity,
                     });
                 }
                 else if (controlType == UIControlTypeCodes.Table)
@@ -1216,6 +980,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                     result.Add(new AngularFormBlock // FT: Name is null because there is no form control for the table
                     {
                         Property = property,
+                        Entity = entity,
                     });
                 }
             }
@@ -1223,15 +988,9 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity)
+        private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
         {
-            if (property.IsMultiSelectControlType() ||
-                property.IsMultiAutocompleteControlType())
-            {
-                return $"selected{property.Name}For{entity.Name}";
-            }
-
-            return $"control('{GetFormControlName(property)}', {entity.Name.FirstCharToLower()}FormGroup)";
+            return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.getControl('{GetFormControlName(property)}')";
         }
 
         private static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
@@ -1307,41 +1066,41 @@ export class {{entity.Name}}BaseDetailsComponent {
             return property.Name.FirstCharToLower();
         }
 
-        private static string GetControlAttributes(SpiderlyProperty property, SpiderlyClass entity)
+        private static string GetControlAttributes(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
         {
             UIControlTypeCodes controlType = GetUIControlType(property);
 
             if (controlType == UIControlTypeCodes.Decimal)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [decimal]=\"true\" [maxFractionDigits]=\"{property.GetDecimalScale()}\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [decimal]=\"true\" [maxFractionDigits]=\"{property.GetDecimalScale()}\"";
             }
             else if (controlType == UIControlTypeCodes.Calendar)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
             }
             else if (controlType == UIControlTypeCodes.CheckBox)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [fileData]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event)\" [disabled]=\"!isAuthorizedForSave\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\"";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
             }
             else if (controlType == UIControlTypeCodes.Autocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\"";
             }
             else if (controlType == UIControlTypeCodes.MultiSelect)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [label]=\"t('{property.Name}')\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [label]=\"t('{property.Name}')\"";
             }
             else if (controlType == UIControlTypeCodes.MultiAutocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\" [label]=\"t('{property.Name}')\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\" [label]=\"t('{property.Name}')\"";
             }
             else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
             {
@@ -1376,10 +1135,18 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.ColorPicker)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\" [showInputTextField]=\"show{property.Name}TextFieldFor{entity.Name}\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showInputTextField]=\"show{property.Name}TextFieldFor{entity.Name}\"";
             }
 
-            return $"[control]=\"{GetControlHtmlAttributeValue(property, entity)}\"";
+            return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
+        }
+
+        private static string GetMainDTOFormGroupForMainUIForm(SpiderlyClass entity, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.{entity.Name.FirstCharToLower()}DTO";
+
+            return $"this.parentFormGroup.controls.{entity.Name.FirstCharToLower()}DTO";
         }
 
         private static string GetUIControlWidth(SpiderlyProperty property)
@@ -1534,7 +1301,15 @@ export class {{entity.Name}}BaseDetailsComponent {
                 })
                 .ToList();
 
-            List<AngularImport> imports = customDTOImports.Concat(entityImports).Concat(saveBodyImports).ToList();
+            List<AngularImport> mainUIFormImports = entities
+                .Select(x => new AngularImport
+                {
+                    Namespace = x.Namespace.Replace(".Entities", ""),
+                    Name = $"{x.Name}MainUIForm"
+                })
+                .ToList();
+
+            List<AngularImport> imports = customDTOImports.Concat(entityImports).Concat(saveBodyImports).Concat(mainUIFormImports).ToList();
 
             return $$"""
 import { ValidatorService } from 'src/app/business/services/validators/validators';
@@ -1551,7 +1326,7 @@ import { ActivatedRoute } from '@angular/router';
 import { combineLatest, firstValueFrom, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { MenuItem } from 'primeng/api';
 import { AuthService } from '../../services/auth/auth.service';
-import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, getControl, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule } from 'spiderly';
+import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule, Namebook } from 'spiderly';
 {{string.Join("\n", GetDynamicNgImports(imports))}}
 """;
         }
