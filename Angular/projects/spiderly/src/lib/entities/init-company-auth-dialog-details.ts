@@ -14,9 +14,11 @@ export class InitCompanyAuthDialogDetails extends BaseEntity
         companyName?: string;
     } = {}
     ) {
-        super('InitCompanyAuthDialogDetails');
+        super();
 
         this.image = image;
         this.companyName = companyName;
     }
+
+    static readonly typeName = 'InitCompanyAuthDialogDetails' as const;
 }

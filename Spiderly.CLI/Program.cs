@@ -1,13 +1,7 @@
 ﻿using CaseConverter;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Extensions.Configuration;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
-using System;
 using System.Diagnostics;
-using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,7 +18,7 @@ namespace Spiderly.CLI
     {
         private static readonly char _s_ = Path.DirectorySeparatorChar;
 
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
             if (args.HasArg("--help") || args.HasArg("-help") || args.HasArg("help"))
             {

@@ -34,7 +34,7 @@ export class Filter<T extends BaseEntity=any> extends BaseEntity
         additionalFilterIdLong?: number;
     } = {}
     ) {
-        super('Filter');
+        super();
 
         this.filters = filters;
         this.first = first;
@@ -45,4 +45,6 @@ export class Filter<T extends BaseEntity=any> extends BaseEntity
         this.additionalFilterIdInt = additionalFilterIdInt;
         this.additionalFilterIdLong = additionalFilterIdLong;
     }
+
+    static readonly typeName = 'Filter' as const; 
 }

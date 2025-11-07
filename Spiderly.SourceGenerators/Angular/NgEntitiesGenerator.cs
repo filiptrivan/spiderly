@@ -1,17 +1,11 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Spiderly.SourceGenerators.Shared;
-using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.IO;
-using System.Diagnostics;
-using Spiderly.SourceGenerators.Models;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
+using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Spiderly.SourceGenerators.Angular
 {
@@ -91,7 +85,7 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, MimeTypes, Namebook } f
                 foreach (SpiderlyClass DTOClass in DTOClassGroup) // It can only be 2 here
                     DTOProperties.AddRange(DTOClass.Properties);
 
-                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties); // If, in some moment, we want to make another aproach set this to false, now it doesn't matter
+                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties);
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
                 sbImports.Append(string.Join("\n", Helpers.GetAngularImports(DTOProperties, projectName)));
@@ -105,15 +99,21 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
     constructor(
     {
-        {{string.Join(",\n\t\t", DTOProperties.Select(x => x.Name.FirstCharToLower()))}}
+        {{string.Join(",\n\t\t", DTOProperties.Select(x => x.Type.IsEnumerable() ? $"{x.Name.FirstCharToLower()} = []" : x.Name.FirstCharToLower()))}}
     }:{
         {{string.Join("\n\t\t", angularPropertyDefinitions)}}     
     } = {}
     ) {
-        super('{{angularClassIdentifier}}'); 
+        super(); 
 
         {{string.Join("\n\t\t", GetAngularPropertyAssignments(DTOProperties))}}
     }
+
+    static schema = {
+{{GetSchemaProperties(DTOProperties)}}
+    } as const;
+
+    static typeName = '{{angularClassIdentifier}}' as const;
 }
 """);
 
@@ -150,6 +150,27 @@ export class {{angularClassIdentifier}} extends BaseEntity
             }
 
             return result;
+        }
+
+        private static string GetSchemaProperties(List<SpiderlyProperty> DTOProperties)
+        {
+            StringBuilder result = new();
+
+            foreach (SpiderlyProperty DTOProp in DTOProperties)
+            {
+                string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
+                string angularDataType = Helpers.GetAngularType(DTOProp.Type);
+
+                result.AppendLine($$"""
+        {{DTOPropLowerCase}}: {
+            type: '{{angularDataType}}',
+            {{(DTOProp.Type.IsManyToOneType() || DTOProp.Type.IsOneToManyType() ? $"get nestedConstructor() {{ return {angularDataType.Replace("[]", "")}; }}," : "")}}
+            {{(DTOProp.IsSaveBodyMainDTO ? $"isSaveBodyMainDTO: true," : "")}}
+        },
+""");
+            }
+
+            return result.ToString();
         }
 
         private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, string projectName)

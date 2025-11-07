@@ -20,7 +20,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ]
 })
 export class SpiderlyMultiSelectComponent extends BaseDropdownControl implements OnInit {
-    
     constructor(
         protected override translocoService: TranslocoService,
     ) { 

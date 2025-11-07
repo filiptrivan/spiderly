@@ -2,9 +2,9 @@
     @if (loginFormGroup != null) {
         @if (showEmailSentDialog == false) {
             <auth (onCompanyNameChange)="companyNameChange($event)">
-                <form [formGroup]="formGroup" style="margin-bottom: 16px;"> <!-- FT: We are not loading anything from the server here so we don't need defer block -->
+                <form [formGroup]="loginFormGroup" style="margin-bottom: 16px;"> <!-- FT: We are not loading anything from the server here so we don't need defer block -->
                     <div class="col-12" style="padding-left: 0; padding-right: 0;">
-                        <spiderly-textbox [control]="control('email', loginFormGroup)"></spiderly-textbox>
+                        <spiderly-textbox [control]="loginFormGroup.getControl('email')"></spiderly-textbox>
                     </div>
                     
                     <div class="mb-4 gap-5">

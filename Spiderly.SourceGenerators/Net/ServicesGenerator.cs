@@ -309,15 +309,53 @@ namespace {{basePartOfNamespace}}.Services
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     result.Add($$"""
-                    Ordered{{property.Name}}DTO = await GetOrdered{{property.Name}}For{{entity.Name}}(id, false),
+                    Ordered{{property.Name}}MainUIFormDTO = await GetOrdered{{property.Name}}For{{entity.Name}}(id, false),
 """);
                 }
                 else if (
-                    property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
+                    property.IsMultiSelectControlType()
+                )
+                {
+                    result.Add($$"""
+                    {{property.Name}}Ids = await Get{{property.Name}}IdsFor{{entity.Name}}(id, false),
+""");
+                }
+                else if (
+                    property.IsMultiAutocompleteControlType()
+                )
                 {
                     result.Add($$"""
                     {{property.Name}}NamebookDTOList = await Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false),
+""");
+                }
+            }
+
+            return string.Join("\n", result);
+        }
+
+        private static string GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.Properties)
+            {
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
+
+                if (
+                    property.IsMultiSelectControlType()
+                )
+                {
+                    result.Add($$"""
+                    {{property.Name}}Ids = saveBodyDTO.Selected{{property.Name}}Ids,
+""");
+                }
+                else if (
+                    property.IsMultiAutocompleteControlType()
+                )
+                {
+                    result.Add($$"""
+                    {{property.Name}}NamebookDTOList = saveBodyDTO.Selected{{property.Name}}Ids,
 """);
                 }
             }
@@ -522,9 +560,9 @@ namespace {{basePartOfNamespace}}.Services
                 string extractedPropertyEntityDisplayName = Helpers.GetDisplayNameProperty(extractedPropertyEntity); // Name
 
                 SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
-                SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, oneToManyProperty.Name);
+                SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, oneToManyProperty.Name); // Many to one property from the other side
 
-                if (manyToOneProperty != null)
+                if (manyToOneProperty != null) // One To Many
                 {
                     result.Add($$"""
 {{GetOneToManyNamebookListForEntity(oneToManyProperty, extractedPropertyEntity, manyToOneProperty, entity, allEntityClasses)}}
@@ -534,7 +572,7 @@ namespace {{basePartOfNamespace}}.Services
 {{GetOrderedOneToManyMethod(oneToManyProperty, entity, allEntityClasses)}}
 """);
                 }
-                else if (extractedEntityManyToManyProperty != null)
+                else if (extractedEntityManyToManyProperty != null) // Many To Many
                 {
                     result.Add($$"""
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entityIdType}} id, bool authorize)
@@ -554,6 +592,23 @@ namespace {{basePartOfNamespace}}.Services
                         Id = x.Id,
                         DisplayName = x.{{extractedPropertyEntityDisplayName}},
                     })
+                    .ToListAsync();
+            });
+        }
+
+        public async virtual Task<List<{{extractedPropertyEntityIdType}}>> Get{{oneToManyProperty.Name}}IdsFor{{entity.Name}}({{entityIdType}} id, bool authorize)
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
+                }
+
+                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                    .AsNoTracking()
+                    .Where(x => x.{{extractedEntityManyToManyProperty.Name}}.Any(x => x.Id == id))
+                    .Select(x => x.Id)
                     .ToListAsync();
             });
         }
@@ -808,15 +863,28 @@ namespace {{basePartOfNamespace}}.Services
             SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name);
 
             return $$"""
-        public async Task<List<{{extractedPropertyEntity.Name}}DTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
+        public async Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                var query = _context.DbSet<{{extractedPropertyEntity.Name}}>()
-                    .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
-                    .OrderBy(x => x.OrderNumber);
+                if (authorize)
+                {
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
+                }
 
-                return await Get{{extractedPropertyEntity.Name}}DTOList(query, authorize);
+                List<{{extractedPropertyEntity.Name}}MainUIFormDTO> mainUIFormDTOList = new();
+
+                var ids = await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                    .AsNoTracking()
+                    .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
+                    .OrderBy(x => x.OrderNumber)
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                foreach (var id in ids)
+                    mainUIFormDTOList.Add(await Get{{extractedPropertyEntity.Name}}MainUIFormDTO(id, authorize));
+
+                return mainUIFormDTOList;
             });
         }
 """;
@@ -834,7 +902,7 @@ namespace {{basePartOfNamespace}}.Services
             string entityIdType = entity.GetIdType(entities);
 
             return $$"""
-{{GetSaveAndReturnSaveBodyDTOData(entity, entities)}}
+{{GetSaveAndReturnMainUIFormDTOData(entity, entities)}}
 
         public async Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO dto, bool authorizeUpdate, bool authorizeInsert)
         {
@@ -896,39 +964,40 @@ namespace {{basePartOfNamespace}}.Services
 """;
         }
 
-        private static string GetSaveAndReturnSaveBodyDTOData(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static string GetSaveAndReturnMainUIFormDTOData(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             return $$"""
-        public virtual async Task<{{entity.Name}}SaveBodyDTO> Save{{entity.Name}}AndReturnSaveBodyDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
+        public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                await OnBeforeSave{{entity.Name}}AndReturnSaveBodyDTO(saveBodyDTO);
+                await OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO);
 
                 var savedDTO = await Save{{entity.Name}}AndReturnDTO(saveBodyDTO.{{entity.Name}}DTO, authorizeUpdate, authorizeInsert);
 
-                await OnAfterSave{{entity.Name}}AndReturnSaveBodyDTO(savedDTO, saveBodyDTO);
+                await OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO(savedDTO, saveBodyDTO);
 
-{{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, entities))}}
-{{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, entities))}}
-{{string.Join("\n", GetSimpleManyToManyTableLazyLoad(entity, entities))}}
+{{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, allEntities))}}
+{{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, allEntities))}}
+{{string.Join("\n", GetSimpleManyToManyTableLazyLoad(entity, allEntities))}}
 
-                var result = new {{entity.Name}}SaveBodyDTO
+                var result = new {{entity.Name}}MainUIFormDTO
                 {
                     {{entity.Name}}DTO = savedDTO,
-{{string.Join(",\n", GetOrderedOneToManySaveBodyDTOVariables(entity, entities))}}
+{{string.Join(",\n", GetOrderedOneToManySaveBodyDTOVariables(entity, allEntities))}}
+{{GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(entity, allEntities)}}
                 };
 
                 return result;
             });
         }
 
-{{string.Join("\n", GetOrderedOneToManyUpdateMethods(entity, entities))}}
-{{string.Join("\n", GetSimpleManyToManyTableLazyLoadGetAllQueryHook(entity, entities))}}
+{{string.Join("\n", GetOrderedOneToManyUpdateMethods(entity, allEntities))}}
+{{string.Join("\n", GetSimpleManyToManyTableLazyLoadGetAllQueryHook(entity, allEntities))}}
 
-        protected virtual async Task OnBeforeSave{{entity.Name}}AndReturnSaveBodyDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) { }
+        protected virtual async Task OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) { }
 
-        protected virtual async Task OnAfterSave{{entity.Name}}AndReturnSaveBodyDTO({{entity.Name}}DTO savedDTO, {{entity.Name}}SaveBodyDTO saveBodyDTO) { }
+        protected virtual async Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}DTO savedDTO, {{entity.Name}}SaveBodyDTO saveBodyDTO) { }
 """;
         }
 
@@ -943,7 +1012,7 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                 result.Add($$"""
-                var saved{{property.Name}}DTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.{{property.Name}}DTO);
+                var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
 """);
             }
 
@@ -959,25 +1028,25 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                 result.Add($$"""
-                    {{property.Name}}DTO = saved{{property.Name}}DTO
+                    Ordered{{property.Name}}MainUIFormDTO = savedOrdered{{property.Name}}MainUIFormDTO
 """);
             }
 
             return result;
         }
 
-        private static List<string> GetOrderedOneToManyUpdateMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOrderedOneToManyUpdateMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                 result.Add($$"""
-        public async Task<List<{{extractedEntity.Name}}DTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, List<{{extractedEntity.Name}}DTO> orderedItemsDTO)
+        public async Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
         {
-            var orderedItemIds = orderedItemsDTO.Select(x => x.Id).ToList();
+            var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO.Id).ToList();
 
 {{GetOrderedOneToManyRequiredValidation(property, entity)}}
 
@@ -985,13 +1054,25 @@ namespace {{basePartOfNamespace}}.Services
             {
                 await _context.DbSet<{{extractedEntity.Name}}>().Where(x => x.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}.Id == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
 
-                var savedOrderedItemsDTO = new List<{{extractedEntity.Name}}DTO>();
+                var savedOrderedItemsDTO = new List<{{extractedEntity.Name}}MainUIFormDTO>();
 
                 for (int i = 0; i < orderedItemsDTO.Count; i++)
                 {
-                    orderedItemsDTO[i].{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
-                    orderedItemsDTO[i].OrderNumber = i + 1;
-                    savedOrderedItemsDTO.Add(await Save{{extractedEntity.Name}}AndReturnDTO(orderedItemsDTO[i], false, false));
+                    var saveBodyDTO = orderedItemsDTO[i];
+                    var DTO = saveBodyDTO.{{extractedEntity.Name}}DTO;
+
+                    DTO.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
+                    DTO.OrderNumber = i + 1;
+
+                    var savedDTO = await Save{{extractedEntity.Name}}AndReturnDTO(DTO, false, false);
+
+{{string.Join("\n", GetOrderedOneToManyUpdateVariables(extractedEntity, allEntities))}}
+
+                    savedOrderedItemsDTO.Add(new {{extractedEntity.Name}}MainUIFormDTO
+                    {
+                        {{extractedEntity.Name}}DTO = savedDTO,
+{{string.Join(",\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
+                    });
                 }
 
                 return savedOrderedItemsDTO;

@@ -542,7 +542,7 @@ import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+import { {{entityName}}MainUIForm, {{entityName}}SaveBody } from 'src/app/business/entities/business-entities.generated';
 import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
 import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
 
@@ -556,8 +556,9 @@ import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormServic
         {{entityName}}BaseDetailsComponent
     ]
 })
-export class {{entityName}}DetailsComponent extends BaseFormCopy implements OnInit {
-    {{entityName.FirstCharToLower()}}FormGroup = new SpiderlyFormGroup<{{entityName}}>({});
+export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}MainUIForm> implements OnInit {
+    override mainUIFormClass = {{entityName}}MainUIForm;
+    override saveBodyClass = {{entityName}}SaveBody;
 
     constructor(
         protected override differs: KeyValueDiffers,
@@ -593,10 +594,8 @@ export class {{entityName}}DetailsComponent extends BaseFormCopy implements OnIn
 
     <{{kebabEntityName}}-base-details
     [panelTitle]="t('{{entityName}}')"
-    [formGroup]="formGroup" 
-    [{{entityName.FirstCharToLower()}}FormGroup]="{{entityName.FirstCharToLower()}}FormGroup" 
+    [parentFormGroup]="parentFormGroup" 
     (onSave)="onSave()"
-    [getCrudMenuForOrderedData]="getCrudMenuForOrderedData"
     />
 
 </ng-container>
@@ -738,7 +737,7 @@ export class {{entityName}}ListComponent implements OnInit {
 
         <notification-base-details
         [showBigPanelTitle]="false"
-        [formGroup]="formGroup" 
+        [parentFormGroup]="parentFormGroup" 
         [notificationFormGroup]="notificationFormGroup" 
         (onSave)="onSave()"
         [isLastMultiplePanel]="true"
@@ -896,7 +895,7 @@ export class NotificationListComponent implements OnInit {
     <role-base-details 
     [panelTitle]="t('Role')"
     panelIcon="pi pi-id-card"
-    [formGroup]="formGroup" 
+    [parentFormGroup]="parentFormGroup" 
     [roleFormGroup]="roleFormGroup" 
     (onSave)="onSave()" 
     ></role-base-details>
@@ -1009,7 +1008,7 @@ export class RoleListComponent implements OnInit {
     <user-base-details
     [panelTitle]="t('Profile')"
     panelIcon="pi pi-user"
-    [formGroup]="formGroup" 
+    [parentFormGroup]="parentFormGroup" 
     [userFormGroup]="userFormGroup" 
     (onSave)="onSave()" 
     [showIsDisabledForUser]="showIsDisabledControl"

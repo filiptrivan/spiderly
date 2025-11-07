@@ -7,6 +7,7 @@ import {
 import { BaseControl } from './base-control';
 import { PrimengOption } from '../entities/primeng-option';
 import { TranslocoService } from '@jsverse/transloco';
+import { Namebook } from '../entities/namebook';
 
   @Component({
     selector: 'base-dropdown-control',
@@ -15,7 +16,7 @@ import { TranslocoService } from '@jsverse/transloco';
     standalone: false
 })
   export class BaseDropdownControl extends BaseControl {
-    @Input() options: PrimengOption[];
+    @Input() options: Namebook[];
     @Input() showAddon: boolean = false;
     @Input() addonIcon: string = 'pi pi-ellipsis-h';
     @Input() override placeholder: string = this.translocoService.translate('SelectFromTheList');
@@ -26,7 +27,7 @@ import { TranslocoService } from '@jsverse/transloco';
     ) {
       super(translocoService);
     }
-
+    
     dropdownMarkAsDirty(){
       this.control.markAsDirty();
     }

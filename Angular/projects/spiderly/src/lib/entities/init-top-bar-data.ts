@@ -24,7 +24,7 @@ export class InitTopBarData extends BaseEntity
         currentUser?: UserBase,
     } = {}
     ) {
-        super('InitTopBarData');
+        super();
 
         this.companyName = companyName;
         this.userProfilePath = userProfilePath;
@@ -32,4 +32,6 @@ export class InitTopBarData extends BaseEntity
         this.showProfileIcon = showProfileIcon;
         this.currentUser = currentUser;
     }
+
+    static readonly typeName = 'InitTopBarData' as const;
 }

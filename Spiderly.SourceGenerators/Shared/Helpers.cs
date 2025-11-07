@@ -770,7 +770,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             List<SpiderlyProperty> result = new();
 
-            result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}SaveBodyDTO" });
+            result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}SaveBodyDTO", IsSaveBodyMainDTO = true });
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
@@ -779,7 +779,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"{property.Name}DTO", Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
                 else if (
                     property.IsMultiSelectControlType() ||
@@ -812,11 +812,17 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}DTO", Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
                 else if (
-                    property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
+                    property.IsMultiSelectControlType()
+                )
+                {
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                }
+                else if (
+                    property.IsMultiAutocompleteControlType()
+                )
                 {
                     result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }

@@ -14,7 +14,7 @@
                                 {{t('AccountVerificationDescription', {email: email})}}
                             </div>
                             <div class="col-12">
-                                <spiderly-textbox [control]="control('verificationCode', verificationTokenRequestFormGroup)"></spiderly-textbox>
+                                <spiderly-textbox [control]="verificationTokenRequestFormGroup.getControl('verificationCode')"></spiderly-textbox>
                             </div>
                             <div class="col-12">
                                 <spiderly-button (onClick)="codeSubmit()" [label]="t('Submit')" icon="pi pi-verified" type="submit"></spiderly-button>

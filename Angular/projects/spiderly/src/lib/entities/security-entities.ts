@@ -4,407 +4,632 @@ import { Namebook } from "./namebook";
 
 export class UserBase extends BaseEntity
 {
+    static readonly typeName = 'UserBase' as const;
+
     id?: number;
-	email?: string;
+    email?: string;
 
     constructor(
     {
         id,
-		email,
+        email,
     }:{
         id?: number;
-		email?: string;
+        email?: string;
     } = {}
     ) {
-        super('UserBase'); 
+        super(); 
 
         this.id = id;
-		this.email = email;
+        this.email = email;
     }
+
+    static readonly schema = {
+        id: {
+            type: 'number',
+        },
+        email: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class RolePermission extends BaseEntity
 {
+    static readonly typeName = 'RolePermission' as const;
+
     roleDisplayName?: string;
-	roleId?: number;
-	permissionDisplayName?: string;
-	permissionId?: number;
+    roleId?: number;
+    permissionDisplayName?: string;
+    permissionId?: number;
 
     constructor(
     {
         roleDisplayName,
-		roleId,
-		permissionDisplayName,
-		permissionId
+        roleId,
+        permissionDisplayName,
+        permissionId
     }:{
         roleDisplayName?: string;
-		roleId?: number;
-		permissionDisplayName?: string;
-		permissionId?: number;     
+        roleId?: number;
+        permissionDisplayName?: string;
+        permissionId?: number;    
     } = {}
     ) {
-        super('RolePermission'); 
+        super(); 
 
         this.roleDisplayName = roleDisplayName;
-		this.roleId = roleId;
-		this.permissionDisplayName = permissionDisplayName;
-		this.permissionId = permissionId;
+        this.roleId = roleId;
+        this.permissionDisplayName = permissionDisplayName;
+        this.permissionId = permissionId;
     }
+
+    static readonly schema = {
+        roleDisplayName: {
+            type: 'string',
+        },
+        roleId: {
+            type: 'number',
+        },
+        permissionDisplayName: {
+            type: 'string',
+        },
+        permissionId: {
+            type: 'number',
+        },
+    } as const;
 }
 
 
 export class RolePermissionSaveBody extends BaseEntity
 {
+    static readonly typeName = 'RolePermissionSaveBody' as const;
+
     rolePermissionDTO?: RolePermission;
 
     constructor(
     {
         rolePermissionDTO
     }:{
-        rolePermissionDTO?: RolePermission;     
+        rolePermissionDTO?: RolePermission;    
     } = {}
     ) {
-        super('RolePermissionSaveBody'); 
+        super(); 
 
         this.rolePermissionDTO = rolePermissionDTO;
     }
+
+    static readonly schema = {
+        rolePermissionDTO: {
+            type: 'RolePermission',
+            get nestedConstructor() { return RolePermission; },
+        },
+    } as const;
 }
 
 
 export class AuthResult extends BaseEntity
 {
+    static readonly typeName = 'AuthResult' as const;
+
     userId?: number;
-	email?: string;
-	accessToken?: string;
-	refreshToken?: string;
+    email?: string;
+    accessToken?: string;
+    refreshToken?: string;
 
     constructor(
     {
         userId,
-		email,
-		accessToken,
-		refreshToken
+        email,
+        accessToken,
+        refreshToken
     }:{
         userId?: number;
-		email?: string;
-		accessToken?: string;
-		refreshToken?: string;     
+        email?: string;
+        accessToken?: string;
+        refreshToken?: string;    
     } = {}
     ) {
-        super('AuthResult'); 
+        super(); 
 
         this.userId = userId;
-		this.email = email;
-		this.accessToken = accessToken;
-		this.refreshToken = refreshToken;
+        this.email = email;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
     }
+
+    static readonly schema = {
+        userId: {
+            type: 'number',
+        },
+        email: {
+            type: 'string',
+        },
+        accessToken: {
+            type: 'string',
+        },
+        refreshToken: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class VerificationTokenRequest extends BaseEntity
 {
+    static readonly typeName = 'VerificationTokenRequest' as const;
+
     verificationCode?: string;
-	browserId?: string;
-	email?: string;
+    browserId?: string;
+    email?: string;
 
     constructor(
     {
         verificationCode,
-		browserId,
-		email
+        browserId,
+        email
     }:{
         verificationCode?: string;
-		browserId?: string;
-		email?: string;     
+        browserId?: string;
+        email?: string;    
     } = {}
     ) {
-        super('VerificationTokenRequest'); 
+        super(); 
 
         this.verificationCode = verificationCode;
-		this.browserId = browserId;
-		this.email = email;
+        this.browserId = browserId;
+        this.email = email;
     }
+
+    static readonly schema = {
+        verificationCode: {
+            type: 'string',
+        },
+        browserId: {
+            type: 'string',
+        },
+        email: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class ExternalProvider extends BaseEntity
 {
+    static readonly typeName = 'ExternalProvider' as const;
+
     idToken?: string;
-	browserId?: string;
+    browserId?: string;
 
     constructor(
     {
         idToken,
-		browserId
+        browserId
     }:{
         idToken?: string;
-		browserId?: string;     
+        browserId?: string;    
     } = {}
     ) {
-        super('ExternalProvider'); 
+        super(); 
 
         this.idToken = idToken;
-		this.browserId = browserId;
+        this.browserId = browserId;
     }
+
+    static readonly schema = {
+        idToken: {
+            type: 'string',
+        },
+        browserId: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class UserRole extends BaseEntity
 {
+    static readonly typeName = 'UserRole' as const;
+
     roleId?: number;
-	userId?: number;
+    userId?: number;
 
     constructor(
     {
         roleId,
-		userId
+        userId
     }:{
         roleId?: number;
-		userId?: number;     
+        userId?: number;    
     } = {}
     ) {
-        super('UserRole'); 
+        super(); 
 
         this.roleId = roleId;
-		this.userId = userId;
+        this.userId = userId;
     }
+
+    static readonly schema = {
+        roleId: {
+            type: 'number',
+        },
+        userId: {
+            type: 'number',
+        },
+    } as const;
 }
 
 
 export class UserRoleSaveBody extends BaseEntity
 {
+    static readonly typeName = 'UserRoleSaveBody' as const;
+
     userRoleDTO?: UserRole;
 
     constructor(
     {
         userRoleDTO
     }:{
-        userRoleDTO?: UserRole;     
+        userRoleDTO?: UserRole;    
     } = {}
     ) {
-        super('UserRoleSaveBody'); 
+        super(); 
 
         this.userRoleDTO = userRoleDTO;
     }
+
+    static readonly schema = {
+        userRoleDTO: {
+            type: 'UserRole',
+            get nestedConstructor() { return UserRole; },
+        },
+    } as const;
 }
 
 
 export class LoginVerificationToken extends BaseEntity
 {
+    static readonly typeName = 'LoginVerificationToken' as const;
+
     email?: string;
-	userId?: number;
-	browserId?: string;
-	expireAt?: Date;
+    userId?: number;
+    browserId?: string;
+    expireAt?: Date;
 
     constructor(
     {
         email,
-		userId,
-		browserId,
-		expireAt
+        userId,
+        browserId,
+        expireAt
     }:{
         email?: string;
-		userId?: number;
-		browserId?: string;
-		expireAt?: Date;     
+        userId?: number;
+        browserId?: string;
+        expireAt?: Date;    
     } = {}
     ) {
-        super('LoginVerificationToken'); 
+        super(); 
 
         this.email = email;
-		this.userId = userId;
-		this.browserId = browserId;
-		this.expireAt = expireAt;
+        this.userId = userId;
+        this.browserId = browserId;
+        this.expireAt = expireAt;
     }
+
+    static readonly schema = {
+        email: {
+            type: 'string',
+        },
+        userId: {
+            type: 'number',
+        },
+        browserId: {
+            type: 'string',
+        },
+        expireAt: {
+            type: 'Date',
+        },
+    } as const;
 }
 
 
 export class Login extends BaseEntity
 {
+    static readonly typeName = 'Login' as const;
+
     email?: string;
-	browserId?: string;
+    browserId?: string;
 
     constructor(
     {
         email,
-		browserId
+        browserId
     }:{
         email?: string;
-		browserId?: string;     
+        browserId?: string;    
     } = {}
     ) {
-        super('Login'); 
+        super(); 
 
         this.email = email;
-		this.browserId = browserId;
+        this.browserId = browserId;
     }
+
+    static readonly schema = {
+        email: {
+            type: 'string',
+        },
+        browserId: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class RefreshTokenRequest extends BaseEntity
 {
+    static readonly typeName = 'RefreshTokenRequest' as const;
+
     refreshToken?: string;
-	browserId?: string;
+    browserId?: string;
 
     constructor(
     {
         refreshToken,
-		browserId
+        browserId
     }:{
         refreshToken?: string;
-		browserId?: string;     
+        browserId?: string;    
     } = {}
     ) {
-        super('RefreshTokenRequest'); 
+        super(); 
 
         this.refreshToken = refreshToken;
-		this.browserId = browserId;
+        this.browserId = browserId;
     }
+
+    static readonly schema = {
+        refreshToken: {
+            type: 'string',
+        },
+        browserId: {
+            type: 'string',
+        },
+    } as const;
 }
 
 
 export class Role extends BaseEntity
 {
+    static readonly typeName = 'Role' as const;
+
     name?: string;
-	description?: string;
-	version?: number;
-	id?: number;
-	createdAt?: Date;
-	modifiedAt?: Date;
+    description?: string;
+    version?: number;
+    id?: number;
+    createdAt?: Date;
+    modifiedAt?: Date;
 
     constructor(
     {
         name,
-		description,
-		version,
-		id,
-		createdAt,
-		modifiedAt
+        description,
+        version,
+        id,
+        createdAt,
+        modifiedAt
     }:{
         name?: string;
-		description?: string;
-		version?: number;
-		id?: number;
-		createdAt?: Date;
-		modifiedAt?: Date;     
+        description?: string;
+        version?: number;
+        id?: number;
+        createdAt?: Date;
+        modifiedAt?: Date;    
     } = {}
     ) {
-        super('Role'); 
+        super(); 
 
         this.name = name;
-		this.description = description;
-		this.version = version;
-		this.id = id;
-		this.createdAt = createdAt;
-		this.modifiedAt = modifiedAt;
+        this.description = description;
+        this.version = version;
+        this.id = id;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
     }
+
+    static readonly schema = {
+        name: {
+            type: 'string',
+        },
+        description: {
+            type: 'string',
+        },
+        version: {
+            type: 'number',
+        },
+        id: {
+            type: 'number',
+        },
+        createdAt: {
+            type: 'Date',
+        },
+        modifiedAt: {
+            type: 'Date',
+        },
+    } as const;
 }
 
 
 export class RoleMainUIForm extends BaseEntity
 {
+    static readonly typeName = 'RoleMainUIForm' as const;
+
     roleDTO?: Role;
-	usersNamebookDTOList?: Namebook[];
-	permissionsNamebookDTOList?: Namebook[];
+    usersNamebookDTOList?: Namebook[];
+    permissionsIds?: number[];
 
     constructor(
     {
         roleDTO,
-        usersNamebookDTOList,
-        permissionsNamebookDTOList
+        usersNamebookDTOList = [],
+        permissionsIds = []
     }:{
         roleDTO?: Role;
         usersNamebookDTOList?: Namebook[];
-        permissionsNamebookDTOList?: Namebook[];     
+        permissionsIds?: number[];    
     } = {}
     ) {
-        super('RoleMainUIForm'); 
+        super(); 
 
         this.roleDTO = roleDTO;
         this.usersNamebookDTOList = usersNamebookDTOList;
-        this.permissionsNamebookDTOList = permissionsNamebookDTOList;
+        this.permissionsIds = permissionsIds;
     }
+
+    static readonly schema = {
+        roleDTO: {
+            type: 'Role',
+            get nestedConstructor() { return Role; },
+            isMainDTOForMainUIFormDTO: true,
+        },
+        usersNamebookDTOList: {
+            type: 'Namebook[]',
+            get nestedConstructor() { return Namebook; },
+        },
+        permissionsIds: {
+            type: 'number[]',
+        },
+    } as const;
 }
 
 export class RoleSaveBody extends BaseEntity
 {
+    static readonly typeName = 'RoleSaveBody' as const;
+
     roleDTO?: Role;
-	selectedPermissionsIds?: number[];
-	selectedUsersIds?: number[];
+    selectedPermissionsIds?: number[];
+    selectedUsersIds?: number[];
 
     constructor(
     {
         roleDTO,
-		selectedPermissionsIds,
-		selectedUsersIds
+        selectedPermissionsIds = [],
+        selectedUsersIds = []
     }:{
         roleDTO?: Role;
-		selectedPermissionsIds?: number[];
-		selectedUsersIds?: number[];     
+        selectedPermissionsIds?: number[];
+        selectedUsersIds?: number[];    
     } = {}
     ) {
-        super('RoleSaveBody'); 
+        super(); 
 
         this.roleDTO = roleDTO;
-		this.selectedPermissionsIds = selectedPermissionsIds;
-		this.selectedUsersIds = selectedUsersIds;
+        this.selectedPermissionsIds = selectedPermissionsIds;
+        this.selectedUsersIds = selectedUsersIds;
     }
+
+    static readonly schema = {
+        roleDTO: {
+            type: 'Role',
+            get nestedConstructor() { return Role; },
+            isSaveBodyMainDTO: true,
+        },
+        selectedPermissionsIds: {
+            type: 'number[]',
+        },
+        selectedUsersIds: {
+            type: 'number[]',
+        },
+    } as const;
 }
 
 
 export class Permission extends BaseEntity
 {
+    static readonly typeName = 'Permission' as const;
+
     name?: string;
-	nameLatin?: string;
-	description?: string;
-	descriptionLatin?: string;
-	code?: string;
-	id?: number;
+    nameLatin?: string;
+    description?: string;
+    descriptionLatin?: string;
+    code?: string;
+    id?: number;
 
     constructor(
     {
         name,
-		nameLatin,
-		description,
-		descriptionLatin,
-		code,
-		id
+        nameLatin,
+        description,
+        descriptionLatin,
+        code,
+        id
     }:{
         name?: string;
-		nameLatin?: string;
-		description?: string;
-		descriptionLatin?: string;
-		code?: string;
-		id?: number;     
+        nameLatin?: string;
+        description?: string;
+        descriptionLatin?: string;
+        code?: string;
+        id?: number;    
     } = {}
     ) {
-        super('Permission'); 
+        super(); 
 
         this.name = name;
-		this.nameLatin = nameLatin;
-		this.description = description;
-		this.descriptionLatin = descriptionLatin;
-		this.code = code;
-		this.id = id;
+        this.nameLatin = nameLatin;
+        this.description = description;
+        this.descriptionLatin = descriptionLatin;
+        this.code = code;
+        this.id = id;
     }
+
+    static readonly schema = {
+        name: {
+            type: 'string',
+        },
+        nameLatin: {
+            type: 'string',
+        },
+        description: {
+            type: 'string',
+        },
+        descriptionLatin: {
+            type: 'string',
+        },
+        code: {
+            type: 'string',
+        },
+        id: {
+            type: 'number',
+        },
+    } as const;
 }
 
 
 export class PermissionSaveBody extends BaseEntity
 {
+    static readonly typeName = 'PermissionSaveBody' as const;
+
     permissionDTO?: Permission;
 
     constructor(
     {
         permissionDTO
     }:{
-        permissionDTO?: Permission;     
+        permissionDTO?: Permission;    
     } = {}
     ) {
-        super('PermissionSaveBody'); 
+        super(); 
 
         this.permissionDTO = permissionDTO;
     }
-}
 
+    static readonly schema = {
+        permissionDTO: {
+            type: 'Permission',
+            get nestedConstructor() { return Permission; },
+        },
+    } as const;
+}

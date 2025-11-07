@@ -15,9 +15,11 @@ export class Codebook extends BaseEntity
         displayName?: string;
     } = {}
     ) {
-        super('Namebook');
+        super();
 
         this.code = code;
         this.displayName = displayName;
     }
+
+    static readonly typeName = 'Codebook' as const;
 }

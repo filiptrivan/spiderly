@@ -14,9 +14,11 @@ export class LazyLoadSelectedIdsResult extends BaseEntity
         totalRecordsSelected?: number;
     } = {}
     ) {
-        super('LazyLoadSelectedIdsResult');
+        super();
 
         this.selectedIds = selectedIds;
         this.totalRecordsSelected = totalRecordsSelected;
     }
+
+    static readonly typeName = 'LazyLoadSelectedIdsResult' as const;
 }

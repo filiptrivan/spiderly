@@ -143,9 +143,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpPut]
         [AuthGuard]
-        public async Task<RoleSaveBodyDTO> SaveRole(RoleSaveBodyDTO saveBodyDTO)
+        public async Task<RoleMainUIFormDTO> SaveRole(RoleSaveBodyDTO saveBodyDTO)
         {
-            return await _securityBusinessService.SaveRoleAndReturnSaveBodyDTO(saveBodyDTO, true, true);
+            return await _securityBusinessService.SaveRoleAndReturnMainUIFormDTO(saveBodyDTO, true, true);
         }
 
         [HttpGet]

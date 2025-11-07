@@ -11,8 +11,10 @@ export class LastMenuIconIndexClicked extends BaseEntity
         index?: number;
     } = {}
     ) {
-        super('LastMenuIconIndexClicked'); 
+        super(); 
 
         this.index = index;
     }
+
+    static readonly typeName = 'LastMenuIconIndexClicked' as const;
 }

@@ -1,13 +1,13 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { BaseControl } from '../base-control';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { RequiredComponent } from '../../components/required/required.component';
 import { CommonModule } from '@angular/common';
-import { FileSelectEvent, FileUploadModule } from 'primeng/fileupload';
-import { getMimeTypeForFileName, isExcelFileType, isImageFileType } from '../../services/helper-functions';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { BaseEntity } from '../../entities/base-entity';
+import { FileSelectEvent, FileUploadModule } from 'primeng/fileupload';
+import { RequiredComponent } from '../../components/required/required.component';
 import { SpiderlyButtonComponent } from '../../components/spiderly-buttons/spiderly-button/spiderly-button.component';
+import { BaseEntity } from '../../entities/base-entity';
+import { getMimeTypeForFileName, isExcelFileType, isImageFileType } from '../../services/helper-functions';
+import { BaseControl } from '../base-control';
 
 @Component({
     selector: 'spiderly-file',
@@ -45,6 +45,10 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
         if (this.control?.value != null && this.fileData != null) {
             const file = this.base64ToFile(this.fileData);
             this.files.push(file);
+        }
+
+        if (!this.objectId) {
+            this.objectId = 0;
         }
 
         this.acceptedFileTypesCommaSeparated = this.acceptedFileTypes.join(',');
@@ -114,9 +118,11 @@ export class SpiderlyFileSelectEvent extends BaseEntity
         formData?: FormData;
     } = {}
     ) {
-        super('SpiderlyFileSelectEvent'); 
+        super(); 
 
         this.file = file;
         this.formData = formData;
     }
+
+    static readonly typeName = 'SpiderlyFileSelectEvent' as const;
 }

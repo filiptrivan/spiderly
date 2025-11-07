@@ -5,16 +5,16 @@
         <panel-body>
             <form *ngIf="loading === false" class="grid"> <!-- FT: Don't put @deffer it's not working as expected -->
                 <div class="col-12">
-                    <spiderly-textbox [control]="control('name', roleFormGroup)"></spiderly-textbox>
+                    <spiderly-textbox [control]="parentFormGroup.controls.roleDTO.getControl('name')"></spiderly-textbox>
                 </div>
                 <div class="col-12">
-                    <spiderly-textarea [control]="control('description', roleFormGroup)"></spiderly-textarea>
+                    <spiderly-textarea [control]="parentFormGroup.controls.roleDTO.getControl('description')"></spiderly-textarea>
                 </div>
                 <div class="col-12">
-                    <spiderly-multiautocomplete [control]="selectedUsersForRole" [options]="usersForRoleOptions" (onTextInput)="searchUsersForRole($event)" [label]="t('Users')"></spiderly-multiautocomplete>
+                    <spiderly-multiautocomplete [control]="parentFormGroup.controls.usersNamebookDTOList" [options]="usersForRoleOptions" (onTextInput)="searchUsersForRole($event)" [label]="t('Users')"></spiderly-multiautocomplete>
                 </div>
                 <div class="col-12">
-                    <spiderly-multiselect [control]="selectedPermissionsForRole" [options]="permissionsForRoleOptions" [label]="t('Permissions')"></spiderly-multiselect>
+                    <spiderly-multiselect [control]="parentFormGroup.controls.permissionsIds" [options]="permissionsForRoleOptions" [label]="t('Permissions')"></spiderly-multiselect>
                 </div>
             </form>
 

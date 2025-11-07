@@ -1,8 +1,8 @@
 import {
-    Component, Input,
-  } from '@angular/core';
-import { SpiderlyFormControl } from '../components/spiderly-form-control/spiderly-form-control';
+  Component, Input,
+} from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
+import { SpiderlyFormControl } from '../components/spiderly-form-control/spiderly-form-control';
   
   @Component({
     selector: 'base-control',
@@ -11,7 +11,7 @@ import { TranslocoService } from '@jsverse/transloco';
     standalone: false
 })
   export class BaseControl {
-    @Input() control: SpiderlyFormControl; // If you name it formControl: https://stackoverflow.com/a/54755671/21209982
+    @Input() control: SpiderlyFormControl<any>; // If you name it formControl: https://stackoverflow.com/a/54755671/21209982
     @Input() disabled: boolean = false;
     @Input() showLabel: boolean = true;
     @Input() showRequired: boolean = true;

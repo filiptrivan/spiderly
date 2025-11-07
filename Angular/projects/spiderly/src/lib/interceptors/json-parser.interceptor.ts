@@ -15,39 +15,17 @@ export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
   ));
 }
 
-/**
- * @see https://stackoverflow.com/a/54733846/1306679
- */
-const convertToDate = (
-  object: unknown,
-  parent?: Record<string, unknown> | unknown[],
-  key?: number | string,
-) => {
-  const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-
-  if (object === null) return;
-
-  if (typeof object === 'string') {
-    if (dateRegex.test(object)) {
-      const date = new Date(object);
-      parent[key] = date;
-    }
-  } else if (Array.isArray(object)) {
-    for (let i = 0; i < object.length; i++)
-      convertToDate(object[i], object, i);
-  } else {
-    for (const key of Object.keys(object as Record<string, unknown>)) {
-      convertToDate(
-        (object as Record<string, unknown>)[key],
-        object as Record<string, unknown>,
-        key,
-      );
-    }
-  }
-}
-
 const convertToISOString = (obj: unknown): unknown => {
-  if (obj === null || obj === undefined) return obj;
+  if (
+    obj === null || 
+    obj === undefined ||
+    obj instanceof FormData || 
+    obj instanceof Blob || 
+    obj instanceof File ||
+    obj instanceof ArrayBuffer
+  ) {
+    return obj;
+  }
 
   if (Array.isArray(obj)) {
     return obj.map(item => convertToISOString(item));
@@ -67,3 +45,34 @@ const convertToISOString = (obj: unknown): unknown => {
 
   return obj;
 };
+
+/**
+ * @see https://stackoverflow.com/a/54733846/1306679
+ */
+const convertToDate = (
+  object: unknown,
+  parent?: Record<string, unknown> | unknown[],
+  key?: number | string,
+) => {
+  if (object === null) return;
+  
+  const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
+  if (typeof object === 'string') {
+    if (dateRegex.test(object)) {
+      const date = new Date(object);
+      parent[key] = date;
+    }
+  } else if (Array.isArray(object)) {
+    for (let i = 0; i < object.length; i++)
+      convertToDate(object[i], object, i);
+  } else {
+    for (const key of Object.keys(object as Record<string, unknown>)) {
+      convertToDate(
+        (object as Record<string, unknown>)[key],
+        object as Record<string, unknown>,
+        key,
+      );
+    }
+  }
+}
