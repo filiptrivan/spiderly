@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Spiderly.Shared
+﻿namespace Spiderly.Shared
 {
     public static class SettingsProvider
     {
@@ -40,6 +34,10 @@ namespace Spiderly.Shared
 
         public string SpiderlySecretLicenseToken { get; set; }
         public string SpiderlyPublicLicenseKey { get; } = @"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq58peHBU8tzIXs8WEhUVKKWQ6ZadWRAnzm1UwkGEoAIcz0uObTXuBqeh4WvDIRwnqUrhZ0s7wCuuujwH7bm7aw==";
+
+        public string CloudinaryCloudName { get; set; }
+        public string CloudinaryApiKey { get; set; }
+        public string CloudinaryApiSecret { get; set; }
 
     }
 }

@@ -61,6 +61,7 @@ namespace Spiderly.SourceGenerators.Net
             string projectName = Helpers.GetProjectName(namespaceValue);
 
             bool isSecurityProject = projectName == "Security";
+            bool shouldGenerateCloudinaryStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasCloudinaryPublicIdAttribute()));
 
             string result = $$"""
 {{GetUsings(basePartOfNamespace, projectName)}}
@@ -73,12 +74,14 @@ namespace {{basePartOfNamespace}}.Services
         private readonly ExcelService _excelService;
         {{(isSecurityProject ? "private readonly AuthorizationBusinessService<TUser> _authorizationService;" : "private readonly AuthorizationBusinessService _authorizationService;")}}
         private readonly IFileManager _fileManager;
+        {{(shouldGenerateCloudinaryStorageService ? "private readonly CloudinaryStorageService _cloudinaryStorageService;" : "")}}
 
         public BusinessServiceGenerated(
             IApplicationDbContext context, 
             ExcelService excelService, 
             {{(isSecurityProject ? "AuthorizationBusinessService<TUser> authorizationService" : "AuthorizationBusinessService authorizationService")}}, 
             IFileManager fileManager
+            {{(shouldGenerateCloudinaryStorageService ? ", CloudinaryStorageService cloudinaryStorageService" : "")}}
         )
             : base(context)
         {
@@ -86,6 +89,7 @@ namespace {{basePartOfNamespace}}.Services
             _excelService = excelService;
             _authorizationService = authorizationService;
             _fileManager = fileManager;
+            {{(shouldGenerateCloudinaryStorageService ? "_cloudinaryStorageService = cloudinaryStorageService;" : "")}}
         }
 
 {{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities, projectName))}}
@@ -192,7 +196,7 @@ namespace {{basePartOfNamespace}}.Services
                 if (dto == null)
                     throw new BusinessException(SharedTerms.EntityDoesNotExistInDatabase);
 
-{{GetPopulateDTOWithBlobPartsForDTO(entity, entity.Properties)}}
+{{GetPopulateDTOWithBlobPartsForDTO(entity.Properties)}}
 
                 return dto;
             });
@@ -226,7 +230,7 @@ namespace {{basePartOfNamespace}}.Services
                     {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
                 }
 
-{{GetPopulateDTOWithBlobPartsForDTOList(entity, entity.Properties)}}
+{{GetPopulateDTOWithBlobPartsForDTOList(entity.Properties)}}
             });
 
             return new PaginatedResultDTO<{{entity.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
@@ -283,7 +287,7 @@ namespace {{basePartOfNamespace}}.Services
                     {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
                 }
 
-{{GetPopulateDTOWithBlobPartsForDTOList(entity, entity.Properties)}}
+{{GetPopulateDTOWithBlobPartsForDTOList(entity.Properties)}}
 
                 return dtoList;
             });
@@ -368,7 +372,7 @@ namespace {{basePartOfNamespace}}.Services
             return projectName == "Security" ? "SharedTerms" : "TermsGenerated";
         }
 
-        private static string GetPopulateDTOWithBlobPartsForDTO(SpiderlyClass entityClass, List<SpiderlyProperty> propertiesEntityClass)
+        private static string GetPopulateDTOWithBlobPartsForDTO(List<SpiderlyProperty> propertiesEntityClass)
         {
             List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
 
@@ -376,11 +380,11 @@ namespace {{basePartOfNamespace}}.Services
                 return null;
 
             return $$"""
-                {{string.Join("\n", blobParts)}}
+{{string.Join("\n", blobParts)}}
 """;
         }
 
-        private static string GetPopulateDTOWithBlobPartsForDTOList(SpiderlyClass entityClass, List<SpiderlyProperty> propertiesEntityClass)
+        private static string GetPopulateDTOWithBlobPartsForDTOList(List<SpiderlyProperty> propertiesEntityClass)
         {
             List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
 
@@ -388,9 +392,9 @@ namespace {{basePartOfNamespace}}.Services
                 return null;
 
             return $$"""
-                foreach ({{entityClass.Name}}DTO dto in dtoList)
+                foreach (var dto in dtoList)
                 {
-                    {{string.Join("\n", blobParts)}}
+{{string.Join("\n", blobParts)}}
                 }
 """;
         }
@@ -406,7 +410,7 @@ namespace {{basePartOfNamespace}}.Services
                 blobParts.Add($$"""
                     if (!string.IsNullOrEmpty(dto.{{property.Name}}))
                     {
-                        dto.{{property.Name}}Data = await _fileManager.GetFileDataAsync(dto.{{property.Name}});
+                        dto.{{property.Name}}Data = await {{GetFileManagerServiceField(property)}}.GetFileDataAsync(dto.{{property.Name}});
                     }
 """);
             }
@@ -778,7 +782,7 @@ namespace {{basePartOfNamespace}}.Services
                     {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"dtoList.Select(x => ({entity.GetIdType(allEntityClasses)})x.{m2mProperty.Name}Id).ToList()")}}
                 }
 
-{{GetPopulateDTOWithBlobPartsForDTOList(entity, entity.Properties)}}
+{{GetPopulateDTOWithBlobPartsForDTOList(entity.Properties)}}
             });
 
             return new PaginatedResultDTO<{{listEntitty.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
@@ -904,13 +908,17 @@ namespace {{basePartOfNamespace}}.Services
             return $$"""
 {{GetSaveAndReturnMainUIFormDTOData(entity, entities)}}
 
-        public async Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO dto, bool authorizeUpdate, bool authorizeInsert)
+        public async Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                var poco = await Save{{entity.Name}}(dto, authorizeUpdate, authorizeInsert);
+                var poco = await Save{{entity.Name}}(saveDTO, authorizeUpdate, authorizeInsert);
 
-                return poco.Adapt<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ToDTOConfig());
+                var dto = poco.Adapt<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ToDTOConfig());
+
+{{GetPopulateDTOWithBlobPartsForDTO(entity.Properties)}}
+
+                return dto;
             });
         }
 
@@ -1232,7 +1240,7 @@ namespace {{basePartOfNamespace}}.Services
             foreach (SpiderlyProperty property in blobProperies)
             {
                 result.Add($$"""
-                await _fileManager.DeleteNonActiveBlobs(dto.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
+                await {{GetFileManagerServiceField(property)}}.DeleteNonActiveBlobs(dto.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
 """);
             }
 
@@ -1267,7 +1275,7 @@ namespace {{basePartOfNamespace}}.Services
 
             using Stream stream = file.OpenReadStream();
 
-            string fileName = await _fileManager.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), {{entity.Name.FirstCharToLower()}}Id.ToString(), stream);
+            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), {{entity.Name.FirstCharToLower()}}Id.ToString(), stream);
 
             return fileName;
         }
@@ -1539,6 +1547,14 @@ using Microsoft.AspNetCore.Http;
         {
             string methodName = Helpers.GetAuthorizeEntityMethodName(entityName, crudCode);
             return $"await _authorizationService.{methodName}({parametersBody});";
+        }
+
+        private static string GetFileManagerServiceField(SpiderlyProperty property)
+        {
+            if (property.HasCloudinaryPublicIdAttribute())
+                return "_cloudinaryStorageService";
+
+            return "_fileManager";
         }
 
         #endregion

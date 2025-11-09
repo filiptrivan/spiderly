@@ -386,6 +386,11 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "UIDoNotGenerate");
         }
 
+        public static bool HasCloudinaryPublicIdAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "CloudinaryPublicId");
+        }
+
         #endregion
 
         #region IsControlType

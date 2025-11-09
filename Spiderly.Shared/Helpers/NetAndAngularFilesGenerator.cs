@@ -5155,6 +5155,7 @@ export class LayoutComponent {
 **/*.suo
 **/*.pdb
 **/appsettings*.json
+**/FileStorage
 
 # Angular
 **/dist/

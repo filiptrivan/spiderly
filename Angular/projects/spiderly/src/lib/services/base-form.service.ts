@@ -38,7 +38,7 @@ export class BaseFormService {
       let control: SpiderlyFormControl | SpiderlyFormGroup<any> | SpiderlyFormArray<any>;
       
       const propSchema = targetClass.schema[formControlName];
-      const propInitialValue = initialValues[formControlName];
+      let propInitialValue = initialValues[formControlName];
       
       if (
         propSchema.type.endsWith('[]') &&
@@ -67,6 +67,14 @@ export class BaseFormService {
           control = new SpiderlyFormControl(propInitialValue, { updateOn: 'change' });
         }
         else{
+          // HACK: Because on the backend id type is not nullable on generated DTOs, we need to do this, it's ugly hack and we should make it better.
+          if (
+            formControlName === 'id' && 
+            !propInitialValue
+          ) {
+            propInitialValue = 0;
+          }
+
           control = new SpiderlyFormControl(propInitialValue, { updateOn: 'blur' });
         }
   
@@ -188,7 +196,7 @@ export class BaseFormService {
       const value = mainUIFormValues[propName];
       
       // Handle ordered one-to-many (e.g., "orderedItemsMainUIFormDTO" -> "orderedItemsSaveBodyDTO")
-      if (propName.startsWith('Ordered') && propName.endsWith('MainUIFormDTO')) {
+      if (propName.startsWith('ordered') && propName.endsWith('MainUIFormDTO')) {
         const newKey = propName.replace('MainUIFormDTO', 'SaveBodyDTO');
         // Recursively map nested DTOs
         const relatedEntity = property.nestedConstructor;

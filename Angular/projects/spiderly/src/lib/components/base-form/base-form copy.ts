@@ -62,10 +62,9 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
 
     this.saveBody = this.saveBody ?? this.parentFormGroup.getRawValue();
 
-    let isValid: boolean = this.areFormGroupsFromParentFormGroupValid();
-    let isFormArrayValid: boolean = this.areFormArraysValid();
+    const isValid = this.isControlValid(this.parentFormGroup);
 
-    if(isValid && isFormArrayValid){
+    if(isValid){
       this.parentFormGroup.saveObservableMethod(this.saveBody).subscribe(res => {
         this.messageService.successMessage(this.successfulSaveToastDescription);
 
@@ -106,33 +105,36 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
   onAfterSave = () => {}
   onAfterSaveRequest = () => {}
 
-  areFormGroupsFromParentFormGroupValid(): boolean {
-    if(this.parentFormGroup.controls == null)
-      return true;
+  isControlValid(
+    control: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray, 
+    controlNamesFromHtml?: string[]
+  ): boolean {
+    let invalid = false;
 
-    let invalid: boolean = false;
-
-    Object.keys(this.parentFormGroup.controls).forEach(key => {
-      const formGroupOrControl = this.parentFormGroup.controls[key];
-
-      if (formGroupOrControl instanceof SpiderlyFormGroup){
-        Object.keys(formGroupOrControl.controls).forEach(key => {
-          const formControl = formGroupOrControl.controls[key] as SpiderlyFormControl; // this.formArray.markAsDirty(); // FT: For some reason this doesnt work
-
-          if (formGroupOrControl.controlNamesFromHtml.includes(formControl.label) && formControl.invalid) {
-            formControl.markAsDirty();
-            invalid = true;
-          }
-        });
-      }
-      else if (formGroupOrControl instanceof SpiderlyFormControl){
-        if (formGroupOrControl.invalid) {
-          formGroupOrControl.markAsDirty();
+    if (control instanceof SpiderlyFormControl) {
+      if (
+        control.invalid &&
+        (controlNamesFromHtml == null || controlNamesFromHtml?.includes(control.label))
+      ) {
+          control.markAsDirty();
           invalid = true;
         }
-      }
-
-    });
+    }
+    else if (control instanceof SpiderlyFormGroup) {
+      Object.keys(control.controls).forEach(key => {
+        const nestedControl = control.controls[key];
+        if (!this.isControlValid(nestedControl, control.controlNamesFromHtml)) {
+          invalid = true;
+        }
+      });
+    }
+    else if (control instanceof SpiderlyFormArray){
+      control.controls.forEach((nestedControl: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray) => {
+        if (!this.isControlValid(nestedControl)) {
+          invalid = true;
+        }
+      });
+    }
 
     if (invalid) {
       return false;
@@ -146,8 +148,8 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
   //#region Model List
   
   getFormArrayControlByIndex<T>(formControlName: keyof T & string, formArray: SpiderlyFormArray<T>, index: number, filter?: (formGroups: SpiderlyFormGroup<T>[]) => SpiderlyFormGroup<T>[]): SpiderlyFormControl {
-    if(formArray.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
-      formArray.controlNamesFromHtml.push(formControlName);
+    // if(formArray.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
+    //   formArray.controlNamesFromHtml.push(formControlName);
 
     let filteredFormGroups: SpiderlyFormGroup<T>[];
 
@@ -162,8 +164,8 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
   }
 
   getFormArrayControls<T>(formControlName: keyof T & string, formArray: SpiderlyFormArray<T>, filter?: (formGroups: SpiderlyFormGroup<T>[]) => SpiderlyFormGroup<T>[]): SpiderlyFormControl[] {
-    if(formArray.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
-      formArray.controlNamesFromHtml.push(formControlName);
+    // if(formArray.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
+    //   formArray.controlNamesFromHtml.push(formControlName);
 
     let filteredFormGroups: SpiderlyFormGroup<T>[];
 
@@ -186,44 +188,6 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
         formArray.removeAt(index);
       }
     });
-  }
-
-  areFormArraysValid(): boolean {
-    if(this.parentFormGroup.controls == null)
-      return true;
-
-    let invalid: boolean = false;
-
-    Object.keys(this.parentFormGroup.controls).forEach(key => {
-      const formArray = this.parentFormGroup.controls[key] as unknown as SpiderlyFormArray;
-      
-      if (formArray instanceof SpiderlyFormArray){
-        (formArray.controls as SpiderlyFormGroup[]).forEach(formGroup => {
-          Object.keys(formGroup.controls).forEach(key => {
-            const formControl = formGroup.controls[key] as SpiderlyFormControl; // this.formArray.markAsDirty(); // FT: For some reason this doesn't work
-
-            if (
-              (formGroup.controlNamesFromHtml.includes(formControl.label) || formArray.controlNamesFromHtml.includes(formControl.label)) && 
-              formControl.invalid
-            ) {
-              formControl.markAsDirty();
-              invalid = true;
-            }
-          });
-        });
-
-        if (formArray.required == true && formArray.length == 0) {
-          invalid = true;
-          this.messageService.warningMessage(this.translocoService.translate('ListCanNotBeEmpty'));
-        }
-      }
-    });
-
-    if (invalid) {
-      return false;
-    }
-
-    return true;
   }
 
   //#endregion
