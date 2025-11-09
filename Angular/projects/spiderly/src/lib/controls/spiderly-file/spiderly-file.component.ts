@@ -31,7 +31,8 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     @Input() acceptedFileTypes: Array<'image/*' | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' | 'application/vnd.ms-excel' | '.xlsx' | '.xls'> = ['image/*'];
     @Input() required: boolean; // It's okay for this control, because for the custom uploads where we are not initializing the control from the backend, there is no need for formControl.
     @Input() multiple: boolean = false;
-    
+    @Input() isCloudinaryFileData: boolean = true;
+
     acceptedFileTypesCommaSeparated: string;
     @Input() files: File[] = [];
 
@@ -43,8 +44,13 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
 
     override ngOnInit(){
         if (this.control?.value != null && this.fileData != null) {
-            const file = this.base64ToFile(this.fileData);
-            this.files.push(file);
+            if (this.isCloudinaryFileData) {
+                this.pushFileFromCloudinaryUrl(this.fileData);
+            }
+            else{
+                const file = this.getFileFromBase64(this.fileData);
+                this.files.push(file);
+            }
         }
 
         if (!this.objectId) {
@@ -76,7 +82,28 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     }
 
     // Put inside global functions if you need it
-    base64ToFile(base64String: string){
+    async pushFileFromCloudinaryUrl(cloudinaryUrl: string) {
+        const response = await fetch(cloudinaryUrl);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch file from Cloudinary: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+
+        const urlParts = cloudinaryUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        const fileName = lastPart.split('?')[0];
+
+        const file = new File([blob], fileName, { type: blob.type });
+
+        this.files = [...this.files, file]; // this.files.push(file); doesn't work
+
+        return file;
+    }
+
+    // Put inside global functions if you need it
+    getFileFromBase64(base64String: string){
         const [header, base64Content] = base64String.split(';base64,');
         const fileName = header.split('=')[1];
         const mimeType = getMimeTypeForFileName(fileName);

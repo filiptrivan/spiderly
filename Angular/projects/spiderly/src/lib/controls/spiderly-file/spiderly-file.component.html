@@ -24,7 +24,7 @@
                 </div>
             </ng-template>
             <ng-template pTemplate="content" let-files let-removeFileCallback="removeFileCallback">
-                <div *ngIf="files?.length > 0">
+                <div *ngIf="files.length > 0">
                     <div class="flex justify-content-center p-0 gap-5">
                         <div *ngFor="let file of files; let index = index" class="card m-0 px-3 py-3 flex flex-column align-items-center gap-3" style="justify-content: center; overflow: hidden;">
                             <div *ngIf="isImageFileType(file.type)" class="image-container">

@@ -71,16 +71,16 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
     public controlNamesFromHtml?: string[] = [];
 
     public getControl = (formControlName: string & keyof TValue) => {
-    if(this.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
-      this.controlNamesFromHtml.push(formControlName);
+        if(this.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
+            this.controlNamesFromHtml.push(formControlName);
 
-    let formControl = this.controls[formControlName];
-    if (formControl == null) {
-      console.error(`Spiderly: The property ${formControlName} in the form group ${this.targetClass.typeName} doesn't exist`);
-      return null;
-    }
-  
-    return formControl;
+        let formControl = this.controls[formControlName];
+        if (formControl == null) {
+            console.error(`Spiderly: The property ${formControlName} in the form group ${this.targetClass.typeName} doesn't exist`);
+            return null;
+        }
+    
+        return formControl;
     }
 }
 
@@ -99,7 +99,6 @@ export class SpiderlyFormArray<TValue extends BaseEntity = any> extends FormArra
     public required: boolean;
     public formGroupInitialValues: Partial<TValue> = {};
     public targetClass: SchemaAwareConstructor<TValue>;
-    public controlNamesFromHtml?: string[] = [];
     public lastMenuIconIndexClicked: number;
 
     public getCrudMenuForOrderedData = () => {

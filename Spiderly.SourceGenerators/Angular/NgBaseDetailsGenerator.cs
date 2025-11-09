@@ -253,7 +253,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                 });
             }
             else{
-                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, new {{entity.Name}}MainUIForm({{{entity.Name.FirstCharToLower()}}DTO: new {{entity.Name}}({id: 0})}));
+                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm);
                 this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
                 this.loading = false;
                 this.onAfterFormGroupInit.next();
@@ -1084,7 +1084,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute()}\" ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
