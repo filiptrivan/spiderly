@@ -331,6 +331,11 @@ namespace Spiderly.SourceGenerators.Shared
             return entity.Attributes.Any(x => x.Name == "DoNotAuthorize");
         }
 
+        public static bool HasM2MAttribute(this SpiderlyClass entity)
+        {
+            return entity.Attributes.Any(x => x.Name == "M2M");
+        }
+
         public static bool HasRequiredAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "Required");

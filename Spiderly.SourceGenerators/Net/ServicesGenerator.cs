@@ -24,12 +24,6 @@ namespace Spiderly.SourceGenerators.Net
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            //#if DEBUG
-            //            if (!Debugger.IsAttached)
-            //            {
-            //                Debugger.Launch();
-            //            }
-            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
@@ -537,10 +531,9 @@ namespace {{basePartOfNamespace}}.Services
             foreach (SpiderlyProperty oneToManyProperty in entity.Properties.Where(prop => prop.Type.IsOneToManyType())) // List<Role> Roles
             {
                 SpiderlyClass extractedPropertyEntity = allEntityClasses.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)).Single(); // Role
-
                 string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(allEntityClasses); // int
 
-                if (extractedPropertyEntityIdType == null) // Complex M2M List
+                if (extractedPropertyEntity.HasM2MAttribute()) // Complex M2M List
                 {
                     if (oneToManyProperty.HasComplexManyToManyReadonlyTableAttribute())
                     {
@@ -563,8 +556,8 @@ namespace {{basePartOfNamespace}}.Services
 
                 string extractedPropertyEntityDisplayName = Helpers.GetDisplayNameProperty(extractedPropertyEntity); // Name
 
-                SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
                 SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, oneToManyProperty.Name); // Many to one property from the other side
+                SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
 
                 if (manyToOneProperty != null) // One To Many
                 {
@@ -576,7 +569,7 @@ namespace {{basePartOfNamespace}}.Services
 {{GetOrderedOneToManyMethod(oneToManyProperty, entity, allEntityClasses)}}
 """);
                 }
-                else if (extractedEntityManyToManyProperty != null) // Many To Many
+                else if (extractedEntityManyToManyProperty != null) // Simple Many To Many
                 {
                     result.Add($$"""
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entityIdType}} id, bool authorize)
@@ -992,7 +985,7 @@ namespace {{basePartOfNamespace}}.Services
                 var result = new {{entity.Name}}MainUIFormDTO
                 {
                     {{entity.Name}}DTO = savedDTO,
-{{string.Join(",\n", GetOrderedOneToManySaveBodyDTOVariables(entity, allEntities))}}
+{{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(entity, allEntities))}}
 {{GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(entity, allEntities)}}
                 };
 
@@ -1036,7 +1029,7 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                 result.Add($$"""
-                    Ordered{{property.Name}}MainUIFormDTO = savedOrdered{{property.Name}}MainUIFormDTO
+                    Ordered{{property.Name}}MainUIFormDTO = savedOrdered{{property.Name}}MainUIFormDTO,
 """);
             }
 
@@ -1079,7 +1072,7 @@ namespace {{basePartOfNamespace}}.Services
                     savedOrderedItemsDTO.Add(new {{extractedEntity.Name}}MainUIFormDTO
                     {
                         {{extractedEntity.Name}}DTO = savedDTO,
-{{string.Join(",\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
+{{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
                     });
                 }
 

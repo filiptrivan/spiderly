@@ -272,10 +272,10 @@ export class {{entity.Name}}BaseDetailsComponent {
                         isAuthorizedForSave;
 
                     if (this.isAuthorizedForSave) { 
-{{GetControlsForNonAuthorizedUser(entity, allEntities, customDTOClasses, disable: false)}}
+this.parentFormGroup.enable();
                     }
                     else{
-{{GetControlsForNonAuthorizedUser(entity, allEntities, customDTOClasses, disable: true)}}
+this.parentFormGroup.disable();
                     }
 
                     this.onIsAuthorizedForSaveChange.next(new IsAuthorizedForSaveEvent({
@@ -384,32 +384,6 @@ export class {{entity.Name}}BaseDetailsComponent {
 """);
                 }
             }
-
-            return sb.ToString();
-        }
-
-        private static string GetControlsForNonAuthorizedUser(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses, bool disable)
-        {
-            StringBuilder sb = new();
-
-            List<AngularFormBlock> formBlocks = GetAngularFormBlocks(entity, allEntities, customDTOClasses);
-
-            foreach (AngularFormBlock formBlock in formBlocks)
-            {
-                if (
-                    formBlock.FormControlName != null &&
-                   (formBlock.Property.IsMultiSelectControlType() || formBlock.Property.IsMultiAutocompleteControlType())
-                )
-                {
-                    sb.AppendLine($$"""
-                        this.{{formBlock.FormControlName}}.{{(disable ? "disable" : "enable")}}();
-""");
-                }
-            }
-
-            sb.AppendLine($$"""
-                        this.parentFormGroup.{{(disable ? "disable" : "enable")}}();
-""");
 
             return sb.ToString();
         }
@@ -749,21 +723,6 @@ export class {{entity.Name}}BaseDetailsComponent {
 
         #endregion
 
-        private static List<string> GetCustomOnChangeProperties(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties)
-            {
-                if (property.IsColorControlType() || property.Type == "DateTime")
-                {
-                    result.Add($"'{property.Name.FirstCharToLower()}'");
-                }
-            }
-
-            return result;
-        }
-
         private static List<string> GetPrimengOptionVariables(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             List<string> result = new();
@@ -877,25 +836,6 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetForkJoinParameterNames(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            result.Add(entity.Name.FirstCharToLower());
-
-            foreach (SpiderlyProperty property in entity.Properties)
-            {
-                if (property.HasUIOrderedOneToManyAttribute() ||
-                    property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
-                {
-                    result.Add($"{property.Name.FirstCharToLower()}For{entity.Name}");
-                }
-            }
-
-            return result;
-        }
-
         private static List<string> GetPropertyBlocks(
             List<SpiderlyProperty> properties,
             SpiderlyClass entity,
@@ -990,7 +930,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
         private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
         {
-            return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.getControl('{GetFormControlName(property)}')";
+            return $"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.getControl('{GetFormControlName(property)}')";
         }
 
         private static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
@@ -1063,6 +1003,12 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (property.Type.IsManyToOneType())
                 return $"{property.Name.FirstCharToLower()}Id";
 
+            if (property.IsMultiSelectControlType())
+                return $"{property.Name.FirstCharToLower()}Ids";
+
+            if (property.IsMultiAutocompleteControlType())
+                return $"{property.Name.FirstCharToLower()}NamebookDTOList";
+
             return property.Name.FirstCharToLower();
         }
 
@@ -1084,7 +1030,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute()}\" ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
@@ -1092,7 +1038,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.Autocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\"";
             }
             else if (controlType == UIControlTypeCodes.MultiSelect)
             {
@@ -1141,12 +1087,24 @@ export class {{entity.Name}}BaseDetailsComponent {
             return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
         }
 
-        private static string GetMainDTOFormGroupForMainUIForm(SpiderlyClass entity, bool isFromOrderedOneToMany)
+        private static string GetMainDTOFormGroupForMainUIForm(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
         {
-            if (isFromOrderedOneToMany)
-                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.{entity.Name.FirstCharToLower()}DTO";
+            string formGroup;
 
-            return $"this.parentFormGroup.controls.{entity.Name.FirstCharToLower()}DTO";
+            if (isFromOrderedOneToMany)
+                formGroup = $"{entity.Name.FirstCharToLower()}FormGroup";
+            else
+                formGroup = $"this.parentFormGroup";
+
+            if (
+                property.IsMultiSelectControlType() ||
+                property.IsMultiAutocompleteControlType()
+            )
+            {
+                return formGroup;
+            }
+
+            return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
         }
 
         private static string GetUIControlWidth(SpiderlyProperty property)

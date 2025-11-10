@@ -299,21 +299,13 @@ namespace Spiderly.SourceGenerators.Shared
             return newProp;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <param name="entity">Main entity from which we get one to many property</param>
-        public static SpiderlyClass GetManyToManyEntityWithAttributeValue(string attributeValue, SpiderlyClass entity, List<SpiderlyClass> entities)
-        {
-            return entities
-                .Where(x => x.BaseType == null && x.Properties
-                    .Any(x => x.Type == entity.Name && x.Attributes
-                        .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)))
-                .SingleOrDefault();
-        }
-
         public static SpiderlyProperty GetOppositeManyToManyProperty(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            SpiderlyClass manyToManyEntity = GetManyToManyEntityWithAttributeValue(oneToManyProperty.Name, entity, entities);
+            if (oneToManyProperty.Name == "Tags")
+            {
+
+            }
+            SpiderlyClass manyToManyEntity = GetManyToManyEntityWithAttributeValue(oneToManyProperty.Name, entity, entities); // Categories, Product => ProductCategory
 
             if (manyToManyEntity == null)
                 return null;
@@ -325,14 +317,24 @@ namespace Spiderly.SourceGenerators.Shared
             if (m2mWithManyProperties.Count != 2)
                 throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {manyToManyEntity.Name}.");
 
-            SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties
+            SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties // Category
                 .Where(x => x.Attributes
                     .Any(x => x.Value != oneToManyProperty.Name))
                 .Single();
 
-            string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single();
+            string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single(); // Products
 
-            return extractedPropertyEntity.Properties.Where(x => x.Name == propertyName).SingleOrDefault();
+            return extractedPropertyEntity.Properties.Where(x => x.Name == propertyName).SingleOrDefault(); // List<Product> Products
+        }
+
+        /// <param name="entity">Main entity from which we get one to many property</param>
+        public static SpiderlyClass GetManyToManyEntityWithAttributeValue(string attributeValue, SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            return entities
+                .Where(x => x.HasM2MAttribute() && x.Properties
+                    .Any(x => x.Type == entity.Name && x.Attributes
+                        .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)))
+                .SingleOrDefault();
         }
 
         #endregion

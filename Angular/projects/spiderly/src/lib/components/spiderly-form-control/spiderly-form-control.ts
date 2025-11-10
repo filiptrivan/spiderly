@@ -45,11 +45,11 @@ type SpiderlyControlsOfType<TValue> = {
       ? U extends Namebook | string | number | Date | boolean
         ? SpiderlyFormControl<TValue[P]>
         : SpiderlyFormArray<U>
-      : TValue[P] extends object
-        ? TValue[P] extends Date
-          ? SpiderlyFormControl<TValue[P]>
-          : SpiderlyFormGroup<TValue[P]>
-        : SpiderlyFormControl<TValue[P]>;
+      : TValue[P] extends Date
+        ? SpiderlyFormControl<TValue[P]>
+        : TValue[P] extends object
+            ? SpiderlyFormGroup<TValue[P]>
+            : SpiderlyFormControl<TValue[P]>;
 };
 
 export class SpiderlyFormGroup<TValue = any> extends FormGroup {
@@ -70,7 +70,7 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
     public initSaveBody?: () => BaseEntity = () => null;
     public controlNamesFromHtml?: string[] = [];
 
-    public getControl = (formControlName: string & keyof TValue) => {
+    public getControl = <TKey extends Extract<keyof TValue, string>>(formControlName: TKey): SpiderlyControlsOfType<TValue>[TKey] => {
         if(this.controlNamesFromHtml.findIndex(x => x === formControlName) === -1)
             this.controlNamesFromHtml.push(formControlName);
 
