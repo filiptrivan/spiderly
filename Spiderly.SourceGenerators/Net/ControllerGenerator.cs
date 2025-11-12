@@ -117,18 +117,16 @@ namespace {{basePartOfNamespace}}.Controllers
                 if (businessServiceClass == null) // FT: Didn't make custom business service in the project.
                     continue;
 
-                string businessServiceName = businessServiceClass.Name;
-
                 result.Add($$"""
 {{GetControllerAttributes(groupedControllerEntities, customControllers)}}
     public class {{groupedControllerEntities.Key}}BaseController : SpiderlyBaseController
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} _businessService;
+        private readonly {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceClass.Name)}} _businessService;
 
         public {{groupedControllerEntities.Key}}BaseController(
             IApplicationDbContext context, 
-            {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceName)}} businessService
+            {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceClass.Name)}} businessService
         )
         {
             _context = context;

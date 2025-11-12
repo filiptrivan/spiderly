@@ -1,16 +1,16 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { AutoCompleteCompleteEvent, AutoCompleteModule, AutoCompleteSelectEvent, AutoCompleteUnselectEvent } from 'primeng/autocomplete';
-import { BaseAutocompleteControl } from '../base-autocomplete-control';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { RequiredComponent } from '../../components/required/required.component';
+import { Component, Input, OnInit } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { AutoCompleteCompleteEvent, AutoCompleteModule, AutoCompleteSelectEvent } from 'primeng/autocomplete';
+import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { TooltipModule } from 'primeng/tooltip';
-import { InputGroupModule } from 'primeng/inputgroup';
+import { RequiredComponent } from '../../components/required/required.component';
 import { ValidatorAbstractService } from '../../services/validator-abstract.service';
+import { BaseAutocompleteControl } from '../base-autocomplete-control';
 import { SpiderlyFormControl } from '../../components/spiderly-form-control/spiderly-form-control';
-import { PrimengOption } from '../../entities/primeng-option';
+import { Namebook } from '../../entities/namebook';
 
 @Component({
     selector: 'spiderly-autocomplete',
@@ -32,7 +32,7 @@ export class SpiderlyAutocompleteComponent extends BaseAutocompleteControl imple
     @Input() showClear: boolean = true;
     @Input() emptyMessage: string;
     @Input() displayName: string; // Added because when we initialize the object options are null
-    helperFormControl = new SpiderlyFormControl<PrimengOption>(null, {updateOn: 'change'});
+    helperFormControl = new SpiderlyFormControl<Namebook>(null, {updateOn: 'change'});
 
     constructor(
         protected override translocoService: TranslocoService,
@@ -48,7 +48,7 @@ export class SpiderlyAutocompleteComponent extends BaseAutocompleteControl imple
         this.validatorService.setValidator(this.helperFormControl, this.control.parentClassName);
         
         if (this.control.value != null)
-            this.helperFormControl.setValue({label: this.displayName, code: this.control.value});
+            this.helperFormControl.setValue({displayName: this.displayName, id: this.control.value});
 
         if (this.emptyMessage == null) {
             this.emptyMessage = this.translocoService.translate('EmptyMessage');
@@ -60,11 +60,14 @@ export class SpiderlyAutocompleteComponent extends BaseAutocompleteControl imple
     }
 
     select(event: AutoCompleteSelectEvent){
-        this.control.setValue(event.value.code);
+        const selectedOption: Namebook = event.value;
+        this.control.setValue(selectedOption.id);
+        this.helperFormControl.setValue({displayName: selectedOption.displayName, id: selectedOption.id});
     }
 
     clear(){
         this.control.setValue(null);
+        this.helperFormControl.setValue(null);
     }
 
     autocompleteMarkAsDirty(){

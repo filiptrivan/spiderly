@@ -1,9 +1,11 @@
-import { HttpEvent, HttpResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { HttpEvent, HttpResponse, HttpInterceptorFn, HttpRequest, HttpParams } from '@angular/common/http';
 import { tap } from 'rxjs';
 
 export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
-  const updatedBody = convertToISOString(req.body);
-  const clonedRequest: HttpRequest<any> = req.clone({ body: updatedBody });
+  const cleanedBody = getCleanRequestBody(req.body);
+  const clonedRequest: HttpRequest<any> = req.clone({
+    body: cleanedBody
+  });
 
   return next(clonedRequest)
     .pipe(
@@ -15,7 +17,7 @@ export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
   ));
 }
 
-const convertToISOString = (obj: unknown): unknown => {
+const getCleanRequestBody = (obj: unknown): unknown => {
   if (
     obj === null || 
     obj === undefined ||
@@ -28,7 +30,7 @@ const convertToISOString = (obj: unknown): unknown => {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => convertToISOString(item));
+    return obj.map(item => getCleanRequestBody(item));
   }
 
   if (obj instanceof Date) {
@@ -38,7 +40,7 @@ const convertToISOString = (obj: unknown): unknown => {
   if (typeof obj === 'object') {
     const newObj: Record<string, unknown> = {};
     for (const key of Object.keys(obj)) {
-      newObj[key] = convertToISOString((obj as any)[key]);
+      newObj[key] = getCleanRequestBody((obj as any)[key]);
     }
     return newObj;
   }

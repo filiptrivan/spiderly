@@ -1,17 +1,11 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.IO;
-using System.Diagnostics;
-using Spiderly.SourceGenerators.Shared;
-using Spiderly.SourceGenerators.Models;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
+using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Spiderly.SourceGenerators.Angular
 {
@@ -25,12 +19,12 @@ namespace Spiderly.SourceGenerators.Angular
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<EnumDeclarationSyntax> enumDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsEnumSyntaxTargetForGeneration(s),
@@ -83,9 +77,9 @@ namespace Spiderly.SourceGenerators.Angular
         }
 
         private static string GetAngularEnums(
-            IList<EnumDeclarationSyntax> currentProjectEnums, 
-            List<SpiderlyClass> currentProjectClassEnums, 
-            List<SpiderlyClass> currentProjectEntities, 
+            IList<EnumDeclarationSyntax> currentProjectEnums,
+            List<SpiderlyClass> currentProjectClassEnums,
+            List<SpiderlyClass> currentProjectEntities,
             string projectName)
         {
             return $$"""
@@ -121,7 +115,7 @@ export enum {{enume.Identifier.Text}}
 
             foreach (SpiderlyEnumItem enume in enumItems)
             {
-                if(enume.Value != null)
+                if (enume.Value != null)
                     result.Add($"{enume.Name} = {enume.Value},");
                 else
                     result.Add($"{enume.Name},");

@@ -788,8 +788,8 @@ this.parentFormGroup.disable();
                     controlType == UIControlTypeCodes.MultiAutocomplete)
                 {
                     result.Add($$"""
-    search{{property.Name}}For{{entity.Name}}(event: AutoCompleteCompleteEvent) {
-        this.apiService.get{{property.Name}}AutocompleteListFor{{entity.Name}}(50, event?.query ?? '').subscribe(no => {
+    search{{property.Name}}For{{entity.Name}}(event: AutoCompleteCompleteEvent, modelId: number = null) {
+        this.apiService.get{{property.Name}}AutocompleteListFor{{entity.Name}}(50, event?.query ?? '', modelId).subscribe(no => {
             this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
         });
     }
@@ -1038,7 +1038,7 @@ this.parentFormGroup.disable();
             }
             else if (controlType == UIControlTypeCodes.Autocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
             }
             else if (controlType == UIControlTypeCodes.MultiSelect)
             {
@@ -1046,7 +1046,7 @@ this.parentFormGroup.disable();
             }
             else if (controlType == UIControlTypeCodes.MultiAutocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event)\" [label]=\"t('{property.Name}')\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
             }
             else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
             {

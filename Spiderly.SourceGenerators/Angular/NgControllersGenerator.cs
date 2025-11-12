@@ -519,7 +519,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                     {
                         { "limit", "number" },
                         { "filter", "string" },
-                        { $"{entity.Name.FirstCharToLower()}Id?", "number"}
+                        { $"{entity.Name.FirstCharToLower()}Id", "number = null"}
                     };
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
@@ -542,7 +542,7 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
                     if (alreadyAddedMethods.Contains(methodName))
                         continue;
 
-                    Dictionary<string, string> getAndDeleteParameters = new() { { $"{entity.Name.FirstCharToLower()}Id?", "number" } };
+                    Dictionary<string, string> getAndDeleteParameters = new() { { $"{entity.Name.FirstCharToLower()}Id", "number = null" } };
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
                 }
@@ -624,7 +624,8 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
         {
             return $$"""
     {{methodName.FirstCharToLower()}} = ({{GetInputParameters(inputParameters)}}): Observable<{{returnType}}> => { 
-        return this.http.{{httpType.ToString().FirstCharToLower()}}{{GetReturnTypeAfterHttpType(returnType)}}(`${this.config.apiUrl}/{{controllerName}}/{{methodName}}{{GetGetAndDeleteParameters(inputParameters, httpType)}}`{{GetPostAndPutParameters(inputParameters, httpType)}}{{httpOptions}});
+{{GetGetAndDeleteParameters(inputParameters, httpType)}}
+        return this.http.{{httpType.ToString().FirstCharToLower()}}{{GetReturnTypeAfterHttpType(returnType)}}(`${this.config.apiUrl}/{{controllerName}}/{{methodName}}${params}`{{GetPostAndPutParameters(inputParameters, httpType)}}{{httpOptions}});
     }
 """;
         }
@@ -648,15 +649,30 @@ import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()
             return $"<{returnType}>";
         }
 
-        private static string GetGetAndDeleteParameters(Dictionary<string, string> getAndDeleteParameters, HttpTypeCodes httpType)
+        private static string GetGetAndDeleteParameters(Dictionary<string, string> getAndDeleteParams, HttpTypeCodes httpType)
         {
-            if (httpType != HttpTypeCodes.Get && httpType != HttpTypeCodes.Delete)
-                return null;
+            if (
+                (httpType != HttpTypeCodes.Get && httpType != HttpTypeCodes.Delete) ||
+                (getAndDeleteParams == null || getAndDeleteParams.Count == 0)
+            )
+            {
+                return """
+        const params = '';
+""";
+            }
 
-            if (getAndDeleteParameters == null || getAndDeleteParameters.Count == 0)
-                return null;
+            List<KeyValuePair<string, string>> nonNullableParams = getAndDeleteParams.Where(x => x.Value.EndsWith("null") == false).ToList();
+            List<KeyValuePair<string, string>> nullableParams = getAndDeleteParams.Where(x => x.Value.EndsWith("null")).ToList();
 
-            return $"?{string.Join("&", getAndDeleteParameters.Select(x => $"{x.Key.Replace("?", "")}=${{{x.Key.Replace("?", "")}}}"))}";
+            return $$"""
+        let params = `?{{string.Join("&", nonNullableParams.Select(x => $"{x.Key}=${{{x.Key}}}"))}}`;
+
+{{string.Join("\n", nullableParams.Select(x => $$"""
+        if ({{x.Key}}) {
+            params += `&{{x.Key}}=${{{x.Key}}}`;
+        }
+"""))}}
+""";
         }
 
         private static string GetPostAndPutParameters(Dictionary<string, string> postAndPutParameter, HttpTypeCodes httpType)
