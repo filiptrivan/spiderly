@@ -1255,7 +1255,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
-            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized(file, id); // Validate
+            await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized(file, id); // Validate
 
             if (id > 0 && authorizeUpdate)
             {
@@ -1268,16 +1268,19 @@ namespace {{basePartOfNamespace}}.Services
 
             using Stream stream = file.OpenReadStream();
 
-            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, id); // Do image optimization, resizing etc.
+            using Stream updatedStream = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, id); // Do image optimization, resizing etc.
 
-            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), stream);
+            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), updatedStream);
 
             return fileName;
         }
 
         public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized (IFormFile file, {{entityIdType}} id) { }
 
-        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, {{entityIdType}} id) { }
+        public virtual async Task<Stream> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, {{entityIdType}} id) 
+        {
+            return await Helper.OptimizeImage(stream);;
+        }
 """
 );
             }
