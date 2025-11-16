@@ -5,6 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
 using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
@@ -397,6 +400,54 @@ Currently authenticated user id: {{userId}}); <br>
         }
 
         #endregion
+
+        #endregion
+
+        #region Image Processing
+
+        /// <summary>
+        /// Compresses an image, then exports it as WebP.
+        /// </summary>
+        /// <param name="originalImageStream">Original image stream</param>
+        /// <param name="quality">Compression quality (1-100)</param>
+        /// <param name="newImageSize">New image size (optional)</param>
+        /// <returns>Optimized image Stream</returns>
+        public static async Task<Stream> OptimizeImage(
+            Stream originalImageStream,
+            int quality = 85,
+            Size? newImageSize = null
+        )
+        {
+            using (Image image = await Image.LoadAsync(originalImageStream))
+            {
+                // Don't separate Image resizing and optimizing, we always want resizing first, then optimizing.
+                if (newImageSize != null)
+                {
+                    image.Mutate(ctx => ctx
+                        .Resize(new ResizeOptions
+                        {
+                            Mode = ResizeMode.Max, // Fit within the bounds of maxWidth and maxHeight
+                            Size = newImageSize.Value
+                        })
+                    );
+                }
+
+                using (MemoryStream outputStream = new())
+                {
+                    WebpEncoder encoder = new WebpEncoder
+                    {
+                        Quality = quality,
+                        FileFormat = WebpFileFormatType.Lossy
+                    };
+
+                    await image.SaveAsWebpAsync(outputStream, encoder);
+
+                    outputStream.Position = 0;
+
+                    return outputStream;
+                }
+            }
+        }
 
         #endregion
     }
