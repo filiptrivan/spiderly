@@ -1253,13 +1253,13 @@ namespace {{basePartOfNamespace}}.Services
                 result.Add($$"""
         public async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert) // FT: It doesn't work without interface
         {
-            {{entityIdType}} {{entity.Name.FirstCharToLower()}}Id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
+            {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
-            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(file, {{entity.Name.FirstCharToLower()}}Id); // Validate
+            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized(file, id); // Validate
 
-            if ({{entity.Name.FirstCharToLower()}}Id > 0 && authorizeUpdate)
+            if (id > 0 && authorizeUpdate)
             {
-                {{GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Update, $"{entity.Name.FirstCharToLower()}Id")}}
+                {{GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Update, "id")}}
             }
             else if (authorizeInsert)
             {
@@ -1268,12 +1268,16 @@ namespace {{basePartOfNamespace}}.Services
 
             using Stream stream = file.OpenReadStream();
 
-            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), {{entity.Name.FirstCharToLower()}}Id.ToString(), stream);
+            OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, id); // Do image optimization, resizing etc.
+
+            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), stream);
 
             return fileName;
         }
 
-        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (IFormFile file, {{entityIdType}} {{entity.Name.FirstCharToLower()}}Id) { }
+        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized (IFormFile file, {{entityIdType}} id) { }
+
+        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, {{entityIdType}} id) { }
 """
 );
             }
