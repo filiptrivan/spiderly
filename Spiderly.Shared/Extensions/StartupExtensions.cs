@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
+using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -44,7 +45,12 @@ namespace Spiderly.Shared.Extensions
         /// <br/>
         /// This method simplifies service configuration by consolidating related setup logic into one reusable method. <br/>
         /// </summary>
-        public static void SpiderlyConfigureServices<TDbContext>(this IServiceCollection services, string cultureCode = "en") where TDbContext : DbContext, IApplicationDbContext
+        public static void SpiderlyConfigureServices<TDbContext>(
+            this IServiceCollection services,
+            string cultureCode = "en",
+            DbProviderCodes dbProvider = DbProviderCodes.SQLServer
+        )
+            where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddMemoryCache();
 
@@ -64,7 +70,7 @@ namespace Spiderly.Shared.Extensions
 
             services.SpiderlyAddAzureClients();
 
-            services.SpiderlyAddDbContext<TDbContext>(); // https://youtu.be/bN57EDYD6M0?si=CVztRqlj0hBSrFXb
+            services.SpiderlyAddDbContext<TDbContext>(dbProvider); // https://youtu.be/bN57EDYD6M0?si=CVztRqlj0hBSrFXb
 
             services.SpiderlyAddSwaggerGen();
 
@@ -155,17 +161,23 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services) where TDbContext : DbContext, IApplicationDbContext
+        public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services, DbProviderCodes dbProvider) where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddDbContext<IApplicationDbContext, TDbContext>(options =>
             {
-                options
-                    .UseLazyLoadingProxies()
-                    .UseSqlServer(SettingsProvider.Current.ConnectionString);
+                options.UseLazyLoadingProxies();
+
+                if (dbProvider == DbProviderCodes.SQLServer)
+                {
+                    options.UseSqlServer(SettingsProvider.Current.ConnectionString);
+                }
+                else if (dbProvider == DbProviderCodes.PostgreSQL)
+                {
+                    options.UseSqlServer(SettingsProvider.Current.ConnectionString);
+                }
 
 #if DEBUG
-                options
-                    .LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
+                options.LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
 #endif
             });
         }
