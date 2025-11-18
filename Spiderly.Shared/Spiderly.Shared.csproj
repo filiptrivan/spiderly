@@ -28,6 +28,7 @@
     <Folder Include="Excel\ExcelTemplates\" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.11.3" />
     <PackageReference Include="CaseConverter" Version="2.0.1" />
     <PackageReference Include="CloudinaryDotNet" Version="1.27.8" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

@@ -414,8 +414,8 @@ Currently authenticated user id: {{userId}}); <br>
         /// <returns>Optimized image Stream</returns>
         public static async Task<Stream> OptimizeImage(
             Stream originalImageStream,
-            int quality = 85,
-            Size? newImageSize = null
+            Size? newImageSize = null,
+            int quality = 85
         )
         {
             using (Image image = await Image.LoadAsync(originalImageStream))

@@ -1,10 +1,5 @@
 ﻿using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Services
 {
@@ -42,25 +37,18 @@ namespace Spiderly.Shared.Services
             string objectType,
             string objectProperty,
             string objectId,
-            Stream content
+            Stream content,
+            string newFileName = null
         )
         {
-            if (string.IsNullOrWhiteSpace(fileName))
-                throw new ArgumentException("fileName cannot be null or empty", nameof(fileName));
-            if (string.IsNullOrWhiteSpace(objectType))
-                throw new ArgumentException("objectType cannot be null or empty", nameof(objectType));
-            if (string.IsNullOrWhiteSpace(objectProperty))
-                throw new ArgumentException("objectProperty cannot be null or empty", nameof(objectProperty));
-            if (string.IsNullOrWhiteSpace(objectId))
-                throw new ArgumentException("objectId cannot be null or empty", nameof(objectId));
-            if (content == null)
-                throw new ArgumentNullException(nameof(content));
+            // TODO: Do null validation for every argument of the method in Helper method
 
-            string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-            if (string.IsNullOrEmpty(fileExtension))
-                throw new ArgumentException("Cannot determine file extension from: " + fileName, nameof(fileName));
+            if (newFileName == null)
+            {
+                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
+                newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}"; // e.g. "1234-User-LogoBlobName-9f1b2c3d4e5f6789abcdef.pdf"
+            }
 
-            string newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}"; // e.g. "1234-User-LogoBlobName-9f1b2c3d4e5f6789abcdef.pdf"
             string fullPath = Path.Combine(_rootPath, newFileName);
 
             // Write the Stream to disk under "{_rootPath}/{newFileName}"
@@ -110,12 +98,7 @@ namespace Spiderly.Shared.Services
             string objectId
         )
         {
-            if (string.IsNullOrWhiteSpace(objectType))
-                throw new ArgumentException("objectType cannot be null or empty", nameof(objectType));
-            if (string.IsNullOrWhiteSpace(objectProperty))
-                throw new ArgumentException("objectProperty cannot be null or empty", nameof(objectProperty));
-            if (string.IsNullOrWhiteSpace(objectId))
-                throw new ArgumentException("objectId cannot be null or empty", nameof(objectId));
+            // TODO: Do null validation for every argument of the method in Helper method
 
             if (objectId == "0") // If objectId is "0", we skip deletion entirely
                 return Task.CompletedTask;
