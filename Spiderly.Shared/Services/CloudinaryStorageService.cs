@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Services
@@ -18,38 +19,33 @@ namespace Spiderly.Shared.Services
             _cloudinary = new Cloudinary(account);
         }
 
-        public async Task<string> UploadFileAsync(string fileName, string objectType, string objectProperty, string objectId, Stream content)
+        public async Task<string> UploadFileAsync(
+            string fileName,
+            string objectType,
+            string objectProperty,
+            string objectId,
+            Stream content,
+            string newFileName = null
+        )
         {
-            // TODO: Move this to shared method and use it from other IFileManager implementations also
-            if (string.IsNullOrWhiteSpace(fileName))
-                throw new ArgumentException("fileName cannot be null or empty", nameof(fileName));
-            if (string.IsNullOrWhiteSpace(objectType))
-                throw new ArgumentException("objectType cannot be null or empty", nameof(objectType));
-            if (string.IsNullOrWhiteSpace(objectProperty))
-                throw new ArgumentException("objectProperty cannot be null or empty", nameof(objectProperty));
-            if (string.IsNullOrWhiteSpace(objectId))
-                throw new ArgumentException("objectId cannot be null or empty", nameof(objectId));
-            if (content == null)
-                throw new ArgumentNullException(nameof(content));
+            // TODO: Do null validation for every argument of the method in Helper method
 
-            var fileExtension = Path.GetExtension(fileName)?.TrimStart('.').ToLowerInvariant();
-            if (string.IsNullOrEmpty(fileExtension))
-                throw new ArgumentException("Cannot determine file extension from: " + fileName, nameof(fileName));
-
-            var newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}";
-
-            UploadResult uploadResult;
-
-            var imageParams = new ImageUploadParams()
+            if (newFileName == null)
             {
-                File = new FileDescription(fileName, content),
+                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
+                newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}";
+            }
+
+            ImageUploadParams imageParams = new()
+            {
+                File = new FileDescription(newFileName, content),
                 PublicId = newFileName,
                 Overwrite = true,
                 UseFilename = false,
                 UniqueFilename = false
             };
 
-            uploadResult = await _cloudinary.UploadAsync(imageParams);
+            UploadResult uploadResult = await _cloudinary.UploadAsync(imageParams);
 
             if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -78,13 +74,7 @@ namespace Spiderly.Shared.Services
 
         public async Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId)
         {
-            // TODO: Move this to shared method and use it from other IFileManager implementations also
-            if (string.IsNullOrWhiteSpace(objectType))
-                throw new ArgumentException("objectType cannot be null or empty", nameof(objectType));
-            if (string.IsNullOrWhiteSpace(objectProperty))
-                throw new ArgumentException("objectProperty cannot be null or empty", nameof(objectProperty));
-            if (string.IsNullOrWhiteSpace(objectId))
-                throw new ArgumentException("objectId cannot be null or empty", nameof(objectId));
+            // TODO: Do null validation for every argument of the method in Helper method
 
             if (objectId == "0")
                 return;

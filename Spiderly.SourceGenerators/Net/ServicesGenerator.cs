@@ -1251,11 +1251,11 @@ namespace {{basePartOfNamespace}}.Services
             foreach (SpiderlyProperty property in blobProperies)
             {
                 result.Add($$"""
-        public async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert) // FT: It doesn't work without interface
+        public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert) // FT: It doesn't work without interface
         {
             {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
-            await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized(file, id); // Validate
+            await OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized(file, id); // Validate
 
             if (id > 0 && authorizeUpdate)
             {
@@ -1275,11 +1275,11 @@ namespace {{basePartOfNamespace}}.Services
             return fileName;
         }
 
-        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}IsAuthorized (IFormFile file, {{entityIdType}} id) { }
+        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized (IFormFile file, {{entityIdType}} id) { }
 
         public virtual async Task<Stream> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, {{entityIdType}} id) 
         {
-            return await Helper.OptimizeImage(stream);;
+            return await Helper.OptimizeImage(stream);
         }
 """
 );

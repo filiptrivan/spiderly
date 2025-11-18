@@ -1,14 +1,8 @@
-﻿using Azure.Storage.Blobs.Models;
+﻿using Azure;
 using Azure.Storage.Blobs;
-using Azure;
+using Azure.Storage.Blobs.Models;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace Spiderly.Shared.Services
 {
@@ -23,19 +17,24 @@ namespace Spiderly.Shared.Services
 
         /// <returns>Newly generated file name</returns>
         public async Task<string> UploadFileAsync(
-            string fileName, 
-            string objectType, 
-            string objectProperty, 
-            string objectId, 
-            Stream content
+            string fileName,
+            string objectType,
+            string objectProperty,
+            string objectId,
+            Stream content,
+            string newFileName = null
         )
         {
-            string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
+            // TODO: Do null validation for every argument of the method in Helper method
 
             // TODO FT: Validate if user has changed ContentType to something we don't handle
-            string blobName = $"{objectId}-{Guid.NewGuid()}.{fileExtension}";
+            if (newFileName == null)
+            {
+                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
+                newFileName = $"{objectId}-{Guid.NewGuid()}.{fileExtension}";
+            }
 
-            BlobClient blobClient = _blobContainerClient.GetBlobClient(blobName);
+            BlobClient blobClient = _blobContainerClient.GetBlobClient(newFileName);
 
             await blobClient.UploadAsync(content);
 
@@ -48,7 +47,7 @@ namespace Spiderly.Shared.Services
 
             await blobClient.SetTagsAsync(tags); // https://stackoverflow.com/questions/52769758/azure-blob-storage-authorization-permission-mismatch-error-for-get-request-wit 
 
-            return blobName;
+            return newFileName;
         }
 
         // Before this in save method the authorization is being done, so we don't need to do it here also
