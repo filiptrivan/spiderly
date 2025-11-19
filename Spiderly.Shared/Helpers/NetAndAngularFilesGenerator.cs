@@ -27,6 +27,7 @@ namespace Spiderly.Shared.Helpers
                         {
                             new SpiderlyFolder
                             {
+                                Name = ".vscode",
                                 Files =
                                 {
                                     new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() }
@@ -731,23 +732,25 @@ export class {{entityName}}ListComponent implements OnInit {
     <spiderly-card [title]="t('Notification')" icon="pi pi-bell">
         <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
             <panel-body>
-                <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')"/>
+                <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')" />
             </panel-body>
         </spiderly-panel>
 
         <notification-base-details
-        [showBigPanelTitle]="false"
-        [parentFormGroup]="parentFormGroup" 
-        [notificationFormGroup]="notificationFormGroup" 
-        (onSave)="onSave()"
-        [isLastMultiplePanel]="true"
-        (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
+            [showBigPanelTitle]="false"
+            [parentFormGroup]="parentFormGroup"
+            (onSave)="onSave()"
+            [isLastMultiplePanel]="true"
+            (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
         >
-            <div buttons *ngIf="notificationFormGroup.controls.id?.value > 0 && isAuthorizedForSave">
-                <spiderly-button [label]="t('SendEmailNotification')" (onClick)="sendEmailNotification()" icon="pi pi-send"/>
+            <div buttons *ngIf="parentFormGroup.controls.notificationDTO.controls.id?.value > 0 && isAuthorizedForSave">
+                <spiderly-button
+                    [label]="t('SendEmailNotification')"
+                    (onClick)="sendEmailNotification()"
+                    icon="pi pi-send"
+                />
             </div>
         </notification-base-details>
-
     </spiderly-card>
 </ng-container>
 """;
@@ -756,73 +759,86 @@ export class {{entityName}}ListComponent implements OnInit {
         private static string GetNotificationDetailsComponentTsData()
         {
             return $$"""
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Notification } from 'src/app/business/entities/business-entities.generated';
-import { ApiService } from 'src/app/business/services/api/api.service';
+import {
+    BaseFormCopy,
+    BaseFormService,
+    IsAuthorizedForSaveEvent,
+    SpiderlyCardComponent,
+    SpiderlyControlsModule,
+    SpiderlyFormControl,
+    SpiderlyMessageService,
+    SpiderlyPanelsModule,
+} from 'spiderly';
 import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
+import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/entities/business-entities.generated';
+import { ApiService } from 'src/app/business/services/api/api.service';
 
 @Component({
     selector: 'notification-details',
     templateUrl: './notification-details.component.html',
     imports: [
+        CommonModule,
         TranslocoDirective,
         SpiderlyPanelsModule,
+        SpiderlyCardComponent,
         SpiderlyControlsModule,
-        NotificationBaseDetailsComponent
-    ]
+        NotificationBaseDetailsComponent,
+    ],
 })
-export class NotificationDetailsComponent extends BaseFormCopy implements OnInit {
-    notificationFormGroup = new SpiderlyFormGroup<Notification>({});
+export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainUIForm> implements OnInit {
+    override saveBodyClass = NotificationSaveBody;
+    override mainUIFormClass = NotificationMainUIForm;
 
-    isMarkedAsRead = new SpiderlyFormControl<boolean>(true, {updateOn: 'change'});
+    isMarkedAsRead = new SpiderlyFormControl<boolean>(true, { updateOn: 'change' });
 
     isAuthorizedForSave = false;
 
     constructor(
         protected override differs: KeyValueDiffers,
         protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService, 
+        protected override messageService: SpiderlyMessageService,
         protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router, 
+        protected override router: Router,
         protected override route: ActivatedRoute,
         protected override translocoService: TranslocoService,
         protected override baseFormService: BaseFormService,
-        private apiService: ApiService,
+        private apiService: ApiService
     ) {
         super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }
 
-    override ngOnInit() {
-        
-    }
+    override ngOnInit() {}
 
     isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
         this.isAuthorizedForSave = event.isAuthorizedForSave;
 
         if (event.isAuthorizedForSave) {
             this.isMarkedAsRead.enable();
-        }
-        else{
+        } else {
             this.isMarkedAsRead.disable();
         }
-    }
+    };
 
     sendEmailNotification = () => {
-        this.apiService.sendNotificationEmail(this.notificationFormGroup.controls.id.value, this.notificationFormGroup.controls.version.value).subscribe(() => {
-            this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
-        });
-    }
+        this.apiService
+            .sendNotificationEmail(
+                this.parentFormGroup.controls.notificationDTO.controls.id.value,
+                this.parentFormGroup.controls.notificationDTO.controls.version.value
+            )
+            .subscribe(() => {
+                this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
+            });
+    };
 
     override onBeforeSave = (): void => {
         this.saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
-    }
-
+    };
 }
-
 """;
         }
 
@@ -896,7 +912,6 @@ export class NotificationListComponent implements OnInit {
     [panelTitle]="t('Role')"
     panelIcon="pi pi-id-card"
     [parentFormGroup]="parentFormGroup" 
-    [roleFormGroup]="roleFormGroup" 
     (onSave)="onSave()" 
     ></role-base-details>
 
@@ -911,30 +926,35 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Role, SpiderlyMessageService, BaseFormCopy, BaseFormService, SpiderlyFormGroup, SpiderlyControlsModule, SpiderlyPanelsModule, RoleBaseDetailsComponent } from 'spiderly';
+import {
+    BaseFormCopy,
+    BaseFormService,
+    RoleBaseDetailsComponent,
+    RoleMainUIForm,
+    RoleSaveBody,
+    SpiderlyControlsModule,
+    SpiderlyMessageService,
+    SpiderlyPanelsModule,
+} from 'spiderly';
 
 @Component({
     selector: 'role-details',
     templateUrl: './role-details.component.html',
-    imports: [
-        TranslocoDirective,
-        SpiderlyPanelsModule,
-        SpiderlyControlsModule,
-        RoleBaseDetailsComponent
-    ]
+    imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, RoleBaseDetailsComponent],
 })
 export class RoleDetailsComponent extends BaseFormCopy implements OnInit {
-    roleFormGroup = new SpiderlyFormGroup<Role>({});
+    override saveBodyClass = RoleSaveBody;
+    override mainUIFormClass = RoleMainUIForm;
 
     constructor(
         protected override differs: KeyValueDiffers,
         protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService, 
+        protected override messageService: SpiderlyMessageService,
         protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router, 
-        protected override route: ActivatedRoute, 
+        protected override router: Router,
+        protected override route: ActivatedRoute,
         protected override translocoService: TranslocoService,
-        protected override baseFormService: BaseFormService,
+        protected override baseFormService: BaseFormService
     ) {
         super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }
@@ -1006,18 +1026,18 @@ export class RoleListComponent implements OnInit {
             return $$"""
 <ng-container *transloco="let t">
     <user-base-details
-    [panelTitle]="t('Profile')"
-    panelIcon="pi pi-user"
-    [parentFormGroup]="parentFormGroup" 
-    [userFormGroup]="userFormGroup" 
-    (onSave)="onSave()" 
-    [showIsDisabledForUser]="showIsDisabledControl"
-    [showHasLoggedInWithExternalProviderForUser]="showHasLoggedInWithExternalProvider"
-    [showReturnButton]="false"
-    [authorizedForSaveObservable]="authorizedForSaveObservable"
-    (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
+        [panelTitle]="t('Profile')"
+        panelIcon="pi pi-user"
+        [parentFormGroup]="parentFormGroup"
+        (onSave)="onSave()"
+        [showIsDisabledForUser]="showIsDisabledControl"
+        [showHasLoggedInWithExternalProviderForUser]="showHasLoggedInWithExternalProvider"
+        [showReturnButton]="false"
+        [authorizedForSaveObservable]="authorizedForSaveObservable"
+        (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
     ></user-base-details>
 </ng-container>
+
 """;
         }
 
@@ -1028,25 +1048,28 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { User } from 'src/app/business/entities/business-entities.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, IsAuthorizedForSaveEvent, SpiderlyControlsModule, SpiderlyPanelsModule } from 'spiderly';
-import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { combineLatest, delay, map, Observable } from 'rxjs';
-import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.generated';
+import {
+    BaseFormCopy,
+    BaseFormService,
+    IsAuthorizedForSaveEvent,
+    SpiderlyControlsModule,
+    SpiderlyMessageService,
+    SpiderlyPanelsModule,
+} from 'spiderly';
 import { UserBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { UserMainUIForm, UserSaveBody } from 'src/app/business/entities/business-entities.generated';
+import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.generated';
+import { AuthService } from 'src/app/business/services/auth/auth.service';
 
 @Component({
     selector: 'user-details',
     templateUrl: './user-details.component.html',
-    imports: [
-        TranslocoDirective,
-        SpiderlyPanelsModule,
-        SpiderlyControlsModule,
-        UserBaseDetailsComponent,
-    ]
+    imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, UserBaseDetailsComponent],
 })
-export class UserDetailsComponent extends BaseFormCopy implements OnInit {
-    userFormGroup = new SpiderlyFormGroup<User>({});
+export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implements OnInit {
+    override saveBodyClass = UserSaveBody;
+    override mainUIFormClass = UserMainUIForm;
 
     showIsDisabledControl: boolean = false;
     showHasLoggedInWithExternalProvider: boolean = false;
@@ -1056,10 +1079,10 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
     constructor(
         protected override differs: KeyValueDiffers,
         protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService, 
+        protected override messageService: SpiderlyMessageService,
         protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router, 
-        protected override route: ActivatedRoute, 
+        protected override router: Router,
+        protected override route: ActivatedRoute,
         protected override translocoService: TranslocoService,
         protected override baseFormService: BaseFormService,
         private authService: AuthService
@@ -1067,16 +1090,15 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
         super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }
 
-    override ngOnInit() {
-
-    }
+    override ngOnInit() {}
 
     authorizedForSaveObservable = (): Observable<boolean> => {
         return combineLatest([this.authService.currentUserPermissionCodes$, this.authService.user$]).pipe(
             delay(0),
             map(([currentUserPermissionCodes, currentUser]) => {
                 if (currentUserPermissionCodes != null && currentUser != null) {
-                    const IsDisabledAndExternalLoggedInControls = this.showIsDisabledAndExternalLoggedInControlsForPermissions(currentUserPermissionCodes);
+                    const IsDisabledAndExternalLoggedInControls =
+                        this.showIsDisabledAndExternalLoggedInControlsForPermissions(currentUserPermissionCodes);
                     this.showIsDisabledControl = IsDisabledAndExternalLoggedInControls;
                     this.showHasLoggedInWithExternalProvider = IsDisabledAndExternalLoggedInControls;
                     return this.isCurrentUserPage(currentUser.id);
@@ -1085,27 +1107,27 @@ export class UserDetailsComponent extends BaseFormCopy implements OnInit {
                 return false;
             })
         );
-    }
+    };
 
     showIsDisabledAndExternalLoggedInControlsForPermissions = (currentUserPermissionCodes: string[]) => {
-        return currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
-               currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
-               currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser);
-    }
+        return (
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser)
+        );
+    };
 
     isCurrentUserPage = (currentUserId: number) => {
-        return currentUserId === this.userFormGroup.getRawValue().id;
-    }
+        return currentUserId === this.parentFormGroup.controls.userDTO.getRawValue().id;
+    };
 
     isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
         this.isAuthorizedForSave = event.isAuthorizedForSave;
 
-        this.userFormGroup.controls.hasLoggedInWithExternalProvider.disable();
-    }
+        this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithExternalProvider.disable();
+    };
 
-    override onBeforeSave = (): void => {
-
-    }
+    override onBeforeSave = (): void => {};
 }
 
 """;
@@ -1330,7 +1352,6 @@ export class PrivacyPolicyComponent implements OnInit {
   ngOnInit() {
 
   }
-
 
 }
 

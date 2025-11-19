@@ -13,7 +13,7 @@ namespace Spiderly.Shared.Services
         public S3StorageService(IAmazonS3 s3Client)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-            _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
+            _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
         }
 
         /// <returns>Newly generated file name (S3 key)</returns>
@@ -29,23 +29,26 @@ namespace Spiderly.Shared.Services
             // TODO: Do null validation for every argument of the method in Helper method
             // TODO FT: Validate if user has changed ContentType to something we don't handle
 
-            string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-            string key = newFileName ?? $"{objectType}/{objectProperty}/{objectId}/{objectId}-{Guid.NewGuid()}.{fileExtension}";
+            if (newFileName == null)
+            {
+                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
+                newFileName = $"{objectType}/{objectProperty}/{objectId}/{objectId}-{Guid.NewGuid()}.{fileExtension}";
+            }
 
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
-                Key = key,
+                Key = newFileName,
                 InputStream = content
             };
 
             await _s3Client.PutObjectAsync(putRequest);
 
-            return key;
+            return newFileName;
         }
 
         public async Task DeleteNonActiveBlobs(
-            string activeBlobName,
+            string activeKey,
             string objectType,
             string objectProperty,
             string objectId)
@@ -55,32 +58,23 @@ namespace Spiderly.Shared.Services
 
             string prefix = $"{objectType}/{objectProperty}/{objectId}/";
 
-            var listRequest = new ListObjectsV2Request
+            ListObjectsV2Request listRequest = new ListObjectsV2Request
             {
                 BucketName = _bucketName,
                 Prefix = prefix
             };
 
-            ListObjectsV2Response listResponse;
-            do
+            ListObjectsV2Response response = await _s3Client.ListObjectsV2Async(listRequest);
+
+            foreach (S3Object obj in response.S3Objects.Where(o => o.Key != activeKey))
             {
-                listResponse = await _s3Client.ListObjectsV2Async(listRequest);
-
-                foreach (var s3Object in listResponse.S3Objects)
-                {
-                    if (s3Object.Key != activeBlobName)
-                    {
-                        await _s3Client.DeleteObjectAsync(_bucketName, s3Object.Key);
-                    }
-                }
-
-                listRequest.ContinuationToken = listResponse.NextContinuationToken;
-            } while (listResponse.IsTruncated == true);
+                await _s3Client.DeleteObjectAsync(_bucketName, obj.Key);
+            }
         }
 
         public async Task<string> GetFileDataAsync(string key)
         {
-            var getRequest = new GetObjectRequest
+            GetObjectRequest getRequest = new GetObjectRequest
             {
                 BucketName = _bucketName,
                 Key = key
