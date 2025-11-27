@@ -942,7 +942,7 @@ import {
     templateUrl: './role-details.component.html',
     imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, RoleBaseDetailsComponent],
 })
-export class RoleDetailsComponent extends BaseFormCopy implements OnInit {
+export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm> implements OnInit {
     override saveBodyClass = RoleSaveBody;
     override mainUIFormClass = RoleMainUIForm;
 

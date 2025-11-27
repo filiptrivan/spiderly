@@ -1,0 +1,1 @@
+Don't use var if it's not anonimus type
