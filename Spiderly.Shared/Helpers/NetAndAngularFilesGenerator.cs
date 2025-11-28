@@ -3421,12 +3421,6 @@ namespace {{appName}}.WebAPI.DI
         private static string GetBusinessSettingsCsData(string appName)
         {
             return $$"""
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace {{appName}}.Business
 {
     public static class SettingsProvider

@@ -401,6 +401,16 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "CloudinaryPublicId");
         }
 
+        public static bool HasS3UrlAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "S3Url");
+        }
+
+        public static bool HasS3PublicUrlAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "S3PublicUrl");
+        }
+
         #endregion
 
         #region IsControlType

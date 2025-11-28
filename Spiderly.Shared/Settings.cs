@@ -40,7 +40,7 @@
         public string CloudinaryApiSecret { get; set; }
 
         public string S3BucketName { get; set; }
-        public string S3Endpoint { get; set; }
+        public string S3PublicEndpoint { get; set; }
 
     }
 }

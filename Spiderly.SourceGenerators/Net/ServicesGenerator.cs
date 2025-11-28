@@ -56,6 +56,7 @@ namespace Spiderly.SourceGenerators.Net
 
             bool isSecurityProject = projectName == "Security";
             bool shouldGenerateCloudinaryStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasCloudinaryPublicIdAttribute()));
+            bool shouldGenerateS3PublicStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasS3PublicUrlAttribute()));
 
             string result = $$"""
 {{GetUsings(basePartOfNamespace, projectName)}}
@@ -69,6 +70,7 @@ namespace {{basePartOfNamespace}}.Services
         {{(isSecurityProject ? "private readonly AuthorizationBusinessService<TUser> _authorizationService;" : "private readonly AuthorizationBusinessService _authorizationService;")}}
         private readonly IFileManager _fileManager;
         {{(shouldGenerateCloudinaryStorageService ? "private readonly CloudinaryStorageService _cloudinaryStorageService;" : "")}}
+        {{(shouldGenerateS3PublicStorageService ? "private readonly S3PublicStorageService _s3PublicStorageService;" : "")}}
 
         public BusinessServiceGenerated(
             IApplicationDbContext context, 
@@ -76,6 +78,7 @@ namespace {{basePartOfNamespace}}.Services
             {{(isSecurityProject ? "AuthorizationBusinessService<TUser> authorizationService" : "AuthorizationBusinessService authorizationService")}}, 
             IFileManager fileManager
             {{(shouldGenerateCloudinaryStorageService ? ", CloudinaryStorageService cloudinaryStorageService" : "")}}
+            {{(shouldGenerateS3PublicStorageService ? ", S3PublicStorageService s3PublicStorageService" : "")}}
         )
             : base(context)
         {
@@ -84,6 +87,7 @@ namespace {{basePartOfNamespace}}.Services
             _authorizationService = authorizationService;
             _fileManager = fileManager;
             {{(shouldGenerateCloudinaryStorageService ? "_cloudinaryStorageService = cloudinaryStorageService;" : "")}}
+            {{(shouldGenerateS3PublicStorageService ? "_s3PublicStorageService = s3PublicStorageService;" : "")}}
         }
 
 {{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities, projectName))}}
@@ -1266,20 +1270,33 @@ namespace {{basePartOfNamespace}}.Services
                 {{GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Insert, "")}}
             }
 
-            using Stream stream = file.OpenReadStream();
+            string fileName;
 
-            using Stream updatedStream = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, id); // Do image optimization, resizing etc.
-
-            string fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), updatedStream);
+            using (Stream stream = file.OpenReadStream())
+            {
+                byte[] byteArray = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, file, id); // Do image optimization, resizing etc.
+                
+                using (Stream updatedStream = new MemoryStream(byteArray))
+                {
+                    fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), updatedStream);
+                }
+            }
 
             return fileName;
         }
 
         public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized (IFormFile file, {{entityIdType}} id) { }
 
-        public virtual async Task<Stream> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, {{entityIdType}} id) 
+        public virtual async Task<byte[]> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, IFormFile file, {{entityIdType}} id) 
         {
-            return await Helper.OptimizeImage(stream);
+            if (file.ContentType.StartsWith("image/"))
+            {
+                return await Helper.OptimizeImage(stream); 
+            }
+            else
+            {
+                return await Helper.ReadAllBytesAsync(stream);
+            }
         }
 """
 );
@@ -1553,6 +1570,9 @@ using Microsoft.AspNetCore.Http;
         {
             if (property.HasCloudinaryPublicIdAttribute())
                 return "_cloudinaryStorageService";
+
+            if (property.HasS3PublicUrlAttribute())
+                return "_s3PublicStorageService";
 
             return "_fileManager";
         }
