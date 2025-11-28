@@ -15,7 +15,7 @@ namespace Spiderly.Shared.Services
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
             _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
-            _endpoint = SettingsProvider.Current.S3Endpoint ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3Endpoint));
+            _endpoint = SettingsProvider.Current.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3PublicEndpoint));
         }
 
         /// <returns>Image URL</returns>
@@ -29,7 +29,7 @@ namespace Spiderly.Shared.Services
         )
         {
             // TODO: Do null validation for every argument of the method in Helper method
-            // TODO FT: Validate if user has changed ContentType to something we don't handle
+            // TODO: Validate if user has changed ContentType to something we don't handle
 
             if (newFileName == null)
             {
@@ -41,7 +41,8 @@ namespace Spiderly.Shared.Services
             {
                 BucketName = _bucketName,
                 Key = newFileName,
-                InputStream = content
+                InputStream = content,
+                DisablePayloadSigning = true, // Essential fix for R2
             };
 
             await _s3Client.PutObjectAsync(putRequest);

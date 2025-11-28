@@ -411,8 +411,8 @@ Currently authenticated user id: {{userId}}); <br>
         /// <param name="originalImageStream">Original image stream</param>
         /// <param name="quality">Compression quality (1-100)</param>
         /// <param name="newImageSize">New image size (optional)</param>
-        /// <returns>Optimized image Stream</returns>
-        public static async Task<Stream> OptimizeImage(
+        /// <returns>Optimized image byte[]</returns>
+        public static async Task<byte[]> OptimizeImage(
             Stream originalImageStream,
             Size? newImageSize = null,
             int quality = 85
@@ -442,11 +442,24 @@ Currently authenticated user id: {{userId}}); <br>
 
                     await image.SaveAsWebpAsync(outputStream, encoder);
 
-                    outputStream.Position = 0;
-
-                    return outputStream;
+                    return outputStream.ToArray();
                 }
             }
+        }
+
+        public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            
+            byte[] bytes;
+
+            using (MemoryStream memoryStream = new())
+            {
+                await stream.CopyToAsync(memoryStream);
+                bytes = memoryStream.ToArray();
+            }
+
+            return bytes;
         }
 
         #endregion
