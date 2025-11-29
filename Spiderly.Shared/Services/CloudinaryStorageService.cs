@@ -79,9 +79,9 @@ namespace Spiderly.Shared.Services
             if (objectId == "0")
                 return;
 
-            var prefix = $"{objectId}-{objectType}-{objectProperty}-";
+            string prefix = $"{objectId}-{objectType}-{objectProperty}-";
 
-            var listParams = new ListResourcesByPrefixParams()
+            ListResourcesByPrefixParams listParams = new ListResourcesByPrefixParams()
             {
                 Type = "upload",
                 Prefix = prefix,
