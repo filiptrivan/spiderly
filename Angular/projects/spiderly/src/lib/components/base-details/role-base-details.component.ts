@@ -126,7 +126,6 @@ export class RoleBaseDetailsComponent {
 
                     this.onIsAuthorizedForSaveChange.next(new IsAuthorizedForSaveEvent({
                         isAuthorizedForSave: this.isAuthorizedForSave, 
-                        currentUserPermissionCodes: currentUserPermissionCodes
                     })); 
                 }
             })

@@ -4,21 +4,21 @@ using Spiderly.Shared.Extensions;
 
 namespace Spiderly.Shared.Helpers
 {
-    public static class NetAndAngularFilesGenerator
+  public static class NetAndAngularFilesGenerator
+  {
+    /// <summary>
+    /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
+    /// </summary>
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu)
     {
-        /// <summary>
-        /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
-        /// </summary>
-        public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu)
-        {
-            string jwtKey = Helper.GenerateJwtSecretKey();
+      string jwtKey = Helper.GenerateJwtSecretKey();
 
-            string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
+      string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
 
-            SpiderlyFolder appStructure = new SpiderlyFolder
-            {
-                Name = appName.ToKebabCase(),
-                ChildFolders =
+      SpiderlyFolder appStructure = new SpiderlyFolder
+      {
+        Name = appName.ToKebabCase(),
+        ChildFolders =
                 {
                     new SpiderlyFolder
                     {
@@ -458,46 +458,46 @@ namespace Spiderly.Shared.Helpers
                         }
                     }
                 },
-                Files =
+        Files =
                 {
                     new SpiderlyFile { Name = ".gitignore", Data = GetGitIgnoreData() },
                     new SpiderlyFile { Name = "README.md", Data = GetREADMEData(appName, spiderlyVersion) },
                 }
-            };
+      };
 
-            GenerateProjectStructure(appStructure, outputPath);
-        }
+      GenerateProjectStructure(appStructure, outputPath);
+    }
 
-        private static void GenerateProjectStructure(SpiderlyFolder appStructure, string path)
-        {
-            string newPath = GenerateFolder(appStructure, path);
+    private static void GenerateProjectStructure(SpiderlyFolder appStructure, string path)
+    {
+      string newPath = GenerateFolder(appStructure, path);
 
-            foreach (SpiderlyFile file in appStructure.Files)
-                GenerateFile(appStructure, file, newPath);
+      foreach (SpiderlyFile file in appStructure.Files)
+        GenerateFile(appStructure, file, newPath);
 
-            foreach (SpiderlyFolder folder in appStructure.ChildFolders)
-                GenerateProjectStructure(folder, newPath);
-        }
+      foreach (SpiderlyFolder folder in appStructure.ChildFolders)
+        GenerateProjectStructure(folder, newPath);
+    }
 
-        private static string GenerateFolder(SpiderlyFolder appStructure, string path)
-        {
-            Helper.MakeFolder(path, appStructure.Name);
+    private static string GenerateFolder(SpiderlyFolder appStructure, string path)
+    {
+      Helper.MakeFolder(path, appStructure.Name);
 
-            return Path.Combine(path, appStructure.Name);
-        }
+      return Path.Combine(path, appStructure.Name);
+    }
 
-        private static void GenerateFile(SpiderlyFolder parentFolder, SpiderlyFile file, string path)
-        {
-            string filePath = Path.Combine(path, file.Name);
+    private static void GenerateFile(SpiderlyFolder parentFolder, SpiderlyFile file, string path)
+    {
+      string filePath = Path.Combine(path, file.Name);
 
-            Helper.FileOverrideCheck(filePath);
+      Helper.FileOverrideCheck(filePath);
 
-            Helper.WriteToFile(file.Data, filePath);
-        }
+      Helper.WriteToFile(file.Data, filePath);
+    }
 
-        public static string GetSpiderlyControllerTemplate(string entityName, string appName)
-        {
-            return $$"""
+    public static string GetSpiderlyControllerTemplate(string entityName, string appName)
+    {
+      return $$"""
 using Microsoft.AspNetCore.Mvc;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
@@ -531,13 +531,13 @@ namespace {{appName}}.WebAPI.Controllers
     }
 }
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularDetailsTsTemplate(string entityName)
-        {
-            string kebabEntityName = entityName.ToKebabCase();
+    public static string GetSpiderlyAngularDetailsTsTemplate(string entityName)
+    {
+      string kebabEntityName = entityName.ToKebabCase();
 
-            return $$"""
+      return $$"""
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -584,13 +584,13 @@ export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}M
     }
 }
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularDetailsHtmlTemplate(string entityName)
-        {
-            string kebabEntityName = entityName.ToKebabCase();
+    public static string GetSpiderlyAngularDetailsHtmlTemplate(string entityName)
+    {
+      string kebabEntityName = entityName.ToKebabCase();
 
-            return $$"""
+      return $$"""
 <ng-container *transloco="let t">
 
     <{{kebabEntityName}}-base-details
@@ -601,13 +601,13 @@ export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}M
 
 </ng-container>
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularTableTsTemplate(string entityName)
-        {
-            string kebabEntityName = entityName.ToKebabCase();
+    public static string GetSpiderlyAngularTableTsTemplate(string entityName)
+    {
+      string kebabEntityName = entityName.ToKebabCase();
 
-            return $$"""
+      return $$"""
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
@@ -645,11 +645,11 @@ export class {{entityName}}ListComponent implements OnInit {
     }
 }
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularTableHtmlTemplate(string entityName)
-        {
-            return $$"""
+    public static string GetSpiderlyAngularTableHtmlTemplate(string entityName)
+    {
+      return $$"""
 <ng-container *transloco="let t">
 
     <spiderly-data-table [tableTitle]="t('{{entityName}}List')" 
@@ -662,13 +662,13 @@ export class {{entityName}}ListComponent implements OnInit {
 
 </ng-container>
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularDataViewTsTemplate(string entityName)
-        {
-            string kebabEntityName = entityName.ToKebabCase();
+    public static string GetSpiderlyAngularDataViewTsTemplate(string entityName)
+    {
+      string kebabEntityName = entityName.ToKebabCase();
 
-            return $$"""
+      return $$"""
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
@@ -703,11 +703,11 @@ export class {{entityName}}ListComponent implements OnInit {
     }
 }
 """;
-        }
+    }
 
-        public static string GetSpiderlyAngularDataViewHtmlTemplate(string entityName)
-        {
-            return $$$"""
+    public static string GetSpiderlyAngularDataViewHtmlTemplate(string entityName)
+    {
+      return $$$"""
 <ng-container *transloco="let t">
 
     <spiderly-data-view 
@@ -723,11 +723,11 @@ export class {{entityName}}ListComponent implements OnInit {
 
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetNotificationDetailsComponentHtmlData()
-        {
-            return $$"""
+    private static string GetNotificationDetailsComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
     <spiderly-card [title]="t('Notification')" icon="pi pi-bell">
         <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
@@ -754,11 +754,11 @@ export class {{entityName}}ListComponent implements OnInit {
     </spiderly-card>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetNotificationDetailsComponentTsData()
-        {
-            return $$"""
+    private static string GetNotificationDetailsComponentTsData()
+    {
+      return $$"""
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
@@ -840,11 +840,11 @@ export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainU
     };
 }
 """;
-        }
+    }
 
-        private static string GetNotificationTableComponentHtmlData()
-        {
-            return $$"""
+    private static string GetNotificationTableComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
     <spiderly-data-table 
     [tableTitle]="t('NotificationList')" 
@@ -856,11 +856,11 @@ export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainU
     </spiderly-data-table>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetNotificationTableComponentTsData()
-        {
-            return $$"""
+    private static string GetNotificationTableComponentTsData()
+    {
+      return $$"""
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
@@ -901,11 +901,11 @@ export class NotificationListComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetRoleDetailsComponentHtmlData()
-        {
-            return $$"""
+    private static string GetRoleDetailsComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
 
     <role-base-details 
@@ -917,11 +917,11 @@ export class NotificationListComponent implements OnInit {
 
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetRoleDetailsComponentTsData()
-        {
-            return $$$"""
+    private static string GetRoleDetailsComponentTsData()
+    {
+      return $$$"""
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -961,11 +961,11 @@ export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm> implement
 }
 
 """;
-        }
+    }
 
-        private static string GetRoleTableComponentHtmlData()
-        {
-            return $$"""
+    private static string GetRoleTableComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
     <spiderly-data-table 
     [tableTitle]="t('RoleList')" 
@@ -976,11 +976,11 @@ export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm> implement
     ></spiderly-data-table>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetRoleTableComponentTsData()
-        {
-            return $$"""
+    private static string GetRoleTableComponentTsData()
+    {
+      return $$"""
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
@@ -1019,11 +1019,11 @@ export class RoleListComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetUserDetailsComponentHtmlData()
-        {
-            return $$"""
+    private static string GetUserDetailsComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
     <user-base-details
         [panelTitle]="t('Profile')"
@@ -1039,11 +1039,11 @@ export class RoleListComponent implements OnInit {
 </ng-container>
 
 """;
-        }
+    }
 
-        private static string GetUserDetailsComponentTsData()
-        {
-            return $$"""
+    private static string GetUserDetailsComponentTsData()
+    {
+      return $$"""
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -1131,11 +1131,11 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
 }
 
 """;
-        }
+    }
 
-        private static string GetUserTableComponentHtmlData()
-        {
-            return $$"""
+    private static string GetUserTableComponentHtmlData()
+    {
+      return $$"""
 <ng-container *transloco="let t">
     <spiderly-data-table 
     [tableTitle]="t('UserList')" 
@@ -1146,11 +1146,11 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
     ></spiderly-data-table>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetUserTableComponentTsData()
-        {
-            return $$"""
+    private static string GetUserTableComponentTsData()
+    {
+      return $$"""
 import { ApiService } from '../../../business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
@@ -1190,22 +1190,22 @@ export class UserListComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetHomepageComponentHtmlData(string appName)
-        {
-            return $$$"""
+    private static string GetHomepageComponentHtmlData(string appName)
+    {
+      return $$$"""
 <ng-container *transloco="let t">
     <info-card header="Hello, {{companyName}}">
         🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#connect-to-sql-server" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
     </info-card>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetHomepageComponentTsData()
-        {
-            return $$"""
+    private static string GetHomepageComponentTsData()
+    {
+      return $$"""
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { InfoCardComponent } from 'spiderly';
@@ -1235,11 +1235,11 @@ export class HomepageComponent implements OnInit {
 
 }
 """;
-        }
+    }
 
-        private static string GetPrivacyPolicyComponentHtmlData()
-        {
-            return $$$"""
+    private static string GetPrivacyPolicyComponentHtmlData()
+    {
+      return $$$"""
 <div style="padding: 30px;">
   <div class="card dashboard-card-wrappe">
 
@@ -1327,11 +1327,11 @@ export class HomepageComponent implements OnInit {
 
 
 """;
-        }
+    }
 
-        private static string GetPrivacyPolicyComponentTsData()
-        {
-            return $$"""
+    private static string GetPrivacyPolicyComponentTsData()
+    {
+      return $$"""
 import { Component, OnInit } from '@angular/core';
 import { SpiderlyPanelsModule } from 'spiderly';
 import { ConfigService } from 'src/app/business/services/config.service';
@@ -1356,11 +1356,11 @@ export class PrivacyPolicyComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetUserAgreementComponentHtmlData()
-        {
-            return $$$"""
+    private static string GetUserAgreementComponentHtmlData()
+    {
+      return $$$"""
 <div style="padding: 30px;">
   <div class="card dashboard-card-wrappe">
 
@@ -1444,11 +1444,11 @@ export class PrivacyPolicyComponent implements OnInit {
   </div>
 </div>
 """;
-        }
+    }
 
-        private static string GetUserAgreementComponentTsData()
-        {
-            return $$"""
+    private static string GetUserAgreementComponentTsData()
+    {
+      return $$"""
 import { Component, OnInit } from '@angular/core';
 import { SpiderlyPanelsModule } from 'spiderly';
 import { ConfigService } from 'src/app/business/services/config.service';
@@ -1474,11 +1474,11 @@ export class UserAgreementComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetNotificationsViewComponentHtmlData()
-        {
-            return $$$"""
+    private static string GetNotificationsViewComponentHtmlData()
+    {
+      return $$$"""
 <ng-container *transloco="let t">
   <div class="card dashboard-card-wrapper">
     <div class="big-header" style="margin-bottom: 10px;">
@@ -1523,11 +1523,11 @@ export class UserAgreementComponent implements OnInit {
   </div>
 </ng-container>
 """;
-        }
+    }
 
-        private static string GetNotificationsViewComponentTsData()
-        {
-            return $$"""
+    private static string GetNotificationsViewComponentTsData()
+    {
+      return $$"""
 import { LayoutService } from './../../business/services/layout/layout.service';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ApiService } from 'src/app/business/services/api/api.service';
@@ -1621,11 +1621,11 @@ export class NotificationsViewComponent implements OnInit {
 }
 
 """;
-        }
+    }
 
-        private static string GetAppRoutesTsData()
-        {
-            return $$"""
+    private static string GetAppRoutesTsData()
+    {
+      return $$"""
 import { InMemoryScrollingOptions, RouterConfigOptions, Routes } from '@angular/router';
 import { AuthGuard, NotAuthGuard } from 'spiderly';
 import { LayoutComponent } from './business/layout/layout.component';
@@ -1699,11 +1699,11 @@ export const routerConfigOptions: RouterConfigOptions = {
     onSameUrlNavigation: 'reload',
 };
 """;
-        }
+    }
 
-        private static string GetAppComponentHtmlData()
-        {
-            return $$"""
+    private static string GetAppComponentHtmlData()
+    {
+      return $$"""
 <!-- NOTE: Translations on the layout component work only if we wrap everything with transloco -->
 <ng-container *transloco="let t">
 
@@ -1724,11 +1724,11 @@ export const routerConfigOptions: RouterConfigOptions = {
 <ngx-spinner bdColor="rgba(0, 0, 0, 0.8)" size="medium" color="#fff" type="ball-clip-rotate-multiple" [fullScreen]="true"></ngx-spinner>
 <p-toast [breakpoints]="{ '600px': { width: '100%', right: '0', left: '0' } }"></p-toast>
 """;
-        }
+    }
 
-        private static string GetAppComponentTsData()
-        {
-            return $$"""
+    private static string GetAppComponentTsData()
+    {
+      return $$"""
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
 import { PrimeNG } from 'primeng/config';
@@ -1766,11 +1766,11 @@ export class AppComponent implements OnInit {
     }
 }
 """;
-        }
+    }
 
-        private static string GetAppConfigTsData()
-        {
-            return $$"""
+    private static string GetAppConfigTsData()
+    {
+      return $$"""
 import { APP_INITIALIZER, ApplicationConfig, ErrorHandler, PLATFORM_ID, provideZoneChangeDetection } from '@angular/core';
 import { PreloadAllModules, provideRouter, withInMemoryScrolling, withPreloading, withRouterConfig } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -1891,13 +1891,13 @@ export const appConfig: ApplicationConfig = {
   ]
 };
 """;
-        }
+    }
 
-        #region NET
+    #region NET
 
-        private static string GetTranslatePropertiesConfigurationCsData(string appName)
-        {
-            return $$"""
+    private static string GetTranslatePropertiesConfigurationCsData(string appName)
+    {
+      return $$"""
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -1930,11 +1930,11 @@ namespace {{appName}}.Shared.FluentValidation
 }
 
 """;
-        }
+    }
 
-        private static string GetTermsDesignerCsData(string appName)
-        {
-            return $$"""
+    private static string GetTermsDesignerCsData(string appName)
+    {
+      return $$"""
 //------------------------------------------------------------------------------
 // <auto-generated>
 //     This code was generated by a tool.
@@ -2009,11 +2009,11 @@ namespace {{appName}}.Shared.Resources {
 }
 
 """;
-        }
+    }
 
-        private static string GetTermsResxData()
-        {
-            return $$"""
+    private static string GetTermsResxData()
+    {
+      return $$"""
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
@@ -2138,11 +2138,11 @@ namespace {{appName}}.Shared.Resources {
   </data>
 </root>
 """;
-        }
+    }
 
-        private static string GetTermsSrLatnRSResxData()
-        {
-            return $$"""
+    private static string GetTermsSrLatnRSResxData()
+    {
+      return $$"""
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microspider-com:xml-msdata">
@@ -2206,11 +2206,11 @@ namespace {{appName}}.Shared.Resources {
 
 </root>
 """;
-        }
+    }
 
-        private static string GetTermsGeneratedDesignerCsData(string appName)
-        {
-            return $$"""
+    private static string GetTermsGeneratedDesignerCsData(string appName)
+    {
+      return $$"""
 //------------------------------------------------------------------------------
 // <auto-generated>
 //     This code was generated by a tool.
@@ -2276,11 +2276,11 @@ namespace {{appName}}.Shared.Resources {
     }
 }
 """;
-        }
+    }
 
-        private static string GetTermsGeneratedResxData()
-        {
-            return $$"""
+    private static string GetTermsGeneratedResxData()
+    {
+      return $$"""
 <?xml version="1.0" encoding="utf-8"?>
 <root>
 	<!-- 
@@ -2383,11 +2383,11 @@ namespace {{appName}}.Shared.Resources {
 	</resheader>
 </root>
 """;
-        }
+    }
 
-        private static string GetTermsGeneratedSrLatnRSResxData()
-        {
-            return $$"""
+    private static string GetTermsGeneratedSrLatnRSResxData()
+    {
+      return $$"""
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microspider-com:xml-msdata">
@@ -2451,11 +2451,11 @@ namespace {{appName}}.Shared.Resources {
 
 </root>
 """;
-        }
+    }
 
-        private static string GetUserNotificationCsData(string appName)
-        {
-            return $$"""
+    private static string GetUserNotificationCsData(string appName)
+    {
+      return $$"""
 using Spiderly.Shared.Attributes.Entity;
 
 namespace {{appName}}.Business.Entities
@@ -2473,11 +2473,11 @@ namespace {{appName}}.Business.Entities
     }
 }
 """;
-        }
+    }
 
-        private static string GetBusinessPermissionCodesCsData(string appName)
-        {
-            return $$"""
+    private static string GetBusinessPermissionCodesCsData(string appName)
+    {
+      return $$"""
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -2492,11 +2492,11 @@ namespace {{appName}}.Business.Enums
     }
 }
 """;
-        }
+    }
 
-        private static string GetUserCsData(string appName)
-        {
-            return $$"""
+    private static string GetUserCsData(string appName)
+    {
+      return $$"""
 using Microsoft.EntityFrameworkCore;
 using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
@@ -2530,11 +2530,11 @@ namespace {{appName}}.Business.Entities
     }
 }
 """;
-        }
+    }
 
-        private static string GetNotificationControllerCsData(string appName)
-        {
-            return $$"""
+    private static string GetNotificationControllerCsData(string appName)
+    {
+      return $$"""
 using Microsoft.AspNetCore.Mvc;
 using Azure.Storage.Blobs;
 using Spiderly.Shared.Attributes;
@@ -2611,11 +2611,11 @@ namespace {{appName}}.WebAPI.Controllers
 }
 
 """;
-        }
+    }
 
-        private static string GetSecurityControllerCsData(string appName)
-        {
-            return $$"""
+    private static string GetSecurityControllerCsData(string appName)
+    {
+      return $$"""
 using Microsoft.AspNetCore.Mvc;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -2666,11 +2666,11 @@ namespace {{appName}}.WebAPI.Controllers
 }
 
 """;
-        }
+    }
 
-        private static string GetUserControllerCsData(string appName)
-        {
-            return $$"""
+    private static string GetUserControllerCsData(string appName)
+    {
+      return $$"""
 using Microsoft.AspNetCore.Mvc;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
@@ -2717,11 +2717,11 @@ namespace {{appName}}.WebAPI.Controllers
 }
 
 """;
-        }
+    }
 
-        private static string GetNotificationCsData(string appName)
-        {
-            return $$"""
+    private static string GetNotificationCsData(string appName)
+    {
+      return $$"""
 using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
@@ -2758,11 +2758,11 @@ namespace {{appName}}.Business.Entities
     }
 }
 """;
-        }
+    }
 
-        private static string GetNotificationSaveBodyDTOCsData(string appName)
-        {
-            return $$"""
+    private static string GetNotificationSaveBodyDTOCsData(string appName)
+    {
+      return $$"""
 namespace {{appName}}.Business.DTO
 {
     public partial class NotificationSaveBodyDTO
@@ -2771,11 +2771,11 @@ namespace {{appName}}.Business.DTO
     }
 }
 """;
-        }
+    }
 
-        private static string GetNotificationDTOCsData(string appName)
-        {
-            return $$"""
+    private static string GetNotificationDTOCsData(string appName)
+    {
+      return $$"""
 using Spiderly.Shared.Attributes.Entity.UI;
 
 namespace {{appName}}.Business.DTO
@@ -2790,11 +2790,11 @@ namespace {{appName}}.Business.DTO
     }
 }
 """;
-        }
+    }
 
-        private static string GetInfrastructureApplicationDbContextData(string appName)
-        {
-            return $$"""
+    private static string GetInfrastructureApplicationDbContextData(string appName)
+    {
+      return $$"""
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.Entities;
 using Spiderly.Infrastructure;
@@ -2821,11 +2821,11 @@ namespace {{appName}}.Infrastructure
     }
 }
 """;
-        }
+    }
 
-        private static string GetNetSolutionData(string appName)
-        {
-            return $$"""
+    private static string GetNetSolutionData(string appName)
+    {
+      return $$"""
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
@@ -2869,11 +2869,11 @@ Global
 	EndGlobalSection
 EndGlobal
 """;
-        }
+    }
 
-        private static string GetInitializeScriptSqlData(string appName)
-        {
-            return $$"""
+    private static string GetInitializeScriptSqlData(string appName)
+    {
+      return $$"""
 -- These permissions will be assigned to the first registered user in the application.
 
 begin transaction;
@@ -2913,14 +2913,15 @@ INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 8);
 INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 9);
 INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 10);
 INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 11);
+INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 12);
 
 commit;
 """;
-        }
+    }
 
-        private static string GetStartupCsData(string appName)
-        {
-            return $$"""
+    private static string GetStartupCsData(string appName)
+    {
+      return $$"""
 using LightInject;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Extensions;
@@ -2986,11 +2987,11 @@ public class Startup
     }
 }
 """;
-        }
+    }
 
-        private static string GetWebAPISettingsCsData(string appName)
-        {
-            return $$"""
+    private static string GetWebAPISettingsCsData(string appName)
+    {
+      return $$"""
 namespace {{appName}}.WebAPI
 {
     public static class SettingsProvider
@@ -3006,11 +3007,11 @@ namespace {{appName}}.WebAPI
     }
 }
 """;
-        }
+    }
 
-        private static string GetProgramCsData(string appName)
-        {
-            return $$"""
+    private static string GetProgramCsData(string appName)
+    {
+      return $$"""
 using Serilog;
 
 namespace {{appName}}.WebAPI
@@ -3037,11 +3038,11 @@ namespace {{appName}}.WebAPI
     }
 }
 """;
-        }
+    }
 
-        private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget)
+    {
+      return $$"""
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
@@ -3102,11 +3103,11 @@ namespace {{appName}}.WebAPI
 
 </Project>
 """;
-        }
+    }
 
-        private static string GetWebAPICsProjUserData()
-        {
-            return $$"""
+    private static string GetWebAPICsProjUserData()
+    {
+      return $$"""
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
@@ -3117,19 +3118,19 @@ namespace {{appName}}.WebAPI
   </PropertyGroup>
 </Project>
 """;
-        }
+    }
 
-        private static string GetAppSettingsJsonData(
-            string appName,
-            string emailSender,
-            string emailSenderPassword,
-            string jwtKey,
-            string blobStorageConnectionString,
-            string blobStorageUrl,
-            string sqlServerConnectionString
-        )
-        {
-            return $$"""
+    private static string GetAppSettingsJsonData(
+        string appName,
+        string emailSender,
+        string emailSenderPassword,
+        string jwtKey,
+        string blobStorageConnectionString,
+        string blobStorageUrl,
+        string sqlServerConnectionString
+    )
+    {
+      return $$"""
 {
     "Serilog": {
         "Using": [
@@ -3210,11 +3211,11 @@ namespace {{appName}}.WebAPI
   }
 }
 """;
-        }
+    }
 
-        private static string GetLaunchSettingsJsonData()
-        {
-            return $$"""
+    private static string GetLaunchSettingsJsonData()
+    {
+      return $$"""
 {
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "iisSettings": {
@@ -3257,11 +3258,11 @@ namespace {{appName}}.WebAPI
   }
 }
 """;
-        }
+    }
 
-        private static string GetCompositionRootCsData(string appName)
-        {
-            return $$"""
+    private static string GetCompositionRootCsData(string appName)
+    {
+      return $$"""
 using LightInject;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Excel;
@@ -3309,11 +3310,11 @@ namespace {{appName}}.WebAPI.DI
     }
 }
 """;
-        }
+    }
 
-        private static string GetSharedCsProjData(string version, bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetSharedCsProjData(string version, bool isRunningFromNuget)
+    {
+      return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -3373,11 +3374,11 @@ namespace {{appName}}.WebAPI.DI
 </Project>
 
 """;
-        }
+    }
 
-        private static string GetInfrastructureCsProjData(string appName, string version, bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetInfrastructureCsProjData(string appName, string version, bool isRunningFromNuget)
+    {
+      return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
@@ -3416,11 +3417,11 @@ namespace {{appName}}.WebAPI.DI
 
 </Project>
 """;
-        }
+    }
 
-        private static string GetBusinessSettingsCsData(string appName)
-        {
-            return $$"""
+    private static string GetBusinessSettingsCsData(string appName)
+    {
+      return $$"""
 namespace {{appName}}.Business
 {
     public static class SettingsProvider
@@ -3434,11 +3435,11 @@ namespace {{appName}}.Business
     }
 }
 """;
-        }
+    }
 
-        private static string GetBusinessCsProjData(string appName, string version, bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetBusinessCsProjData(string appName, string version, bool isRunningFromNuget)
+    {
+      return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -3483,11 +3484,11 @@ namespace {{appName}}.Business
 
 </Project>
 """;
-        }
+    }
 
-        private static string GetAuthorizationServiceCsData(string appName)
-        {
-            return $$"""
+    private static string GetAuthorizationServiceCsData(string appName)
+    {
+      return $$"""
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
@@ -3583,11 +3584,11 @@ namespace {{appName}}.Business.Services
     }
 }
 """;
-        }
+    }
 
-        private static string GetBusinessServiceCsData(string appName)
-        {
-            return $$"""
+    private static string GetBusinessServiceCsData(string appName)
+    {
+      return $$"""
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.DTO;
@@ -3766,11 +3767,11 @@ namespace {{appName}}.Business.Services
     }
 }
 """;
-        }
+    }
 
-        private static string GetMapsterMapperCsData(string appName)
-        {
-            return $$"""
+    private static string GetMapsterMapperCsData(string appName)
+    {
+      return $$"""
 using Spiderly.Shared.Attributes;
 
 namespace {{appName}}.Business.DataMappers
@@ -3782,15 +3783,15 @@ namespace {{appName}}.Business.DataMappers
     }
 }
 """;
-        }
+    }
 
-        #endregion
+    #endregion
 
-        #region Angular
+    #region Angular
 
-        private static string GetSettingsJsonData()
-        {
-            return """
+    private static string GetSettingsJsonData()
+    {
+      return """
 {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -3800,21 +3801,21 @@ namespace {{appName}}.Business.DataMappers
     }
 }
 """;
-        }
+    }
 
-        private static string GetVercelJsonData(string appName)
-        {
-            return $$"""
+    private static string GetVercelJsonData(string appName)
+    {
+      return $$"""
 {
     "rewrites": [{ "source": "/(.*)", "destination": "/src/index.html" }],
     "outputDirectory": "dist/{{appName}}/browser"
 }
 """;
-        }
+    }
 
-        private static string GetTsConfigSpecJsonData()
-        {
-            return $$"""
+    private static string GetTsConfigSpecJsonData()
+    {
+      return $$"""
 /* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
   "extends": "./tsconfig.json",
@@ -3830,11 +3831,11 @@ namespace {{appName}}.Business.DataMappers
   ]
 }
 """;
-        }
+    }
 
-        private static string GetTsConfigJsonData(bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetTsConfigJsonData(bool isRunningFromNuget)
+    {
+      return $$"""
 /* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
   "compileOnSave": false,
@@ -3880,11 +3881,11 @@ namespace {{appName}}.Business.DataMappers
 }
 
 """;
-        }
+    }
 
-        private static string GetTsConfigAppJsonData()
-        {
-            return $$"""
+    private static string GetTsConfigAppJsonData()
+    {
+      return $$"""
 /* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
   "extends": "./tsconfig.json",
@@ -3902,11 +3903,11 @@ namespace {{appName}}.Business.DataMappers
 }
 
 """;
-        }
+    }
 
-        private static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
+    {
+      return $$"""
 {
     "name": "{{appName}}",
     "version": "0.0.0",
@@ -3963,11 +3964,11 @@ namespace {{appName}}.Business.DataMappers
     }
 }
 """;
-        }
+    }
 
-        private static string GetAngularJsonData(string appName)
-        {
-            return $$"""
+    private static string GetAngularJsonData(string appName)
+    {
+      return $$"""
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
@@ -4090,11 +4091,11 @@ namespace {{appName}}.Business.DataMappers
   }
 }
 """;
-        }
+    }
 
-        private static string GetEditOrConfigData()
-        {
-            return $$"""
+    private static string GetEditOrConfigData()
+    {
+      return $$"""
 # Editor configuration, see https://editorconfig.org
 root = true
 
@@ -4112,20 +4113,20 @@ quote_type = single
 max_line_length = off
 trim_trailing_whitespace = false
 """;
-        }
+    }
 
-        private static string GetPrettierRcData()
-        {
-            return """
+    private static string GetPrettierRcData()
+    {
+      return """
 {
     "printWidth": 120
 }
 """;
-        }
+    }
 
-        private static string GetMainTsData()
-        {
-            return $$"""
+    private static string GetMainTsData()
+    {
+      return $$"""
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { appConfig } from './app/app.config';
@@ -4133,11 +4134,11 @@ import { appConfig } from './app/app.config';
 bootstrapApplication(AppComponent, appConfig)
   .catch((err) => console.error(err));
 """;
-        }
+    }
 
-        private static string GetIndexHtmlData(string appName)
-        {
-            return $$"""
+    private static string GetIndexHtmlData(string appName)
+    {
+      return $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -4155,11 +4156,11 @@ bootstrapApplication(AppComponent, appConfig)
 </body>
 </html>
 """;
-        }
+    }
 
-        private static string GetEnvironmentProdTsData(string appName)
-        {
-            return $$"""
+    private static string GetEnvironmentProdTsData(string appName)
+    {
+      return $$"""
 export const environment = {
   production: true,
   apiUrl: 'https://your-prod-api-url/api',
@@ -4168,11 +4169,11 @@ export const environment = {
   companyName: '{{appName}}',
 };
 """;
-        }
+    }
 
-        private static string GetEnvironmentTsData(string appName)
-        {
-            return $$"""
+    private static string GetEnvironmentTsData(string appName)
+    {
+      return $$"""
 export const environment = {
   production: false,
   apiUrl: 'https://localhost:44388/api',
@@ -4181,11 +4182,11 @@ export const environment = {
   companyName: '{{appName}}',
 };
 """;
-        }
+    }
 
-        private static string GetPrimeNGThemeTsData()
-        {
-            return $$"""
+    private static string GetPrimeNGThemeTsData()
+    {
+      return $$"""
 import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
 
@@ -4228,11 +4229,11 @@ export const ThemePreset = definePreset(Aura, {
   },
 });
 """;
-        }
+    }
 
-        private static string GetStylesScssData(bool isRunningFromNuget)
-        {
-            return $$"""
+    private static string GetStylesScssData(bool isRunningFromNuget)
+    {
+      return $$"""
 //#region PrimeNG
 
 @use "../../node_modules/primeflex/primeflex.scss";
@@ -4253,11 +4254,11 @@ export const ThemePreset = definePreset(Aura, {
 
 //#endregion
 """;
-        }
+    }
 
-        private static string GetTranslocoSrLatnRSJsonCode()
-        {
-            return $$$"""
+    private static string GetTranslocoSrLatnRSJsonCode()
+    {
+      return $$$"""
 {
     "SelectFromTheList": "Odaberite...",
     "OnDate": "Na datum",
@@ -4515,11 +4516,11 @@ export const ThemePreset = definePreset(Aura, {
     "BadRequestDetails": "Sistem ne može da obradi zahtev. Molimo vas da proverite zahtev i pokušate ponovo."
 }
 """;
-        }
+    }
 
-        private static string GetTranslocoEnJsonCode()
-        {
-            return $$$"""
+    private static string GetTranslocoEnJsonCode()
+    {
+      return $$$"""
 {
   "SelectFromTheList": "Select...",
   "OnDate": "On date",
@@ -4851,11 +4852,11 @@ export const ThemePreset = definePreset(Aura, {
   "BusinessSystem": "Business system"
 }
 """;
-        }
+    }
 
-        private static string GetValidatorsTsCode()
-        {
-            return $$"""
+    private static string GetValidatorsTsCode()
+    {
+      return $$"""
 import { TranslocoService } from '@jsverse/transloco';
 import { Injectable } from '@angular/core';
 import { ValidatorServiceGenerated } from "./validators.generated";
@@ -4879,11 +4880,11 @@ export class ValidatorService extends ValidatorAbstractService {
 
 }
 """;
-        }
+    }
 
-        private static string GetConfigServiceTsCode()
-        {
-            return $$"""
+    private static string GetConfigServiceTsCode()
+    {
+      return $$"""
 import { Injectable } from "@angular/core";
 import { environment } from "src/environments/environment";
 import { ConfigBaseService } from 'spiderly';
@@ -4908,11 +4909,11 @@ export class ConfigService extends ConfigBaseService
     }
 }
 """;
-        }
+    }
 
-        private static string GetMergeLabelsCode()
-        {
-            return $$"""
+    private static string GetMergeLabelsCode()
+    {
+      return $$"""
 import { Injectable } from "@angular/core";
 import { TranslateLabelsGeneratedService } from "./labels.generated";
 import { TranslateLabelsAbstractService } from 'spiderly';
@@ -4939,11 +4940,11 @@ export class TranslateLabelsService extends TranslateLabelsAbstractService {
     }
 }
 """;
-        }
+    }
 
-        private static string GetMergeClassNamesTsCode()
-        {
-            return $$"""
+    private static string GetMergeClassNamesTsCode()
+    {
+      return $$"""
 import { Injectable } from "@angular/core";
 import { TranslateClassNamesGeneratedService } from "./class-names.generated";
 
@@ -4968,11 +4969,11 @@ export class TranslateClassNamesService {
     }
 }
 """;
-        }
+    }
 
-        private static string GetAPIServiceTsCode()
-        {
-            return $$"""
+    private static string GetAPIServiceTsCode()
+    {
+      return $$"""
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ApiGeneratedService } from './api.service.generated';
@@ -4992,11 +4993,11 @@ export class ApiService extends ApiGeneratedService {
 
 }
 """;
-        }
+    }
 
-        private static string GetAuthServiceTsCode()
-        {
-            return $$"""
+    private static string GetAuthServiceTsCode()
+    {
+      return $$"""
 import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -5023,11 +5024,11 @@ export class AuthService extends AuthBaseService implements OnDestroy {
 
 }
 """;
-        }
+    }
 
-        private static string GetLayoutServiceTsCode()
-        {
-            return $$"""
+    private static string GetLayoutServiceTsCode()
+    {
+      return $$"""
 import { Injectable, OnDestroy } from '@angular/core';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { ConfigService } from '../config.service';
@@ -5052,18 +5053,18 @@ export class LayoutService extends LayoutBaseService implements OnDestroy {
 }
 
 """;
-        }
+    }
 
-        private static string GetLayoutComponentHtmlCode(bool hasTopMenu)
-        {
-            return $$"""
+    private static string GetLayoutComponentHtmlCode(bool hasTopMenu)
+    {
+      return $$"""
 <spiderly-layout [menu]="menu" {{(hasTopMenu ? "[isSideMenuLayout]=\"false\"" : "")}}></spiderly-layout>
 """;
-        }
+    }
 
-        private static string GetLayoutComponentTsCode()
-        {
-            return $$"""
+    private static string GetLayoutComponentTsCode()
+    {
+      return $$"""
 import { TranslocoService } from '@jsverse/transloco';
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
@@ -5154,11 +5155,11 @@ export class LayoutComponent {
 }
 
 """;
-        }
+    }
 
-        private static string GetGitIgnoreData()
-        {
-            return $$"""
+    private static string GetGitIgnoreData()
+    {
+      return $$"""
 # C#
 **/.vs/
 **/*.exe
@@ -5218,21 +5219,21 @@ export class LayoutComponent {
 **/.DS_Store
 **/Thumbs.db
 """;
-        }
+    }
 
-        private static string GetREADMEData(string appName, string spiderlyVersion)
-        {
-            return $$"""
+    private static string GetREADMEData(string appName, string spiderlyVersion)
+    {
+      return $$"""
 # {{appName}}
 This project was generated with [Spiderly CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI) version {{spiderlyVersion}}.
 
 For more information about Spiderly, visit our [documentation](https://www.spiderly.dev/docs/getting-started).
 """;
-        }
+    }
 
-        private static string GetFrontendREADMEData(string appName, string spiderlyVersion)
-        {
-            return $$"""
+    private static string GetFrontendREADMEData(string appName, string spiderlyVersion)
+    {
+      return $$"""
 # {{appName}}
 This project was generated with [Spiderly CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI) version {{spiderlyVersion}}.
 
@@ -5245,45 +5246,45 @@ Run `ng generate component component-name` to generate a new component. You can 
 ### Further help
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/main/README.md).
 """;
-        }
+    }
 
-        private static string GetFaviconIcoData()
-        {
-            return ""; // Can't add favicon as text, we need to use base64, we are not deleting this just because user could find the right place to change it easily.
-        }
+    private static string GetFaviconIcoData()
+    {
+      return ""; // Can't add favicon as text, we need to use base64, we are not deleting this just because user could find the right place to change it easily.
+    }
 
-        private static string GetLogoSvgData()
-        {
-            return """
+    private static string GetLogoSvgData()
+    {
+      return """
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" zoomAndPan="magnify" viewBox="0 0 810 810" height="1080" preserveAspectRatio="xMidYMid meet" xmlns:v="https://vecta.io/nano"><g fill="#db2777"><path d="M383.691 25.176c-8.957 12.43-25.23 36.102-38.301 55.664l-17.734 25.59c-1.828 2.285-5.758 7.586-8.59 11.883-2.926 4.297-6.219 8.773-7.406 10.055-3.199 3.566-3.383 5.211-1.371 14.074 1.008 4.57 4.48 22.488 7.77 39.852l8.777 45.246 5.027 24.676c1.098 6.035 2.742 13.254 3.473 15.996.824 2.742 1.461 5.668 1.461 6.398 0 .82-2.191 2.559-5.117 3.93l-5.121 2.559-16.543-16.27c-22.672-22.211-87.57-88.656-95.434-97.617-3.473-4.02-7.953-8.68-9.781-10.328l-3.473-3.016-3.75 2.195c-2.102 1.277-6.121 3.199-8.863 4.387s-6.949 3.199-9.234 4.66c-4.754 2.926-30.531 14.992-45.156 21.207-5.484 2.285-12.891 5.848-16.453 7.859-3.477 2.012-12.523 6.672-20.113 10.422-12.246 6.121-22.668 11.789-45.43 24.859-3.93 2.195-7.68 4.023-8.316 4.023-.734 0-1.922.73-2.742 1.645-1.648 1.828-11.887 31.805-18.832 55.48l-8.684 28.332c-2.285 6.949-4.023 12.887-3.84 12.98.457.457 22.668-30.711 30.441-42.684 8.133-12.613 18.281-30.437 19.102-33.547.367-1.461 2.469-2.832 7.496-4.934 3.84-1.555 12.891-5.574 20.203-8.867l17.918-7.859c2.559-1.098 7.949-3.656 11.973-5.758 4.113-2.195 11.336-5.395 15.996-7.129 4.754-1.828 9.875-4.023 11.426-4.937s5.027-2.559 7.773-3.562c2.742-1.098 10.875-4.57 18.188-7.863s13.895-6.031 14.719-6.031c.73 0 1.918-.547 2.469-1.098 1.277-1.277 1.734-.914 28.977 28.52 13.895 14.988 26.051 27.691 62.797 65.441 5.945 6.125 10.789 11.516 10.789 11.883 0 .457-1.008 1.555-2.195 2.375-2.102 1.555-2.469 1.465-12.98-2.832-6.031-2.375-14.535-6.031-19.105-8.043-11.609-5.211-37.02-15.996-45.703-19.469-4.023-1.555-13.437-5.574-20.844-8.867l-21.664-9.047c-7.859-3.016-8.133-3.016-11.973-1.738-2.195.824-4.57 2.012-5.395 2.742s-3.473 2.375-5.941 3.746c-2.469 1.281-6.398 3.934-8.773 5.941-2.379 1.922-4.937 3.566-5.668 3.566-1.281 0-16.637 11.059-25.32 18.371-6.766 5.574-34.098 24.313-50.551 34.641-18.742 11.699-25.414 16.82-26.418 20.566-.457 1.461-1.371 8.133-2.102 14.805s-1.738 14.441-2.195 17.367c-1.918 10.512-6.398 42.137-7.863 54.66-.73 7.035-2.191 19.191-3.199 26.961s-2.465 20.75-3.199 28.793c-.82 8.043-2.285 20.383-3.289 27.328-1.828 12.34-1.828 13.16-.367 25.594 1.648 14.348 7.223 36.469 8.137 32.535 1.555-6.852 8.957-44.691 10.238-52.555.824-5.027 3.016-16.359 5.027-25.133 1.918-8.777 4.938-24.039 6.672-33.82l6.855-37.93 10.148-58.59 1.004-6.398 6.219-4.66c3.473-2.559 8.5-5.852 11.152-7.223 2.742-1.371 6.215-3.379 7.676-4.57 1.555-1.094 3.199-2.191 3.656-2.281.551-.094 1.738-.641 2.742-1.281 1.922-1.187 14.809-8.316 26.145-14.625 3.84-2.102 11.52-6.945 17.004-10.785 5.484-3.746 13.254-8.684 17.273-10.875l9.145-5.211c1.551-1.098 2.465-.914 6.672 1.188 2.648 1.371 7.586 3.289 10.879 4.387 7.859 2.379 24.039 8.5 29.891 11.336 7.586 3.563 32.543 13.801 37.934 15.445 6.125 1.918 21.758 7.953 24.043 9.23 1.461.824 1.461 1.281-.551 7.406-1.918 6.031-2.559 6.855-7.77 10.785-10.602 8.043-16.82 16.633-20.84 29.246-6.125 19.285-2.102 39.305 11.426 56.211 6.488 7.953 6.582 8.137 5.574 4.48-1.277-4.48-1.094-10.055.551-17.457 1.828-8.043 7.496-23.398 11.152-30.437l2.742-5.211 1.918 4.297c2.469 5.574 10.969 13.801 18.191 17.641 6.488 3.473 17.824 7.039 25.23 7.953 2.832.363 5.301 1.004 5.574 1.371.273.457-1.098 2.742-3.016 5.207-1.918 2.379-5.211 6.855-7.223 9.871-2.102 3.02-5.574 7.223-7.77 9.234-6.398 6.215-19.012 13.434-25.687 14.715-2.648.547-2.465.641 3.02 2.285 7.496 2.102 21.664 2.191 32.082.184 9.234-1.738 21.848-7.586 29.344-13.621 9.141-7.219 17.004-18.461 22.855-32.902 2.465-6.125 3.379-7.406 7.402-10.055 2.559-1.738 4.754-3.016 4.844-2.926.457.457 6.492 45.883 7.223 54.566.367 3.746 1.188 10.145 1.918 14.168 1.648 8.867 3.934 30.07 4.023 37.109 0 5.484-1.281 9.23-8.684 25.043l-7.496 16.91c-1.738 4.297-3.473 8.133-3.93 8.684-.367.457-1.371 3.199-2.285 5.941s-3.016 7.859-4.754 11.242c-1.738 3.473-4.297 9.414-5.758 13.25-1.371 3.934-5.668 14.441-9.418 23.492s-7.586 18.918-8.41 21.938c-.914 3.016-3.016 9.137-4.75 13.707-3.934 10.328-10.789 33.727-12.066 41.59-.551 3.289-2.195 10.055-3.75 15.078-2.832 9.598-5.758 20.66-14.168 54.387-2.832 11.242-5.578 21.297-6.125 22.211-1.918 3.563 3.293-.551 15.176-12.25 11.699-11.332 12.066-11.883 14.168-18.371 1.188-3.656 4.203-11.789 6.672-18.098 2.559-6.305 7.586-20.109 11.242-30.711 6.125-17.73 13.438-35.465 19.656-47.895 2.559-5.207 21.754-51.273 26.965-64.895 1.645-4.297 6.949-16.359 11.793-26.871l8.773-19.379c0-.273 2.926-6.215 6.398-13.25 6.035-12.066 6.398-13.164 6.398-18.922 0-3.383-1.004-12.887-2.285-21.203l-4.57-30.988-4.113-30.801c-1.004-8.133-3.016-21.113-4.477-28.789-1.465-7.77-2.562-14.168-2.379-14.441.367-.277 5.211 3.016 26.512 18.188 4.02 2.926 11.148 7.129 15.723 9.504 4.66 2.285 10.602 5.578 13.254 7.223 2.648 1.734 10.785 6.305 18.008 10.238s14.992 8.59 17.277 10.328l4.203 3.199 21.48-.641c20.57-.551 32.359-1.187 66.457-3.383l15.082-.914 6.125 4.938c11.059 8.863 22.395 17.547 34.918 26.871 6.766 5.117 16.363 12.703 21.391 16.816 10.148 8.684 19.289 15.996 25.047 20.109 4.66 3.383 4.297 3.473 15.906-4.023l7.859-5.117-8.316-8.137c-13.805-13.344-40.77-37.746-67.371-60.961l-17.277-15.355-7.859-7.133-51.922.367-51.922.457-18.008-11.883-30.805-20.656-23.129-15.445c-5.758-3.75-10.145-7.039-9.871-7.312.184-.273 2.379.184 4.844.914 2.379.82 8.961 2.285 14.445 3.383 5.574 1.094 14.809 3.199 20.566 4.66l10.605 2.648 23.672-5.48c25.688-5.941 50.277-12.613 77.699-21.023l25.598-7.68 17.641-5.027 9.414-2.738 16.637 3.195 29.711 6.035 12.98 2.926 10.328 10.234c5.578 5.578 13.895 14.168 18.375 19.195 4.57 4.934 18.922 19.375 31.992 31.898l30.164 29.523c3.477 3.563 7.039 6.578 7.863 6.578s3.746-1.187 6.488-2.738c2.742-1.465 6.035-2.742 7.406-2.742 3.746 0 3.656-1.098-.09-5.578-1.922-2.191-7.133-8.773-11.609-14.625-16.637-21.75-23.77-30.707-30.531-38.297-8.32-9.414-15.816-18.645-24.59-30.16-3.656-4.754-11.152-13.895-16.82-20.293l-10.238-11.605-8.684-2.742c-11.336-3.566-42.051-10.512-75.141-17.094-1.461-.273-9.324 1.645-21.023 5.121-10.148 3.105-23.309 6.852-29.07 8.316l-21.023 5.758c-5.758 1.738-14.625 4.02-19.652 5.117-12.891 2.926-61.336 15.355-66.457 17-4.203 1.371-4.934 1.281-20.566-1.918-18.008-3.656-20.934-4.57-21.664-6.582-.457-1.094 0-1.187 2.469-.547 4.57 1.188 32.266.824 39.945-.547 82.453-14.262 141.961-73.488 148.176-147.43 1.738-19.836-.73-35.738-8.316-54.293-10.879-26.691-30.988-44.148-57.957-50.363-8.133-1.918-34.367-2.102-44.426-.367-18.098 3.199-29.523 7.039-45.703 15.266-34.187 17.551-63.258 49.539-77.152 85.094-5.027 12.797-6.488 18.371-8.773 32.449-3.293 20.93-2.012 42.684 3.656 61.785 1.461 4.844 2.469 8.957 2.285 9.141s-1.922.09-3.93-.273l-3.566-.551-1.918-8.406c-2.742-12.156-7.953-39.668-11.152-58.68l-5.027-28.793c-1.281-6.762-2.926-16.633-3.656-21.934-.824-5.301-1.738-10.879-2.195-12.34-.641-2.285-.184-3.84 2.375-8.684 3.477-6.766 19.016-31.352 38.941-61.789 7.406-11.332 13.438-20.93 13.438-21.387 0-1.918 5.301-3.562 17.824-5.391 7.59-1.191 19.473-3.293 26.418-4.754l30.625-5.852c17.367-3.105 27.148-5.301 28.246-6.305.273-.273-2.195-.551-5.395-.551s-17.734-.82-32.359-1.824l-48.449-3.199-27.605-1.922-5.574-.547zm0 0"/><path d="M299.465 465.965c-5.027-2.008-8.043-5.391-9.23-9.32-5.941 3.836-12.523 7.035-16.73 7.859-2.648.547-2.465.641 3.02 2.285 6.672 1.918 18.648 2.102 28.52.73-1.922-.363-3.75-.82-5.578-1.555zm0 0"/></g><path fill="#b62b70" d="M425.98 323.289c-.457-1.098 0-1.187 2.465-.547.184.09.457.09.734.18-1.098-2.375-.734-5.023-.734-7.586l-1.187-2.648c-.363-.73-.457-1.555-.547-2.379-1.281-1.734-2.742-3.473-4.207-5.117l-2.648-2.742-.457-.457-4.57-4.113-17.645-15.172c-.273.09-.547.184-.82.184-.551.09-1.191.09-1.738.184s-1.187.09-1.738.18c8.32 13.348 6.949 30.621 3.109 45.152-2.832 9.691-7.496 18.281-13.984 25.777-5.941 9.141-13.437 16.727-22.578 22.848-16.273 11.793-37.297 19.746-57.59 19.746-16.73 0-31.812-6.309-42.871-18.465.09.824.457 3.199.547 3.566.367 1.828.73 3.656 1.188 5.48.914 3.566 2.105 6.949 3.656 10.238l1.828-3.562 1.922 4.293c2.469 5.578 10.969 13.805 18.191 17.641 6.488 3.473 17.824 7.039 25.227 7.953 2.836.367 5.305 1.004 5.578 1.371.184.273-.367 1.371-1.281 2.742 1.922-.09 3.84.09 5.395.73.547.273 1.188.457 1.828.641h.914c.09 0 .273 0 .457-.094 3.383-.82 6.945-1.551 10.422-2.008l1.918-.273c1.371-.184 2.469-.277 3.293-.367h-.094c3.016-.273 3.016-.273.094 0 1.734.184 4.477-.914 6.121-1.371 4.113-1.004 8.137-2.285 12.25-3.109l1.555-.273c.273-.547.457-1.187.73-1.734 2.469-6.125 3.383-7.406 7.406-10.055 2.559-1.738 4.754-3.016 4.844-2.926s.457 2.195.914 5.574c2.559-3.105 6.215-5.574 9.688-7.129.551-.273 1.008-.457 1.555-.73.094 0 .457-.273 1.188-.641l2.379-1.277c.09-.094.184-.094.184-.184.09-.184.363-.457.73-.914 1.004-1.645 2.285-3.016 3.473-4.48.273-.273 2.012-2.832 1.465-2.008 1.277-2.012 2.465-4.113 3.836-6.125 2.379-3.383 5.395-6.309 8.32-9.141 1.098-1.098 2.285-2.102 3.383-3.109-.094 0 1.004-1.094 1.555-1.645-.367.367 2.008-3.289 2.285-3.746.73-1.371 1.461-2.832 2.191-4.297 3.473-7.312 6.582-14.168 11.063-20.84-.824-2.832.09-6.215 1.371-8.684 0 0 0-.09.09-.09.094-.184.094-.457.184-.641.09-1.098.09-2.285.09-3.383 0-2.738.914-5.301 2.379-7.586-3.75-.914-4.844-1.734-5.301-2.832zm0 0"/><path d="M255.223 420.082a36.54 36.54 0 0 1-6.488 4.023c-3.473 1.734-8.137 2.648-12.25 2.285a67.4 67.4 0 0 0 9.781 16.359c6.488 7.953 6.582 8.137 5.574 4.48-1.277-4.48-1.094-10.055.551-17.461.547-2.648 1.555-6.031 2.832-9.687zm116.551-153.004c-.094-.367-.094-.73-.184-1.098-.184-.457-.184-.914-.273-1.281v-.09l-.914-4.387c-.184-.457-.277-.914-.277-1.371 0-.273-.09-.547-.09-.824v-.09c0-.184 0-.273-.09-.457v-.273c-.094-.641-.367-1.281-.551-1.828l-.73-1.922-7.859 1.828c-8.594 2.836-18.285 4.391-27.332 4.207.547 3.93 1.734 7.313 2.008 9.047.641 2.742 1.555 5.668 1.465 6.398 0 .367-.551.914-1.371 1.465 10.145-3.293 20.566-4.48 31.262-3.566.457 0 .914-.09 1.461-.09 1.191 0 2.469-.094 3.656 0 .277 0 .551 0 .918.09zm-60.242-1.008l-1.645-1.645-1.187-.82c-6.766 9.32-15.082 17.184-25.047 23.582-1.645 1.188-3.289 2.375-5.027 3.473a11.22 11.22 0 0 0 1.461 1.461c4.938 5.117 9.051 9.781 10.332 11.426.18-.09.273-.184.457-.273.09 0 .09-.094.18-.094 3.84-3.473 8.047-6.672 12.523-9.504 7.223-5.301 14.902-9.414 23.129-12.43zm-2.285 171.105c9.965-4.113 20.477-6.035 31.445-5.668 4.848 0 9.508.367 14.078 1.281 2.195-3.84 4.207-7.953 5.941-12.434 1.008-2.465 1.738-4.203 2.559-5.484-4.113 1.738-8.316 3.293-12.613 4.391-10.238 4.293-21.023 6.305-32.359 6.031h-1.281l.094.09c.273.457-1.098 2.742-3.016 5.211a159.29 159.29 0 0 0-4.848 6.582zm-47.258-86.559c-1.004 1.098-2.379 2.195-4.48 3.75-5.941 4.477-10.418 9.047-13.984 14.441-.09.09-.09.18-.184.273-.184.273-.273.547-.367.82l-.09.094 7.313 7.035c7.039 8.594 9.691 19.195 9.781 29.891.367-.551.641-1.098 1.008-1.645.363-.641.73-1.465 1.094-2.105 1.098-2.648 2.195-4.934 3.109-6.762l1.098-2.102c-7.586-12.98-7.312-29.156-4.297-43.691zm14.261-48.35l-2.195-.914c-.184 0-.367-.09-.457-.09-.551-.09-1.098-.273-1.555-.457l-2.102-.73-2.195-.551-2.469-.73-1.734-.547c-.641 5.211-1.555 10.328-2.836 15.172-2.102 7.402-5.117 14.258-8.867 20.656a8.51 8.51 0 0 1 1.281.641c.73.457 1.461.82 2.195 1.277s1.551.734 2.285 1.191c.18.09.363.18.547.363 3.383 1.371 6.125 2.559 6.949 3.109.09-.273.273-.551.363-.73a5.17 5.17 0 0 1 1.098-1.648 83.76 83.76 0 0 1 12.066-19.742c2.742-4.387 5.758-8.5 9.051-12.246-1.555.09-4.023-.914-11.426-4.023zm0 0" fill="#c82777"/><path fill="#b62b70" d="M608.25 120.469c-6.762-16.543-17.094-29.613-30.437-38.57-1.008 23.398-5.121 46.797-12.066 69.191-7.039 22.574-16.91 44.148-32.086 62.52-13.711 16.543-30.895 29.613-49.637 40.031-19.469 10.785-41.043 17.641-62.434 23.398-9.133 2.469-18.363 4.477-27.695 6.035 3.016 2.922 5.668 6.305 7.953 9.871 1.734 2.742 2.469 5.484 2.469 8.316 3.105 4.477 5.848 9.141 8.043 14.168.73 1.734 1.277 3.473 1.828 5.207 3.656 1.465 7.859 2.105 11.883 2.742v-.09c-.457-1.098 0-1.187 2.469-.547 4.57 1.188 32.266.82 39.945-.551 82.453-14.258 141.961-73.484 148.176-147.43 1.648-19.832-.82-35.738-8.41-54.293zm0 0"/><path fill="#c82777" d="M309.156 466.789c-6.492-2.742-12.25-6.672-15.812-12.246-6.582 4.66-14.902 8.957-19.84 9.961-2.648.547-2.465.641 3.02 2.285 7.496 2.102 21.664 2.191 32.086.184.18-.094.363-.184.547-.184zM442.34 328.773l-1.371-.457c-1.277-.457-2.559-.73-3.84-1.098l-3.93-1.187-1.098-.273-2.465-.73-1.738-.551c-.547-.184-1.098-.547-1.738-.641-.09.277 0 .641 0 1.008v1.004l-.09 2.012-.367 4.023c-.273 2.648-.73 5.301-1.277 7.949l-1.555 6.855c-3.199 10.879-8.41 20.473-15.723 28.883-6.672 10.238-15.082 18.738-25.32 25.684-2.836 2.285-5.852 4.297-8.867 6.125v.363c.184 1.465.273 2.836.457 4.297.184 1.188.273 2.469.457 3.656.09.824.273 1.645.457 2.469l.547 2.012c.277.914.367 1.918.551 2.922 2.285-1.918 4.66-3.746 7.219-5.391 7.133-5.574 15.359-9.871 23.586-13.07-.184-.824-.273-1.371-.367-2.102-1.461-7.77-2.285-12.34-2.012-12.613.277-.184 1.648.547 10.879 7.035 3.199-9.32 8.504-19.012 14.902-26.414 1.828-2.832 3.289-4.387 5.391-6.945-5.758-3.746-8.684-6.125-8.41-6.398.184-.273 2.563.184 5.027.914 1.555.547 4.023-.73 7.68 0a90.83 90.83 0 0 1 4.207-4.203c-2.195-8.043-2.285-16.727-1.191-25.137zm0 0"/></svg>
 """;
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private static string XmlCommented(string input, bool shouldComment)
-        {
-            if (shouldComment)
-            {
-                return $"<!-- {input} -->";
-            }
-
-            return input;
-        }
-
-        private static string SlashCommented(string input, bool shouldComment)
-        {
-            if (shouldComment)
-            {
-                return $"// {input}";
-            }
-
-            return input;
-        }
-
-        #endregion
-
     }
+
+    #endregion
+
+    #region Helpers
+
+    private static string XmlCommented(string input, bool shouldComment)
+    {
+      if (shouldComment)
+      {
+        return $"<!-- {input} -->";
+      }
+
+      return input;
+    }
+
+    private static string SlashCommented(string input, bool shouldComment)
+    {
+      if (shouldComment)
+      {
+        return $"// {input}";
+      }
+
+      return input;
+    }
+
+    #endregion
+
+  }
 }

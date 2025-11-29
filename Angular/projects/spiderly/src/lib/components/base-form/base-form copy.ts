@@ -62,13 +62,12 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
 
     this.saveBody = this.saveBody ?? this.parentFormGroup.getRawValue();
 
-    const isValid = this.isControlValid(this.parentFormGroup);
+    const isValid = this.baseFormService.isControlValid(this.parentFormGroup);
 
     if(isValid){
       this.parentFormGroup.saveObservableMethod(this.saveBody).subscribe(res => {
         this.messageService.successMessage(this.successfulSaveToastDescription);
 
-        this.parentFormGroup.controls = {} as any;
         this.baseFormService.initFormGroup(this.parentFormGroup, this.mainUIFormClass, res);
 
         if (reroute) {
@@ -104,44 +103,6 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
   onBeforeSave = (saveBody?: any) => {}
   onAfterSave = () => {}
   onAfterSaveRequest = () => {}
-
-  isControlValid(
-    control: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray, 
-    controlNamesFromHtml?: string[]
-  ): boolean {
-    let invalid = false;
-
-    if (control instanceof SpiderlyFormControl) {
-      if (
-        control.invalid &&
-        (controlNamesFromHtml == null || controlNamesFromHtml?.includes(control.label))
-      ) {
-          control.markAsDirty();
-          invalid = true;
-        }
-    }
-    else if (control instanceof SpiderlyFormGroup) {
-      Object.keys(control.controls).forEach(key => {
-        const nestedControl = control.controls[key];
-        if (!this.isControlValid(nestedControl, control.controlNamesFromHtml)) {
-          invalid = true;
-        }
-      });
-    }
-    else if (control instanceof SpiderlyFormArray){
-      control.controls.forEach((nestedControl: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray) => {
-        if (!this.isControlValid(nestedControl)) {
-          invalid = true;
-        }
-      });
-    }
-
-    if (invalid) {
-      return false;
-    }
-
-    return true;
-  }
 
   //#endregion
 
