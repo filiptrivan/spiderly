@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { MenuItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { combineLatest, forkJoin, map, Observable, of, Subscription } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { SpiderlyMultiAutocompleteComponent } from '../../controls/spiderly-multiautocomplete/spiderly-multiautocomplete.component';
 import { SpiderlyMultiSelectComponent } from '../../controls/spiderly-multiselect/spiderly-multiselect.component';
 import { SpiderlyTextareaComponent } from '../../controls/spiderly-textarea/spiderly-textarea.component';
@@ -13,7 +13,8 @@ import { SpiderlyTextboxComponent } from '../../controls/spiderly-textbox/spider
 import { BaseEntity } from '../../entities/base-entity';
 import { IsAuthorizedForSaveEvent } from '../../entities/is-authorized-for-save-event';
 import { LastMenuIconIndexClicked } from '../../entities/last-menu-icon-index-clicked';
-import { Role, RoleMainUIForm, RoleSaveBody } from '../../entities/security-entities';
+import { Namebook } from '../../entities/namebook';
+import { RoleMainUIForm, RoleSaveBody } from '../../entities/security-entities';
 import { SpiderlyButton } from '../../entities/spiderly-button';
 import { ApiSecurityService } from '../../services/api.service.security';
 import { AuthBaseService } from '../../services/auth-base.service';
@@ -23,7 +24,6 @@ import { SpiderlyReturnButtonComponent } from '../spiderly-buttons/return-button
 import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { SpiderlyFormArray, SpiderlyFormGroup } from '../spiderly-form-control/spiderly-form-control';
 import { SpiderlyPanelsModule } from '../spiderly-panels/spiderly-panels.module';
-import { Namebook } from '../../entities/namebook';
 
 @Component({
     selector: 'role-base-details',
@@ -43,7 +43,7 @@ import { Namebook } from '../../entities/namebook';
         SpiderlyReturnButtonComponent
     ]
 })
-export class RoleBaseDetailsComponent {
+export class RoleBaseDetailsComponent { 
     @Output() onSave = new EventEmitter<void>();
     @Output() onAfterFormGroupInit = new EventEmitter<void>();
     @Input() getCrudMenuForOrderedData: (formArray: SpiderlyFormArray, modelConstructor: BaseEntity, lastMenuIconIndexClicked: LastMenuIconIndexClicked, adjustFormArrayManually: boolean) => MenuItem[];
@@ -53,8 +53,7 @@ export class RoleBaseDetailsComponent {
     @Input() showBigPanelTitle: boolean = true;
     @Input() panelIcon: string;
 
-    authorizationForSaveSubscription: Subscription;
-    @Input() authorizedForSaveObservable: () => Observable<boolean> = () => of(false);
+    @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve(true);
     isAuthorizedForSave: boolean = false;
     @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>(); 
     
@@ -91,46 +90,44 @@ export class RoleBaseDetailsComponent {
                 forkJoin({
                     mainUIFormDTO: this.apiService.getRoleMainUIFormDTO(this.modelId)
                 })
-                .subscribe(({ mainUIFormDTO }) => {
+                .subscribe(async ({ mainUIFormDTO }) => {
                     this.baseFormService.initFormGroup(this.parentFormGroup, RoleMainUIForm, mainUIFormDTO);
-                    this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
-                    this.onAfterFormGroupInit.next();
+                    await this.handleAuthorizationForSave();
                     this.loading = false;
+                    this.onAfterFormGroupInit.next();
                 });
             }
             else{
-                this.baseFormService.initFormGroup(this.parentFormGroup, RoleMainUIForm, new RoleMainUIForm({roleDTO: new Role({id: 0})}));
-                
-                this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
-                this.onAfterFormGroupInit.next();
+                this.baseFormService.initFormGroup(this.parentFormGroup, RoleMainUIForm);
+                await this.handleAuthorizationForSave();
                 this.loading = false;
+                this.onAfterFormGroupInit.next();
             }
         });
     }
-    
-    handleAuthorizationForSave = () => {
-        return combineLatest([this.authService.currentUserPermissionCodes$, this.authorizedForSaveObservable()]).pipe(
-            map(([currentUserPermissionCodes, isAuthorizedForSave]) => {
-                if (currentUserPermissionCodes != null && isAuthorizedForSave != null) {
-                    this.isAuthorizedForSave =
-                        (currentUserPermissionCodes.includes('InsertRole') && this.modelId <= 0) || 
-                        (currentUserPermissionCodes.includes('UpdateRole') && this.modelId > 0) ||
-                        isAuthorizedForSave;
 
-                    if (this.isAuthorizedForSave) { 
-                        this.parentFormGroup.enable();
-                    }
-                    else{
-                        this.parentFormGroup.disable();
-                    }
+    handleAuthorizationForSave = async () => {
+        const currentUserPermissionCodes = await firstValueFrom(this.authService.currentUserPermissionCodes$);
+        const isAdditionallyAuthorizedForSave = await this.handleAdditionalSaveAuthorization();                    
 
-                    this.onIsAuthorizedForSaveChange.next(new IsAuthorizedForSaveEvent({
-                        isAuthorizedForSave: this.isAuthorizedForSave, 
-                    })); 
-                }
+        this.isAuthorizedForSave =
+            (currentUserPermissionCodes.includes('InsertRole') && this.modelId <= 0) || 
+            (currentUserPermissionCodes.includes('UpdateRole') && this.modelId > 0) ||
+            isAdditionallyAuthorizedForSave;
+
+        if (this.isAuthorizedForSave) { 
+            this.parentFormGroup.enable();
+        }
+        else{
+            this.parentFormGroup.disable();
+        }
+
+        this.onIsAuthorizedForSaveChange.next(
+            new IsAuthorizedForSaveEvent({
+                isAuthorizedForSave: this.isAuthorizedForSave,
             })
         );
-    }
+    };
 
     searchUsersForRole(event: AutoCompleteCompleteEvent) {
         this.apiService.getUsersAutocompleteListForRole(50, event?.query ?? '').subscribe(no => {
@@ -140,12 +137,6 @@ export class RoleBaseDetailsComponent {
 
     save(){
         this.onSave.next();
-    }
-
-    ngOnDestroy(){
-        if (this.authorizationForSaveSubscription) {
-            this.authorizationForSaveSubscription.unsubscribe();
-        }
     }
 
 }
