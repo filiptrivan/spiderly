@@ -35,57 +35,74 @@ export class BaseFormService {
       initialValues = {} as T;
 
     Object.keys(targetClass.schema).forEach((formControlName) => {
-      let control: SpiderlyFormControl | SpiderlyFormGroup<any> | SpiderlyFormArray<any>;
-      
       const propSchema = targetClass.schema[formControlName];
       let propInitialValue = initialValues[formControlName];
       
+      const existingControl = formGroup.get(formControlName);
+
       if (
         propSchema.type.endsWith('[]') &&
         propSchema.nestedConstructor &&
         propSchema.type !== 'Namebook[]'
       ) {
-        const formArray = this.initFormArray(propSchema.nestedConstructor, propInitialValue)
-        control = formArray;
-
-        control.label = formControlName;
-        control.labelForDisplay = this.getTranslatedLabel(formControlName);
+        if (existingControl instanceof SpiderlyFormArray) {
+          this.initFormArray(existingControl, propSchema.nestedConstructor, propInitialValue);
+        }
+        else {
+          const control = new SpiderlyFormArray<T>([], this.translocoService, this);
+          this.initFormArray(control, propSchema.nestedConstructor, propInitialValue);
+  
+          control.label = formControlName;
+          control.labelForDisplay = this.getTranslatedLabel(formControlName);
+  
+          formGroup.setControl(formControlName, control);
+        }
       }
       else if (
         propSchema.nestedConstructor &&
         propSchema.type !== 'Namebook[]'
       ) {
-        control = new SpiderlyFormGroup({});
-        this.initFormGroup(control, propSchema.nestedConstructor, propInitialValue)
-      }
-      else{
-        if (updateOnChangeControls?.includes(formControlName as keyof T) ||
-          (formControlName.endsWith('Id') && formControlName.length > 2) ||
-          propSchema.type === 'Date' ||
-          propSchema.type === 'Namebook[]'
-        ){
-          control = new SpiderlyFormControl(propInitialValue, { updateOn: 'change' });
+        if (existingControl instanceof SpiderlyFormGroup) {
+          this.initFormGroup(existingControl, propSchema.nestedConstructor, propInitialValue)
         }
         else{
-          // HACK: Because on the backend id type is not nullable on generated DTOs, we need to do this, it's ugly hack and we should make it better.
-          if (
-            formControlName === 'id' && 
-            !propInitialValue
-          ) {
-            propInitialValue = 0;
-          }
-
-          control = new SpiderlyFormControl(propInitialValue, { updateOn: 'blur' });
+          const control = new SpiderlyFormGroup({});
+          this.initFormGroup(control, propSchema.nestedConstructor, propInitialValue)
+          formGroup.setControl(formControlName, control);
         }
-  
-        control.label = formControlName;
-        control.labelForDisplay = this.getTranslatedLabel(formControlName);
-        control.parentClassName = targetClass.typeName;
-
-        this.validatorService.setValidator(control, targetClass.typeName);
       }
+      else {
+        // HACK: Because on the backend id type is not nullable on generated DTOs, we need to do this, it's ugly hack and we should make it better.
+        if (formControlName === 'id' && !propInitialValue) {
+          propInitialValue = 0;
+        }
 
-      formGroup.setControl(formControlName, control); // Use setControl because it will update formControl if it already exists
+        if (existingControl instanceof SpiderlyFormControl) {
+          existingControl.setValue(propInitialValue); 
+        }
+        else {
+          let control: SpiderlyFormControl;
+
+          if (updateOnChangeControls?.includes(formControlName as keyof T) ||
+            (formControlName.endsWith('Id') && formControlName.length > 2) ||
+            propSchema.type === 'Date' ||
+            propSchema.type === 'Namebook[]'
+          ){
+            control = new SpiderlyFormControl(propInitialValue, { updateOn: 'change' });
+          }
+          else{
+            control = new SpiderlyFormControl(propInitialValue, { updateOn: 'blur' });
+          }
+    
+          control.label = formControlName;
+          control.labelForDisplay = this.getTranslatedLabel(formControlName);
+          control.parentClassName = targetClass.typeName;
+  
+          this.validatorService.setValidator(control, targetClass.typeName);
+
+          formGroup.setControl(formControlName, control);
+        }
+      }
     });
 
     formGroup.targetClass = targetClass;
@@ -130,47 +147,38 @@ export class BaseFormService {
   }
 
   initFormArray<T extends BaseEntity>(
+    formArray: SpiderlyFormArray<T>,
     targetClass: SchemaAwareConstructor<T>,
-    initialValues: T[],
+    initialValues: T[] = [],
   )
   {
-    if (!targetClass)
-      throw new SpiderlyError('You did not initialize targetClass');  
-    
-    if (!initialValues)
-      initialValues = [];
+    if (!formArray)
+      throw new SpiderlyError('You must pass a FormArray instance to be initialized or updated.');
 
-    let formArray = new SpiderlyFormArray<T>([], this.translocoService, this);
+    if (!targetClass)
+      throw new SpiderlyError('You did not initialize targetClass');
 
     // formArray.required = required;
     formArray.formGroupInitialValues = {}; // When we need we can pass formGroupInitialValues to this method instead of assigning it to empty object
     formArray.targetClass = targetClass;
 
-    initialValues.forEach(model => {
-      let helperFormGroup: SpiderlyFormGroup = new SpiderlyFormGroup({});
-      this.initFormGroup(helperFormGroup, targetClass, model);
-      formArray.push(helperFormGroup);
+    initialValues.forEach((model, index) => {
+      const existingControl = formArray.at(index);
+      
+      if (existingControl instanceof SpiderlyFormGroup) {
+        this.initFormGroup(existingControl, targetClass, model);
+      }
+      else {
+        let helperFormGroup: SpiderlyFormGroup = new SpiderlyFormGroup({});
+        this.initFormGroup(helperFormGroup, targetClass, model);
+        formArray.push(helperFormGroup);
+      }
     });
 
     return formArray;
   }
 
   //#region Helpers
-
-  // If you want to call single method
-  checkFormGroupValidity = <T>(formGroup: SpiderlyFormGroup<T>): boolean => {
-    if (formGroup.invalid) {
-      Object.keys(formGroup.controls).forEach(key => {
-        formGroup.controls[key].markAsDirty(); // this.formGroup.markAsDirty(); // For some reason this doesnt work
-      });
-
-      this.showInvalidFieldsMessage();
-
-      return false;
-    }
-    
-    return true;
-  }
 
   showInvalidFieldsMessage = () => {
     this.messageService.warningMessage(
@@ -222,6 +230,44 @@ export class BaseFormService {
     });
 
     return saveBody;
+  }
+
+  isControlValid(
+    control: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray, 
+    controlNamesFromHtml?: string[]
+  ): boolean {
+    let invalid = false;
+
+    if (control instanceof SpiderlyFormControl) {
+      if (
+        control.invalid &&
+        (controlNamesFromHtml == null || controlNamesFromHtml?.includes(control.label))
+      ) {
+          control.markAsDirty();
+          invalid = true;
+        }
+    }
+    else if (control instanceof SpiderlyFormGroup) {
+      Object.keys(control.controls).forEach(key => {
+        const nestedControl = control.controls[key];
+        if (!this.isControlValid(nestedControl, control.controlNamesFromHtml)) {
+          invalid = true;
+        }
+      });
+    }
+    else if (control instanceof SpiderlyFormArray){
+      control.controls.forEach((nestedControl: SpiderlyFormControl | SpiderlyFormGroup | SpiderlyFormArray) => {
+        if (!this.isControlValid(nestedControl)) {
+          invalid = true;
+        }
+      });
+    }
+
+    if (invalid) {
+      return false;
+    }
+
+    return true;
   }
 
   //#endregion

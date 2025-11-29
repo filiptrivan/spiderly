@@ -162,8 +162,7 @@ export class {{entity.Name}}BaseDetailsComponent {
     @Input() showBigPanelTitle: boolean = true;
     @Input() panelIcon: string;
     @Input() showReturnButton: boolean = true;
-    authorizationForSaveSubscription: Subscription;
-    @Input() authorizedForSaveObservable: () => Observable<boolean> = () => of({{(!Helpers.ShouldAuthorizeEntity(entity)).ToString().ToLower()}});
+    @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve({{(!Helpers.ShouldAuthorizeEntity(entity)).ToString().ToLower()}});
     isAuthorizedForSave: boolean = {{(!Helpers.ShouldAuthorizeEntity(entity)).ToString().ToLower()}};
     @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>(); 
 
@@ -214,45 +213,43 @@ export class {{entity.Name}}BaseDetailsComponent {
                 })
                 .subscribe(({ mainUIFormDTO }) => {
                     this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, mainUIFormDTO);
-                    this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
+                    this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
             else{
                 this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm);
-                this.authorizationForSaveSubscription = this.handleAuthorizationForSave().subscribe();
+                this.handleAuthorizationForSave();
                 this.loading = false;
                 this.onAfterFormGroupInit.next();
             }
         });
     }
 
-    handleAuthorizationForSave = () => {
-        return combineLatest([this.authService.currentUserPermissionCodes$, this.authorizedForSaveObservable()]).pipe(
-            map(([currentUserPermissionCodes, isAuthorizedForSave]) => {
-                if (currentUserPermissionCodes != null && isAuthorizedForSave != null) {
-                    this.isAuthorizedForSave =
+    handleAuthorizationForSave = async () => {
+        const currentUserPermissionCodes = await firstValueFrom(this.authService.currentUserPermissionCodes$);
+        const isAdditionallyAuthorizedForSave = await this.handleAdditionalSaveAuthorization();                    
+
+        this.isAuthorizedForSave =
 {{GetAdditionalPermissionCodes(entity)}}
-                        (currentUserPermissionCodes.includes('Insert{{entity.Name}}') && this.modelId <= 0) || 
-                        (currentUserPermissionCodes.includes('Update{{entity.Name}}') && this.modelId > 0) ||
-                        isAuthorizedForSave;
+            (currentUserPermissionCodes.includes('Insert{{entity.Name}}') && this.modelId <= 0) || 
+            (currentUserPermissionCodes.includes('Update{{entity.Name}}') && this.modelId > 0) ||
+            isAdditionallyAuthorizedForSave;
 
-                    if (this.isAuthorizedForSave) { 
-this.parentFormGroup.enable();
-                    }
-                    else{
-this.parentFormGroup.disable();
-                    }
+            if (this.isAuthorizedForSave) { 
+                this.parentFormGroup.enable();
+            }
+            else{
+                this.parentFormGroup.disable();
+            }
 
-                    this.onIsAuthorizedForSaveChange.next(new IsAuthorizedForSaveEvent({
-                        isAuthorizedForSave: this.isAuthorizedForSave, 
-                        currentUserPermissionCodes: currentUserPermissionCodes
-                    })); 
-                }
+        this.onIsAuthorizedForSaveChange.next(
+            new IsAuthorizedForSaveEvent({
+                isAuthorizedForSave: this.isAuthorizedForSave,
             })
         );
-    }
+    };
 
 {{string.Join("\n", GetSimpleManyToManyMethods(entity, allEntities))}}
 
@@ -262,12 +259,6 @@ this.parentFormGroup.disable();
 
     save(){
         this.onSave.next();
-    }
-
-	ngOnDestroy(){
-        if (this.authorizationForSaveSubscription) {
-            this.authorizationForSaveSubscription.unsubscribe();
-        }
     }
 
 }
@@ -341,13 +332,13 @@ this.parentFormGroup.disable();
                 if (attribute.Name == "UIAdditionalPermissionCodeForInsert")
                 {
                     sb.AppendLine($$"""
-                        (currentUserPermissionCodes.includes('{{attribute.Value}}') && this.modelId <= 0) || 
+            (currentUserPermissionCodes.includes('{{attribute.Value}}') && this.modelId <= 0) || 
 """);
                 }
                 else if (attribute.Name == "UIAdditionalPermissionCodeForUpdate")
                 {
                     sb.AppendLine($$"""
-                        (currentUserPermissionCodes.includes('{{attribute.Value}}') && this.modelId > 0) || 
+            (currentUserPermissionCodes.includes('{{attribute.Value}}') && this.modelId > 0) || 
 """);
                 }
             }
