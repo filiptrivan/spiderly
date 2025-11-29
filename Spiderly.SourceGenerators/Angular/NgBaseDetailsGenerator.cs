@@ -207,20 +207,20 @@ export class {{entity.Name}}BaseDetailsComponent {
 {{string.Join("\n", GetManyToManyMultiSelectListForDropdownMethods(entity, allEntities))}}
 {{string.Join("\n", GetManyToManyTableColsInitializations(entity, allEntities, customDTOClasses))}}
 
-            if(this.modelId > 0){
+            if (this.modelId > 0) {
                 forkJoin({
                     mainUIFormDTO: this.apiService.get{{entity.Name}}MainUIFormDTO(this.modelId),
                 })
-                .subscribe(({ mainUIFormDTO }) => {
+                .subscribe(async ({ mainUIFormDTO }) => {
                     this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, mainUIFormDTO);
-                    this.handleAuthorizationForSave();
+                    await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
-            else{
+            else {
                 this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm);
-                this.handleAuthorizationForSave();
+                await this.handleAuthorizationForSave();
                 this.loading = false;
                 this.onAfterFormGroupInit.next();
             }
@@ -237,12 +237,12 @@ export class {{entity.Name}}BaseDetailsComponent {
             (currentUserPermissionCodes.includes('Update{{entity.Name}}') && this.modelId > 0) ||
             isAdditionallyAuthorizedForSave;
 
-            if (this.isAuthorizedForSave) { 
-                this.parentFormGroup.enable();
-            }
-            else{
-                this.parentFormGroup.disable();
-            }
+        if (this.isAuthorizedForSave) { 
+            this.parentFormGroup.enable();
+        }
+        else{
+            this.parentFormGroup.disable();
+        }
 
         this.onIsAuthorizedForSaveChange.next(
             new IsAuthorizedForSaveEvent({

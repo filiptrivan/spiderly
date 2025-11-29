@@ -743,7 +743,10 @@ export class {{entityName}}ListComponent implements OnInit {
             [isLastMultiplePanel]="true"
             (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
         >
-            <div buttons *ngIf="parentFormGroup.controls.notificationDTO.controls.id?.value > 0 && isAuthorizedForSave">
+            <div
+                buttons
+                *ngIf="isAuthorizedForSave && parentFormGroup.controls.notificationDTO?.controls?.id?.value > 0"
+            >
                 <spiderly-button
                     [label]="t('SendEmailNotification')"
                     (onClick)="sendEmailNotification()"
@@ -753,6 +756,7 @@ export class {{entityName}}ListComponent implements OnInit {
         </notification-base-details>
     </spiderly-card>
 </ng-container>
+
 """;
     }
 
@@ -839,6 +843,7 @@ export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainU
         this.saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
     };
 }
+
 """;
     }
 
@@ -1033,8 +1038,8 @@ export class RoleListComponent implements OnInit {
         [showIsDisabledForUser]="showIsDisabledControl"
         [showHasLoggedInWithExternalProviderForUser]="showHasLoggedInWithExternalProvider"
         [showReturnButton]="false"
-        [authorizedForSaveObservable]="authorizedForSaveObservable"
-        (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
+        [handleAdditionalSaveAuthorization]="handleAdditionalSaveAuthorization"
+        (onAfterFormGroupInit)="handleAfterFormGroupInit()"
     ></user-base-details>
 </ng-container>
 
@@ -1048,11 +1053,10 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { combineLatest, delay, map, Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
     BaseFormCopy,
     BaseFormService,
-    IsAuthorizedForSaveEvent,
     SpiderlyControlsModule,
     SpiderlyMessageService,
     SpiderlyPanelsModule,
@@ -1074,8 +1078,6 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
     showIsDisabledControl: boolean = false;
     showHasLoggedInWithExternalProvider: boolean = false;
 
-    isAuthorizedForSave: boolean = false;
-
     constructor(
         protected override differs: KeyValueDiffers,
         protected override http: HttpClient,
@@ -1090,44 +1092,34 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
         super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }
 
-    override ngOnInit() {}
-
-    authorizedForSaveObservable = (): Observable<boolean> => {
-        return combineLatest([this.authService.currentUserPermissionCodes$, this.authService.user$]).pipe(
-            delay(0),
-            map(([currentUserPermissionCodes, currentUser]) => {
-                if (currentUserPermissionCodes != null && currentUser != null) {
-                    const IsDisabledAndExternalLoggedInControls =
-                        this.showIsDisabledAndExternalLoggedInControlsForPermissions(currentUserPermissionCodes);
-                    this.showIsDisabledControl = IsDisabledAndExternalLoggedInControls;
-                    this.showHasLoggedInWithExternalProvider = IsDisabledAndExternalLoggedInControls;
-                    return this.isCurrentUserPage(currentUser.id);
-                }
-
-                return false;
-            })
-        );
-    };
-
-    showIsDisabledAndExternalLoggedInControlsForPermissions = (currentUserPermissionCodes: string[]) => {
-        return (
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser)
-        );
+    handleAdditionalSaveAuthorization = async (): Promise<boolean> => {
+        const currentUser = await firstValueFrom(this.authService.user$);
+        return this.isCurrentUserPage(currentUser.id);
     };
 
     isCurrentUserPage = (currentUserId: number) => {
         return currentUserId === this.parentFormGroup.controls.userDTO.getRawValue().id;
     };
 
-    isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
-        this.isAuthorizedForSave = event.isAuthorizedForSave;
+    async handleAfterFormGroupInit() {
+        const currentUserPermissionCodes = await firstValueFrom(this.authService.currentUserPermissionCodes$);
+
+        const shouldShowIsDisabledAndExternalLoggedIn =
+            this.showIsDisabledAndExternalLoggedIn(currentUserPermissionCodes);
+
+        this.showIsDisabledControl = shouldShowIsDisabledAndExternalLoggedIn;
+        this.showHasLoggedInWithExternalProvider = shouldShowIsDisabledAndExternalLoggedIn;
 
         this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithExternalProvider.disable();
-    };
+    }
 
-    override onBeforeSave = (): void => {};
+    showIsDisabledAndExternalLoggedIn = (currentUserPermissionCodes: string[]) => {
+        return (
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
+            currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser)
+        );
+    };
 }
 
 """;
