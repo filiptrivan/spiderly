@@ -218,10 +218,7 @@ export class BaseFormService {
       }
       // Handle multi-autocomplete (e.g., "itemsNamebookDTOList" -> "selectedItemsIds")
       else if (propName.endsWith('NamebookDTOList')) {
-        const propertyName = propName.replace('NamebookDTOList', '');
-        // Extract IDs from NamebookDTO objects
-        const ids = value?.map(item => item.id) ?? [];
-        saveBody[`selected${capitalizeFirstChar(propertyName)}Ids`] = ids;
+        saveBody[`selected${capitalizeFirstChar(propName)}`] = value ?? [];
       }
       // Handle the main DTO object (e.g., "entityDTO")
       else{

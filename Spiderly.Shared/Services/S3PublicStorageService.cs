@@ -71,7 +71,9 @@ namespace Spiderly.Shared.Services
 
             ListObjectsV2Response response = await _s3Client.ListObjectsV2Async(listRequest);
 
-            foreach (S3Object obj in response.S3Objects.Where(o => o.Key != activeKey))
+            List<S3Object> s3Objects = response.S3Objects ?? [];
+
+            foreach (S3Object obj in s3Objects.Where(o => o.Key != activeKey))
             {
                 await _s3Client.DeleteObjectAsync(_bucketName, obj.Key);
             }

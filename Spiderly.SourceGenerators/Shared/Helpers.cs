@@ -783,11 +783,13 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
-                else if (
-                    property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
+                else if (property.IsMultiSelectControlType())
                 {
                     result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
+                else if (property.IsMultiAutocompleteControlType())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
                 else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
                 {
@@ -816,15 +818,11 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
-                else if (
-                    property.IsMultiSelectControlType()
-                )
+                else if (property.IsMultiSelectControlType())
                 {
                     result.Add(new SpiderlyProperty { Name = $"{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
-                else if (
-                    property.IsMultiAutocompleteControlType()
-                )
+                else if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
