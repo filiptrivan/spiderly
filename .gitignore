@@ -9,6 +9,7 @@
 **/*.suo
 **/*.pdb
 **/appsettings*.json
+*.nupkg
 
 # Angular
 **/dist/

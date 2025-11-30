@@ -7,7 +7,6 @@ import { SidebarMenuService } from './sidebar-menu.service';
 import { SpiderlyMenuItem } from './sidebar-menu.component';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { SpiderlyFormControl } from '../../spiderly-form-control/spiderly-form-control';
-import { PrimengOption } from '../../../entities/primeng-option';
 import { LayoutBaseService } from '../../../services/app-layout-base.service';
 import { AuthBaseService } from '../../../services/auth-base.service';
 import { ApiSecurityService } from '../../../services/api.service.security';
@@ -15,6 +14,7 @@ import { ConfigBaseService } from '../../../services/config-base.service';
 import { CommonModule } from '@angular/common';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { Namebook } from '../../../entities/namebook';
 
 @Component({
     // eslint-disable-next-line @angular-eslint/component-selector
@@ -58,9 +58,9 @@ export class MenuitemComponent implements OnInit, OnDestroy {
 
     key: string = "";
 
-    selectedPartner: SpiderlyFormControl = new SpiderlyFormControl<string>(null, { updateOn: 'change' });
+    selectedPartner = new SpiderlyFormControl<Namebook>(null, { updateOn: 'change' });
 
-    partnerOptions: PrimengOption[];
+    partnerOptions: Namebook[];
 
     constructor(
         public layoutService: LayoutBaseService, 
@@ -158,7 +158,7 @@ export class MenuitemComponent implements OnInit, OnDestroy {
     }
 
     partnersAutocompleteButtonClick = async () => {
-        this.layoutService.partnersAutocompleteButtonClick(this.selectedPartner);
+        this.layoutService.partnersAutocompleteButtonClick(this.selectedPartner.value);
     }
 
     //#endregion

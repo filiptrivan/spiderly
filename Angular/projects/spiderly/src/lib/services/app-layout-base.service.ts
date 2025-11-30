@@ -4,8 +4,8 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, delay, lastValueFrom, map, Observable, of, Subject, Subscription, withLatestFrom } from 'rxjs';
 import { InitTopBarData } from '../entities/init-top-bar-data';
 import { ConfigBaseService } from './config-base.service';
-import { PrimengOption } from '../entities/primeng-option';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { Namebook } from '../entities/namebook';
 
 export interface AppConfig {
     inputStyle: string;
@@ -168,11 +168,11 @@ export class LayoutBaseService implements OnDestroy {
 
     //#region Side Bar
 
-    searchPartners = (event: AutoCompleteCompleteEvent): Observable<PrimengOption[]> => {
+    searchPartners = (event: AutoCompleteCompleteEvent): Observable<Namebook[]> => {
         return of();
     }
 
-    partnersAutocompleteButtonClick = (selectedPartner: PrimengOption) => {}
+    partnersAutocompleteButtonClick = (selectedPartner: Namebook) => {}
 
     //#endregion
 
