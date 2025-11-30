@@ -314,17 +314,13 @@ namespace {{basePartOfNamespace}}.Services
                     Ordered{{property.Name}}MainUIFormDTO = await GetOrdered{{property.Name}}For{{entity.Name}}(id, false),
 """);
                 }
-                else if (
-                    property.IsMultiSelectControlType()
-                )
+                else if (property.IsMultiSelectControlType())
                 {
                     result.Add($$"""
                     {{property.Name}}Ids = await Get{{property.Name}}IdsFor{{entity.Name}}(id, false),
 """);
                 }
-                else if (
-                    property.IsMultiAutocompleteControlType()
-                )
+                else if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add($$"""
                     {{property.Name}}NamebookDTOList = await Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false),
@@ -344,20 +340,16 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
 
-                if (
-                    property.IsMultiSelectControlType()
-                )
+                if (property.IsMultiSelectControlType())
                 {
                     result.Add($$"""
                     {{property.Name}}Ids = saveBodyDTO.Selected{{property.Name}}Ids,
 """);
                 }
-                else if (
-                    property.IsMultiAutocompleteControlType()
-                )
+                else if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add($$"""
-                    {{property.Name}}NamebookDTOList = saveBodyDTO.Selected{{property.Name}}Ids,
+                    {{property.Name}}NamebookDTOList = saveBodyDTO.Selected{{property.Name}}NamebookDTOList,
 """);
                 }
             }
@@ -1113,11 +1105,16 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasExcludeServiceMethodsFromGenerationAttribute() == false))
             {
-                if (property.IsMultiSelectControlType() ||
-                    property.IsMultiAutocompleteControlType())
+                if (property.IsMultiSelectControlType())
                 {
                     result.Add($$"""
                 await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Selected{{property.Name}}Ids);
+""");
+                }
+                if (property.IsMultiAutocompleteControlType())
+                {
+                    result.Add($$"""
+                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Selected{{property.Name}}NamebookDTOList.Select(x => x.Id));
 """);
                 }
             }

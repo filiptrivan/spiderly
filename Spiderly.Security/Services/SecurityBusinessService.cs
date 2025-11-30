@@ -347,42 +347,56 @@ namespace Spiderly.Security.Services
             });
         }
 
+        public override async Task<RoleMainUIFormDTO> SaveRoleAndReturnMainUIFormDTO(RoleSaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            RoleMainUIFormDTO roleMainUIFormDTO = await base.SaveRoleAndReturnMainUIFormDTO(saveBodyDTO, authorizeUpdate, authorizeInsert);
+            roleMainUIFormDTO.UsersNamebookDTOList = saveBodyDTO.SelectedUsersNamebookDTOList;
+            return roleMainUIFormDTO;
+        }
+
         protected override async Task OnAfterSaveRoleAndReturnMainUIFormDTO(RoleDTO savedDTO, RoleSaveBodyDTO saveBodyDTO)
         {
             await _context.WithTransactionAsync(async () =>
             {
-                await UpdateUsersForRole(savedDTO.Id, saveBodyDTO.SelectedUsersIds);
+                await UpdateUsersForRole(savedDTO.Id, saveBodyDTO.SelectedUsersNamebookDTOList.Select(x => x.Id));
             });
         }
 
-        public async Task UpdateUsersForRole(int roleId, List<long> selectedUserIds)
+        public async Task UpdateUsersForRole(int roleId, IEnumerable<long> selectedUserIds)
         {
             if (selectedUserIds == null)
                 return;
 
+            HashSet<long> newUserIdSet = new HashSet<long>(selectedUserIds);
+            List<UserRole> usersToRemove = new();
+            List<UserRole> usersToAdd = new();
+
             await _context.WithTransactionAsync(async () =>
             {
-                List<UserRole> roleUserList = await _context.DbSet<UserRole>().Where(x => x.RoleId == roleId).ToListAsync();
+                List<UserRole> existingRoleUsers = await _context
+                    .DbSet<UserRole>()
+                    .Where(x => x.RoleId == roleId)
+                    .ToListAsync();
 
-                foreach (UserRole roleUser in roleUserList)
+                foreach (UserRole existingRoleUser in existingRoleUsers)
                 {
-                    if (selectedUserIds.Contains(roleUser.UserId))
-                        selectedUserIds.Remove(roleUser.UserId);
-                    else
-                        _context.DbSet<UserRole>().Remove(roleUser);
-                }
-
-                foreach (long selectedUserId in selectedUserIds)
-                {
-                    UserRole roleUser = new UserRole
+                    if (newUserIdSet.Contains(existingRoleUser.UserId))
                     {
-                        RoleId = roleId,
-                        UserId = selectedUserId
-                    };
-
-                    await _context.DbSet<UserRole>().AddAsync(roleUser);
+                        newUserIdSet.Remove(existingRoleUser.UserId);
+                    }
+                    else
+                    {
+                        usersToRemove.Add(existingRoleUser);
+                    }
                 }
 
+                foreach (long newUserId in newUserIdSet)
+                {
+                    usersToAdd.Add(new UserRole { RoleId = roleId, UserId = newUserId });
+                }
+
+                _context.DbSet<UserRole>().RemoveRange(usersToRemove);
+                _context.DbSet<UserRole>().AddRange(usersToAdd);
 
                 await _context.SaveChangesAsync();
             });
