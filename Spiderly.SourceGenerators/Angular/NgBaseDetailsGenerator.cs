@@ -50,14 +50,7 @@ namespace Spiderly.SourceGenerators.Angular
                 var (classesAndEntities, callingPath) = source;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                try
-                {
-                    Execute(classes, referencedClasses, callingPath, spc);
-                }
-                catch (Exception exception)
-                {
-                    Diagnostics.ReportException(spc, nameof(NgBaseDetailsGenerator), exception, classes);
-                }
+                Execute(classes, referencedClasses, callingPath, spc);
             });
 
         }
