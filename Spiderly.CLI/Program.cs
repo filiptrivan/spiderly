@@ -20,13 +20,18 @@ namespace Spiderly.CLI
 
         private static async Task Main(string[] args)
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string fullVersion = assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+            string version = fullVersion?.Split('+')[0]; // If we don't split, it will return the full version with the commit hash, which is not needed for the init command.
+
             if (args.HasArg("--help") || args.HasArg("-help") || args.HasArg("help"))
             {
                 ShowHelp();
                 return;
             }
-
-            if (args.HasArg("init"))
+            else if (args.HasArg("init"))
             {
                 bool hasTopMenu = false;
                 if (args.HasArg("--top-menu"))
@@ -40,11 +45,10 @@ namespace Spiderly.CLI
                     IsRunningFromNuget = false;
                 }
 
-                await Init(hasTopMenu, IsRunningFromNuget);
+                await Init(hasTopMenu, IsRunningFromNuget, version);
                 return;
             }
-
-            if (args.HasArg("add-new-page"))
+            else if (args.HasArg("add-new-page"))
             {
                 bool shouldGenerateDataView = false;
                 if (args.HasArg("--data-view"))
@@ -55,8 +59,25 @@ namespace Spiderly.CLI
                 await AddNewPage(shouldGenerateDataView);
                 return;
             }
-
-            Console.WriteLine("\nUnrecognized command. Type 'spiderly help' to see a list of available commands.");
+            else if (args.Length == 0)
+            {
+                Console.WriteLine($$"""
+           ____        _     _           _       
+ ||  ||   / ___| _ __ (_) __| | ___ _ __| |_   _ 
+ \\()//   \___ \| '_ \| |/ _` |/ _ \ '__| | | | |
+//(__)\\   ___) | |_) | | (_| |  __/ |  | | |_| |
+||    ||  |____/| .__/|_|\__,_|\___|_|  |_|\__, |
+                |_|                        |___/ 
+               
+Spiderly.CLI v{{version}}
+-------------------------------------------------
+Type 'spiderly help' to see a list of available commands.
+""");
+            }
+            else
+            {
+                Console.WriteLine("Unrecognized command. Type 'spiderly help' to see a list of available commands.");
+            }
         }
 
         private static void ShowHelp()
@@ -79,10 +100,8 @@ namespace Spiderly.CLI
 
         #region Init
 
-        private static async Task Init(bool hasTopMenu, bool IsRunningFromNuget)
+        private static async Task Init(bool hasTopMenu, bool IsRunningFromNuget, string version)
         {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-
             string appName;
 
             while (true)
@@ -106,11 +125,6 @@ namespace Spiderly.CLI
             }
 
             string currentPath = Environment.CurrentDirectory;
-
-            string fullVersion = assembly
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion;
-            string version = fullVersion?.Split('+')[0]; // If we don't split, it will return the full version with the commit hash, which is not needed for the init command.
 
             bool hasNetAndAngularInitErrors = false;
             bool hasEfMigrationErrors = false;
