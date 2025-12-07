@@ -9,11 +9,9 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu)
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, string sqlServerConnectionString)
     {
-      string jwtKey = Helper.GenerateJwtSecretKey();
-
-      string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
+      string userSecretsId = Guid.NewGuid().ToString();
 
       SpiderlyFolder appStructure = new SpiderlyFolder
       {
@@ -436,7 +434,7 @@ namespace Spiderly.Shared.Helpers
                                         blobStorageUrl: null,
                                         sqlServerConnectionString: sqlServerConnectionString
                                     )},
-                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget) },
+                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                                     new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
                                     new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
@@ -2923,27 +2921,18 @@ using Quartz;
 
 public class Startup
 {
-    public static string _jsonConfigurationFile = "appsettings.json";
-    private readonly IHostEnvironment _hostEnvironment;
+    public IConfiguration Configuration { get; }
 
-    public Startup(IConfiguration configuration, IHostEnvironment hostEnvironment)
+    public Startup(IConfiguration configuration)
     {
         Configuration = configuration;
-        _hostEnvironment = hostEnvironment;
 
-        if (_hostEnvironment.IsStaging())
-            _jsonConfigurationFile = "appsettings.Staging.json";
-        else if (_hostEnvironment.IsProduction())
-            _jsonConfigurationFile = "appsettings.Production.json";
-
-        {{appName}}.WebAPI.SettingsProvider.Current = Helper.ReadAssemblyConfiguration<{{appName}}.WebAPI.Settings>(_jsonConfigurationFile);
-        {{appName}}.Business.SettingsProvider.Current = Helper.ReadAssemblyConfiguration<{{appName}}.Business.Settings>(_jsonConfigurationFile);
-        Spiderly.Infrastructure.SettingsProvider.Current = Helper.ReadAssemblyConfiguration<Spiderly.Infrastructure.Settings>(_jsonConfigurationFile);
-        Spiderly.Security.SettingsProvider.Current = Helper.ReadAssemblyConfiguration<Spiderly.Security.Settings>(_jsonConfigurationFile);
-        Spiderly.Shared.SettingsProvider.Current = Helper.ReadAssemblyConfiguration<Spiderly.Shared.Settings>(_jsonConfigurationFile);
+        {{appName}}.WebAPI.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.WebAPI").Get<{{appName}}.WebAPI.Settings>();
+        {{appName}}.Business.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.Business").Get<{{appName}}.Business.Settings>();
+        Spiderly.Infrastructure.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Infrastructure").Get<Spiderly.Infrastructure.Settings>();
+        Spiderly.Security.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Security").Get<Spiderly.Security.Settings>();
+        Spiderly.Shared.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Shared").Get<Spiderly.Shared.Settings>();
     }
-
-    public IConfiguration Configuration { get; }
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -3018,6 +3007,10 @@ namespace {{appName}}.WebAPI
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host
                 .CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((context, config) =>
+                {
+                    config.AddEnvironmentVariables();
+                })
                 .UseSerilog((context, configuration) =>
                 {
                     configuration.ReadFrom.Configuration(context.Configuration);
@@ -3032,7 +3025,7 @@ namespace {{appName}}.WebAPI
 """;
     }
 
-    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget)
+    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget, string userSecretsId)
     {
       return $$"""
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -3040,6 +3033,7 @@ namespace {{appName}}.WebAPI
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>{{userSecretsId}}</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -3162,28 +3156,19 @@ namespace {{appName}}.WebAPI
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
       "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}", // Email address used to send verification emails during login or registration.
-      "EmailSenderPassword": "{{emailSenderPassword ?? "xxxx xxxx xxxx xxxx"}}",
       "UnhandledExceptionRecipients": [ // Email addresses that will receive notifications when an unhandled exception occurs in production.
         "{{emailSender ?? "youremail@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
       "SmtpPort": 587,
-      "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
-
-      "BlobStorageConnectionString": "{{blobStorageConnectionString}}",
-      "BlobStorageUrl": "{{blobStorageUrl}}",
-      "BlobStorageContainerName": "files-dev",
-
-      "ConnectionString": "{{sqlServerConnectionString?.Replace(@"\", @"\\")}}",
 
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
     },
     "Spiderly.Security": {
-      "JwtKey": "{{jwtKey}}",
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires. 
@@ -5144,7 +5129,6 @@ export class LayoutComponent {
 **/*.user
 **/*.suo
 **/*.pdb
-**/appsettings*.json
 **/FileStorage
 
 # Angular

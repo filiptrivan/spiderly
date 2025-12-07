@@ -130,11 +130,15 @@ Type 'spiderly help' to see a list of available commands.
             bool hasEfMigrationErrors = false;
             bool hasDatabaseUpdateErrors = false;
             bool hasNpmInstallErrors = false;
+            bool hasUserSecretsErrors = false;
+
+            string jwtKey = Helper.GenerateJwtSecretKey();
+            string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
 
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, IsRunningFromNuget, primaryColor: null, hasTopMenu);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, IsRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, sqlServerConnectionString);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
@@ -149,6 +153,16 @@ Type 'spiderly help' to see a list of available commands.
                 }
 
                 hasNetAndAngularInitErrors = true;
+            }
+
+            if (!hasNetAndAngularInitErrors)
+            {
+                Console.WriteLine("\nSetting up user secrets...");
+                if (!await SetupUserSecrets(currentPath, appName, jwtKey, sqlServerConnectionString))
+                {
+                    Console.WriteLine("\n[ERROR] Failed to set up user secrets.");
+                    hasUserSecretsErrors = true;
+                }
             }
 
             string infrastructurePath = Path.Combine(currentPath, @$"{appName.ToKebabCase()}{_s_}Backend{_s_}{appName}.Infrastructure");
@@ -178,11 +192,15 @@ Type 'spiderly help' to see a list of available commands.
                 hasNpmInstallErrors = true;
             }
 
-            if (hasNetAndAngularInitErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
+            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
                     Console.WriteLine("\nError occurred while generating files for the app.");
+                }
+                else if (hasUserSecretsErrors)
+                {
+                    Console.WriteLine("\nError occurred while setting up user secrets.");
                 }
                 else if (hasEfMigrationErrors)
                 {
@@ -233,6 +251,36 @@ Type 'spiderly help' to see a list of available commands.
             await process.WaitForExitAsync();
 
             return process.ExitCode == 0;
+        }
+
+        private static async Task<bool> SetupUserSecrets(string outputPath, string appName, string jwtKey, string sqlServerConnectionString)
+        {
+            string backendPath = Path.Combine(outputPath, appName.ToKebabCase(), "Backend", $"{appName}.WebAPI");
+
+            bool success = true;
+
+            if (!string.IsNullOrEmpty(jwtKey))
+            {
+                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", backendPath))
+                {
+                    success = false;
+                }
+
+                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", backendPath))
+                {
+                    success = false;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(sqlServerConnectionString))
+            {
+                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:ConnectionString\" \"{sqlServerConnectionString}\"", backendPath))
+                {
+                    success = false;
+                }
+            }
+
+            return success;
         }
 
         #endregion
