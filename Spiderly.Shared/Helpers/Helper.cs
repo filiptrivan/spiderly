@@ -74,33 +74,6 @@ namespace Spiderly.Shared.Helpers
             return truncatedDate1 == truncatedDate2;
         }
 
-        public static T ReadAssemblyConfiguration<T>(string jsonConfigurationFile)
-        {
-            string name = typeof(T).Assembly.GetName().Name;
-            string propertyName = "AppSettings";
-            string text = ReadConfigFile(jsonConfigurationFile);
-            if (string.IsNullOrEmpty(text))
-            {
-                return default(T);
-            }
-
-            foreach (JProperty item in JObject.Parse(text)[propertyName]!.Children().OfType<JProperty>())
-            {
-                if (item.Name == name)
-                {
-                    return item.Value.ToObject<T>();
-                }
-            }
-
-            return default(T);
-        }
-
-        private static string ReadConfigFile(string jsonConfigurationFile)
-        {
-            using StreamReader streamReader = new StreamReader(jsonConfigurationFile);
-            return streamReader.ReadToEnd();
-        }
-
         public static bool AreIdsDifferent<ID>(List<ID> ids1, List<ID> ids2) where ID : struct
         {
             return ids1.Except(ids2).Any() || ids2.Except(ids1).Any();
@@ -450,7 +423,7 @@ Currently authenticated user id: {{userId}}); <br>
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);
-            
+
             byte[] bytes;
 
             using (MemoryStream memoryStream = new())
