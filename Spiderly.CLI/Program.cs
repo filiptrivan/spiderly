@@ -272,14 +272,6 @@ Type 'spiderly help' to see a list of available commands.
                 }
             }
 
-            if (!string.IsNullOrEmpty(sqlServerConnectionString))
-            {
-                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:ConnectionString\" \"{sqlServerConnectionString}\"", backendPath))
-                {
-                    success = false;
-                }
-            }
-
             return success;
         }
 

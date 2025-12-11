@@ -3165,6 +3165,8 @@ namespace {{appName}}.WebAPI
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
 
+      "ConnectionString": "{{sqlServerConnectionString?.Replace(@"\", @"\\")}}",
+
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
     },
