@@ -1,1 +1,3 @@
-Don't use var if it's not anonimus type
+- Don't use var if it's not anonimus type
+- Don't write comments
+- Don't delete my comments

@@ -290,16 +290,14 @@ export class SpiderlyDataTableComponent implements OnInit {
   * If not, it will navigate to the current route with the rowId.
 */
 navigateToDetails(rowId: number): void{
-  if (!rowId) return;
+  if (rowId == null) return;
 
   if (this.rowNavigationPath){
     const cleanPath = this.rowNavigationPath.replace(/^\/|\/$/g, ''); // Remove leading and trailing slashes
-
+    
     this.router.navigateByUrl(`/${cleanPath}/${rowId}`);
-
   }
   else {
-
     this.router.navigate([rowId], { relativeTo: this.route });
   }
  }
