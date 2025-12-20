@@ -303,16 +303,11 @@ Type 'spiderly help' to see a list of available commands.
                 break;
             }
 
-            string frontendPath = Directory.GetCurrentDirectory();
-
             Console.WriteLine("\nGenerating files for the entity...");
 
-            string pagesFolderPath = Path.Combine(frontendPath, "src", "app", "pages");
-            if (!Directory.Exists(pagesFolderPath))
-            {
-                Console.WriteLine($"\n[WARNING] Pages folder not found: {pagesFolderPath}");
-            }
-            else
+            string pagesFolderPath = GetPagesFolderPath();
+
+            if (pagesFolderPath != null)
             {
                 string kebabEntityName = entityName.ToKebabCase();
 
@@ -360,6 +355,33 @@ Type 'spiderly help' to see a list of available commands.
             }
 
             Console.WriteLine("\nCommand execution completed.");
+        }
+
+        private static string GetPagesFolderPath()
+        {
+            string currentPath = Directory.GetCurrentDirectory();
+
+            List<string> candidatePaths = new List<string>
+            {
+                Path.Combine(currentPath, "src", "app", "pages"),
+                Path.Combine(currentPath, "..", "Frontend", "src", "app", "pages"),
+                Path.Combine(currentPath, "Frontend", "src", "app", "pages"),
+                Path.Combine(currentPath, "Frontend", "src", "app", "features"),
+            }
+            .Select(Path.GetFullPath)
+            .ToList();
+
+            string existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
+            if (existingPath != null)
+                return existingPath;
+
+            Console.WriteLine($$"""
+[ERROR] Expected frontend project structure was not detected.
+Tried the following paths:
+{{string.Join(Environment.NewLine, candidatePaths)}}
+""");
+
+            return null;
         }
 
         #endregion
