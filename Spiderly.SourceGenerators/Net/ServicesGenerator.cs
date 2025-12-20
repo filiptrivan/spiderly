@@ -161,6 +161,12 @@ namespace {{basePartOfNamespace}}.Services
             string entityIdType = entity.GetIdType(allEntities);
 
             return $$"""
+        /// <summary>
+        /// Retrieves the complete MainUIFormDTO for {{entity.Name}}, including the entity DTO and all related collections (one-to-many, many-to-many).
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>{{entity.Name}}MainUIFormDTO containing the entity DTO and related data</returns>
         public async virtual Task<{{entity.Name}}MainUIFormDTO> Get{{entity.Name}}MainUIFormDTO({{entityIdType}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
@@ -177,7 +183,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task<{{entity.Name}}DTO> Get{{entity.Name}}DTO({{entityIdType}} id, bool authorize)
+        /// <summary>
+        /// Retrieves a single {{entity.Name}} entity as a DTO with blob data populated.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>{{entity.Name}}DTO with all blob properties populated</returns>
+        public async virtual Task<{{entity.Name}}DTO> Get{{entity.Name}}DTO({{entityIdType}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -200,7 +212,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task<PaginatedResult<{{entity.Name}}>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
+        /// <summary>
+        /// Retrieves a paginated list of {{entity.Name}} entities.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResult containing the query and total record count</returns>
+        public async virtual Task<PaginatedResult<{{entity.Name}}>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -208,6 +226,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of {{entity.Name}} DTOs with blob data populated.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>PaginatedResultDTO containing {{entity.Name}}DTO list and total record count</returns>
         public async virtual Task<PaginatedResultDTO<{{entity.Name}}DTO>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize)
         {
             PaginatedResult<{{entity.Name}}> paginationResult = new();
@@ -234,7 +259,14 @@ namespace {{basePartOfNamespace}}.Services
             return new PaginatedResultDTO<{{entity.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
         }
 
-        public async Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize)
+        /// <summary>
+        /// Exports a filtered list of {{entity.Name}} entities to Excel format.
+        /// </summary>
+        /// <param name="filterDTO">Filter parameters for the export</param>
+        /// <param name="query">The base query to export</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>Excel file as byte array</returns>
+        public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize)
         {
             PaginatedResult<{{entity.Name}}> paginationResult = new();
             List<{{entity.Name}}DTO> dtoList = null;
@@ -255,7 +287,13 @@ namespace {{basePartOfNamespace}}.Services
             return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
         }
 
-        public async Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query, bool authorize)
+        /// <summary>
+        /// Retrieves a list of {{entity.Name}} entities without pagination.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of {{entity.Name}} entities</returns>
+        public async virtual Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -271,7 +309,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task<List<{{entity.Name}}DTO>> Get{{entity.Name}}DTOList(IQueryable<{{entity.Name}}> query, bool authorize)
+        /// <summary>
+        /// Retrieves a list of {{entity.Name}} DTOs without pagination, with blob data populated.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of {{entity.Name}}DTO with blob properties populated</returns>
+        public async virtual Task<List<{{entity.Name}}DTO>> Get{{entity.Name}}DTOList(IQueryable<{{entity.Name}}> query, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -443,6 +487,15 @@ namespace {{basePartOfNamespace}}.Services
             string autocompleteEntityDisplayName = Helpers.GetDisplayNameProperty(autocompleteEntity);
 
             return $$"""
+        /// <summary>
+        /// Retrieves autocomplete suggestions for the {{property.Name}} many-to-one relationship in {{entity.Name}}.
+        /// </summary>
+        /// <param name="limit">Maximum number of results to return</param>
+        /// <param name="filter">Text filter for {{autocompleteEntityDisplayName}}</param>
+        /// <param name="query">Base query for {{autocompleteEntity.Name}} entities</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <param name="{{entity.Name.FirstCharToLower()}}Id">Optional {{entity.Name}} ID for context-specific authorization</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{autocompleteEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
             int limit, 
             string filter, 
@@ -484,6 +537,13 @@ namespace {{basePartOfNamespace}}.Services
             string dropdownDisplayName = Helpers.GetDisplayNameProperty(dropdownEntity);
 
             return $$"""
+        /// <summary>
+        /// Retrieves dropdown options for the {{property.Name}} many-to-one relationship in {{entity.Name}}.
+        /// </summary>
+        /// <param name="query">Base query for {{dropdownEntity.Name}} entities</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <param name="{{entity.Name.FirstCharToLower()}}Id">Optional {{entity.Name}} ID for context-specific authorization</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{dropdownEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}(
             IQueryable<{{dropdownEntity.Name}}> query, 
             bool authorize,
@@ -526,7 +586,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty oneToManyProperty in entity.Properties.Where(prop => prop.Type.IsOneToManyType())) // List<Role> Roles
             {
-                SpiderlyClass extractedPropertyEntity = allEntityClasses.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)).Single(); // Role
+                SpiderlyClass extractedPropertyEntity = allEntityClasses.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)); // Role
                 string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(allEntityClasses); // int
 
                 if (extractedPropertyEntity.HasM2MAttribute()) // Complex M2M List
@@ -534,12 +594,11 @@ namespace {{basePartOfNamespace}}.Services
                     if (oneToManyProperty.HasComplexManyToManyReadonlyTableAttribute())
                     {
                         SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
-                            .Where(x =>
+                            .SingleOrDefault(x =>
                                 x.HasM2MWithManyAttribute() &&
                                 x.Type == entity.Name &&
                                 x.Attributes.Any(x => x.Value == oneToManyProperty.Name)
-                            )
-                            .SingleOrDefault();
+                            );
 
                         if (m2mProperty == null)
                             throw new Exception("You didn't specify correct M2MWithMany attribute");
@@ -568,6 +627,12 @@ namespace {{basePartOfNamespace}}.Services
                 else if (extractedEntityManyToManyProperty != null) // Simple Many To Many
                 {
                     result.Add($$"""
+        /// <summary>
+        /// Retrieves namebook DTOs for {{extractedPropertyEntity.Name}} entities in a many-to-many relationship with {{entity.Name}}.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
@@ -589,6 +654,12 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
+        /// <summary>
+        /// Retrieves IDs of {{extractedPropertyEntity.Name}} entities in a many-to-many relationship with {{entity.Name}}.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of entity IDs</returns>
         public async virtual Task<List<{{extractedPropertyEntityIdType}}>> Get{{oneToManyProperty.Name}}IdsFor{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
@@ -606,7 +677,12 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id)
+        /// <summary>
+        /// Retrieves {{extractedPropertyEntity.Name}} entities in a many-to-many relationship with {{entity.Name}}.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <returns>List of {{extractedPropertyEntity.Name}} entities</returns>
+        public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -616,7 +692,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task Update{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, List<{{extractedPropertyEntityIdType}}> selectedIds)
+        /// <summary>
+        /// Updates the many-to-many relationship between {{entity.Name}} and {{extractedPropertyEntity.Name}} entities.
+        /// Adds new associations and removes unselected ones.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="selectedIds">List of selected {{extractedPropertyEntity.Name}} IDs</param>
+        public async virtual Task Update{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, List<{{extractedPropertyEntityIdType}}> selectedIds)
         {
             if (selectedIds == null)
                 return;
@@ -648,9 +730,14 @@ namespace {{basePartOfNamespace}}.Services
         }
 
         /// <summary>
-        /// It's mandatory to pass queryable ordered by the same field as the table data
+        /// Lazy loads selected IDs for many-to-many relationship with pagination support.
+        /// IMPORTANT: The query must be ordered by the same field as the table data for correct results.
         /// </summary>
-        public async Task<LazyLoadSelectedIdsResultDTO<{{extractedPropertyEntityIdType}}>> LazyLoadSelected{{oneToManyProperty.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{extractedPropertyEntity.Name}}> query, bool authorize)
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query (must be ordered)</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>LazyLoadSelectedIdsResultDTO containing selected IDs and total count</returns>
+        public async virtual Task<LazyLoadSelectedIdsResultDTO<{{extractedPropertyEntityIdType}}>> LazyLoadSelected{{oneToManyProperty.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{extractedPropertyEntity.Name}}> query, bool authorize)
         {
             LazyLoadSelectedIdsResultDTO<{{extractedPropertyEntityIdType}}> lazyLoadSelectedIdsResultDTO = new();
 
@@ -700,7 +787,12 @@ namespace {{basePartOfNamespace}}.Services
         private static string GetOneToManyListForEntity(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyProperty manyToOneProperty, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             return $$"""
-        public async Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        /// <summary>
+        /// Retrieves all {{extractedPropertyEntity.Name}} entities related to a {{entity.Name}} via the {{oneToManyProperty.Name}} one-to-many relationship.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <returns>List of {{extractedPropertyEntity.Name}} entities</returns>
+        public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -714,9 +806,15 @@ namespace {{basePartOfNamespace}}.Services
 
         private static string GetOneToManyNamebookListForEntity(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyProperty manyToOneProperty, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities); // int
+            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities);
 
             return $$"""
+        /// <summary>
+        /// Retrieves namebook DTOs for {{extractedPropertyEntity.Name}} entities related to a {{entity.Name}}.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
@@ -743,7 +841,13 @@ namespace {{basePartOfNamespace}}.Services
         private static string GetPaginatedListForComplexM2MMethod(SpiderlyClass listEntitty, SpiderlyProperty oneToManyProperty, SpiderlyProperty m2mProperty, SpiderlyClass entity, string projectName, List<SpiderlyClass> allEntityClasses)
         {
             return $$"""
-        public async Task<PaginatedResult<{{listEntitty.Name}}>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query)
+        /// <summary>
+        /// Retrieves a paginated list of {{listEntitty.Name}} entities for a complex many-to-many relationship.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResult containing the query and total record count</returns>
+        public async virtual Task<PaginatedResult<{{listEntitty.Name}}>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -751,6 +855,13 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of {{listEntitty.Name}} DTOs for a complex many-to-many relationship with blob data.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>PaginatedResultDTO containing {{listEntitty.Name}}DTO list and total record count</returns>
         public async virtual Task<PaginatedResultDTO<{{listEntitty.Name}}DTO>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
         {
             PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
@@ -777,7 +888,14 @@ namespace {{basePartOfNamespace}}.Services
             return new PaginatedResultDTO<{{listEntitty.Name}}DTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
         }
 
-        public async Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
+        /// <summary>
+        /// Exports a filtered list of {{listEntitty.Name}} entities for a complex many-to-many relationship to Excel format.
+        /// </summary>
+        /// <param name="filterDTO">Filter parameters for the export</param>
+        /// <param name="query">The base query to export</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>Excel file as byte array</returns>
+        public async virtual Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
         {
             PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
             List<{{listEntitty.Name}}DTO> dtoList = null;
@@ -809,10 +927,17 @@ namespace {{basePartOfNamespace}}.Services
             string entityIdType = entity.GetIdType(entities);
             SpiderlyClass extractedPropertyEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single(); // Role
 
-            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities); // int
+            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities);
 
             return $$"""
-        public async Task Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}(IQueryable<{{extractedPropertyEntity.Name}}> query, {{entityIdType}} id, {{entity.Name}}SaveBodyDTO saveBodyDTO)
+        /// <summary>
+        /// Updates many-to-many relationship with lazy table selection support.
+        /// Handles "select all", "select none", and partial selection scenarios.
+        /// </summary>
+        /// <param name="query">The base query for available entities</param>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing selection state</param>
+        public async virtual Task Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}(IQueryable<{{extractedPropertyEntity.Name}}> query, {{entityIdType}} id, {{entity.Name}}SaveBodyDTO saveBodyDTO)
         {
             await _context.WithTransactionAsync(async () =>
             {
@@ -856,7 +981,14 @@ namespace {{basePartOfNamespace}}.Services
             SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name);
 
             return $$"""
-        public async Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
+        /// <summary>
+        /// Retrieves ordered child entities for a one-to-many relationship (requires [UIOrderedOneToMany] attribute).
+        /// Returns complete MainUIFormDTOs ordered by OrderNumber.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of {{extractedPropertyEntity.Name}}MainUIFormDTO ordered by OrderNumber</returns>
+        public async virtual Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -897,7 +1029,14 @@ namespace {{basePartOfNamespace}}.Services
             return $$"""
 {{GetSaveAndReturnMainUIFormDTOData(entity, entities)}}
 
-        public async Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
+        /// <summary>
+        /// Saves a {{entity.Name}} entity and returns the DTO with blob data populated.
+        /// </summary>
+        /// <param name="saveDTO">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved {{entity.Name}}DTO with blob properties populated</returns>
+        public async virtual Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -911,7 +1050,15 @@ namespace {{basePartOfNamespace}}.Services
             });
         }
 
-        public async Task<{{entity.Name}}> Save{{entity.Name}}({{entity.Name}}DTO dto, bool authorizeUpdate, bool authorizeInsert)
+        /// <summary>
+        /// Core save method that handles both insert and update operations for {{entity.Name}}.
+        /// Validates the DTO, maps to entity, handles many-to-one relationships, and manages blob deletion.
+        /// </summary>
+        /// <param name="dto">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved {{entity.Name}} entity</returns>
+        public async virtual Task<{{entity.Name}}> Save{{entity.Name}}({{entity.Name}}DTO dto, bool authorizeUpdate, bool authorizeInsert)
         {
             {{entity.Name}}DTOValidationRules validationRules = new {{entity.Name}}DTOValidationRules();
             validationRules.ValidateAndThrow(dto);
@@ -942,6 +1089,7 @@ namespace {{basePartOfNamespace}}.Services
                     }
 
                     poco = dto.Adapt<{{entity.Name}}>(Mapper.{{entity.Name}}DTOToEntityConfig());
+                    await OnBefore{{entity.Name}}Insert(poco, dto);
                     await dbSet.AddAsync(poco);
                 }
 
@@ -955,15 +1103,42 @@ namespace {{basePartOfNamespace}}.Services
             return poco;
         }
 
+        /// <summary>
+        /// Lifecycle hook called before the {{entity.Name}}DTO is mapped to the entity.
+        /// Override this method to add custom validation or modify the DTO before mapping.
+        /// </summary>
+        /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO about to be mapped</param>
         protected virtual async Task OnBefore{{entity.Name}}IsMapped({{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
 
+        /// <summary>
+        /// Lifecycle hook called before updating an existing {{entity.Name}} entity.
+        /// Override this method to add custom business logic during updates.
+        /// </summary>
+        /// <param name="{{entity.Name.FirstCharToLower()}}">The existing entity being updated</param>
+        /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing new data</param>
         protected virtual async Task OnBefore{{entity.Name}}Update({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before inserting a new {{entity.Name}} entity.
+        /// Override this method to add custom business logic during inserts.
+        /// </summary>
+        /// <param name="{{entity.Name.FirstCharToLower()}}">The new entity being inserted</param>
+        /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing the data</param>
+        protected virtual async Task OnBefore{{entity.Name}}Insert({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
 """;
         }
 
         private static string GetSaveAndReturnMainUIFormDTOData(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             return $$"""
+        /// <summary>
+        /// Saves a {{entity.Name}} entity and returns the complete MainUIFormDTO including all related collections.
+        /// Handles insert/update logic, many-to-many relationships, and ordered one-to-many collections.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity data and related selections</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>{{entity.Name}}MainUIFormDTO with saved data and updated collections</returns>
         public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
         {
             return await _context.WithTransactionAsync(async () =>
@@ -992,8 +1167,19 @@ namespace {{basePartOfNamespace}}.Services
 {{string.Join("\n", GetOrderedOneToManyUpdateMethods(entity, allEntities))}}
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoadGetAllQueryHook(entity, allEntities))}}
 
+        /// <summary>
+        /// Lifecycle hook called before saving {{entity.Name}} with MainUIFormDTO.
+        /// Override this method to add custom validation or modify the SaveBodyDTO.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
         protected virtual async Task OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) { }
 
+        /// <summary>
+        /// Lifecycle hook called after saving {{entity.Name}} but before updating related collections.
+        /// Override this method to add custom business logic after the main entity is saved.
+        /// </summary>
+        /// <param name="savedDTO">The saved entity DTO</param>
+        /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         protected virtual async Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}DTO savedDTO, {{entity.Name}}SaveBodyDTO saveBodyDTO) { }
 """;
         }
@@ -1041,7 +1227,14 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                 result.Add($$"""
-        public async Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
+        /// <summary>
+        /// Updates ordered child entities for a one-to-many relationship.
+        /// Deletes items not in the list, updates existing items, and maintains order via OrderNumber.
+        /// </summary>
+        /// <param name="id">The ID of the parent {{entity.Name}} entity</param>
+        /// <param name="orderedItemsDTO">List of SaveBodyDTOs in the desired order</param>
+        /// <returns>List of saved {{extractedEntity.Name}}MainUIFormDTO in order</returns>
+        public async virtual Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
         {
             var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO.Id).ToList();
 
@@ -1154,6 +1347,12 @@ namespace {{basePartOfNamespace}}.Services
                     SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
 
                     result.Add($$"""
+        /// <summary>
+        /// Lifecycle hook to customize the query for lazy-loaded {{property.Name}} many-to-many relationship.
+        /// Override this method to add filters, includes, or ordering to the base query.
+        /// </summary>
+        /// <param name="query">The base query for {{extractedEntity.Name}} entities</param>
+        /// <returns>Modified query</returns>
         protected virtual async Task<IQueryable<{{extractedEntity.Name}}>> GetAll{{property.Name}}QueryFor{{entity.Name}}(IQueryable<{{extractedEntity.Name}}> query)
         {
             return query;
@@ -1217,7 +1416,7 @@ namespace {{basePartOfNamespace}}.Services
 
         private static SpiderlyClass GetClassOfManyToOneProperty(string propType, List<SpiderlyClass> allEntityClasses)
         {
-            SpiderlyClass manyToOneclass = allEntityClasses.Where(x => x.Name == propType).SingleOrDefault();
+            SpiderlyClass manyToOneclass = allEntityClasses.SingleOrDefault(x => x.Name == propType);
 
             if (manyToOneclass == null)
                 return null;
@@ -1252,11 +1451,19 @@ namespace {{basePartOfNamespace}}.Services
             foreach (SpiderlyProperty property in blobProperies)
             {
                 result.Add($$"""
-        public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert) // FT: It doesn't work without interface
+        /// <summary>
+        /// Uploads a blob/file for the {{property.Name}} property of {{entity.Name}}.
+        /// Automatically optimizes images before upload. The entity ID is extracted from the filename.
+        /// </summary>
+        /// <param name="file">The file to upload</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>The filename in storage</returns>
+        public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert)
         {
             {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
-            await OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized(file, id); // Validate
+            await OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized(file, id);
 
             if (id > 0 && authorizeUpdate)
             {
@@ -1271,8 +1478,8 @@ namespace {{basePartOfNamespace}}.Services
 
             using (Stream stream = file.OpenReadStream())
             {
-                byte[] byteArray = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, file, id); // Do image optimization, resizing etc.
-                
+                byte[] byteArray = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, file, id);
+
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
                     fileName = await {{GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), updatedStream);
@@ -1282,8 +1489,22 @@ namespace {{basePartOfNamespace}}.Services
             return fileName;
         }
 
+        /// <summary>
+        /// Lifecycle hook called before blob upload is authorized.
+        /// Override this to add custom validation logic before authorization.
+        /// </summary>
+        /// <param name="file">The file being uploaded</param>
+        /// <param name="id">The entity ID</param>
         public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized (IFormFile file, {{entityIdType}} id) { }
 
+        /// <summary>
+        /// Lifecycle hook called before blob is uploaded to storage.
+        /// Default implementation optimizes images. Override to customize file processing.
+        /// </summary>
+        /// <param name="stream">The file stream</param>
+        /// <param name="file">The form file</param>
+        /// <param name="id">The entity ID</param>
+        /// <returns>Processed file bytes</returns>
         public virtual async Task<byte[]> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, IFormFile file, {{entityIdType}} id) 
         {
             if (file.ContentType.StartsWith("image/"))
@@ -1326,9 +1547,19 @@ namespace {{basePartOfNamespace}}.Services
             int deleteIterator = 1;
 
             return $$"""
+        /// <summary>
+        /// Lifecycle hook called before deleting a {{entity.Name}} entity.
+        /// Override this to add custom validation or business logic before deletion.
+        /// </summary>
+        /// <param name="id">The ID of the entity being deleted</param>
         public virtual async Task OnBefore{{entity.Name}}Delete({{entityIdType}} id) { }
 
-        public async Task Delete{{entity.Name}}({{entityIdType}} id, bool authorize)
+        /// <summary>
+        /// Deletes a single {{entity.Name}} entity with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="id">The ID of the entity to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task Delete{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
             await _context.WithTransactionAsync(async () =>
             {
@@ -1355,9 +1586,19 @@ namespace {{basePartOfNamespace}}.Services
             int deleteIterator = 1;
 
             return $$"""
+        /// <summary>
+        /// Lifecycle hook called before deleting a list of {{entity.Name}} entities.
+        /// Override this to add custom validation or business logic before batch deletion.
+        /// </summary>
+        /// <param name="listForDelete">The list of entity IDs being deleted</param>
         public virtual async Task OnBefore{{entity.Name}}ListDelete(List<{{entityIdType}}> listForDelete) { }
 
-        public async Task Delete{{entity.Name}}List(List<{{entityIdType}}> listForDelete_{{deleteIterator}}, bool authorize)
+        /// <summary>
+        /// Deletes multiple {{entity.Name}} entities with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="listForDelete_{{deleteIterator}}">The list of entity IDs to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task Delete{{entity.Name}}List(List<{{entityIdType}}> listForDelete_{{deleteIterator}}, bool authorize)
         {
             await _context.WithTransactionAsync(async () =>
             {
@@ -1450,10 +1691,10 @@ namespace {{basePartOfNamespace}}.Services
             if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
                 return null; // It's simple M2M
 
-            SpiderlyClass m2mEntity_1 = allEntityClasses.Where(x => x.Name == m2mWithManyProperty_1.Type).Single();
+            SpiderlyClass m2mEntity_1 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_1.Type);
             string m2mEntityIdType_1 = m2mEntity_1.GetIdType(allEntityClasses);
 
-            SpiderlyClass m2mEntity_2 = allEntityClasses.Where(x => x.Name == m2mWithManyProperty_2.Type).Single();
+            SpiderlyClass m2mEntity_2 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_2.Type);
             string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
 
             return $$"""
@@ -1473,9 +1714,13 @@ namespace {{basePartOfNamespace}}.Services
         {
             return $$"""
         /// <summary>
-        /// Call this method when you have additional fields in M2M association
+        /// Updates a complex many-to-many relationship with additional fields in the association entity.
+        /// Use this for M2M relationships that have extra properties beyond the foreign keys (e.g., OrderProduct with Quantity, Price).
+        /// Validates each DTO, adds new associations, updates existing ones, and removes unselected associations.
         /// </summary>
-        public async Task Update{{m2mWithManyProperty_1.Type}}ListFor{{m2mWithManyProperty_2.Type}}({{m2mEntityIdType_2}} {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id, List<{{entity.Name}}DTO> selected{{entity.Name}}DTOList)
+        /// <param name="{{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id">The ID of the {{m2mWithManyProperty_2.Type}} entity</param>
+        /// <param name="selected{{entity.Name}}DTOList">List of {{entity.Name}}DTOs representing the associations with additional fields</param>
+        public async virtual Task Update{{m2mWithManyProperty_1.Type}}ListFor{{m2mWithManyProperty_2.Type}}({{m2mEntityIdType_2}} {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id, List<{{entity.Name}}DTO> selected{{entity.Name}}DTOList)
         {
             if (selected{{entity.Name}}DTOList == null)
                 return;

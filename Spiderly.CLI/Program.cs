@@ -281,7 +281,7 @@ Type 'spiderly help' to see a list of available commands.
 
         private static async Task AddNewPage(bool shouldGenerateDataView)
         {
-            string entityName = null;
+            string entityName;
 
             while (true)
             {
