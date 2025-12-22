@@ -1,0 +1,321 @@
+name: Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - preview
+      version_bump:
+        description: 'Version bump (required for stable, optional for preview)'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - major
+          - minor
+          - patch
+      preview_label:
+        description: 'Preview label (only for preview releases)'
+        required: false
+        default: 'preview'
+        type: string
+      dry_run:
+        description: 'Dry run (skip publishing)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  NODE_VERSION: '20'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli
+
+      - name: Calculate new version
+        id: version
+        run: |
+          current_version=$(grep -oPm1 "(?<=<Version>)[^<]+" Spiderly.Shared/Spiderly.Shared.csproj)
+          echo "📦 Current version: $current_version"
+
+          base_version="$current_version"
+          if [[ "$current_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            base_version="${BASH_REMATCH[1]}"
+          fi
+
+          IFS='.' read -ra parts <<< "$base_version"
+          version_bump="${{ github.event.inputs.version_bump }}"
+
+          if [ "${{ github.event.inputs.release_type }}" == "stable" ]; then
+            if [ "$version_bump" == "none" ]; then
+              echo "❌ Error: version_bump is required for stable releases"
+              exit 1
+            fi
+
+            case "$version_bump" in
+              major)
+                new_version="$((parts[0] + 1)).0.0"
+                ;;
+              minor)
+                new_version="${parts[0]}.$(( parts[1] + 1 )).0"
+                ;;
+              patch)
+                new_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))"
+                ;;
+            esac
+            is_prerelease="false"
+            echo "✅ Stable release: $new_version"
+          else
+            preview_label="${{ github.event.inputs.preview_label }}"
+
+            if [ "$version_bump" != "none" ]; then
+              case "$version_bump" in
+                major)
+                  base_version="$((parts[0] + 1)).0.0"
+                  ;;
+                minor)
+                  base_version="${parts[0]}.$(( parts[1] + 1 )).0"
+                  ;;
+                patch)
+                  base_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))"
+                  ;;
+              esac
+              new_version="${base_version}-${preview_label}.0"
+              echo "🚀 Bumped version to $base_version and started preview series"
+            else
+              if [[ "$current_version" =~ -${preview_label}\.([0-9]+)$ ]]; then
+                existing_number="${BASH_REMATCH[1]}"
+                new_number=$(( existing_number + 1 ))
+                new_version="${base_version}-${preview_label}.${new_number}"
+                echo "➕ Incremented preview: ${existing_number} → ${new_number}"
+              else
+                echo "❌ Error: Cannot create preview with 'none' bump from stable version"
+                echo "Current version '$current_version' has no preview suffix"
+                echo "Please select a version bump (major/minor/patch) to start a new preview series"
+                exit 1
+              fi
+            fi
+            is_prerelease="true"
+          fi
+
+          echo "NEW_VERSION=$new_version" >> $GITHUB_OUTPUT
+          echo "IS_PRERELEASE=$is_prerelease" >> $GITHUB_OUTPUT
+          echo "🎯 New version: $new_version"
+
+      - name: Update .NET project versions
+        run: |
+          new_version="${{ steps.version.outputs.NEW_VERSION }}"
+          projects=(
+            "Spiderly.Shared/Spiderly.Shared.csproj"
+            "Spiderly.SourceGenerators/Spiderly.SourceGenerators.csproj"
+            "Spiderly.Security/Spiderly.Security.csproj"
+            "Spiderly.Infrastructure/Spiderly.Infrastructure.csproj"
+            "Spiderly.CLI/Spiderly.CLI.csproj"
+          )
+
+          for project in "${projects[@]}"; do
+            sed -i "s|<Version>.*</Version>|<Version>$new_version</Version>|" "$project"
+            echo "Updated $project to $new_version"
+          done
+
+      - name: Update Angular package.json version
+        run: |
+          new_version="${{ steps.version.outputs.NEW_VERSION }}"
+          cd Angular/projects/spiderly
+          npm version $new_version --no-git-tag-version
+          echo "Updated Angular package to $new_version"
+
+      - name: Restore .NET dependencies
+        run: dotnet restore
+
+      - name: Build .NET projects
+        run: |
+          projects=(
+            "Spiderly.Shared/Spiderly.Shared.csproj"
+            "Spiderly.SourceGenerators/Spiderly.SourceGenerators.csproj"
+            "Spiderly.Security/Spiderly.Security.csproj"
+            "Spiderly.Infrastructure/Spiderly.Infrastructure.csproj"
+            "Spiderly.CLI/Spiderly.CLI.csproj"
+          )
+
+          for project in "${projects[@]}"; do
+            echo "Building $project..."
+            dotnet build -c Release "$project"
+          done
+
+      - name: Run .NET tests
+        run: dotnet test -c Release --no-build --verbosity normal
+        continue-on-error: true
+
+      - name: Pack .NET projects
+        run: |
+          new_version="${{ steps.version.outputs.NEW_VERSION }}"
+          projects=(
+            "Spiderly.Shared/Spiderly.Shared.csproj"
+            "Spiderly.SourceGenerators/Spiderly.SourceGenerators.csproj"
+            "Spiderly.Security/Spiderly.Security.csproj"
+            "Spiderly.Infrastructure/Spiderly.Infrastructure.csproj"
+            "Spiderly.CLI/Spiderly.CLI.csproj"
+          )
+
+          mkdir -p nupkg
+
+          for project in "${projects[@]}"; do
+            echo "Packing $project..."
+            dotnet pack -c Release -o nupkg /p:PackageVersion=$new_version "$project"
+          done
+
+      - name: Build Angular library
+        run: |
+          cd Angular
+          npm ci
+          ng build spiderly --configuration production
+
+      - name: Publish to NuGet
+        if: ${{ !github.event.inputs.dry_run }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          for package in nupkg/*.nupkg; do
+            echo "Publishing $package..."
+            dotnet nuget push "$package" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
+
+      - name: Publish to npm
+        if: ${{ !github.event.inputs.dry_run }}
+        run: |
+          cd Angular/dist/spiderly
+
+          if [ "${{ steps.version.outputs.IS_PRERELEASE }}" = "true" ]; then
+            npm publish --access public --tag ${{ github.event.inputs.preview_label }}
+            echo "Published as preview with tag: ${{ github.event.inputs.preview_label }}"
+          else
+            npm publish --access public
+            echo "Published as latest stable"
+          fi
+
+      - name: Commit version updates
+        if: ${{ !github.event.inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "**/*.csproj" "Angular/projects/spiderly/package.json"
+          git commit -m "chore: bump version to ${{ steps.version.outputs.NEW_VERSION }}" || echo "No changes to commit"
+          git push
+
+      - name: Create Git Tag
+        if: ${{ !github.event.inputs.dry_run }}
+        run: |
+          tag="v${{ steps.version.outputs.NEW_VERSION }}"
+          git tag "$tag"
+          git push origin "$tag"
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          new_version="${{ steps.version.outputs.NEW_VERSION }}"
+
+          if [ "${{ steps.version.outputs.IS_PRERELEASE }}" == "true" ]; then
+            previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          else
+            previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" --sort=-v:refname | grep -v -- "-" | head -n 1)
+          fi
+
+          if [ -n "$previous_tag" ]; then
+            commits=$(git log "$previous_tag..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            commits=$(git log --pretty=format:"- %s (%h)" --no-merges -n 20)
+          fi
+
+          cat > release_notes.md <<EOF
+          ## What's Changed
+
+          $commits
+
+          ## Packages Published
+
+          ### NuGet Packages
+          - [Spiderly.Shared $new_version](https://www.nuget.org/packages/Spiderly.Shared/$new_version)
+          - [Spiderly.SourceGenerators $new_version](https://www.nuget.org/packages/Spiderly.SourceGenerators/$new_version)
+          - [Spiderly.Security $new_version](https://www.nuget.org/packages/Spiderly.Security/$new_version)
+          - [Spiderly.Infrastructure $new_version](https://www.nuget.org/packages/Spiderly.Infrastructure/$new_version)
+          - [Spiderly.CLI $new_version](https://www.nuget.org/packages/Spiderly.CLI/$new_version)
+
+          ### npm Package
+          - [spiderly $new_version](https://www.npmjs.com/package/spiderly/v/$new_version)
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...v$new_version
+          EOF
+
+      - name: Create GitHub Release
+        if: ${{ !github.event.inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.NEW_VERSION }}
+          name: Release v${{ steps.version.outputs.NEW_VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
+          files: |
+            nupkg/*.nupkg
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge to main (stable releases only)
+        if: ${{ !github.event.inputs.dry_run && steps.version.outputs.IS_PRERELEASE == 'false' && github.ref != 'refs/heads/main' }}
+        run: |
+          current_branch=$(git branch --show-current)
+          echo "Current branch: $current_branch"
+          echo "Merging stable release to main..."
+
+          git fetch origin main
+          git checkout main
+          git merge --no-ff origin/$current_branch -m "chore: merge stable release v${{ steps.version.outputs.NEW_VERSION }} to main"
+          git push origin main
+
+          echo "✅ Successfully merged $current_branch to main"
+
+      - name: Dry Run Summary
+        if: ${{ github.event.inputs.dry_run }}
+        run: |
+          echo "## Dry Run Complete! :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Version would be bumped to: **${{ steps.version.outputs.NEW_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Packages built successfully but NOT published (dry run mode)" >> $GITHUB_STEP_SUMMARY
