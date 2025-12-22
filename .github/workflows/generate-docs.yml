@@ -1,0 +1,49 @@
+name: Test Documentation Generation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  test-doc-generation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Spiderly repo
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      
+      - name: Clone DotNetDocMerge tool repo
+        run: git clone https://github.com/filiptrivan/dotnet-docmerge.git
+      
+      - name: Build and install DotNetDocMerge tool
+        run: |
+          cd dotnet-docmerge
+          dotnet pack
+          dotnet tool install --global --add-source ./nupkg DotNetDocMerge
+      
+      - name: Generate documentation
+        run: docmerge
+      
+      - name: Check if documentation was generated
+        run: |
+          if [ -f "documentation.html" ]; then
+            echo "✅ Documentation generated successfully!"
+            ls -lh documentation.html
+          else
+            echo "❌ Documentation file not found!"
+            exit 1
+          fi
+      
+      - name: Upload documentation as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-documentation
+          path: documentation.html
