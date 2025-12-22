@@ -1,4 +1,4 @@
-name: Test Documentation Generation
+name: Generate and Deploy Documentation
 
 on:
   push:
@@ -8,12 +8,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-doc-generation:
+  generate-and-deploy-docs:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Spiderly repo
         uses: actions/checkout@v4
+        with:
+          path: spiderly
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -30,20 +32,46 @@ jobs:
           dotnet tool install --global --add-source ./nupkg DotNetDocMerge
       
       - name: Generate documentation
-        run: docmerge
-      
-      - name: Check if documentation was generated
         run: |
-          if [ -f "documentation.html" ]; then
-            echo "✅ Documentation generated successfully!"
-            ls -lh documentation.html
-          else
-            echo "❌ Documentation file not found!"
+          cd spiderly
+          docmerge
+      
+      - name: Verify documentation was generated
+        run: |
+          if [ ! -f "spiderly/documentation.html" ]; then
+            echo "Documentation file not found!"
             exit 1
           fi
+          echo "Documentation generated successfully!"
+          ls -lh spiderly/documentation.html
       
-      - name: Upload documentation as artifact
-        uses: actions/upload-artifact@v4
+      - name: Checkout spiderly-website repo
+        uses: actions/checkout@v4
         with:
-          name: generated-documentation
-          path: documentation.html
+          repository: filiptrivan/spiderly-website
+          path: website
+          #TODO: setup a PAT and save as a repo secret
+          token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+      
+      - name: Update documentation in website repo
+        run: |
+          mkdir -p website/public/assets/docs
+          cp spiderly/documentation.html website/public/assets/docs/attributes.html
+          echo "Documentation copied to website repo"
+      
+      - name: Commit and push to website repo
+        run: |
+          cd website
+          git config user.name "Spiderly Docs Bot"
+          git config user.email "bot@spiderly.dev"
+          git add public/assets/docs/attributes.html
+          
+          if git diff --staged --quiet; then
+            echo "No changes to documentation"
+          else
+            git commit -m "docs: auto-update attributes documentation from spiderly@${GITHUB_SHA::7}"
+            git push origin main
+            echo "Documentation pushed to website repo - CD will auto-deploy!"
+          fi
+        env:
+          GITHUB_SHA: ${{ github.sha }}
