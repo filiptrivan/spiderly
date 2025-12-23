@@ -3345,6 +3345,8 @@ namespace {{appName}}.WebAPI.DI
             registry.Register<IFileManager, DiskStorageService>();
             registry.RegisterSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             registry.RegisterSingleton<IJwtAuthManager, JwtAuthManagerService>();
+            registry.RegisterSingleton<ITokenStorage<RefreshTokenDTO>, InMemoryTokenStorage<RefreshTokenDTO>>();
+            registry.RegisterSingleton<ITokenStorage<LoginVerificationTokenDTO>, InMemoryTokenStorage<LoginVerificationTokenDTO>>();
 
             #endregion
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
@@ -64,10 +65,10 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpGet]
         [AuthGuard]
-        public ActionResult Logout(string browserId)
+        public async Task<ActionResult> Logout(string browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
-            _jwtAuthManagerService.Logout(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
+            await _jwtAuthManagerService.LogoutAsync(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
 
             return Ok();
         }

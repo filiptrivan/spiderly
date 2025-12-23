@@ -3,7 +3,6 @@ using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Resources;
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -17,21 +16,29 @@ namespace Spiderly.Security.Services
     /// It handles the generation, validation, and storage of access and refresh tokens,
     /// as well as verification tokens for login and registration processes.
     /// </summary>
-    public class JwtAuthManagerService : IJwtAuthManager
+    public class JwtAuthManagerService : IJwtAuthManager, IDisposable
     {
-        public IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary => _usersRefreshTokens.ToImmutableDictionary();
-
-        // Making ConcurrentDictionary if two users are searching for the refresh token in the same time, use Redis in the future
-        // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
-        private readonly ConcurrentDictionary<string, RefreshTokenDTO> _usersRefreshTokens = new();
-
-        public IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary => _usersLoginVerificationTokens.ToImmutableDictionary();
-        private readonly ConcurrentDictionary<string, LoginVerificationTokenDTO> _usersLoginVerificationTokens = new();
+        private readonly ITokenStorage<RefreshTokenDTO> _usersRefreshTokens;
+        private readonly ITokenStorage<LoginVerificationTokenDTO> _usersLoginVerificationTokens;
 
         private static readonly Random Random = new();
 
-        public JwtAuthManagerService()
+        public JwtAuthManagerService(ITokenStorage<RefreshTokenDTO> refreshTokenStorage, ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage)
         {
+            _usersRefreshTokens = refreshTokenStorage;
+            _usersLoginVerificationTokens = loginVerificationTokenStorage;
+        }
+
+        public async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
+        {
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetAllAsync();
+            return tokens.ToImmutableDictionary();
+        }
+
+        public async Task<IImmutableDictionary<string, LoginVerificationTokenDTO>> GetUsersLoginVerificationTokensReadOnlyDictionaryAsync()
+        {
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> tokens = await _usersLoginVerificationTokens.GetAllAsync();
+            return tokens.ToImmutableDictionary();
         }
 
         #region Refresh
@@ -42,15 +49,16 @@ namespace Spiderly.Security.Services
         /// 3. Stole access but no refresh
         /// 4. Stole both - we can't do anything to him, we only try to stop him if he's on a different ip address
         /// </summary>
-        public JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long userIdFromAccessToken)
+        public async Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long userIdFromAccessToken)
         {
-            RemoveExpiredRefreshTokens();
+            await RemoveExpiredRefreshTokensAsync();
             // We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
-            RemoveTokensForMoreThenAllowedBrowsers(userIdFromAccessToken);
+            await RemoveTokensForMoreThenAllowedBrowsersAsync(userIdFromAccessToken);
 
             // Sometimes in development mode, when the multiple tabs are open, on the save of the angular app we refresh the tabs in the same time, so we don't even manage to change the value of the refresh token in the local storage,
             // and we send another request with the same refresh token as the previous one, and since we deleted it, it doesn't exist
-            if (!_usersRefreshTokens.TryGetValue(request.RefreshToken, out RefreshTokenDTO existingRefreshToken))
+            RefreshTokenDTO existingRefreshToken = await _usersRefreshTokens.TryGetValueAsync(request.RefreshToken);
+            if (existingRefreshToken == null)
             {
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException);
             }
@@ -59,27 +67,27 @@ namespace Spiderly.Security.Services
             // It is not posible for the user to change the email of the refresh token, even if it is, if the user change the email in the refresh token, it doesn't matter, we will find based on the refresh token code not email
             if (existingRefreshToken.UserId != userIdFromAccessToken) // Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
             {
-                RemoveRefreshTokenByUserId(existingRefreshToken.UserId);
-                RemoveRefreshTokenByUserId(userIdFromAccessToken);
+                await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId);
+                await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken);
                 throw new HackerException("The user id can't be different in refresh and access token.");
             }
-            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && IsRefreshTokenWithNewIpAddress(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
+            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
             {
                 // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
                 // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
-                RemoveRefreshTokenByUserId(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
+                await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
                 throw new SecurityTokenException(SharedTerms.TwoDifferentIpAddressesRefreshException);
             }
 
-            return GenerateAccessAndRefreshTokens(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
+            return await GenerateAccessAndRefreshTokensAsync(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
         }
 
-        private readonly object _generateAccessAndRefreshTokensLock = new();
+        private readonly SemaphoreSlim _generateAccessAndRefreshTokensLock = new(1, 1);
 
         /// <summary>
         /// Password and verificationExpiration (minutes) are only needed if we are registering the account, for email verification
         /// </summary>
-        public JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string ipAddress, string browserId)
+        public async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId)
         {
             List<Claim> claims = GenerateClaims(userId);
 
@@ -94,14 +102,19 @@ namespace Spiderly.Security.Services
                 ExpireAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.RefreshTokenExpiration),
             };
 
-            lock (_generateAccessAndRefreshTokensLock)
+            await _generateAccessAndRefreshTokensLock.WaitAsync();
+            try
             {
-                RemoveLastRefreshTokenFromTheSameBrowserAndUserId(browserId, userId); // userId also because the hacker could manipulate browserId, but he can't userId
+                await RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(browserId, userId); // userId also because the hacker could manipulate browserId, but he can't userId
 
                 // It will always generate new token,
                 // it is beneficial if the user open the application from different devices
                 // if the user open the application on the multiple tabs in the same browser, we are working with the local storage so it will not make the difference
-                _usersRefreshTokens.AddOrUpdate(refreshTokenDTO.TokenString, refreshTokenDTO, (_, _) => refreshTokenDTO);
+                await _usersRefreshTokens.AddOrUpdateAsync(refreshTokenDTO.TokenString, refreshTokenDTO);
+            }
+            finally
+            {
+                _generateAccessAndRefreshTokensLock.Release();
             }
 
             return new JwtAuthResultDTO
@@ -140,7 +153,7 @@ namespace Spiderly.Security.Services
             return accessToken;
         }
 
-        public List<Claim> GetClaimsForTheAccessToken(RefreshTokenRequestDTO request, string accessToken)
+        public async Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken)
         {
             List<Claim> principalClaims;
 
@@ -151,7 +164,7 @@ namespace Spiderly.Security.Services
             }
             catch (Exception)
             {
-                _usersRefreshTokens.TryRemove(request.RefreshToken, out _); // If the user hadn't access token but trying somehow to do something ilegal, remove the passed refresh also
+                await _usersRefreshTokens.TryRemoveAsync(request.RefreshToken); // If the user hadn't access token but trying somehow to do something ilegal, remove the passed refresh also
                 throw;
             }
 
@@ -191,13 +204,13 @@ namespace Spiderly.Security.Services
         /// <summary>
         /// If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
         /// </summary>
-        public void Logout(string browserId, long userId)
+        public async Task LogoutAsync(string browserId, long userId)
         {
-            bool foundTheUser = RemoveLastRefreshTokenFromTheSameBrowserAndUserId(browserId, userId);
+            bool foundTheUser = await RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(browserId, userId);
 
             if (foundTheUser == false)
             {
-                RemoveRefreshTokenByUserId(userId);
+                await RemoveRefreshTokenByUserIdAsync(userId);
             }
         }
 
@@ -205,12 +218,13 @@ namespace Spiderly.Security.Services
         /// If we found the user => true
         /// If we didn't find the user => false
         /// </summary>
-        public bool RemoveLastRefreshTokenFromTheSameBrowserAndUserId(string browserId, long userId)
+        public async Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string browserId, long userId)
         {
             // TODO Log if the email or browser id is null
 
-            // ToList() because it somehow happened that the same user clicks fast two times and send two requests with 
-            KeyValuePair<string, RefreshTokenDTO> refreshToken = _usersRefreshTokens.Where(x => x.Value.BrowserId == browserId && x.Value.UserId == userId).SingleOrDefault();
+            // ToList() because it somehow happened that the same user clicks fast two times and send two requests with
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.BrowserId == browserId && x.Value.UserId == userId);
+            KeyValuePair<string, RefreshTokenDTO> refreshToken = tokens.SingleOrDefault();
 
             if (string.IsNullOrEmpty(refreshToken.Key))
             {
@@ -219,24 +233,24 @@ namespace Spiderly.Security.Services
             }
             else
             {
-                _usersRefreshTokens.TryRemove(refreshToken.Key, out _);
+                await _usersRefreshTokens.TryRemoveAsync(refreshToken.Key);
 
                 return true;
             }
         }
 
-        public void RemoveExpiredRefreshTokens()
+        public async Task RemoveExpiredRefreshTokensAsync()
         {
-            var expiredTokens = _usersRefreshTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> expiredTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.ExpireAt < DateTime.UtcNow);
             foreach (var expiredToken in expiredTokens)
-                _usersRefreshTokens.TryRemove(expiredToken.Key, out _);
+                await _usersRefreshTokens.TryRemoveAsync(expiredToken.Key);
         }
 
-        public void RemoveRefreshTokenByUserId(long userId)
+        public async Task RemoveRefreshTokenByUserIdAsync(long userId)
         {
-            var refreshTokens = _usersRefreshTokens.Where(x => x.Value.UserId == userId).ToList();
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
             foreach (var refreshToken in refreshTokens)
-                _usersRefreshTokens.TryRemove(refreshToken.Key, out _);
+                await _usersRefreshTokens.TryRemoveAsync(refreshToken.Key);
         }
 
         private static string GenerateRandomTokenString()
@@ -247,23 +261,25 @@ namespace Spiderly.Security.Services
             return Base64UrlEncoder.Encode(randomNumber); // Making it url safe
         }
 
-        private bool IsRefreshTokenWithNewIpAddress(long userId, string ipAddress)
+        private async Task<bool> IsRefreshTokenWithNewIpAddressAsync(long userId, string ipAddress)
         {
-            if (_usersRefreshTokens.Where(x => x.Value.UserId == userId).OrderByDescending(x => x.Value.ExpireAt).FirstOrDefault().Value?.IpAddress != ipAddress)
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
+            if (tokens.OrderByDescending(x => x.Value.ExpireAt).FirstOrDefault().Value?.IpAddress != ipAddress)
                 return true;
             else
                 return false;
         }
 
-        private void RemoveTokensForMoreThenAllowedBrowsers(long userId)
+        private async Task RemoveTokensForMoreThenAllowedBrowsersAsync(long userId)
         {
-            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = _usersRefreshTokens.Where(x => x.Value.UserId == userId).ToList();
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
+            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = tokens.ToList();
             if (refreshTokens.Count > SettingsProvider.Current.AllowedBrowsersForTheSingleUser)
             {
                 List<KeyValuePair<string, RefreshTokenDTO>> excessBrowserRefreshTokens = refreshTokens.OrderBy(x => x.Value.ExpireAt).Take(refreshTokens.Count - SettingsProvider.Current.AllowedBrowsersForTheSingleUser).ToList();
                 foreach (KeyValuePair<string, RefreshTokenDTO> refreshToken in excessBrowserRefreshTokens)
                 {
-                    _usersRefreshTokens.TryRemove(refreshToken.Key, out _);
+                    await _usersRefreshTokens.TryRemoveAsync(refreshToken.Key);
                 }
             }
         }
@@ -276,29 +292,30 @@ namespace Spiderly.Security.Services
 
         #region Login
 
-        public LoginVerificationTokenDTO ValidateAndGetLoginVerificationTokenDTO(string verificationTokenKey, string browserId, string email)
+        public async Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationTokenKey, string browserId, string email)
         {
-            RemoveExpiredLoginVerificationTokens();
+            await RemoveExpiredLoginVerificationTokensAsync();
 
             // Doing this because there is a chance of generating two same codes.
-            LoginVerificationTokenDTO loginVerificationTokenDTO = _usersLoginVerificationTokens.Where(x => x.Key == verificationTokenKey && x.Value.Email == email && x.Value.BrowserId == browserId).SingleOrDefault().Value;
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> tokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Key == verificationTokenKey && x.Value.Email == email && x.Value.BrowserId == browserId);
+            LoginVerificationTokenDTO loginVerificationTokenDTO = tokens.SingleOrDefault().Value;
 
             if (loginVerificationTokenDTO == null)
                 throw new ExpiredVerificationException(); // We can not allow user to "send again" from here, because it is deleted
 
-            KeyValuePair<string, LoginVerificationTokenDTO> lastVerificationToken = _usersLoginVerificationTokens
-                .Where(x => x.Value.Email == loginVerificationTokenDTO.Email)
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> emailTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.Email == loginVerificationTokenDTO.Email);
+            KeyValuePair<string, LoginVerificationTokenDTO> lastVerificationToken = emailTokens
                 .OrderByDescending(x => x.Value.ExpireAt)
                 .FirstOrDefault();
 
-            // TODO: Append additional info in the Log 
+            // TODO: Append additional info in the Log
             if (verificationTokenKey != lastVerificationToken.Key)
                 throw new ExpiredVerificationException(SharedTerms.LatestVerificationCodeException);
 
             return loginVerificationTokenDTO;
         }
 
-        public string GenerateAndSaveLoginVerificationCode(string userEmail, long userId, string browserId)
+        public async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, long userId, string browserId)
         {
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {
@@ -308,7 +325,7 @@ namespace Spiderly.Security.Services
             };
 
             string code = GenerateVerificationCodeKey();
-            _usersLoginVerificationTokens.AddOrUpdate(code, loginVerificationTokenDTO, (_, _) => loginVerificationTokenDTO);
+            await _usersLoginVerificationTokens.AddOrUpdateAsync(code, loginVerificationTokenDTO);
             return code;
         }
 
@@ -322,21 +339,21 @@ namespace Spiderly.Security.Services
             return code.ToString("D6");
         }
 
-        public void RemoveLoginVerificationTokensByEmail(string email)
+        public async Task RemoveLoginVerificationTokensByEmailAsync(string email)
         {
-            var verificationTokens = _usersLoginVerificationTokens.Where(x => x.Value.Email == email).ToList();
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> verificationTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.Email == email);
             foreach (var verificationToken in verificationTokens)
             {
-                _usersLoginVerificationTokens.TryRemove(verificationToken.Key, out _);
+                await _usersLoginVerificationTokens.TryRemoveAsync(verificationToken.Key);
             }
         }
 
-        private void RemoveExpiredLoginVerificationTokens()
+        private async Task RemoveExpiredLoginVerificationTokensAsync()
         {
-            var expiredTokens = _usersLoginVerificationTokens.Where(x => x.Value.ExpireAt < DateTime.UtcNow).ToList();
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> expiredTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.ExpireAt < DateTime.UtcNow);
             foreach (var expiredToken in expiredTokens)
             {
-                _usersLoginVerificationTokens.TryRemove(expiredToken.Key, out _);
+                await _usersLoginVerificationTokens.TryRemoveAsync(expiredToken.Key);
             }
         }
 
@@ -344,5 +361,9 @@ namespace Spiderly.Security.Services
 
         #endregion
 
+        public void Dispose()
+        {
+            _generateAccessAndRefreshTokensLock?.Dispose();
+        }
     }
 }
