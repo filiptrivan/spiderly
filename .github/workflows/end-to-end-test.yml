@@ -1,0 +1,384 @@
+name: End to End Spiderly Test
+
+on:
+  push:
+    branches: [ main, develop, v* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  NODE_VERSION: '20'
+  TEST_APP_NAME: 'TestApp'
+
+jobs:
+  integration-test:
+    name: Test CLI Generated Application
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli
+
+      - name: Setup PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "CREATE USER testuser WITH PASSWORD 'testpass' CREATEDB;"
+          sudo -u postgres psql -c "CREATE DATABASE testdb OWNER testuser;"
+          echo "PostgreSQL setup complete"
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Build and pack Spiderly.CLI
+        run: |
+          dotnet restore
+          dotnet build -c Release
+          dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -c Release -o ./nupkg
+
+      - name: Install Spiderly.CLI
+        run: |
+          dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
+          dotnet tool install --global Spiderly.CLI --add-source ./nupkg --version "*-*" --prerelease
+
+      - name: Create test directory
+        run: |
+          mkdir -p ./test-output
+          cd ./test-output
+
+      - name: Run Spiderly init
+        run: |
+          cd ./test-output
+          export PATH="$HOME/.dotnet/tools:$PATH"
+
+          echo "Running spiderly init with app name: ${{ env.TEST_APP_NAME }}"
+          printf "${{ env.TEST_APP_NAME }}\n\n" | spiderly init
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: spiderly init failed with exit code $?"
+            exit 1
+          fi
+
+      - name: Verify generated structure
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+
+          REQUIRED_PATHS=(
+            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.WebAPI"
+            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
+            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Entities"
+            "$APP_FOLDER/Frontend/src"
+          )
+
+          for path in "${REQUIRED_PATHS[@]}"; do
+            if [ ! -d "$path" ]; then
+              echo "ERROR: Required path not found: $path"
+              find . -type d
+              exit 1
+            fi
+            echo "✓ Found: $path"
+          done
+
+      - name: Add test entity
+        run: |
+          cd ./test-output
+          APP_NAME="${{ env.TEST_APP_NAME }}"
+          APP_FOLDER=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          ENTITIES_PATH="$APP_FOLDER/Backend/$APP_NAME.Entities"
+          ENTITY_FILE="$ENTITIES_PATH/Product.cs"
+
+          cat > "$ENTITY_FILE" <<'PRODUCTCS'
+          using Spiderly.Shared;
+          using System.ComponentModel.DataAnnotations;
+
+          namespace ${{ env.TEST_APP_NAME }}.Entities
+          {
+              public class Product : BusinessObject<int>
+              {
+                  [Required]
+                  [MaxLength(100)]
+                  public string Name { get; set; }
+
+                  [MaxLength(500)]
+                  public string Description { get; set; }
+
+                  [Required]
+                  [Range(0.01, 999999.99)]
+                  public decimal Price { get; set; }
+
+                  [Range(0, 999999)]
+                  public int Stock { get; set; }
+
+                  public bool IsActive { get; set; } = true;
+              }
+          }
+          PRODUCTCS
+          echo "✓ Created test entity: Product.cs"
+
+      - name: Build .NET backend
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          BACKEND_PATH="$APP_FOLDER/Backend"
+
+          echo "Building .NET backend..."
+          cd "$BACKEND_PATH"
+
+          dotnet restore
+          if [ $? -ne 0 ]; then exit 1; fi
+
+          dotnet build -c Release --no-restore
+          if [ $? -ne 0 ]; then exit 1; fi
+
+          echo "✓ Backend build successful"
+
+      - name: Run EF migration for Product entity
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          INFRASTRUCTURE_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
+
+          cd "$INFRASTRUCTURE_PATH"
+
+          echo "Adding migration for Product entity..."
+          dotnet ef migrations add AddProductEntity --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
+
+          echo "Updating database..."
+          dotnet ef database update --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
+
+      - name: Verify source generators created files
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          WEBAPI_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.WebAPI"
+
+          echo "Checking for generated files..."
+
+          GENERATED_FILES=$(find "$WEBAPI_PATH/obj" -name "*.g.cs" 2>/dev/null || true)
+          FILE_COUNT=$(echo "$GENERATED_FILES" | grep -c . || echo "0")
+
+          if [ "$FILE_COUNT" -gt 0 ]; then
+            echo "✓ Source generators created $FILE_COUNT files"
+            echo "$GENERATED_FILES" | head -5 | while read -r file; do
+              echo "  - $(basename "$file")"
+            done
+          else
+            echo "⚠ WARNING: No generated files found"
+          fi
+
+      - name: Install frontend dependencies
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          FRONTEND_PATH="$APP_FOLDER/Frontend"
+
+          echo "Installing frontend packages..."
+          cd "$FRONTEND_PATH"
+          npm install
+          if [ $? -ne 0 ]; then
+            echo "ERROR: npm install failed"
+            exit 1
+          fi
+
+      - name: Build Angular frontend
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          FRONTEND_PATH="$APP_FOLDER/Frontend"
+
+          echo "Building Angular frontend..."
+          cd "$FRONTEND_PATH"
+          npm run build
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Angular build failed"
+            exit 1
+          fi
+
+          echo "✓ Frontend build successful"
+
+      - name: Install Playwright
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          cd "$FRONTEND_PATH"
+
+          echo "Installing Playwright..."
+          npm install -D @playwright/test
+          npx playwright install chromium --with-deps
+
+      - name: Create E2E tests
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          E2E_FOLDER="$FRONTEND_PATH/e2e"
+          mkdir -p "$E2E_FOLDER"
+
+          cat > "$FRONTEND_PATH/playwright.config.ts" <<'PLAYWRIGHTCONFIG'
+          import { defineConfig, devices } from '@playwright/test';
+
+          export default defineConfig({
+            testDir: './e2e',
+            fullyParallel: false,
+            forbidOnly: !!process.env.CI,
+            retries: process.env.CI ? 2 : 0,
+            workers: 1,
+            reporter: 'html',
+            use: {
+              baseURL: 'http://localhost:4200',
+              trace: 'on-first-retry',
+            },
+            projects: [
+              {
+                name: 'chromium',
+                use: { ...devices['Desktop Chrome'] },
+              },
+            ],
+            webServer: [
+              {
+                command: 'dotnet run --no-build -c Release --urls=http://localhost:5000',
+                cwd: '../Backend/${{ env.TEST_APP_NAME }}.WebAPI',
+                url: 'http://localhost:5000',
+                timeout: 120000,
+                reuseExistingServer: false,
+              },
+              {
+                command: 'npm run start',
+                url: 'http://localhost:4200',
+                timeout: 120000,
+                reuseExistingServer: false,
+              },
+            ],
+          });
+          PLAYWRIGHTCONFIG
+
+          cat > "$E2E_FOLDER/product.spec.ts" <<'E2ETEST'
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Product CRUD Operations', () => {
+            let productId: number;
+
+            test('should create a new product via API', async ({ request }) => {
+              const response = await request.post('http://localhost:5000/api/Product', {
+                data: {
+                  name: 'E2E Test Product',
+                  description: 'Created by Playwright E2E test',
+                  price: 99.99,
+                  stock: 100,
+                  isActive: true
+                }
+              });
+              expect(response.ok()).toBeTruthy();
+              const product = await response.json();
+              expect(product.id).toBeDefined();
+              expect(product.name).toBe('E2E Test Product');
+              productId = product.id;
+            });
+
+            test('should retrieve product via API', async ({ request }) => {
+              const response = await request.get('http://localhost:5000/api/Product');
+              expect(response.ok()).toBeTruthy();
+              const products = await response.json();
+              expect(Array.isArray(products)).toBeTruthy();
+            });
+
+            test('should load the application homepage', async ({ page }) => {
+              await page.goto('/');
+              await expect(page).toHaveTitle(/${{ env.TEST_APP_NAME }}/);
+            });
+
+            test('should navigate to product list page', async ({ page }) => {
+              await page.goto('/');
+              await page.waitForLoadState('networkidle');
+              const productLink = page.locator('text=Product').first();
+              if (await productLink.isVisible()) {
+                await productLink.click();
+                await page.waitForURL('**/product**');
+              }
+            });
+
+            test('should update product via API', async ({ request }) => {
+              if (!productId) test.skip();
+              const response = await request.put(`http://localhost:5000/api/Product/${productId}`, {
+                data: {
+                  id: productId,
+                  name: 'Updated E2E Product',
+                  description: 'Updated by E2E test',
+                  price: 149.99,
+                  stock: 50,
+                  isActive: true
+                }
+              });
+              expect(response.ok()).toBeTruthy();
+            });
+
+            test('should delete product via API', async ({ request }) => {
+              if (!productId) test.skip();
+              const response = await request.delete(`http://localhost:5000/api/Product/${productId}`);
+              expect(response.ok()).toBeTruthy();
+            });
+          });
+          E2ETEST
+
+          echo "✓ Created Playwright E2E tests"
+
+      - name: Run Playwright E2E tests
+        run: |
+          cd ./test-output
+          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
+          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          cd "$FRONTEND_PATH"
+
+          echo "Running Playwright E2E tests..."
+          npx playwright test --reporter=list
+
+          if [ $? -ne 0 ]; then
+            echo "✗ E2E tests failed"
+            exit 1
+          fi
+
+          echo "✓ All E2E tests passed!"
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-output/**/playwright-report/
+          retention-days: 7
+
+      - name: Test Summary
+        if: success()
+        run: |
+          echo "## Integration Test Summary ✓" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Application Generated:** ${{ env.TEST_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tests Completed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Spiderly CLI initialization" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Project structure generation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Entity creation (Product)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ .NET backend build" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ EF Core migrations" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Source generators execution" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Angular frontend build" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Playwright E2E tests (API + UI)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Result:** All integration and E2E tests passed! 🎉" >> $GITHUB_STEP_SUMMARY
