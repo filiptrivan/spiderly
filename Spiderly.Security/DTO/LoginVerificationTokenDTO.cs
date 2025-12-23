@@ -1,6 +1,8 @@
-﻿namespace Spiderly.Security.DTO
+﻿using Spiderly.Security.Interfaces;
+
+namespace Spiderly.Security.DTO
 {
-    public class LoginVerificationTokenDTO
+    public class LoginVerificationTokenDTO : IExpirableToken
     {
         public string Email { get; set; }
         public string BrowserId { get; set; }

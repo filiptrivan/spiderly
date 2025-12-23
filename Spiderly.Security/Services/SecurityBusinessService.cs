@@ -68,7 +68,7 @@ namespace Spiderly.Security.Services
                 userId = user.Id;
             });
 
-            string verificationCode = _jwtAuthManagerService.GenerateAndSaveLoginVerificationCode(userEmail, userId, loginDTO.BrowserId);
+            string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, userId, loginDTO.BrowserId);
             EmailVerifyUIDTO emailTemplate = CreateLoginEmailTemplate(verificationCode);
 
             try
@@ -77,7 +77,7 @@ namespace Spiderly.Security.Services
             }
             catch (Exception)
             {
-                _jwtAuthManagerService.RemoveLoginVerificationTokensByEmail(userEmail); // We didn't send email, set all verification tokens invalid then
+                await _jwtAuthManagerService.RemoveLoginVerificationTokensByEmailAsync(userEmail); // We didn't send email, set all verification tokens invalid then
                 throw;
             }
         }
@@ -97,7 +97,7 @@ namespace Spiderly.Security.Services
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
             // Can not be null, if its null it already has thrown
-            LoginVerificationTokenDTO loginVerificationTokenDTO = _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTO(
+            LoginVerificationTokenDTO loginVerificationTokenDTO = await _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTOAsync(
                 verificationRequestDTO.VerificationCode, verificationRequestDTO.BrowserId, verificationRequestDTO.Email);
 
             return await _context.WithTransactionAsync(async () =>
@@ -124,7 +124,7 @@ namespace Spiderly.Security.Services
                         throw new BusinessException(SharedTerms.DisabledAccountException);
                 }
 
-                JwtAuthResultDTO jwtAuthResultDTO = GenerateAccessAndRefreshTokens(user.Id, loginVerificationTokenDTO.BrowserId);
+                JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, loginVerificationTokenDTO.BrowserId);
 
                 return new AuthResultDTO
                 {
@@ -168,7 +168,7 @@ namespace Spiderly.Security.Services
                         await userDbSet.ExecuteUpdateAsync(x => x.SetProperty(x => x.HasLoggedInWithExternalProvider, true)); // There is no need for SaveChangesAsync because we don't need to update the version of the user
                 }
 
-                JwtAuthResultDTO jwtAuthResultDTO = GenerateAccessAndRefreshTokens(user.Id, externalProviderDTO.BrowserId);
+                JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, externalProviderDTO.BrowserId);
 
                 return new AuthResultDTO
                 {
@@ -188,13 +188,13 @@ namespace Spiderly.Security.Services
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
             string accessToken = await _authenticationService.GetAccessTokenAsync();
-            List<Claim> claims = _jwtAuthManagerService.GetClaimsForTheAccessToken(refreshTokenRequestDTO, accessToken);
+            List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
 
             long accesTokenUserId = long.Parse(claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid)?.Value);
 
             string emailFromTheDb = await GetUserEmailByIdAsync(accesTokenUserId);
 
-            JwtAuthResultDTO jwtResult = _jwtAuthManagerService.Refresh(refreshTokenRequestDTO, accesTokenUserId);
+            JwtAuthResultDTO jwtResult = await _jwtAuthManagerService.RefreshAsync(refreshTokenRequestDTO, accesTokenUserId);
 
             return new AuthResultDTO
             {
@@ -225,11 +225,11 @@ namespace Spiderly.Security.Services
 
         #region Helpers
 
-        private JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string browserId)
+        private async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokens(long userId, string browserId)
         {
             string ipAddress = _authenticationService.GetIPAddress();
 
-            JwtAuthResultDTO jwtAuthResult = _jwtAuthManagerService.GenerateAccessAndRefreshTokens(userId, ipAddress, browserId);
+            JwtAuthResultDTO jwtAuthResult = await _jwtAuthManagerService.GenerateAccessAndRefreshTokensAsync(userId, ipAddress, browserId);
 
             return jwtAuthResult;
         }

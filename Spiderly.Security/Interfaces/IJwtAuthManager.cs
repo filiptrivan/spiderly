@@ -7,27 +7,27 @@ namespace Spiderly.Security.Interfaces
     // TODO FT: Sort the arguments of the methods
     public interface IJwtAuthManager
     {
-        IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary { get; }
-        IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary { get; }
+        Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync();
+        Task<IImmutableDictionary<string, LoginVerificationTokenDTO>> GetUsersLoginVerificationTokensReadOnlyDictionaryAsync();
 
         #region Refresh
 
-        JwtAuthResultDTO GenerateAccessAndRefreshTokens(long userId, string ipAddress, string browserId);
+        Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId);
         List<Claim> GenerateClaims(long userId);
-        JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long dbUserId);
-        List<Claim> GetClaimsForTheAccessToken(RefreshTokenRequestDTO request, string accessToken);
-        void RemoveExpiredRefreshTokens();
-        void RemoveRefreshTokenByUserId(long userId);
-        public void Logout(string browserId, long userId);
-        bool RemoveLastRefreshTokenFromTheSameBrowserAndUserId(string browserId, long userId);
+        Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long dbUserId);
+        Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken);
+        Task RemoveExpiredRefreshTokensAsync();
+        Task RemoveRefreshTokenByUserIdAsync(long userId);
+        Task LogoutAsync(string browserId, long userId);
+        Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string browserId, long userId);
 
         #endregion
 
         #region Login verification
 
-        LoginVerificationTokenDTO ValidateAndGetLoginVerificationTokenDTO(string verificationToken, string browserId, string email);
-        string GenerateAndSaveLoginVerificationCode(string userEmail, long userId, string browserId);
-        void RemoveLoginVerificationTokensByEmail(string email);
+        Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationToken, string browserId, string email);
+        Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, long userId, string browserId);
+        Task RemoveLoginVerificationTokensByEmailAsync(string email);
 
         #endregion
 
