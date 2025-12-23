@@ -1,4 +1,5 @@
 ﻿using CaseConverter;
+using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using System.Diagnostics;
@@ -124,6 +125,46 @@ Type 'spiderly help' to see a list of available commands.
                 break;
             }
 
+            DbProviderCodes dbProvider;
+            while (true)
+            {
+                Console.Write("\nSelect database provider:\n  1. SQL Server\n  2. PostgreSQL\nEnter choice (1 or 2): ");
+                string dbChoice = Console.ReadLine();
+
+                if (dbChoice == "1")
+                {
+                    dbProvider = DbProviderCodes.SQLServer;
+                    break;
+                }
+                else if (dbChoice == "2")
+                {
+                    dbProvider = DbProviderCodes.PostgreSQL;
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid choice. Please enter 1 or 2.");
+                }
+            }
+
+            bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            if (isMac && dbProvider == DbProviderCodes.SQLServer)
+            {
+                Console.WriteLine("\n[WARNING] SQL Server is not officially supported on macOS.");
+                Console.WriteLine("Please consider one of the following options:");
+                Console.WriteLine("  1. Switch to PostgreSQL (recommended for macOS)");
+                Console.WriteLine("  2. Use SQL Server via Docker");
+                Console.WriteLine("\nTo use SQL Server via Docker, run:");
+                Console.WriteLine("  docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest");
+                Console.WriteLine("\nDo you want to continue with SQL Server? (y/n): ");
+                string continueChoice = Console.ReadLine();
+                if (continueChoice?.ToLower() != "y")
+                {
+                    Console.WriteLine("Exiting. Please rerun 'spiderly init' and select a different database provider.");
+                    return;
+                }
+            }
+
             string currentPath = Environment.CurrentDirectory;
 
             bool hasNetAndAngularInitErrors = false;
@@ -133,12 +174,54 @@ Type 'spiderly help' to see a list of available commands.
             bool hasUserSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
-            string sqlServerConnectionString = Helper.GetAvailableSqlServerConnectionString(appName);
+            string connectionString = dbProvider == DbProviderCodes.SQLServer
+                ? Helper.GetAvailableSqlServerConnectionString(appName)
+                : Helper.GetAvailablePostgresConnectionString(appName);
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
+                Console.WriteLine($"\n[WARNING] No running {dbName} instance was detected.");
+                Console.WriteLine($"Please ensure {dbName} is installed and running.");
+
+                if (dbProvider == DbProviderCodes.SQLServer)
+                {
+                    Console.WriteLine("\nTo install SQL Server:");
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        Console.WriteLine("  Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads");
+                    }
+                    else
+                    {
+                        Console.WriteLine("  Use Docker: docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("\nTo install PostgreSQL:");
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        Console.WriteLine("  Download from: https://www.postgresql.org/download/windows/");
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        Console.WriteLine("  Use Homebrew: brew install postgresql");
+                        Console.WriteLine("  Or download from: https://www.postgresql.org/download/macosx/");
+                    }
+                    else
+                    {
+                        Console.WriteLine("  Use package manager or download from: https://www.postgresql.org/download/linux/");
+                    }
+                }
+
+                Console.WriteLine("\nAfter installation, please rerun 'spiderly init'.");
+                return;
+            }
 
             Console.WriteLine("\nGenerating files for the app...");
             try
             {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, IsRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, sqlServerConnectionString);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, IsRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider);
                 Console.WriteLine("Finished generating files for the app.");
             }
             catch (Exception ex)
@@ -158,7 +241,7 @@ Type 'spiderly help' to see a list of available commands.
             if (!hasNetAndAngularInitErrors)
             {
                 Console.WriteLine("\nSetting up user secrets...");
-                if (!await SetupUserSecrets(currentPath, appName, jwtKey, sqlServerConnectionString))
+                if (!await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
                 {
                     Console.WriteLine("\n[ERROR] Failed to set up user secrets.");
                     hasUserSecretsErrors = true;

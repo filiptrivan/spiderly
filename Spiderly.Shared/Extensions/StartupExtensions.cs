@@ -173,7 +173,7 @@ namespace Spiderly.Shared.Extensions
                 }
                 else if (dbProvider == DbProviderCodes.PostgreSQL)
                 {
-                    options.UseSqlServer(SettingsProvider.Current.ConnectionString);
+                    options.UseNpgsql(SettingsProvider.Current.ConnectionString);
                 }
 
 #if DEBUG

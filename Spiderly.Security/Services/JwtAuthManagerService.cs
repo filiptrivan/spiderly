@@ -19,19 +19,17 @@ namespace Spiderly.Security.Services
     /// </summary>
     public class JwtAuthManagerService : IJwtAuthManager
     {
-        public IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary => _usersRefreshTokens.ToImmutableDictionary();
+        private readonly ITokenCacheService _tokenCache;
 
-        // Making ConcurrentDictionary if two users are searching for the refresh token in the same time, use Redis in the future
-        // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
-        private readonly ConcurrentDictionary<string, RefreshTokenDTO> _usersRefreshTokens = new();
+        public IImmutableDictionary<string, RefreshTokenDTO> UsersRefreshTokensReadOnlyDictionary => throw new NotSupportedException("Use async methods with ITokenCacheService instead");
 
-        public IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary => _usersLoginVerificationTokens.ToImmutableDictionary();
-        private readonly ConcurrentDictionary<string, LoginVerificationTokenDTO> _usersLoginVerificationTokens = new();
+        public IImmutableDictionary<string, LoginVerificationTokenDTO> UsersLoginVerificationTokensReadOnlyDictionary => throw new NotSupportedException("Use async methods with ITokenCacheService instead");
 
         private static readonly Random Random = new();
 
-        public JwtAuthManagerService()
+        public JwtAuthManagerService(ITokenCacheService tokenCache)
         {
+            _tokenCache = tokenCache;
         }
 
         #region Refresh
@@ -42,36 +40,30 @@ namespace Spiderly.Security.Services
         /// 3. Stole access but no refresh
         /// 4. Stole both - we can't do anything to him, we only try to stop him if he's on a different ip address
         /// </summary>
-        public JwtAuthResultDTO Refresh(RefreshTokenRequestDTO request, long userIdFromAccessToken)
+        public async Task<JwtAuthResultDTO> Refresh(RefreshTokenRequestDTO request, long userIdFromAccessToken)
         {
-            RemoveExpiredRefreshTokens();
-            // FT: We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
-            RemoveTokensForMoreThenAllowedBrowsers(userIdFromAccessToken);
+            await RemoveTokensForMoreThenAllowedBrowsers(userIdFromAccessToken);
 
-            // FT: Sometimes in development mode, when the multiple tabs are open, on the save of the angular app we refresh the tabs in the same time, so we don't even manage to change the value of the refresh token in the local storage,
-            // and we send another request with the same refresh token as the previous one, and since we deleted it, it doesn't exist
-            if (!_usersRefreshTokens.TryGetValue(request.RefreshToken, out RefreshTokenDTO existingRefreshToken))
+            RefreshTokenDTO? existingRefreshToken = await _tokenCache.GetRefreshTokenAsync(userIdFromAccessToken.ToString(), request.BrowserId);
+
+            if (existingRefreshToken == null)
             {
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException);
             }
-            // Unauthenticating both user, this could happen if someone stoled access token (aleksa.trivan), and has own valid refresh token (filip.trivan), he could indefinedly generate access tokens for the (aleksa.trivan) then
-            // This is not solving this problem (hacker can not change claims in the jwt token): https://stackoverflow.com/questions/27301557/if-you-can-decode-jwt-how-are-they-secure we are doing that with Decoding JWT token.
-            // It is not posible for the user to change the email of the refresh token, even if it is, if the user change the email in the refresh token, it doesn't matter, we will find based on the refresh token code not email
-            if (existingRefreshToken.UserId != userIdFromAccessToken) // FT: Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
+
+            if (existingRefreshToken.UserId != userIdFromAccessToken)
             {
-                RemoveRefreshTokenByUserId(existingRefreshToken.UserId);
-                RemoveRefreshTokenByUserId(userIdFromAccessToken);
+                await RemoveRefreshTokenByUserId(existingRefreshToken.UserId);
+                await RemoveRefreshTokenByUserId(userIdFromAccessToken);
                 throw new HackerException("The user id can't be different in refresh and access token.");
             }
-            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && IsRefreshTokenWithNewIpAddress(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
+            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddress(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
             {
-                // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
-                // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
-                RemoveRefreshTokenByUserId(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
+                await RemoveRefreshTokenByUserId(existingRefreshToken.UserId);
                 throw new SecurityTokenException(SharedTerms.TwoDifferentIpAddressesRefreshException);
             }
 
-            return GenerateAccessAndRefreshTokens(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
+            return await GenerateAccessAndRefreshTokens(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId);
         }
 
         private readonly object _generateAccessAndRefreshTokensLock = new();

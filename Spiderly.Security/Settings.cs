@@ -27,5 +27,8 @@
         public string ExcelContentType { get; set; }
 
         public bool OnlyAdminCanAddUsers { get; set; }
+
+        public bool UseRedisCache { get; set; }
+        public string RedisConnectionString { get; set; }
     }
 }
