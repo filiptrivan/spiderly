@@ -1,5 +1,6 @@
 ﻿using CaseConverter;
 using Spiderly.Shared.Classes;
+using Spiderly.Shared.Enums;
 using Spiderly.Shared.Extensions;
 
 namespace Spiderly.Shared.Helpers
@@ -9,7 +10,7 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, string sqlServerConnectionString)
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, string connectionString, DbProviderCodes dbProvider = DbProviderCodes.SQLServer)
     {
       string userSecretsId = Guid.NewGuid().ToString();
 
@@ -29,6 +30,44 @@ namespace Spiderly.Shared.Helpers
                                 Files =
                                 {
                                     new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() }
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "tests",
+                                ChildFolders =
+                                {
+                                    new SpiderlyFolder
+                                    {
+                                        Name = "e2e",
+                                        ChildFolders =
+                                        {
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "specs",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "auth.spec.ts", Data = GetAuthSpecData() },
+                                                    new SpiderlyFile { Name = "user-crud.spec.ts", Data = GetUserCrudSpecData() },
+                                                    new SpiderlyFile { Name = "notification-crud.spec.ts", Data = GetNotificationCrudSpecData() },
+                                                }
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "page-objects",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "base-page.ts", Data = GetBasePageObjectData() },
+                                                    new SpiderlyFile { Name = "login-page.ts", Data = GetLoginPageObjectData() },
+                                                    new SpiderlyFile { Name = "user-list-page.ts", Data = GetUserListPageObjectData() },
+                                                }
+                                            }
+                                        },
+                                        Files =
+                                        {
+                                            new SpiderlyFile { Name = ".gitignore", Data = GetE2EGitignoreData() }
+                                        }
+                                    }
                                 }
                             },
                             new SpiderlyFolder
@@ -282,6 +321,7 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
                             new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
                             new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
+                            new SpiderlyFile { Name = "playwright.config.ts", Data = GetPlaywrightConfigData() },
                             new SpiderlyFile { Name = "README.md", Data = GetFrontendREADMEData(appName, spiderlyVersion) },
                             new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
                             new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isRunningFromNuget) },
@@ -432,9 +472,9 @@ namespace Spiderly.Shared.Helpers
                                         jwtKey: jwtKey,
                                         blobStorageConnectionString: null,
                                         blobStorageUrl: null,
-                                        sqlServerConnectionString: sqlServerConnectionString
+                                        sqlServerConnectionString: connectionString
                                     )},
-                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId) },
+                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                                     new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
                                     new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
@@ -450,10 +490,7 @@ namespace Spiderly.Shared.Helpers
                     new SpiderlyFolder
                     {
                         Name = "Database",
-                        Files =
-                        {
-                            new SpiderlyFile { Name = "initialize-script.sql", Data = GetInitializeScriptSqlData(appName) }
-                        }
+                        Files = { }
                     }
                 },
         Files =
@@ -2634,10 +2671,10 @@ namespace {{appName}}.WebAPI.Controllers
 
 
         public SecurityController(
-            ILogger<SecurityController> logger, 
-            SecurityBusinessService<User> securityBusinessService, 
-            IJwtAuthManager jwtAuthManagerService, 
-            IApplicationDbContext context, 
+            ILogger<SecurityController> logger,
+            SecurityBusinessService<User> securityBusinessService,
+            IJwtAuthManager jwtAuthManagerService,
+            IApplicationDbContext context,
             AuthenticationService authenticationService,
             AuthorizationService authorizationService,
             {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService
@@ -2650,7 +2687,55 @@ namespace {{appName}}.WebAPI.Controllers
             _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
         }
 
-       
+        public override async Task<IActionResult> Login(VerificationTokenRequestDTO verificationRequestDTO)
+        {
+            AuthResultDTO authResultDTO = await _securityBusinessService.Login(verificationRequestDTO);
+
+            // TODO: Remove this code after the first user registers and gets admin permissions.
+            // This is a performance bottleneck that checks if this is the first user on every login.
+            // After the first admin user is created, you should delete this entire block.
+            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
+            if (isFirstUserEver)
+            {
+                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+                if (adminRole != null)
+                {
+                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
+                    if (user != null && !user.Roles.Any())
+                    {
+                        user.Roles.Add(adminRole);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+
+            return Ok(authResultDTO);
+        }
+
+        public override async Task<IActionResult> LoginExternal(ExternalProviderDTO externalProviderDTO)
+        {
+            AuthResultDTO authResultDTO = await _securityBusinessService.LoginExternal(externalProviderDTO, Spiderly.Security.SettingsProvider.Current.GoogleClientId);
+
+            // TODO: Remove this code after the first user registers and gets admin permissions.
+            // This is a performance bottleneck that checks if this is the first user on every login.
+            // After the first admin user is created, you should delete this entire block.
+            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
+            if (isFirstUserEver)
+            {
+                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+                if (adminRole != null)
+                {
+                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
+                    if (user != null && !user.Roles.Any())
+                    {
+                        user.Roles.Add(adminRole);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+
+            return Ok(authResultDTO);
+        }
 
     }
 }
@@ -2788,6 +2873,7 @@ namespace {{appName}}.Business.DTO
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.Entities;
 using Spiderly.Infrastructure;
+using Spiderly.Security.Entities;
 
 namespace {{appName}}.Infrastructure
 {
@@ -2801,11 +2887,61 @@ namespace {{appName}}.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            SeedData(modelBuilder);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void SeedData(ModelBuilder modelBuilder)
+        {
+            DateTime seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            Permission[] permissions = new[]
+            {
+                new Permission { Id = 1, Name = "View users", Code = "ReadUser" },
+                new Permission { Id = 2, Name = "Edit existing users", Code = "UpdateUser" },
+                new Permission { Id = 3, Name = "Add new users", Code = "InsertUser" },
+                new Permission { Id = 4, Name = "Delete users", Code = "DeleteUser" },
+                new Permission { Id = 5, Name = "View notifications", Code = "ReadNotification" },
+                new Permission { Id = 6, Name = "Edit existing notifications", Code = "UpdateNotification" },
+                new Permission { Id = 7, Name = "Add new notifications", Code = "InsertNotification" },
+                new Permission { Id = 8, Name = "Delete notifications", Code = "DeleteNotification" },
+                new Permission { Id = 9, Name = "View roles", Code = "ReadRole" },
+                new Permission { Id = 10, Name = "Edit existing roles", Code = "UpdateRole" },
+                new Permission { Id = 11, Name = "Add new roles", Code = "InsertRole" },
+                new Permission { Id = 12, Name = "Delete roles", Code = "DeleteRole" }
+            };
+
+            if (Spiderly.Infrastructure.SettingsProvider.Current.AppHasLatinTranslation)
+            {
+                permissions[0].NameLatin = "View users";
+                permissions[1].NameLatin = "Edit existing users";
+                permissions[2].NameLatin = "Add new users";
+                permissions[3].NameLatin = "Delete users";
+                permissions[4].NameLatin = "View notifications";
+                permissions[5].NameLatin = "Edit existing notifications";
+                permissions[6].NameLatin = "Add new notifications";
+                permissions[7].NameLatin = "Delete notifications";
+                permissions[8].NameLatin = "View roles";
+                permissions[9].NameLatin = "Edit existing roles";
+                permissions[10].NameLatin = "Add new roles";
+                permissions[11].NameLatin = "Delete roles";
+            }
+
+            modelBuilder.Entity<Permission>().HasData(permissions);
+
+            modelBuilder.Entity<Role>().HasData(new Role
+            {
+                Id = 1,
+                Name = "Admin",
+                Version = 1,
+                CreatedAt = seedDate,
+                ModifiedAt = seedDate
+            });
         }
 
     }
@@ -2861,53 +2997,6 @@ EndGlobal
 """;
     }
 
-    private static string GetInitializeScriptSqlData(string appName)
-    {
-      return $$"""
--- These permissions will be assigned to the first registered user in the application.
-
-begin transaction;
-
-use {{appName}}
-
-insert into Permission(Name, Description, Code) values(N'View users', null, N'ReadUser');
-insert into Permission(Name, Description, Code) values(N'Edit existing users', null, N'UpdateUser');
-insert into Permission(Name, Description, Code) values(N'Add new users', null, N'InsertUser');
-insert into Permission(Name, Description, Code) values(N'Delete users', null, N'DeleteUser');
-insert into Permission(Name, Description, Code) values(N'View notifications', null, N'ReadNotification');
-insert into Permission(Name, Description, Code) values(N'Edit existing notifications', null, N'UpdateNotification');
-insert into Permission(Name, Description, Code) values(N'Add new notifications', null, N'InsertNotification');
-insert into Permission(Name, Description, Code) values(N'Delete notifications', null, N'DeleteNotification');
-insert into Permission(Name, Description, Code) values(N'View roles', null, N'ReadRole');
-insert into Permission(Name, Description, Code) values(N'Edit existing roles', null, N'UpdateRole');
-insert into Permission(Name, Description, Code) values(N'Add new roles', null, N'InsertRole');
-insert into Permission(Name, Description, Code) values(N'Delete roles', null, N'DeleteRole');
-
-INSERT INTO Role (Version, Name, CreatedAt, ModifiedAt) VALUES (1, N'Admin', getdate(), getdate());
-
-DECLARE @AdminRoleId INT;
-DECLARE @AdminUserId INT;
-SELECT @AdminRoleId = Id FROM Role WHERE Name = N'Admin';
-SELECT TOP 1 @AdminUserId = Id FROM [User] ORDER BY Id;
-
-INSERT INTO UserRole (UserId, RoleId) VALUES (@AdminUserId, @AdminRoleId);
-
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 1);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 2);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 3);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 4);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 5);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 6);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 7);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 8);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 9);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 10);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 11);
-INSERT INTO RolePermission (RoleId, PermissionId) VALUES (@AdminRoleId, 12);
-
-commit;
-""";
-    }
 
     private static string GetStartupCsData(string appName)
     {
@@ -3025,7 +3114,7 @@ namespace {{appName}}.WebAPI
 """;
     }
 
-    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget, string userSecretsId)
+    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget, string userSecretsId, DbProviderCodes dbProvider)
     {
       return $$"""
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -3046,7 +3135,7 @@ namespace {{appName}}.WebAPI
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />
+		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
@@ -3878,6 +3967,11 @@ namespace {{appName}}.Business.DataMappers
         "build": "ng build",
         "watch": "ng build --watch --configuration development",
         "test": "ng test",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test:e2e:headed": "playwright test --headed",
+        "test:e2e:debug": "playwright test --debug",
+        "test:e2e:report": "playwright show-report",
         "i18n:extract": "transloco-keys-manager extract --langs en sr-Latn-RS",
         "i18n:find": "transloco-keys-manager find"
     },
@@ -3914,7 +4008,9 @@ namespace {{appName}}.Business.DataMappers
         "@angular/cli": "19.2.13",
         "@angular/compiler-cli": "19.2.13",
         "@jsverse/transloco-keys-manager": "5.1.0",
+        "@playwright/test": "1.49.1",
         "@types/jasmine": "5.1.0",
+        "@types/node": "22.10.5",
         "jasmine-core": "5.1.0",
         "karma": "6.4.0",
         "karma-chrome-launcher": "3.2.0",
@@ -5242,6 +5338,332 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
       }
 
       return input;
+    }
+
+    private static string GetPlaywrightConfigData()
+    {
+      return """
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/e2e/specs',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:4200',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+  ],
+  webServer: {
+    command: 'npm start',
+    url: 'http://localhost:4200',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+""";
+    }
+
+    private static string GetE2EGitignoreData()
+    {
+      return """
+test-results/
+playwright-report/
+playwright/.cache/
+""";
+    }
+
+    private static string GetBasePageObjectData()
+    {
+      return """
+import { Page } from '@playwright/test';
+
+export class BasePage {
+  constructor(protected page: Page) {}
+
+  async navigate(path: string) {
+    await this.page.goto(path);
+  }
+
+  async waitForNavigation() {
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async clickButton(text: string) {
+    await this.page.getByRole('button', { name: text }).click();
+  }
+
+  async fillInput(label: string, value: string) {
+    await this.page.getByLabel(label).fill(value);
+  }
+
+  async getTableRowCount() {
+    return await this.page.locator('tbody tr').count();
+  }
+}
+""";
+    }
+
+    private static string GetLoginPageObjectData()
+    {
+      return """
+import { Page } from '@playwright/test';
+import { BasePage } from './base-page';
+
+export class LoginPage extends BasePage {
+  constructor(page: Page) {
+    super(page);
+  }
+
+  async goto() {
+    await this.navigate('/');
+  }
+
+  async login(email: string, password: string) {
+    await this.page.getByLabel('Email').fill(email);
+    await this.page.getByLabel('Password').fill(password);
+    await this.page.getByRole('button', { name: 'Login' }).click();
+    await this.waitForNavigation();
+  }
+
+  async isLoggedIn() {
+    return await this.page.locator('[data-testid="user-menu"]').isVisible();
+  }
+
+  async logout() {
+    await this.page.locator('[data-testid="user-menu"]').click();
+    await this.page.getByRole('menuitem', { name: 'Logout' }).click();
+  }
+}
+""";
+    }
+
+    private static string GetUserListPageObjectData()
+    {
+      return """
+import { Page } from '@playwright/test';
+import { BasePage } from './base-page';
+
+export class UserListPage extends BasePage {
+  constructor(page: Page) {
+    super(page);
+  }
+
+  async goto() {
+    await this.navigate('/administration/user');
+  }
+
+  async clickAddNew() {
+    await this.clickButton('Add New');
+  }
+
+  async searchUser(searchTerm: string) {
+    await this.page.getByPlaceholder('Search').fill(searchTerm);
+    await this.waitForNavigation();
+  }
+
+  async deleteUser(userName: string) {
+    const row = this.page.locator('tr', { hasText: userName });
+    await row.getByRole('button', { name: 'Delete' }).click();
+    await this.page.getByRole('button', { name: 'Confirm' }).click();
+  }
+
+  async editUser(userName: string) {
+    const row = this.page.locator('tr', { hasText: userName });
+    await row.getByRole('button', { name: 'Edit' }).click();
+  }
+}
+""";
+    }
+
+    private static string GetAuthSpecData()
+    {
+      return """
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../page-objects/login-page';
+
+test.describe('Authentication', () => {
+  let loginPage: LoginPage;
+
+  test.beforeEach(async ({ page }) => {
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
+  });
+
+  test('should display login page', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+  });
+
+  test('should login with valid credentials', async ({ page }) => {
+    await loginPage.login('admin@example.com', 'Admin123!');
+    await expect(page).toHaveURL(/.*homepage/);
+    const isLoggedIn = await loginPage.isLoggedIn();
+    expect(isLoggedIn).toBe(true);
+  });
+
+  test('should show error with invalid credentials', async ({ page }) => {
+    await loginPage.login('invalid@example.com', 'wrongpassword');
+    await expect(page.getByText(/invalid credentials/i)).toBeVisible();
+  });
+
+  test('should logout successfully', async ({ page }) => {
+    await loginPage.login('admin@example.com', 'Admin123!');
+    await loginPage.logout();
+    await expect(page).toHaveURL('/');
+  });
+});
+""";
+    }
+
+    private static string GetUserCrudSpecData()
+    {
+      return """
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../page-objects/login-page';
+import { UserListPage } from '../page-objects/user-list-page';
+
+test.describe('User CRUD Operations', () => {
+  let loginPage: LoginPage;
+  let userListPage: UserListPage;
+
+  test.beforeEach(async ({ page }) => {
+    loginPage = new LoginPage(page);
+    userListPage = new UserListPage(page);
+
+    await loginPage.goto();
+    await loginPage.login('admin@example.com', 'Admin123!');
+  });
+
+  test('should display users list', async ({ page }) => {
+    await userListPage.goto();
+    await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  });
+
+  test('should create a new user', async ({ page }) => {
+    await userListPage.goto();
+    await userListPage.clickAddNew();
+
+    await page.getByLabel('First Name').fill('John');
+    await page.getByLabel('Last Name').fill('Doe');
+    await page.getByLabel('Email').fill('john.doe@example.com');
+    await page.getByLabel('Password').fill('Password123!');
+
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('User created successfully')).toBeVisible();
+    await expect(page.locator('tr', { hasText: 'john.doe@example.com' })).toBeVisible();
+  });
+
+  test('should edit an existing user', async ({ page }) => {
+    await userListPage.goto();
+    await userListPage.editUser('john.doe@example.com');
+
+    await page.getByLabel('First Name').clear();
+    await page.getByLabel('First Name').fill('Jane');
+
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('User updated successfully')).toBeVisible();
+    await expect(page.locator('tr', { hasText: 'Jane' })).toBeVisible();
+  });
+
+  test('should delete a user', async ({ page }) => {
+    await userListPage.goto();
+    const initialCount = await userListPage.getTableRowCount();
+
+    await userListPage.deleteUser('jane.doe@example.com');
+
+    await expect(page.getByText('User deleted successfully')).toBeVisible();
+
+    const newCount = await userListPage.getTableRowCount();
+    expect(newCount).toBe(initialCount - 1);
+  });
+
+  test('should search for users', async ({ page }) => {
+    await userListPage.goto();
+    await userListPage.searchUser('admin');
+
+    await expect(page.locator('tr', { hasText: 'admin' })).toBeVisible();
+  });
+});
+""";
+    }
+
+    private static string GetNotificationCrudSpecData()
+    {
+      return """
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../page-objects/login-page';
+
+test.describe('Notification CRUD Operations', () => {
+  let loginPage: LoginPage;
+
+  test.beforeEach(async ({ page }) => {
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.login('admin@example.com', 'Admin123!');
+  });
+
+  test('should display notifications list', async ({ page }) => {
+    await page.goto('/administration/notification');
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+  });
+
+  test('should create a new notification', async ({ page }) => {
+    await page.goto('/administration/notification');
+    await page.getByRole('button', { name: 'Add New' }).click();
+
+    await page.getByLabel('Title').fill('Test Notification');
+    await page.getByLabel('Message').fill('This is a test notification message');
+
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('Notification created successfully')).toBeVisible();
+    await expect(page.locator('tr', { hasText: 'Test Notification' })).toBeVisible();
+  });
+
+  test('should edit a notification', async ({ page }) => {
+    await page.goto('/administration/notification');
+
+    const row = page.locator('tr', { hasText: 'Test Notification' });
+    await row.getByRole('button', { name: 'Edit' }).click();
+
+    await page.getByLabel('Title').clear();
+    await page.getByLabel('Title').fill('Updated Notification');
+
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('Notification updated successfully')).toBeVisible();
+    await expect(page.locator('tr', { hasText: 'Updated Notification' })).toBeVisible();
+  });
+
+  test('should delete a notification', async ({ page }) => {
+    await page.goto('/administration/notification');
+
+    const row = page.locator('tr', { hasText: 'Updated Notification' });
+    await row.getByRole('button', { name: 'Delete' }).click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
+
+    await expect(page.getByText('Notification deleted successfully')).toBeVisible();
+  });
+});
+""";
     }
 
     #endregion

@@ -170,6 +170,55 @@ namespace Spiderly.Shared.Helpers
 
         #endregion
 
+        #region PostgreSQL
+
+        public static string GetAvailablePostgresConnectionString(string databaseName)
+        {
+            List<(string host, int port)> dataSources = new List<(string, int)>
+            {
+                ("localhost", 5432),
+                ("127.0.0.1", 5432)
+            };
+
+            foreach ((string host, int port) in dataSources)
+            {
+                string connectionString = BuildPostgresConnectionString(host, port, "postgres", "postgres", "");
+                if (TryConnectPostgres(connectionString))
+                {
+                    return BuildPostgresConnectionString(host, port, databaseName, "postgres", "");
+                }
+            }
+
+            return null;
+        }
+
+        private static string BuildPostgresConnectionString(string host, int port, string database, string username, string password)
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                return $"Host={host};Port={port};Database={database};Username={username};Integrated Security=true;";
+            }
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};";
+        }
+
+        private static bool TryConnectPostgres(string connectionString)
+        {
+            try
+            {
+                string connectionStringWithTimeout = connectionString + "Timeout=2;";
+                using (Npgsql.NpgsqlConnection connection = new Npgsql.NpgsqlConnection(connectionStringWithTimeout))
+                {
+                    connection.Open();
+                    return true;
+                }
+            }
+            catch (Exception) { }
+
+            return false;
+        }
+
+        #endregion
+
         #region Emailing
 
         public static async Task SendEmailAsync(string recipient, string subject, string body)
