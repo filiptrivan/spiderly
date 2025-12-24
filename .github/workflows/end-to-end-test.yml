@@ -67,7 +67,7 @@ jobs:
           export PATH="$HOME/.dotnet/tools:$PATH"
 
           echo "Running spiderly init with app name: ${{ env.TEST_APP_NAME }}"
-          printf "${{ env.TEST_APP_NAME }}\n2\n" | spiderly init
+          spiderly init --name "${{ env.TEST_APP_NAME }}" --db postgresql
 
           if [ $? -ne 0 ]; then
             echo "ERROR: spiderly init failed with exit code $?"

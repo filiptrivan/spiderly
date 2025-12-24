@@ -12,7 +12,7 @@ namespace Spiderly.CLI
     /// </summary>
     internal static class Program
     {
-        private static async Task Main(string[] args)
+        private static async Task<int> Main(string[] args)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             string fullVersion = assembly
@@ -23,7 +23,7 @@ namespace Spiderly.CLI
             if (args.HasArg("--help") || args.HasArg("-help") || args.HasArg("help"))
             {
                 ShowHelp();
-                return;
+                return 0;
             }
             else if (args.HasArg("init"))
             {
@@ -32,15 +32,14 @@ namespace Spiderly.CLI
                 string appName = args.GetArgValue("--name");
                 string dbProvider = args.GetArgValue("--db");
 
-                await InitCommand.Execute(hasTopMenu, isRunningFromNuget, version, appName, dbProvider);
-                return;
+                return await InitCommand.Execute(hasTopMenu, isRunningFromNuget, version, appName, dbProvider);
             }
             else if (args.HasArg("add-new-page"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
 
                 await AddNewPageCommand.Execute(shouldGenerateDataView);
-                return;
+                return 0;
             }
             else if (args.Length == 0)
             {
@@ -56,11 +55,13 @@ namespace Spiderly.CLI
                 AnsiConsole.MarkupLine($"[cyan bold]Spiderly.CLI v{version}[/]");
                 AnsiConsole.WriteLine("-------------------------------------------------");
                 AnsiConsole.MarkupLine("Type [cyan]'spiderly help'[/] to see a list of available commands.");
+                return 0;
             }
             else
             {
                 AnsiConsole.MarkupLine("[red]✗ Unrecognized command.[/]");
                 AnsiConsole.MarkupLine("Type [cyan]'spiderly help'[/] to see a list of available commands.");
+                return 1;
             }
         }
 
