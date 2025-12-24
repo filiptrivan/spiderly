@@ -180,23 +180,39 @@ namespace Spiderly.Shared.Helpers
                 ("127.0.0.1", 5432)
             };
 
+            List<(string username, string password, bool useIntegratedSecurity)> authMethods = new List<(string, string, bool)>
+            {
+                ("postgres", "", true),
+                ("postgres", "", false),
+                ("postgres", "postgres", false),
+                ("postgres", "password", false),
+                ("postgres", "admin", false)
+            };
+
             foreach ((string host, int port) in dataSources)
             {
-                string connectionString = BuildPostgresConnectionString(host, port, "postgres", "postgres", "");
-                if (TryConnectPostgres(connectionString))
+                foreach ((string username, string password, bool useIntegratedSecurity) in authMethods)
                 {
-                    return BuildPostgresConnectionString(host, port, databaseName, "postgres", "");
+                    string connectionString = BuildPostgresConnectionString(host, port, "postgres", username, password, useIntegratedSecurity);
+                    if (TryConnectPostgres(connectionString))
+                    {
+                        return BuildPostgresConnectionString(host, port, databaseName, username, password, useIntegratedSecurity);
+                    }
                 }
             }
 
             return null;
         }
 
-        private static string BuildPostgresConnectionString(string host, int port, string database, string username, string password)
+        private static string BuildPostgresConnectionString(string host, int port, string database, string username, string password, bool useIntegratedSecurity)
         {
-            if (string.IsNullOrEmpty(password))
+            if (useIntegratedSecurity && string.IsNullOrEmpty(password))
             {
                 return $"Host={host};Port={port};Database={database};Username={username};Integrated Security=true;";
+            }
+            if (string.IsNullOrEmpty(password))
+            {
+                return $"Host={host};Port={port};Database={database};Username={username};";
             }
             return $"Host={host};Port={port};Database={database};Username={username};Password={password};";
         }

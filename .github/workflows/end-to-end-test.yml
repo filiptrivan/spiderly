@@ -42,7 +42,6 @@ jobs:
           sudo sed -i 's/peer/trust/g' /etc/postgresql/*/main/pg_hba.conf
           sudo sed -i 's/md5/trust/g' /etc/postgresql/*/main/pg_hba.conf
           sudo systemctl restart postgresql.service
-          sleep 3
           echo "PostgreSQL setup complete"
 
       - name: Install EF Core tools
