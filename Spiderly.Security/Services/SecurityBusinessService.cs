@@ -8,7 +8,6 @@ using Spiderly.Security.Enums;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.ValidationRules;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
@@ -30,12 +29,12 @@ namespace Spiderly.Security.Services
         private readonly IJwtAuthManager _jwtAuthManagerService;
         private readonly AuthenticationService _authenticationService;
         private readonly AuthorizationBusinessService<TUser> _authorizationService;
-        private readonly EmailingService _emailingService;
+        private readonly IEmailingService _emailingService;
 
         public SecurityBusinessService(
             IApplicationDbContext context,
             IJwtAuthManager jwtAuthManagerService,
-            EmailingService emailingService,
+            IEmailingService emailingService,
             AuthenticationService authenticationService,
             AuthorizationBusinessService<TUser> authorizationService,
             ExcelService excelService,

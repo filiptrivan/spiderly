@@ -3249,7 +3249,7 @@ namespace {{appName}}.WebAPI.DI
             registry.Register<Spiderly.Security.Services.AuthorizationBusinessService<User>>();
             registry.Register<Spiderly.Security.Services.AuthorizationBusinessServiceGenerated<User>>();
             registry.Register<ExcelService>();
-            registry.Register<EmailingService>();
+            registry.Register<IEmailingService, EmailingService>();
             registry.Register<IFileManager, DiskStorageService>();
             registry.RegisterSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             registry.RegisterSingleton<IJwtAuthManager, JwtAuthManagerService>();
