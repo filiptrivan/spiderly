@@ -1,6 +1,8 @@
+using Spectre.Console;
 using Spiderly.Shared.Enums;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 
 namespace Spiderly.CLI.Services
 {
@@ -38,39 +40,19 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\nAttempting to install PostgreSQL on Windows...");
 
-            if (await IsCommandAvailable("choco"))
+            if (!await IsCommandAvailable("choco") && !await PromptAndInstallChocolatey())
             {
-                if (await InstallViaChocolatey("postgresql", "PostgreSQL"))
-                {
-                    await StartPostgreSQLServiceWindows();
-                    return true;
-                }
+                ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/windows/");
+                return false;
             }
 
-            if (await IsCommandAvailable("scoop"))
+            if (await InstallViaChocolatey("postgresql", "PostgreSQL"))
             {
-                Console.WriteLine("Scoop detected. Installing PostgreSQL via Scoop...");
-                Console.WriteLine("This may take several minutes...");
-
-                bool scoopInstalled = await RunCommand("scoop", "install postgresql", Environment.CurrentDirectory);
-                if (scoopInstalled)
-                {
-                    Console.WriteLine("Starting PostgreSQL service...");
-                    await RunCommand("pg_ctl", "start", Environment.CurrentDirectory);
-                    return true;
-                }
+                await StartPostgreSQLServiceWindows();
+                return true;
             }
 
-            if (await PromptAndInstallChocolatey())
-            {
-                if (await InstallViaChocolatey("postgresql", "PostgreSQL"))
-                {
-                    await StartPostgreSQLServiceWindows();
-                    return true;
-                }
-            }
-
-            Console.WriteLine("\nPlease install PostgreSQL manually from: https://www.postgresql.org/download/windows/");
+            ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/windows/");
             return false;
         }
 
@@ -78,26 +60,19 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\nAttempting to install PostgreSQL on macOS...");
 
-            if (await IsCommandAvailable("brew"))
+            if (!await IsCommandAvailable("brew") && !await PromptAndInstallHomebrew())
             {
-                if (await InstallViaHomebrew("postgresql", "PostgreSQL"))
-                {
-                    await RunCommand("brew", "services start postgresql", Environment.CurrentDirectory);
-                    return true;
-                }
+                ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/macosx/");
                 return false;
             }
 
-            if (await PromptAndInstallHomebrew())
+            if (await InstallViaHomebrew("postgresql", "PostgreSQL"))
             {
-                if (await InstallViaHomebrew("postgresql", "PostgreSQL"))
-                {
-                    await RunCommand("brew", "services start postgresql", Environment.CurrentDirectory);
-                    return true;
-                }
+                await RunCommand("brew", "services start postgresql", Environment.CurrentDirectory);
+                return true;
             }
 
-            Console.WriteLine("\nPlease install PostgreSQL manually from: https://www.postgresql.org/download/macosx/");
+            ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/macosx/");
             return false;
         }
 
@@ -110,15 +85,13 @@ namespace Spiderly.CLI.Services
                 Console.WriteLine("APT package manager detected. Installing PostgreSQL...");
                 Console.WriteLine("This may take several minutes and may require sudo password...");
 
-                if (await RunCommand("sudo", "apt-get update", Environment.CurrentDirectory))
+                if (await RunCommand("sudo", "apt-get update", Environment.CurrentDirectory) &&
+                    await RunCommand("sudo", "apt-get install -y postgresql postgresql-contrib", Environment.CurrentDirectory))
                 {
-                    if (await RunCommand("sudo", "apt-get install -y postgresql postgresql-contrib", Environment.CurrentDirectory))
-                    {
-                        Console.WriteLine("Starting PostgreSQL service...");
-                        await RunCommand("sudo", "systemctl start postgresql", Environment.CurrentDirectory);
-                        await RunCommand("sudo", "systemctl enable postgresql", Environment.CurrentDirectory);
-                        return true;
-                    }
+                    Console.WriteLine("Starting PostgreSQL service...");
+                    await RunCommand("sudo", "systemctl start postgresql", Environment.CurrentDirectory);
+                    await RunCommand("sudo", "systemctl enable postgresql", Environment.CurrentDirectory);
+                    return true;
                 }
             }
             else if (await IsCommandAvailable("yum"))
@@ -151,7 +124,7 @@ namespace Spiderly.CLI.Services
             }
             else
             {
-                Console.WriteLine("\n[INFO] No supported package manager (apt-get, yum, dnf) was detected.");
+                ConsoleHelper.MarkupLineWARNING("No supported package manager (apt-get, yum, dnf) was detected.");
 
                 if (await IsCommandAvailable("docker"))
                 {
@@ -160,20 +133,17 @@ namespace Spiderly.CLI.Services
                         return await InstallPostgreSQLDocker();
                     }
                 }
-                else
+                else if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run PostgreSQL in a container?"))
                 {
-                    if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run PostgreSQL in a container?"))
+                    if (await InstallDockerLinux())
                     {
-                        if (await InstallDockerLinux())
-                        {
-                            Console.WriteLine("\nDocker installed successfully! Now installing PostgreSQL...");
-                            return await InstallPostgreSQLDocker();
-                        }
+                        ConsoleHelper.MarkupLineOK("Docker installed successfully! Now installing PostgreSQL...");
+                        return await InstallPostgreSQLDocker();
                     }
                 }
             }
 
-            Console.WriteLine("\nPlease install PostgreSQL manually from: https://www.postgresql.org/download/linux/");
+            ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/linux/");
             return false;
         }
 
@@ -193,26 +163,19 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\nAttempting to install SQL Server on Windows...");
 
-            if (await IsCommandAvailable("choco"))
+            if (!await IsCommandAvailable("choco") && !await PromptAndInstallChocolatey())
             {
-                if (await InstallViaChocolatey("sql-server-express", "SQL Server Express"))
-                {
-                    await Task.Delay(3000);
-                    return true;
-                }
+                ShowManualInstallMessage("SQL Server Express", "https://www.microsoft.com/en-us/sql-server/sql-server-downloads");
+                return false;
             }
 
-            if (await PromptAndInstallChocolatey())
+            if (await InstallViaChocolatey("sql-server-express", "SQL Server Express"))
             {
-                if (await InstallViaChocolatey("sql-server-express", "SQL Server Express"))
-                {
-                    await Task.Delay(3000);
-                    return true;
-                }
+                await Task.Delay(3000);
+                return true;
             }
 
-            Console.WriteLine("\nPlease install SQL Server Express manually from:");
-            Console.WriteLine("https://www.microsoft.com/en-us/sql-server/sql-server-downloads");
+            ShowManualInstallMessage("SQL Server Express", "https://www.microsoft.com/en-us/sql-server/sql-server-downloads");
             return false;
         }
 
@@ -222,30 +185,22 @@ namespace Spiderly.CLI.Services
 
             if (!await IsCommandAvailable("docker"))
             {
-                Console.WriteLine("\n[INFO] Docker is not installed.");
+                ConsoleHelper.MarkupLineWARNING("Docker is not installed.");
 
-                if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run SQL Server in a container?"))
+                if (!ConsoleHelper.PromptYesNo("Would you like to install Docker to run SQL Server in a container?"))
                 {
-                    bool dockerInstalled = false;
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    {
-                        dockerInstalled = await InstallDockerLinux();
-                    }
-                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        dockerInstalled = await InstallDockerMac();
-                    }
-
-                    if (dockerInstalled)
-                    {
-                        Console.WriteLine("\nDocker installed successfully! Now installing SQL Server...");
-                        return await InstallSqlServerDockerContainer();
-                    }
+                    ShowManualInstallMessage("Docker", "https://www.docker.com/get-started");
+                    return false;
                 }
-                else
+
+                bool dockerInstalled = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    ? await InstallDockerLinux()
+                    : await InstallDockerMac();
+
+                if (dockerInstalled)
                 {
-                    Console.WriteLine("Please install Docker manually from: https://www.docker.com/get-started");
+                    ConsoleHelper.MarkupLineOK("Docker installed successfully! Now installing SQL Server...");
+                    return await InstallSqlServerDockerContainer();
                 }
 
                 return false;
@@ -338,13 +293,21 @@ namespace Spiderly.CLI.Services
 
         private static async Task<bool> InstallViaChocolatey(string packageName, string displayName)
         {
+            if (!IsRunningAsAdmin())
+            {
+                ConsoleHelper.MarkupLineERROR("Administrator privileges required!");
+                Console.WriteLine($"\nTo install {displayName} via Chocolatey, you need to run this application as Administrator.");
+                Console.WriteLine("\nPlease restart your terminal/command prompt as Administrator and try again.");
+                return false;
+            }
+
             Console.WriteLine($"Chocolatey detected. Installing {displayName} via Chocolatey...");
             Console.WriteLine("This may take several minutes...");
 
             bool installed = await RunCommand("choco", $"install {packageName} -y", Environment.CurrentDirectory);
             if (installed)
             {
-                Console.WriteLine($"{displayName} has been installed successfully.");
+                ConsoleHelper.MarkupLineOK($"{displayName} has been installed successfully.");
                 return true;
             }
 
@@ -353,20 +316,17 @@ namespace Spiderly.CLI.Services
 
         private static async Task<bool> PromptAndInstallChocolatey()
         {
-            Console.WriteLine("\n[INFO] Chocolatey package manager was not found.");
+            AnsiConsole.WriteLine();
+            ConsoleHelper.MarkupLineWARNING("Chocolatey package manager was not found.");
 
             if (ConsoleHelper.PromptYesNo("Would you like to install Chocolatey package manager?"))
             {
                 if (await InstallChocolatey())
                 {
-                    Console.WriteLine("\nChocolatey installed successfully!");
+                    ConsoleHelper.MarkupLineOK("Chocolatey installed successfully!");
                     return true;
                 }
-                else
-                {
-                    Console.WriteLine("\n[ERROR] Failed to install Chocolatey.");
-                    return false;
-                }
+                return false;
             }
 
             return false;
@@ -374,8 +334,24 @@ namespace Spiderly.CLI.Services
 
         private static async Task<bool> InstallChocolatey()
         {
-            Console.WriteLine("\nInstalling Chocolatey package manager...");
-            Console.WriteLine("This requires administrator privileges and may take a few minutes...");
+            if (!IsRunningAsAdmin())
+            {
+                AnsiConsole.WriteLine();
+                ConsoleHelper.MarkupLineERROR("Administrator privileges required to install Chocolatey.");
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("Please restart your terminal as Administrator:");
+                AnsiConsole.MarkupLine("  [dim]Right-click on your terminal/command prompt and select 'Run as Administrator'[/]");
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("Or install Chocolatey manually:");
+                AnsiConsole.MarkupLine("  [dim]1. Open PowerShell as Administrator[/]");
+                AnsiConsole.MarkupLine("  [dim]2. Run: Set-ExecutionPolicy Bypass -Scope Process -Force[/]");
+                AnsiConsole.MarkupLine("  [dim]3. Run: iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))[/]");
+                return false;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Installing Chocolatey package manager...");
+            Console.WriteLine("This may take a few minutes...");
 
             string installScript = "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))";
 
@@ -390,19 +366,25 @@ namespace Spiderly.CLI.Services
                     Environment.SetEnvironmentVariable("PATH", path + @";C:\ProgramData\chocolatey\bin", EnvironmentVariableTarget.Machine);
                 }
             }
+            else
+            {
+                AnsiConsole.WriteLine();
+                ConsoleHelper.MarkupLineERROR("Failed to install Chocolatey.");
+                AnsiConsole.MarkupLine("Please install Chocolatey manually and rerun 'spiderly init'.");
+            }
 
             return installed;
         }
 
         private static async Task<bool> InstallViaHomebrew(string packageName, string displayName)
         {
-            Console.WriteLine($"Homebrew detected. Installing {displayName}...");
+            Console.WriteLine($"\nHomebrew detected. Installing {displayName}...");
             Console.WriteLine("This may take several minutes...");
 
             bool installed = await RunCommand("brew", $"install {packageName}", Environment.CurrentDirectory);
             if (installed)
             {
-                Console.WriteLine($"{displayName} has been installed successfully.");
+                ConsoleHelper.MarkupLineOK($"{displayName} has been installed successfully.");
                 return true;
             }
 
@@ -411,18 +393,19 @@ namespace Spiderly.CLI.Services
 
         private static async Task<bool> PromptAndInstallHomebrew()
         {
-            Console.WriteLine("\n[INFO] Homebrew is not installed.");
+            AnsiConsole.WriteLine();
+            ConsoleHelper.MarkupLineWARNING("Homebrew is not installed.");
 
             if (ConsoleHelper.PromptYesNo("Would you like to install Homebrew package manager?"))
             {
                 if (await InstallHomebrew())
                 {
-                    Console.WriteLine("\nHomebrew installed successfully!");
+                    ConsoleHelper.MarkupLineOK("Homebrew installed successfully!");
                     return true;
                 }
                 else
                 {
-                    Console.WriteLine("\n[ERROR] Failed to install Homebrew.");
+                    ConsoleHelper.MarkupLineERROR("Failed to install Homebrew.");
                     return false;
                 }
             }
@@ -487,7 +470,7 @@ namespace Spiderly.CLI.Services
 
             if (await RunCommand("docker", dockerCommand, Environment.CurrentDirectory))
             {
-                Console.WriteLine("\nPostgreSQL container has been started.");
+                ConsoleHelper.MarkupLineOK("PostgreSQL container has been started.");
                 Console.WriteLine("Connection details:");
                 Console.WriteLine("  Host: localhost");
                 Console.WriteLine("  Port: 5432");
@@ -503,29 +486,20 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\nAttempting to install Docker on macOS...");
 
-            if (await IsCommandAvailable("brew"))
+            if (!await IsCommandAvailable("brew") && !await PromptAndInstallHomebrew())
             {
-                if (await InstallViaHomebrew("--cask docker", "Docker Desktop"))
-                {
-                    Console.WriteLine("\nDocker Desktop has been installed.");
-                    Console.WriteLine("Please start Docker Desktop from your Applications folder before continuing.");
-                    return true;
-                }
+                ShowManualInstallMessage("Docker", "https://www.docker.com/get-started");
                 return false;
             }
 
-            if (await PromptAndInstallHomebrew())
+            if (await InstallViaHomebrew("--cask docker", "Docker Desktop"))
             {
-                if (await InstallViaHomebrew("--cask docker", "Docker Desktop"))
-                {
-                    Console.WriteLine("\nDocker Desktop has been installed.");
-                    Console.WriteLine("Please start Docker Desktop from your Applications folder before continuing.");
-                    return true;
-                }
+                ConsoleHelper.MarkupLineOK("Docker Desktop has been installed.");
+                Console.WriteLine("Please start Docker Desktop from your Applications folder before continuing.");
+                return true;
             }
 
-            Console.WriteLine("\n[ERROR] Failed to install Docker.");
-            Console.WriteLine("Please install Docker manually from: https://www.docker.com/get-started");
+            ShowManualInstallMessage("Docker", "https://www.docker.com/get-started");
             return false;
         }
 
@@ -570,9 +544,29 @@ namespace Spiderly.CLI.Services
                 }
             }
 
-            Console.WriteLine("\n[ERROR] Failed to install Docker.");
-            Console.WriteLine("Please install Docker manually from: https://docs.docker.com/engine/install/");
+            ShowManualInstallMessage("Docker", "https://docs.docker.com/engine/install/");
             return false;
+        }
+
+        private static bool IsRunningAsAdmin()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                {
+                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+            }
+
+            return true;
+        }
+
+        private static void ShowManualInstallMessage(string displayName, string url)
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"You can also install {displayName} manually:");
+            AnsiConsole.MarkupLine($"  [link]{url}[/]");
         }
     }
 }
