@@ -38,8 +38,11 @@ jobs:
       - name: Setup PostgreSQL
         run: |
           sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '';"
           sudo sed -i 's/peer/trust/g' /etc/postgresql/*/main/pg_hba.conf
+          sudo sed -i 's/md5/trust/g' /etc/postgresql/*/main/pg_hba.conf
           sudo systemctl restart postgresql.service
+          sleep 3
           echo "PostgreSQL setup complete"
 
       - name: Install EF Core tools
