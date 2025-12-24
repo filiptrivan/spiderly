@@ -11,18 +11,18 @@ namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
-        public static async Task Execute(bool hasTopMenu, bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
+        public static async Task<int> Execute(bool hasTopMenu, bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
         {
             appName = GetAppName(appName);
             if (appName == null)
             {
-                return;
+                return 1;
             }
 
             DbProviderCodes? dbProvider = GetDatabaseProvider(dbProviderArg);
             if (dbProvider == null)
             {
-                return;
+                return 1;
             }
 
             string currentPath = Environment.CurrentDirectory;
@@ -65,11 +65,11 @@ namespace Spiderly.CLI.Commands
                         {
                             ConsoleHelper.MarkupLineWARNING($"{dbName} was installed but is not responding yet.");
                             AnsiConsole.MarkupLine("Please start the service manually and rerun 'spiderly init'.");
-                            return;
+                            return 1;
                         }
                     }
 
-                    return;
+                    return 1;
                 }
                 else
                 {
@@ -108,7 +108,7 @@ namespace Spiderly.CLI.Commands
                         }
                     }
 
-                    return;
+                    return 1;
                 }
             }
 
@@ -236,11 +236,13 @@ namespace Spiderly.CLI.Commands
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("Please fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
+                return 1;
             }
             else
             {
                 ConsoleHelper.MarkupLineOK("App initialized successfully!");
                 AnsiConsole.MarkupLine("Continue with Step 4 from the getting started guide: [link]https://www.spiderly.dev/docs/getting-started[/]");
+                return 0;
             }
         }
 
