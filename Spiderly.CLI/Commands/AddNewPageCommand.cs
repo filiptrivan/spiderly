@@ -1,4 +1,6 @@
 using CaseConverter;
+using Spectre.Console;
+using Spiderly.CLI.Services;
 using Spiderly.Shared.Helpers;
 using System.Text;
 
@@ -8,80 +10,78 @@ namespace Spiderly.CLI.Commands
     {
         public static async Task Execute(bool shouldGenerateDataView)
         {
-            string entityName;
-
-            while (true)
-            {
-                Console.Write("Entity name without spaces (e.g., YourEntityName): ");
-                entityName = Console.ReadLine();
-
-                if (string.IsNullOrEmpty(entityName))
-                {
-                    Console.WriteLine("Entity name can't be null or empty.");
-                    continue;
-                }
-
-                if (entityName.Contains(" "))
-                {
-                    Console.WriteLine("Entity name can't have spaces.");
-                    continue;
-                }
-
-                break;
-            }
-
-            Console.WriteLine("\nGenerating files for the entity...");
-
-            string pagesFolderPath = GetPagesFolderPath();
-
-            if (pagesFolderPath != null)
-            {
-                string kebabEntityName = entityName.ToKebabCase();
-
-                string newPageFolderPath = Path.Combine(pagesFolderPath, kebabEntityName);
-                if (Directory.Exists(newPageFolderPath))
-                {
-                    Console.WriteLine($"\n[WARNING] Page folder already exists: {kebabEntityName}");
-                }
-                else
-                {
-                    Directory.CreateDirectory(newPageFolderPath);
-
-                    string listTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.ts");
-                    string listHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.html");
-                    string listTsTemplate;
-                    string listHtmlTemplate;
-
-                    if (shouldGenerateDataView)
+            string entityName = AnsiConsole.Prompt(
+                new TextPrompt<string>("Entity name without spaces (e.g., YourEntityName):")
+                    .PromptStyle("blue")
+                    .ValidationErrorMessage("[red]Entity name can't be empty or contain spaces[/]")
+                    .Validate(name =>
                     {
-                        listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewTsTemplate(entityName);
-                        listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewHtmlTemplate(entityName);
-                    }
-                    else
+                        if (string.IsNullOrWhiteSpace(name))
+                            return ValidationResult.Error("[red]Entity name can't be null or empty[/]");
+
+                        if (name.Contains(" "))
+                            return ValidationResult.Error("[red]Entity name can't have spaces[/]");
+
+                        return ValidationResult.Success();
+                    }));
+
+            AnsiConsole.WriteLine();
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync("Generating files for the entity...", async ctx =>
+                {
+                    string pagesFolderPath = GetPagesFolderPath();
+
+                    if (pagesFolderPath != null)
                     {
-                        listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableTsTemplate(entityName);
-                        listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableHtmlTemplate(entityName);
+                        string kebabEntityName = entityName.ToKebabCase();
+
+                        string newPageFolderPath = Path.Combine(pagesFolderPath, kebabEntityName);
+                        if (Directory.Exists(newPageFolderPath))
+                        {
+                            ConsoleHelper.MarkupLineWARNING($"Page folder already exists: {kebabEntityName}");
+                        }
+                        else
+                        {
+                            Directory.CreateDirectory(newPageFolderPath);
+
+                            string listTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.ts");
+                            string listHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.html");
+                            string listTsTemplate;
+                            string listHtmlTemplate;
+
+                            if (shouldGenerateDataView)
+                            {
+                                listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewTsTemplate(entityName);
+                                listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewHtmlTemplate(entityName);
+                            }
+                            else
+                            {
+                                listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableTsTemplate(entityName);
+                                listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableHtmlTemplate(entityName);
+                            }
+
+                            await File.WriteAllTextAsync(listTsPath, listTsTemplate, Encoding.UTF8);
+                            ConsoleHelper.MarkupLineOK($"List .ts file generated: [dim]{listTsPath}[/]");
+
+                            await File.WriteAllTextAsync(listHtmlPath, listHtmlTemplate, Encoding.UTF8);
+                            ConsoleHelper.MarkupLineOK($"List .html file generated: [dim]{listHtmlPath}[/]");
+
+                            string detailsTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.ts");
+                            string detailsTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsTsTemplate(entityName);
+                            await File.WriteAllTextAsync(detailsTsPath, detailsTsTemplate, Encoding.UTF8);
+                            ConsoleHelper.MarkupLineOK($"Details .ts file generated: [dim]{detailsTsPath}[/]");
+
+                            string detailsHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.html");
+                            string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
+                            await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
+                            ConsoleHelper.MarkupLineOK($"Details .html file generated: [dim]{detailsHtmlPath}[/]");
+                        }
                     }
+                });
 
-                    await File.WriteAllTextAsync(listTsPath, listTsTemplate, Encoding.UTF8);
-                    Console.WriteLine($"\nList .ts file successfully generated: {listTsPath}");
-
-                    await File.WriteAllTextAsync(listHtmlPath, listHtmlTemplate, Encoding.UTF8);
-                    Console.WriteLine($"\nList .html file successfully generated: {listHtmlPath}");
-
-                    string detailsTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.ts");
-                    string detailsTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsTsTemplate(entityName);
-                    await File.WriteAllTextAsync(detailsTsPath, detailsTsTemplate, Encoding.UTF8);
-                    Console.WriteLine($"\nDetails .ts successfully generated: {detailsTsPath}");
-
-                    string detailsHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.html");
-                    string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
-                    await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
-                    Console.WriteLine($"\nDetails .html successfully generated: {detailsHtmlPath}");
-                }
-            }
-
-            Console.WriteLine("\nCommand execution completed.");
+            AnsiConsole.WriteLine();
+            ConsoleHelper.MarkupLineOK("Command execution completed!");
         }
 
         private static string GetPagesFolderPath()
@@ -102,11 +102,12 @@ namespace Spiderly.CLI.Commands
             if (existingPath != null)
                 return existingPath;
 
-            Console.WriteLine($$"""
-[ERROR] Expected frontend project structure was not detected.
-Tried the following paths:
-{{string.Join(Environment.NewLine, candidatePaths)}}
-""");
+            ConsoleHelper.MarkupLineERROR("Expected frontend project structure was not detected.");
+            AnsiConsole.MarkupLine("Tried the following paths:");
+            foreach (string path in candidatePaths)
+            {
+                AnsiConsole.MarkupLine($"  [dim]{path}[/]");
+            }
 
             return null;
         }
