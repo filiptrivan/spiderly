@@ -1,3 +1,4 @@
+using Spectre.Console;
 using Spiderly.CLI.Commands;
 using System.Reflection;
 
@@ -41,7 +42,7 @@ namespace Spiderly.CLI
             }
             else if (args.Length == 0)
             {
-                Console.WriteLine($$"""
+                AnsiConsole.WriteLine($$"""
            ____        _     _           _
  ||  ||   / ___| _ __ (_) __| | ___ _ __| |_   _
  \\()//   \___ \| '_ \| |/ _` |/ _ \ '__| | | | |
@@ -49,33 +50,21 @@ namespace Spiderly.CLI
 ||    ||  |____/| .__/|_|\__,_|\___|_|  |_|\__, |
                 |_|                        |___/
 
-Spiderly.CLI v{{version}}
--------------------------------------------------
-Type 'spiderly help' to see a list of available commands.
 """);
+                AnsiConsole.MarkupLine($"[cyan bold]Spiderly.CLI v{version}[/]");
+                AnsiConsole.WriteLine("-------------------------------------------------");
+                AnsiConsole.MarkupLine("Type [cyan]'spiderly help'[/] to see a list of available commands.");
             }
             else
             {
-                Console.WriteLine("Unrecognized command. Type 'spiderly help' to see a list of available commands.");
+                AnsiConsole.MarkupLine("[red]✗ Unrecognized command.[/]");
+                AnsiConsole.MarkupLine("Type [cyan]'spiderly help'[/] to see a list of available commands.");
             }
         }
 
         private static void ShowHelp()
         {
-            Console.WriteLine("Usage: [command] [options]");
-            Console.WriteLine();
-            Console.WriteLine("Commands:");
-            Console.WriteLine("  help                 Display this help message.");
-            Console.WriteLine("  init                 Initialize a new project.");
-            Console.WriteLine("  add-new-page         Generates starter files to support CRUD operations for a new entity.");
-            Console.WriteLine();
-            Console.WriteLine("Options for init:");
-            Console.WriteLine("  --top-menu           Use a top menu layout instead of the default side menu layout.");
-            Console.WriteLine();
-            Console.WriteLine("Examples:");
-            Console.WriteLine("  spiderly help");
-            Console.WriteLine("  spiderly init");
-            Console.WriteLine("  spiderly add-new-page");
+            HelpCommand.Execute();
         }
 
         private static bool HasArg(this string[] args, string arg)

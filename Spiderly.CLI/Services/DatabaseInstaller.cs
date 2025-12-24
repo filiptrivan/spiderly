@@ -155,14 +155,14 @@ namespace Spiderly.CLI.Services
 
                 if (await IsCommandAvailable("docker"))
                 {
-                    if (ConsoleHelper.PromptYesNo("Would you like to install PostgreSQL via Docker instead? (y/n): "))
+                    if (ConsoleHelper.PromptYesNo("Would you like to install PostgreSQL via Docker instead?"))
                     {
                         return await InstallPostgreSQLDocker();
                     }
                 }
                 else
                 {
-                    if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run PostgreSQL in a container? (y/n): "))
+                    if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run PostgreSQL in a container?"))
                     {
                         if (await InstallDockerLinux())
                         {
@@ -224,7 +224,7 @@ namespace Spiderly.CLI.Services
             {
                 Console.WriteLine("\n[INFO] Docker is not installed.");
 
-                if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run SQL Server in a container? (y/n): "))
+                if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run SQL Server in a container?"))
                 {
                     bool dockerInstalled = false;
 
@@ -355,7 +355,7 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\n[INFO] Chocolatey package manager was not found.");
 
-            if (ConsoleHelper.PromptYesNo("Would you like to install Chocolatey package manager? (y/n): "))
+            if (ConsoleHelper.PromptYesNo("Would you like to install Chocolatey package manager?"))
             {
                 if (await InstallChocolatey())
                 {
@@ -413,7 +413,7 @@ namespace Spiderly.CLI.Services
         {
             Console.WriteLine("\n[INFO] Homebrew is not installed.");
 
-            if (ConsoleHelper.PromptYesNo("Would you like to install Homebrew package manager? (y/n): "))
+            if (ConsoleHelper.PromptYesNo("Would you like to install Homebrew package manager?"))
             {
                 if (await InstallHomebrew())
                 {

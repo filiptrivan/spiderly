@@ -1,4 +1,5 @@
 using CaseConverter;
+using Spectre.Console;
 using Spiderly.CLI.Services;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
@@ -12,66 +13,27 @@ namespace Spiderly.CLI.Commands
     {
         public static async Task Execute(bool hasTopMenu, bool isRunningFromNuget, string version)
         {
-            string appName;
+            string appName = AnsiConsole.Prompt(
+                new TextPrompt<string>("App name without spaces (e.g., YourAppName):")
+                    .PromptStyle("blue")
+                    .ValidationErrorMessage("[red]App name can't be empty or contain spaces[/]")
+                    .Validate(name =>
+                    {
+                        if (string.IsNullOrWhiteSpace(name))
+                            return ValidationResult.Error("[red]App name can't be null or empty[/]");
 
-            while (true)
-            {
-                Console.Write("App name without spaces (e.g., YourAppName): ");
-                appName = Console.ReadLine();
+                        if (name.Contains(" "))
+                            return ValidationResult.Error("[red]App name can't have spaces[/]");
 
-                if (string.IsNullOrEmpty(appName))
-                {
-                    Console.WriteLine("Your app name can't be null or empty.");
-                    continue;
-                }
+                        return ValidationResult.Success();
+                    }));
 
-                if (appName.Contains(" "))
-                {
-                    Console.WriteLine("Your app name can't have spaces.");
-                    continue;
-                }
-
-                break;
-            }
-
-            DbProviderCodes dbProvider;
-            while (true)
-            {
-                Console.Write("\nSelect database provider:\n  1. SQL Server\n  2. PostgreSQL\nEnter choice (1 or 2): ");
-                string dbChoice = Console.ReadLine();
-
-                if (dbChoice == "1")
-                {
-                    dbProvider = DbProviderCodes.SQLServer;
-                    break;
-                }
-                else if (dbChoice == "2")
-                {
-                    dbProvider = DbProviderCodes.PostgreSQL;
-                    break;
-                }
-                else
-                {
-                    Console.WriteLine("Invalid choice. Please enter 1 or 2.");
-                }
-            }
-
-            bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-            if (isMac && dbProvider == DbProviderCodes.SQLServer)
-            {
-                Console.WriteLine("\n[WARNING] SQL Server is not officially supported on macOS.");
-                Console.WriteLine("Please consider one of the following options:");
-                Console.WriteLine("  1. Switch to PostgreSQL (recommended for macOS)");
-                Console.WriteLine("  2. Use SQL Server via Docker");
-                Console.WriteLine("\nTo use SQL Server via Docker, run:");
-                Console.WriteLine("  docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest");
-
-                if (!ConsoleHelper.PromptYesNo("\nDo you want to continue with SQL Server? (y/n): "))
-                {
-                    Console.WriteLine("Exiting. Please rerun 'spiderly init' and select a different database provider.");
-                    return;
-                }
-            }
+            AnsiConsole.WriteLine();
+            DbProviderCodes dbProvider = AnsiConsole.Prompt(
+                new SelectionPrompt<DbProviderCodes>()
+                    .Title("Select database provider:")
+                    .AddChoices(DbProviderCodes.SQLServer, DbProviderCodes.PostgreSQL)
+                    .UseConverter(choice => choice == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL"));
 
             string currentPath = Environment.CurrentDirectory;
 
@@ -89,16 +51,22 @@ namespace Spiderly.CLI.Commands
             if (string.IsNullOrEmpty(connectionString))
             {
                 string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
-                Console.WriteLine($"\n[WARNING] No running {dbName} instance was detected.");
+                AnsiConsole.WriteLine();
+                ConsoleHelper.MarkupLineWARNING($"No running {dbName} instance was detected.");
 
-                if (ConsoleHelper.PromptYesNo($"\nWould you like to install {dbName} now? (y/n): "))
+                if (ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
                 {
                     bool installed = await DatabaseInstaller.InstallDatabase(dbProvider);
                     if (installed)
                     {
-                        Console.WriteLine($"\n{dbName} has been installed successfully!");
-                        Console.WriteLine("Please wait a moment for the service to start...");
-                        await Task.Delay(5000);
+                        ConsoleHelper.MarkupLineOK($"{dbName} has been installed successfully!");
+
+                        await AnsiConsole.Status()
+                            .Spinner(Spinner.Known.Dots)
+                            .StartAsync("Waiting for the service to start...", async ctx =>
+                            {
+                                await Task.Delay(5000);
+                            });
 
                         connectionString = dbProvider == DbProviderCodes.SQLServer
                             ? Helper.GetAvailableSqlServerConnectionString(appName)
@@ -106,49 +74,52 @@ namespace Spiderly.CLI.Commands
 
                         if (string.IsNullOrEmpty(connectionString))
                         {
-                            Console.WriteLine($"\n[WARNING] {dbName} was installed but is not responding yet.");
-                            Console.WriteLine("Please start the service manually and rerun 'spiderly init'.");
+                            ConsoleHelper.MarkupLineWARNING($"{dbName} was installed but is not responding yet.");
+                            AnsiConsole.MarkupLine("Please start the service manually and rerun 'spiderly init'.");
                             return;
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"\n[ERROR] Failed to install {dbName}.");
-                        Console.WriteLine("Please install it manually and rerun 'spiderly init'.");
+                        ConsoleHelper.MarkupLineERROR($"Failed to install {dbName}.");
+                        AnsiConsole.MarkupLine("Please install it manually and rerun 'spiderly init'.");
                         return;
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"\nPlease ensure {dbName} is installed and running, then rerun 'spiderly init'.");
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.MarkupLine($"Please ensure {dbName} is installed and running, then rerun 'spiderly init'.");
 
                     if (dbProvider == DbProviderCodes.SQLServer)
                     {
-                        Console.WriteLine("\nTo install SQL Server manually:");
+                        AnsiConsole.WriteLine();
+                        AnsiConsole.MarkupLine("[cyan]To install SQL Server manually:[/]");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            Console.WriteLine("  Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads");
+                            AnsiConsole.MarkupLine("  [dim]Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads[/]");
                         }
                         else
                         {
-                            Console.WriteLine("  Use Docker: docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest");
+                            AnsiConsole.MarkupLine("  [dim]Use Docker: docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest[/]");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("\nTo install PostgreSQL manually:");
+                        AnsiConsole.WriteLine();
+                        AnsiConsole.MarkupLine("[cyan]To install PostgreSQL manually:[/]");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            Console.WriteLine("  Download from: https://www.postgresql.org/download/windows/");
+                            AnsiConsole.MarkupLine("  [dim]Download from: https://www.postgresql.org/download/windows/[/]");
                         }
                         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                         {
-                            Console.WriteLine("  Use Homebrew: brew install postgresql");
-                            Console.WriteLine("  Or download from: https://www.postgresql.org/download/macosx/");
+                            AnsiConsole.MarkupLine("  [dim]Use Homebrew: brew install postgresql[/]");
+                            AnsiConsole.MarkupLine("  [dim]Or download from: https://www.postgresql.org/download/macosx/[/]");
                         }
                         else
                         {
-                            Console.WriteLine("  Use package manager or download from: https://www.postgresql.org/download/linux/");
+                            AnsiConsole.MarkupLine("  [dim]Use package manager or download from: https://www.postgresql.org/download/linux/[/]");
                         }
                     }
 
@@ -156,34 +127,47 @@ namespace Spiderly.CLI.Commands
                 }
             }
 
-            Console.WriteLine("\nGenerating files for the app...");
-            try
-            {
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider);
-                Console.WriteLine("Finished generating files for the app.");
-            }
-            catch (Exception ex)
-            {
-                if (ex is BusinessException)
+            AnsiConsole.WriteLine();
+            AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .Start("Generating files for the app...", ctx =>
                 {
-                    Console.WriteLine($"[ERROR] Error occurred:\n{ex.Message}");
-                }
-                else
-                {
-                    Console.WriteLine($"[ERROR] Error occurred:\n{ex}");
-                }
+                    try
+                    {
+                        NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider);
+                        ConsoleHelper.MarkupLineOK("Files generated successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is BusinessException)
+                        {
+                            ConsoleHelper.MarkupLineERROR($"Error occurred:\n{ex.Message}");
+                        }
+                        else
+                        {
+                            ConsoleHelper.MarkupLineERROR($"Error occurred:\n{ex}");
+                        }
 
-                hasNetAndAngularInitErrors = true;
-            }
+                        hasNetAndAngularInitErrors = true;
+                    }
+                });
 
             if (!hasNetAndAngularInitErrors)
             {
-                Console.WriteLine("\nSetting up user secrets...");
-                if (!await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
-                {
-                    Console.WriteLine("\n[ERROR] Failed to set up user secrets.");
-                    hasUserSecretsErrors = true;
-                }
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Setting up user secrets...", async ctx =>
+                    {
+                        if (!await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
+                        {
+                            ConsoleHelper.MarkupLineERROR("Failed to set up user secrets");
+                            hasUserSecretsErrors = true;
+                        }
+                        else
+                        {
+                            ConsoleHelper.MarkupLineOK("User secrets configured successfully");
+                        }
+                    });
             }
 
             string infrastructurePath = Path.Combine(currentPath, appName.ToKebabCase(), "Backend", $"{appName}.Infrastructure");
@@ -191,60 +175,87 @@ namespace Spiderly.CLI.Commands
             string infrastructureCsprojPath = Path.Combine(".", $"{appName}.Infrastructure.csproj");
             string webApiCsprojPath = Path.Combine("..", $"{appName}.WebAPI", $"{appName}.WebAPI.csproj");
 
-            Console.WriteLine("\nGenerating the database migration...");
             string migrationArgs = $"ef migrations add InitialCreate --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            if (!await RunCommand("dotnet", migrationArgs, infrastructurePath))
-            {
-                Console.WriteLine("\n[ERROR] Failed to generate the database migration.");
-                hasEfMigrationErrors = true;
-            }
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync("Generating the database migration...", async ctx =>
+                {
+                    if (!await RunCommand("dotnet", migrationArgs, infrastructurePath))
+                    {
+                        ConsoleHelper.MarkupLineERROR("Failed to generate the database migration");
+                        hasEfMigrationErrors = true;
+                    }
+                    else
+                    {
+                        ConsoleHelper.MarkupLineOK("Database migration generated successfully");
+                    }
+                });
 
-            Console.WriteLine("\nUpdating the database...");
             string updateArgs = $"ef database update --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            if (!await RunCommand("dotnet", updateArgs, infrastructurePath))
-            {
-                Console.WriteLine("\n[ERROR] Failed to update the database.");
-                hasDatabaseUpdateErrors = true;
-            }
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync("Updating the database...", async ctx =>
+                {
+                    if (!await RunCommand("dotnet", updateArgs, infrastructurePath))
+                    {
+                        ConsoleHelper.MarkupLineERROR("Failed to update the database");
+                        hasDatabaseUpdateErrors = true;
+                    }
+                    else
+                    {
+                        ConsoleHelper.MarkupLineOK("Database updated successfully");
+                    }
+                });
 
-            Console.WriteLine("\nInstalling frontend packages...");
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
-            if (!await RunCommand(npmCmd, npmArgs, frontendPath))
-            {
-                Console.WriteLine("\n[ERROR] Failed to install frontend packages.");
-                hasNpmInstallErrors = true;
-            }
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync("Installing frontend packages...", async ctx =>
+                {
+                    if (!await RunCommand(npmCmd, npmArgs, frontendPath))
+                    {
+                        ConsoleHelper.MarkupLineERROR("Failed to install frontend packages");
+                        hasNpmInstallErrors = true;
+                    }
+                    else
+                    {
+                        ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");
+                    }
+                });
 
+            AnsiConsole.WriteLine();
             if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
-                    Console.WriteLine("\nError occurred while generating files for the app.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while generating files for the app.");
                 }
                 else if (hasUserSecretsErrors)
                 {
-                    Console.WriteLine("\nError occurred while setting up user secrets.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while setting up user secrets.");
                 }
                 else if (hasEfMigrationErrors)
                 {
-                    Console.WriteLine("\nError occurred while generating database migration.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while generating database migration.");
                 }
                 else if (hasDatabaseUpdateErrors)
                 {
-                    Console.WriteLine("\nError occurred while initializing the database.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while initializing the database.");
                 }
                 else if (hasNpmInstallErrors)
                 {
-                    Console.WriteLine("\nError occurred while installing frontend packages.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while installing frontend packages.");
                 }
 
-                Console.WriteLine("\nPlease fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("Please fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
             }
             else
             {
-                Console.WriteLine("\nApp initialized successfully, continue with the Step 4 from the getting started guide!");
+                ConsoleHelper.MarkupLineOK("App initialized successfully!");
+                AnsiConsole.MarkupLine("Continue with Step 4 from the getting started guide: [link]https://www.spiderly.dev/docs/getting-started[/]");
             }
         }
 
