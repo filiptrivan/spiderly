@@ -221,14 +221,17 @@ namespace Spiderly.Shared.Helpers
         {
             try
             {
-                string connectionStringWithTimeout = connectionString + "Timeout=2;";
+                string connectionStringWithTimeout = connectionString + "Timeout=5;";
                 using (Npgsql.NpgsqlConnection connection = new Npgsql.NpgsqlConnection(connectionStringWithTimeout))
                 {
                     connection.Open();
                     return true;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PostgreSQL connection failed: {ex.Message}");
+            }
 
             return false;
         }
