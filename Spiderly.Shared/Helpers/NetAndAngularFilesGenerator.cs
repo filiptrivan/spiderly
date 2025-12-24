@@ -486,11 +486,6 @@ namespace Spiderly.Shared.Helpers
                         {
                             new SpiderlyFile { Name = $"{appName}.sln", Data = GetNetSolutionData(appName) }
                         }
-                    },
-                    new SpiderlyFolder
-                    {
-                        Name = "Database",
-                        Files = { }
                     }
                 },
         Files =
@@ -508,7 +503,7 @@ namespace Spiderly.Shared.Helpers
       string newPath = GenerateFolder(appStructure, path);
 
       foreach (SpiderlyFile file in appStructure.Files)
-        GenerateFile(appStructure, file, newPath);
+        GenerateFile(file, newPath);
 
       foreach (SpiderlyFolder folder in appStructure.ChildFolders)
         GenerateProjectStructure(folder, newPath);
@@ -521,51 +516,13 @@ namespace Spiderly.Shared.Helpers
       return Path.Combine(path, appStructure.Name);
     }
 
-    private static void GenerateFile(SpiderlyFolder parentFolder, SpiderlyFile file, string path)
+    private static void GenerateFile(SpiderlyFile file, string path)
     {
       string filePath = Path.Combine(path, file.Name);
 
       Helper.FileOverrideCheck(filePath);
 
       Helper.WriteToFile(file.Data, filePath);
-    }
-
-    public static string GetSpiderlyControllerTemplate(string entityName, string appName)
-    {
-      return $$"""
-using Microsoft.AspNetCore.Mvc;
-using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Interfaces;
-using Azure.Storage.Blobs;
-using Spiderly.Security.Services;
-using {{appName}}.Business.Services;
-using {{appName}}.Business.DTO;
-
-namespace {{appName}}.WebAPI.Controllers
-{
-    [ApiController]
-    [Route("/api/[controller]/[action]")]
-    public class {{entityName}}Controller : {{entityName}}BaseController
-    {
-        private readonly IApplicationDbContext _context;
-        private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
-        private readonly AuthenticationService _authenticationService;
-
-        public {{entityName}}Controller(
-            IApplicationDbContext context, 
-            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService, 
-            AuthenticationService authenticationService
-        )
-            : base(context, {{appName.FirstCharToLower()}}BusinessService)
-        {
-            _context = context;
-            _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
-            _authenticationService = authenticationService;
-        }
-
-    }
-}
-""";
     }
 
     public static string GetSpiderlyAngularDetailsTsTemplate(string entityName)
@@ -2669,7 +2626,6 @@ namespace {{appName}}.WebAPI.Controllers
         private readonly IApplicationDbContext _context;
         private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
 
-
         public SecurityController(
             ILogger<SecurityController> logger,
             SecurityBusinessService<User> securityBusinessService,
@@ -2685,56 +2641,6 @@ namespace {{appName}}.WebAPI.Controllers
             _securityBusinessService = securityBusinessService;
             _context = context;
             _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
-        }
-
-        public override async Task<IActionResult> Login(VerificationTokenRequestDTO verificationRequestDTO)
-        {
-            AuthResultDTO authResultDTO = await _securityBusinessService.Login(verificationRequestDTO);
-
-            // TODO: Remove this code after the first user registers and gets admin permissions.
-            // This is a performance bottleneck that checks if this is the first user on every login.
-            // After the first admin user is created, you should delete this entire block.
-            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
-            if (isFirstUserEver)
-            {
-                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
-                if (adminRole != null)
-                {
-                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
-                    if (user != null && !user.Roles.Any())
-                    {
-                        user.Roles.Add(adminRole);
-                        await _context.SaveChangesAsync();
-                    }
-                }
-            }
-
-            return Ok(authResultDTO);
-        }
-
-        public override async Task<IActionResult> LoginExternal(ExternalProviderDTO externalProviderDTO)
-        {
-            AuthResultDTO authResultDTO = await _securityBusinessService.LoginExternal(externalProviderDTO, Spiderly.Security.SettingsProvider.Current.GoogleClientId);
-
-            // TODO: Remove this code after the first user registers and gets admin permissions.
-            // This is a performance bottleneck that checks if this is the first user on every login.
-            // After the first admin user is created, you should delete this entire block.
-            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
-            if (isFirstUserEver)
-            {
-                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
-                if (adminRole != null)
-                {
-                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
-                    if (user != null && !user.Roles.Any())
-                    {
-                        user.Roles.Add(adminRole);
-                        await _context.SaveChangesAsync();
-                    }
-                }
-            }
-
-            return Ok(authResultDTO);
         }
 
     }
@@ -2896,12 +2802,10 @@ namespace {{appName}}.Infrastructure
             return await base.SaveChangesAsync(cancellationToken);
         }
 
-        private void SeedData(ModelBuilder modelBuilder)
+        private static void SeedData(ModelBuilder modelBuilder)
         {
-            DateTime seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-            Permission[] permissions = new[]
-            {
+            Permission[] permissions =
+            [
                 new Permission { Id = 1, Name = "View users", Code = "ReadUser" },
                 new Permission { Id = 2, Name = "Edit existing users", Code = "UpdateUser" },
                 new Permission { Id = 3, Name = "Add new users", Code = "InsertUser" },
@@ -2914,23 +2818,7 @@ namespace {{appName}}.Infrastructure
                 new Permission { Id = 10, Name = "Edit existing roles", Code = "UpdateRole" },
                 new Permission { Id = 11, Name = "Add new roles", Code = "InsertRole" },
                 new Permission { Id = 12, Name = "Delete roles", Code = "DeleteRole" }
-            };
-
-            if (Spiderly.Infrastructure.SettingsProvider.Current.AppHasLatinTranslation)
-            {
-                permissions[0].NameLatin = "View users";
-                permissions[1].NameLatin = "Edit existing users";
-                permissions[2].NameLatin = "Add new users";
-                permissions[3].NameLatin = "Delete users";
-                permissions[4].NameLatin = "View notifications";
-                permissions[5].NameLatin = "Edit existing notifications";
-                permissions[6].NameLatin = "Add new notifications";
-                permissions[7].NameLatin = "Delete notifications";
-                permissions[8].NameLatin = "View roles";
-                permissions[9].NameLatin = "Edit existing roles";
-                permissions[10].NameLatin = "Add new roles";
-                permissions[11].NameLatin = "Delete roles";
-            }
+            ];
 
             modelBuilder.Entity<Permission>().HasData(permissions);
 
@@ -2938,9 +2826,6 @@ namespace {{appName}}.Infrastructure
             {
                 Id = 1,
                 Name = "Admin",
-                Version = 1,
-                CreatedAt = seedDate,
-                ModifiedAt = seedDate
             });
         }
 
@@ -3325,6 +3210,7 @@ using {{appName}}.Business.Entities;
 using {{appName}}.Shared.FluentValidation;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Services;
+using Spiderly.Security.DTO;
 
 namespace {{appName}}.WebAPI.DI
 {

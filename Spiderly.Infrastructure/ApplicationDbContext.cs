@@ -125,15 +125,15 @@ namespace Spiderly.Infrastructure
             switch (changedEntity.State)
             {
                 case EntityState.Added:
-                    businessObject.SetCreatedAt(now);
-                    businessObject.SetModifiedAt(now);
-                    businessObject.SetVersion(1);
+                    businessObject.CreatedAt = now;
+                    businessObject.ModifiedAt = now;
+                    businessObject.Version = 1;
                     break;
 
                 case EntityState.Modified:
                     Entry(businessObject).Property(x => x.CreatedAt).IsModified = false;
-                    businessObject.SetModifiedAt(now);
-                    businessObject.SetVersion(businessObject.Version + 1);
+                    businessObject.ModifiedAt = now;
+                    businessObject.Version++;
                     break;
             }
         }

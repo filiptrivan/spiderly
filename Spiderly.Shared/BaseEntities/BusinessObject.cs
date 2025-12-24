@@ -9,31 +9,16 @@ namespace Spiderly.Shared.BaseEntities
     /// <typeparam name="T">Entity's Id type (long/int/byte)</typeparam>
     public class BusinessObject<T> : IBusinessObject<T> where T : struct
     {
-        public T Id { get; private set; } // FT: Protected doesn't work with Mappster
+        public T Id { get; set; }
 
         [ConcurrencyCheck]
         [Required]
-        public int Version { get; private set; }
+        public int Version { get; set; }
 
         [Required]
-        public DateTime CreatedAt { get; private set; }
+        public DateTime CreatedAt { get; set; }
 
         [Required]
-        public DateTime ModifiedAt { get; private set; }
-
-        public void SetVersion(int version)
-        {
-            Version = version;
-        }
-
-        public void SetCreatedAt(DateTime createdAt)
-        {
-            CreatedAt = createdAt;
-        }
-
-        public void SetModifiedAt(DateTime modifiedAt)
-        {
-            ModifiedAt = modifiedAt;
-        }
+        public DateTime ModifiedAt { get; set; }
     }
 }
