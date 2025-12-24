@@ -6,8 +6,7 @@ namespace Spiderly.CLI.Commands
     {
         public static void Execute()
         {
-            AnsiConsole.MarkupLine("[bold]Usage:[/] [dim]spiderly[/] [cyan bold][[command]][/] [yellow bold][[options]][/]");
-            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("\n[bold]Usage:[/] [dim]spiderly[/] [cyan bold][[command]][/] [yellow bold][[options]][/]\n");
 
             List<CommandInfo> commands = new List<CommandInfo>
             {
@@ -19,6 +18,16 @@ namespace Spiderly.CLI.Commands
                     {
                         new OptionInfo
                         {
+                            Name = "--name",
+                            Description = "App name without spaces (required in non-interactive mode, e.g. GitHub workflows)"
+                        },
+                        new OptionInfo
+                        {
+                            Name = "--db",
+                            Description = "Database provider: sqlserver or postgresql (required in non-interactive mode, e.g. GitHub workflows)"
+                        },
+                        new OptionInfo
+                        {
                             Name = "--top-menu",
                             Description = "Use a top menu layout instead of the default side menu layout"
                         }
@@ -26,7 +35,9 @@ namespace Spiderly.CLI.Commands
                     Examples = new List<string>
                     {
                         "spiderly init",
-                        "spiderly init --top-menu"
+                        "spiderly init --top-menu",
+                        "spiderly init --name MyApp --db sqlserver",
+                        "spiderly init --name MyApp --db postgresql --top-menu"
                     }
                 },
                 new CommandInfo

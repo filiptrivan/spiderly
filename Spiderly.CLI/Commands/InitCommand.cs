@@ -11,29 +11,19 @@ namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
-        public static async Task Execute(bool hasTopMenu, bool isRunningFromNuget, string version)
+        public static async Task Execute(bool hasTopMenu, bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
         {
-            string appName = AnsiConsole.Prompt(
-                new TextPrompt<string>("App name without spaces (e.g., YourAppName):")
-                    .PromptStyle("blue")
-                    .ValidationErrorMessage("[red]App name can't be empty or contain spaces[/]")
-                    .Validate(name =>
-                    {
-                        if (string.IsNullOrWhiteSpace(name))
-                            return ValidationResult.Error("[red]App name can't be null or empty[/]");
+            appName = GetAppName(appName);
+            if (appName == null)
+            {
+                return;
+            }
 
-                        if (name.Contains(" "))
-                            return ValidationResult.Error("[red]App name can't have spaces[/]");
-
-                        return ValidationResult.Success();
-                    }));
-
-            AnsiConsole.WriteLine();
-            DbProviderCodes dbProvider = AnsiConsole.Prompt(
-                new SelectionPrompt<DbProviderCodes>()
-                    .Title("Select database provider:")
-                    .AddChoices(DbProviderCodes.SQLServer, DbProviderCodes.PostgreSQL)
-                    .UseConverter(choice => choice == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL"));
+            DbProviderCodes? dbProvider = GetDatabaseProvider(dbProviderArg);
+            if (dbProvider == null)
+            {
+                return;
+            }
 
             string currentPath = Environment.CurrentDirectory;
 
@@ -51,12 +41,11 @@ namespace Spiderly.CLI.Commands
             if (string.IsNullOrEmpty(connectionString))
             {
                 string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
-                AnsiConsole.WriteLine();
                 ConsoleHelper.MarkupLineWARNING($"No running {dbName} instance was detected.");
 
                 if (ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
                 {
-                    bool installed = await DatabaseInstaller.InstallDatabase(dbProvider);
+                    bool installed = await DatabaseInstaller.InstallDatabase(dbProvider.Value);
                     if (installed)
                     {
                         ConsoleHelper.MarkupLineOK($"{dbName} has been installed successfully!");
@@ -79,12 +68,8 @@ namespace Spiderly.CLI.Commands
                             return;
                         }
                     }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineERROR($"Failed to install {dbName}.");
-                        AnsiConsole.MarkupLine("Please install it manually and rerun 'spiderly init'.");
-                        return;
-                    }
+
+                    return;
                 }
                 else
                 {
@@ -94,7 +79,7 @@ namespace Spiderly.CLI.Commands
                     if (dbProvider == DbProviderCodes.SQLServer)
                     {
                         AnsiConsole.WriteLine();
-                        AnsiConsole.MarkupLine("[cyan]To install SQL Server manually:[/]");
+                        AnsiConsole.MarkupLine("To install SQL Server manually:");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             AnsiConsole.MarkupLine("  [dim]Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads[/]");
@@ -107,7 +92,7 @@ namespace Spiderly.CLI.Commands
                     else
                     {
                         AnsiConsole.WriteLine();
-                        AnsiConsole.MarkupLine("[cyan]To install PostgreSQL manually:[/]");
+                        AnsiConsole.MarkupLine("To install PostgreSQL manually:");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             AnsiConsole.MarkupLine("  [dim]Download from: https://www.postgresql.org/download/windows/[/]");
@@ -134,7 +119,7 @@ namespace Spiderly.CLI.Commands
                 {
                     try
                     {
-                        NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider);
+                        NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider.Value);
                         ConsoleHelper.MarkupLineOK("Files generated successfully");
                     }
                     catch (Exception ex)
@@ -309,6 +294,77 @@ namespace Spiderly.CLI.Commands
             }
 
             return success;
+        }
+
+        private static string GetAppName(string appName)
+        {
+            if (!string.IsNullOrWhiteSpace(appName))
+            {
+                if (appName.Contains(" "))
+                {
+                    ConsoleHelper.MarkupLineERROR("App name can't contain spaces");
+                    return null;
+                }
+                return appName;
+            }
+
+            if (!IsInteractive())
+            {
+                ConsoleHelper.MarkupLineERROR("App name is required in non-interactive mode. Use: spiderly init --name YourAppName");
+                return null;
+            }
+
+            return AnsiConsole.Prompt(
+                new TextPrompt<string>("App name without spaces (e.g., YourAppName):")
+                    .PromptStyle("blue")
+                    .ValidationErrorMessage("[red]App name can't be empty or contain spaces[/]")
+                    .Validate(name =>
+                    {
+                        if (string.IsNullOrWhiteSpace(name))
+                            return ValidationResult.Error("[red]App name can't be null or empty[/]");
+
+                        if (name.Contains(" "))
+                            return ValidationResult.Error("[red]App name can't have spaces[/]");
+
+                        return ValidationResult.Success();
+                    }));
+        }
+
+        private static DbProviderCodes? GetDatabaseProvider(string dbProviderArg)
+        {
+            if (!string.IsNullOrWhiteSpace(dbProviderArg))
+            {
+                if (dbProviderArg.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DbProviderCodes.SQLServer;
+                }
+
+                if (dbProviderArg.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DbProviderCodes.PostgreSQL;
+                }
+
+                ConsoleHelper.MarkupLineERROR("Invalid database provider. Use 'sqlserver' or 'postgresql'");
+                return null;
+            }
+
+            if (!IsInteractive())
+            {
+                ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db sqlserver or --db postgresql");
+                return null;
+            }
+
+            AnsiConsole.WriteLine();
+            return AnsiConsole.Prompt(
+                new SelectionPrompt<DbProviderCodes>()
+                    .Title("Select database provider:")
+                    .AddChoices(DbProviderCodes.SQLServer, DbProviderCodes.PostgreSQL)
+                    .UseConverter(choice => choice == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL"));
+        }
+
+        private static bool IsInteractive()
+        {
+            return !Console.IsInputRedirected && Environment.UserInteractive;
         }
     }
 }

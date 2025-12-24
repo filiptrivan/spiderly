@@ -29,8 +29,10 @@ namespace Spiderly.CLI
             {
                 bool hasTopMenu = args.HasArg("--top-menu");
                 bool isRunningFromNuget = !args.HasArg("--dev");
+                string appName = args.GetArgValue("--name");
+                string dbProvider = args.GetArgValue("--db");
 
-                await InitCommand.Execute(hasTopMenu, isRunningFromNuget, version);
+                await InitCommand.Execute(hasTopMenu, isRunningFromNuget, version, appName, dbProvider);
                 return;
             }
             else if (args.HasArg("add-new-page"))
@@ -70,6 +72,16 @@ namespace Spiderly.CLI
         private static bool HasArg(this string[] args, string arg)
         {
             return Array.Exists(args, a => a.Equals(arg, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string GetArgValue(this string[] args, string arg)
+        {
+            int index = Array.FindIndex(args, a => a.Equals(arg, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0 && index + 1 < args.Length)
+            {
+                return args[index + 1];
+            }
+            return null;
         }
     }
 }
