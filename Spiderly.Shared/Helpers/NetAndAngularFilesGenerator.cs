@@ -2822,11 +2822,33 @@ namespace {{appName}}.Infrastructure
 
             modelBuilder.Entity<Permission>().HasData(permissions);
 
+            DateTime now = DateTime.UtcNow;
+
             modelBuilder.Entity<Role>().HasData(new Role
             {
                 Id = 1,
                 Name = "Admin",
+                CreatedAt = now,
+                ModifiedAt = now,
             });
+
+            modelBuilder.Entity<Role>()
+                .HasMany(r => r.Permissions)
+                .WithMany(p => p.Roles)
+                .UsingEntity(j => j.HasData(
+                    new { RoleId = 1, PermissionId = 1 },
+                    new { RoleId = 1, PermissionId = 2 },
+                    new { RoleId = 1, PermissionId = 3 },
+                    new { RoleId = 1, PermissionId = 4 },
+                    new { RoleId = 1, PermissionId = 5 },
+                    new { RoleId = 1, PermissionId = 6 },
+                    new { RoleId = 1, PermissionId = 7 },
+                    new { RoleId = 1, PermissionId = 8 },
+                    new { RoleId = 1, PermissionId = 9 },
+                    new { RoleId = 1, PermissionId = 10 },
+                    new { RoleId = 1, PermissionId = 11 },
+                    new { RoleId = 1, PermissionId = 12 }
+                ));
         }
 
     }
