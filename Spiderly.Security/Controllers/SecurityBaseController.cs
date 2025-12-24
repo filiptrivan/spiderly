@@ -58,9 +58,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpPost]
         [UIDoNotGenerate]
-        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO) // TODO FT: Add enum for which external provider you should login user
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO) // TODO: Add enum for which external provider you should login user
         {
-            return await _securityBusinessService.LoginExternal(externalProviderDTO, SettingsProvider.Current.GoogleClientId);
+            return await _securityBusinessService.LoginExternal(externalProviderDTO);
         }
 
         [HttpGet]

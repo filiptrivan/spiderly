@@ -91,7 +91,6 @@ namespace Spiderly.Security.Services
             };
         }
 
-
         public async Task<AuthResultDTO> Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
@@ -126,18 +125,24 @@ namespace Spiderly.Security.Services
 
                 JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, loginVerificationTokenDTO.BrowserId);
 
-                return new AuthResultDTO
+                AuthResultDTO authResultDTO = new AuthResultDTO
                 {
                     UserId = user.Id,
                     Email = user.Email,
                     AccessToken = jwtAuthResultDTO.AccessToken,
                     RefreshToken = jwtAuthResultDTO.Token.TokenString,
                 };
+
+                await OnAfterLogin(authResultDTO);
+
+                return authResultDTO;
             });
         }
 
-        public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string googleClientId)
+        public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
+            string googleClientId = SettingsProvider.Current.GoogleClientId;
+
             GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
 
             return await _context.WithTransactionAsync(async () =>
@@ -170,17 +175,32 @@ namespace Spiderly.Security.Services
 
                 JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, externalProviderDTO.BrowserId);
 
-                return new AuthResultDTO
+                AuthResultDTO authResultDTO = new AuthResultDTO
                 {
                     UserId = user.Id,
                     Email = user.Email,
                     AccessToken = jwtAuthResultDTO.AccessToken,
                     RefreshToken = jwtAuthResultDTO.Token.TokenString,
                 };
+
+                await OnAfterLogin(authResultDTO);
+
+                return authResultDTO;
             });
         }
 
+        /// <summary>
+        /// By default assigns admin role to the first user. This is a performance bottleneck.
+        /// Override this method with an empty implementation once the first user has admin permissions.
+        /// </summary>
+        public virtual async Task OnAfterLogin(AuthResultDTO authResultDTO)
+        {
+            await AssignAdminRoleToFirstUser(authResultDTO.UserId);
+        }
+
         #endregion
+
+        #region Helpers
 
         public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO)
         {
@@ -221,10 +241,6 @@ namespace Spiderly.Security.Services
             });
         }
 
-        #endregion
-
-        #region Helpers
-
         private async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokens(long userId, string browserId)
         {
             string ipAddress = _authenticationService.GetIPAddress();
@@ -262,6 +278,26 @@ namespace Spiderly.Security.Services
             GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings); // TODO: Try to pass the wrong token
             return payload;
         }
+
+        private async Task AssignAdminRoleToFirstUser(long userId)
+        {
+            bool isFirstUserEver = await _context.DbSet<TUser>().CountAsync() == 1;
+            if (isFirstUserEver)
+            {
+                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+                if (adminRole != null)
+                {
+                    TUser user = await _context.DbSet<TUser>().FirstOrDefaultAsync(x => x.Id == userId);
+                    if (user != null && !user.Roles.Any())
+                    {
+                        user.Roles.Add(adminRole);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         #endregion
 
