@@ -1,19 +1,13 @@
 ﻿using Serilog;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
-using Spiderly.Shared.Resources;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+using Spiderly.Shared.Interfaces;
 using System.Net.Mail;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Emailing
 {
-    public class EmailingService
+    public class EmailingService : IEmailingService
     {
         private readonly SmtpClient _smtpClient;
 
@@ -23,12 +17,12 @@ namespace Spiderly.Shared.Emailing
         }
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
-        {         
+        {
             using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, toEmail)
             {
                 Subject = template.Subject,
                 Body = template.Body,
-                BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                 IsBodyHtml = true
             })
             {
@@ -42,7 +36,7 @@ namespace Spiderly.Shared.Emailing
             {
                 Subject = subject,
                 Body = body,
-                BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                 IsBodyHtml = true,
             })
             {
@@ -58,7 +52,7 @@ namespace Spiderly.Shared.Emailing
                 {
                     Subject = subject,
                     Body = body,
-                    BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                    BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                     IsBodyHtml = true,
                 })
                 {
@@ -73,7 +67,7 @@ namespace Spiderly.Shared.Emailing
             {
                 Subject = subject,
                 Body = body,
-                BodyEncoding = Encoding.UTF8, // FT: Without this, the email is not sent, and don't throw the exception
+                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
                 IsBodyHtml = true,
             })
             {
@@ -83,7 +77,7 @@ namespace Spiderly.Shared.Emailing
                 }
                 catch (Exception ex)
                 {
-                    // FT: We need to log because exception will not get into api global error handler from the background job
+                    // We need to log because exception will not get into api global error handler from the background job
                     Log.Error(
                         ex,
                         "We failed to send an email to the recipient: {recipient};",
