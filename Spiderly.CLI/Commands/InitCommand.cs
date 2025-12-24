@@ -43,7 +43,7 @@ namespace Spiderly.CLI.Commands
                 string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
                 ConsoleHelper.MarkupLineWARNING($"No running {dbName} instance was detected.");
 
-                if (ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
+                if (IsInteractive() && ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
                 {
                     bool installed = await DatabaseInstaller.InstallDatabase(dbProvider.Value);
                     if (installed)

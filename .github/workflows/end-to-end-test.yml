@@ -38,8 +38,8 @@ jobs:
       - name: Setup PostgreSQL
         run: |
           sudo systemctl start postgresql.service
-          sudo -u postgres psql -c "CREATE USER testuser WITH PASSWORD 'testpass' CREATEDB;"
-          sudo -u postgres psql -c "CREATE DATABASE testdb OWNER testuser;"
+          sudo sed -i 's/peer/trust/g' /etc/postgresql/*/main/pg_hba.conf
+          sudo systemctl restart postgresql.service
           echo "PostgreSQL setup complete"
 
       - name: Install EF Core tools
