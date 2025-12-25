@@ -155,10 +155,28 @@ namespace Spiderly.CLI.Commands
                     });
             }
 
-            string infrastructurePath = Path.Combine(currentPath, appName.ToKebabCase(), "Backend", $"{appName}.Infrastructure");
+            string backendPath = Path.Combine(currentPath, appName.ToKebabCase(), "Backend");
+            string infrastructurePath = Path.Combine(backendPath, $"{appName}.Infrastructure");
             string frontendPath = Path.Combine(currentPath, appName.ToKebabCase(), "Frontend");
+            string solutionPath = Path.Combine(backendPath, $"{appName}.sln");
             string infrastructureCsprojPath = Path.Combine(".", $"{appName}.Infrastructure.csproj");
             string webApiCsprojPath = Path.Combine("..", $"{appName}.WebAPI", $"{appName}.WebAPI.csproj");
+
+            bool hasRestoreErrors = false;
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync("Restoring NuGet packages...", async ctx =>
+                {
+                    if (!await RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath))
+                    {
+                        ConsoleHelper.MarkupLineERROR("Failed to restore NuGet packages");
+                        hasRestoreErrors = true;
+                    }
+                    else
+                    {
+                        ConsoleHelper.MarkupLineOK("NuGet packages restored successfully");
+                    }
+                });
 
             string migrationArgs = $"ef migrations add InitialCreate --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
             await AnsiConsole.Status()
@@ -211,7 +229,7 @@ namespace Spiderly.CLI.Commands
                 });
 
             AnsiConsole.WriteLine();
-            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
+            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
@@ -220,6 +238,10 @@ namespace Spiderly.CLI.Commands
                 else if (hasUserSecretsErrors)
                 {
                     ConsoleHelper.MarkupLineERROR("Error occurred while setting up user secrets.");
+                }
+                else if (hasRestoreErrors)
+                {
+                    ConsoleHelper.MarkupLineERROR("Error occurred while restoring NuGet packages.");
                 }
                 else if (hasEfMigrationErrors)
                 {
