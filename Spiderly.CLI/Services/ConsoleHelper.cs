@@ -9,6 +9,13 @@ namespace Spiderly.CLI.Services
             return AnsiConsole.Confirm(message);
         }
 
+        public static string PromptPassword(string message)
+        {
+            return AnsiConsole.Prompt(
+                new TextPrompt<string>(message)
+                    .Secret());
+        }
+
         public static void MarkupLineLoading(string message)
         {
             AnsiConsole.MarkupLine($"\n[dim]{message}[/]");
