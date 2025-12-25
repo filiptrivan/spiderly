@@ -1224,7 +1224,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                 result.Add($$"""
         /// <summary>
