@@ -113,9 +113,9 @@ namespace Spiderly.CLI.Commands
             }
 
             AnsiConsole.WriteLine();
-            AnsiConsole.Status()
+            await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
-                .Start("Generating files for the app...", ctx =>
+                .StartAsync("Generating files for the app...", async ctx =>
                 {
                     try
                     {
@@ -270,6 +270,9 @@ namespace Spiderly.CLI.Commands
 
         private static async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory)
         {
+            TaskCompletionSource<bool> outputClosed = new();
+            TaskCompletionSource<bool> errorClosed = new();
+
             Process process = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -285,8 +288,29 @@ namespace Spiderly.CLI.Commands
                 EnableRaisingEvents = true
             };
 
-            process.OutputDataReceived += (sender, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
-            process.ErrorDataReceived += (sender, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    Console.WriteLine(e.Data);
+                }
+                else
+                {
+                    outputClosed.SetResult(true);
+                }
+            };
+
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    Console.Error.WriteLine(e.Data);
+                }
+                else
+                {
+                    errorClosed.SetResult(true);
+                }
+            };
 
             process.Start();
 
@@ -294,6 +318,7 @@ namespace Spiderly.CLI.Commands
             process.BeginErrorReadLine();
 
             await process.WaitForExitAsync();
+            await Task.WhenAll(outputClosed.Task, errorClosed.Task);
 
             return process.ExitCode == 0;
         }

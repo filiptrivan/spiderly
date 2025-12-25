@@ -2822,14 +2822,14 @@ namespace {{appName}}.Infrastructure
 
             modelBuilder.Entity<Permission>().HasData(permissions);
 
-            DateTime now = DateTime.UtcNow;
+            DateTime seedDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             modelBuilder.Entity<Role>().HasData(new Role
             {
                 Id = 1,
                 Name = "Admin",
-                CreatedAt = now,
-                ModifiedAt = now,
+                CreatedAt = seedDate,
+                ModifiedAt = seedDate,
             });
 
             modelBuilder.Entity<Role>()
