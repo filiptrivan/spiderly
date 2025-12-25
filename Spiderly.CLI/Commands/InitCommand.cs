@@ -34,13 +34,22 @@ namespace Spiderly.CLI.Commands
             bool hasUserSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
-            string connectionString = dbProvider == DbProviderCodes.SQLServer
-                ? Helper.GetAvailableSqlServerConnectionString(appName)
-                : Helper.GetAvailablePostgresConnectionString(appName);
+
+            string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
+            string connectionString = null;
+
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .StartAsync($"Connecting to {dbName}...", async ctx =>
+                {
+                    connectionString = await Task.Run(() =>
+                        dbProvider == DbProviderCodes.SQLServer
+                            ? Helper.GetAvailableSqlServerConnectionString(appName)
+                            : Helper.GetAvailablePostgresConnectionString(appName));
+                });
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
                 ConsoleHelper.MarkupLineWARNING($"No running {dbName} instance was detected.");
 
                 if (IsInteractive() && ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
@@ -112,30 +121,29 @@ namespace Spiderly.CLI.Commands
                 }
             }
 
-            AnsiConsole.WriteLine();
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Generating files for the app...", async ctx =>
-                {
-                    try
+            try
+            {
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Generating files for the app...", async ctx =>
                     {
-                        NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider.Value);
-                        ConsoleHelper.MarkupLineOK("Files generated successfully");
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex is BusinessException)
+                        await Task.Run(() =>
                         {
-                            ConsoleHelper.MarkupLineERROR($"Error occurred:\n{ex.Message}");
-                        }
-                        else
-                        {
-                            ConsoleHelper.MarkupLineERROR($"Error occurred:\n{ex}");
-                        }
+                            NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider.Value);
+                        });
+                    });
 
-                        hasNetAndAngularInitErrors = true;
-                    }
-                });
+                ConsoleHelper.MarkupLineOK("Files generated successfully");
+            }
+            catch (Exception ex)
+            {
+                if (ex is BusinessException)
+                    ConsoleHelper.MarkupLineERROR(ex.Message);
+                else
+                    ConsoleHelper.MarkupLineERROR(ex.ToString());
+
+                hasNetAndAngularInitErrors = true;
+            }
 
             if (!hasNetAndAngularInitErrors)
             {
