@@ -225,15 +225,10 @@ namespace Spiderly.Shared.Helpers
                 using (Npgsql.NpgsqlConnection connection = new Npgsql.NpgsqlConnection(connectionStringWithTimeout))
                 {
                     connection.Open();
-                    Console.WriteLine($"[PG-DEBUG] SUCCESS: {connectionString}");
                     return true;
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PG-DEBUG] FAILED: {connectionString}");
-                Console.WriteLine($"[PG-DEBUG] Error: {ex.GetType().Name}: {ex.Message}");
-            }
+            catch { }
 
             return false;
         }
