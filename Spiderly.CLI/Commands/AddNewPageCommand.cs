@@ -25,62 +25,57 @@ namespace Spiderly.CLI.Commands
                         return ValidationResult.Success();
                     }));
 
-            AnsiConsole.WriteLine();
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Generating files for the entity...", async ctx =>
+            ConsoleHelper.MarkupLineLoading("Generating files for the entity...");
+
+            string pagesFolderPath = GetPagesFolderPath();
+
+            if (pagesFolderPath != null)
+            {
+                string kebabEntityName = entityName.ToKebabCase();
+
+                string newPageFolderPath = Path.Combine(pagesFolderPath, kebabEntityName);
+                if (Directory.Exists(newPageFolderPath))
                 {
-                    string pagesFolderPath = GetPagesFolderPath();
+                    ConsoleHelper.MarkupLineWARNING($"Page folder already exists: {kebabEntityName}");
+                }
+                else
+                {
+                    Directory.CreateDirectory(newPageFolderPath);
 
-                    if (pagesFolderPath != null)
+                    string listTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.ts");
+                    string listHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.html");
+                    string listTsTemplate;
+                    string listHtmlTemplate;
+
+                    if (shouldGenerateDataView)
                     {
-                        string kebabEntityName = entityName.ToKebabCase();
-
-                        string newPageFolderPath = Path.Combine(pagesFolderPath, kebabEntityName);
-                        if (Directory.Exists(newPageFolderPath))
-                        {
-                            ConsoleHelper.MarkupLineWARNING($"Page folder already exists: {kebabEntityName}");
-                        }
-                        else
-                        {
-                            Directory.CreateDirectory(newPageFolderPath);
-
-                            string listTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.ts");
-                            string listHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-list.component.html");
-                            string listTsTemplate;
-                            string listHtmlTemplate;
-
-                            if (shouldGenerateDataView)
-                            {
-                                listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewTsTemplate(entityName);
-                                listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewHtmlTemplate(entityName);
-                            }
-                            else
-                            {
-                                listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableTsTemplate(entityName);
-                                listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableHtmlTemplate(entityName);
-                            }
-
-                            await File.WriteAllTextAsync(listTsPath, listTsTemplate, Encoding.UTF8);
-                            ConsoleHelper.MarkupLineOK($"List .ts file generated: [dim]{listTsPath}[/]");
-
-                            await File.WriteAllTextAsync(listHtmlPath, listHtmlTemplate, Encoding.UTF8);
-                            ConsoleHelper.MarkupLineOK($"List .html file generated: [dim]{listHtmlPath}[/]");
-
-                            string detailsTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.ts");
-                            string detailsTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsTsTemplate(entityName);
-                            await File.WriteAllTextAsync(detailsTsPath, detailsTsTemplate, Encoding.UTF8);
-                            ConsoleHelper.MarkupLineOK($"Details .ts file generated: [dim]{detailsTsPath}[/]");
-
-                            string detailsHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.html");
-                            string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
-                            await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
-                            ConsoleHelper.MarkupLineOK($"Details .html file generated: [dim]{detailsHtmlPath}[/]");
-                        }
+                        listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewTsTemplate(entityName);
+                        listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDataViewHtmlTemplate(entityName);
                     }
-                });
+                    else
+                    {
+                        listTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableTsTemplate(entityName);
+                        listHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularTableHtmlTemplate(entityName);
+                    }
 
-            AnsiConsole.WriteLine();
+                    await File.WriteAllTextAsync(listTsPath, listTsTemplate, Encoding.UTF8);
+                    ConsoleHelper.MarkupLineOK($"List .ts file generated: [dim]{listTsPath}[/]");
+
+                    await File.WriteAllTextAsync(listHtmlPath, listHtmlTemplate, Encoding.UTF8);
+                    ConsoleHelper.MarkupLineOK($"List .html file generated: [dim]{listHtmlPath}[/]");
+
+                    string detailsTsPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.ts");
+                    string detailsTsTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsTsTemplate(entityName);
+                    await File.WriteAllTextAsync(detailsTsPath, detailsTsTemplate, Encoding.UTF8);
+                    ConsoleHelper.MarkupLineOK($"Details .ts file generated: [dim]{detailsTsPath}[/]");
+
+                    string detailsHtmlPath = Path.Combine(newPageFolderPath, $"{kebabEntityName}-details.component.html");
+                    string detailsHtmlTemplate = NetAndAngularFilesGenerator.GetSpiderlyAngularDetailsHtmlTemplate(entityName);
+                    await File.WriteAllTextAsync(detailsHtmlPath, detailsHtmlTemplate, Encoding.UTF8);
+                    ConsoleHelper.MarkupLineOK($"Details .html file generated: [dim]{detailsHtmlPath}[/]");
+                }
+            }
+
             ConsoleHelper.MarkupLineOK("Command execution completed!");
         }
 

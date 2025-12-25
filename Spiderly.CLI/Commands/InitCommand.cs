@@ -36,17 +36,11 @@ namespace Spiderly.CLI.Commands
             string jwtKey = Helper.GenerateJwtSecretKey();
 
             string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
-            string connectionString = null;
 
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync($"Connecting to {dbName}...", async ctx =>
-                {
-                    connectionString = await Task.Run(() =>
-                        dbProvider == DbProviderCodes.SQLServer
-                            ? Helper.GetAvailableSqlServerConnectionString(appName)
-                            : Helper.GetAvailablePostgresConnectionString(appName));
-                });
+            ConsoleHelper.MarkupLineLoading($"Connecting to {dbName}...");
+            string connectionString = dbProvider == DbProviderCodes.SQLServer
+                ? Helper.GetAvailableSqlServerConnectionString(appName)
+                : Helper.GetAvailablePostgresConnectionString(appName);
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -59,12 +53,8 @@ namespace Spiderly.CLI.Commands
                     {
                         ConsoleHelper.MarkupLineOK($"{dbName} has been installed successfully!");
 
-                        await AnsiConsole.Status()
-                            .Spinner(Spinner.Known.Dots)
-                            .StartAsync("Waiting for the service to start...", async ctx =>
-                            {
-                                await Task.Delay(5000);
-                            });
+                        ConsoleHelper.MarkupLineLoading("Waiting for the service to start...");
+                        await Task.Delay(5000);
 
                         connectionString = dbProvider == DbProviderCodes.SQLServer
                             ? Helper.GetAvailableSqlServerConnectionString(appName)
@@ -82,26 +72,19 @@ namespace Spiderly.CLI.Commands
                 }
                 else
                 {
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine($"Please ensure {dbName} is installed and running, then rerun 'spiderly init'.");
+                    ConsoleHelper.MarkupLineWARNING($"Please ensure {dbName} is installed and running, then rerun 'spiderly init'.");
 
                     if (dbProvider == DbProviderCodes.SQLServer)
                     {
-                        AnsiConsole.WriteLine();
-                        AnsiConsole.MarkupLine("To install SQL Server manually:");
+                        AnsiConsole.MarkupLine("\nTo install SQL Server manually:");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
                             AnsiConsole.MarkupLine("  [dim]Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads[/]");
-                        }
                         else
-                        {
                             AnsiConsole.MarkupLine("  [dim]Use Docker: docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest[/]");
-                        }
                     }
                     else
                     {
-                        AnsiConsole.WriteLine();
-                        AnsiConsole.MarkupLine("To install PostgreSQL manually:");
+                        AnsiConsole.MarkupLine("\nTo install PostgreSQL manually:");
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             AnsiConsole.MarkupLine("  [dim]Download from: https://www.postgresql.org/download/windows/[/]");
@@ -120,19 +103,17 @@ namespace Spiderly.CLI.Commands
                     return 1;
                 }
             }
+            else
+            {
+                ConsoleHelper.MarkupLineOK(
+                    $"Connected to database using connection string: [yellow]{connectionString}[/]"
+                );
+            }
 
             try
             {
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots)
-                    .StartAsync("Generating files for the app...", async ctx =>
-                    {
-                        await Task.Run(() =>
-                        {
-                            NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider.Value);
-                        });
-                    });
-
+                ConsoleHelper.MarkupLineLoading("Generating files for the app...");
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, connectionString, dbProvider.Value);
                 ConsoleHelper.MarkupLineOK("Files generated successfully");
             }
             catch (Exception ex)
@@ -147,20 +128,16 @@ namespace Spiderly.CLI.Commands
 
             if (!hasNetAndAngularInitErrors)
             {
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots)
-                    .StartAsync("Setting up user secrets...", async ctx =>
-                    {
-                        if (!await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
-                        {
-                            ConsoleHelper.MarkupLineERROR("Failed to set up user secrets");
-                            hasUserSecretsErrors = true;
-                        }
-                        else
-                        {
-                            ConsoleHelper.MarkupLineOK("User secrets configured successfully");
-                        }
-                    });
+                ConsoleHelper.MarkupLineLoading("Setting up user secrets...");
+                if (await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
+                {
+                    ConsoleHelper.MarkupLineOK("User secrets configured successfully");
+                }
+                else
+                {
+                    ConsoleHelper.MarkupLineERROR("Failed to set up user secrets");
+                    hasUserSecretsErrors = true;
+                }
             }
 
             string backendPath = Path.Combine(currentPath, appName.ToKebabCase(), "Backend");
@@ -171,72 +148,56 @@ namespace Spiderly.CLI.Commands
             string webApiCsprojPath = Path.Combine("..", $"{appName}.WebAPI", $"{appName}.WebAPI.csproj");
 
             bool hasRestoreErrors = false;
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Restoring NuGet packages...", async ctx =>
-                {
-                    if (!await RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath))
-                    {
-                        ConsoleHelper.MarkupLineERROR("Failed to restore NuGet packages");
-                        hasRestoreErrors = true;
-                    }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineOK("NuGet packages restored successfully");
-                    }
-                });
+
+            ConsoleHelper.MarkupLineLoading("Restoring NuGet packages...");
+            if (await RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath))
+            {
+                ConsoleHelper.MarkupLineOK("NuGet packages restored successfully");
+            }
+            else
+            {
+                ConsoleHelper.MarkupLineERROR("Failed to restore NuGet packages");
+                hasRestoreErrors = true;
+            }
 
             string migrationArgs = $"ef migrations add InitialCreate --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Generating the database migration...", async ctx =>
-                {
-                    if (!await RunCommand("dotnet", migrationArgs, infrastructurePath))
-                    {
-                        ConsoleHelper.MarkupLineERROR("Failed to generate the database migration");
-                        hasEfMigrationErrors = true;
-                    }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineOK("Database migration generated successfully");
-                    }
-                });
+            ConsoleHelper.MarkupLineLoading("Generating the database migration...");
+            if (await RunCommand("dotnet", migrationArgs, infrastructurePath))
+            {
+                ConsoleHelper.MarkupLineOK("Database migration generated successfully");
+            }
+            else
+            {
+                ConsoleHelper.MarkupLineERROR("Failed to generate the database migration");
+                hasEfMigrationErrors = true;
+            }
 
             string updateArgs = $"ef database update --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Updating the database...", async ctx =>
-                {
-                    if (!await RunCommand("dotnet", updateArgs, infrastructurePath))
-                    {
-                        ConsoleHelper.MarkupLineERROR("Failed to update the database");
-                        hasDatabaseUpdateErrors = true;
-                    }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineOK("Database updated successfully");
-                    }
-                });
+            ConsoleHelper.MarkupLineLoading("Updating the database...");
+            if (await RunCommand("dotnet", updateArgs, infrastructurePath))
+            {
+                ConsoleHelper.MarkupLineOK("Database updated successfully");
+            }
+            else
+            {
+                ConsoleHelper.MarkupLineERROR("Failed to update the database");
+                hasDatabaseUpdateErrors = true;
+            }
 
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Installing frontend packages...", async ctx =>
-                {
-                    if (!await RunCommand(npmCmd, npmArgs, frontendPath))
-                    {
-                        ConsoleHelper.MarkupLineERROR("Failed to install frontend packages");
-                        hasNpmInstallErrors = true;
-                    }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");
-                    }
-                });
+            ConsoleHelper.MarkupLineLoading("Installing frontend packages...");
+            if (await RunCommand(npmCmd, npmArgs, frontendPath))
+            {
+                ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");
+            }
+            else
+            {
+                ConsoleHelper.MarkupLineERROR("Failed to install frontend packages");
+                hasNpmInstallErrors = true;
+            }
 
-            AnsiConsole.WriteLine();
             if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
@@ -264,7 +225,6 @@ namespace Spiderly.CLI.Commands
                     ConsoleHelper.MarkupLineERROR("Error occurred while installing frontend packages.");
                 }
 
-                AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("Please fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
                 return 1;
             }
@@ -274,61 +234,6 @@ namespace Spiderly.CLI.Commands
                 AnsiConsole.MarkupLine("Continue with Step 4 from the getting started guide: [link]https://www.spiderly.dev/docs/getting-started[/]");
                 return 0;
             }
-        }
-
-        private static async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory)
-        {
-            TaskCompletionSource<bool> outputClosed = new();
-            TaskCompletionSource<bool> errorClosed = new();
-
-            Process process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    WorkingDirectory = workingDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = false
-                },
-                EnableRaisingEvents = true
-            };
-
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if (e.Data != null)
-                {
-                    Console.WriteLine(e.Data);
-                }
-                else
-                {
-                    outputClosed.SetResult(true);
-                }
-            };
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (e.Data != null)
-                {
-                    Console.Error.WriteLine(e.Data);
-                }
-                else
-                {
-                    errorClosed.SetResult(true);
-                }
-            };
-
-            process.Start();
-
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            await process.WaitForExitAsync();
-            await Task.WhenAll(outputClosed.Task, errorClosed.Task);
-
-            return process.ExitCode == 0;
         }
 
         private static async Task<bool> SetupUserSecrets(string outputPath, string appName, string jwtKey, string sqlServerConnectionString)
@@ -351,6 +256,47 @@ namespace Spiderly.CLI.Commands
             }
 
             return success;
+        }
+
+        private static async Task<bool> RunCommand(
+            string fileName,
+            string arguments,
+            string workingDirectory)
+        {
+            using (Process process = new Process())
+            {
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process.OutputDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null)
+                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null)
+                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
+                };
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                await process.WaitForExitAsync();
+
+                return process.ExitCode == 0;
+            }
         }
 
         private static string GetAppName(string appName)
