@@ -2,3 +2,4 @@
 - Don't write comments if I didn't point it out
 - Don't delete my comments
 - Reference types aren't nullable in .NET (C#)
+- If Method A calls Method B, list Method A first, then Method B.

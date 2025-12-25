@@ -167,7 +167,8 @@ namespace Spiderly.CLI.Commands
             bool hasRestoreErrors = false;
 
             ConsoleHelper.MarkupLineLoading("Restoring NuGet packages...");
-            if (await RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath))
+            (bool restoreSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath);
+            if (restoreSuccess)
             {
                 ConsoleHelper.MarkupLineOK("NuGet packages restored successfully");
             }
@@ -179,7 +180,8 @@ namespace Spiderly.CLI.Commands
 
             string migrationArgs = $"ef migrations add InitialCreate --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
             ConsoleHelper.MarkupLineLoading("Generating the database migration...");
-            if (await RunCommand("dotnet", migrationArgs, infrastructurePath))
+            (bool migrationSuccess, string _) = await ProcessRunner.RunCommand("dotnet", migrationArgs, infrastructurePath);
+            if (migrationSuccess)
             {
                 ConsoleHelper.MarkupLineOK("Database migration generated successfully");
             }
@@ -191,7 +193,8 @@ namespace Spiderly.CLI.Commands
 
             string updateArgs = $"ef database update --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
             ConsoleHelper.MarkupLineLoading("Updating the database...");
-            if (await RunCommand("dotnet", updateArgs, infrastructurePath))
+            (bool updateSuccess, string _) = await ProcessRunner.RunCommand("dotnet", updateArgs, infrastructurePath);
+            if (updateSuccess)
             {
                 ConsoleHelper.MarkupLineOK("Database updated successfully");
             }
@@ -205,7 +208,8 @@ namespace Spiderly.CLI.Commands
             string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
             string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
             ConsoleHelper.MarkupLineLoading("Installing frontend packages...");
-            if (await RunCommand(npmCmd, npmArgs, frontendPath))
+            (bool npmSuccess, string _) = await ProcessRunner.RunCommand(npmCmd, npmArgs, frontendPath);
+            if (npmSuccess)
             {
                 ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");
             }
@@ -261,59 +265,20 @@ namespace Spiderly.CLI.Commands
 
             if (!string.IsNullOrEmpty(jwtKey))
             {
-                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", backendPath))
+                (bool sharedJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", backendPath);
+                if (!sharedJwtSuccess)
                 {
                     success = false;
                 }
 
-                if (!await RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", backendPath))
+                (bool securityJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", backendPath);
+                if (!securityJwtSuccess)
                 {
                     success = false;
                 }
             }
 
             return success;
-        }
-
-        private static async Task<bool> RunCommand(
-            string fileName,
-            string arguments,
-            string workingDirectory)
-        {
-            using (Process process = new Process())
-            {
-                process.StartInfo = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    WorkingDirectory = workingDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                process.OutputDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
-                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
-                };
-
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
-                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
-                };
-
-                process.Start();
-
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                await process.WaitForExitAsync();
-
-                return process.ExitCode == 0;
-            }
         }
 
         private static string GetAppName(string appName)
