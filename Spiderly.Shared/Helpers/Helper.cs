@@ -180,23 +180,23 @@ namespace Spiderly.Shared.Helpers
                 ("127.0.0.1", 5432)
             };
 
-            List<(string username, string password, bool useIntegratedSecurity)> authMethods = new List<(string, string, bool)>
+            List<(string password, bool useIntegratedSecurity)> authMethods = new List<(string, bool)>
             {
-                ("postgres", "", true),
-                ("postgres", "", false),
-                ("postgres", "postgres", false),
-                ("postgres", "password", false),
-                ("postgres", "admin", false)
+                ("", true),
+                ("", false),
+                ("postgres", false),
+                ("password", false),
+                ("admin", false)
             };
 
             foreach ((string host, int port) in dataSources)
             {
-                foreach ((string username, string password, bool useIntegratedSecurity) in authMethods)
+                foreach ((string password, bool useIntegratedSecurity) in authMethods)
                 {
-                    string connectionString = BuildPostgresConnectionString(host, port, "postgres", username, password, useIntegratedSecurity);
+                    string connectionString = BuildPostgresConnectionString(host, port, "postgres", password, useIntegratedSecurity);
                     if (TryConnectPostgres(connectionString))
                     {
-                        return BuildPostgresConnectionString(host, port, databaseName, username, password, useIntegratedSecurity);
+                        return BuildPostgresConnectionString(host, port, databaseName, password, useIntegratedSecurity);
                     }
                 }
             }
@@ -204,17 +204,17 @@ namespace Spiderly.Shared.Helpers
             return null;
         }
 
-        private static string BuildPostgresConnectionString(string host, int port, string database, string username, string password, bool useIntegratedSecurity)
+        private static string BuildPostgresConnectionString(string host, int port, string database, string password, bool useIntegratedSecurity)
         {
             if (useIntegratedSecurity && string.IsNullOrEmpty(password))
             {
-                return $"Host={host};Port={port};Database={database};Username={username};Integrated Security=true;";
+                return $"Host={host};Port={port};Database={database};Username=postgres;Integrated Security=true;";
             }
             if (string.IsNullOrEmpty(password))
             {
-                return $"Host={host};Port={port};Database={database};Username={username};";
+                return $"Host={host};Port={port};Database={database};Username=postgres;";
             }
-            return $"Host={host};Port={port};Database={database};Username={username};Password={password};";
+            return $"Host={host};Port={port};Database={database};Username=postgres;Password={password};";
         }
 
         private static bool TryConnectPostgres(string connectionString)
@@ -225,12 +225,14 @@ namespace Spiderly.Shared.Helpers
                 using (Npgsql.NpgsqlConnection connection = new Npgsql.NpgsqlConnection(connectionStringWithTimeout))
                 {
                     connection.Open();
+                    Console.WriteLine($"[PG-DEBUG] SUCCESS: {connectionString}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"PostgreSQL connection failed: {ex.Message}");
+                Console.WriteLine($"[PG-DEBUG] FAILED: {connectionString}");
+                Console.WriteLine($"[PG-DEBUG] Error: {ex.GetType().Name}: {ex.Message}");
             }
 
             return false;
