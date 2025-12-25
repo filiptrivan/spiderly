@@ -44,7 +44,7 @@ namespace Spiderly.CLI.Commands
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                ConsoleHelper.MarkupLineWARNING($"No running {dbName} instance was detected.");
+                ConsoleHelper.MarkupLineWARNING($"Could not establish a connection to {dbName}.");
 
                 if (IsInteractive() && ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
                 {
@@ -53,7 +53,7 @@ namespace Spiderly.CLI.Commands
                     {
                         ConsoleHelper.MarkupLineOK($"{dbName} has been installed successfully!");
 
-                        ConsoleHelper.MarkupLineLoading("Waiting for the service to start...");
+                        ConsoleHelper.MarkupLineLoading($"Attempting to connect to {dbName}...");
                         await Task.Delay(5000);
 
                         connectionString = dbProvider == DbProviderCodes.SQLServer
@@ -62,13 +62,30 @@ namespace Spiderly.CLI.Commands
 
                         if (string.IsNullOrEmpty(connectionString))
                         {
-                            ConsoleHelper.MarkupLineWARNING($"{dbName} was installed but is not responding yet.");
-                            AnsiConsole.MarkupLine("Please start the service manually and rerun 'spiderly init'.");
-                            return 1;
+                            ConsoleHelper.MarkupLineWARNING($"Could not connect to {dbName}.");
+                            AnsiConsole.WriteLine();
+                            AnsiConsole.MarkupLine($"{dbName} was installed but connection failed. This could be due to authentication or service startup timing.");
+                            AnsiConsole.WriteLine();
+
+                            if (IsInteractive() && ConsoleHelper.PromptYesNo("Would you like to continue without a database connection? You can configure it later."))
+                            {
+                                connectionString = dbProvider == DbProviderCodes.SQLServer
+                                    ? "Server=localhost;Database=" + appName + ";Integrated Security=true;"
+                                    : "Host=localhost;Port=5432;Database=" + appName + ";Username=postgres;Password=postgres;";
+
+                                ConsoleHelper.MarkupLineWARNING("Using placeholder connection string. You'll need to configure the database later.");
+                            }
+                            else
+                            {
+                                return 1;
+                            }
                         }
                     }
-
-                    return 1;
+                    else
+                    {
+                        ConsoleHelper.MarkupLineERROR($"{dbName} installation failed.");
+                        return 1;
+                    }
                 }
                 else
                 {

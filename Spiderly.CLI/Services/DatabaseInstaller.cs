@@ -49,6 +49,7 @@ namespace Spiderly.CLI.Services
             if (await InstallViaChocolatey("postgresql", "PostgreSQL"))
             {
                 await StartPostgreSQLServiceWindows();
+                await ConfigurePostgreSQLAuthentication();
                 return true;
             }
 
@@ -69,6 +70,7 @@ namespace Spiderly.CLI.Services
             if (await InstallViaHomebrew("postgresql", "PostgreSQL"))
             {
                 await RunCommand("brew", "services start postgresql", Environment.CurrentDirectory);
+                await ConfigurePostgreSQLAuthentication();
                 return true;
             }
 
@@ -91,40 +93,13 @@ namespace Spiderly.CLI.Services
                     Console.WriteLine("Starting PostgreSQL service...");
                     await RunCommand("sudo", "systemctl start postgresql", Environment.CurrentDirectory);
                     await RunCommand("sudo", "systemctl enable postgresql", Environment.CurrentDirectory);
-                    return true;
-                }
-            }
-            else if (await IsCommandAvailable("yum"))
-            {
-                Console.WriteLine("YUM package manager detected. Installing PostgreSQL...");
-                Console.WriteLine("This may take several minutes and may require sudo password...");
-
-                if (await RunCommand("sudo", "yum install -y postgresql-server postgresql-contrib", Environment.CurrentDirectory))
-                {
-                    await RunCommand("sudo", "postgresql-setup --initdb", Environment.CurrentDirectory);
-                    Console.WriteLine("Starting PostgreSQL service...");
-                    await RunCommand("sudo", "systemctl start postgresql", Environment.CurrentDirectory);
-                    await RunCommand("sudo", "systemctl enable postgresql", Environment.CurrentDirectory);
-                    return true;
-                }
-            }
-            else if (await IsCommandAvailable("dnf"))
-            {
-                Console.WriteLine("DNF package manager detected. Installing PostgreSQL...");
-                Console.WriteLine("This may take several minutes and may require sudo password...");
-
-                if (await RunCommand("sudo", "dnf install -y postgresql-server postgresql-contrib", Environment.CurrentDirectory))
-                {
-                    await RunCommand("sudo", "postgresql-setup --initdb", Environment.CurrentDirectory);
-                    Console.WriteLine("Starting PostgreSQL service...");
-                    await RunCommand("sudo", "systemctl start postgresql", Environment.CurrentDirectory);
-                    await RunCommand("sudo", "systemctl enable postgresql", Environment.CurrentDirectory);
+                    await ConfigurePostgreSQLAuthenticationLinux();
                     return true;
                 }
             }
             else
             {
-                ConsoleHelper.MarkupLineWARNING("No supported package manager (apt-get, yum, dnf) was detected.");
+                ConsoleHelper.MarkupLineWARNING("APT package manager was not detected.");
 
                 if (await IsCommandAvailable("docker"))
                 {
@@ -431,8 +406,8 @@ namespace Spiderly.CLI.Services
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = "/c sc query | findstr postgresql",
+                    FileName = "powershell",
+                    Arguments = "-Command \"Get-Service | Where-Object {$_.Name -like '*postgresql*'} | Select-Object -ExpandProperty Name\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -446,19 +421,98 @@ namespace Spiderly.CLI.Services
 
             if (!string.IsNullOrEmpty(output))
             {
-                string[] lines = output.Split('\n');
-                foreach (string line in lines)
+                string[] serviceNames = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+                foreach (string serviceName in serviceNames)
                 {
-                    if (line.Trim().StartsWith("SERVICE_NAME:"))
+                    string trimmedName = serviceName.Trim();
+                    if (!string.IsNullOrEmpty(trimmedName))
                     {
-                        string serviceName = line.Replace("SERVICE_NAME:", "").Trim();
-                        await RunCommand("net", $"start {serviceName}", Environment.CurrentDirectory);
+                        Console.WriteLine($"Found PostgreSQL service: {trimmedName}");
+                        await RunCommand("net", $"start \"{trimmedName}\"", Environment.CurrentDirectory);
                         return;
                     }
                 }
             }
 
+            Console.WriteLine("No PostgreSQL service found, attempting default name...");
             await RunCommand("net", "start postgresql", Environment.CurrentDirectory);
+        }
+
+        private static async Task ConfigurePostgreSQLAuthentication()
+        {
+            Console.WriteLine("Configuring PostgreSQL authentication...");
+
+            string psqlPath = FindPsqlPath();
+            if (string.IsNullOrEmpty(psqlPath))
+            {
+                Console.WriteLine("Could not locate psql.exe. Skipping automatic authentication configuration.");
+                return;
+            }
+
+            string alterUserCommand = "ALTER USER postgres WITH PASSWORD 'postgres';";
+            string arguments = $"-U postgres -c \"{alterUserCommand}\"";
+
+            await RunCommand(psqlPath, arguments, Environment.CurrentDirectory);
+        }
+
+        private static async Task ConfigurePostgreSQLAuthenticationLinux()
+        {
+            Console.WriteLine("Configuring PostgreSQL authentication...");
+
+            string alterUserCommand = "ALTER USER postgres WITH PASSWORD 'postgres';";
+            await RunCommand("sudo", $"-u postgres psql -c \"{alterUserCommand}\"", Environment.CurrentDirectory);
+        }
+
+        private static string FindPsqlPath()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                List<string> basePaths =
+                [
+                    @"C:\Program Files\PostgreSQL",
+                    @"C:\Program Files (x86)\PostgreSQL"
+                ];
+
+                foreach (string basePath in basePaths)
+                {
+                    if (Directory.Exists(basePath))
+                    {
+                        string[] versionDirs = Directory.GetDirectories(basePath);
+                        foreach (string versionDir in versionDirs.OrderByDescending(d => d))
+                        {
+                            string psqlPath = Path.Combine(versionDir, "bin", "psql.exe");
+                            if (File.Exists(psqlPath))
+                            {
+                                return psqlPath;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/bash",
+                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/c where psql" : "-c \"which psql\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+
+            if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+            {
+                return output.Split('\n')[0].Trim();
+            }
+
+            return null;
         }
 
         private static async Task<bool> InstallPostgreSQLDocker()
