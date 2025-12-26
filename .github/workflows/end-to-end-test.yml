@@ -42,7 +42,7 @@ jobs:
           echo "PostgreSQL setup complete"
 
       - name: Install EF Core tools
-        run: dotnet tool install --global dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 9.0.1
 
       - name: Build and pack Spiderly.CLI
         run: |
