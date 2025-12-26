@@ -1,15 +1,37 @@
 using Spectre.Console;
+using Spiderly.Shared.Enums;
+using Spiderly.Shared.Helpers;
 
-namespace Spiderly.CLI.Services
+namespace Spiderly.CLI.Services.Database.OS
 {
     internal class MacInstaller : BaseOSInstaller
     {
         protected override string ShellFileName => "/bin/bash";
         protected override string GetWhichCommand(string command) => $"-c \"which {command}\"";
 
-        protected override async Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand)
+        public MacInstaller(DbProviderCodes dbProvider) : base(dbProvider)
         {
-            return ("psql", $"-U postgres -c \"{sqlCommand}\"");
+        }
+
+        public override async Task<bool> IsPostgreSQLServiceRunning()
+        {
+            (bool success, string output) = await ProcessRunner.RunCommand("brew", "services list");
+            if (success && output.Contains("postgresql") && output.Contains("started"))
+                return true;
+
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=postgres --filter status=running --format '{{.Names}}'");
+            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
+        }
+
+        public override async Task<bool> IsSqlServerServiceRunning()
+        {
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=sqlserver --filter status=running --format '{{.Names}}'");
+            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
+        }
+
+        protected override Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand)
+        {
+            return Task.FromResult(("psql", $"-U postgres -c \"{sqlCommand}\""));
         }
 
         public override async Task<bool> InstallPostgreSQL()
@@ -85,22 +107,6 @@ namespace Spiderly.CLI.Services
 
             (bool successful, string _) = await ProcessRunner.RunCommand("/bin/bash", $"-c \"{installScript}\"");
             return successful;
-        }
-
-        public override async Task<bool> IsPostgreSQLServiceRunning()
-        {
-            (bool success, string output) = await ProcessRunner.RunCommand("brew", "services list");
-            if (success && output.Contains("postgresql") && output.Contains("started"))
-                return true;
-
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=postgres --filter status=running --format '{{.Names}}'");
-            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
-        }
-
-        public override async Task<bool> IsSqlServerServiceRunning()
-        {
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=sqlserver --filter status=running --format '{{.Names}}'");
-            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
         }
 
         private async Task<bool> InstallDocker()

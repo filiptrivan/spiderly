@@ -1,4 +1,4 @@
-namespace Spiderly.CLI.Services
+namespace Spiderly.CLI.Services.Database.OS
 {
     internal static class DockerInstaller
     {
@@ -25,9 +25,9 @@ namespace Spiderly.CLI.Services
             return false;
         }
 
-        public static async Task<bool> InstallSqlServerDocker(IOSInstaller osInstaller, Func<Task<bool>> installDocker)
+        public static async Task<bool> InstallSqlServerDocker(BaseOSInstaller installer, Func<Task<bool>> installDocker)
         {
-            if (!await osInstaller.IsCommandAvailable("docker"))
+            if (!await installer.IsCommandAvailable("docker"))
             {
                 ConsoleHelper.MarkupLineWARNING("Docker is not installed.");
 

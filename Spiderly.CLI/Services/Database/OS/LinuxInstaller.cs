@@ -1,15 +1,21 @@
 using Spectre.Console;
+using Spiderly.Shared.Enums;
+using Spiderly.Shared.Helpers;
 
-namespace Spiderly.CLI.Services
+namespace Spiderly.CLI.Services.Database.OS
 {
     internal class LinuxInstaller : BaseOSInstaller
     {
         protected override string ShellFileName => "/bin/bash";
         protected override string GetWhichCommand(string command) => $"-c \"which {command}\"";
 
-        protected override async Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand)
+        public LinuxInstaller(DbProviderCodes dbProvider) : base(dbProvider)
         {
-            return ("sudo", $"-u postgres psql -c \"{sqlCommand}\"");
+        }
+
+        protected override Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand)
+        {
+            return Task.FromResult(("sudo", $"-u postgres psql -c \"{sqlCommand}\""));
         }
 
         public override async Task<bool> InstallPostgreSQL()

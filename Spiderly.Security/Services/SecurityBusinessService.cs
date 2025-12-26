@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using Google.Apis.Auth;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Entities;
@@ -30,6 +32,7 @@ namespace Spiderly.Security.Services
         private readonly AuthenticationService _authenticationService;
         private readonly AuthorizationBusinessService<TUser> _authorizationService;
         private readonly IEmailingService _emailingService;
+        private readonly IWebHostEnvironment _environment;
 
         public SecurityBusinessService(
             IApplicationDbContext context,
@@ -38,7 +41,8 @@ namespace Spiderly.Security.Services
             AuthenticationService authenticationService,
             AuthorizationBusinessService<TUser> authorizationService,
             ExcelService excelService,
-            IFileManager fileManager
+            IFileManager fileManager,
+            IWebHostEnvironment environment
         )
             : base(context, excelService, authorizationService, fileManager)
         {
@@ -47,6 +51,7 @@ namespace Spiderly.Security.Services
             _emailingService = emailingService;
             _authenticationService = authenticationService;
             _authorizationService = authorizationService;
+            _environment = environment;
         }
 
         #region Authentication
@@ -69,6 +74,15 @@ namespace Spiderly.Security.Services
 
             string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, userId, loginDTO.BrowserId);
             EmailVerifyUIDTO emailTemplate = CreateLoginEmailTemplate(verificationCode);
+
+            bool isEmailingConfigured = Shared.Helpers.Helper.IsEmailingConfigured();
+            bool isDevelopment = _environment.IsDevelopment();
+
+            if (isDevelopment && !isEmailingConfigured)
+            {
+                DisplayTokenInConsole(userEmail, verificationCode);
+                return;
+            }
 
             try
             {
@@ -294,6 +308,25 @@ namespace Spiderly.Security.Services
                     }
                 }
             }
+        }
+
+        private void DisplayTokenInConsole(string userEmail, string verificationCode)
+        {
+            Console.WriteLine();
+            Console.WriteLine("═════════════════════════════════════════════════════════════");
+            Console.WriteLine("  DEVELOPMENT MODE - EMAIL NOT CONFIGURED");
+            Console.WriteLine("═════════════════════════════════════════════════════════════");
+            Console.WriteLine();
+            Console.WriteLine($"  Email: {userEmail}");
+            Console.WriteLine($"  Verification Code: {verificationCode}");
+            Console.WriteLine();
+            Console.WriteLine("  Note: This token is displayed here only because:");
+            Console.WriteLine("    1. Application is running in DEVELOPMENT mode");
+            Console.WriteLine("    2. Email sending is NOT configured");
+            Console.WriteLine();
+            Console.WriteLine("  In production, tokens will be sent via email.");
+            Console.WriteLine("═════════════════════════════════════════════════════════════");
+            Console.WriteLine();
         }
 
         #endregion
