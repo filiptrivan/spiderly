@@ -472,7 +472,7 @@ namespace Spiderly.Shared.Helpers
                                         jwtKey: jwtKey,
                                         blobStorageConnectionString: null,
                                         blobStorageUrl: null,
-                                        sqlServerConnectionString: connectionString
+                                        connectionString
                                     )},
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
@@ -3107,7 +3107,7 @@ namespace {{appName}}.WebAPI
         string jwtKey,
         string blobStorageConnectionString,
         string blobStorageUrl,
-        string sqlServerConnectionString
+        string connectionString
     )
     {
       return $$"""
@@ -3162,7 +3162,7 @@ namespace {{appName}}.WebAPI
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
 
-      "ConnectionString": "{{sqlServerConnectionString?.Replace(@"\", @"\\")}}",
+      "ConnectionString": "{{connectionString?.Replace(@"\", @"\\")}}",
 
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
