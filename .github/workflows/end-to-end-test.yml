@@ -55,6 +55,11 @@ jobs:
           dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
           dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
 
+      - name: Setup folder structure for --dev mode
+        run: |
+          ln -s . spiderly
+          ls -la | grep spiderly
+
       - name: Run Spiderly init
         run: |
           export PATH="$HOME/.dotnet/tools:$PATH"
