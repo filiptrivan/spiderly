@@ -3068,14 +3068,6 @@ namespace {{appName}}.WebAPI
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Extensions" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
-		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
 {{XmlCommented($$"""
         <PackageReference Include="Spiderly.Infrastructure" Version="{{spiderlyVersion}}" />
         <PackageReference Include="Spiderly.Security" Version="{{spiderlyVersion}}" />
@@ -3293,14 +3285,6 @@ namespace {{appName}}.WebAPI.DI
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Extensions" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
-		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
 {{XmlCommented($$"""
         <PackageReference Include="Spiderly.Shared" Version="{{version}}" />
 """, !isRunningFromNuget)}}
@@ -3363,14 +3347,6 @@ namespace {{appName}}.WebAPI.DI
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Extensions" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
-		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
 {{XmlCommented($$"""
         <PackageReference Include="Spiderly.Infrastructure" Version="{{version}}" />
 """, !isRunningFromNuget)}}
@@ -3429,14 +3405,6 @@ namespace {{appName}}.Business
 
 	<ItemGroup>
 		<PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
-		<PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Extensions" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
-		<PackageReference Include="System.Net.Primitives" Version="4.3.0" />
 {{XmlCommented($$"""
         <PackageReference Include="Spiderly.Security" Version="{{version}}" />
         <PackageReference Include="Spiderly.SourceGenerators" Version="{{version}}" />
