@@ -1,3 +1,5 @@
+using System.Runtime.Versioning;
+using System.Security.Principal;
 using Spectre.Console;
 
 namespace Spiderly.CLI.Services
@@ -7,13 +9,6 @@ namespace Spiderly.CLI.Services
         public static bool PromptYesNo(string message)
         {
             return AnsiConsole.Confirm(message);
-        }
-
-        public static string PromptPassword(string message)
-        {
-            return AnsiConsole.Prompt(
-                new TextPrompt<string>(message)
-                    .Secret());
         }
 
         public static void MarkupLineLoading(string message)
@@ -35,5 +30,11 @@ namespace Spiderly.CLI.Services
         {
             AnsiConsole.MarkupLine($"\n[red][[ERROR]][/] {message}");
         }
+
+        public static bool IsInteractive()
+        {
+            return !Console.IsInputRedirected && Environment.UserInteractive;
+        }
+
     }
 }

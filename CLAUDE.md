@@ -3,3 +3,5 @@
 - Don't delete my comments
 - Reference types aren't nullable in .NET (C#)
 - If Method A calls Method B, list Method A first, then Method B.
+- Prefer existing available methods over creating new ones.
+- Split logic into smaller, focused methods whenever possible.

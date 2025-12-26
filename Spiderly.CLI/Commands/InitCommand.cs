@@ -1,6 +1,8 @@
 using CaseConverter;
 using Spectre.Console;
 using Spiderly.CLI.Services;
+using Spiderly.CLI.Services.Database.DbConnectionStringBuilder;
+using Spiderly.CLI.Services.Database.OS;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
@@ -35,96 +37,19 @@ namespace Spiderly.CLI.Commands
 
             string jwtKey = Helper.GenerateJwtSecretKey();
 
-            string dbName = dbProvider == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL";
+            BaseOSInstaller osInstaller = GetOSInstaller(dbProvider.Value);
+            BaseDbConnectionStringBuilder databaseInstaller = GetDatabaseInstaller(dbProvider.Value, osInstaller);
+            string connectionString = await databaseInstaller.CreateConnectionString(appName);
 
-            ConsoleHelper.MarkupLineLoading($"Connecting to {dbName}...");
-            string connectionString = dbProvider == DbProviderCodes.SQLServer
-                ? Helper.GetAvailableSqlServerConnectionString(appName)
-                : Helper.GetAvailablePostgresConnectionString(appName);
-
-            if (string.IsNullOrEmpty(connectionString))
+            if (connectionString == null)
             {
-                ConsoleHelper.MarkupLineWARNING($"Could not establish a connection to {dbName}.");
-
-                if (IsInteractive() && ConsoleHelper.PromptYesNo($"Would you like to install {dbName} now?"))
-                {
-                    bool installed = await DatabaseInstaller.InstallDatabase(dbProvider.Value);
-                    if (installed)
-                    {
-                        ConsoleHelper.MarkupLineOK($"{dbName} has been installed successfully!");
-
-                        ConsoleHelper.MarkupLineLoading($"Attempting to connect to {dbName}...");
-                        await Task.Delay(5000);
-
-                        connectionString = dbProvider == DbProviderCodes.SQLServer
-                            ? Helper.GetAvailableSqlServerConnectionString(appName)
-                            : Helper.GetAvailablePostgresConnectionString(appName);
-
-                        if (string.IsNullOrEmpty(connectionString))
-                        {
-                            ConsoleHelper.MarkupLineWARNING($"Could not connect to {dbName}.");
-                            AnsiConsole.WriteLine();
-                            AnsiConsole.MarkupLine($"{dbName} was installed but connection failed. This could be due to authentication or service startup timing.");
-                            AnsiConsole.WriteLine();
-
-                            if (IsInteractive() && ConsoleHelper.PromptYesNo("Would you like to continue without a database connection? You can configure it later."))
-                            {
-                                connectionString = dbProvider == DbProviderCodes.SQLServer
-                                    ? "Server=localhost;Database=" + appName + ";Integrated Security=true;"
-                                    : "Host=localhost;Port=5432;Database=" + appName + ";Username=postgres;Password=postgres;";
-
-                                ConsoleHelper.MarkupLineWARNING("Using placeholder connection string. You'll need to configure the database later.");
-                            }
-                            else
-                            {
-                                return 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        ConsoleHelper.MarkupLineERROR($"{dbName} installation failed.");
-                        return 1;
-                    }
-                }
-                else
-                {
-                    ConsoleHelper.MarkupLineWARNING($"Please ensure {dbName} is installed and running, then rerun 'spiderly init'.");
-
-                    if (dbProvider == DbProviderCodes.SQLServer)
-                    {
-                        AnsiConsole.MarkupLine("\nTo install SQL Server manually:");
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                            AnsiConsole.MarkupLine("  [dim]Download from: https://www.microsoft.com/en-us/sql-server/sql-server-downloads[/]");
-                        else
-                            AnsiConsole.MarkupLine("  [dim]Use Docker: docker run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourStrong@Passw0rd\" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest[/]");
-                    }
-                    else
-                    {
-                        AnsiConsole.MarkupLine("\nTo install PostgreSQL manually:");
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
-                            AnsiConsole.MarkupLine("  [dim]Download from: https://www.postgresql.org/download/windows/[/]");
-                        }
-                        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                        {
-                            AnsiConsole.MarkupLine("  [dim]Use Homebrew: brew install postgresql[/]");
-                            AnsiConsole.MarkupLine("  [dim]Or download from: https://www.postgresql.org/download/macosx/[/]");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine("  [dim]Use package manager or download from: https://www.postgresql.org/download/linux/[/]");
-                        }
-                    }
-
-                    return 1;
-                }
+                ConsoleHelper.MarkupLineWARNING("Skipping database connection step. You can later change the connection string and execute the database scripts via EF Core.");
             }
             else
             {
                 ConsoleHelper.MarkupLineOK(
-                    $"Connected to database using connection string: [yellow]{connectionString}[/]"
-                );
+       $"Connected to database using connection string: [yellow]{connectionString}[/]"
+   );
             }
 
             try
@@ -350,6 +275,36 @@ namespace Spiderly.CLI.Commands
         private static bool IsInteractive()
         {
             return !Console.IsInputRedirected && Environment.UserInteractive;
+        }
+
+        private static BaseOSInstaller GetOSInstaller(DbProviderCodes dbProvider)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return new WindowsInstaller(dbProvider);
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return new LinuxInstaller(dbProvider);
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return new MacInstaller(dbProvider);
+            }
+
+            throw new PlatformNotSupportedException("Unsupported operating system");
+        }
+
+        private static BaseDbConnectionStringBuilder GetDatabaseInstaller(DbProviderCodes dbProvider, BaseOSInstaller osInstaller)
+        {
+            if (dbProvider == DbProviderCodes.SQLServer)
+            {
+                return new SQLServerConnectionStringBuilder(osInstaller);
+            }
+
+            return new PostgreSQLConnectionStringBuilder(osInstaller);
         }
     }
 }

@@ -110,7 +110,7 @@ namespace Spiderly.Shared.Helpers
         /// <summary>
         /// Attempts to find an available SQL Server connection string by checking common data sources.
         /// </summary>
-        public static string GetAvailableSqlServerConnectionString(string databaseName)
+        public static string CreateSqlServerConnectionString(string databaseName)
         {
             List<string> dataSources = new List<string>
             {
@@ -121,9 +121,9 @@ namespace Spiderly.Shared.Helpers
 
             foreach (string dataSource in dataSources)
             {
-                SqlConnectionStringBuilder connectionStringBuilder = BuildConnectionString(dataSource);
-                if (TryConnect(connectionStringBuilder))
+                if (TrySQLServerConnection(dataSource))
                 {
+                    SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource);
                     connectionStringBuilder.InitialCatalog = databaseName;
                     return connectionStringBuilder.ConnectionString;
                 }
@@ -133,9 +133,26 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
+        /// Tries to open a connection using the provided connection string.
+        /// </summary>
+        private static bool TrySQLServerConnection(string dataSource)
+        {
+            try
+            {
+                SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource, connectTimeout: 5);
+                using SqlConnection connection = new SqlConnection(connectionStringBuilder.ConnectionString);
+                connection.Open();
+                return true;
+            }
+            catch (Exception) { }
+
+            return false;
+        }
+
+        /// <summary>
         /// Constructs a SQL Server connection string for either the default or SQL Express instance.
         /// </summary>
-        public static SqlConnectionStringBuilder BuildConnectionString(string dataSource)
+        public static SqlConnectionStringBuilder BuildSQLConnectionString(string dataSource, int connectTimeout = 15)
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder
             {
@@ -144,42 +161,18 @@ namespace Spiderly.Shared.Helpers
                 IntegratedSecurity = true,
                 Encrypt = false,
                 MultipleActiveResultSets = true,
+                ConnectTimeout = connectTimeout,
             };
 
             return builder;
-        }
-
-        /// <summary>
-        /// Tries to open a connection using the provided connection string.
-        /// </summary>
-        private static bool TryConnect(SqlConnectionStringBuilder connectionString)
-        {
-            try
-            {
-                connectionString.ConnectTimeout = 2;
-                using SqlConnection connection = new SqlConnection(connectionString.ConnectionString);
-                connection.Open();
-                connectionString.ConnectTimeout = 15;
-                return true;
-            }
-            catch (Exception) { }
-
-            connectionString.ConnectTimeout = 15;
-            return false;
         }
 
         #endregion
 
         #region PostgreSQL
 
-        public static string GetAvailablePostgresConnectionString(string databaseName)
+        public static string CreatePostgreSQLConnectionString(string databaseName)
         {
-            List<(string host, int port)> dataSources = new List<(string, int)>
-            {
-                ("localhost", 5432),
-                ("127.0.0.1", 5432)
-            };
-
             List<(string password, bool useIntegratedSecurity)> authMethods = new List<(string, bool)>
             {
                 ("", true),
@@ -187,6 +180,27 @@ namespace Spiderly.Shared.Helpers
                 ("postgres", false),
                 ("password", false),
                 ("admin", false)
+            };
+
+            return TryPostgreSQLConnection(databaseName, authMethods);
+        }
+
+        public static string CreatePostgreSQLConnectionString(string databaseName, string customPassword)
+        {
+            List<(string password, bool useIntegratedSecurity)> authMethods = new List<(string, bool)>
+            {
+                (customPassword, false)
+            };
+
+            return TryPostgreSQLConnection(databaseName, authMethods);
+        }
+
+        private static string TryPostgreSQLConnection(string databaseName, List<(string password, bool useIntegratedSecurity)> authMethods)
+        {
+            List<(string host, int port)> dataSources = new List<(string, int)>
+            {
+                ("localhost", 5432),
+                ("127.0.0.1", 5432)
             };
 
             foreach ((string host, int port) in dataSources)
@@ -296,6 +310,15 @@ Currently authenticated user id: {{userId}}); <br>
                 Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender, SettingsProvider.Current.EmailSenderPassword),
                 EnableSsl = true
             };
+        }
+
+        public static bool IsEmailingConfigured()
+        {
+            Settings settings = SettingsProvider.Current;
+            return !string.IsNullOrWhiteSpace(settings.EmailSender) &&
+                   !string.IsNullOrWhiteSpace(settings.EmailSenderPassword) &&
+                   !string.IsNullOrWhiteSpace(settings.SmtpHost) &&
+                   settings.SmtpPort > 0;
         }
 
         #endregion

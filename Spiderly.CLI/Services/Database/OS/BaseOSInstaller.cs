@@ -1,16 +1,23 @@
 using Spectre.Console;
+using Spiderly.Shared.Enums;
 
-namespace Spiderly.CLI.Services
+namespace Spiderly.CLI.Services.Database.OS
 {
-    internal abstract class BaseOSInstaller : IOSInstaller
+    public abstract class BaseOSInstaller
     {
+        public DbProviderCodes DbProvider { get; set; }
         protected abstract string ShellFileName { get; }
         protected abstract string GetWhichCommand(string command);
-
         public abstract Task<bool> InstallPostgreSQL();
         public abstract Task<bool> InstallSqlServer();
         public abstract Task<bool> IsPostgreSQLServiceRunning();
         public abstract Task<bool> IsSqlServerServiceRunning();
+        protected abstract Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand);
+
+        public BaseOSInstaller(DbProviderCodes dbProvider)
+        {
+            DbProvider = dbProvider;
+        }
 
         public Task<bool> IsCommandAvailable(string command)
         {
@@ -34,9 +41,7 @@ namespace Spiderly.CLI.Services
             }
         }
 
-        protected abstract Task<(string command, string arguments)> GetPsqlCommandAsync(string sqlCommand);
-
-        protected void ShowManualInstallMessage(string displayName, string url)
+        protected static void ShowManualInstallMessage(string displayName, string url)
         {
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine($"You can also install {displayName} manually:");
