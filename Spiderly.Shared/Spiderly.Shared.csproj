@@ -39,8 +39,6 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.22.2" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
     <PackageReference Include="FluentValidation" Version="11.9.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Localization" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
