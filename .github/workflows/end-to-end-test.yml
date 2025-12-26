@@ -46,6 +46,7 @@ jobs:
 
       - name: Build and pack Spiderly.CLI
         run: |
+          dotnet clean
           dotnet restore
           dotnet build -c Release
           dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -c Release -o ./nupkg
