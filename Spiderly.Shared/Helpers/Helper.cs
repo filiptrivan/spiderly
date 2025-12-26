@@ -139,7 +139,7 @@ namespace Spiderly.Shared.Helpers
         {
             try
             {
-                SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource, connectTimeout: 5);
+                SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource, connectTimeout: 3);
                 using SqlConnection connection = new SqlConnection(connectionStringBuilder.ConnectionString);
                 connection.Open();
                 return true;
@@ -235,7 +235,7 @@ namespace Spiderly.Shared.Helpers
         {
             try
             {
-                string connectionStringWithTimeout = connectionString + "Timeout=5;";
+                string connectionStringWithTimeout = connectionString + "Timeout=3;";
                 using (Npgsql.NpgsqlConnection connection = new Npgsql.NpgsqlConnection(connectionStringWithTimeout))
                 {
                     connection.Open();

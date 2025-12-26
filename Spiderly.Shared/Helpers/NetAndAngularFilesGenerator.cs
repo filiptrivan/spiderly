@@ -478,7 +478,7 @@ namespace Spiderly.Shared.Helpers
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                                     new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
                                     new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
-                                    new SpiderlyFile { Name = "Startup.cs", Data = GetStartupCsData(appName) },
+                                    new SpiderlyFile { Name = "Startup.cs", Data = GetStartupCsData(appName, dbProvider) },
                                 }
                             },
                         },
@@ -2905,12 +2905,13 @@ EndGlobal
     }
 
 
-    private static string GetStartupCsData(string appName)
+    private static string GetStartupCsData(string appName, DbProviderCodes dbProvider)
     {
       return $$"""
 using LightInject;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Enums;
 using {{appName}}.WebAPI.DI;
 using {{appName}}.Infrastructure;
 using Quartz;
@@ -2932,7 +2933,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.SpiderlyConfigureServices<{{appName}}ApplicationDbContext>();
+        services.SpiderlyConfigureServices<{{appName}}ApplicationDbContext>(dbProvider: DbProviderCodes.{{dbProvider}});
     }
 
     public void ConfigureContainer(IServiceContainer container)
