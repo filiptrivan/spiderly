@@ -47,9 +47,7 @@ namespace Spiderly.CLI.Commands
             }
             else
             {
-                ConsoleHelper.MarkupLineOK(
-       $"Connected to database using connection string: [yellow]{connectionString}[/]"
-   );
+                ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [yellow]{connectionString}[/]");
             }
 
             try

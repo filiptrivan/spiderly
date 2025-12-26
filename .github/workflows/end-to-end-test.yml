@@ -55,18 +55,12 @@ jobs:
           dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
           dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
 
-      - name: Create test directory
-        run: |
-          mkdir -p ./test-output
-          cd ./test-output
-
       - name: Run Spiderly init
         run: |
-          cd ./test-output
           export PATH="$HOME/.dotnet/tools:$PATH"
 
           echo "Running spiderly init with app name: ${{ env.TEST_APP_NAME }}"
-          spiderly init --name "${{ env.TEST_APP_NAME }}" --db postgresql
+          spiderly init --dev --name "${{ env.TEST_APP_NAME }}" --db postgresql
 
           if [ $? -ne 0 ]; then
             echo "ERROR: spiderly init failed with exit code $?"
@@ -75,7 +69,6 @@ jobs:
 
       - name: Verify generated structure
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
 
           REQUIRED_PATHS=(
@@ -96,7 +89,6 @@ jobs:
 
       - name: Add test entity
         run: |
-          cd ./test-output
           APP_NAME="${{ env.TEST_APP_NAME }}"
           APP_FOLDER=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           ENTITIES_PATH="$APP_FOLDER/Backend/$APP_NAME.Entities"
@@ -132,7 +124,6 @@ jobs:
 
       - name: Build .NET backend
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           BACKEND_PATH="$APP_FOLDER/Backend"
 
@@ -149,7 +140,6 @@ jobs:
 
       - name: Run EF migration for Product entity
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           INFRASTRUCTURE_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
 
@@ -163,7 +153,6 @@ jobs:
 
       - name: Verify source generators created files
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           WEBAPI_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.WebAPI"
 
@@ -183,7 +172,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           FRONTEND_PATH="$APP_FOLDER/Frontend"
 
@@ -197,7 +185,6 @@ jobs:
 
       - name: Build Angular frontend
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           FRONTEND_PATH="$APP_FOLDER/Frontend"
 
@@ -213,7 +200,6 @@ jobs:
 
       - name: Install Playwright
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           FRONTEND_PATH="$APP_FOLDER/Frontend"
           cd "$FRONTEND_PATH"
@@ -224,7 +210,6 @@ jobs:
 
       - name: Create E2E tests
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           FRONTEND_PATH="$APP_FOLDER/Frontend"
           E2E_FOLDER="$FRONTEND_PATH/e2e"
@@ -340,7 +325,6 @@ jobs:
 
       - name: Run Playwright E2E tests
         run: |
-          cd ./test-output
           APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
           FRONTEND_PATH="$APP_FOLDER/Frontend"
           cd "$FRONTEND_PATH"
@@ -360,7 +344,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: test-output/**/playwright-report/
+          path: test-app/Frontend/playwright-report/
           retention-days: 7
 
       - name: Test Summary
