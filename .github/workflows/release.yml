@@ -64,7 +64,7 @@ on:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  NODE_VERSION: "22"
+  NODE_VERSION: "20"
 
 jobs:
   validate:
@@ -359,9 +359,6 @@ jobs:
     needs: [validate, build-angular]
     if: inputs.dry_run != true && needs.validate.outputs.publish_angular == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     outputs:
       published: ${{ steps.publish.outputs.success }}
 
@@ -380,6 +377,8 @@ jobs:
 
       - name: Publish to npm
         id: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd dist
 
