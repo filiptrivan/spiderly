@@ -92,7 +92,12 @@ jobs:
           [ "${{ inputs.publish_infrastructure }}" == "true" ] && dotnet_packages+=("Spiderly.Infrastructure/Spiderly.Infrastructure.csproj")
           [ "${{ inputs.publish_cli }}" == "true" ] && dotnet_packages+=("Spiderly.CLI/Spiderly.CLI.csproj")
 
-          dotnet_packages_json=$(printf '%s\n' "${dotnet_packages[@]}" | jq -R . | jq -s .)
+          if [ ${#dotnet_packages[@]} -eq 0 ]; then
+            dotnet_packages_json="[]"
+          else
+            dotnet_packages_json=$(printf '%s\n' "${dotnet_packages[@]}" | jq -R . | jq -s .)
+          fi
+
           echo "dotnet_packages=$dotnet_packages_json" >> $GITHUB_OUTPUT
           echo "publish_angular=${{ inputs.publish_angular }}" >> $GITHUB_OUTPUT
 
