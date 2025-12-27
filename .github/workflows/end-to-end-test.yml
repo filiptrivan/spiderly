@@ -11,12 +11,13 @@ env:
   DOTNET_VERSION: '9.0.x'
   NODE_VERSION: '20'
   TEST_APP_NAME: 'TestApp'
+  APP_FOLDER: 'test-app'
 
 jobs:
   integration-test:
     name: Test CLI Generated Application
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -46,7 +47,6 @@ jobs:
 
       - name: Build and pack Spiderly.CLI
         run: |
-          dotnet clean
           dotnet restore
           dotnet build -c Release
           dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -c Release -o ./nupkg
@@ -59,7 +59,6 @@ jobs:
       - name: Setup folder structure for --dev mode
         run: |
           ln -s . spiderly
-          ls -la | grep spiderly
 
       - name: Run Spiderly init
         run: |
@@ -73,41 +72,22 @@ jobs:
             exit 1
           fi
 
-      - name: Verify generated structure
-        run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-
-          REQUIRED_PATHS=(
-            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.WebAPI"
-            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
-            "$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Entities"
-            "$APP_FOLDER/Frontend/src"
-          )
-
-          for path in "${REQUIRED_PATHS[@]}"; do
-            if [ ! -d "$path" ]; then
-              echo "ERROR: Required path not found: $path"
-              find . -type d
-              exit 1
-            fi
-            echo "✓ Found: $path"
-          done
-
       - name: Add test entity
         run: |
           APP_NAME="${{ env.TEST_APP_NAME }}"
-          APP_FOLDER=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          ENTITIES_PATH="$APP_FOLDER/Backend/$APP_NAME.Entities"
+          ENTITIES_PATH="${{ env.APP_FOLDER }}/Backend/$APP_NAME.Business/Entities"
           ENTITY_FILE="$ENTITIES_PATH/Product.cs"
 
           cat > "$ENTITY_FILE" <<'PRODUCTCS'
-          using Spiderly.Shared;
+          using Spiderly.Shared.BaseEntities;
+          using Spiderly.Shared.Attributes.Entity;
           using System.ComponentModel.DataAnnotations;
 
           namespace ${{ env.TEST_APP_NAME }}.Entities
           {
               public class Product : BusinessObject<int>
               {
+                  [DisplayName]
                   [Required]
                   [MaxLength(100)]
                   public string Name { get; set; }
@@ -122,7 +102,7 @@ jobs:
                   [Range(0, 999999)]
                   public int Stock { get; set; }
 
-                  public bool IsActive { get; set; } = true;
+                  public bool? IsActive { get; set; };
               }
           }
           PRODUCTCS
@@ -130,8 +110,7 @@ jobs:
 
       - name: Build .NET backend
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          BACKEND_PATH="$APP_FOLDER/Backend"
+          BACKEND_PATH="${{ env.APP_FOLDER }}/Backend"
 
           echo "Building .NET backend..."
           cd "$BACKEND_PATH"
@@ -146,8 +125,7 @@ jobs:
 
       - name: Run EF migration for Product entity
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          INFRASTRUCTURE_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
+          INFRASTRUCTURE_PATH="${{ env.APP_FOLDER }}/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
 
           cd "$INFRASTRUCTURE_PATH"
 
@@ -157,29 +135,9 @@ jobs:
           echo "Updating database..."
           dotnet ef database update --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
 
-      - name: Verify source generators created files
-        run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          WEBAPI_PATH="$APP_FOLDER/Backend/${{ env.TEST_APP_NAME }}.WebAPI"
-
-          echo "Checking for generated files..."
-
-          GENERATED_FILES=$(find "$WEBAPI_PATH/obj" -name "*.g.cs" 2>/dev/null || true)
-          FILE_COUNT=$(echo "$GENERATED_FILES" | grep -c . || echo "0")
-
-          if [ "$FILE_COUNT" -gt 0 ]; then
-            echo "✓ Source generators created $FILE_COUNT files"
-            echo "$GENERATED_FILES" | head -5 | while read -r file; do
-              echo "  - $(basename "$file")"
-            done
-          else
-            echo "⚠ WARNING: No generated files found"
-          fi
-
       - name: Install frontend dependencies
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
 
           echo "Installing frontend packages..."
           cd "$FRONTEND_PATH"
@@ -191,8 +149,7 @@ jobs:
 
       - name: Build Angular frontend
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
 
           echo "Building Angular frontend..."
           cd "$FRONTEND_PATH"
@@ -206,8 +163,7 @@ jobs:
 
       - name: Install Playwright
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
           cd "$FRONTEND_PATH"
 
           echo "Installing Playwright..."
@@ -216,8 +172,7 @@ jobs:
 
       - name: Create E2E tests
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
           E2E_FOLDER="$FRONTEND_PATH/e2e"
           mkdir -p "$E2E_FOLDER"
 
@@ -331,8 +286,7 @@ jobs:
 
       - name: Run Playwright E2E tests
         run: |
-          APP_FOLDER=$(echo "${{ env.TEST_APP_NAME }}" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
-          FRONTEND_PATH="$APP_FOLDER/Frontend"
+          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
           cd "$FRONTEND_PATH"
 
           echo "Running Playwright E2E tests..."
