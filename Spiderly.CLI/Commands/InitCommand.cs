@@ -69,7 +69,7 @@ namespace Spiderly.CLI.Commands
             if (!hasNetAndAngularInitErrors)
             {
                 ConsoleHelper.MarkupLineLoading("Setting up user secrets...");
-                if (await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
+                if (await SetupUserSecrets(currentPath, appName, jwtKey))
                 {
                     ConsoleHelper.MarkupLineOK("User secrets configured successfully");
                 }
@@ -180,7 +180,7 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static async Task<bool> SetupUserSecrets(string outputPath, string appName, string jwtKey, string sqlServerConnectionString)
+        private static async Task<bool> SetupUserSecrets(string outputPath, string appName, string jwtKey)
         {
             string backendPath = Path.Combine(outputPath, appName.ToKebabCase(), "Backend", $"{appName}.WebAPI");
 
