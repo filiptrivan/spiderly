@@ -67,62 +67,70 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  release:
+  validate:
+    name: Validate Inputs
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
+    outputs:
+      new_version: ${{ steps.version.outputs.NEW_VERSION }}
+      is_prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
+      dotnet_packages: ${{ steps.packages.outputs.dotnet_packages }}
+      publish_angular: ${{ steps.packages.outputs.publish_angular }}
+      has_dotnet_packages: ${{ steps.packages.outputs.has_dotnet_packages }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate inputs
+        run: |
+          if [ "${{ inputs.release_type }}" == "stable" ] && [ "${{ inputs.version_bump }}" == "none" ]; then
+            echo "::error::Version bump is required for stable releases"
+            exit 1
+          fi
+
+          if [ "${{ inputs.publish_shared }}" != "true" ] && \
+             [ "${{ inputs.publish_sourcegenerators }}" != "true" ] && \
+             [ "${{ inputs.publish_security }}" != "true" ] && \
+             [ "${{ inputs.publish_infrastructure }}" != "true" ] && \
+             [ "${{ inputs.publish_cli }}" != "true" ] && \
+             [ "${{ inputs.publish_angular }}" != "true" ]; then
+            echo "::error::At least one package must be selected for publishing"
+            exit 1
+          fi
 
       - name: Build package selection
         id: packages
         run: |
-          dotnet_packages=()
+          packages=()
 
-          [ "${{ inputs.publish_shared }}" == "true" ] && dotnet_packages+=("Spiderly.Shared/Spiderly.Shared.csproj")
-          [ "${{ inputs.publish_sourcegenerators }}" == "true" ] && dotnet_packages+=("Spiderly.SourceGenerators/Spiderly.SourceGenerators.csproj")
-          [ "${{ inputs.publish_security }}" == "true" ] && dotnet_packages+=("Spiderly.Security/Spiderly.Security.csproj")
-          [ "${{ inputs.publish_infrastructure }}" == "true" ] && dotnet_packages+=("Spiderly.Infrastructure/Spiderly.Infrastructure.csproj")
-          [ "${{ inputs.publish_cli }}" == "true" ] && dotnet_packages+=("Spiderly.CLI/Spiderly.CLI.csproj")
+          [ "${{ inputs.publish_shared }}" == "true" ] && packages+=("Spiderly.Shared")
+          [ "${{ inputs.publish_sourcegenerators }}" == "true" ] && packages+=("Spiderly.SourceGenerators")
+          [ "${{ inputs.publish_security }}" == "true" ] && packages+=("Spiderly.Security")
+          [ "${{ inputs.publish_infrastructure }}" == "true" ] && packages+=("Spiderly.Infrastructure")
+          [ "${{ inputs.publish_cli }}" == "true" ] && packages+=("Spiderly.CLI")
 
-          if [ ${#dotnet_packages[@]} -eq 0 ]; then
-            dotnet_packages_json="[]"
+          if [ ${#packages[@]} -eq 0 ]; then
+            packages_json="[]"
+            has_packages="false"
           else
-            dotnet_packages_json=$(printf '%s\n' "${dotnet_packages[@]}" | jq -R . | jq -s .)
+            packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)
+            has_packages="true"
           fi
 
-          echo "dotnet_packages=$dotnet_packages_json" >> $GITHUB_OUTPUT
+          echo "dotnet_packages=$packages_json" >> $GITHUB_OUTPUT
           echo "publish_angular=${{ inputs.publish_angular }}" >> $GITHUB_OUTPUT
+          echo "has_dotnet_packages=$has_packages" >> $GITHUB_OUTPUT
 
-          echo "Selected .NET packages: ${dotnet_packages[@]}"
+          echo "Selected .NET packages: ${packages[*]}"
           echo "Publish Angular: ${{ inputs.publish_angular }}"
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install Angular CLI
-        run: npm install -g @angular/cli
 
       - name: Calculate new version
         id: version
         run: |
           current_version=$(grep -oPm1 "(?<=<Version>)[^<]+" Spiderly.Shared/Spiderly.Shared.csproj)
-          echo "📦 Current version: $current_version"
+          echo "Current version: $current_version"
 
           base_version="$current_version"
           if [[ "$current_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
@@ -133,51 +141,32 @@ jobs:
           version_bump="${{ inputs.version_bump }}"
 
           if [ "${{ inputs.release_type }}" == "stable" ]; then
-            if [ "$version_bump" == "none" ]; then
-              echo "❌ Error: version_bump is required for stable releases"
-              exit 1
-            fi
-
             case "$version_bump" in
-              major)
-                new_version="$((parts[0] + 1)).0.0"
-                ;;
-              minor)
-                new_version="${parts[0]}.$(( parts[1] + 1 )).0"
-                ;;
-              patch)
-                new_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))"
-                ;;
+              major) new_version="$((parts[0] + 1)).0.0" ;;
+              minor) new_version="${parts[0]}.$(( parts[1] + 1 )).0" ;;
+              patch) new_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))" ;;
             esac
             is_prerelease="false"
-            echo "✅ Stable release: $new_version"
+            echo "Stable release: $new_version"
           else
             preview_label="${{ inputs.preview_label }}"
 
             if [ "$version_bump" != "none" ]; then
               case "$version_bump" in
-                major)
-                  base_version="$((parts[0] + 1)).0.0"
-                  ;;
-                minor)
-                  base_version="${parts[0]}.$(( parts[1] + 1 )).0"
-                  ;;
-                patch)
-                  base_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))"
-                  ;;
+                major) base_version="$((parts[0] + 1)).0.0" ;;
+                minor) base_version="${parts[0]}.$(( parts[1] + 1 )).0" ;;
+                patch) base_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))" ;;
               esac
               new_version="${base_version}-${preview_label}.0"
-              echo "🚀 Bumped version to $base_version and started preview series"
+              echo "Bumped version to $base_version and started preview series"
             else
               if [[ "$current_version" =~ -${preview_label}\.([0-9]+)$ ]]; then
                 existing_number="${BASH_REMATCH[1]}"
                 new_number=$(( existing_number + 1 ))
                 new_version="${base_version}-${preview_label}.${new_number}"
-                echo "➕ Incremented preview: ${existing_number} → ${new_number}"
+                echo "Incremented preview: ${existing_number} → ${new_number}"
               else
-                echo "❌ Error: Cannot create preview with 'none' bump from stable version"
-                echo "Current version '$current_version' has no preview suffix"
-                echo "Please select a version bump (major/minor/patch) to start a new preview series"
+                echo "::error::Cannot create preview with 'none' bump from stable version $current_version"
                 exit 1
               fi
             fi
@@ -186,145 +175,292 @@ jobs:
 
           echo "NEW_VERSION=$new_version" >> $GITHUB_OUTPUT
           echo "IS_PRERELEASE=$is_prerelease" >> $GITHUB_OUTPUT
-          echo "🎯 New version: $new_version"
+          echo "New version: $new_version"
 
-      - name: Update .NET project versions
+  build-dotnet:
+    name: Build .NET Packages
+    needs: validate
+    if: needs.validate.outputs.has_dotnet_packages == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.validate.outputs.dotnet_packages) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Update version
         run: |
-          new_version="${{ steps.version.outputs.NEW_VERSION }}"
-          dotnet_packages='${{ steps.packages.outputs.dotnet_packages }}'
+          project="${{ matrix.package }}/${{ matrix.package }}.csproj"
+          new_version="${{ needs.validate.outputs.new_version }}"
+          sed -i "s|<Version>.*</Version>|<Version>$new_version</Version>|" "$project"
+          echo "Updated $project to $new_version"
 
-          if [ "$dotnet_packages" != "[]" ]; then
-            echo "$dotnet_packages" | jq -r '.[]' | while read project; do
-              sed -i "s|<Version>.*</Version>|<Version>$new_version</Version>|" "$project"
-              echo "Updated $project to $new_version"
-            done
-          fi
+      - name: Restore dependencies
+        run: dotnet restore "${{ matrix.package }}/${{ matrix.package }}.csproj"
 
-      - name: Update Angular package.json version
-        if: ${{ steps.packages.outputs.publish_angular == 'true' }}
+      - name: Build
+        run: dotnet build -c Release "${{ matrix.package }}/${{ matrix.package }}.csproj"
+
+      - name: Pack
         run: |
-          new_version="${{ steps.version.outputs.NEW_VERSION }}"
-          cd Angular/projects/spiderly
-          npm version $new_version --no-git-tag-version
-          echo "Updated Angular package to $new_version"
+          dotnet pack -c Release \
+            -o ./artifacts \
+            /p:PackageVersion=${{ needs.validate.outputs.new_version }} \
+            "${{ matrix.package }}/${{ matrix.package }}.csproj"
 
-      - name: Restore .NET dependencies
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-${{ matrix.package }}
+          path: ./artifacts/*.nupkg
+          retention-days: 1
+
+      - name: Upload version file
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-${{ matrix.package }}
+          path: ${{ matrix.package }}/${{ matrix.package }}.csproj
+          retention-days: 1
+
+  test-dotnet:
+    name: Test .NET
+    needs: [validate, build-dotnet]
+    if: needs.validate.outputs.has_dotnet_packages == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build .NET projects
-        run: |
-          dotnet_packages='${{ steps.packages.outputs.dotnet_packages }}'
+      - name: Build
+        run: dotnet build -c Release
 
-          if [ "$dotnet_packages" != "[]" ]; then
-            echo "$dotnet_packages" | jq -r '.[]' | while read project; do
-              echo "Building $project..."
-              dotnet build -c Release "$project"
-            done
-          fi
-
-      - name: Run .NET tests
+      - name: Run tests
         run: dotnet test -c Release --no-build --verbosity normal
-        continue-on-error: true
 
-      - name: Pack .NET projects
+  build-angular:
+    name: Build Angular Package
+    needs: validate
+    if: needs.validate.outputs.publish_angular == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: Angular/package-lock.json
+
+      - name: Update version
         run: |
-          new_version="${{ steps.version.outputs.NEW_VERSION }}"
-          dotnet_packages='${{ steps.packages.outputs.dotnet_packages }}'
+          cd Angular/projects/spiderly
+          npm version ${{ needs.validate.outputs.new_version }} --no-git-tag-version
+          echo "Updated Angular package to ${{ needs.validate.outputs.new_version }}"
 
-          if [ "$dotnet_packages" != "[]" ]; then
-            mkdir -p nupkg
-
-            echo "$dotnet_packages" | jq -r '.[]' | while read project; do
-              echo "Packing $project..."
-              dotnet pack -c Release -o nupkg /p:PackageVersion=$new_version "$project"
-            done
-          fi
-
-      - name: Build Angular library
-        if: ${{ steps.packages.outputs.publish_angular == 'true' }}
+      - name: Install dependencies
         run: |
           cd Angular
           npm ci
-          ng build spiderly --configuration production
+
+      - name: Build
+        run: |
+          cd Angular
+          npx ng build spiderly --configuration production
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: Angular/dist/spiderly/
+          retention-days: 1
+
+      - name: Upload version file
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-angular
+          path: Angular/projects/spiderly/package.json
+          retention-days: 1
+
+  publish-nuget:
+    name: Publish to NuGet
+    needs: [validate, build-dotnet, test-dotnet]
+    if: inputs.dry_run != true && needs.validate.outputs.has_dotnet_packages == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      published_packages: ${{ steps.publish.outputs.published_packages }}
+
+    steps:
+      - name: Download all NuGet packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nupkg-*
+          path: ./nupkg
+          merge-multiple: true
 
       - name: Publish to NuGet
-        if: ${{ inputs.dry_run != 'true' }}
+        id: publish
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
+          published=()
+          failed=()
+
           for package in nupkg/*.nupkg; do
+            if [ ! -f "$package" ]; then
+              echo "No packages found to publish"
+              continue
+            fi
+
             echo "Publishing $package..."
-            dotnet nuget push "$package" \
+            if dotnet nuget push "$package" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate
+              --skip-duplicate; then
+              package_name=$(basename "$package" .nupkg | sed 's/\.[0-9].*//')
+              published+=("$package_name")
+              echo "Successfully published $package_name"
+            else
+              failed+=("$(basename "$package")")
+              echo "::warning::Failed to publish $package"
+            fi
           done
 
-      - name: Publish to npm
-        if: ${{ inputs.dry_run != 'true' && steps.packages.outputs.publish_angular == 'true' }}
-        run: |
-          cd Angular/dist/spiderly
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::Failed to publish: ${failed[*]}"
+            exit 1
+          fi
 
-          if [ "${{ steps.version.outputs.IS_PRERELEASE }}" = "true" ]; then
-            npm publish --access public --tag ${{ inputs.preview_label }}
+          published_json=$(printf '%s\n' "${published[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
+          echo "published_packages=$published_json" >> $GITHUB_OUTPUT
+          echo "Published packages: ${published[*]}"
+
+  publish-npm:
+    name: Publish to npm
+    needs: [validate, build-angular]
+    if: inputs.dry_run != true && needs.validate.outputs.publish_angular == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      published: ${{ steps.publish.outputs.success }}
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download npm package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: ./dist
+
+      - name: Publish to npm
+        id: publish
+        run: |
+          cd dist
+
+          if [ "${{ needs.validate.outputs.is_prerelease }}" = "true" ]; then
+            npm publish --provenance --access public --tag ${{ inputs.preview_label }}
             echo "Published as preview with tag: ${{ inputs.preview_label }}"
           else
-            npm publish --access public
+            npm publish --provenance --access public
             echo "Published as latest stable"
           fi
 
-      - name: Commit version updates
-        if: ${{ inputs.dry_run != 'true' }}
+          echo "success=true" >> $GITHUB_OUTPUT
+
+  create-release:
+    name: Create GitHub Release
+    needs: [validate, publish-nuget, publish-npm]
+    if: |
+      always() &&
+      inputs.dry_run != true &&
+      (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all NuGet packages
+        if: needs.validate.outputs.has_dotnet_packages == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nupkg-*
+          path: ./nupkg
+          merge-multiple: true
+
+      - name: Create Git Tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "**/*.csproj" "Angular/projects/spiderly/package.json"
-          git commit -m "chore: bump version to ${{ steps.version.outputs.NEW_VERSION }}" || echo "No changes to commit"
-          git push
-
-      - name: Create Git Tag
-        if: ${{ inputs.dry_run != 'true' }}
-        run: |
-          tag="v${{ steps.version.outputs.NEW_VERSION }}"
+          tag="v${{ needs.validate.outputs.new_version }}"
           git tag "$tag"
           git push origin "$tag"
 
       - name: Generate Release Notes
-        id: release_notes
+        id: notes
         run: |
-          new_version="${{ steps.version.outputs.NEW_VERSION }}"
-          dotnet_packages='${{ steps.packages.outputs.dotnet_packages }}'
-          publish_angular="${{ steps.packages.outputs.publish_angular }}"
+          new_version="${{ needs.validate.outputs.new_version }}"
 
-          if [ "${{ steps.version.outputs.IS_PRERELEASE }}" == "true" ]; then
+          if [ "${{ needs.validate.outputs.is_prerelease }}" == "true" ]; then
             previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           else
             previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" --sort=-v:refname | grep -v -- "-" | head -n 1)
           fi
 
-          if [ -n "$previous_tag" ]; then
-            commits=$(git log "$previous_tag..HEAD" --pretty=format:"- %s (%h)" --no-merges)
-          else
-            commits=$(git log --pretty=format:"- %s (%h)" --no-merges -n 20)
-          fi
+          {
+            echo "## What's Changed"
+            echo ""
+            if [ -n "$previous_tag" ]; then
+              git log "$previous_tag..HEAD" --pretty=format:"- %s (%h)" --no-merges
+            else
+              git log --pretty=format:"- %s (%h)" --no-merges -n 20
+            fi
+            echo ""
+            echo ""
+            echo "## Packages Published"
+            echo ""
+          } > release_notes.md
 
-          echo "## What's Changed" > release_notes.md
-          echo "" >> release_notes.md
-          echo "$commits" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "## Packages Published" >> release_notes.md
-          echo "" >> release_notes.md
-
-          if [ "$dotnet_packages" != "[]" ]; then
+          dotnet_packages='${{ needs.validate.outputs.dotnet_packages }}'
+          if [ "$dotnet_packages" != "[]" ] && [ -n "$dotnet_packages" ]; then
             echo "### NuGet Packages" >> release_notes.md
-            echo "$dotnet_packages" | jq -r '.[]' | while read project; do
-              package_name=$(basename "$project" .csproj)
-              echo "- [$package_name $new_version](https://www.nuget.org/packages/$package_name/$new_version)" >> release_notes.md
+            echo "$dotnet_packages" | jq -r '.[]' | while read package; do
+              echo "- [$package $new_version](https://www.nuget.org/packages/$package/$new_version)" >> release_notes.md
             done
             echo "" >> release_notes.md
           fi
 
-          if [ "$publish_angular" == "true" ]; then
+          if [ "${{ needs.validate.outputs.publish_angular }}" == "true" ]; then
             echo "### npm Package" >> release_notes.md
             echo "- [spiderly $new_version](https://www.npmjs.com/package/spiderly/v/$new_version)" >> release_notes.md
             echo "" >> release_notes.md
@@ -333,39 +469,103 @@ jobs:
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...v$new_version" >> release_notes.md
 
       - name: Create GitHub Release
-        if: ${{ inputs.dry_run != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.NEW_VERSION }}
-          name: Release v${{ steps.version.outputs.NEW_VERSION }}
+          tag_name: v${{ needs.validate.outputs.new_version }}
+          name: Release v${{ needs.validate.outputs.new_version }}
           body_path: release_notes.md
           draft: false
-          prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
-          files: |
-            nupkg/*.nupkg
+          prerelease: ${{ needs.validate.outputs.is_prerelease }}
+          files: nupkg/*.nupkg
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Merge to main (stable releases only)
-        if: ${{ inputs.dry_run != 'true' && steps.version.outputs.IS_PRERELEASE == 'false' && github.ref != 'refs/heads/main' }}
+  finalize:
+    name: Finalize Release
+    needs: [validate, create-release, publish-nuget, publish-npm]
+    if: |
+      always() &&
+      inputs.dry_run != true &&
+      needs.create-release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: version-*
+          path: ./versions
+
+      - name: Commit version updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          dotnet_packages='${{ needs.validate.outputs.dotnet_packages }}'
+          if [ "$dotnet_packages" != "[]" ] && [ -n "$dotnet_packages" ]; then
+            echo "$dotnet_packages" | jq -r '.[]' | while read package; do
+              if [ -f "versions/$package/$package.csproj" ]; then
+                cp "versions/$package/$package.csproj" "$package/$package.csproj"
+                git add "$package/$package.csproj"
+              fi
+            done
+          fi
+
+          if [ "${{ needs.validate.outputs.publish_angular }}" == "true" ] && [ -f "versions/angular/package.json" ]; then
+            cp "versions/angular/package.json" "Angular/projects/spiderly/package.json"
+            git add "Angular/projects/spiderly/package.json"
+          fi
+
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: bump version to ${{ needs.validate.outputs.new_version }}"
+            git push
+          else
+            echo "No version changes to commit"
+          fi
+
+      - name: Merge to main
+        if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
         run: |
           current_branch=$(git branch --show-current)
-          echo "Current branch: $current_branch"
-          echo "Merging stable release to main..."
+          echo "Merging stable release from $current_branch to main..."
 
           git fetch origin main
           git checkout main
-          git merge --no-ff origin/$current_branch -m "chore: merge stable release v${{ steps.version.outputs.NEW_VERSION }} to main"
+          git merge --no-ff "origin/$current_branch" -m "chore: merge stable release v${{ needs.validate.outputs.new_version }} to main"
           git push origin main
 
-          echo "✅ Successfully merged $current_branch to main"
+          echo "Successfully merged to main"
 
-      - name: Dry Run Summary
-        if: ${{ inputs.dry_run == 'true' }}
+  dry-run-summary:
+    name: Dry Run Summary
+    needs: [validate, build-dotnet, build-angular, test-dotnet]
+    if: |
+      always() &&
+      inputs.dry_run == true &&
+      needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate summary
         run: |
-          echo "## Dry Run Complete! :white_check_mark:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Version would be bumped to: **${{ steps.version.outputs.NEW_VERSION }}**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Packages built successfully but NOT published (dry run mode)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Dry Run Complete"
+            echo ""
+            echo "Version would be bumped to: **${{ needs.validate.outputs.new_version }}**"
+            echo ""
+            echo "### Build Status"
+            echo "- .NET Build: ${{ needs.build-dotnet.result || 'skipped' }}"
+            echo "- .NET Tests: ${{ needs.test-dotnet.result || 'skipped' }}"
+            echo "- Angular Build: ${{ needs.build-angular.result || 'skipped' }}"
+            echo ""
+            echo "Packages built successfully but NOT published (dry run mode)"
+          } >> $GITHUB_STEP_SUMMARY
