@@ -64,7 +64,7 @@ on:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   validate:
@@ -370,6 +370,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          registry-url: "https://registry.npmjs.org"
 
       - name: Download npm package
         uses: actions/download-artifact@v4
@@ -383,10 +384,10 @@ jobs:
           cd dist
 
           if [ "${{ needs.validate.outputs.is_prerelease }}" = "true" ]; then
-            npm publish --provenance --access public --tag ${{ inputs.preview_label }}
+            npm publish --access public --tag ${{ inputs.preview_label }}
             echo "Published as preview with tag: ${{ inputs.preview_label }}"
           else
-            npm publish --provenance --access public
+            npm publish --access public
             echo "Published as latest stable"
           fi
 
