@@ -10,7 +10,7 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, string connectionString, DbProviderCodes dbProvider = DbProviderCodes.SQLServer)
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.SQLServer)
     {
       string userSecretsId = Guid.NewGuid().ToString();
 
@@ -471,8 +471,7 @@ namespace Spiderly.Shared.Helpers
                                         emailSenderPassword: null,
                                         jwtKey: jwtKey,
                                         blobStorageConnectionString: null,
-                                        blobStorageUrl: null,
-                                        connectionString
+                                        blobStorageUrl: null
                                     )},
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
                                     new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
@@ -3098,8 +3097,7 @@ namespace {{appName}}.WebAPI
         string emailSenderPassword,
         string jwtKey,
         string blobStorageConnectionString,
-        string blobStorageUrl,
-        string connectionString
+        string blobStorageUrl
     )
     {
       return $$"""
@@ -3154,7 +3152,9 @@ namespace {{appName}}.WebAPI
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
 
-      "ConnectionString": "{{connectionString?.Replace(@"\", @"\\")}}",
+      // ConnectionString is configured in user secrets. Run: dotnet user-secrets list
+      // If not configured, set it with: dotnet user-secrets set "AppSettings:Spiderly.Shared:ConnectionString" "YourConnectionString"
+      "ConnectionString": "",
 
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
