@@ -42,6 +42,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -319,3 +320,4 @@ jobs:
           echo "Version would be bumped to: **${{ steps.version.outputs.NEW_VERSION }}**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Packages built successfully but NOT published (dry run mode)" >> $GITHUB_STEP_SUMMARY
+
