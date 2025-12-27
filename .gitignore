@@ -48,6 +48,7 @@
 **/*.pid
 **/*.bak
 **/*.tmp
+/nul
 
 # System files
 **/.DS_Store
