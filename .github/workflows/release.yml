@@ -268,7 +268,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: Angular/package-lock.json
 
       - name: Update version
@@ -370,7 +370,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          registry-url: "https://registry.npmjs.org"
 
       - name: Download npm package
         uses: actions/download-artifact@v4
@@ -553,7 +552,6 @@ jobs:
       inputs.dry_run == true &&
       needs.validate.result == 'success'
     runs-on: ubuntu-latest
-
     steps:
       - name: Generate summary
         run: |
