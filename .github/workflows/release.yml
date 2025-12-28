@@ -398,6 +398,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
+      needs.validate.outputs.is_prerelease == 'false' &&
       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success')
     runs-on: ubuntu-latest
     permissions:
@@ -429,12 +430,7 @@ jobs:
         id: notes
         run: |
           new_version="${{ needs.validate.outputs.new_version }}"
-
-          if [ "${{ needs.validate.outputs.is_prerelease }}" == "true" ]; then
-            previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          else
-            previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" --sort=-v:refname | grep -v -- "-" | head -n 1)
-          fi
+          previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" --sort=-v:refname | grep -v -- "-" | head -n 1)
 
           {
             echo "## What's Changed"
@@ -512,15 +508,15 @@ jobs:
           dotnet_packages='${{ needs.validate.outputs.dotnet_packages }}'
           if [ "$dotnet_packages" != "[]" ] && [ -n "$dotnet_packages" ]; then
             echo "$dotnet_packages" | jq -r '.[]' | while read package; do
-              if [ -f "versions/$package/$package.csproj" ]; then
-                cp "versions/$package/$package.csproj" "$package/$package.csproj"
+              if [ -f "versions/version-$package/$package.csproj" ]; then
+                cp "versions/version-$package/$package.csproj" "$package/$package.csproj"
                 git add "$package/$package.csproj"
               fi
             done
           fi
 
-          if [ "${{ needs.validate.outputs.publish_angular }}" == "true" ] && [ -f "versions/angular/package.json" ]; then
-            cp "versions/angular/package.json" "Angular/projects/spiderly/package.json"
+          if [ "${{ needs.validate.outputs.publish_angular }}" == "true" ] && [ -f "versions/version-angular/package.json" ]; then
+            cp "versions/version-angular/package.json" "Angular/projects/spiderly/package.json"
             git add "Angular/projects/spiderly/package.json"
           fi
 

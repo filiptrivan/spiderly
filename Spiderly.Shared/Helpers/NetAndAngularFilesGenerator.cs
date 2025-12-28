@@ -3538,7 +3538,7 @@ namespace {{appName}}.Business.Services
         private readonly {{appName}}.Business.Services.AuthorizationBusinessService _authorizationService;
         private readonly AuthenticationService _authenticationService;
         private readonly SecurityBusinessService<User> _securityBusinessService;
-        private readonly EmailingService _emailingService;
+        private readonly IEmailingService _emailingService;
 
         public {{appName}}BusinessService(
             IApplicationDbContext context,
@@ -3546,7 +3546,7 @@ namespace {{appName}}.Business.Services
             {{appName}}.Business.Services.AuthorizationBusinessService authorizationService,
             SecurityBusinessService<User> securityBusinessService,
             AuthenticationService authenticationService,
-            EmailingService emailingService,
+            IEmailingService emailingService,
             IFileManager fileManager
         )
             : base(context, excelService, authorizationService, fileManager)
