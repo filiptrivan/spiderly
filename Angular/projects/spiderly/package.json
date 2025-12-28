@@ -1,6 +1,6 @@
 ﻿{
     "name":  "spiderly",
-    "version":  "19.3.1",
+    "version":  "19.4.0-preview.0",
     "author":  "Filip Trivan",
     "license":  "MIT",
     "description":  "Spiderly Angular Library to use in combination with Spiderly.",
