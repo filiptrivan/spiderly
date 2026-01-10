@@ -2,14 +2,14 @@ import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
-import { LayoutBaseService } from '../../../services/app-layout-base.service';
+import { LayoutServiceBase } from '../../../services/app-layout.service.base';
 import { UserBase } from '../../../entities/security-entities';
 import { filter, Subscription } from 'rxjs';
-import { AuthBaseService } from '../../../services/auth-base.service';
+import { AuthServiceBase } from '../../../services/auth.service.base';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { BadgeModule } from 'primeng/badge';
 import { SpiderlyButtonComponent } from "../../spiderly-buttons/spiderly-button/spiderly-button.component";
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 
 @Component({
   selector: 'spiderly-profile-avatar',
@@ -58,11 +58,11 @@ export class ProfileAvatarComponent {
   @ViewChild('topbarprofiledropdownmenubutton') topbarProfileDropdownMenuButton!: ElementRef;
 
   constructor(
-    public layoutService: LayoutBaseService, 
-    private authService: AuthBaseService, 
+    public layoutService: LayoutServiceBase, 
+    private authService: AuthServiceBase, 
     protected router: Router,
     private translocoService: TranslocoService,
-    public config: ConfigBaseService,
+    public config: ConfigServiceBase,
   ) { 
   }
 

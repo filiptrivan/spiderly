@@ -6,30 +6,30 @@ namespace Spiderly.CLI.Commands
     {
         public static void Execute()
         {
-            AnsiConsole.MarkupLine("\n[bold]Usage:[/] [dim]spiderly[/] [cyan bold][[command]][/] [yellow bold][[options]][/]\n");
+            AnsiConsole.MarkupLine("\n[bold]Usage:[/] spiderly [cyan bold][[command]][/] [yellow bold][[options]][/]\n");
 
             List<CommandInfo> commands = new List<CommandInfo>
             {
                 new CommandInfo
                 {
                     Name = "init",
-                    Description = "This command initializes a new Spiderly project with .NET backend and Angular frontend",
+                    Description = "This command initializes a new Spiderly project with a .NET backend and an Angular frontend. You can run it using [bold]spiderly init[/], and we will dynamically ask you for all the required information.",
                     Options = new List<OptionInfo>
                     {
                         new OptionInfo
                         {
                             Name = "--name",
-                            Description = "App name without spaces (required in non-interactive mode, e.g. GitHub workflows)"
+                            Description = "App name without spaces (you can change it later)."
                         },
                         new OptionInfo
                         {
                             Name = "--db",
-                            Description = "Database provider: sqlserver or postgresql (required in non-interactive mode, e.g. GitHub workflows)"
+                            Description = "Database provider: sqlserver or postgresql (you can change it later)."
                         },
                         new OptionInfo
                         {
                             Name = "--top-menu",
-                            Description = "Use a top menu layout instead of the default side menu layout"
+                            Description = "Use a top menu layout instead of the default side menu layout in the UI (you can change it later)."
                         }
                     },
                     Examples = new List<string>
@@ -43,13 +43,13 @@ namespace Spiderly.CLI.Commands
                 new CommandInfo
                 {
                     Name = "add-new-page",
-                    Description = "This command generates starter files to support CRUD operations for a new entity",
+                    Description = "This command generates starter files to support CRUD operations for a new entity.",
                     Options = new List<OptionInfo>
                     {
                         new OptionInfo
                         {
                             Name = "--data-view",
-                            Description = "Generate DataView template instead of Table template"
+                            Description = "Generate DataView template instead of Table template."
                         }
                     },
                     Examples = new List<string>
@@ -101,12 +101,12 @@ namespace Spiderly.CLI.Commands
                 return example;
 
             if (parts.Length == 1)
-                return $"[dim]{parts[0]}[/]";
+                return parts[0];
 
             if (parts.Length == 2)
-                return $"[dim]{parts[0]}[/] [cyan]{parts[1]}[/]";
+                return $"{parts[0]} [cyan]{parts[1]}[/]";
 
-            string firstPart = $"[dim]{parts[0]}[/]";
+            string firstPart = parts[0];
             string secondPart = $"[cyan]{parts[1]}[/]";
             string remainingParts = string.Join(" ", parts.Skip(2));
 

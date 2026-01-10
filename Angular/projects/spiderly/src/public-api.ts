@@ -20,7 +20,6 @@ export * from './lib/controls/base-autocomplete-control';
 export * from './lib/controls/base-dropdown-control';
 export * from './lib/controls/spiderly-controls.module';
 
-export * from './lib/components/base-details/role-base-details.component'
 export * from './lib/components/base-form/base-form copy';
 export * from './lib/components/card-skeleton/card-skeleton.component';
 export * from './lib/components/auth/partials/login-verification.component';
@@ -89,14 +88,14 @@ export * from './lib/interceptors/unauthorized.interceptor';
 
 export * from './lib/services/api.service.security';
 export * from './lib/services/app-initializer';
-export * from './lib/services/auth-base.service';
+export * from './lib/services/auth.service.base';
 export * from './lib/services/base-form.service';
-export * from './lib/services/config-base.service';
+export * from './lib/services/config.service.base';
 export * from './lib/services/helper-functions';
 export * from './lib/services/spiderly-message.service';
 export * from './lib/services/spiderly-transloco-loader';
 export * from './lib/services/translate-labels-abstract.service';
 export * from './lib/services/validator-abstract.service';
-export * from './lib/services/app-layout-base.service';
+export * from './lib/services/app-layout.service.base';
 
 export * from './lib/directives/template-type.directive';

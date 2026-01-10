@@ -1,9 +1,9 @@
-import { AuthBaseService } from './auth-base.service';
+import { AuthServiceBase } from './auth.service.base';
 import { ApiSecurityService } from './api.service.security';
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, delay, lastValueFrom, map, Observable, of, Subject, Subscription, withLatestFrom } from 'rxjs';
 import { InitTopBarData } from '../entities/init-top-bar-data';
-import { ConfigBaseService } from './config-base.service';
+import { ConfigServiceBase } from './config.service.base';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Namebook } from '../entities/namebook';
 
@@ -30,7 +30,7 @@ interface LayoutState {
 @Injectable({
     providedIn: 'root',
 })
-export class LayoutBaseService implements OnDestroy {
+export class LayoutServiceBase implements OnDestroy {
     userSubscription: Subscription;
 
     protected _unreadNotificationsNumber = new BehaviorSubject<number | null>(null);
@@ -66,8 +66,8 @@ export class LayoutBaseService implements OnDestroy {
 
     constructor(
         protected apiService: ApiSecurityService,
-        protected config: ConfigBaseService,
-        protected authService: AuthBaseService
+        protected config: ConfigServiceBase,
+        protected authService: AuthServiceBase
     ) {
     }
 

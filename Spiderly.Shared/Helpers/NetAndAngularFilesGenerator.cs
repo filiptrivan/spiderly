@@ -10,7 +10,7 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.SQLServer)
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.PostgreSQL)
     {
       string userSecretsId = Guid.NewGuid().ToString();
 
@@ -18,480 +18,487 @@ namespace Spiderly.Shared.Helpers
       {
         Name = appName.ToKebabCase(),
         ChildFolders =
+        {
+            new SpiderlyFolder
+            {
+                Name = "Frontend",
+                ChildFolders =
                 {
                     new SpiderlyFolder
                     {
-                        Name = "Frontend",
+                        Name = ".vscode",
+                        Files =
+                        {
+                            new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData() },
+                            new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
+                            new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
+                            new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
+                        Name = "tests",
                         ChildFolders =
                         {
                             new SpiderlyFolder
                             {
-                                Name = ".vscode",
-                                Files =
-                                {
-                                    new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() }
-                                }
-                            },
-                            new SpiderlyFolder
-                            {
-                                Name = "tests",
+                                Name = "e2e",
                                 ChildFolders =
                                 {
                                     new SpiderlyFolder
                                     {
-                                        Name = "e2e",
-                                        ChildFolders =
-                                        {
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "specs",
-                                                Files =
-                                                {
-                                                    new SpiderlyFile { Name = "auth.spec.ts", Data = GetAuthSpecData() },
-                                                    new SpiderlyFile { Name = "user-crud.spec.ts", Data = GetUserCrudSpecData() },
-                                                    new SpiderlyFile { Name = "notification-crud.spec.ts", Data = GetNotificationCrudSpecData() },
-                                                }
-                                            },
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "page-objects",
-                                                Files =
-                                                {
-                                                    new SpiderlyFile { Name = "base-page.ts", Data = GetBasePageObjectData() },
-                                                    new SpiderlyFile { Name = "login-page.ts", Data = GetLoginPageObjectData() },
-                                                    new SpiderlyFile { Name = "user-list-page.ts", Data = GetUserListPageObjectData() },
-                                                }
-                                            }
-                                        },
+                                        Name = "specs",
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = ".gitignore", Data = GetE2EGitignoreData() }
+                                            new SpiderlyFile { Name = "auth.spec.ts", Data = GetAuthSpecData() },
+                                            new SpiderlyFile { Name = "user-crud.spec.ts", Data = GetUserCrudSpecData() },
+                                            new SpiderlyFile { Name = "notification-crud.spec.ts", Data = GetNotificationCrudSpecData() },
+                                        }
+                                    },
+                                    new SpiderlyFolder
+                                    {
+                                        Name = "page-objects",
+                                        Files =
+                                        {
+                                            new SpiderlyFile { Name = "base-page.ts", Data = GetBasePageObjectData() },
+                                            new SpiderlyFile { Name = "login-page.ts", Data = GetLoginPageObjectData() },
+                                            new SpiderlyFile { Name = "user-list-page.ts", Data = GetUserListPageObjectData() },
                                         }
                                     }
+                                },
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = ".gitignore", Data = GetE2EGitignoreData() }
                                 }
-                            },
+                            }
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
+                        Name = "src",
+                        ChildFolders =
+                        {
                             new SpiderlyFolder
                             {
-                                Name = "src",
+                                Name = "app",
                                 ChildFolders =
                                 {
                                     new SpiderlyFolder
                                     {
-                                        Name = "app",
+                                        Name = "business",
                                         ChildFolders =
                                         {
                                             new SpiderlyFolder
                                             {
-                                                Name = "business",
+                                                Name = "components",
                                                 ChildFolders =
                                                 {
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "components",
-                                                        ChildFolders =
+                                                        Name = "base-details",
+                                                    },
+                                                }
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "entities",
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "enums",
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "layout",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopMenu) },
+                                                    new SpiderlyFile { Name = "layout.component.ts", Data = GetLayoutComponentTsCode() },
+                                                }
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "services",
+                                                ChildFolders =
+                                                {
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "api",
+                                                        Files =
                                                         {
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "base-details",
-                                                            },
+                                                            new SpiderlyFile { Name = "api.service.ts", Data = GetAPIServiceTsCode() },
                                                         }
                                                     },
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "entities",
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "enums",
+                                                        Name = "auth",
+                                                        Files =
+                                                        {
+                                                            new SpiderlyFile { Name = "auth.service.ts", Data = GetAuthServiceTsCode() },
+                                                        }
                                                     },
                                                     new SpiderlyFolder
                                                     {
                                                         Name = "layout",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopMenu) },
-                                                            new SpiderlyFile { Name = "layout.component.ts", Data = GetLayoutComponentTsCode() },
+                                                            new SpiderlyFile { Name = "layout.service.ts", Data = GetLayoutServiceTsCode() },
                                                         }
                                                     },
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "services",
-                                                        ChildFolders =
-                                                        {
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "api",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "api.service.ts", Data = GetAPIServiceTsCode() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "auth",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "auth.service.ts", Data = GetAuthServiceTsCode() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "layout",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "layout.service.ts", Data = GetLayoutServiceTsCode() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "translates",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "merge-class-names.ts", Data = GetMergeClassNamesTsCode() },
-                                                                    new SpiderlyFile { Name = "merge-labels.ts", Data = GetMergeLabelsCode() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "validators",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "validators.ts", Data = GetValidatorsTsCode() },
-                                                                }
-                                                            },
-                                                        },
+                                                        Name = "translates",
                                                         Files =
                                                         {
-                                                            new SpiderlyFile { Name = "config.service.ts", Data = GetConfigServiceTsCode() },
+                                                            new SpiderlyFile { Name = "merge-class-names.ts", Data = GetMergeClassNamesTsCode() },
+                                                            new SpiderlyFile { Name = "merge-labels.ts", Data = GetMergeLabelsCode() },
+                                                        }
+                                                    },
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "validators",
+                                                        Files =
+                                                        {
+                                                            new SpiderlyFile { Name = "validators.ts", Data = GetValidatorsTsCode() },
+                                                        }
+                                                    },
+                                                },
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "config.service.ts", Data = GetConfigServiceTsCode() },
+                                                }
+                                            },
+                                        },
+                                    },
+                                    new SpiderlyFolder
+                                    {
+                                        Name = "pages",
+                                        ChildFolders =
+                                        {
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "administration",
+                                                ChildFolders =
+                                                {
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "notification",
+                                                        Files =
+                                                        {
+                                                            new SpiderlyFile { Name = "notification-details.component.html", Data = GetNotificationDetailsComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "notification-details.component.ts", Data = GetNotificationDetailsComponentTsData() },
+                                                            new SpiderlyFile { Name = "notification-list.component.html", Data = GetNotificationTableComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "notification-list.component.ts", Data = GetNotificationTableComponentTsData() },
+                                                        }
+                                                    },
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "user",
+                                                        Files =
+                                                        {
+                                                            new SpiderlyFile { Name = "user-details.component.html", Data = GetUserDetailsComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "user-details.component.ts", Data = GetUserDetailsComponentTsData() },
+                                                            new SpiderlyFile { Name = "user-list.component.html", Data = GetUserTableComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "user-list.component.ts", Data = GetUserTableComponentTsData() },
+                                                        }
+                                                    },
+                                                    new SpiderlyFolder
+                                                    {
+                                                        Name = "role",
+                                                        Files =
+                                                        {
+                                                            new SpiderlyFile { Name = "role-details.component.html", Data = GetRoleDetailsComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "role-details.component.ts", Data = GetRoleDetailsComponentTsData() },
+                                                            new SpiderlyFile { Name = "role-list.component.html", Data = GetRoleTableComponentHtmlData() },
+                                                            new SpiderlyFile { Name = "role-list.component.ts", Data = GetRoleTableComponentTsData() },
                                                         }
                                                     },
                                                 },
                                             },
                                             new SpiderlyFolder
                                             {
-                                                Name = "pages",
-                                                ChildFolders =
+                                                Name = "homepage",
+                                                Files =
                                                 {
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "administration",
-                                                        ChildFolders =
-                                                        {
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "notification",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "notification-details.component.html", Data = GetNotificationDetailsComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "notification-details.component.ts", Data = GetNotificationDetailsComponentTsData() },
-                                                                    new SpiderlyFile { Name = "notification-list.component.html", Data = GetNotificationTableComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "notification-list.component.ts", Data = GetNotificationTableComponentTsData() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "user",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "user-details.component.html", Data = GetUserDetailsComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "user-details.component.ts", Data = GetUserDetailsComponentTsData() },
-                                                                    new SpiderlyFile { Name = "user-list.component.html", Data = GetUserTableComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "user-list.component.ts", Data = GetUserTableComponentTsData() },
-                                                                }
-                                                            },
-                                                            new SpiderlyFolder
-                                                            {
-                                                                Name = "role",
-                                                                Files =
-                                                                {
-                                                                    new SpiderlyFile { Name = "role-details.component.html", Data = GetRoleDetailsComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "role-details.component.ts", Data = GetRoleDetailsComponentTsData() },
-                                                                    new SpiderlyFile { Name = "role-list.component.html", Data = GetRoleTableComponentHtmlData() },
-                                                                    new SpiderlyFile { Name = "role-list.component.ts", Data = GetRoleTableComponentTsData() },
-                                                                }
-                                                            },
-                                                        },
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "homepage",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "homepage.component.html", Data = GetHomepageComponentHtmlData(appName) },
-                                                            new SpiderlyFile { Name = "homepage.component.ts", Data = GetHomepageComponentTsData() },
-                                                        }
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "privacy-policy",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "privacy-policy.component.html", Data = GetPrivacyPolicyComponentHtmlData() },
-                                                            new SpiderlyFile { Name = "privacy-policy.component.ts", Data = GetPrivacyPolicyComponentTsData() },
-                                                        },
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "user-agreement",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "user-agreement.component.html", Data = GetUserAgreementComponentHtmlData() },
-                                                            new SpiderlyFile { Name = "user-agreement.component.ts", Data = GetUserAgreementComponentTsData() },
-                                                        },
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "notifications-view",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "notifications-view.component.html", Data = GetNotificationsViewComponentHtmlData() },
-                                                            new SpiderlyFile { Name = "notifications-view.component.ts", Data = GetNotificationsViewComponentTsData() },
-                                                        }
-                                                    },
+                                                    new SpiderlyFile { Name = "homepage.component.html", Data = GetHomepageComponentHtmlData(appName) },
+                                                    new SpiderlyFile { Name = "homepage.component.ts", Data = GetHomepageComponentTsData() },
                                                 }
                                             },
-                                        },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "privacy-policy",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "privacy-policy.component.html", Data = GetPrivacyPolicyComponentHtmlData() },
+                                                    new SpiderlyFile { Name = "privacy-policy.component.ts", Data = GetPrivacyPolicyComponentTsData() },
+                                                },
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "user-agreement",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "user-agreement.component.html", Data = GetUserAgreementComponentHtmlData() },
+                                                    new SpiderlyFile { Name = "user-agreement.component.ts", Data = GetUserAgreementComponentTsData() },
+                                                },
+                                            },
+                                            new SpiderlyFolder
+                                            {
+                                                Name = "notifications-view",
+                                                Files =
+                                                {
+                                                    new SpiderlyFile { Name = "notifications-view.component.html", Data = GetNotificationsViewComponentHtmlData() },
+                                                    new SpiderlyFile { Name = "notifications-view.component.ts", Data = GetNotificationsViewComponentTsData() },
+                                                }
+                                            },
+                                        }
+                                    },
+                                },
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "app.routes.ts", Data = GetAppRoutesTsData() },
+                                    new SpiderlyFile { Name = "app.component.html", Data = GetAppComponentHtmlData() },
+                                    new SpiderlyFile { Name = "app.component.ts", Data = GetAppComponentTsData() },
+                                    new SpiderlyFile { Name = "app.config.ts", Data = GetAppConfigTsData() },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "assets",
+                                ChildFolders =
+                                {
+                                    new SpiderlyFolder
+                                    {
+                                        Name = "i18n",
                                         Files =
                                         {
-                                            new SpiderlyFile { Name = "app.routes.ts", Data = GetAppRoutesTsData() },
-                                            new SpiderlyFile { Name = "app.component.html", Data = GetAppComponentHtmlData() },
-                                            new SpiderlyFile { Name = "app.component.ts", Data = GetAppComponentTsData() },
-                                            new SpiderlyFile { Name = "app.config.ts", Data = GetAppConfigTsData() },
+                                            new SpiderlyFile { Name = "en.generated.json", Data = "" },
+                                            new SpiderlyFile { Name = "en.json", Data = GetTranslocoEnJsonCode() },
+                                            new SpiderlyFile { Name = "sr-Latn-RS.generated.json", Data = "" },
+                                            new SpiderlyFile { Name = "sr-Latn-RS.json", Data = GetTranslocoSrLatnRSJsonCode() },
                                         }
                                     },
                                     new SpiderlyFolder
                                     {
-                                        Name = "assets",
+                                        Name = "images",
                                         ChildFolders =
                                         {
                                             new SpiderlyFolder
                                             {
-                                                Name = "i18n",
+                                                Name = "logo",
                                                 Files =
                                                 {
-                                                    new SpiderlyFile { Name = "en.generated.json", Data = "" },
-                                                    new SpiderlyFile { Name = "en.json", Data = GetTranslocoEnJsonCode() },
-                                                    new SpiderlyFile { Name = "sr-Latn-RS.generated.json", Data = "" },
-                                                    new SpiderlyFile { Name = "sr-Latn-RS.json", Data = GetTranslocoSrLatnRSJsonCode() },
+                                                    new SpiderlyFile { Name = "favicon.ico", Data = GetFaviconIcoData() },
+                                                    new SpiderlyFile { Name = "logo.svg", Data = GetLogoSvgData() },
                                                 }
-                                            },
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "images",
-                                                ChildFolders =
-                                                {
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "logo",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "favicon.ico", Data = GetFaviconIcoData() },
-                                                            new SpiderlyFile { Name = "logo.svg", Data = GetLogoSvgData() },
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        },
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "primeng-theme.ts", Data = GetPrimeNGThemeTsData() },
-                                            new SpiderlyFile { Name = "styles.scss", Data = GetStylesScssData(isRunningFromNuget) },
+                                            }
                                         }
                                     },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "environments",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "environment.prod.ts", Data = GetEnvironmentProdTsData(appName) },
-                                            new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName) },
-                                        }
-                                    }
                                 },
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "index.html", Data = GetIndexHtmlData(appName) },
-                                    new SpiderlyFile { Name = "main.ts", Data = GetMainTsData() },
+                                    new SpiderlyFile { Name = "primeng-theme.ts", Data = GetPrimeNGThemeTsData() },
+                                    new SpiderlyFile { Name = "styles.scss", Data = GetStylesScssData(isRunningFromNuget) },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "environments",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName) },
                                 }
                             }
                         },
                         Files =
                         {
-                            new SpiderlyFile { Name = ".editorconfig", Data = GetEditOrConfigData() },
-                            new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
-                            new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
-                            new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
-                            new SpiderlyFile { Name = "playwright.config.ts", Data = GetPlaywrightConfigData() },
-                            new SpiderlyFile { Name = "README.md", Data = GetFrontendREADMEData(appName, spiderlyVersion) },
-                            new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
-                            new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isRunningFromNuget) },
-                            new SpiderlyFile { Name = "tsconfig.spec.json", Data = GetTsConfigSpecJsonData() },
-                            new SpiderlyFile { Name = "vercel.json", Data = GetVercelJsonData(appName) },
+                            new SpiderlyFile { Name = "index.html", Data = GetIndexHtmlData(appName) },
+                            new SpiderlyFile { Name = "main.ts", Data = GetMainTsData() },
                         }
-                    },
+                    }
+                },
+                Files =
+                {
+                    new SpiderlyFile { Name = ".editorconfig", Data = GetEditOrConfigData() },
+                    new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
+                    new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
+                    new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
+                    new SpiderlyFile { Name = "playwright.config.ts", Data = GetPlaywrightConfigData() },
+                    new SpiderlyFile { Name = "README.md", Data = GetFrontendREADMEData(appName, spiderlyVersion) },
+                    new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
+                    new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isRunningFromNuget) },
+                    new SpiderlyFile { Name = "tsconfig.spec.json", Data = GetTsConfigSpecJsonData() },
+                    new SpiderlyFile { Name = "vercel.json", Data = GetVercelJsonData(appName) },
+                }
+            },
+            new SpiderlyFolder
+            {
+                Name = "Backend",
+                ChildFolders =
+                {
                     new SpiderlyFolder
                     {
-                        Name = "Backend",
+                        Name = $"{appName}.Business",
                         ChildFolders =
                         {
                             new SpiderlyFolder
                             {
-                                Name = $"{appName}.Business",
-                                ChildFolders =
+                                Name = "DataMappers",
+                                Files = new List<SpiderlyFile>
                                 {
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "DataMappers",
-                                        Files = new List<SpiderlyFile>
-                                        {
-                                            new SpiderlyFile { Name = "MapsterMapper.cs", Data = GetMapsterMapperCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "DTO",
-                                        Files = new List<SpiderlyFile>
-                                        {
-                                            new SpiderlyFile { Name = "NotificationDTO.cs", Data = GetNotificationDTOCsData(appName) },
-                                            new SpiderlyFile { Name = "NotificationSaveBodyDTO.cs", Data = GetNotificationSaveBodyDTOCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Entities",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "Notification.cs", Data = GetNotificationCsData(appName) },
-                                            new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
-                                            new SpiderlyFile { Name = "UserNotification.cs", Data = GetUserNotificationCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Enums",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "BusinessPermissionCodes.cs", Data = GetBusinessPermissionCodesCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Services",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = $"AuthorizationBusinessService.cs", Data = GetAuthorizationServiceCsData(appName) },
-                                            new SpiderlyFile { Name = $"{appName}BusinessService.cs", Data = GetBusinessServiceCsData(appName) },
-                                        }
-                                    },
-                                },
-                                Files =
-                                {
-                                    new SpiderlyFile { Name = $"{appName}.Business.csproj", Data = GetBusinessCsProjData(appName, spiderlyVersion, isRunningFromNuget) },
-                                    new SpiderlyFile { Name = $"Settings.cs", Data = GetBusinessSettingsCsData(appName) },
+                                    new SpiderlyFile { Name = "MapsterMapper.cs", Data = GetMapsterMapperCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
                             {
-                                Name = $"{appName}.Infrastructure",
-                                Files =
+                                Name = "DTO",
+                                Files = new List<SpiderlyFile>
                                 {
-                                    new SpiderlyFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
-                                    new SpiderlyFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, spiderlyVersion, isRunningFromNuget) },
+                                    new SpiderlyFile { Name = "NotificationDTO.cs", Data = GetNotificationDTOCsData(appName) },
+                                    new SpiderlyFile { Name = "NotificationSaveBodyDTO.cs", Data = GetNotificationSaveBodyDTOCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
                             {
-                                Name = $"{appName}.Shared",
-                                ChildFolders =
-                                {
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "FluentValidation",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "TranslatePropertiesConfiguration.cs", Data = GetTranslatePropertiesConfigurationCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Resources",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "Terms.Designer.cs", Data = GetTermsDesignerCsData(appName) },
-                                            new SpiderlyFile { Name = "Terms.resx", Data = GetTermsResxData() },
-                                            new SpiderlyFile { Name = "Terms.sr-Latn-RS.resx", Data = GetTermsSrLatnRSResxData() },
-                                            new SpiderlyFile { Name = "TermsGenerated.Designer.cs", Data = GetTermsGeneratedDesignerCsData(appName) },
-                                            new SpiderlyFile { Name = "TermsGenerated.resx", Data = GetTermsGeneratedResxData() },
-                                            new SpiderlyFile { Name = "TermsGenerated.sr-Latn-RS.resx", Data = GetTermsGeneratedSrLatnRSResxData() },
-                                        }
-                                    }
-                                },
+                                Name = "Entities",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = $"{appName}.Shared.csproj", Data = GetSharedCsProjData(spiderlyVersion, isRunningFromNuget) },
+                                    new SpiderlyFile { Name = "Notification.cs", Data = GetNotificationCsData(appName) },
+                                    new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
+                                    new SpiderlyFile { Name = "Role.cs", Data = GetRoleCsData(appName) },
+                                    new SpiderlyFile { Name = "Permission.cs", Data = GetPermissionCsData(appName) },
+                                    new SpiderlyFile { Name = "RolePermission.cs", Data = GetRolePermissionCsData(appName) },
+                                    new SpiderlyFile { Name = "UserRole.cs", Data = GetUserRoleCsData(appName) },
+                                    new SpiderlyFile { Name = "UserNotification.cs", Data = GetUserNotificationCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
                             {
-                                Name = $"{appName}.WebAPI",
-                                ChildFolders =
-                                {
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Properties",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "launchSettings.json", Data = GetLaunchSettingsJsonData() },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "Controllers",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "NotificationController.cs", Data = GetNotificationControllerCsData(appName) },
-                                            new SpiderlyFile { Name = "SecurityController.cs", Data = GetSecurityControllerCsData(appName) },
-                                            new SpiderlyFile { Name = "UserController.cs", Data = GetUserControllerCsData(appName) },
-                                        }
-                                    },
-                                    new SpiderlyFolder
-                                    {
-                                        Name = "DI",
-                                        Files =
-                                        {
-                                            new SpiderlyFile { Name = "CompositionRoot.cs", Data = GetCompositionRootCsData(appName) },
-                                        }
-                                    },
-                                },
+                                Name = "Enums",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(
-                                        appName,
-                                        emailSender: null,
-                                        emailSenderPassword: null,
-                                        jwtKey: jwtKey,
-                                        blobStorageConnectionString: null,
-                                        blobStorageUrl: null
-                                    )},
-                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
-                                    new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
-                                    new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
-                                    new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
-                                    new SpiderlyFile { Name = "Startup.cs", Data = GetStartupCsData(appName, dbProvider) },
+                                    new SpiderlyFile { Name = "BusinessPermissionCodes.cs", Data = GetBusinessPermissionCodesCsData(appName) },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "Services",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = $"AuthorizationService.cs", Data = GetAuthorizationServiceCsData(appName) },
+                                    new SpiderlyFile { Name = $"SecurityService.cs", Data = GetAuthorizationServiceCsData(appName) },
+                                    new SpiderlyFile { Name = $"BusinessService.cs", Data = GetBusinessServiceCsData(appName) },
                                 }
                             },
                         },
                         Files =
                         {
-                            new SpiderlyFile { Name = $"{appName}.sln", Data = GetNetSolutionData(appName) }
+                            new SpiderlyFile { Name = $"{appName}.Business.csproj", Data = GetBusinessCsProjData(appName, spiderlyVersion, isRunningFromNuget) },
+                            new SpiderlyFile { Name = $"Settings.cs", Data = GetBusinessSettingsCsData(appName) },
                         }
-                    }
+                    },
+                    new SpiderlyFolder
+                    {
+                        Name = $"{appName}.Infrastructure",
+                        Files =
+                        {
+                            new SpiderlyFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
+                            new SpiderlyFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, spiderlyVersion, isRunningFromNuget) },
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
+                        Name = $"{appName}.Shared",
+                        ChildFolders =
+                        {
+                            new SpiderlyFolder
+                            {
+                                Name = "FluentValidation",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "TranslatePropertiesConfiguration.cs", Data = GetTranslatePropertiesConfigurationCsData(appName) },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "Resources",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "Terms.Designer.cs", Data = GetTermsDesignerCsData(appName) },
+                                    new SpiderlyFile { Name = "Terms.resx", Data = GetTermsResxData() },
+                                    new SpiderlyFile { Name = "Terms.sr-Latn-RS.resx", Data = GetTermsSrLatnRSResxData() },
+                                    new SpiderlyFile { Name = "TermsGenerated.Designer.cs", Data = GetTermsGeneratedDesignerCsData(appName) },
+                                    new SpiderlyFile { Name = "TermsGenerated.resx", Data = GetTermsGeneratedResxData() },
+                                    new SpiderlyFile { Name = "TermsGenerated.sr-Latn-RS.resx", Data = GetTermsGeneratedSrLatnRSResxData() },
+                                }
+                            }
+                        },
+                        Files =
+                        {
+                            new SpiderlyFile { Name = $"{appName}.Shared.csproj", Data = GetSharedCsProjData(spiderlyVersion, isRunningFromNuget) },
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
+                        Name = $"{appName}.WebAPI",
+                        ChildFolders =
+                        {
+                            new SpiderlyFolder
+                            {
+                                Name = "Properties",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "launchSettings.json", Data = GetLaunchSettingsJsonData() },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "Controllers",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "NotificationController.cs", Data = GetNotificationControllerCsData(appName) },
+                                    new SpiderlyFile { Name = "SecurityController.cs", Data = GetSecurityControllerCsData(appName) },
+                                    new SpiderlyFile { Name = "UserController.cs", Data = GetUserControllerCsData(appName) },
+                                }
+                            },
+                            new SpiderlyFolder
+                            {
+                                Name = "DI",
+                                Files =
+                                {
+                                    new SpiderlyFile { Name = "CompositionRoot.cs", Data = GetCompositionRootCsData(appName) },
+                                }
+                            },
+                        },
+                        Files =
+                        {
+                            new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(
+                                appName,
+                                emailSender: null,
+                                emailSenderPassword: null,
+                                jwtKey: jwtKey,
+                                blobStorageConnectionString: null,
+                                blobStorageUrl: null
+                            )},
+                            new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
+                            new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
+                            new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
+                            new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
+                            new SpiderlyFile { Name = "Startup.cs", Data = GetStartupCsData(appName, dbProvider) },
+                        }
+                    },
                 },
-        Files =
+                Files =
                 {
-                    new SpiderlyFile { Name = ".gitignore", Data = GetGitIgnoreData() },
-                    new SpiderlyFile { Name = "README.md", Data = GetREADMEData(appName, spiderlyVersion) },
+                    new SpiderlyFile { Name = $"{appName}.sln", Data = GetNetSolutionData(appName) }
                 }
+            }
+        },
+        Files =
+        {
+            new SpiderlyFile { Name = ".gitignore", Data = GetGitIgnoreData() },
+            new SpiderlyFile { Name = "README.md", Data = GetREADMEData(appName, spiderlyVersion) },
+        }
       };
 
       GenerateProjectStructure(appStructure, outputPath);
@@ -925,13 +932,12 @@ import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import {
     BaseFormCopy,
     BaseFormService,
-    RoleBaseDetailsComponent,
-    RoleMainUIForm,
-    RoleSaveBody,
     SpiderlyControlsModule,
     SpiderlyMessageService,
     SpiderlyPanelsModule,
 } from 'spiderly';
+import { RoleBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { RoleMainUIForm, RoleSaveBody } from 'src/app/business/entities/business-entities.generated';
 
 @Component({
     selector: 'role-details',
@@ -980,7 +986,8 @@ export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm> implement
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { Column, Role, SpiderlyDataTableComponent } from 'spiderly';
+import { Column, SpiderlyDataTableComponent } from 'spiderly';
+import { Role } from 'src/app/business/entities/business-entities.generated';
 
 @Component({
     selector: 'role-list',
@@ -1027,7 +1034,7 @@ export class RoleListComponent implements OnInit {
         [parentFormGroup]="parentFormGroup"
         (onSave)="onSave()"
         [showIsDisabledForUser]="showIsDisabledControl"
-        [showHasLoggedInWithExternalProviderForUser]="showHasLoggedInWithExternalProvider"
+        [showHasLoggedInWithGoogleAsExternalProviderForUser]="showHasLoggedInWithGoogleAsExternalProvider"
         [showReturnButton]="false"
         [handleAdditionalSaveAuthorization]="handleAdditionalSaveAuthorization"
         (onAfterFormGroupInit)="handleAfterFormGroupInit()"
@@ -1067,7 +1074,7 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
     override mainUIFormClass = UserMainUIForm;
 
     showIsDisabledControl: boolean = false;
-    showHasLoggedInWithExternalProvider: boolean = false;
+    showHasLoggedInWithGoogleAsExternalProvider: boolean = false;
 
     constructor(
         protected override differs: KeyValueDiffers,
@@ -1099,7 +1106,7 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
             this.showIsDisabledAndExternalLoggedIn(currentUserPermissionCodes);
 
         this.showIsDisabledControl = shouldShowIsDisabledAndExternalLoggedIn;
-        this.showHasLoggedInWithExternalProvider = shouldShowIsDisabledAndExternalLoggedIn;
+        this.showHasLoggedInWithGoogleAsExternalProvider = shouldShowIsDisabledAndExternalLoggedIn;
 
         this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithExternalProvider.disable();
     }
@@ -1762,7 +1769,7 @@ import { routes, scrollConfig, routerConfigOptions } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
-import { AuthBaseService, authInitializer, ConfigBaseService, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutBaseService, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
 import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
 import { TranslateLabelsService } from './business/services/translates/merge-labels';
@@ -1854,15 +1861,15 @@ export const appConfig: ApplicationConfig = {
       useClass: TranslateLabelsService,
     },
     {
-      provide: AuthBaseService,
+      provide: AuthServiceBase,
       useExisting: AuthService
     },
     {
-      provide: ConfigBaseService,
+      provide: ConfigServiceBase,
       useExisting: ConfigService
     },
     {
-      provide: LayoutBaseService,
+      provide: LayoutServiceBase,
       useExisting: LayoutService
     },
     provideHttpClient(withInterceptors([
@@ -2502,16 +2509,125 @@ namespace {{appName}}.Business.Entities
         [Required]
         public string Email { get; set; }
 
-        public bool? HasLoggedInWithExternalProvider { get; set; }
+        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
 
         public bool? IsDisabled { get; set; }
 
-        [ExcludeServiceMethodsFromGeneration]
         public virtual List<Role> Roles { get; } = new(); // M2M
+        IReadOnlyCollection<IRole> IUser.Roles => Roles;
 
         public virtual List<Notification> Notifications { get; } = new(); // M2M
     }
 }
+""";
+    }
+
+    private static string GetRoleCsData(string appName)
+    {
+      return $$"""
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.UI;
+using Spiderly.Shared.BaseEntities;
+using Spiderly.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{appName}}.Business.Entities
+{
+    public class Role : BusinessObject<int>, IRole
+    {
+        [DisplayName]
+        [Required]
+        [StringLength(255, MinimumLength = 1)]
+        public string Name { get; set; }
+
+        [StringLength(400, MinimumLength = 1)]
+        public string Description { get; set; }
+
+        [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
+        public virtual List<User> Users { get; } = new(); // M2M
+        IReadOnlyCollection<IUser> IUser.Users => Users;
+
+        [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
+        public virtual List<Permission> Permissions { get; } = new(); // M2M
+        IReadOnlyCollection<IPermission> IUser.Permissions => Permissions;
+    }
+}
+""";
+    }
+
+    private static string GetPermissionCsData(string appName)
+    {
+      return $$"""
+using Microsoft.EntityFrameworkCore;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.UI;
+using Spiderly.Shared.BaseEntities;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{appName}}.Business.Entities
+{
+    [Index(nameof(Code), IsUnique = true)]
+    [UIDoNotGenerate]
+    public class Permission : ReadonlyObject<int>, IPermission
+    {
+        [DisplayName]
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string Name { get; set; }
+
+        [StringLength(400, MinimumLength = 1)]
+        public string Description { get; set; }
+
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string Code { get; set; }
+
+        public virtual List<Role> Roles { get; } = new(); // M2M
+        IReadOnlyCollection<IRole> IUser.Roles => Roles;
+    }
+}
+""";
+    }
+
+    private static string GetRolePermissionCsData(string appName)
+    {
+      return $$"""
+using Spiderly.Shared.Attributes.Entity;
+
+namespace {{appName}}.Business.Entities
+{
+    [M2M]
+    public class RolePermission
+    {
+        [M2MWithMany(nameof(Role.Permissions))]
+        public virtual Role Role { get; set; }
+
+        [M2MWithMany(nameof(Permission.Roles))]
+        public virtual Permission Permission { get; set; }
+    }
+}
+
+""";
+    }
+
+    private static string GetUserRoleCsData(string appName)
+    {
+      return $$"""
+using Spiderly.Shared.Attributes.Entity;
+
+namespace {{appName}}.Business.Entities
+{
+    [M2M]
+    public class UserRole
+    {
+        [M2MWithMany(nameof(User.Roles))]
+        public virtual User User { get; set; }
+
+        [M2MWithMany(nameof(Role.Users))]
+        public virtual Role Role { get; set; }
+    }
+}
+
 """;
     }
 
@@ -2534,44 +2650,44 @@ namespace {{appName}}.WebAPI.Controllers
     public class NotificationController : NotificationBaseController
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
+        private readonly BusinessService _businessService;
 
         public NotificationController(
             IApplicationDbContext context, 
-            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService
+            BusinessService businessService
         )
-            : base(context, {{appName.FirstCharToLower()}}BusinessService)
+            : base(context, businessService)
         {
             _context = context;
-            _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
+            _businessService = businessService;
         }
 
         [HttpGet]
         [AuthGuard]
         public async Task SendNotificationEmail(long notificationId, int notificationVersion)
         {
-            await _{{appName.FirstCharToLower()}}BusinessService.SendNotificationEmail(notificationId, notificationVersion);
+            await _businessService.SendNotificationEmail(notificationId, notificationVersion);
         }
 
         [HttpDelete]
         [AuthGuard]
         public async Task DeleteNotificationForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _{{appName.FirstCharToLower()}}BusinessService.DeleteNotificationForCurrentUser(notificationId, notificationVersion);
+            await _businessService.DeleteNotificationForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
         [AuthGuard]
         public async Task MarkNotificationAsReadForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _{{appName.FirstCharToLower()}}BusinessService.MarkNotificationAsReadForCurrentUser(notificationId, notificationVersion);
+            await _businessService.MarkNotificationAsReadForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
         [AuthGuard]
         public async Task MarkNotificationAsUnreadForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _{{appName.FirstCharToLower()}}BusinessService.MarkNotificationAsUnreadForCurrentUser(notificationId, notificationVersion);
+            await _businessService.MarkNotificationAsUnreadForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
@@ -2580,14 +2696,14 @@ namespace {{appName}}.WebAPI.Controllers
         [UIDoNotGenerate]
         public async Task<int> GetUnreadNotificationsCountForCurrentUser()
         {
-            return await _{{appName.FirstCharToLower()}}BusinessService.GetUnreadNotificationsCountForCurrentUser();
+            return await _businessService.GetUnreadNotificationsCountForCurrentUser();
         }
 
         [HttpPost]
         [AuthGuard]
         public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
         {
-            return await _{{appName.FirstCharToLower()}}BusinessService.GetNotificationsForCurrentUser(filterDTO);
+            return await _businessService.GetNotificationsForCurrentUser(filterDTO);
         }
 
     }
@@ -2618,28 +2734,28 @@ namespace {{appName}}.WebAPI.Controllers
 {
     [ApiController]
     [Route("/api/[controller]/[action]")]
-    public class SecurityController : SecurityBaseController<User>
+    public class SecurityController : SecurityBaseController<User, Role>
     {
         private readonly ILogger<SecurityController> _logger;
-        private readonly SecurityBusinessService<User> _securityBusinessService;
+        private readonly SecurityService<User> _securityService;
         private readonly IApplicationDbContext _context;
-        private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
+        private readonly businessService _businessService;
 
         public SecurityController(
             ILogger<SecurityController> logger,
-            SecurityBusinessService<User> securityBusinessService,
+            SecurityService<User> securityService,
             IJwtAuthManager jwtAuthManagerService,
             IApplicationDbContext context,
             AuthenticationService authenticationService,
             AuthorizationService authorizationService,
-            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService
+            businessService businessService
         )
-            : base(securityBusinessService, jwtAuthManagerService, context, authenticationService, authorizationService)
+            : base(securityService, jwtAuthManagerService, context, authenticationService, authorizationService)
         {
             _logger = logger;
-            _securityBusinessService = securityBusinessService;
+            _securityService = securityService;
             _context = context;
-            _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
+            _businessService = businessService;
         }
 
     }
@@ -2669,18 +2785,18 @@ namespace {{appName}}.WebAPI.Controllers
     public class UserController : UserBaseController
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{appName}}BusinessService _{{appName.FirstCharToLower()}}BusinessService;
+        private readonly businessService _businessService;
         private readonly AuthenticationService _authenticationService;
 
         public UserController(
             IApplicationDbContext context, 
-            {{appName}}BusinessService {{appName.FirstCharToLower()}}BusinessService, 
+            businessService businessService, 
             AuthenticationService authenticationService
         )
-            : base(context, {{appName.FirstCharToLower()}}BusinessService)
+            : base(context, businessService)
         {
             _context = context;
-            _{{appName.FirstCharToLower()}}BusinessService = {{appName.FirstCharToLower()}}BusinessService;
+            _businessService = businessService;
             _authenticationService = authenticationService;
         }
 
@@ -2690,7 +2806,7 @@ namespace {{appName}}.WebAPI.Controllers
         public async Task<UserDTO> GetCurrentUser()
         {
             long userId = _authenticationService.GetCurrentUserId();
-            return await _{{appName.FirstCharToLower()}}BusinessService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
+            return await _businessService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
         }
 
     }
@@ -3236,11 +3352,8 @@ namespace {{appName}}.WebAPI.DI
             #region Spiderly
 
             registry.Register<AuthenticationService>();
-            registry.Register<AuthorizationService>();
-            registry.Register<SecurityBusinessService<User>>();
-            registry.Register<Spiderly.Security.Services.BusinessServiceGenerated<User>>();
-            registry.Register<Spiderly.Security.Services.AuthorizationBusinessService<User>>();
-            registry.Register<Spiderly.Security.Services.AuthorizationBusinessServiceGenerated<User>>();
+            registry.Register<AuthorizationServiceBase>();
+            registry.Register<SecurityServiceBase<User>>();
             registry.Register<ExcelService>();
             registry.Register<IEmailingService, EmailingService>();
             registry.Register<IFileManager, DiskStorageService>();
@@ -3253,10 +3366,11 @@ namespace {{appName}}.WebAPI.DI
 
             #region Business
 
-            registry.Register<{{appName}}.Business.Services.{{appName}}BusinessService>();
+            registry.Register<SecurityService<User>>();
+            registry.Register<{{appName}}.Business.Services.businessService>();
             registry.Register<{{appName}}.Business.Services.BusinessServiceGenerated>();
-            registry.Register<{{appName}}.Business.Services.AuthorizationBusinessService>();
-            registry.Register<{{appName}}.Business.Services.AuthorizationBusinessServiceGenerated>();
+            registry.Register<{{appName}}.Business.Services.AuthorizationService>();
+            registry.Register<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
 
             #endregion
         }
@@ -3429,22 +3543,22 @@ using Spiderly.Shared.Resources;
 
 namespace {{appName}}.Business.Services
 {
-    public class AuthorizationBusinessService : AuthorizationBusinessServiceGenerated
+    public class AuthorizationService : AuthorizationServiceGenerated
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
-        private readonly SecurityBusinessService<User> _securityBusinessService;
+        private readonly SecurityService<User> _securityService;
 
-        public AuthorizationBusinessService(
+        public AuthorizationService(
             IApplicationDbContext context, 
             AuthenticationService authenticationService,
-            SecurityBusinessService<User> securityBusinessService
+            SecurityService<User> securityService
         )
             : base(context, authenticationService)
         {
             _context = context;
             _authenticationService = authenticationService;
-            _securityBusinessService = securityBusinessService;
+            _securityService = securityService;
         }
 
         #region User
@@ -3453,7 +3567,7 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                bool hasAdminReadPermission = await IsAuthorizedAsync<User>(BusinessPermissionCodes.ReadUser);
+                bool hasAdminReadPermission = await IsAuthorizedAsync<User>(PermissionCodes.ReadUser);
                 bool isCurrentUser = _authenticationService.GetCurrentUserId() == userId;
 
                 if (isCurrentUser == false && hasAdminReadPermission == false)
@@ -3469,7 +3583,7 @@ namespace {{appName}}.Business.Services
 
                 if (user.Email != userDTO.Email)
                 {
-                    User existingUser = await _securityBusinessService.GetUserByEmailAsync(userDTO.Email);
+                    User existingUser = await _securityService.GetUserByEmailAsync(userDTO.Email);
 
                     if (existingUser != null)
                     {
@@ -3477,10 +3591,10 @@ namespace {{appName}}.Business.Services
                     }
                 }
 
-                if (userDTO.HasLoggedInWithExternalProvider != user.HasLoggedInWithExternalProvider)
-                    throw new HackerException($"No one can change {nameof(userDTO.HasLoggedInWithExternalProvider)} from the main UI form.");
+                if (userDTO.HasLoggedInWithGoogleAsExternalProvider != user.HasLoggedInWithGoogleAsExternalProvider)
+                    throw new HackerException($"No one can change {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
 
-                bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(BusinessPermissionCodes.UpdateUser);
+                bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(PermissionCodes.UpdateUser);
                 if (hasAdminUpdatePermission)
                     return;
 
@@ -3497,10 +3611,10 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                if (userDTO.HasLoggedInWithExternalProvider != null)
-                    throw new HackerException($"No one can init {nameof(userDTO.HasLoggedInWithExternalProvider)} from the main UI form.");
+                if (userDTO.HasLoggedInWithGoogleAsExternalProvider != null)
+                    throw new HackerException($"No one can init {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
 
-                bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(BusinessPermissionCodes.InsertUser);
+                bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(PermissionCodes.InsertUser);
                 if (hasAdminInsertPermission)
                     return;
 
@@ -3532,19 +3646,19 @@ using Spiderly.Shared.Interfaces;
 
 namespace {{appName}}.Business.Services
 {
-    public class {{appName}}BusinessService : {{appName}}.Business.Services.BusinessServiceGenerated
+    public class BusinessService : {{appName}}.Business.Services.BusinessServiceGenerated
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{appName}}.Business.Services.AuthorizationBusinessService _authorizationService;
+        private readonly {{appName}}.Business.Services.AuthorizationService _authorizationService;
         private readonly AuthenticationService _authenticationService;
-        private readonly SecurityBusinessService<User> _securityBusinessService;
+        private readonly SecurityService<User> _securityService;
         private readonly IEmailingService _emailingService;
 
-        public {{appName}}BusinessService(
+        public BusinessService(
             IApplicationDbContext context,
             ExcelService excelService,
-            {{appName}}.Business.Services.AuthorizationBusinessService authorizationService,
-            SecurityBusinessService<User> securityBusinessService,
+            {{appName}}.Business.Services.AuthorizationService authorizationService,
+            SecurityService<User> securityService,
             AuthenticationService authenticationService,
             IEmailingService emailingService,
             IFileManager fileManager
@@ -3553,7 +3667,7 @@ namespace {{appName}}.Business.Services
         {
             _context = context;
             _authorizationService = authorizationService;
-            _securityBusinessService = securityBusinessService;
+            _securityService = securityService;
             _authenticationService = authenticationService;
             _emailingService = emailingService;
         }
@@ -3644,7 +3758,7 @@ namespace {{appName}}.Business.Services
         public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
         {
             PaginatedResultDTO<NotificationDTO> result = new();
-            long currentUserId = _authenticationService.GetCurrentUserId(); // Not doing user.Notifications, because he could have a lot of them.
+            long currentUserId = _authenticationService.GetCurrentUserId(); // Not doing user.Notifications, because we could have a lot of them.
 
             await _context.WithTransactionAsync(async () =>
             {
@@ -3718,17 +3832,117 @@ namespace {{appName}}.Business.DataMappers
 
     #region Angular
 
+    private static string GetExtensionsJsonData()
+    {
+      return """
+{
+  "recommendations": [
+    "angular.ng-template",
+    "formulahendry.auto-rename-tag",
+    "ckolkman.vscode-postgres",
+    "esbenp.prettier-vscode",
+    "ms-mssql.mssql"
+  ]
+}
+
+""";
+    }
+
+
+    private static string GetLaunchJsonData(string appName)
+    {
+      return $$"""
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Backend (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/Backend/{{appName}}.WebAPI/bin/Debug/net9.0/{{appName}}.WebAPI.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/Backend/{{appName}}.WebAPI",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/Views"
+      }
+    },
+    {
+      "name": "Launch Frontend (Angular)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "cwd": "${workspaceFolder}/Frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch {{appName}} (Backend + Frontend)",
+      "configurations": ["Launch Backend (.NET)", "Launch Frontend (Angular)"],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "{{appName}}",
+        "order": 1
+      }
+    }
+  ]
+}
+
+""";
+    }
+
     private static string GetSettingsJsonData()
     {
       return """
 {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-        "source.fixAll": true,
-        "source.organizeImports": true
-    }
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  }
 }
+""";
+    }
+
+    private static string GetTasksJsonData(string appName)
+    {
+      return $$"""
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "Backend/{{appName}}.WebAPI/{{appName}}.WebAPI.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
+
 """;
     }
 
@@ -4094,19 +4308,6 @@ bootstrapApplication(AppComponent, appConfig)
 """;
     }
 
-    private static string GetEnvironmentProdTsData(string appName)
-    {
-      return $$"""
-export const environment = {
-  production: true,
-  apiUrl: 'https://your-prod-api-url/api',
-  frontendUrl: 'http://your-prod-frontend-url',
-  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
-  companyName: '{{appName}}',
-};
-""";
-    }
-
     private static string GetEnvironmentTsData(string appName)
     {
       return $$"""
@@ -4201,7 +4402,7 @@ export const ThemePreset = definePreset(Aura, {
     "Submit": "Potvrdite",
     "UserList": "Korisnici",
     "PartnerList": "Partneri",
-    "HasLoggedInWithExternalProvider": "Prijavljen sa eksternim provajderom",
+    "HasLoggedInWithGoogleAsExternalProvider": "Prijavljen preko Google naloga",
     "IsDisabled": "Blokiran",
     "SuperRoles": "Super uloge",
     "Save": "Sačuvajte",
@@ -4465,7 +4666,7 @@ export const ThemePreset = definePreset(Aura, {
   "Submit": "Confirm",
   "UserList": "Users",
   "SuperRoles": "Super roles",
-  "HasLoggedInWithExternalProvider": "Logged in with external provider",
+  "HasLoggedInWithGoogleAsExternalProvider": "Logged in with a Google account",
   "IsDisabled": "Blocked",
   "PartnerRoleList": "Roles",
   "Save": "Save",
@@ -4823,12 +5024,12 @@ export class ValidatorService extends ValidatorAbstractService {
       return $$"""
 import { Injectable } from "@angular/core";
 import { environment } from "src/environments/environment";
-import { ConfigBaseService } from 'spiderly';
+import { ConfigServiceBase } from 'spiderly';
 
 @Injectable({
   providedIn: 'root',
 })
-export class ConfigService extends ConfigBaseService
+export class ConfigService extends ConfigServiceBase
 {
     override production: boolean = environment.production;
     override apiUrl: string = environment.apiUrl;
@@ -4940,12 +5141,12 @@ import { HttpClient } from '@angular/common/http';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { SocialAuthService } from '@abacritt/angularx-social-login';
 import { ConfigService } from '../config.service';
-import { AuthBaseService } from 'spiderly';
+import { AuthServiceBase } from 'spiderly';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AuthService extends AuthBaseService implements OnDestroy {
+export class AuthService extends AuthServiceBase implements OnDestroy {
 
   constructor(
     protected override router: Router,
@@ -4968,13 +5169,13 @@ export class AuthService extends AuthBaseService implements OnDestroy {
 import { Injectable, OnDestroy } from '@angular/core';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { ConfigService } from '../config.service';
-import { LayoutBaseService } from 'spiderly';
+import { LayoutServiceBase } from 'spiderly';
 import { AuthService } from '../auth/auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class LayoutService extends LayoutBaseService implements OnDestroy {
+export class LayoutService extends LayoutServiceBase implements OnDestroy {
 
     constructor(
         protected override apiService: ApiService,
@@ -5132,11 +5333,11 @@ export class LayoutComponent {
 **/*.sublime-workspace
 
 # Visual Studio Code
-**/.vscode/*
-**/!.vscode/settings.json
-**/!.vscode/tasks.json
-**/!.vscode/launch.json
-**/!.vscode/extensions.json
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 **/.history/*
 
 # Miscellaneous

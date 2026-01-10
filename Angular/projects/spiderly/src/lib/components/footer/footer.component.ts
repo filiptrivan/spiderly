@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ConfigBaseService } from '../../services/config-base.service'
+import { ConfigServiceBase } from '../../services/config.service.base'
 
 @Component({
     selector: 'footer',
@@ -10,7 +10,7 @@ export class FooterComponent {
     companyName: string = this.config.companyName;
 
     constructor(
-        private config: ConfigBaseService
+        private config: ConfigServiceBase
     ) { 
 
     }

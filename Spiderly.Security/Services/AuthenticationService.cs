@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
@@ -48,6 +49,21 @@ namespace Spiderly.Security.Services
             return await _context.WithTransactionAsync(async () =>
             {
                 return await GetInstanceAsync<TUser, long>(GetCurrentUserId(), null);
+            });
+        }
+
+        public async Task<UserBaseDTO> GetCurrentUserBaseDTO<TUser>() where TUser : class, IUser, new()
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                return await _context.DbSet<TUser>()
+                    .Where(x => x.Id == GetCurrentUserId())
+                    .Select(x => new UserBaseDTO
+                    {
+                        Id = x.Id,
+                        Email = x.Email
+                    })
+                    .SingleOrDefaultAsync();
             });
         }
 

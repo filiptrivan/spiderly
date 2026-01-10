@@ -47,7 +47,7 @@ namespace Spiderly.CLI.Commands
             }
             else
             {
-                ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [yellow]{connectionString}[/]");
+                ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
             }
 
             try
@@ -255,23 +255,23 @@ namespace Spiderly.CLI.Commands
         {
             if (!string.IsNullOrWhiteSpace(dbProviderArg))
             {
-                if (dbProviderArg.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-                {
-                    return DbProviderCodes.SQLServer;
-                }
-
                 if (dbProviderArg.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
                 {
                     return DbProviderCodes.PostgreSQL;
                 }
 
-                ConsoleHelper.MarkupLineERROR("Invalid database provider. Use 'sqlserver' or 'postgresql'");
+                if (dbProviderArg.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DbProviderCodes.SQLServer;
+                }
+
+                ConsoleHelper.MarkupLineERROR("Invalid database provider. Use 'postgresql' or 'sqlserver'");
                 return null;
             }
 
             if (!IsInteractive())
             {
-                ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db sqlserver or --db postgresql");
+                ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db postgresql or --db sqlserver");
                 return null;
             }
 
@@ -279,8 +279,8 @@ namespace Spiderly.CLI.Commands
             return AnsiConsole.Prompt(
                 new SelectionPrompt<DbProviderCodes>()
                     .Title("Select database provider:")
-                    .AddChoices(DbProviderCodes.SQLServer, DbProviderCodes.PostgreSQL)
-                    .UseConverter(choice => choice == DbProviderCodes.SQLServer ? "SQL Server" : "PostgreSQL"));
+                    .AddChoices(DbProviderCodes.PostgreSQL, DbProviderCodes.SQLServer)
+                    .UseConverter(choice => choice == DbProviderCodes.PostgreSQL ? "PostgreSQL" : "SQL Server"));
         }
 
         private static bool IsInteractive()

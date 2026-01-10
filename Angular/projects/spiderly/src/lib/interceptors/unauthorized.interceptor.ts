@@ -4,12 +4,12 @@ import { Observable, of, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
 import { TranslocoService } from '@jsverse/transloco';
-import { ConfigBaseService } from '../services/config-base.service';
+import { ConfigServiceBase } from '../services/config.service.base';
 
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(SpiderlyMessageService);
   const translocoService = inject(TranslocoService);
-  const config = inject(ConfigBaseService);
+  const config = inject(ConfigServiceBase);
 
   const handleAuthError = (err: HttpErrorResponse, request: HttpRequest<any>): Observable<any> => {
     if (!config.production) {

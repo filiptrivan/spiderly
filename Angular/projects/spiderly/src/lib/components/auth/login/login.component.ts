@@ -6,9 +6,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { Login } from '../../../entities/security-entities';
-import { AuthBaseService } from '../../../services/auth-base.service';
+import { AuthServiceBase } from '../../../services/auth.service.base';
 import { BaseFormService } from '../../../services/base-form.service';
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
 import { BaseFormCopy } from '../../base-form/base-form copy';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
@@ -42,8 +42,8 @@ export class LoginComponent extends BaseFormCopy implements OnInit {
       protected override route: ActivatedRoute,
       protected override translocoService: TranslocoService,
       protected override baseFormService: BaseFormService,
-      private authService: AuthBaseService, 
-      private config: ConfigBaseService
+      private authService: AuthServiceBase, 
+      private config: ConfigServiceBase
     ) { 
       super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }

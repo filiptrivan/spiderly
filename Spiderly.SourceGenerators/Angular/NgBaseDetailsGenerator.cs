@@ -1060,7 +1060,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
         private static string GetUIControlWidth(SpiderlyProperty property)
         {
-            SpiderlyAttribute uiControlWidthAttribute = property.Attributes.Where(x => x.Name == "UIControlWidth").SingleOrDefault();
+            SpiderlyAttribute uiControlWidthAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlWidth");
 
             if (uiControlWidthAttribute != null)
                 return uiControlWidthAttribute.Value;

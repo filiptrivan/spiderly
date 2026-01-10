@@ -225,9 +225,9 @@
     <value>An error occurred while sending the email, our team has been informed and will fix it as soon as possible. Thank you for your patience.</value>
     <comment>Dogodila se greška prilikom slanja mejla, naš tim je obavešten i otkloniće je u najkraćem mogućem roku. Hvala Vam na strpljenju.</comment>
   </data>
-  <data name="HasLoggedInWithExternalProvider" xml:space="preserve">
+  <data name="HasLoggedInWithGoogleAsExternalProvider" xml:space="preserve">
     <value />
-    <comment>Prijavljen sa eksternim provajderom</comment>
+    <comment>Prijavljen preko Google naloga</comment>
   </data>
   <data name="IsDisabled" xml:space="preserve">
     <value />

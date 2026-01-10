@@ -2,9 +2,9 @@ import { TranslocoService } from '@jsverse/transloco';
 import { Input, OnInit } from '@angular/core';
 import { Component } from '@angular/core';
 import { MenuItem } from 'primeng/api';
-import { LayoutBaseService } from '../../../services/app-layout-base.service';
-import { AuthBaseService } from '../../../services/auth-base.service';
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { LayoutServiceBase } from '../../../services/app-layout.service.base';
+import { AuthServiceBase } from '../../../services/auth.service.base';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 import { MenuitemComponent } from './menuitem.component';
 import { CommonModule } from '@angular/common';
 
@@ -25,10 +25,10 @@ export class SidebarMenuComponent implements OnInit {
     @Input() menu: SpiderlyMenuItem[];
 
     constructor(
-        public layoutService: LayoutBaseService, 
-        private authService: AuthBaseService,
+        public layoutService: LayoutServiceBase, 
+        private authService: AuthServiceBase,
         private translocoService: TranslocoService,
-        private config: ConfigBaseService
+        private config: ConfigServiceBase
     ) {
         
     }

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { Namebook } from '../entities/namebook';
 import { Filter } from '../entities/filter';
 import { Login, RefreshTokenRequest, AuthResult, Role, UserBase, ExternalProvider, VerificationTokenRequest, RoleSaveBody, RoleMainUIForm } from '../entities/security-entities';
-import { ConfigBaseService } from './config-base.service';
+import { ConfigServiceBase } from './config.service.base';
 import { PaginatedResult } from '../entities/paginated-result';
 
 @Injectable({
@@ -14,7 +14,7 @@ export class ApiSecurityService {
 
     constructor(
         protected http: HttpClient,
-        protected config: ConfigBaseService
+        protected config: ConfigServiceBase
     ) {
         
     }

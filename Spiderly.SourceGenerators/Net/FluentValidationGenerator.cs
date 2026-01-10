@@ -54,7 +54,9 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(currentProjectClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
 
-            string namespaceValue = currentProjectEntities[0].Namespace;
+            string namespaceValue = currentProjectEntities.Count > 0
+                ? currentProjectEntities[0].Namespace
+                : currentProjectDTOClasses[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
             string projectName = Helpers.GetProjectName(namespaceValue);
 
@@ -87,7 +89,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
                     DTOAttributes.AddRange(DTOClass.Attributes);
                 }
 
-                SpiderlyClass entity = currentProjectEntities.Where(x => DTOClassGroup.Key.Replace("DTO", "") == x.Name).SingleOrDefault(); // If it is null then we only made DTO, without entity class
+                SpiderlyClass entity = currentProjectEntities.SingleOrDefault(x => DTOClassGroup.Key.Replace("DTO", "") == x.Name); // If it is null then we only made DTO, without entity class
 
                 List<SpiderValidationRule> rules = Helpers.GetValidationRules(DTOProperties, DTOAttributes, entity);
 

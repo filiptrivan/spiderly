@@ -11,12 +11,12 @@ namespace Spiderly.Security.Services
     /// Provides authorization services, allowing to check if a user has specific permissions
     /// based on their roles and the permissions associated with those roles.
     /// </summary>
-    public class AuthorizationService : BusinessServiceBase
+    public class AuthorizationServiceBase : BusinessServiceBase
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
 
-        public AuthorizationService(IApplicationDbContext context, AuthenticationService authenticationService)
+        public AuthorizationServiceBase(IApplicationDbContext context, AuthenticationService authenticationService)
             : base(context)
         {
             _context = context;
@@ -85,7 +85,9 @@ namespace Spiderly.Security.Services
                 throw new UnauthorizedException();
         }
 
-        public async Task<List<string>> GetCurrentUserPermissionCodes<TUser>() where TUser : class, IUser, new()
+        public async Task<List<string>> GetCurrentUserPermissionCodes<TUser, TRole>()
+            where TUser : class, IUser, new()
+            where TRole : class, IRole, new()
         {
             long userId = _authenticationService.GetCurrentUserId();
 

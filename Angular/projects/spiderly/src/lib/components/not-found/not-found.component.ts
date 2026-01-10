@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ConfigBaseService } from '../../services/config-base.service';
+import { ConfigServiceBase } from '../../services/config.service.base';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 
@@ -16,7 +16,7 @@ export class NotFoundComponent {
     logoPath: string = this.config.logoPath;
 
     constructor(
-        private config: ConfigBaseService
+        private config: ConfigServiceBase
     ) { 
 
     }

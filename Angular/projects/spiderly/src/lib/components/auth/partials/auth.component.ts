@@ -1,10 +1,10 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Subscription } from "rxjs";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { TranslocoDirective } from "@jsverse/transloco";
+import { Subscription } from "rxjs";
+import { AuthServiceBase } from "../../../services/auth.service.base";
+import { ConfigServiceBase } from "../../../services/config.service.base";
 import { GoogleButtonComponent } from "../../spiderly-buttons/google-button/google-button.component";
-import { ConfigBaseService } from "../../../services/config-base.service";
-import { AuthBaseService } from "../../../services/auth-base.service";
 
 @Component({
     selector: 'auth',
@@ -20,15 +20,14 @@ export class AuthComponent {
   private initCompanyAuthDialogDetailsSubscription: Subscription | null = null;
 
   @Output() onCompanyNameChange: EventEmitter<string> = new EventEmitter();
-  @Input() showGoogleAuth: boolean = true;
+  @Input() showGoogleAuth: boolean = false;
 
-  hasGoogleAuth: boolean = this.config.googleAuth;
   companyName: string;
   image: string;
   
   constructor(
-    private config: ConfigBaseService,
-    private authService: AuthBaseService,
+    private config: ConfigServiceBase,
+    private authService: AuthServiceBase,
   ) {
 
   }
