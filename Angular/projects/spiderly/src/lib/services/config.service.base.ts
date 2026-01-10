@@ -4,7 +4,7 @@ import { Injectable } from "@angular/core";
 @Injectable({
     providedIn: 'root'
 })
-export class ConfigBaseService
+export class ConfigServiceBase
 {
     production = false;
     apiUrl: string;
@@ -12,8 +12,6 @@ export class ConfigBaseService
     GoogleClientId: string;
     companyName = 'Company Name';
     primaryColor = '#111b2c';
-    
-    googleAuth = true;
 
     /* URLs */
     loginSlug = 'login';

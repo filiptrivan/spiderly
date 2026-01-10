@@ -54,7 +54,6 @@ namespace Spiderly.SourceGenerators.Net
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
             string projectName = Helpers.GetProjectName(namespaceValue);
 
-            bool isSecurityProject = projectName == "Security";
             bool shouldGenerateCloudinaryStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasCloudinaryPublicIdAttribute()));
             bool shouldGenerateS3PublicStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasS3PublicUrlAttribute()));
 
@@ -63,11 +62,11 @@ namespace Spiderly.SourceGenerators.Net
 
 namespace {{basePartOfNamespace}}.Services
 {
-    {{(isSecurityProject ? $"public class BusinessServiceGenerated<TUser> : BusinessServiceBase where TUser : class, IUser, new()" : $"public class BusinessServiceGenerated : BusinessServiceBase")}}
+    public class BusinessServiceGenerated : BusinessServiceBase
     {
         private readonly IApplicationDbContext _context;
         private readonly ExcelService _excelService;
-        {{(isSecurityProject ? "private readonly AuthorizationBusinessService<TUser> _authorizationService;" : "private readonly AuthorizationBusinessService _authorizationService;")}}
+        private readonly AuthorizationService _authorizationService;
         private readonly IFileManager _fileManager;
         {{(shouldGenerateCloudinaryStorageService ? "private readonly CloudinaryStorageService _cloudinaryStorageService;" : "")}}
         {{(shouldGenerateS3PublicStorageService ? "private readonly S3PublicStorageService _s3PublicStorageService;" : "")}}
@@ -75,7 +74,7 @@ namespace {{basePartOfNamespace}}.Services
         public BusinessServiceGenerated(
             IApplicationDbContext context, 
             ExcelService excelService, 
-            {{(isSecurityProject ? "AuthorizationBusinessService<TUser> authorizationService" : "AuthorizationBusinessService authorizationService")}}, 
+            AuthorizationService authorizationService, 
             IFileManager fileManager
             {{(shouldGenerateCloudinaryStorageService ? ", CloudinaryStorageService cloudinaryStorageService" : "")}}
             {{(shouldGenerateS3PublicStorageService ? ", S3PublicStorageService s3PublicStorageService" : "")}}

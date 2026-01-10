@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spiderly.Shared.Interfaces;
 using System.Reflection;
 using Spiderly.Security.Interfaces;
-using Spiderly.Security.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Spiderly.Infrastructure.Converters;
 
@@ -31,14 +30,6 @@ namespace Spiderly.Infrastructure
         {
         }
 
-        public DbSet<TUser> User { get; set; }
-
-        public DbSet<Role> Role { get; set; }
-
-        public DbSet<UserRole> UserRole { get; set; } // M2M
-
-        public DbSet<Permission> Permission { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Automatically register all classes marked with the [Entity] attribute
@@ -56,26 +47,9 @@ namespace Spiderly.Infrastructure
 
             List<IMutableEntityType> mutableEntityTypes = modelBuilder.Model.GetEntityTypes().ToList();
 
-            modelBuilder.Entity<UserRole>()
-                .HasKey(ru => new { ru.RoleId, ru.UserId });
-
-            modelBuilder.Entity<TUser>()
-                .HasMany(e => e.Roles)
-                .WithMany()
-                .UsingEntity<UserRole>(
-                    j => j.HasOne<Role>().WithMany().HasForeignKey(ru => ru.RoleId),
-                    j => j.HasOne<TUser>().WithMany().HasForeignKey(ru => ru.UserId)
-                );
-
             if (SettingsProvider.Current.UseGoogleAsExternalProvider == false)
             {
-                modelBuilder.Entity<TUser>().Ignore(x => x.HasLoggedInWithExternalProvider);
-            }
-
-            if (SettingsProvider.Current.AppHasLatinTranslation == false)
-            {
-                modelBuilder.Entity<Permission>().Ignore(x => x.NameLatin);
-                modelBuilder.Entity<Permission>().Ignore(x => x.DescriptionLatin);
+                modelBuilder.Entity<TUser>().Ignore(x => x.HasLoggedInWithGoogleAsExternalProvider);
             }
 
             mutableEntityTypes.ConfigureManyToManyRelationships(modelBuilder);

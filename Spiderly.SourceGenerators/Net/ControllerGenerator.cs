@@ -87,6 +87,7 @@ using Spiderly.Shared.DTO;
 using {{appName}}.Shared.Resources;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.DTO;
+using {{appName}}.Business.Services;
 {{string.Join("\n", Helpers.GetEntityClassesUsings(allEntities))}}
 {{string.Join("\n", Helpers.GetDTOClassesUsings(allEntities))}}
 
@@ -107,14 +108,15 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 string servicesNamespace = groupedControllerEntities.FirstOrDefault().Namespace.Replace(".Entities", ".Services");
                 SpiderlyClass businessServiceClass = referencedProjectServices
-                    .Where(x => x.BaseType != null &&
-                                x.Namespace != null &&
-                                x.Namespace == servicesNamespace &&
-                                x.BaseType.Contains("BusinessServiceGenerated") &&
-                                x.BaseType.Contains("AuthorizationBusinessServiceGenerated") == false)
-                    .SingleOrDefault();
+                    .SingleOrDefault(x =>
+                        x.BaseType != null &&
+                        x.Namespace != null &&
+                        x.Namespace == servicesNamespace &&
+                        x.BaseType.Contains("BusinessServiceGenerated") &&
+                        x.BaseType.Contains("AuthorizationServiceGenerated") == false
+                    );
 
-                if (businessServiceClass == null) // FT: Didn't make custom business service in the project.
+                if (businessServiceClass == null) // End user didn't make custom business service in the project.
                     continue;
 
                 result.Add($$"""
@@ -122,11 +124,11 @@ namespace {{basePartOfNamespace}}.Controllers
     public class {{groupedControllerEntities.Key}}BaseController : SpiderlyBaseController
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceClass.Name)}} _businessService;
+        private readonly BusinessService _businessService;
 
         public {{groupedControllerEntities.Key}}BaseController(
             IApplicationDbContext context, 
-            {{servicesNamespace}}.{{GetBusinessServiceClassName(businessServiceClass.Name)}} businessService
+            BusinessService businessService
         )
         {
             _context = context;
@@ -494,18 +496,6 @@ namespace {{basePartOfNamespace}}.Controllers
             }
 
             return result;
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private static string GetBusinessServiceClassName(string businessServiceName)
-        {
-            if (businessServiceName.Contains("Security"))
-                return $"{businessServiceName}<User>";
-            else
-                return businessServiceName;
         }
 
         #endregion

@@ -198,8 +198,8 @@
   <data name="EmailSendError" xml:space="preserve">
     <value>Dogodila se greška prilikom slanja mejla, naš tim je obavešten i otkloniće je u najkraćem mogućem roku. Hvala Vam na strpljenju.</value>
   </data>
-  <data name="HasLoggedInWithExternalProvider" xml:space="preserve">
-    <value>Prijavljen sa eksternim provajderom</value>
+  <data name="HasLoggedInWithGoogleAsExternalProvider" xml:space="preserve">
+    <value>Prijavljen preko Google naloga</value>
   </data>
   <data name="IsDisabled" xml:space="preserve">
     <value>Blokiran</value>

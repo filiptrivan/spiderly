@@ -14,6 +14,5 @@ namespace Spiderly.Infrastructure
     public class Settings
     {
         public bool UseGoogleAsExternalProvider { get; set; }
-        public bool AppHasLatinTranslation { get; set; }
     }
 }

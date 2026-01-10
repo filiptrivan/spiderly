@@ -1,12 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Spiderly.Security.DTO;
-using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity.UI;
-using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -14,32 +11,33 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 {
     /// <summary>
     /// A base controller providing core security functionalities such as authentication, user management, and role-based access control.
-    /// It leverages various services for handling user authentication (login, registration, logout, token refresh),
-    /// retrieving user information and permissions, and managing roles (CRUD operations, assigning users and permissions).
-    /// This controller is designed to be extended for specific user types.
+    /// It leverages various services for handling user authentication (login, registration, logout, token refresh).    /// This controller is designed to be extended for specific user types.
     /// </summary>
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
-    public class SecurityBaseController<TUser> : SpiderlyBaseController where TUser : class, IUser, new()
+    /// <typeparam name="TRole">The type of the role entity, which must implement the <see cref="IRole"/> interface.</typeparam>
+    public class SecurityBaseController<TUser, TRole> : SpiderlyBaseController
+        where TUser : class, IUser, new()
+        where TRole : class, IRole, new()
     {
-        private readonly SecurityBusinessService<TUser> _securityBusinessService;
+        private readonly SecurityServiceBase<TUser> _securityServiceBase;
         private readonly IJwtAuthManager _jwtAuthManagerService;
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
-        private readonly AuthorizationService _authorizationService;
+        private readonly AuthorizationServiceBase _authorizationServiceBase;
 
         public SecurityBaseController(
-            SecurityBusinessService<TUser> securityBusinessService,
+            SecurityServiceBase<TUser> securityServiceBase,
             IJwtAuthManager jwtAuthManagerService,
             IApplicationDbContext context,
             AuthenticationService authenticationService,
-            AuthorizationService authorizationService
+            AuthorizationServiceBase authorizationServiceBase
         )
         {
-            _securityBusinessService = securityBusinessService;
+            _securityServiceBase = securityServiceBase;
             _jwtAuthManagerService = jwtAuthManagerService;
             _context = context;
             _authenticationService = authenticationService;
-            _authorizationService = authorizationService;
+            _authorizationServiceBase = authorizationServiceBase;
         }
 
         #region Authentication
@@ -47,20 +45,20 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [HttpPost]
         public async Task SendLoginVerificationEmail(LoginDTO loginDTO)
         {
-            await _securityBusinessService.SendLoginVerificationEmail(loginDTO);
+            await _securityServiceBase.SendLoginVerificationEmail(loginDTO);
         }
 
         [HttpPost]
         public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO request)
         {
-            return await _securityBusinessService.Login(request);
+            return await _securityServiceBase.Login(request);
         }
 
         [HttpPost]
         [UIDoNotGenerate]
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO) // TODO: Add enum for which external provider you should login user
         {
-            return await _securityBusinessService.LoginExternal(externalProviderDTO);
+            return await _securityServiceBase.LoginExternal(externalProviderDTO);
         }
 
         [HttpGet]
@@ -79,7 +77,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [HttpPost]
         public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO request)
         {
-            return await _securityBusinessService.RefreshToken(request);
+            return await _securityServiceBase.RefreshToken(request);
         }
 
         #endregion
@@ -91,7 +89,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [SkipSpinner]
         public async Task<UserBaseDTO> GetCurrentUserBase()
         {
-            return await _securityBusinessService.GetCurrentUserBaseDTO();
+            return await _authenticationService.GetCurrentUserBaseDTO<TUser>();
         }
 
         [HttpGet]
@@ -99,86 +97,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [UIDoNotGenerate]
         public virtual async Task<List<string>> GetCurrentUserPermissionCodes()
         {
-            return await _authorizationService.GetCurrentUserPermissionCodes<TUser>();
-        }
-
-        #endregion
-
-        #region Role
-
-        [HttpPost]
-        [AuthGuard]
-        public async Task<PaginatedResultDTO<RoleDTO>> GetPaginatedRoleList(FilterDTO filterDTO)
-        {
-            return await _securityBusinessService.GetPaginatedRoleList(filterDTO, _context.DbSet<Role>(), true);
-        }
-
-        [HttpPost]
-        [AuthGuard]
-        public async Task<IActionResult> ExportRoleListToExcel(FilterDTO filterDTO)
-        {
-            byte[] fileContent = await _securityBusinessService.ExportRoleListToExcel(filterDTO, _context.DbSet<Role>(), true);
-            return File(fileContent, SettingsProvider.Current.ExcelContentType, Uri.EscapeDataString($"Roles.xlsx"));
-        }
-
-        [HttpDelete]
-        [AuthGuard]
-        public async Task DeleteRole(int id)
-        {
-            await _securityBusinessService.DeleteRole(id, true);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task<RoleMainUIFormDTO> GetRoleMainUIFormDTO(int id)
-        {
-            return await _securityBusinessService.GetRoleMainUIFormDTO(id, true);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task<RoleDTO> GetRole(int id)
-        {
-            return await _securityBusinessService.GetRoleDTO(id, true);
-        }
-
-        [HttpPut]
-        [AuthGuard]
-        public async Task<RoleMainUIFormDTO> SaveRole(RoleSaveBodyDTO saveBodyDTO)
-        {
-            return await _securityBusinessService.SaveRoleAndReturnMainUIFormDTO(saveBodyDTO, true, true);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task<List<NamebookDTO<long>>> GetUsersNamebookListForRole(int roleId)
-        {
-            return await _securityBusinessService.GetUsersNamebookListForRole(roleId);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task<List<NamebookDTO<int>>> GetPermissionsDropdownListForRole()
-        {
-            return await _securityBusinessService.GetPermissionsDropdownListForRole(_context.DbSet<Permission>(), true, null);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public virtual async Task<List<NamebookDTO<long>>> GetUsersAutocompleteListForRole(int limit, string query, long roleId)
-        {
-            return await _securityBusinessService.GetUsersAutocompleteListForRole(limit, query, true);
-        }
-
-        #endregion
-
-        #region Permission
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task<List<NamebookDTO<int>>> GetPermissionsNamebookListForRole(int roleId)
-        {
-            return await _securityBusinessService.GetPermissionsNamebookListForRole(roleId, true);
+            return await _authorizationServiceBase.GetCurrentUserPermissionCodes<TUser, TRole>();
         }
 
         #endregion

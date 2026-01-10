@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { CanActivate } from '@angular/router';
 import { Observable, map } from 'rxjs';
-import { AuthBaseService } from '../services/auth-base.service';
+import { AuthServiceBase } from '../services/auth.service.base';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotAuthGuard implements CanActivate {
   constructor(
-    private authService: AuthBaseService, 
+    private authService: AuthServiceBase, 
   ) {
 
   }

@@ -1,9 +1,9 @@
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 import { TranslocoService } from '@jsverse/transloco';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { filter } from 'rxjs';
-import { LayoutBaseService } from '../../../services/app-layout-base.service';
+import { LayoutServiceBase } from '../../../services/app-layout.service.base';
 import { CommonModule } from '@angular/common';
 import { AvatarModule } from 'primeng/avatar';
 import { BadgeModule } from 'primeng/badge';
@@ -25,9 +25,9 @@ export class SideMenuTopBarComponent {
   @ViewChild('menubutton') menuButton!: ElementRef;
 
   constructor(
-    public layoutService: LayoutBaseService, 
+    public layoutService: LayoutServiceBase, 
     protected router: Router,
-    private config: ConfigBaseService,
+    private config: ConfigServiceBase,
     private translocoService: TranslocoService,
   ) { 
   }

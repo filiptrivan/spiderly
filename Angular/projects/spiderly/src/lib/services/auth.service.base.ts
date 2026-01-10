@@ -5,7 +5,7 @@ import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { map, tap, delay, finalize } from 'rxjs/operators';
 import { SocialUser, SocialAuthService } from '@abacritt/angularx-social-login';
 import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, RefreshTokenRequest, UserBase } from '../entities/security-entities';
-import { ConfigBaseService } from './config-base.service';
+import { ConfigServiceBase } from './config.service.base';
 import { ApiSecurityService } from './api.service.security';
 import { InitCompanyAuthDialogDetails } from '../entities/init-company-auth-dialog-details';
 import { isPlatformBrowser } from '@angular/common';
@@ -13,7 +13,7 @@ import { isPlatformBrowser } from '@angular/common';
 @Injectable({
   providedIn: 'root'
 })
-export class AuthBaseService implements OnDestroy {
+export class AuthServiceBase implements OnDestroy {
   private readonly apiUrl: string = this.config.apiUrl;
   private timer?: Subscription;
 
@@ -34,7 +34,7 @@ export class AuthBaseService implements OnDestroy {
     protected http: HttpClient,
     protected externalAuthService: SocialAuthService,
     protected apiService: ApiSecurityService,
-    protected config: ConfigBaseService,
+    protected config: ConfigServiceBase,
     @Inject(PLATFORM_ID) protected platformId: Object
   ) {
     if (isPlatformBrowser(platformId)) {

@@ -2,7 +2,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { ErrorHandler, Injectable } from '@angular/core';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ConfigBaseService } from '../services/config-base.service';
+import { ConfigServiceBase } from '../services/config.service.base';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +11,7 @@ export class SpiderlyErrorHandler implements ErrorHandler {
   constructor(
     private messageService: SpiderlyMessageService, 
     private translocoService: TranslocoService, 
-    private config: ConfigBaseService,
+    private config: ConfigServiceBase,
   ) {
 
   }

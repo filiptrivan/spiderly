@@ -3,7 +3,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { AppSidebarComponent } from './sidebar/sidebar.component';
 import { SideMenuTopBarComponent } from './sidemenu-topbar/sidemenu-topbar.component';
-import { LayoutBaseService } from '../../services/app-layout-base.service';
+import { LayoutServiceBase } from '../../services/app-layout.service.base';
 import { SpiderlyMenuItem } from './sidebar/sidebar-menu.component';
 import { CommonModule } from '@angular/common';
 import { FooterComponent } from '../footer/footer.component';
@@ -51,7 +51,7 @@ export class SpiderlyLayoutComponent implements OnDestroy {
     @ViewChild('topbarmenu') topbarmenu!: ElementRef;
 
     constructor(
-        protected layoutService: LayoutBaseService, 
+        protected layoutService: LayoutServiceBase, 
         protected renderer: Renderer2, 
         protected router: Router,
     ) {

@@ -2,7 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { VerificationWrapperComponent } from './verification-wrapper.component';
 import { TranslocoService } from '@jsverse/transloco';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { AuthBaseService } from '../../../services/auth-base.service';
+import { AuthServiceBase } from '../../../services/auth.service.base';
 
 @Component({
     selector: 'login-verification',
@@ -16,7 +16,7 @@ export class LoginVerificationComponent implements OnInit {
     @Input() userId: number;
 
     constructor(
-      private authService: AuthBaseService, 
+      private authService: AuthServiceBase, 
       private messageService: SpiderlyMessageService,
       private translocoService: TranslocoService,
     ) { 

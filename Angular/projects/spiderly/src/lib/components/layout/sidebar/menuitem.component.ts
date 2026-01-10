@@ -7,10 +7,10 @@ import { SidebarMenuService } from './sidebar-menu.service';
 import { SpiderlyMenuItem } from './sidebar-menu.component';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { SpiderlyFormControl } from '../../spiderly-form-control/spiderly-form-control';
-import { LayoutBaseService } from '../../../services/app-layout-base.service';
-import { AuthBaseService } from '../../../services/auth-base.service';
+import { LayoutServiceBase } from '../../../services/app-layout.service.base';
+import { AuthServiceBase } from '../../../services/auth.service.base';
 import { ApiSecurityService } from '../../../services/api.service.security';
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 import { CommonModule } from '@angular/common';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -63,13 +63,13 @@ export class MenuitemComponent implements OnInit, OnDestroy {
     partnerOptions: Namebook[];
 
     constructor(
-        public layoutService: LayoutBaseService, 
+        public layoutService: LayoutServiceBase, 
         private cd: ChangeDetectorRef, 
         public router: Router, 
         private menuService: SidebarMenuService, 
-        private authService: AuthBaseService,
+        private authService: AuthServiceBase,
         private apiService: ApiSecurityService,
-        private config: ConfigBaseService
+        private config: ConfigServiceBase
     ) {
         this.menuSourceSubscription = this.menuService.menuSource$.subscribe(value => {
             Promise.resolve(null).then(() => {

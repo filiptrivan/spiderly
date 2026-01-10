@@ -1,4 +1,4 @@
-import { ConfigBaseService } from './config-base.service';
+import { ConfigServiceBase } from './config.service.base';
 import { Injectable } from '@angular/core';
 import { TranslocoLoader } from '@jsverse/transloco';
 import { HttpClient } from '@angular/common/http';
@@ -9,7 +9,7 @@ import { HttpClient } from '@angular/common/http';
 export class SpiderlyTranslocoLoader implements TranslocoLoader {
   constructor(
     private http: HttpClient,
-    private config: ConfigBaseService,
+    private config: ConfigServiceBase,
   ) {}
 
   getTranslation(lang: string) {

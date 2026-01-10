@@ -1,4 +1,4 @@
-import { ConfigBaseService } from '../../../services/config-base.service';
+import { ConfigServiceBase } from '../../../services/config.service.base';
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -6,7 +6,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { ProfileAvatarComponent } from "../profile-avatar/profile-avatar.component";
 import { MenubarModule } from "primeng/menubar";
 import { SpiderlyMenuItem } from '../sidebar/sidebar-menu.component';
-import { AuthBaseService } from '../../../services/auth-base.service';
+import { AuthServiceBase } from '../../../services/auth.service.base';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -34,8 +34,8 @@ export class TopBarComponent {
   private permissionSubscription: Subscription | null = null;
 
   constructor(
-    private authService: AuthBaseService,
-    private config: ConfigBaseService,
+    private authService: AuthServiceBase,
+    private config: ConfigServiceBase,
   ) {
 
   }

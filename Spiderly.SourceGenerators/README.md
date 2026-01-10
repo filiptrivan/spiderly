@@ -1,12 +1,15 @@
-
 # Spiderly.SourceGenerators
+
 Spiderly.SourceGenerators generates a lot of features for both .NET and Angular apps by using attributes on EF Core entities. Its goal is to let developers focus solely on writing specific logic, without worrying about boilerplate code.
 
 ## Quickstart
+
 1. Generate the app structure using [Spiderly CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI).
-2. Add entities to the project (inside {appName}.Business -> Entities folder): 
-  - If crud operations can be performed on the entity from the application, it should inherit `BusinessObject<ID>`, if the entity is only for reading from the database (e.g. `Gender` entity), it should inherit `ReadonlyObject<ID>`. For BusinessObject entities, the necessary methods for basic crud operations will be generated, while e.g. for ReadonlyObject entities Create, Update, Delete methods will not be generated. For ReadonlyObject<T> we don't make CreatedAt and Version properties.
-  - Example of the EF Core entity:
+2. Add entities to the project (inside {appName}.Business -> Entities folder):
+
+- If crud operations can be performed on the entity from the application, it should inherit `BusinessObject<ID>`, if the entity is only for reading from the database (e.g. `Gender` entity), it should inherit `ReadonlyObject<ID>`. For BusinessObject entities, the necessary methods for basic crud operations will be generated, while e.g. for ReadonlyObject entities Create, Update, Delete methods will not be generated. For ReadonlyObject<T> we don't make CreatedAt and Version properties.
+- Example of the EF Core entity:
+
 ```csharp
 namespace PlayertyLoyals.Business.Entities
 {
@@ -20,13 +23,13 @@ namespace PlayertyLoyals.Business.Entities
         public string Email { get; set; }
 
         [UIDoNotGenerate] // We don't show this control to the end user on the UI
-        public bool? HasLoggedInWithExternalProvider { get; set; }
+        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
 
         public DateTime? BirthDate { get; set; }
 
         [UIControlType(nameof(UIControlTypeCodes.Dropdown))] // This many to one property will be handled with dropdown on the UI (the necessary structure will be generated on the Backend to support it too)
         [SetNull] // When referenced Gender is deleted this property will be set to null
-        [WithMany(nameof(Gender.Users))] // Connected one to many property 
+        [WithMany(nameof(Gender.Users))] // Connected one to many property
         public virtual Gender Gender { get; set; }
 
         [BusinessServiceDoNotGenerate] // Frontend structure and controller method will be generated, but method inside BusinessServiceGenerated will not
@@ -35,148 +38,224 @@ namespace PlayertyLoyals.Business.Entities
     }
 }
 ```
-3. Write custom logic, 
+
+3. Write custom logic,
+
 - This is an example for the Notification entity, on the administration page of the entity we want to add a button, click on which we will send an email notification to users:
+
 ```ts
-import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoService } from '@jsverse/transloco';
-import { Notification } from 'src/app/business/entities/business-entities.generated';
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyFormControl, SpiderlyButton, SpiderlyMessageService, BaseFormService } from 'spiderly';
+import { HttpClient } from "@angular/common/http";
+import {
+  ChangeDetectorRef,
+  Component,
+  KeyValueDiffers,
+  OnInit,
+} from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
+import { TranslocoService } from "@jsverse/transloco";
+import { Notification } from "src/app/business/entities/business-entities.generated";
+import { ApiService } from "src/app/business/services/api/api.service";
+import {
+  BaseFormCopy,
+  SpiderlyFormGroup,
+  SpiderlyFormControl,
+  SpiderlyButton,
+  SpiderlyMessageService,
+  BaseFormService,
+} from "spiderly";
 
 @Component({
-    selector: 'notification-details',
-    templateUrl: './notification-details.component.html',
-    styles: [],
+  selector: "notification-details",
+  templateUrl: "./notification-details.component.html",
+  styles: [],
 })
-export class NotificationDetailsComponent extends BaseFormCopy implements OnInit {
-    notificationFormGroup = new SpiderlyFormGroup<Notification>({});
+export class NotificationDetailsComponent
+  extends BaseFormCopy
+  implements OnInit
+{
+  notificationFormGroup = new SpiderlyFormGroup<Notification>({});
 
-    isMarkedAsRead = new SpiderlyFormControl<boolean>(true, {updateOn: 'change'})
+  isMarkedAsRead = new SpiderlyFormControl<boolean>(true, {
+    updateOn: "change",
+  });
 
-    additionalButtons: SpiderlyButton[];
+  additionalButtons: SpiderlyButton[];
 
-    constructor(
-        protected override differs: KeyValueDiffers,
-        protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService, 
-        protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router, 
-        protected override route: ActivatedRoute,
-        protected override translocoService: TranslocoService,
-        protected override baseFormService: BaseFormService,
-        private apiService: ApiService,
-    ) {
-        super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
-    }
-         
-    override ngOnInit() {
-        this.additionalButtons = [
-            {label: this.translocoService.translate('SendEmailNotification'), onClick: this.sendEmailNotification, icon: 'pi pi-send'}
-        ];
-    }
+  constructor(
+    protected override differs: KeyValueDiffers,
+    protected override http: HttpClient,
+    protected override messageService: SpiderlyMessageService,
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected override router: Router,
+    protected override route: ActivatedRoute,
+    protected override translocoService: TranslocoService,
+    protected override baseFormService: BaseFormService,
+    private apiService: ApiService
+  ) {
+    super(
+      differs,
+      http,
+      messageService,
+      changeDetectorRef,
+      router,
+      route,
+      translocoService,
+      baseFormService
+    );
+  }
 
-    // NOTE: We must to do it like arrow function
-    sendEmailNotification = () => {
-        this.apiService.sendNotificationEmail(this.notificationFormGroup.controls.id.value, this.notificationFormGroup.controls.version.value).subscribe(() => {
-            this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
-        });
-    }
+  override ngOnInit() {
+    this.additionalButtons = [
+      {
+        label: this.translocoService.translate("SendEmailNotification"),
+        onClick: this.sendEmailNotification,
+        icon: "pi pi-send",
+      },
+    ];
+  }
 
-    override onBeforeSave = (): void => {
-        this.saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
-    }
+  // NOTE: We must to do it like arrow function
+  sendEmailNotification = () => {
+    this.apiService
+      .sendNotificationEmail(
+        this.notificationFormGroup.controls.id.value,
+        this.notificationFormGroup.controls.version.value
+      )
+      .subscribe(() => {
+        this.messageService.successMessage(
+          this.translocoService.translate("SuccessfulAttempt")
+        );
+      });
+  };
+
+  override onBeforeSave = (): void => {
+    this.saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
+  };
 }
 ```
+
 - Example of adding custom code to html:
+
 ```html
 <ng-container *transloco="let t">
-    <spiderly-card [title]="t('PartnerNotification')" icon="pi pi-bell">
-        <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
-            <panel-body>
-                Custom HTML logic!
-            </panel-body>
-        </spiderly-panel>
-        
-        <notification-base-details
-        [formGroup]="formGroup" 
-        [notificationFormGroup]="notificationFormGroup" 
-        (onSave)="onSave()"
-        [isLastMultiplePanel]="true"
-        [additionalButtons]="additionalButtons"
-        />
+  <spiderly-card [title]="t('PartnerNotification')" icon="pi pi-bell">
+    <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
+      <panel-body> Custom HTML logic! </panel-body>
+    </spiderly-panel>
 
-    </spiderly-card>
+    <notification-base-details
+      [formGroup]="formGroup"
+      [notificationFormGroup]="notificationFormGroup"
+      (onSave)="onSave()"
+      [isLastMultiplePanel]="true"
+      [additionalButtons]="additionalButtons"
+    />
+  </spiderly-card>
 </ng-container>
 ```
 
 ## Entity Attributes
+
 ### Required
-- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend). 
-- When it's used on the enumerable property (for now, only in combination with `UIOrderedOneToMany` attribute) will not allow saving an empty list.
-### StringLength
+
 - This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
+- When it's used on the enumerable property (for now, only in combination with `UIOrderedOneToMany` attribute) will not allow saving an empty list.
+
+### StringLength
+
+- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
+
 ### GreaterThanOrEqualTo
+
 - Set this attribute to the numeric properties only.
+
 ### CustomValidator
+
 - If you cannot achieve something with built in fluent validations, you can write custom on the class.
 - e.g. `[CustomValidator("RuleFor(x => x.Name).NotEmpty();")]`
 
 ### DisplayName
+
 - A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
 - Don't use nameof, because source generator will take only "Email" if you pass nameof(User.Email)
 - Pass the parameter only if the display name is like this: User.Email
+
 ### BlobName
+
 - Set this attribute to a property that serves as a pointer to the file identifier in azure storage.
+
 ### Controller
+
 - Set this attribute to the entities for which you do not want the controller to be called {entityName}Controller, but to give it a custom name and possibly connect more entities to that controller.
+
 ### ExcludeFromDTO
+
 - Set this attribute to the property you don't want generated in the DTO.
+
 ### IncludeInDTO
+
 - Set this attribute to the property you want generated in the DTO.
 - It only makes sense for enumerable properties (because they are not generated in a DTO by default).
 - The generated property in DTO will not be included in the mapping library.
+
 ### ExcludeServiceMethodsFromGeneration
+
 - All the logic that should be generated in the `BusinessServiceGenerated` class for this property will not be generated.
+
 ### GenerateCommaSeparatedDisplayName
+
 - Set this attribute to the enumerable property for which you want the List<string> property to be generated in the DTO.
-- It will be filled with display names using mapper. 
+- It will be filled with display names using mapper.
 - It is used to display comma separated display names ​​in a table on the UI.
+
 ### WithMany
+
 - Set to the many to one property.
 - Pass enumerable parameter in order to know which enumerable property on the other side many to one property connects to.
+
 ### ManyToOneRequired
+
 - Set to the many to one property to perform a `cascade` delete.
-- We also use it to generate validations (Backend and Frontend). 
+- We also use it to generate validations (Backend and Frontend).
 - The parent entity cannot exist without the property which has this attribute.
+
 ### SetNull
+
 - Set to the many to one property to perform a `set null` delete.
+
 ### M2MEntity
-- Set to a property in the M2M class that represents a reference to another entity. 
+
+- Set to a property in the M2M class that represents a reference to another entity.
 - As a parameter, you need to pass an enumerable property from the referenced entity.
+
 ### M2MMaintanceEntity
-- Set to a property in the M2M class that represents a reference to another entity. 
+
+- Set to a property in the M2M class that represents a reference to another entity.
 - M2M relationship will be maintained through this referenced entity, both on the UI and on the backend.
 - As a parameter, you need to pass an enumerable property from the referenced entity.
+
 ### SimpleManyToManyTableLazyLoad
+
 - Set to the enumerable property which represents a navigation to other side of M2M relationship.
 - Will generate such a structure on the backend and frontend that the many-to-many relationship is maintained using a lazy loading table.
 
 ### UI Attributes
+
 These attributes are used exclusively for the UI.
 
 #### UIControlType
+
 - We try to conclude what type of controller should be on the front based on the property data type, but in some cases it is impossible
 - Such as e.g. with the `color-picker` UI control type, the data type in C# is string, but that doesn't tell us enough.
-- e.g. 
+- e.g.
+
 ```csharp
 [UIControlType(nameof(UIControlTypeCodes.ColorPick))]
 public string PrimaryColor { get; set; }
 ```
 
 #### UIControlWidth
+
 - Set to the property whose default width you want to change.
 - e.g. `[UIControlWidth("col-12")]`, in the example, the width control will always be full screen.
 - Default values for different control types are:
@@ -184,14 +263,17 @@ public string PrimaryColor { get; set; }
 - - everything else: `col-12 md:col-6`
 
 #### UIDoNotGenerate
+
 - This attribute can be set on an entity as well as on a property.
 - If it is set on an entity, that entity will not be generated at all for administration on the UI.
 - If it is set on a property, only that property will not be displayed.
 
 #### UIOrderedOneToMany
+
 - Set to the one to many property.
 - Will generate such a structure on the backend and frontend that the one-to-many relationship is maintained using ordered list.
 - For this way of maintenance on the entity, on the other hand, you must have the property `OrderNumber`, e.g.
+
 ```csharp
 [UIDoNotGenerate]
 [Required]
@@ -199,16 +281,20 @@ public int OrderNumber { get; set; }
 ```
 
 #### UIPanel
+
 - With this attribute you determine in which panel the UI control will be located.
 - By default all controls are inside the "Details" panel.
 
 #### UIPropertyBlockOrder
+
 - With this control, you determine the order in which controls will be displayed on the UI.
 - The controls are displayed in the order you specified the properties on the entity (except `file`, `text-area`, `editor`, `table` control types, they are always displayed last in the written order).
 
 #### UITableColumn
+
 - Set to the enumerable property in combination with `SimpleManyToManyTableLazyLoad` attribute.
 - e.g.
+
 ```csharp
 #region UITableColumn
 [UITableColumn(nameof(PartnerUserDTO.UserDisplayName))]
@@ -224,16 +310,27 @@ public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 ### Translation Attributes
 
 #### TranslatePluralEn
+
 - e.g. `Users`
+
 #### TranslatePluralSrLatnRS
+
 - e.g. `Korisnici`
+
 #### TranslateExcelEn
+
 - If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
 - e.g. `Users.xlsx`
+
 #### TranslateExcelSrLatnRS
+
 - If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
-- e.g. `Korisnici.xlsx` 
+- e.g. `Korisnici.xlsx`
+
 #### TranslateSingularEn
+
 - e.g. `User`
+
 #### TranslateSingularSrLatnRS
+
 - e.g. `Korisnik`

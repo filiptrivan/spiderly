@@ -1,5 +1,4 @@
-﻿using Spiderly.Security.Entities;
-using Spiderly.Shared.Interfaces;
+﻿using Spiderly.Shared.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +11,10 @@ namespace Spiderly.Security.Interfaces
     {
         public string Email { get; set; }
 
-        public bool? HasLoggedInWithExternalProvider { get; set; }
+        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
 
         public bool? IsDisabled { get; set; }
 
-        public List<Role> Roles { get; }
+        IReadOnlyCollection<IRole> Roles { get; }
     }
 }

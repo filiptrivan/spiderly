@@ -1,10 +1,10 @@
 import { inject, PLATFORM_ID } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
-import { ConfigBaseService } from '../services/config-base.service';
+import { ConfigServiceBase } from '../services/config.service.base';
 import { isPlatformBrowser } from '@angular/common';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
-  const config = inject(ConfigBaseService);
+  const config = inject(ConfigServiceBase);
   const platformId = inject(PLATFORM_ID);
 
   let accessToken = null;
