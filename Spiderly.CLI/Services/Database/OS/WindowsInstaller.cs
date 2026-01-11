@@ -38,10 +38,9 @@ namespace Spiderly.CLI.Services.Database.OS
                 return false;
             }
 
-            if (await WindowsConsoleHelper.InstallViaChocolatey("postgresql", "PostgreSQL"))
+            if (await WindowsConsoleHelper.InstallViaChocolatey("postgresql", "PostgreSQL", "/Password:postgres"))
             {
                 await StartPostgreSQLService();
-                await ConfigurePostgreSQLAuthentication();
                 return true;
             }
 

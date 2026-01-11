@@ -1,25 +1,40 @@
 using System.Runtime.Versioning;
 using System.Security.Principal;
+using System.Diagnostics;
 using Spectre.Console;
 using Spiderly.CLI.Services;
 
 [SupportedOSPlatform("windows")]
 public static class WindowsConsoleHelper
 {
-    public static async Task<bool> InstallViaChocolatey(string packageName, string displayName)
+    public static async Task<bool> InstallViaChocolatey(string packageName, string displayName, string installParams = null)
     {
         if (!IsRunningAsAdmin())
         {
-            ConsoleHelper.MarkupLineERROR("Administrator privileges required!");
-            Console.WriteLine($"\nTo install {displayName} via Chocolatey, you need to run this application as Administrator.");
-            Console.WriteLine("\nPlease restart your terminal/command prompt as Administrator and try again.");
+            ConsoleHelper.MarkupLineWARNING("Administrator privileges required for Chocolatey installation.");
+
+            if (ConsoleHelper.PromptYesNo("Would you like to restart the application as Administrator?"))
+            {
+                if (RestartAsAdmin())
+                {
+                    Environment.Exit(0);
+                }
+            }
+
+            AnsiConsole.WriteLine();
+            ConsoleHelper.MarkupLineERROR("Cannot proceed without administrator privileges.");
+            Console.WriteLine("Please restart your terminal/command prompt as Administrator and try again.");
             return false;
         }
 
         ConsoleHelper.MarkupLineLoading($"Chocolatey detected. Installing {displayName} via Chocolatey...");
         Console.WriteLine("This may take several minutes...");
 
-        (bool installed, _) = await ProcessRunner.RunCommand("choco", $"install {packageName} -y");
+        string command = string.IsNullOrEmpty(installParams)
+            ? $"install {packageName} -y"
+            : $"install {packageName} -y --params '{installParams}'";
+
+        (bool installed, _) = await ProcessRunner.RunCommand("choco", command);
         if (installed)
         {
             ConsoleHelper.MarkupLineOK($"{displayName} has been installed successfully.");
@@ -50,8 +65,18 @@ public static class WindowsConsoleHelper
     {
         if (!IsRunningAsAdmin())
         {
+            ConsoleHelper.MarkupLineWARNING("Administrator privileges required for Chocolatey installation.");
+
+            if (ConsoleHelper.PromptYesNo("Would you like to restart the application as Administrator?"))
+            {
+                if (RestartAsAdmin())
+                {
+                    Environment.Exit(0);
+                }
+            }
+
             AnsiConsole.WriteLine();
-            ConsoleHelper.MarkupLineERROR("Administrator privileges required to install Chocolatey.");
+            ConsoleHelper.MarkupLineERROR("Cannot proceed without administrator privileges.");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("Please restart your terminal as Administrator:");
             AnsiConsole.MarkupLine("  [dim]Right-click on your terminal/command prompt and select 'Run as Administrator'[/]");
@@ -94,6 +119,29 @@ public static class WindowsConsoleHelper
         {
             WindowsPrincipal principal = new WindowsPrincipal(identity);
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+    }
+
+    public static bool RestartAsAdmin()
+    {
+        try
+        {
+            ProcessStartInfo processInfo = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                WorkingDirectory = Environment.CurrentDirectory,
+                FileName = Environment.ProcessPath,
+                Verb = "runas",
+                Arguments = string.Join(" ", Environment.GetCommandLineArgs().Skip(1))
+            };
+
+            Process.Start(processInfo);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ConsoleHelper.MarkupLineERROR($"Failed to restart as administrator: {ex.Message}");
+            return false;
         }
     }
 
