@@ -58,7 +58,6 @@ namespace Spiderly.SourceGenerators.Net
                 ? currentProjectEntities[0].Namespace
                 : currentProjectDTOClasses[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             string result = $$"""
 using FluentValidation;
@@ -71,7 +70,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
 }
 """;
 
-            context.AddSource($"{projectName}ValidationRules.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSource($"ValidationRules.generated", SourceText.From(result, Encoding.UTF8));
         }
 
         private static List<string> GetDTOClassesValidationRules(List<SpiderlyClass> currentProjectDTOClasses, List<SpiderlyClass> currentProjectEntities)

@@ -60,7 +60,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             string result = $$"""
 {{GetUsings()}}
@@ -71,7 +70,7 @@ namespace {{basePartOfNamespace}}.DTO
 }
 """;
 
-            context.AddSource($"{projectName}DTOList.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSource($"DTOList.generated", SourceText.From(result, Encoding.UTF8));
         }
 
         private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)

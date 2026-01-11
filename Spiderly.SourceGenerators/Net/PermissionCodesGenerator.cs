@@ -56,7 +56,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             List<string> permissionCodes = Helpers.GetPermissionCodesForEntites(currentProjectEntities);
 
@@ -69,14 +68,14 @@ using System.Threading.Tasks;
 
 namespace {{basePartOfNamespace}}.Enums
 {
-    public partial class {{projectName}}PermissionCodes
+    public partial class PermissionCodes
     {
         {{string.Join("\n\t\t", permissionCodes.Select(x => $$"""public static string {{x}} { get; } = "{{x}}";"""))}}
     }
 }
 """);
 
-            context.AddSource($"{projectName}PermissionCodes.generated", SourceText.From(sb.ToString(), Encoding.UTF8));
+            context.AddSource($"PermissionCodes.generated", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
     }
 }

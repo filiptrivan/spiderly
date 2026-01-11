@@ -52,13 +52,12 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             bool shouldGenerateCloudinaryStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasCloudinaryPublicIdAttribute()));
             bool shouldGenerateS3PublicStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasS3PublicUrlAttribute()));
 
             string result = $$"""
-{{GetUsings(basePartOfNamespace, projectName)}}
+{{GetUsings(basePartOfNamespace)}}
 
 namespace {{basePartOfNamespace}}.Services
 {
@@ -89,7 +88,7 @@ namespace {{basePartOfNamespace}}.Services
             {{(shouldGenerateS3PublicStorageService ? "_s3PublicStorageService = s3PublicStorageService;" : "")}}
         }
 
-{{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities, projectName))}}
+{{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities))}}
 
     }
 }
@@ -98,7 +97,7 @@ namespace {{basePartOfNamespace}}.Services
             context.AddSource($"BusinessService.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        private static List<string> GetBusinessServiceMethods(List<SpiderlyClass> entityClasses, List<SpiderlyClass> allEntityClasses, string projectName)
+        private static List<string> GetBusinessServiceMethods(List<SpiderlyClass> entityClasses, List<SpiderlyClass> allEntityClasses)
         {
             List<string> result = new();
 
@@ -109,7 +108,7 @@ namespace {{basePartOfNamespace}}.Services
                     result.Add($$"""
         #region {{entity.Name}} - M2M
 
-{{GetManyToManyData(entity, allEntityClasses, projectName)}}
+{{GetManyToManyData(entity, allEntityClasses)}}
 
         #endregion
 """);
@@ -121,7 +120,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Read
 
-{{GetReadBusinessServiceMethods(entity, allEntityClasses, projectName)}}
+{{GetReadBusinessServiceMethods(entity, allEntityClasses)}}
 
         #endregion
 
@@ -141,7 +140,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region One To Many
 
-{{string.Join("\n\n", GetOneToManyMethods(entity, allEntityClasses, projectName))}}
+{{string.Join("\n\n", GetOneToManyMethods(entity, allEntityClasses))}}
 
         #endregion
 
@@ -155,7 +154,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Read
 
-        private static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, string projectName)
+        private static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             string entityIdType = entity.GetIdType(allEntities);
 
@@ -283,7 +282,7 @@ namespace {{basePartOfNamespace}}.Services
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
-            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
+            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.ResourceManager).ToArray();
         }
 
         /// <summary>
@@ -348,7 +347,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -380,7 +379,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
 
                 if (property.IsMultiSelectControlType())
@@ -398,11 +397,6 @@ namespace {{basePartOfNamespace}}.Services
             }
 
             return string.Join("\n", result);
-        }
-
-        private static string GetTermsClassName(string projectName)
-        {
-            return projectName == "Security" ? "SharedTerms" : "TermsGenerated";
         }
 
         private static string GetPopulateDTOWithBlobPartsForDTO(List<SpiderlyProperty> propertiesEntityClass)
@@ -577,7 +571,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region One To Many
 
-        private static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses, string projectName)
+        private static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
         {
             string entityIdType = entity.GetIdType(allEntityClasses);
 
@@ -602,7 +596,7 @@ namespace {{basePartOfNamespace}}.Services
                         if (m2mProperty == null)
                             throw new Exception("You didn't specify correct M2MWithMany attribute");
 
-                        result.Add(GetPaginatedListForComplexM2MMethod(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, projectName, allEntityClasses));
+                        result.Add(GetPaginatedListForComplexM2MMethod(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, allEntityClasses));
                     }
 
                     continue;
@@ -837,7 +831,7 @@ namespace {{basePartOfNamespace}}.Services
 """;
         }
 
-        private static string GetPaginatedListForComplexM2MMethod(SpiderlyClass listEntitty, SpiderlyProperty oneToManyProperty, SpiderlyProperty m2mProperty, SpiderlyClass entity, string projectName, List<SpiderlyClass> allEntityClasses)
+        private static string GetPaginatedListForComplexM2MMethod(SpiderlyClass listEntitty, SpiderlyProperty oneToManyProperty, SpiderlyProperty m2mProperty, SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
         {
             return $$"""
         /// <summary>
@@ -912,7 +906,7 @@ namespace {{basePartOfNamespace}}.Services
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
-            return _excelService.FillReportTemplate<{{listEntitty.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, {{GetTermsClassName(projectName)}}.ResourceManager).ToArray();
+            return _excelService.FillReportTemplate<{{listEntitty.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.ResourceManager).ToArray();
         }
 """;
         }
@@ -924,7 +918,7 @@ namespace {{basePartOfNamespace}}.Services
                 return null;
 
             string entityIdType = entity.GetIdType(entities);
-            SpiderlyClass extractedPropertyEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single(); // Role
+            SpiderlyClass extractedPropertyEntity = entities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)); // Role
 
             string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities);
 
@@ -1306,7 +1300,7 @@ namespace {{basePartOfNamespace}}.Services
                 if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add($$"""
-                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Selected{{property.Name}}NamebookDTOList.Select(x => x.Id));
+                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Selected{{property.Name}}NamebookDTOList.Select(x => x.Id).ToList());
 """);
                 }
             }
@@ -1627,7 +1621,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in cascadeDeleteProperties)
             {
-                SpiderlyClass parentEntity = allEntities.Where(x => x.Name == property.EntityName).SingleOrDefault();
+                SpiderlyClass parentEntity = allEntities.SingleOrDefault(x => x.Name == property.EntityName);
 
                 if (parentEntity.IsManyToMany())
                 {
@@ -1667,7 +1661,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region M2M
 
-        private static string GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses, string projectName)
+        private static string GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
         {
             if (entity.Properties.Count == Settings.NumberOfPropertiesWithoutAdditionalManyToManyProperties)
                 return null;
@@ -1682,10 +1676,10 @@ namespace {{basePartOfNamespace}}.Services
                 return "YouNeedToDefineTwoM2MWithManyProperties";
 
             SpiderlyProperty m2mWithManyProperty_1 = m2mWithManyProperties[0];
-            SpiderlyAttribute m2mWithManyAttribute_1 = m2mWithManyProperty_1.Attributes.Where(x => x.Name == "M2MWithMany").Single();
+            SpiderlyAttribute m2mWithManyAttribute_1 = m2mWithManyProperty_1.Attributes.Single(x => x.Name == "M2MWithMany");
 
             SpiderlyProperty m2mWithManyProperty_2 = m2mWithManyProperties[1];
-            SpiderlyAttribute m2mWithManyAttribute_2 = m2mWithManyProperty_2.Attributes.Where(x => x.Name == "M2MWithMany").Single();
+            SpiderlyAttribute m2mWithManyAttribute_2 = m2mWithManyProperty_2.Attributes.Single(x => x.Name == "M2MWithMany");
 
             if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
                 return null; // It's simple M2M
@@ -1768,7 +1762,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Helpers
 
-        private static string GetUsings(string basePartOfTheNamespace, string projectName)
+        private static string GetUsings(string basePartOfTheNamespace)
         {
             return $$"""
 using {{basePartOfTheNamespace}}.ValidationRules;
@@ -1778,13 +1772,12 @@ using {{basePartOfTheNamespace}}.Entities;
 using {{basePartOfTheNamespace}}.Enums;
 using {{basePartOfTheNamespace}}.ExcelProperties;
 using {{basePartOfTheNamespace}}.Filtering;
-{{(projectName == "Security" ? "" : $"using {basePartOfTheNamespace.ReplaceEverythingAfterLast(".", ".Shared")}.Resources;")}}
+using {{basePartOfTheNamespace.ReplaceEverythingAfterLast(".", ".Shared")}}.Resources;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using FluentValidation;
 using Spiderly.Security.Services;
 using Spiderly.Security.Interfaces;
-using Spiderly.Security.Entities;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Services;
