@@ -2552,6 +2552,7 @@ namespace {{appName}}.Business.Entities
     {
       return $$"""
 using Microsoft.EntityFrameworkCore;
+using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
@@ -2576,9 +2577,10 @@ namespace {{appName}}.Business.Entities
         public string Code { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
-        IReadOnlyCollection<IRole> IUser.Roles => Roles;
+        IReadOnlyCollection<IRole> IPermission.Roles => Roles;
     }
 }
+
 """;
     }
 
