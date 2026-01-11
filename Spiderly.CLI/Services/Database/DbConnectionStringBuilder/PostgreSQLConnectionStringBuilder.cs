@@ -29,13 +29,24 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
             if (connectionString == null)
             {
-                ConsoleHelper.MarkupLineWARNING("Unable to connect to PostgreSQL with standard credentials. Please enter the password for the 'postgres' user (or press Enter to skip and configure the connection string manually later):");
+                ConsoleHelper.MarkupLineWARNING("We tried to connect to the database with a couple of standard passwords without success. Please enter the password for the 'postgres' user:");
 
-                string password = AnsiConsole.Prompt(new TextPrompt<string>("Password:"));
-
-                if (!string.IsNullOrWhiteSpace(password))
+                while (connectionString == null)
                 {
+                    string password = AnsiConsole.Prompt(new TextPrompt<string>("Password (or type 'exit' to stop):"));
+
+                    if (password.Equals("exit", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AnsiConsole.MarkupLine("Password entry cancelled.");
+                        break;
+                    }
+
                     connectionString = Helper.CreatePostgreSQLConnectionString(appName, password);
+
+                    if (connectionString == null)
+                    {
+                        ConsoleHelper.MarkupLineERROR("Invalid password. Please try again.");
+                    }
                 }
             }
 

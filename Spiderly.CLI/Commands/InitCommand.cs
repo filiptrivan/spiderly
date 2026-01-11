@@ -43,12 +43,10 @@ namespace Spiderly.CLI.Commands
 
             if (connectionString == null)
             {
-                ConsoleHelper.MarkupLineWARNING("Skipping database connection step. You can later change the connection string and execute the database scripts via EF Core.");
+                return 1;
             }
-            else
-            {
-                ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
-            }
+
+            ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
 
             try
             {
@@ -280,7 +278,7 @@ namespace Spiderly.CLI.Commands
                 new SelectionPrompt<DbProviderCodes>()
                     .Title("Select database provider:")
                     .AddChoices(DbProviderCodes.PostgreSQL, DbProviderCodes.SQLServer)
-                    .UseConverter(choice => choice == DbProviderCodes.PostgreSQL ? "PostgreSQL" : "SQL Server"));
+                    .UseConverter(choice => choice == DbProviderCodes.PostgreSQL ? "PostgreSQL (recommended in most cases)" : "SQL Server"));
         }
 
         private static bool IsInteractive()
