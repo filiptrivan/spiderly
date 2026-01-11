@@ -1173,7 +1173,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// Pass the properties with the C# data types
         /// </summary>
-        public static List<string> GetAngularImports(List<SpiderlyProperty> properties, string projectName = null, bool generateClassImports = false, string importPath = null)
+        public static List<string> GetAngularImports(List<SpiderlyProperty> properties, bool generateClassImports = false, string importPath = null)
         {
             List<string> result = new();
 
@@ -1186,11 +1186,11 @@ namespace Spiderly.SourceGenerators.Shared
 
                     if (generateClassImports && cSharpDataType.Contains($"{DTONamespaceEnding}"))
                     {
-                        result.Add($"import {{ {angularDataType} }} from \"./{importPath}{projectName.FromPascalToKebabCase()}-entities.generated\";");
+                        result.Add($"import {{ {angularDataType} }} from \"./{importPath}entities.generated\";");
                     }
                     else if (generateClassImports && cSharpDataType.IsEnum())
                     {
-                        result.Add($"import {{ {angularDataType} }} from \"../../enums/generated/{importPath}{projectName.FromPascalToKebabCase()}-enums.generated\";"); // TODO FT: When you need, implement so you can also send enums from the controller
+                        result.Add($"import {{ {angularDataType} }} from \"../../enums/generated/{importPath}enums.generated\";"); // TODO FT: When you need, implement so you can also send enums from the controller
                     }
                 }
             }

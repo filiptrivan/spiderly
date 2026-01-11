@@ -13,7 +13,7 @@ namespace Spiderly.SourceGenerators.Angular
     /// <summary>
     /// Generates Angular component code for displaying and editing entity details on the frontend.
     /// This generator targets C# entity and DTO classes (marked within 'Entities' or 'DTO' namespaces)
-    /// and produces a TypeScript file (`{your-app-name}\Frontend\src\app\business\components\base-details\{your-app-name}-base-details.generated.ts`).
+    /// and produces a TypeScript file (`{your-app-name}\Frontend\src\app\business\components\base-details.generated.ts`).
     /// </summary>
     [Generator]
     public class NgBaseDetailsGenerator : IIncrementalGenerator
@@ -74,13 +74,10 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
             }
 
-            string namespaceValue = currentProjectClasses[0].Namespace;
-            string projectName = Helpers.GetProjectName(namespaceValue);
-
             string outputPath =
                 Helpers.GetGeneratorOutputPath(nameof(NgBaseDetailsGenerator), currentProjectClasses) ??
-                // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details\{projectName}.ts
-                callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details\{projectName.FromPascalToKebabCase()}-base-details.generated.ts");
+                // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
+                callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details.generated.ts");
 
             string result = $$"""
 {{GetImports(customDTOClasses, allEntities)}}
