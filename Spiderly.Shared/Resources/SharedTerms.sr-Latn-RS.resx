@@ -202,7 +202,7 @@
     <value>Prijavljen preko Google naloga</value>
   </data>
   <data name="IsDisabled" xml:space="preserve">
-    <value>Blokiran</value>
+    <value>Nalog je blokiran</value>
   </data>
   <data name="Gender" xml:space="preserve">
     <value>Pol</value>

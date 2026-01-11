@@ -231,7 +231,7 @@
   </data>
   <data name="IsDisabled" xml:space="preserve">
     <value />
-    <comment>Blokiran</comment>
+    <comment>Nalog je blokiran</comment>
   </data>
   <data name="Gender" xml:space="preserve">
     <value />
