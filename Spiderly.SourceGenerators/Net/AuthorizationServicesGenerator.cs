@@ -57,7 +57,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             string result = $$"""
 {{GetUsings(basePartOfNamespace)}}
@@ -79,7 +78,7 @@ namespace {{basePartOfNamespace}}.Services
             _authenticationService = authenticationService;
         }
 
-{{GetAuthorizeRegions(currentProjectEntities, allEntities, projectName)}}
+{{GetAuthorizeRegions(currentProjectEntities, allEntities)}}
 
     }
 }
@@ -88,7 +87,7 @@ namespace {{basePartOfNamespace}}.Services
             context.AddSource($"AuthorizationService.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        public static string GetAuthorizeRegions(List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities, string projectName)
+        public static string GetAuthorizeRegions(List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
         {
             StringBuilder sb = new();
 
@@ -102,19 +101,19 @@ namespace {{basePartOfNamespace}}.Services
                 sb.AppendLine($$"""
         #region {{entity.Name}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"{entityIdType}? {entity.Name.FirstCharToLower()}IdToRead", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"{entityIdType}? {entity.Name.FirstCharToLower()}IdToRead")}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}IdListToRead", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}IdListToRead")}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Update, $"{entity.Name}DTO dto", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Update, $"{entity.Name}DTO dto")}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Insert, $"{entity.Name}DTO dto", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Insert, $"{entity.Name}DTO dto")}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"{entityIdType} {entity.Name.FirstCharToLower()}Id", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"{entityIdType} {entity.Name.FirstCharToLower()}Id")}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}ListToDelete", projectName)}}
+{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}ListToDelete")}}
 
-{{GetBloblAuthorizeEntityMethods(entity, entityIdType, projectName)}}
+{{GetBloblAuthorizeEntityMethods(entity, entityIdType)}}
 
         #endregion
 
@@ -124,16 +123,16 @@ namespace {{basePartOfNamespace}}.Services
             return sb.ToString();
         }
 
-        private static string GetBloblAuthorizeEntityMethods(SpiderlyClass entity, string entityIdType, string projectName)
+        private static string GetBloblAuthorizeEntityMethods(SpiderlyClass entity, string entityIdType)
         {
             StringBuilder sb = new();
 
             foreach (SpiderlyProperty property in Helpers.GetBlobProperties(entity.Properties))
             {
                 sb.AppendLine($$"""
-{{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Update, $"{entityIdType} {entity.Name.FirstCharToLower()}Id", projectName)}} // FT: Blob update
+{{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Update, $"{entityIdType} {entity.Name.FirstCharToLower()}Id")}} // Blob update
 
-{{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Insert, $"", projectName)}} // FT: Blob insert, the id will always be 0, so we don't need to pass it.
+{{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Insert, $"")}} // Blob insert, the id will always be 0, so we don't need to pass it.
 """);
             }
 
@@ -144,22 +143,21 @@ namespace {{basePartOfNamespace}}.Services
             string authorizeEntityMethodFirstPart,
             SpiderlyClass entity,
             CrudCodes crudCode,
-            string parametersBody,
-            string projectName
+            string parametersBody
         )
         {
             string methodName = Helpers.GetAuthorizeEntityMethodName(authorizeEntityMethodFirstPart, crudCode);
-            return GetAuthorizeMethod(methodName, parametersBody, crudCode, entity, projectName);
+            return GetAuthorizeMethod(methodName, parametersBody, crudCode, entity);
         }
 
-        private static string GetAuthorizeMethod(string methodName, string parametersBody, CrudCodes permissionCodePrefix, SpiderlyClass entity, string projectName)
+        private static string GetAuthorizeMethod(string methodName, string parametersBody, CrudCodes permissionCodePrefix, SpiderlyClass entity)
         {
             return $$"""
         public virtual async Task {{methodName}}({{parametersBody}})
         {
             await _context.WithTransactionAsync(async () =>
             {
-                await AuthorizeAndThrowAsync<User>({{projectName}}PermissionCodes.{{permissionCodePrefix}}{{entity.Name}});
+                await AuthorizeAndThrowAsync<User>(PermissionCodes.{{permissionCodePrefix}}{{entity.Name}});
             });
         }
 """;

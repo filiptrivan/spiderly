@@ -48,7 +48,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
         {
-            TypeSyntax baseType = c.BaseList?.Types.FirstOrDefault()?.Type; //BaseClass<long>
+            TypeSyntax baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
             ClassDeclarationSyntax baseClass = GetClass(baseType, currentProjectClasses);
 
             List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c);
@@ -65,7 +65,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else if (baseClass == null)
                 {
-                    SpiderlyClass spiderBaseClass = referencedProjectsClasses.Where(x => x.Name == c.Identifier.Text).SingleOrDefault();
+                    SpiderlyClass spiderBaseClass = referencedProjectsClasses.SingleOrDefault(x => x.Name == c.Identifier.Text);
 
                     if (spiderBaseClass != null)
                         properties.AddRange(spiderBaseClass.Properties);
@@ -103,11 +103,11 @@ namespace Spiderly.SourceGenerators.Shared
                     .Select(GetSpiderAttribute)
                     .ToList());
 
-                cHelper = currentProjectClasses.Where(x => x.Identifier.Text == baseType?.ToString()).SingleOrDefault();
+                cHelper = currentProjectClasses.SingleOrDefault(x => x.Identifier.Text == baseType?.ToString());
 
                 if (baseType != null && cHelper == null)
                 {
-                    SpiderlyClass baseClass = allClasses.Where(x => x.Name == c.Identifier.Text || $"{x.Name}DTO" == c.Identifier.Text).SingleOrDefault();
+                    SpiderlyClass baseClass = allClasses.SingleOrDefault(x => x.Name == c.Identifier.Text || $"{x.Name}DTO" == c.Identifier.Text);
 
                     if (baseClass != null)
                         attributes.AddRange(baseClass.Attributes);
@@ -138,15 +138,17 @@ namespace Spiderly.SourceGenerators.Shared
                 typeName = nameSyntax.ToString();
             }
 
-            return classes.Where(x => x.Identifier.Text == typeName).SingleOrDefault();
+            return classes.SingleOrDefault(x => x.Identifier.Text == typeName);
         }
 
         /// <summary>
-        /// FT: Without inherited
+        /// Without inherited properties
         /// </summary>
         public static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c)
         {
-            List<SpiderlyProperty> properties = c.Members.OfType<PropertyDeclarationSyntax>()
+            List<SpiderlyProperty> properties = c.Members
+                .OfType<PropertyDeclarationSyntax>()
+                .Where(prop => prop.ExplicitInterfaceSpecifier == null)
                 .Select(prop => new SpiderlyProperty()
                 {
                     Type = prop.Type.ToString(),
@@ -438,7 +440,7 @@ namespace Spiderly.SourceGenerators.Shared
             return context.CompilationProvider
                 .Select((compilation, _) =>
                 {
-                    List<SpiderlyClass> classes = new List<SpiderlyClass>();
+                    List<SpiderlyClass> classes = new();
 
                     foreach (IAssemblySymbol referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
                     {
@@ -451,7 +453,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static List<SpiderlyClass> GetClassesFromReferencedAssemblies(INamespaceSymbol namespaceSymbol, List<NamespaceExtensionCodes> namespaceExtensions)
         {
-            List<SpiderlyClass> classes = new List<SpiderlyClass>();
+            List<SpiderlyClass> classes = new();
 
             List<INamedTypeSymbol> types = namespaceSymbol.GetTypeMembers()
                 .Where(type => type.TypeKind == TypeKind.Class &&
@@ -503,7 +505,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static List<SpiderlyProperty> GetPropertiesFromReferencedAssemblies(INamedTypeSymbol type)
         {
-            List<SpiderlyProperty> properties = new List<SpiderlyProperty>();
+            List<SpiderlyProperty> properties = new();
 
             while (type != null)
             {
@@ -511,6 +513,12 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     if (member is IPropertySymbol propertySymbol)
                     {
+                        if (propertySymbol.ExplicitInterfaceImplementations.Any())
+                            continue;
+
+                        if (propertySymbol.Type.TypeKind == TypeKind.Interface)
+                            continue;
+
                         SpiderlyProperty property = new SpiderlyProperty
                         {
                             Type = propertySymbol.Type.TypeToDisplayString(),
@@ -661,9 +669,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static SpiderlyClass GetSettingsClass(List<SpiderlyClass> classes)
         {
-            return classes
-                .Where(x => x.Namespace.EndsWith($".GeneratorSettings"))
-                .SingleOrDefault();
+            return classes.SingleOrDefault(x => x.Namespace.EndsWith($".GeneratorSettings"));
         }
 
         public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
@@ -776,7 +782,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -811,7 +817,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -842,7 +848,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.Type.IsManyToOneType())
                 {
-                    SpiderlyClass manyToOneClass = entities.Where(x => x.Name == property.Type).SingleOrDefault();
+                    SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type);
 
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DisplayName", Type = "string", EntityName = $"{property.EntityName}DTO" });
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", EntityName = $"{property.EntityName}DTO" });

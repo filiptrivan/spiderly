@@ -75,12 +75,8 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.DTO}"))
                 .ToList();
 
-            List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses
+            List<SpiderlyClass> allEntities = referencedProjectClasses
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Entities}"))
-                .ToList();
-
-            List<SpiderlyClass> currentAppEntities = referencedProjectEntities
-                .Where(x => x.Namespace != "Spiderly.Security.Entities")
                 .ToList();
 
             string result = $$"""
@@ -98,7 +94,7 @@ export class ApiGeneratedService extends ApiSecurityService {
         super(http, config);
     }
 
-{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, currentAppEntities, referencedProjectEntities, referencedDTOClasses))}}
+{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOClasses))}}
 
 }
 """;
@@ -106,7 +102,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             Helpers.WriteToTheFile(result, outputPath);
         }
 
-        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> currentAppEntities, List<SpiderlyClass> referencedProjectEntities, List<SpiderlyClass> referencedDTOClasses)
+        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOClasses)
         {
             List<string> result = new();
             HashSet<string> alreadyAddedMethods = new();
@@ -133,9 +129,9 @@ export class ApiGeneratedService extends ApiSecurityService {
                 }
             }
 
-            foreach (SpiderlyClass entity in currentAppEntities.Where(x => x.HasUIDoNotGenerateAttribute() == false))
+            foreach (SpiderlyClass entity in allEntities.Where(x => x.HasUIDoNotGenerateAttribute() == false))
             {
-                result.Add(GetBaseAngularControllerMethods(entity, referencedProjectEntities, alreadyAddedMethods));
+                result.Add(GetBaseAngularControllerMethods(entity, allEntities, alreadyAddedMethods));
             }
 
             return result;

@@ -61,7 +61,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             sb.AppendLine($$"""
 using Mapster;
@@ -98,7 +97,7 @@ namespace {{basePartOfNamespace}}.DataMappers
 }
 """);
 
-            context.AddSource($"{projectName}Mapper.generated", SourceText.From(sb.ToString(), Encoding.UTF8));
+            context.AddSource($"Mapper.generated", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
         #region To Entity
@@ -228,7 +227,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                         continue;
 
                     string extractedEntityDisplayName = Helpers.GetDisplayNameProperty(extractedEntity);
-                    extractedEntityDisplayName = extractedEntityDisplayName.Replace(".ToString()", ""); 
+                    extractedEntityDisplayName = extractedEntityDisplayName.Replace(".ToString()", "");
 
                     if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                     {

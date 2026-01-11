@@ -11,6 +11,5 @@ namespace Spiderly.Shared.DTO
     public class ReadonlyObjectDTO<T> : IReadonlyObjectDTO<T>
     {
         public T Id { get; set; }
-        //public DateTime CreatedAt { get; set; }
     }
 }

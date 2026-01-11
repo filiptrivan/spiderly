@@ -578,9 +578,11 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)
         {
-            if (property.Attributes.Any(x => x.Name == "ExcludeFromDTO") ||
-               (property.Type.IsOneToManyType() && !property.HasGenerateCommaSeparatedDisplayNameAttribute() && !property.HasIncludeInDTOAttribute())
-            )
+            if (property.Attributes.Any(x => x.Name == "ExcludeFromDTO") || (
+                property.Type.IsOneToManyType() &&
+                !property.HasGenerateCommaSeparatedDisplayNameAttribute() &&
+                !property.HasIncludeInDTOAttribute()
+            ))
             {
                 return true;
             }

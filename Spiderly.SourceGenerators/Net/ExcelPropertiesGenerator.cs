@@ -49,7 +49,7 @@ namespace Spiderly.SourceGenerators.Net
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, SourceProductionContext context)
         {
-            if (classes.Count <= 1) 
+            if (classes.Count <= 1)
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
@@ -62,7 +62,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectClasses[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             sb.AppendLine($$"""
 using Spiderly.Shared.Excel.DTO;
@@ -107,8 +106,7 @@ namespace {{basePartOfNamespace}}.ExcelProperties
             List<string> DTOClassPropertiesToExclude = new();
 
             SpiderMethod excelMethod = customMapperClass.Methods
-                .Where(x => x.ReturnType == DTOClassName && x.Name == "ExcelProjectTo")
-                .SingleOrDefault();
+                .SingleOrDefault(x => x.ReturnType == DTOClassName && x.Name == "ExcelProjectTo");
 
             List<SpiderlyAttribute> excludePropertyAttributes = new();
 

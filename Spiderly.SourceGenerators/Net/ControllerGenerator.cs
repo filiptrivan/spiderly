@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -63,10 +64,14 @@ namespace Spiderly.SourceGenerators.Net
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices);
-            List<SpiderlyClass> customControllers = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Controllers")).ToList();
-            List<SpiderlyClass> allEntities = referencedProjectEntitiesAndServices.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> currentAppEntities = allEntities.Where(x => x.Namespace != "Spiderly.Security.Entities").ToList();
-            List<SpiderlyClass> referencedProjectServices = referencedProjectEntitiesAndServices.Where(x => x.Namespace.EndsWith(".Services")).ToList();
+
+            List<SpiderlyClass> customControllers = currentProjectClasses
+                .Where(x => x.Namespace.EndsWith(".Controllers"))
+                .ToList();
+
+            List<SpiderlyClass> allEntities = referencedProjectEntitiesAndServices
+                .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Entities}"))
+                .ToList();
 
             string namespaceValue = currentProjectClasses[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
@@ -93,32 +98,19 @@ using {{appName}}.Business.Services;
 
 namespace {{basePartOfNamespace}}.Controllers
 {
-{{string.Join("\n\n", GetControllerClasses(allEntities, currentAppEntities, referencedProjectServices, customControllers))}}
+{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers))}}
 }
 """;
 
-            context.AddSource($"{appName}BaseControllers.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSource($"BaseControllers.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> currentAppEntities, List<SpiderlyClass> referencedProjectServices, List<SpiderlyClass> customControllers)
+        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers)
         {
             List<string> result = new();
 
-            foreach (IGrouping<string, SpiderlyClass> groupedControllerEntities in currentAppEntities.GroupBy(x => x.ControllerName))
+            foreach (IGrouping<string, SpiderlyClass> groupedControllerEntities in allEntities.GroupBy(x => x.ControllerName))
             {
-                string servicesNamespace = groupedControllerEntities.FirstOrDefault().Namespace.Replace(".Entities", ".Services");
-                SpiderlyClass businessServiceClass = referencedProjectServices
-                    .SingleOrDefault(x =>
-                        x.BaseType != null &&
-                        x.Namespace != null &&
-                        x.Namespace == servicesNamespace &&
-                        x.BaseType.Contains("BusinessServiceGenerated") &&
-                        x.BaseType.Contains("AuthorizationServiceGenerated") == false
-                    );
-
-                if (businessServiceClass == null) // End user didn't make custom business service in the project.
-                    continue;
-
                 result.Add($$"""
 {{GetControllerAttributes(groupedControllerEntities, customControllers)}}
     public class {{groupedControllerEntities.Key}}BaseController : SpiderlyBaseController
@@ -270,7 +262,11 @@ namespace {{basePartOfNamespace}}.Controllers
 
         private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass manyToOneEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single();
+            SpiderlyClass manyToOneEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+            if (manyToOneEntity == null)
+                throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
+
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
             string manyToOneDisplayName = Helpers.GetDisplayNameProperty(manyToOneEntity);
 
@@ -292,7 +288,11 @@ namespace {{basePartOfNamespace}}.Controllers
 
         private static string GetDropdownMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass manyToOneEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single();
+            SpiderlyClass manyToOneEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+            if (manyToOneEntity == null)
+                throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
+
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
             string manyToOneDisplayName = Helpers.GetDisplayNameProperty(manyToOneEntity);
 
@@ -340,7 +340,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
         private static string GetSimpleManyToManyTableLazyLoadControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+            SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
             string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
             return $$"""
@@ -374,7 +374,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
         private static string GetComplexManyToManyReadonlyTableControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+            SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
             return $$"""
         [HttpPost]

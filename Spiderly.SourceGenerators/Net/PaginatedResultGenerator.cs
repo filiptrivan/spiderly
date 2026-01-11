@@ -58,7 +58,7 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> allClasses = spiderlyClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(spiderlyClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> allEntityClasses = allClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
+            List<SpiderlyClass> allEntities = allClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
 
             StringBuilder sb = new();
             List<string> usings = new();
@@ -66,7 +66,6 @@ namespace Spiderly.SourceGenerators.Net
 
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
-            string projectName = Helpers.GetProjectName(namespaceValue);
 
             sb.AppendLine($$"""
 using LinqKit;
@@ -124,12 +123,12 @@ namespace {{basePartOfNamespace}}.Filtering
                             }
                             else
                             {
-                                entityDotNotation = GetDotNotatioOfEntityFromMappers(allEntityClasses, entity, pairDTOClass, entityDotNotation); // "Role.Id"
+                                entityDotNotation = GetDotNotatioOfEntityFromMappers(allEntities, entity, pairDTOClass, entityDotNotation); // "Role.Id"
 
                                 if (entityDotNotation == null)
                                     continue;
 
-                                DTOpropType = GetPropTypeOfEntityDotNotationProperty(entityDotNotation, entity, allEntityClasses);
+                                DTOpropType = GetPropTypeOfEntityDotNotationProperty(entityDotNotation, entity, allEntities);
                             }
                         }
 

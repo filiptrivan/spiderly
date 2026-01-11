@@ -194,14 +194,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        /// <summary>
-        /// By default assigns admin role to the first user. This is a performance bottleneck.
-        /// Override this method with an empty implementation once the first user has admin permissions.
-        /// </summary>
-        public virtual async Task OnAfterLogin(AuthResultDTO authResultDTO)
-        {
-
-        }
+        public virtual async Task OnAfterLogin(AuthResultDTO authResultDTO) { }
 
         #endregion
 

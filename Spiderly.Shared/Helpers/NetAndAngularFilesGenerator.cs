@@ -379,7 +379,7 @@ namespace Spiderly.Shared.Helpers
                                 Files =
                                 {
                                     new SpiderlyFile { Name = $"AuthorizationService.cs", Data = GetAuthorizationServiceCsData(appName) },
-                                    new SpiderlyFile { Name = $"SecurityService.cs", Data = GetAuthorizationServiceCsData(appName) },
+                                    new SpiderlyFile { Name = $"SecurityService.cs", Data = GetSecurityServiceCsData(appName) },
                                     new SpiderlyFile { Name = $"BusinessService.cs", Data = GetBusinessServiceCsData(appName) },
                                 }
                             },
@@ -2481,7 +2481,6 @@ namespace {{appName}}.Business.Enums
     {
       return $$"""
 using Microsoft.EntityFrameworkCore;
-using Spiderly.Security.Entities;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity;
@@ -2507,7 +2506,7 @@ namespace {{appName}}.Business.Entities
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
-        IReadOnlyCollection<IRole> IUser.Roles => Roles.Cast<IRole>().ToList();
+        IReadOnlyCollection<IRole> IUser.Roles => Roles;
 
         public virtual List<Notification> Notifications { get; } = new(); // M2M
     }
@@ -2539,11 +2538,11 @@ namespace {{appName}}.Business.Entities
 
         [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
         public virtual List<User> Users { get; } = new(); // M2M
-        IReadOnlyCollection<IUser> IRole.Users => Users.Cast<IUser>().ToList();
+        IReadOnlyCollection<IUser> IRole.Users => Users;
 
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
         public virtual List<Permission> Permissions { get; } = new(); // M2M
-        IReadOnlyCollection<IPermission> IRole.Permissions => Permissions.Cast<IPermission>().ToList();
+        IReadOnlyCollection<IPermission> IRole.Permissions => Permissions;
     }
 }
 """;
@@ -2733,7 +2732,7 @@ namespace {{appName}}.WebAPI.Controllers
         private readonly ILogger<SecurityController> _logger;
         private readonly SecurityService<User> _securityService;
         private readonly IApplicationDbContext _context;
-        private readonly businessService _businessService;
+        private readonly BusinessService _businessService;
 
         public SecurityController(
             ILogger<SecurityController> logger,
@@ -2742,7 +2741,7 @@ namespace {{appName}}.WebAPI.Controllers
             IApplicationDbContext context,
             AuthenticationService authenticationService,
             AuthorizationService authorizationService,
-            businessService businessService
+            BusinessService businessService
         )
             : base(securityService, jwtAuthManagerService, context, authenticationService, authorizationService)
         {
@@ -2779,12 +2778,12 @@ namespace {{appName}}.WebAPI.Controllers
     public class UserController : UserBaseController
     {
         private readonly IApplicationDbContext _context;
-        private readonly businessService _businessService;
+        private readonly BusinessService _businessService;
         private readonly AuthenticationService _authenticationService;
 
         public UserController(
             IApplicationDbContext context, 
-            businessService businessService, 
+            BusinessService businessService, 
             AuthenticationService authenticationService
         )
             : base(context, businessService)
@@ -2888,7 +2887,6 @@ namespace {{appName}}.Business.DTO
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.Entities;
 using Spiderly.Infrastructure;
-using Spiderly.Security.Entities;
 
 namespace {{appName}}.Infrastructure
 {
@@ -3361,7 +3359,7 @@ namespace {{appName}}.WebAPI.DI
             #region Business
 
             registry.Register<SecurityService<User>>();
-            registry.Register<{{appName}}.Business.Services.businessService>();
+            registry.Register<{{appName}}.Business.Services.BusinessService>();
             registry.Register<{{appName}}.Business.Services.BusinessServiceGenerated>();
             registry.Register<{{appName}}.Business.Services.AuthorizationService>();
             registry.Register<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
@@ -3800,6 +3798,63 @@ namespace {{appName}}.Business.Services
         }
 
         #endregion
+
+    }
+}
+""";
+    }
+
+
+    private static string GetSecurityServiceCsData(string appName)
+    {
+      return $$"""
+using {{appName}}.Business.Entities;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Spiderly.Security.DTO;
+using Spiderly.Security.Interfaces;
+using Spiderly.Security.Services;
+using Spiderly.Shared.Interfaces;
+
+namespace {{appName}}.Business.Services
+{
+    public class SecurityService<TUser> : SecurityServiceBase<TUser> where TUser : class, IUser, new()
+    {
+        private readonly IApplicationDbContext _context;
+
+        public SecurityService(
+            IApplicationDbContext context,
+            IJwtAuthManager jwtAuthManagerService,
+            IEmailingService emailingService,
+            AuthenticationService authenticationService,
+            IWebHostEnvironment environment
+        )
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// By default assigns admin role to the first user. This is a performance bottleneck.
+        /// Delete this method once the first user has admin permissions.
+        /// </summary>
+        public override async Task OnAfterLogin(AuthResultDTO authResultDTO)
+        {
+            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 0;
+            if (isFirstUserEver)
+            {
+                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+                if (adminRole != null)
+                {
+                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
+                    if (user != null && !user.Roles.Any())
+                    {
+                        user.Roles.Add(adminRole);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+        }
 
     }
 }
