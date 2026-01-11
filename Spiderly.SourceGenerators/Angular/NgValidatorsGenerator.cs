@@ -25,12 +25,12 @@ namespace Spiderly.SourceGenerators.Angular
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
@@ -79,7 +79,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             foreach (SpiderlyClass DTOClass in DTOClasses)
             {
-                SpiderlyClass entityClass = entities.Where(x => DTOClass.Name.Replace("DTO", "") == x.Name).SingleOrDefault(); // If it is null then we only made DTO, without entity class
+                SpiderlyClass entityClass = entities.SingleOrDefault(x => DTOClass.Name.Replace("DTO", "") == x.Name); // If it is null then we only made DTO, without entity class
 
                 List<SpiderValidationRule> rules = Helpers.GetValidationRules(DTOClass.Properties, DTOClass.Attributes, entityClass);
 

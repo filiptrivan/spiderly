@@ -21,20 +21,20 @@ namespace Spiderly.Shared.Helpers
         {
             new SpiderlyFolder
             {
+                Name = ".vscode",
+                Files =
+                {
+                    new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData() },
+                    new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
+                    new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
+                    new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
+                }
+            },
+            new SpiderlyFolder
+            {
                 Name = "Frontend",
                 ChildFolders =
                 {
-                    new SpiderlyFolder
-                    {
-                        Name = ".vscode",
-                        Files =
-                        {
-                            new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData() },
-                            new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
-                            new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
-                            new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
-                        }
-                    },
                     new SpiderlyFolder
                     {
                         Name = "tests",
@@ -91,13 +91,6 @@ namespace Spiderly.Shared.Helpers
                                             new SpiderlyFolder
                                             {
                                                 Name = "components",
-                                                ChildFolders =
-                                                {
-                                                    new SpiderlyFolder
-                                                    {
-                                                        Name = "base-details",
-                                                    },
-                                                }
                                             },
                                             new SpiderlyFolder
                                             {
@@ -377,7 +370,7 @@ namespace Spiderly.Shared.Helpers
                                 Name = "Enums",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "BusinessPermissionCodes.cs", Data = GetBusinessPermissionCodesCsData(appName) },
+                                    new SpiderlyFile { Name = "PermissionCodes.cs", Data = GetPermissionCodesCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
@@ -541,8 +534,8 @@ import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { {{entityName}}MainUIForm, {{entityName}}SaveBody } from 'src/app/business/entities/business-entities.generated';
-import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
+import { {{entityName}}MainUIForm, {{entityName}}SaveBody } from 'src/app/business/entities/entities.generated';
+import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details.generated';
 import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
 
 @Component({
@@ -609,7 +602,7 @@ export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}M
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+import { {{entityName}} } from 'src/app/business/entities/entities.generated';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
@@ -670,7 +663,7 @@ export class {{entityName}}ListComponent implements OnInit {
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { {{entityName}} } from 'src/app/business/entities/business-entities.generated';
+import { {{entityName}} } from 'src/app/business/entities/entities.generated';
 import { DataViewCardBody, SpiderlyControlsModule, SpiderlyDataViewComponent, SpiderlyTemplateTypeDirective, DataViewFilter } from 'spiderly';
 
 @Component({
@@ -776,8 +769,8 @@ import {
     SpiderlyMessageService,
     SpiderlyPanelsModule,
 } from 'spiderly';
-import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/entities/business-entities.generated';
+import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details.generated';
+import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/entities/entities.generated';
 import { ApiService } from 'src/app/business/services/api/api.service';
 
 @Component({
@@ -868,7 +861,7 @@ import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { Notification } from 'src/app/business/entities/business-entities.generated';
+import { Notification } from 'src/app/business/entities/entities.generated';
 
 @Component({
     selector: 'notification-list',
@@ -936,8 +929,8 @@ import {
     SpiderlyMessageService,
     SpiderlyPanelsModule,
 } from 'spiderly';
-import { RoleBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { RoleMainUIForm, RoleSaveBody } from 'src/app/business/entities/business-entities.generated';
+import { RoleBaseDetailsComponent } from 'src/app/business/components/base-details.generated';
+import { RoleMainUIForm, RoleSaveBody } from 'src/app/business/entities/entities.generated';
 
 @Component({
     selector: 'role-details',
@@ -987,7 +980,7 @@ import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
-import { Role } from 'src/app/business/entities/business-entities.generated';
+import { Role } from 'src/app/business/entities/entities.generated';
 
 @Component({
     selector: 'role-list',
@@ -1059,9 +1052,9 @@ import {
     SpiderlyMessageService,
     SpiderlyPanelsModule,
 } from 'spiderly';
-import { UserBaseDetailsComponent } from 'src/app/business/components/base-details/business-base-details.generated';
-import { UserMainUIForm, UserSaveBody } from 'src/app/business/entities/business-entities.generated';
-import { BusinessPermissionCodes } from 'src/app/business/enums/business-enums.generated';
+import { UserBaseDetailsComponent } from 'src/app/business/components/base-details.generated';
+import { UserMainUIForm, UserSaveBody } from 'src/app/business/entities/entities.generated';
+import { PermissionCodes } from 'src/app/business/enums/enums.generated';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 
 @Component({
@@ -1113,9 +1106,9 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
 
     showIsDisabledAndExternalLoggedIn = (currentUserPermissionCodes: string[]) => {
         return (
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.ReadUser) ||
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.UpdateUser) ||
-            currentUserPermissionCodes.includes(BusinessPermissionCodes.InsertUser)
+            currentUserPermissionCodes.includes(PermissionCodes.ReadUser) ||
+            currentUserPermissionCodes.includes(PermissionCodes.UpdateUser) ||
+            currentUserPermissionCodes.includes(PermissionCodes.InsertUser)
         );
     };
 }
@@ -1144,7 +1137,7 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
 import { ApiService } from '../../../business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
-import { User } from 'src/app/business/entities/business-entities.generated';
+import { User } from 'src/app/business/entities/entities.generated';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
 
 @Component({
@@ -1524,7 +1517,7 @@ import { ApiService } from 'src/app/business/services/api/api.service';
 import { MenuItem } from 'primeng/api';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Notification } from 'src/app/business/entities/business-entities.generated';
+import { Notification } from 'src/app/business/entities/entities.generated';
 import { Menu, MenuModule } from 'primeng/menu';
 import { PaginatedResult, Filter, SpiderlyMessageService } from 'spiderly';
 
@@ -2465,7 +2458,7 @@ namespace {{appName}}.Business.Entities
 """;
     }
 
-    private static string GetBusinessPermissionCodesCsData(string appName)
+    private static string GetPermissionCodesCsData(string appName)
     {
       return $$"""
 using System;
@@ -2476,7 +2469,7 @@ using System.Threading.Tasks;
 
 namespace {{appName}}.Business.Enums
 {
-    public static partial class BusinessPermissionCodes
+    public static partial class PermissionCodes
     {
 
     }
@@ -2514,7 +2507,7 @@ namespace {{appName}}.Business.Entities
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
-        IReadOnlyCollection<IRole> IUser.Roles => Roles;
+        IReadOnlyCollection<IRole> IUser.Roles => Roles.Cast<IRole>().ToList();
 
         public virtual List<Notification> Notifications { get; } = new(); // M2M
     }
@@ -2525,6 +2518,7 @@ namespace {{appName}}.Business.Entities
     private static string GetRoleCsData(string appName)
     {
       return $$"""
+using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
@@ -2545,11 +2539,11 @@ namespace {{appName}}.Business.Entities
 
         [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
         public virtual List<User> Users { get; } = new(); // M2M
-        IReadOnlyCollection<IUser> IUser.Users => Users;
+        IReadOnlyCollection<IUser> IRole.Users => Users.Cast<IUser>().ToList();
 
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
         public virtual List<Permission> Permissions { get; } = new(); // M2M
-        IReadOnlyCollection<IPermission> IUser.Permissions => Permissions;
+        IReadOnlyCollection<IPermission> IRole.Permissions => Permissions.Cast<IPermission>().ToList();
     }
 }
 """;
@@ -3678,7 +3672,7 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                await _authorizationService.AuthorizeAndThrowAsync<User>(BusinessPermissionCodes.UpdateNotification);
+                await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateNotification);
 
                 // Checking version because if the user didn't save and some other user changed the version, he will send emails to wrong users
                 Notification notification = await GetInstanceAsync<Notification, long>(notificationId, notificationVersion);
@@ -5210,7 +5204,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { SpiderlyLayoutComponent, SpiderlyMenuItem, SecurityPermissionCodes } from 'spiderly';
 import { CommonModule } from '@angular/common';
-import { BusinessPermissionCodes } from '../enums/business-enums.generated';
+import { PermissionCodes } from '../enums/enums.generated';
 
 @Component({
     selector: 'layout',
@@ -5246,9 +5240,9 @@ export class LayoutComponent {
                         icon: 'pi pi-fw pi-cog',
                         hasPermission: (permissionCodes: string[]): boolean => { 
                             return (
-                                permissionCodes?.includes(BusinessPermissionCodes.ReadUser) ||
+                                permissionCodes?.includes(PermissionCodes.ReadUser) ||
                                 permissionCodes?.includes(SecurityPermissionCodes.ReadRole) ||
-                                permissionCodes?.includes(BusinessPermissionCodes.ReadNotification)
+                                permissionCodes?.includes(PermissionCodes.ReadNotification)
                             )
                         },
                         items: [
@@ -5258,7 +5252,7 @@ export class LayoutComponent {
                                 routerLink: [`/${this.config.administrationSlug}/users`],
                                 hasPermission: (permissionCodes: string[]): boolean => { 
                                     return (
-                                        permissionCodes?.includes(BusinessPermissionCodes.ReadUser)
+                                        permissionCodes?.includes(PermissionCodes.ReadUser)
                                     )
                                 },
                             },
@@ -5278,7 +5272,7 @@ export class LayoutComponent {
                                 routerLink: [`/${this.config.administrationSlug}/notifications`],
                                 hasPermission: (permissionCodes: string[]): boolean => { 
                                     return (
-                                        permissionCodes?.includes(BusinessPermissionCodes.ReadNotification)
+                                        permissionCodes?.includes(PermissionCodes.ReadNotification)
                                     )
                                 },
                             },

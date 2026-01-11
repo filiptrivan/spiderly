@@ -58,23 +58,20 @@ namespace Spiderly.SourceGenerators.Angular
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
         {
             if (classes.Count <= 1)
-                return; // FT: one because of config settings
+                return; // One because of config settings
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(currentProjectClasses, allClasses);
 
-            string namespaceValue = currentProjectClasses[0].Namespace;
-            string projectName = Helpers.GetProjectName(namespaceValue);
-
-            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\entities\{projectName}-entities.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\entities\{projectName.FromPascalToKebabCase()}-entities.generated.ts");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\entities\entities.generated.ts
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\entities\entities.generated.ts");
 
             StringBuilder sb = new();
             StringBuilder sbImports = new();
             sbImports.Append($$"""
 import { BaseEntity, Filter, FilterRule, FilterSortMeta, MimeTypes, Namebook } from 'spiderly';
-{{string.Join("\n", GetEnumPropertyImports(currentProjectDTOClasses, projectName))}}
+{{string.Join("\n", GetEnumPropertyImports(currentProjectDTOClasses))}}
 
 """);
 
@@ -88,7 +85,7 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, MimeTypes, Namebook } f
                 List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties);
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
-                sbImports.Append(string.Join("\n", Helpers.GetAngularImports(DTOProperties, projectName)));
+                sbImports.Append(string.Join("\n", Helpers.GetAngularImports(DTOProperties)));
 
                 sb.AppendLine($$"""
 
@@ -173,7 +170,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             return result.ToString();
         }
 
-        private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, string projectName)
+        private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses)
         {
             List<string> result = new();
 
@@ -189,7 +186,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
                     if (result.Contains(property.Name) == false)
                     {
                         result.Add($$"""
-import { {{property.Type}} } from "../enums/{{projectName.FromPascalToKebabCase()}}-enums.generated";
+import { {{property.Type}} } from "../enums/enums.generated";
 """);
                     }
                 }

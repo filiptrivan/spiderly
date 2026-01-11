@@ -34,7 +34,7 @@ public override async Task AuthorizeUserExtendedReadAndThrow(long? userExtendedI
 {
     await _context.WithTransactionAsync(async () =>
     {
-        bool hasAdminReadPermission = await IsAuthorizedAsync<UserExtended>(BusinessPermissionCodes.ReadUserExtended);
+        bool hasAdminReadPermission = await IsAuthorizedAsync<UserExtended>(PermissionCodes.ReadUserExtended);
         bool isCurrentUser = _authenticationService.GetCurrentUserId() == userExtendedId;
 
         if (isCurrentUser == false && hasAdminReadPermission == false)

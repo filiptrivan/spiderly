@@ -65,13 +65,10 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> currentProjectClassEnums = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Enums")).ToList();
 
-            string namespaceValue = currentProjectEntities[0].Namespace;
-            string projectName = Helpers.GetProjectName(namespaceValue);
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\enums\enums.generated.ts
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\enums\enums.generated.ts");
 
-            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\enums\{projectName}-enums.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\enums\{projectName.FromPascalToKebabCase()}-enums.generated.ts");
-
-            string result = GetAngularEnums(currentProjectEnums, currentProjectClassEnums, currentProjectEntities, projectName);
+            string result = GetAngularEnums(currentProjectEnums, currentProjectClassEnums, currentProjectEntities);
 
             Helpers.WriteToTheFile(result, outputPath);
         }
@@ -79,12 +76,11 @@ namespace Spiderly.SourceGenerators.Angular
         private static string GetAngularEnums(
             IList<EnumDeclarationSyntax> currentProjectEnums,
             List<SpiderlyClass> currentProjectClassEnums,
-            List<SpiderlyClass> currentProjectEntities,
-            string projectName)
+            List<SpiderlyClass> currentProjectEntities)
         {
             return $$"""
 {{GetAngularEnumsFromCurrentProjectEnums(currentProjectEnums)}}
-{{GetAngularEnumsFromCurrentProjectClassEnums(currentProjectClassEnums, currentProjectEntities, projectName)}}
+{{GetAngularEnumsFromCurrentProjectClassEnums(currentProjectClassEnums, currentProjectEntities)}}
 """;
         }
 
@@ -124,7 +120,7 @@ export enum {{enume.Identifier.Text}}
             return result;
         }
 
-        private static string GetAngularEnumsFromCurrentProjectClassEnums(List<SpiderlyClass> currentProjectClassEnums, List<SpiderlyClass> currentProjectEntities, string projectName)
+        private static string GetAngularEnumsFromCurrentProjectClassEnums(List<SpiderlyClass> currentProjectClassEnums, List<SpiderlyClass> currentProjectEntities)
         {
             StringBuilder sb = new();
 
@@ -134,7 +130,7 @@ export enum {{enume.Identifier.Text}}
             {
                 List<string> angularEnumItemNameValuePairs = GetAngularEnumItemNameValuePairs(classEnum.Properties.Select(x => x.Name).ToList());
 
-                if (classEnum.Name == $"{projectName}PermissionCodes")
+                if (classEnum.Name == $"PermissionCodes")
                     angularEnumItemNameValuePairs.AddRange(GetAngularEnumItemNameValuePairs(currentProjectEntitiesPermissionCodes));
 
                 sb.AppendLine($$"""

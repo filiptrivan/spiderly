@@ -53,7 +53,7 @@ import {
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { TranslocoService } from "@jsverse/transloco";
-import { Notification } from "src/app/business/entities/business-entities.generated";
+import { Notification } from "src/app/business/entities/entities.generated";
 import { ApiService } from "src/app/business/services/api/api.service";
 import {
   BaseFormCopy,
