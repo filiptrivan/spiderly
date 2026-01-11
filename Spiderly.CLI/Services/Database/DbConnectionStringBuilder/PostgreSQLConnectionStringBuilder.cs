@@ -33,13 +33,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
                 while (connectionString == null)
                 {
-                    string password = AnsiConsole.Prompt(new TextPrompt<string>("Password (or type 'exit' to stop):"));
-
-                    if (password.Equals("exit", StringComparison.OrdinalIgnoreCase))
-                    {
-                        AnsiConsole.MarkupLine("Password entry cancelled.");
-                        break;
-                    }
+                    string password = AnsiConsole.Prompt(new TextPrompt<string>("Password:"));
 
                     connectionString = Helper.CreatePostgreSQLConnectionString(appName, password);
 
