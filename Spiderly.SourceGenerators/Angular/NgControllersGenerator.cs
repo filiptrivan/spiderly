@@ -40,24 +40,30 @@ namespace Spiderly.SourceGenerators.Angular
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntities, callingPath) = source;
+                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1)
-                return; // FT: one because of config settings
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(NgControllersGenerator), jsonConfigContent))
+                return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;

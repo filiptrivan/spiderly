@@ -166,13 +166,14 @@ namespace Spiderly.CLI.Commands
                     ConsoleHelper.MarkupLineERROR("Error occurred while installing frontend packages.");
                 }
 
-                AnsiConsole.MarkupLine("Please fix the errors, then rerun the 'spiderly init' command using the same app name and location.");
+                AnsiConsole.MarkupLine("Please fix the errors, then rerun the [blue]spiderly init[/] command using the same app name and location.");
                 return 1;
             }
             else
             {
-                ConsoleHelper.MarkupLineOK("App initialized successfully!");
-                AnsiConsole.MarkupLine("Continue with Step 4 from the getting started guide: [link]https://www.spiderly.dev/docs/getting-started[/]");
+                ConsoleHelper.MarkupLineOK("App initialized successfully. Press [blue]F5[/] to start the app in VS Code.");
+                AnsiConsole.MarkupLine("To register the first user, continue with the [blue]Register the User[/] step in the documentation: [link]http://localhost:3000/docs/getting-started#register-the-user[/]");
+
                 return 0;
             }
         }

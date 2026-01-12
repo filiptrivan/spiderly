@@ -40,29 +40,33 @@ namespace Spiderly.SourceGenerators.Angular
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntities, callingPath) = source;
+                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
 
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1) // 1 because of config settings
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(NgBaseDetailsGenerator), jsonConfigContent))
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
-            if (Helpers.ShouldSkipGenerator(nameof(NgBaseDetailsGenerator), currentProjectClasses))
-                return;
             List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
@@ -74,10 +78,8 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
             }
 
-            string outputPath =
-                Helpers.GetGeneratorOutputPath(nameof(NgBaseDetailsGenerator), currentProjectClasses) ??
-                // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
-                callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details.generated.ts");
+            // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
+            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details.generated.ts");
 
             string result = $$"""
 {{GetImports(customDTOClasses, allEntities)}}
@@ -845,7 +847,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                         Entity = entity,
                     });
 
-                    SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                     result.AddRange(GetAngularFormBlocks(extractedEntity, allEntities, customDTOClasses));
 
@@ -876,9 +878,9 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
+        private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany, bool isControlDirectlyOnParent = false)
         {
-            return $"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.getControl('{GetFormControlName(property)}')";
+            return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany, isControlDirectlyOnParent)}.getControl('{GetFormControlName(property)}')";
         }
 
         private static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
@@ -978,7 +980,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
@@ -986,15 +988,15 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.Autocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
             }
             else if (controlType == UIControlTypeCodes.MultiSelect)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [label]=\"t('{property.Name}')\"";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany, isControlDirectlyOnParent: true)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [label]=\"t('{property.Name}')\"";
             }
             else if (controlType == UIControlTypeCodes.MultiAutocomplete)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(property, entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany, isControlDirectlyOnParent: true)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
             }
             else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
             {
@@ -1035,7 +1037,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
         }
 
-        private static string GetMainDTOFormGroupForMainUIForm(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
+        private static string GetMainDTOFormGroupForMainUIForm(SpiderlyClass entity, bool isFromOrderedOneToMany, bool isControlDirectlyOnParent = false)
         {
             string formGroup;
 
@@ -1044,13 +1046,8 @@ export class {{entity.Name}}BaseDetailsComponent {
             else
                 formGroup = $"this.parentFormGroup";
 
-            if (
-                property.IsMultiSelectControlType() ||
-                property.IsMultiAutocompleteControlType()
-            )
-            {
+            if (isControlDirectlyOnParent)
                 return formGroup;
-            }
 
             return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
         }
@@ -1221,17 +1218,17 @@ export class {{entity.Name}}BaseDetailsComponent {
 import { ValidatorService } from 'src/app/business/services/validators/validators';
 import { DropdownChangeEvent } from 'primeng/dropdown';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
-import { TranslateLabelsService } from '../../services/translates/merge-labels';
+import { TranslateLabelsService } from '../services/translates/merge-labels';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ApiService } from '../../services/api/api.service';
+import { ApiService } from '../services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { ActivatedRoute } from '@angular/router';
 import { combineLatest, firstValueFrom, forkJoin, map, Observable, of, Subscription } from 'rxjs';
 import { MenuItem } from 'primeng/api';
-import { AuthService } from '../../services/auth/auth.service';
+import { AuthService } from '../services/auth/auth.service';
 import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule, Namebook } from 'spiderly';
 {{string.Join("\n", GetDynamicNgImports(imports))}}
 """;
@@ -1249,12 +1246,8 @@ import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAu
             {
                 string projectName = projectImports.Key.Split('.').Last(); // eg. Security
 
-                if (projectName == "Shared" ||
-                    projectName == "Security")
-                    continue;
-
                 result.Add($$"""
-import { {{string.Join(", ", projectImports.DistinctBy(x => x.Name).Select(x => x.Name))}} } from '../../entities/{{projectName.FromPascalToKebabCase()}}-entities.generated';
+import { {{string.Join(", ", projectImports.DistinctBy(x => x.Name).Select(x => x.Name))}} } from '../entities/entities.generated';
 """);
             }
 

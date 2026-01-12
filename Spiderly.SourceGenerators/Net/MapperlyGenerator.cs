@@ -41,15 +41,26 @@ namespace Spiderly.SourceGenerators.Net
                     NamespaceExtensionCodes.DataMappers,
                 });
 
-            var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses);
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) => Execute(source.Left, source.Right, spc));
+            var allClasses = classDeclarations.Collect()
+                .Combine(referencedProjectClasses)
+                .Combine(jsonConfig);
+
+            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            {
+                var (classesAndReferenced, jsonContent) = source;
+                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+            });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1) return;
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(MapperlyGenerator), jsonConfigContent))
+                return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();

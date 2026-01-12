@@ -41,23 +41,29 @@ namespace Spiderly.SourceGenerators.Net
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntities, callingPath) = source;
+                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count < 1)
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(ControllerGenerator), jsonConfigContent))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)

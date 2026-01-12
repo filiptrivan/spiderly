@@ -517,6 +517,18 @@ namespace Spiderly.SourceGenerators.Shared
                 });
         }
 
+        /// <summary>Gets the content of spiderly.json configuration file.</summary>
+        /// <param name="context">The context of the Generator's initialization.</param>
+        /// <returns>The JSON configuration content as string.</returns>
+        public static IncrementalValueProvider<string> GetJsonConfig(this IncrementalGeneratorInitializationContext context)
+        {
+            return context.AdditionalTextsProvider
+                .Where(file => file.Path.EndsWith("spiderly.json"))
+                .Select((text, cancellationToken) => text.GetText(cancellationToken)?.ToString() ?? string.Empty)
+                .Collect()
+                .Select((texts, _) => texts.FirstOrDefault() ?? string.Empty);
+        }
+
         public static string Translate(this SpiderlyClass entity, LanguageCodes language, TranslationCodes? translation = null)
         {
             return entity.Attributes.Where(x => x.Name == $"Translate{translation}{language}").Select(x => x.Value).SingleOrDefault();
@@ -544,7 +556,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static SpiderlyProperty GetManyToOnePropertyWithManyAttribute(this SpiderlyClass entity, string manyToOneType, string withMany)
         {
-            return entity.Properties.Where(x => x.Type == manyToOneType && x.WithMany() == withMany).SingleOrDefault();
+            return entity.Properties.SingleOrDefault(x => x.Type == manyToOneType && x.WithMany() == withMany);
         }
 
         public static List<SpiderlyProperty> GetOrderedOneToManyProperties(this SpiderlyClass entity)
@@ -555,16 +567,19 @@ namespace Spiderly.SourceGenerators.Shared
         public static string GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)
         {
             if (c == null)
-                return "GetIdType.TheClassDoesNotExist";
+                throw new Exception($"The class does not exist ({nameof(GetIdType)}).");
+
+            if (c.IsManyToMany())
+                return null;
 
             string baseType = c.BaseType; //BaseClass<long>
 
             while (baseType != null && baseType.Contains("<") == false)
             {
-                SpiderlyClass baseClass = classes.Where(x => x.Name == baseType).SingleOrDefault();
+                SpiderlyClass baseClass = classes.SingleOrDefault(x => x.Name == baseType);
 
                 if (baseClass == null)
-                    return null;
+                    throw new Exception($"The class (class: {c.Name}, baseType: {baseType}) does not exist ({nameof(GetIdType)}).");
 
                 baseType = baseClass.BaseType; //BaseClass<long>
             }
@@ -572,8 +587,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (baseType != null && baseType.Contains("<"))
                 return baseType.Split('<')[1].Replace(">", ""); // long
             else
-                return null; // FT: It doesn't, many to many doesn't
-                             //return "Every entity class needs to have the base class";
+                throw new Exception($"Entity (class: {c.Name}, baseType: {baseType}) needs to have the base class ({nameof(GetIdType)}).");
         }
 
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)
