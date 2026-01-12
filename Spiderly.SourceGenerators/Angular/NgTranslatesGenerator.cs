@@ -27,12 +27,12 @@ namespace Spiderly.SourceGenerators.Angular
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
@@ -46,23 +46,29 @@ namespace Spiderly.SourceGenerators.Angular
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntities, callingPath) = source;
+                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedClassesDTO, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedClassesDTO, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1) 
+            if (referencedClassesDTO.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(NgTranslatesGenerator), jsonConfigContent))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)
@@ -131,7 +137,7 @@ export class TranslateLabelsGeneratedService {
     }
 }
 """);
-            
+
             Helpers.WriteToTheFile(sbClassNames.ToString(), Path.Combine(outputPath, "class-names.generated.ts"));
             Helpers.WriteToTheFile(sbLabels.ToString(), Path.Combine(outputPath, "labels.generated.ts"));
         }
@@ -139,7 +145,7 @@ export class TranslateLabelsGeneratedService {
         private static List<string> GetCasesForLabelTranslate(List<SpiderlyProperty> DTOProperties)
         {
             List<string> result = new();
-            
+
             foreach (SpiderlyProperty DTOProperty in DTOProperties)
             {
                 string propName = DTOProperty.Name;

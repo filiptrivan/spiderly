@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Resources.NetStandard;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Spiderly.SourceGenerators.Shared
@@ -649,24 +650,6 @@ namespace Spiderly.SourceGenerators.Shared
 
         #region Class list filters
 
-        public static string GetGeneratorOutputPath(string generatorName, List<SpiderlyClass> currentProjectClasses)
-        {
-            SpiderlyClass settingsClass = GetSettingsClass(currentProjectClasses);
-
-            if (settingsClass == null)
-                return null;
-
-            SpiderlyProperty property = settingsClass.Properties.Where(x => x.Name == generatorName).SingleOrDefault();
-
-            if (property == null)
-                return null;
-
-            return property.Attributes
-                .Where(x => x.Name == "Output")
-                .Select(x => x.Value)
-                .SingleOrDefault();
-        }
-
         public static SpiderlyClass GetSettingsClass(List<SpiderlyClass> classes)
         {
             return classes.SingleOrDefault(x => x.Namespace.EndsWith($".GeneratorSettings"));
@@ -694,28 +677,25 @@ namespace Spiderly.SourceGenerators.Shared
                 .ToList();
         }
 
-        public static bool ShouldSkipGenerator(string generatorName, List<SpiderlyClass> currentProjectClasses)
+        public static bool ShouldSkipGenerator(string generatorName, string jsonConfigContent)
         {
-            SpiderlyClass settingClass = GetSettingsClass(currentProjectClasses);
-            if (settingClass == null)
-            {
-                return false;
-            }
-
-            SpiderlyProperty property = settingClass.Properties
-                .FirstOrDefault(p => p.Name == generatorName);
-
-            if (property == null)
-            {
+            if (string.IsNullOrWhiteSpace(jsonConfigContent))
                 return false;
 
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
+                if (document.RootElement.TryGetProperty(generatorName, out JsonElement value))
+                {
+                    if (value.ValueKind == JsonValueKind.True)
+                        return false;
+                    if (value.ValueKind == JsonValueKind.False)
+                        return true;
+                }
             }
-
-            string outputAttributeValue = property.Attributes
-                .FirstOrDefault(attr => attr.Name == "Output")?.Value;
-
-            if (bool.TryParse(outputAttributeValue, out bool enabled))
-                return !enabled;
+            catch
+            {
+            }
 
             return false;
         }
@@ -750,7 +730,7 @@ namespace Spiderly.SourceGenerators.Shared
                     {
                         Name = $"{x.Name}DTO",
                         BaseType = x.GetDTOBaseType(),
-                        Properties = GetSpiderDTOProperties(x, allClasses),
+                        Properties = GetSpiderlyDTOProperties(x, allClasses),
                         Namespace = x.Namespace.Replace(".Entities", ".DTO"),
                         IsGenerated = true
                     });
@@ -780,10 +760,18 @@ namespace Spiderly.SourceGenerators.Shared
 
             result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}SaveBodyDTO", IsSaveBodyMainDTO = true });
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.HasUIOrderedOneToManyAttribute() ||
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType() ||
+                    x.HasSimpleManyToManyTableLazyLoadAttribute()
+                )
+            )
             {
                 SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
+
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
@@ -815,7 +803,13 @@ namespace Spiderly.SourceGenerators.Shared
 
             result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}MainUIFormDTO" });
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.HasUIOrderedOneToManyAttribute() ||
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType()
+                )
+            )
             {
                 SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
@@ -837,7 +831,7 @@ namespace Spiderly.SourceGenerators.Shared
             return result;
         }
 
-        public static List<SpiderlyProperty> GetSpiderDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)
+        public static List<SpiderlyProperty> GetSpiderlyDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             List<SpiderlyProperty> DTOProperties = new(); // public string Email { get; set; }
 
@@ -861,10 +855,6 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DTOList", Type = property.Type.Replace(">", "DTO>"), EntityName = $"{property.EntityName}DTO" });
                 }
-                //else if (property.Type == "byte[]")
-                //{
-                //    DTOProperties.Add(new SpiderProperty { Name = property.Name, Type = "string", EntityName = $"{property.EntityName}DTO" });
-                //}
                 else if (property.IsBlob())
                 {
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Data", Type = "string", EntityName = $"{property.EntityName}DTO" });

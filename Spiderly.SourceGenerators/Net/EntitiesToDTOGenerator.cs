@@ -40,18 +40,25 @@ namespace Spiderly.SourceGenerators.Net
                     NamespaceExtensionCodes.Entities,
                 });
 
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+
             var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses);
+                .Combine(referencedProjectClasses)
+                .Combine(jsonConfig);
 
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) => Execute(source.Left, source.Right, spc));
-
-            //context.RegisterImplementationSourceOutput(classDeclarations.Collect(),
-            //    static (spc, source) => Execute(source, spc));
+            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            {
+                var (classesAndReferenced, jsonContent) = source;
+                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+            });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1)
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(EntitiesToDTOGenerator), jsonConfigContent))
                 return;
 
             List<SpiderlyClass> currentProjectEntities = Helpers.GetSpiderlyClasses(classes, referencedProjectEntities);

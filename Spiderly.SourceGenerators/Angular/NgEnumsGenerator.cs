@@ -34,36 +34,50 @@ namespace Spiderly.SourceGenerators.Angular
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.Enums, // FT HACK: Because we can't make partial enums we are doing this
+                    NamespaceExtensionCodes.Enums, // HACK: Because we can't make partial enums we are doing this
                 });
 
             IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
                 new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.Enums, // FT HACK: Because we can't make partial enums we are doing this
+                    NamespaceExtensionCodes.Enums, // HACK: Because we can't make partial enums we are doing this
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = enumDeclarations.Collect()
                 .Combine(classDeclarations.Collect())
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (((enums, classDeclarations), referencedProjectClasses), callingPath) = source;
+                var ((((enums, classDeclarations), referencedProjectClasses), callingPath), jsonContent) = source;
 
-                Execute(enums, classDeclarations, referencedProjectClasses, callingPath, spc);
+                Execute(enums, classDeclarations, referencedProjectClasses, callingPath, jsonContent, spc);
             });
         }
 
-        private static void Execute(IList<EnumDeclarationSyntax> currentProjectEnums, IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<EnumDeclarationSyntax> currentProjectEnums, IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
+            if (currentProjectEnums.Count == 0 && classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(NgEnumsGenerator), jsonConfigContent))
+                return;
+
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
-            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> currentProjectClassEnums = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Enums")).ToList();
+
+            List<SpiderlyClass> currentProjectEntities = currentProjectClasses
+                .Where(x => x.Namespace.EndsWith(".Entities"))
+                .ToList();
+
+            List<SpiderlyClass> currentProjectClassEnums = currentProjectClasses
+                .Where(x => x.Namespace.EndsWith(".Enums"))
+                .ToList();
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\enums\enums.generated.ts
             string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\enums\enums.generated.ts");

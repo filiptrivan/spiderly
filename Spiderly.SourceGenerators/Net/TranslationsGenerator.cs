@@ -22,12 +22,12 @@ namespace Spiderly.SourceGenerators.Net
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-//#if DEBUG
-//            if (!Debugger.IsAttached)
-//            {
-//                Debugger.Launch();
-//            }
-//#endif
+            //#if DEBUG
+            //            if (!Debugger.IsAttached)
+            //            {
+            //                Debugger.Launch();
+            //            }
+            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
@@ -41,23 +41,29 @@ namespace Spiderly.SourceGenerators.Net
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
             var combined = classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory);
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntities, callingPath) = source;
+                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, spc);
+                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string callingProjectDirectory, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count < 1)
+            if (referencedProjectEntities.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(TranslationsGenerator), jsonConfigContent))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)

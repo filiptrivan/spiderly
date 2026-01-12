@@ -35,15 +35,25 @@ namespace Spiderly.SourceGenerators.Net
                     NamespaceExtensionCodes.Entities,
                 });
 
-            var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses);
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
 
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) => Execute(source.Left, source.Right, spc));
+            var allClasses = classDeclarations.Collect()
+                .Combine(referencedProjectClasses)
+                .Combine(jsonConfig);
+
+            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            {
+                var (classesAndReferenced, jsonContent) = source;
+                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+            });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string jsonConfigContent, SourceProductionContext context)
         {
-            if (classes.Count <= 1)
+            if (classes.Count == 0)
+                return;
+
+            if (Helpers.ShouldSkipGenerator(nameof(ServicesGenerator), jsonConfigContent))
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectEntities);
@@ -345,7 +355,13 @@ namespace {{basePartOfNamespace}}.Services
                     {{entity.Name}}DTO = await Get{{entity.Name}}DTO(id, false),
 """);
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.HasUIOrderedOneToManyAttribute() ||
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType()
+                )
+            )
             {
                 SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
@@ -377,7 +393,12 @@ namespace {{basePartOfNamespace}}.Services
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType()
+                )
+            )
             {
                 SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
@@ -451,7 +472,12 @@ namespace {{basePartOfNamespace}}.Services
         {
             StringBuilder sb = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.ShouldGenerateAutocompleteControllerMethod() ||
+                    x.ShouldGenerateDropdownControllerMethod()
+                )
+            )
             {
                 if (property.ShouldGenerateAutocompleteControllerMethod())
                 {
@@ -475,7 +501,7 @@ namespace {{basePartOfNamespace}}.Services
 
         private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass autocompleteEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single();
+            SpiderlyClass autocompleteEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
             string autocompleteEntityIdType = autocompleteEntity.GetIdType(allEntities);
             string autocompleteEntityDisplayName = Helpers.GetDisplayNameProperty(autocompleteEntity);
 
@@ -525,7 +551,7 @@ namespace {{basePartOfNamespace}}.Services
 
         private static string GetDropdownMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass dropdownEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).Single();
+            SpiderlyClass dropdownEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
             string dropdownEntityIdType = dropdownEntity.GetIdType(allEntities);
             string dropdownDisplayName = Helpers.GetDisplayNameProperty(dropdownEntity);
 
@@ -1289,7 +1315,9 @@ namespace {{basePartOfNamespace}}.Services
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasExcludeServiceMethodsFromGenerationAttribute() == false))
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x => x.HasExcludeServiceMethodsFromGenerationAttribute() == false)
+            )
             {
                 if (property.IsMultiSelectControlType())
                 {
@@ -1312,18 +1340,18 @@ namespace {{basePartOfNamespace}}.Services
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute())
+            )
             {
-                if (property.HasSimpleManyToManyTableLazyLoadAttribute())
-                {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
-                    result.Add($$"""
+                result.Add($$"""
                 var all{{property.Name}}Query = await GetAll{{property.Name}}QueryFor{{entity.Name}}(_context.DbSet<{{extractedEntity.Name}}>());
                 var {{property.Name.FirstCharToLower()}}PaginatedResult = await GetPaginated{{extractedEntity.Name}}List(saveBodyDTO.{{property.Name}}TableFilter, all{{property.Name}}Query);
                 await Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}({{property.Name.FirstCharToLower()}}PaginatedResult.Query, savedDTO.Id, saveBodyDTO);
 """);
-                }
+
             }
 
             return result;
@@ -1333,13 +1361,13 @@ namespace {{basePartOfNamespace}}.Services
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute())
+            )
             {
-                if (property.HasSimpleManyToManyTableLazyLoadAttribute())
-                {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
-                    result.Add($$"""
+                result.Add($$"""
         /// <summary>
         /// Lifecycle hook to customize the query for lazy-loaded {{property.Name}} many-to-many relationship.
         /// Override this method to add filters, includes, or ordering to the base query.
@@ -1351,7 +1379,6 @@ namespace {{basePartOfNamespace}}.Services
             return query;
         }
 """);
-                }
             }
 
             return result;

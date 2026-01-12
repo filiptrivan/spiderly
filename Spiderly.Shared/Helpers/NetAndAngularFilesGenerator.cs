@@ -1101,7 +1101,7 @@ export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implement
         this.showIsDisabledControl = shouldShowIsDisabledAndExternalLoggedIn;
         this.showHasLoggedInWithGoogleAsExternalProvider = shouldShowIsDisabledAndExternalLoggedIn;
 
-        this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithExternalProvider.disable();
+        this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithGoogleAsExternalProvider.disable();
     }
 
     showIsDisabledAndExternalLoggedIn = (currentUserPermissionCodes: string[]) => {
