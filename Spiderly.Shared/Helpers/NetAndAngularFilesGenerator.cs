@@ -1180,7 +1180,7 @@ export class UserListComponent implements OnInit {
       return $$$"""
 <ng-container *transloco="let t">
     <info-card header="Hello, {{companyName}}">
-        🎉 Congratulations! Your app is running. To complete the setup, please follow <a href="https://www.spiderly.dev/docs/getting-started/#connect-to-sql-server" target="_blank" rel="noopener noreferrer">Step 9</a> in the Getting Started guide.
+        🎉 Congratulations! Your app is running. Check out the <a href="https://www.spiderly.dev/docs" target="_blank" rel="noopener noreferrer">documentation</a> to learn more.
     </info-card>
 </ng-container>
 """;
@@ -4629,7 +4629,6 @@ export const ThemePreset = definePreset(Aura, {
     "BirthDate": "Datum rođenja",
     "Gender": "Pol",
     "Notification": "Notifikacija",
-    "User": "Korisnik",
     "Brand": "Brend",
     "NotificationSaveBody": "/",
     "QrCode": "QR kod",
@@ -4774,7 +4773,6 @@ export const ThemePreset = definePreset(Aura, {
   "PartnerIntermediateStepDescription": "Choose the partner whose loyalty program you want to visit.",
   "Actions": "Actions",
   "Details": "Details",
-  "User": "User",
   "Points": "Points",
   "Tier": "Loyalty tier",
   "Segmentation": "Segmentation",
