@@ -315,7 +315,7 @@ namespace Spiderly.Security.Services
             return loginVerificationTokenDTO;
         }
 
-        public async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, long userId, string browserId)
+        public async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId)
         {
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {

@@ -455,6 +455,19 @@ namespace Spiderly.Shared.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Your verification code: {0}
+        ///
+        ///(Shown here because you're in development environment without emailing set up).
+        /// </summary>
+        public static string VerificationCodeDevelopmentMode
+        {
+            get
+            {
+                return ResourceManager.GetString("VerificationCodeDevelopmentMode", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Partner Id.
         /// </summary>
         public static string PartnerId

@@ -682,19 +682,13 @@ namespace Spiderly.SourceGenerators.Shared
             if (string.IsNullOrWhiteSpace(jsonConfigContent))
                 return false;
 
-            try
+            using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
+            if (document.RootElement.TryGetProperty(generatorName, out JsonElement value))
             {
-                using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
-                if (document.RootElement.TryGetProperty(generatorName, out JsonElement value))
-                {
-                    if (value.ValueKind == JsonValueKind.True)
-                        return false;
-                    if (value.ValueKind == JsonValueKind.False)
-                        return true;
-                }
-            }
-            catch
-            {
+                if (value.ValueKind == JsonValueKind.True)
+                    return false;
+                if (value.ValueKind == JsonValueKind.False)
+                    return true;
             }
 
             return false;

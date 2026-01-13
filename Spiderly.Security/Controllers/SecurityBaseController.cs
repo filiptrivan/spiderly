@@ -43,9 +43,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         #region Authentication
 
         [HttpPost]
-        public async Task SendLoginVerificationEmail(LoginDTO loginDTO)
+        public async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
         {
-            await _securityServiceBase.SendLoginVerificationEmail(loginDTO);
+            return await _securityServiceBase.SendLoginVerificationEmail(loginDTO);
         }
 
         [HttpPost]

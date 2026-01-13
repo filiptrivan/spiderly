@@ -285,4 +285,9 @@
   <data name="PartnerDisplayName" xml:space="preserve">
     <value>Partner</value>
   </data>
+  <data name="VerificationCodeDevelopmentMode" xml:space="preserve">
+    <value>Vaš verifikacioni kod: {0}
+
+(Prikazano ovde jer ste u razvojnom okruženju bez podešenog email-a)</value>
+  </data>
 </root>

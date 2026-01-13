@@ -340,4 +340,12 @@
     <value>Partner</value>
     <comment>Partner</comment>
   </data>
+  <data name="VerificationCodeDevelopmentMode" xml:space="preserve">
+    <value>Your verification code: {0}
+
+(Shown here because you're in development environment without emailing set up)</value>
+    <comment>Vaš verifikacioni kod: {0}
+
+(Prikazano ovde jer ste u razvojnom okruženju bez podešenog email-a)</comment>
+  </data>
 </root>

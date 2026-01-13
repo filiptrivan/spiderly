@@ -77,7 +77,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Controllers}"))
                 .ToList();
 
-            List<SpiderlyClass> referencedDTOClasses = referencedProjectClasses
+            List<SpiderlyClass> referencedDTOs = referencedProjectClasses
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.DTO}"))
                 .ToList();
 
@@ -86,7 +86,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .ToList();
 
             string result = $$"""
-{{string.Join("\n", GetImports(referencedDTOClasses))}}
+{{string.Join("\n", GetImports(referencedDTOs))}}
 
 @Injectable({
     providedIn: 'root'
@@ -100,7 +100,7 @@ export class ApiGeneratedService extends ApiSecurityService {
         super(http, config);
     }
 
-{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOClasses))}}
+{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOs))}}
 
 }
 """;
@@ -108,7 +108,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             Helpers.WriteToTheFile(result, outputPath);
         }
 
-        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOClasses)
+        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs)
         {
             List<string> result = new();
             HashSet<string> alreadyAddedMethods = new();
@@ -126,7 +126,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 
                     if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type == "IFormFile") == false)
                     {
-                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOClasses));
+                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs));
                     }
                     else
                     {
@@ -143,7 +143,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             return result;
         }
 
-        private static List<string> GetImports(List<SpiderlyClass> DTOClasses)
+        private static List<string> GetImports(List<SpiderlyClass> DTOs)
         {
             List<string> result = new();
 
@@ -155,21 +155,21 @@ import { ApiSecurityService, Filter, PaginatedResult, Namebook, Codebook, LazyLo
 import { ConfigService } from '../config.service';
 """);
 
-            foreach (SpiderlyClass DTOClass in DTOClasses)
+            foreach (SpiderlyClass DTO in DTOs)
             {
-                string[] projectNameHelper = DTOClass.Namespace.Split('.');
+                string[] projectNameHelper = DTO.Namespace.Split('.');
                 string projectName = projectNameHelper[projectNameHelper.Length - 2];
 
                 if (projectName == "Security")
                     continue;
 
-                string ngType = DTOClass.Name.Replace("DTO", "");
+                string ngType = DTO.Name.Replace("DTO", "");
 
                 if (Helpers.BaseClassNames.Contains(ngType))
                     continue;
 
                 result.Add($$"""
-import { {{ngType}} } from '../../entities/{{projectName.FromPascalToKebabCase()}}-entities.generated';
+import { {{ngType}} } from '../../entities/entities.generated';
 """);
             }
 

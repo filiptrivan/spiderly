@@ -2,7 +2,8 @@
     @if (loginFormGroup != null) {
         @if (showEmailSentDialog == false) {
             <auth (onCompanyNameChange)="companyNameChange($event)">
-                <form [formGroup]="loginFormGroup" style="margin-bottom: 16px;"> <!-- FT: We are not loading anything from the server here so we don't need defer block -->
+                <!-- We are not loading anything from the server here so we don't need defer block -->
+                <form [formGroup]="loginFormGroup" style="margin-bottom: 16px;">
                     <div class="col-12" style="padding-left: 0; padding-right: 0;">
                         <spiderly-textbox [control]="loginFormGroup.getControl('email')"></spiderly-textbox>
                     </div>
@@ -24,6 +25,6 @@
         }
     }
     @else {
-        <!-- TODO FT: Add skeleton -->
+        <!-- TODO: Add skeleton -->
     }
 </ng-container>

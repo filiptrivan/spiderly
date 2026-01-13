@@ -3837,12 +3837,13 @@ namespace {{appName}}.Business.Services
         }
 
         /// <summary>
-        /// By default assigns admin role to the first user. This is a performance bottleneck.
+        /// Assigns admin role to the first user in the app. 
+        /// This is a performance bottleneck.
         /// Delete this method once the first user has admin permissions.
         /// </summary>
         public override async Task OnAfterLogin(AuthResultDTO authResultDTO)
         {
-            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 0;
+            bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
             if (isFirstUserEver)
             {
                 Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");

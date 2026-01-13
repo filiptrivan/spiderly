@@ -1,18 +1,18 @@
 {
   "NgBaseDetailsGenerator": false,
-  "NgTranslatesGenerator": false,
-  "TranslationsGenerator": false,
+  "NgControllersGenerator": false,
   "NgEntitiesGenerator": false,
+  "NgTranslatesGenerator": false,
+  "NgEnumsGenerator": false,
   "NgValidatorsGenerator": false,
+  "TranslationsGenerator": false,
   "PermissionCodesGenerator": false,
   "MapperlyGenerator": false,
   "FluentValidationGenerator": true,
   "ExcelPropertiesGenerator": false,
   "EntitiesToDTOGenerator": false,
-  "NgControllersGenerator": false,
   "PaginatedResultGenerator": false,
   "ControllerGenerator": false,
   "AuthorizationServicesGenerator": false,
-  "ServicesGenerator": false,
-  "NgEnumsGenerator": false
+  "ServicesGenerator": false
 }
