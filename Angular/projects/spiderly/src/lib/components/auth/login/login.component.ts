@@ -63,8 +63,10 @@ export class LoginComponent extends BaseFormCopy implements OnInit {
     sendLoginVerificationEmail() {
         let isFormGroupValid: boolean = this.baseFormService.isControlValid(this.loginFormGroup);
 
-        if (isFormGroupValid == false)
+        if (isFormGroupValid == false){
+          this.baseFormService.showInvalidFieldsMessage();
           return;
+        }
 
         this.authService.sendLoginVerificationEmail(this.loginFormGroup.getRawValue()).subscribe((result)=>{
             if (result.message) {

@@ -158,7 +158,6 @@ export class BaseFormService {
     if (!targetClass)
       throw new SpiderlyError('You did not initialize targetClass');
 
-    // formArray.required = required;
     formArray.formGroupInitialValues = {}; // When we need we can pass formGroupInitialValues to this method instead of assigning it to empty object
     formArray.targetClass = targetClass;
 
