@@ -10,7 +10,7 @@ using System.Text;
 namespace Spiderly.SourceGenerators.Angular
 {
     /// <summary>
-    /// Generates Angular entity and DTO classes (`{your-app-name}\Frontend\src\app\business\entities\{your-app-name}-entities.generated.ts`)
+    /// Generates Angular entity and DTO classes (`{your-app-name}\Frontend\src\app\business\entities\entities.generated.ts`)
     /// based on corresponding C# classes within the '.Entities' and '.DTO' namespaces.
     /// This generator simplifies frontend data modeling by automatically creating TypeScript interfaces/classes
     /// that mirror your backend data structures.

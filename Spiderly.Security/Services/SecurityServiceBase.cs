@@ -49,42 +49,53 @@ namespace Spiderly.Security.Services
 
         #region Login
 
-        public async Task SendLoginVerificationEmail(LoginDTO loginDTO)
+        public async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
         {
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
-            string userEmail = null;
-            long userId = 0;
+            TUser user = await Authenticate(loginDTO);
 
-            await _context.WithTransactionAsync(async () =>
+            string userEmail;
+
+            if (user == null)
             {
-                TUser user = await Authenticate(loginDTO);
-                userEmail = user.Email;
-                userId = user.Id;
-            });
+                if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                    throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
 
-            string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, userId, loginDTO.BrowserId);
-
-            bool isEmailingConfigured = Shared.Helpers.Helper.IsEmailingConfigured();
-            bool isDevelopment = _environment.IsDevelopment();
-
-            if (isDevelopment && !isEmailingConfigured)
-            {
-                DisplayTokenInConsole(userEmail, verificationCode);
-                return;
+                userEmail = loginDTO.Email;
             }
+            else
+            {
+                userEmail = user.Email;
+            }
+
+            string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, loginDTO.BrowserId);
+
+            if (ShouldShowVerificationCodeInNotification())
+            {
+                return new SendLoginVerificationEmailResultDTO
+                {
+                    Message = string.Format(SharedTerms.VerificationCodeDevelopmentMode, verificationCode)
+                };
+            }
+
+            EmailVerifyUIDTO emailTemplate = CreateLoginEmailTemplate(verificationCode);
 
             try
             {
-                EmailVerifyUIDTO emailTemplate = CreateLoginEmailTemplate(verificationCode);
-
                 await _emailingService.SendVerificationEmailAsync(userEmail, emailTemplate);
             }
             catch (Exception)
             {
-                await _jwtAuthManagerService.RemoveLoginVerificationTokensByEmailAsync(userEmail); // We didn't send email, set all verification tokens invalid then
+                // We didn't send email, set all verification tokens invalid then
+                await _jwtAuthManagerService.RemoveLoginVerificationTokensByEmailAsync(userEmail);
                 throw;
             }
+
+            return new SendLoginVerificationEmailResultDTO
+            {
+                Message = string.Empty
+            };
         }
 
         public virtual EmailVerifyUIDTO CreateLoginEmailTemplate(string verificationCode)
@@ -106,7 +117,8 @@ namespace Spiderly.Security.Services
 
             return await _context.WithTransactionAsync(async () =>
             {
-                TUser user = await GetUserByEmailAsync(loginVerificationTokenDTO.Email); // Check if user already exist in the database
+                // Check if the user already exists in the database
+                TUser user = await GetUserByEmailAsync(loginVerificationTokenDTO.Email);
                 DbSet<TUser> userDbSet = _context.DbSet<TUser>();
 
                 if (user == null)
@@ -152,7 +164,8 @@ namespace Spiderly.Security.Services
 
             return await _context.WithTransactionAsync(async () =>
             {
-                TUser user = await GetUserByEmailAsync(payload.Email); // Check if user already exist in the database
+                // Check if the user already exists in the database
+                TUser user = await GetUserByEmailAsync(payload.Email);
                 DbSet<TUser> userDbSet = _context.DbSet<TUser>();
 
                 if (user == null)
@@ -277,22 +290,12 @@ namespace Spiderly.Security.Services
             return payload;
         }
 
-        private void DisplayTokenInConsole(string userEmail, string verificationCode)
+        private bool ShouldShowVerificationCodeInNotification()
         {
-            Console.WriteLine();
-            Console.WriteLine("═════════════════════════════════════════════════════════════");
-            Console.WriteLine("  DEVELOPMENT MODE - EMAIL NOT CONFIGURED");
-            Console.WriteLine("═════════════════════════════════════════════════════════════");
-            Console.WriteLine();
-            Console.WriteLine($"  Email: {userEmail}");
-            Console.WriteLine($"  Verification Code: {verificationCode}");
-            Console.WriteLine();
-            Console.WriteLine("  Note: This token is displayed here only because:");
-            Console.WriteLine("    1. Application is running in DEVELOPMENT mode");
-            Console.WriteLine("    2. Email sending is NOT configured");
-            Console.WriteLine();
-            Console.WriteLine("═════════════════════════════════════════════════════════════");
-            Console.WriteLine();
+            bool isEmailingConfigured = Shared.Helpers.Helper.IsEmailingConfigured();
+            bool isDevelopment = _environment.IsDevelopment();
+
+            return isDevelopment && !isEmailingConfigured;
         }
 
         #endregion

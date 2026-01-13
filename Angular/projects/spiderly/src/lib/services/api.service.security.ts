@@ -1,11 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Namebook } from '../entities/namebook';
-import { Filter } from '../entities/filter';
-import { Login, RefreshTokenRequest, AuthResult, Role, UserBase, ExternalProvider, VerificationTokenRequest, RoleSaveBody, RoleMainUIForm } from '../entities/security-entities';
+import { AuthResult, ExternalProvider, Login, RefreshTokenRequest, SendLoginVerificationEmailResult, UserBase, VerificationTokenRequest } from '../entities/security-entities';
 import { ConfigServiceBase } from './config.service.base';
-import { PaginatedResult } from '../entities/paginated-result';
 
 @Injectable({
     providedIn: 'root'
@@ -29,8 +26,8 @@ export class ApiSecurityService {
         return this.http.post<AuthResult>(`${this.config.apiUrl}/Security/LoginExternal`, externalProviderDTO, this.config.httpOptions);
     }
 
-    sendLoginVerificationEmail = (loginDTO: Login): Observable<any> => { 
-        return this.http.post<any>(`${this.config.apiUrl}/Security/SendLoginVerificationEmail`, loginDTO, this.config.httpOptions);
+    sendLoginVerificationEmail = (loginDTO: Login): Observable<SendLoginVerificationEmailResult> => {
+        return this.http.post<SendLoginVerificationEmailResult>(`${this.config.apiUrl}/Security/SendLoginVerificationEmail`, loginDTO, this.config.httpOptions);
     }
 
 
@@ -52,50 +49,6 @@ export class ApiSecurityService {
 
     getCurrentUserPermissionCodes = (): Observable<string[]> => { 
         return this.http.get<string[]>(`${this.config.apiUrl}/Security/GetCurrentUserPermissionCodes`, this.config.httpSkipSpinnerOptions);
-    }
-
-    //#endregion
-
-    //#region Role
-
-    getPaginatedRoleList = (dto: Filter): Observable<PaginatedResult> => { 
-        return this.http.post<PaginatedResult>(`${this.config.apiUrl}/Security/GetPaginatedRoleList`, dto, this.config.httpSkipSpinnerOptions);
-    }
-
-    exportRoleListToExcel = (dto: Filter): Observable<any> => { 
-        return this.http.post<any>(`${this.config.apiUrl}/Security/ExportRoleListToExcel`, dto, this.config.httpOptions);
-    }
-
-    deleteRole = (id: number): Observable<any> => { 
-        return this.http.delete<any>(`${this.config.apiUrl}/Security/DeleteRole?id=${id}`);
-    }
-
-    getRoleMainUIFormDTO = (id: number): Observable<RoleMainUIForm> => {
-        return this.http.get<RoleMainUIForm>(`${this.config.apiUrl}/Security/GetRoleMainUIFormDTO?id=${id}`);
-    }
-
-    getRole = (id: number): Observable<Role> => {
-        return this.http.get<Role>(`${this.config.apiUrl}/Security/GetRole?id=${id}`);
-    }
-
-    saveRole = (dto: RoleSaveBody): Observable<Role> => { 
-        return this.http.put<Role>(`${this.config.apiUrl}/Security/SaveRole`, dto, this.config.httpOptions);
-    }
-
-    getUsersNamebookListForRole = (roleId: number): Observable<Namebook[]> => {
-        return this.http.get<Namebook[]>(`${this.config.apiUrl}/Security/GetUsersNamebookListForRole?roleId=${roleId}`, this.config.httpSkipSpinnerOptions);
-    }
-
-    getPermissionsDropdownListForRole = (): Observable<Namebook[]> => {
-        return this.http.get<Namebook[]>(`${this.config.apiUrl}/Security/GetPermissionsDropdownListForRole`, this.config.httpSkipSpinnerOptions);
-    }
-
-    getPermissionsNamebookListForRole = (roleId: number): Observable<Namebook[]> => {
-        return this.http.get<Namebook[]>(`${this.config.apiUrl}/Security/GetPermissionsNamebookListForRole?roleId=${roleId}`, this.config.httpSkipSpinnerOptions);
-    }
-
-    getUsersAutocompleteListForRole = (limit: number, query: string): Observable<Namebook[]> => {
-        return this.http.get<Namebook[]>(`${this.config.apiUrl}/Security/GetUsersAutocompleteListForRole?limit=${limit}&query=${query}`, this.config.httpSkipSpinnerOptions);
     }
 
     //#endregion
