@@ -80,8 +80,9 @@ jobs:
           using Spiderly.Shared.Attributes.Entity;
           using System.ComponentModel.DataAnnotations;
 
-          namespace ${{ env.TEST_APP_NAME }}.Entities
+          namespace ${{ env.TEST_APP_NAME }}.Business.Entities
           {
+              [DoNotAuthorize]
               public class Product : BusinessObject<int>
               {
                   [DisplayName]
@@ -89,6 +90,7 @@ jobs:
                   [MaxLength(100)]
                   public string Name { get; set; }
 
+                  [UIControlType(nameof(UIControlTypeCodes.TextArea))]
                   [MaxLength(500)]
                   public string Description { get; set; }
 
