@@ -26,18 +26,11 @@ namespace Spiderly.CLI.Commands
                             Name = "--db",
                             Description = "Database provider: sqlserver or postgresql (you can change it later)."
                         },
-                        new OptionInfo
-                        {
-                            Name = "--top-menu",
-                            Description = "Use a top menu layout instead of the default side menu layout in the UI (you can change it later)."
-                        }
                     },
                     Examples = new List<string>
                     {
                         "spiderly init",
-                        "spiderly init --top-menu",
-                        "spiderly init --name MyApp --db sqlserver",
-                        "spiderly init --name MyApp --db postgresql --top-menu"
+                        "spiderly init --name MyApp --db postgresql"
                     }
                 },
                 new CommandInfo

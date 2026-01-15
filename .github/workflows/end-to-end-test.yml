@@ -2,16 +2,16 @@ name: End to End Spiderly Test
 
 on:
   push:
-    branches: [ main, develop, v* ]
+    branches: [main, develop, v*]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '9.0.x'
-  NODE_VERSION: '20'
-  TEST_APP_NAME: 'TestApp'
-  APP_FOLDER: 'test-app'
+  DOTNET_VERSION: "9.0.x"
+  NODE_VERSION: "20"
+  TEST_APP_NAME: "TestApp"
+  APP_FOLDER: "test-app"
 
 jobs:
   integration-test:
@@ -32,9 +32,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Angular CLI
-        run: npm install -g @angular/cli
 
       - name: Setup PostgreSQL
         run: |
@@ -141,9 +138,9 @@ jobs:
 
           echo "Installing frontend packages..."
           cd "$FRONTEND_PATH"
-          npm install
+          npm ci
           if [ $? -ne 0 ]; then
-            echo "ERROR: npm install failed"
+            echo "ERROR: npm ci failed"
             exit 1
           fi
 
