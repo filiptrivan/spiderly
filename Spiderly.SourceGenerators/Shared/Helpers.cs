@@ -1020,19 +1020,19 @@ namespace Spiderly.SourceGenerators.Shared
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = $"{attribute.Value.Split(',')[0].Trim()}"
+                            MethodParametersBody = $"{GetNumericLiteralWithSuffix(attribute.Value.Split(',')[0].Trim(), property.Type)}"
                         });
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "LessThanOrEqualTo",
-                            MethodParametersBody = $"{attribute.Value.Split(',')[1].Trim()}"
+                            MethodParametersBody = $"{GetNumericLiteralWithSuffix(attribute.Value.Split(',')[1].Trim(), property.Type)}"
                         });
                         break;
                     case "GreaterThanOrEqualTo":
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = attribute.Value
+                            MethodParametersBody = GetNumericLiteralWithSuffix(attribute.Value, property.Type)
                         });
                         break;
                     case "CustomValidator":
@@ -1152,6 +1152,17 @@ namespace Spiderly.SourceGenerators.Shared
         private static string FindMaxValueForStringLength(string input)
         {
             return input.Split(',').First().Replace(" ", "");
+        }
+
+        private static string GetNumericLiteralWithSuffix(string value, string propertyType)
+        {
+            if (propertyType == "decimal" || propertyType == "decimal?")
+                return $"{value}m";
+
+            if (propertyType == "float" || propertyType == "float?")
+                return $"{value}f";
+
+            return value;
         }
 
         #endregion
