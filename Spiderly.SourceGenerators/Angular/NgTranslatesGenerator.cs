@@ -75,7 +75,8 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\translates
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\translates");
+            string rootPath = callingProjectDirectory.GetRootPath();
+            string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "translates");
 
             StringBuilder sbClassNames = new();
             StringBuilder sbLabels = new();

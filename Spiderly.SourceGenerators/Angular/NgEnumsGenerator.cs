@@ -4,6 +4,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -80,7 +81,8 @@ namespace Spiderly.SourceGenerators.Angular
                 .ToList();
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\enums\enums.generated.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\enums\enums.generated.ts");
+            string rootPath = callingProjectDirectory.GetRootPath();
+            string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "enums", "enums.generated.ts");
 
             string result = GetAngularEnums(currentProjectEnums, currentProjectClassEnums, currentProjectEntities);
 

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace Spiderly.SourceGenerators.Angular
 {
@@ -79,7 +80,8 @@ namespace Spiderly.SourceGenerators.Angular
             }
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", $@"\Frontend\src\app\business\components\base-details.generated.ts");
+            string rootPath = callingProjectDirectory.GetRootPath();
+            string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "components", "base-details.generated.ts");
 
             string result = $$"""
 {{GetImports(customDTOClasses, allEntities)}}
