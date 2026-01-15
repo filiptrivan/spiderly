@@ -300,6 +300,7 @@ namespace Spiderly.Shared.Helpers
                                 Files =
                                 {
                                     new SpiderlyFile { Name = "environment.ts", Data = GetEnvironmentTsData(appName) },
+                                    new SpiderlyFile { Name = "environment.prod.ts", Data = GetEnvironmentProdTsData(appName) },
                                 }
                             }
                         },
@@ -510,6 +511,9 @@ namespace Spiderly.Shared.Helpers
 
     private static string GenerateFolder(SpiderlyFolder appStructure, string path)
     {
+      if (string.IsNullOrEmpty(appStructure.Name))
+        return path;
+
       Helper.MakeFolder(path, appStructure.Name);
 
       return Path.Combine(path, appStructure.Name);
@@ -4367,6 +4371,19 @@ export const environment = {
   production: false,
   apiUrl: 'https://localhost:44388/api',
   frontendUrl: 'http://localhost:4200',
+  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+  companyName: '{{appName}}',
+};
+""";
+    }
+
+    private static string GetEnvironmentProdTsData(string appName)
+    {
+      return $$"""
+export const environment = {
+  production: true,
+  apiUrl: 'https://your-production-api.com/api',
+  frontendUrl: 'https://your-production-frontend.com',
   GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',
 };

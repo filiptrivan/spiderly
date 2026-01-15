@@ -64,10 +64,12 @@ namespace Spiderly.CLI.Commands
                 hasNetAndAngularInitErrors = true;
             }
 
+            string rootPath = Path.Combine(currentPath, appName.ToKebabCase());
+
             if (!hasNetAndAngularInitErrors)
             {
                 ConsoleHelper.MarkupLineLoading("Setting up user secrets...");
-                if (await SetupUserSecrets(currentPath, appName, jwtKey, connectionString))
+                if (await SetupUserSecrets(rootPath, appName, jwtKey, connectionString))
                 {
                     ConsoleHelper.MarkupLineOK("User secrets configured successfully");
                 }
@@ -76,10 +78,9 @@ namespace Spiderly.CLI.Commands
                     hasUserSecretsErrors = true;
                 }
             }
-
-            string backendPath = Path.Combine(currentPath, appName.ToKebabCase(), "Backend");
+            string backendPath = Path.Combine(rootPath, "Backend");
             string infrastructurePath = Path.Combine(backendPath, $"{appName}.Infrastructure");
-            string frontendPath = Path.Combine(currentPath, appName.ToKebabCase(), "Frontend");
+            string frontendPath = Path.Combine(rootPath, "Frontend");
             string solutionPath = Path.Combine(backendPath, $"{appName}.sln");
             string infrastructureCsprojPath = Path.Combine(".", $"{appName}.Infrastructure.csproj");
             string webApiCsprojPath = Path.Combine("..", $"{appName}.WebAPI", $"{appName}.WebAPI.csproj");
@@ -178,9 +179,9 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static async Task<bool> SetupUserSecrets(string outputPath, string appName, string jwtKey, string connectionString)
+        private static async Task<bool> SetupUserSecrets(string rootPath, string appName, string jwtKey, string connectionString)
         {
-            string backendPath = Path.Combine(outputPath, appName.ToKebabCase(), "Backend", $"{appName}.WebAPI");
+            string webApiPath = Path.Combine(rootPath, "Backend", $"{appName}.WebAPI");
 
             bool success = true;
 
@@ -188,14 +189,14 @@ namespace Spiderly.CLI.Commands
             {
                 string jwtKeyUserSecretsErrorMessage = "Failed to set jwt key in user secrets.";
 
-                (bool sharedJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", backendPath);
+                (bool sharedJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", webApiPath);
                 if (!sharedJwtSuccess)
                 {
                     ConsoleHelper.MarkupLineERROR(jwtKeyUserSecretsErrorMessage);
                     success = false;
                 }
 
-                (bool securityJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", backendPath);
+                (bool securityJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", webApiPath);
                 if (!securityJwtSuccess)
                 {
                     ConsoleHelper.MarkupLineERROR(jwtKeyUserSecretsErrorMessage);
@@ -205,7 +206,7 @@ namespace Spiderly.CLI.Commands
 
             if (!string.IsNullOrEmpty(connectionString))
             {
-                (bool connectionStringSuccess, _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:ConnectionString\" \"{connectionString}\"", backendPath);
+                (bool connectionStringSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:ConnectionString\" \"{connectionString}\"", webApiPath);
                 if (!connectionStringSuccess)
                 {
                     ConsoleHelper.MarkupLineERROR($"Failed to set connection string in user secrets.");
