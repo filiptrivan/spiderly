@@ -101,7 +101,7 @@ jobs:
                   [Range(0, 999999)]
                   public int Stock { get; set; }
 
-                  public bool? IsActive { get; set; };
+                  public bool? IsActive { get; set; }
               }
           }
           PRODUCTCS
