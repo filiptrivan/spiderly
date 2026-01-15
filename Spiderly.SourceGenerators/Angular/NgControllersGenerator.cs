@@ -5,6 +5,7 @@ using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -69,7 +70,8 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\api\api.service.generated.ts
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\api\api.service.generated.ts");
+            string rootPath = callingProjectDirectory.GetRootPath();
+            string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "api", "api.service.generated.ts");
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
 

@@ -74,7 +74,8 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\services\validators
-            string outputPath = callingProjectDirectory.ReplaceEverythingAfter(@"\Backend\", @"\Frontend\src\app\business\services\validators");
+            string rootPath = callingProjectDirectory.GetRootPath();
+            string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "validators");
 
             referencedProjectClasses = referencedProjectClasses.OrderBy(x => x.Name).ToList();
 

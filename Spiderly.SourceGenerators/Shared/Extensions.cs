@@ -5,6 +5,7 @@ using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -608,18 +609,19 @@ namespace Spiderly.SourceGenerators.Shared
 
         #region Helpers
 
-        public static string ReplaceEverythingAfter(this string source, string keyForReplace, string valueToInsert)
+        public static string GetRootPath(this string callingProjectDirectory, string backendFolderName = "Backend")
         {
-            if (string.IsNullOrEmpty(source))
-                return null;
+            DirectoryInfo dir = new DirectoryInfo(callingProjectDirectory);
 
-            int index = source.IndexOf(keyForReplace, StringComparison.Ordinal);
+            while (dir != null && dir.Name != backendFolderName)
+            {
+                dir = dir.Parent;
+            }
 
-            if (index == -1)
-                throw new InvalidOperationException();
+            if (dir == null)
+                throw new InvalidOperationException($"Folder '{backendFolderName}' not found in path '{callingProjectDirectory}'");
 
-            // Get the part before the key and append the new value.
-            return $"{source.Substring(0, index)}{valueToInsert}";
+            return dir.Parent?.FullName;
         }
 
         public static string ReplaceEverythingAfterLast(this string source, string keyForReplace, string valueToInsert)
