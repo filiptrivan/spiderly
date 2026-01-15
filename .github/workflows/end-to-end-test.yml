@@ -76,9 +76,11 @@ jobs:
           ENTITY_FILE="$ENTITIES_PATH/Product.cs"
 
           cat > "$ENTITY_FILE" <<'PRODUCTCS'
-          using Spiderly.Shared.BaseEntities;
-          using Spiderly.Shared.Attributes.Entity;
           using System.ComponentModel.DataAnnotations;
+          using Spiderly.Shared.Attributes.Entity;
+          using Spiderly.Shared.Attributes.Entity.UI;
+          using Spiderly.Shared.BaseEntities;
+          using Spiderly.Shared.Enums;
 
           namespace ${{ env.TEST_APP_NAME }}.Business.Entities
           {
