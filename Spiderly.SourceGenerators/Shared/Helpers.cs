@@ -892,7 +892,7 @@ namespace Spiderly.SourceGenerators.Shared
                     rulesOnDTOProperties.Add(rule);
             }
 
-            if (entity != null) // FT: If it is null then we only made DTO, without entity class
+            if (entity != null) // If it is null then we only made DTO, without entity class
             {
                 rulesOnEntity.AddRange(GetRulesForAttributes(entity.Attributes, DTOProperties));
 
@@ -1020,19 +1020,19 @@ namespace Spiderly.SourceGenerators.Shared
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = $"{GetNumericLiteralWithSuffix(attribute.Value.Split(',')[0].Trim(), property.Type)}"
+                            MethodParametersBody = attribute.Value.Split(',')[0].Trim()
                         });
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "LessThanOrEqualTo",
-                            MethodParametersBody = $"{GetNumericLiteralWithSuffix(attribute.Value.Split(',')[1].Trim(), property.Type)}"
+                            MethodParametersBody = attribute.Value.Split(',')[1].Trim()
                         });
                         break;
                     case "GreaterThanOrEqualTo":
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = GetNumericLiteralWithSuffix(attribute.Value, property.Type)
+                            MethodParametersBody = attribute.Value
                         });
                         break;
                     case "CustomValidator":
@@ -1152,17 +1152,6 @@ namespace Spiderly.SourceGenerators.Shared
         private static string FindMaxValueForStringLength(string input)
         {
             return input.Split(',').First().Replace(" ", "");
-        }
-
-        private static string GetNumericLiteralWithSuffix(string value, string propertyType)
-        {
-            if (propertyType == "decimal" || propertyType == "decimal?")
-                return $"{value}m";
-
-            if (propertyType == "float" || propertyType == "float?")
-                return $"{value}f";
-
-            return value;
         }
 
         #endregion
