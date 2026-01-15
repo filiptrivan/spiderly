@@ -96,8 +96,6 @@ using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.DTO;
 using {{appName}}.Shared.Resources;
-using {{appName}}.Business.Entities;
-using {{appName}}.Business.DTO;
 using {{appName}}.Business.Services;
 {{string.Join("\n", Helpers.GetEntityClassesUsings(allEntities))}}
 {{string.Join("\n", Helpers.GetDTOClassesUsings(allEntities))}}
