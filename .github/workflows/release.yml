@@ -115,7 +115,7 @@ jobs:
             packages_json="[]"
             has_packages="false"
           else
-            packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)
+            packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -sc .)
             has_packages="true"
           fi
 
@@ -350,7 +350,7 @@ jobs:
             exit 1
           fi
 
-          published_json=$(printf '%s\n' "${published[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
+          published_json=$(printf '%s\n' "${published[@]}" | jq -R . | jq -sc . 2>/dev/null || echo "[]")
           echo "published_packages=$published_json" >> $GITHUB_OUTPUT
           echo "Published packages: ${published[*]}"
 
