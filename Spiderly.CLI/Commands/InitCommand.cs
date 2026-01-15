@@ -13,7 +13,7 @@ namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
-        public static async Task<int> Execute(bool hasTopMenu, bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
+        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
         {
             appName = GetAppName(appName);
             if (appName == null)
@@ -51,7 +51,7 @@ namespace Spiderly.CLI.Commands
             try
             {
                 ConsoleHelper.MarkupLineLoading("Generating files for the app...");
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu, jwtKey, dbProvider.Value);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider.Value);
                 ConsoleHelper.MarkupLineOK("Files generated successfully");
             }
             catch (Exception ex)

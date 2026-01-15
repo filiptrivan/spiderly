@@ -1,15 +1,17 @@
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { HttpRequest, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { SpiderlyMessageService } from '../services/spiderly-message.service';
 import { TranslocoService } from '@jsverse/transloco';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { AuthServiceBase } from '../services/auth.service.base';
 import { ConfigServiceBase } from '../services/config.service.base';
+import { SpiderlyMessageService } from '../services/spiderly-message.service';
 
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(SpiderlyMessageService);
   const translocoService = inject(TranslocoService);
   const config = inject(ConfigServiceBase);
+  const authService = inject(AuthServiceBase);
 
   const handleAuthError = (err: HttpErrorResponse, request: HttpRequest<any>): Observable<any> => {
     if (!config.production) {
@@ -61,6 +63,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       return of(err.message);
     } 
     else if (err.status == 419) { // Access token expired
+      authService.clearLocalStorage();
       return of(err.message);
     } 
     else {
@@ -72,7 +75,6 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       return of(err.message);
     }
 
-    return throwError(err);
   }
   
   return next(req).pipe(

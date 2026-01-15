@@ -27,12 +27,11 @@ namespace Spiderly.CLI
             }
             else if (args.HasArg("init"))
             {
-                bool hasTopMenu = args.HasArg("--top-menu");
                 bool isRunningFromNuget = !args.HasArg("--dev");
                 string appName = args.GetArgValue("--name");
                 string dbProvider = args.GetArgValue("--db");
 
-                return await InitCommand.Execute(hasTopMenu, isRunningFromNuget, version, appName, dbProvider);
+                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider);
             }
             else if (args.HasArg("add-new-page"))
             {

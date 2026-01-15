@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
-  DOTNET_VERSION: '9.0.x'
-  NODE_VERSION: '20'
+  DOTNET_VERSION: "9.0.x"
+  NODE_VERSION: "20"
 
 jobs:
   build-dotnet:
@@ -45,11 +45,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: Angular/package-lock.json
-
-      - name: Install Angular CLI
-        run: npm install -g @angular/cli
 
       - name: Install dependencies
         run: |
@@ -64,7 +61,7 @@ jobs:
       - name: Build library
         run: |
           cd Angular
-          ng build spiderly --configuration production
+          npm run build -- spiderly --configuration production
 
   code-quality:
     name: Code Quality Checks
