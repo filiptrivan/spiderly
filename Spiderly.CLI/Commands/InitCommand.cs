@@ -172,8 +172,8 @@ namespace Spiderly.CLI.Commands
             }
             else
             {
-                ConsoleHelper.MarkupLineOK("App initialized successfully. Press [blue]F5[/] to start the app in VS Code.");
-                AnsiConsole.MarkupLine("To register the first user, continue with the [blue]Register the User[/] step in the documentation: [link]http://localhost:3000/docs/getting-started#register-the-user[/]");
+                ConsoleHelper.MarkupLineOK("App initialized successfully. Continue with the [blue]Open the Project[/] step in the documentation: [link]https://www.spiderly.dev/docs/getting-started#open-the-project[/]");
+                Console.WriteLine();
 
                 return 0;
             }
