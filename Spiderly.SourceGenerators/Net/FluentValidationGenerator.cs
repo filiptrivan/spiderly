@@ -124,12 +124,32 @@ namespace {{basePartOfNamespace}}.ValidationRules
 
             foreach (SpiderValidationRule rule in rules)
             {
+                string ruleChain = string.Join("", rule.ValidationRuleParts.Select(x => $".{x.Name}({FormatMethodParametersBody(x, rule.Property.Type)})"));
                 result.Add($$"""
-            RuleFor(x => x.{{rule.Property.Name}}){{string.Join("", rule.ValidationRuleParts.Select(x => $".{x.Name}({x.MethodParametersBody})"))}};
+            RuleFor(x => x.{{rule.Property.Name}}){{ruleChain}};
 """);
             }
 
             return string.Join("\n", result);
+        }
+
+        private static string FormatMethodParametersBody(SpiderValidationRulePart rulePart, string propertyType)
+        {
+            if (rulePart.Name == "GreaterThanOrEqualTo" || rulePart.Name == "LessThanOrEqualTo")
+                return GetNumericLiteralWithSuffix(rulePart.MethodParametersBody, propertyType);
+
+            return rulePart.MethodParametersBody;
+        }
+
+        private static string GetNumericLiteralWithSuffix(string value, string propertyType)
+        {
+            if (propertyType == "decimal" || propertyType == "decimal?")
+                return $"{value}m";
+
+            if (propertyType == "float" || propertyType == "float?")
+                return $"{value}f";
+
+            return value;
         }
     }
 }
