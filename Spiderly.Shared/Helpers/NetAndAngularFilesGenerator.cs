@@ -24,7 +24,7 @@ namespace Spiderly.Shared.Helpers
                 Name = ".vscode",
                 Files =
                 {
-                    new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData() },
+                    new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData(dbProvider) },
                     new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
                     new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
                     new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
@@ -3888,16 +3888,19 @@ namespace {{appName}}.Business.DataMappers
 
     #region Angular
 
-    private static string GetExtensionsJsonData()
+    private static string GetExtensionsJsonData(DbProviderCodes dbProvider)
     {
-      return """
+      string dbExtension = dbProvider == DbProviderCodes.PostgreSQL
+          ? "ckolkman.vscode-postgres"
+          : "ms-mssql.mssql";
+
+      return $$"""
 {
   "recommendations": [
     "angular.ng-template",
     "formulahendry.auto-rename-tag",
-    "ckolkman.vscode-postgres",
-    "esbenp.prettier-vscode",
-    "ms-mssql.mssql"
+    "{{dbExtension}}",
+    "esbenp.prettier-vscode"
   ]
 }
 
