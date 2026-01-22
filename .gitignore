@@ -8,7 +8,6 @@
 **/*.user
 **/*.suo
 **/*.pdb
-**/appsettings*.json
 *.nupkg
 
 # Angular

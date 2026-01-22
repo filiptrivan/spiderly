@@ -3216,32 +3216,33 @@ namespace {{appName}}.WebAPI
     {
       return $$"""
 {
-    "Serilog": {
-        "Using": [
-            "Serilog.Sinks.ApplicationInsights",
-            "Serilog.Sinks.Console"
-        ],
-        "MinimumLevel": {
-        "Default": "Information",
-        "Override": {
-            "Microsoft": "Warning",
-            "System": "Warning"
-        }
-        },
-        "WriteTo": [
-        {
-            "Name": "Console"
-        },
-        {
-            "Name": "ApplicationInsights",
-            "Args": {
-            "connectionString": "",
-            "telemetryConverter": "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
-            }
-        }
-        ],
-        "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ]
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "Serilog": {
+    "Using": [
+      "Serilog.Sinks.ApplicationInsights",
+      "Serilog.Sinks.Console"
+    ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
     },
+    "WriteTo": [
+      {
+        "Name": "Console"
+      },
+      {
+        "Name": "ApplicationInsights",
+        "Args": {
+          "connectionString": "",
+          "telemetryConverter": "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ]
+  },
   "AppSettings": {
     "AllowedHosts": "*",
     "{{appName}}.WebAPI": {
@@ -3256,29 +3257,25 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}", // Email address used to send verification emails during login or registration.
-      "UnhandledExceptionRecipients": [ // Email addresses that will receive notifications when an unhandled exception occurs in production.
+      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}",
+      "UnhandledExceptionRecipients": [
         "{{emailSender ?? "youremail@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
       "SmtpPort": 587,
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
-
-      // ConnectionString is configured in user secrets. Run: dotnet user-secrets list
-      // If not configured, set it with: dotnet user-secrets set "AppSettings:Spiderly.Shared:ConnectionString" "YourConnectionString"
+      "ClockSkewMinutes": 1,
       "ConnectionString": "",
-
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
     },
     "Spiderly.Security": {
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires. 
+      "ClockSkewMinutes": 1,
       "AccessTokenExpiration": 20,
-      "RefreshTokenExpiration": 1440, // 24 hours
+      "RefreshTokenExpiration": 1440,
       "VerificationTokenExpiration": 5,
       "NumberOfFailedLoginAttemptsInARowToDisableUser": 40,
       "AllowTheUseOfAppWithDifferentIpAddresses": true,
