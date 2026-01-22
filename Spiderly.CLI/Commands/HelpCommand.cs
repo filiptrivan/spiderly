@@ -50,6 +50,50 @@ namespace Spiderly.CLI.Commands
                         "spiderly add-new-page",
                         "spiderly add-new-page --data-view"
                     }
+                },
+                new CommandInfo
+                {
+                    Name = "add-migration",
+                    Description = "Create a new EF Core migration.",
+                    Options = new List<OptionInfo>
+                    {
+                        new OptionInfo
+                        {
+                            Name = "<name>",
+                            Description = "The name for the new migration."
+                        }
+                    },
+                    Examples = new List<string>
+                    {
+                        "spiderly add-migration InitialMigration"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "update-database",
+                    Description = "Apply pending migrations to the database.",
+                    Examples = new List<string>
+                    {
+                        "spiderly update-database"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "remove-migration",
+                    Description = "Remove the last migration.",
+                    Examples = new List<string>
+                    {
+                        "spiderly remove-migration"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "list-migrations",
+                    Description = "List all available migrations.",
+                    Examples = new List<string>
+                    {
+                        "spiderly list-migrations"
+                    }
                 }
             };
 
