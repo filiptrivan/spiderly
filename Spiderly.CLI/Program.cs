@@ -33,11 +33,11 @@ namespace Spiderly.CLI
 
                 return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider);
             }
-            else if (args.HasArg("add-new-page"))
+            else if (args.HasArg("add-new-entity"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
 
-                await AddNewPageCommand.Execute(shouldGenerateDataView);
+                await AddNewEntityCommand.Execute(shouldGenerateDataView);
                 return 0;
             }
             else if (args.HasArg("add-migration"))

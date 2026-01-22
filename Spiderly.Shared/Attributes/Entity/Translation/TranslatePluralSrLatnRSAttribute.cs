@@ -11,7 +11,7 @@ namespace Spiderly.Shared.Attributes.Entity.Translation
     /// 
     /// <b>This translation is used for:</b> <br/>
     /// - Generates translations for the 'YourEntityNameList' key on both the frontend and backend. <br/>
-    /// - Table titles (used by default when generating pages with the 'add-new-page' Spiderly command; this can be customized). <br/>
+    /// - Table titles (used by default when generating pages with the 'add-new-entity' Spiderly command; this can be customized). <br/>
     /// - Excel export filenames (when <i>TranslateExcelSrLatnRS</i> is not specified) <br/>
     /// <br/>
     /// 

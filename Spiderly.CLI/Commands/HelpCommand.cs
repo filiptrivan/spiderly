@@ -35,8 +35,8 @@ namespace Spiderly.CLI.Commands
                 },
                 new CommandInfo
                 {
-                    Name = "add-new-page",
-                    Description = "This command generates starter files to support CRUD operations for a new entity.",
+                    Name = "add-new-entity",
+                    Description = "This command creates a new entity and generates all necessary files: Entity class, Angular pages (list/details), routes, and menu item.",
                     Options = new List<OptionInfo>
                     {
                         new OptionInfo
@@ -47,8 +47,8 @@ namespace Spiderly.CLI.Commands
                     },
                     Examples = new List<string>
                     {
-                        "spiderly add-new-page",
-                        "spiderly add-new-page --data-view"
+                        "spiderly add-new-entity",
+                        "spiderly add-new-entity --data-view"
                     }
                 },
                 new CommandInfo
