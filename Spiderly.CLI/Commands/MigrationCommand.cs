@@ -45,26 +45,9 @@ namespace Spiderly.CLI.Commands
             string fullArgs = $"ef {efArgs} --project {infrastructureCsprojRelativePath} --startup-project {webApiCsprojRelativePath}";
 
             ConsoleHelper.MarkupLineLoading($"{operationName}...");
-            (bool success, string output) = await ProcessRunner.RunCommand("dotnet", fullArgs, infrastructurePath);
+            (bool success, _) = await ProcessRunner.RunCommand("dotnet", fullArgs, infrastructurePath);
 
-            if (success)
-            {
-                ConsoleHelper.MarkupLineOK($"{operationName} completed successfully");
-                if (!string.IsNullOrWhiteSpace(output))
-                {
-                    Console.WriteLine(output);
-                }
-                return 0;
-            }
-            else
-            {
-                ConsoleHelper.MarkupLineERROR($"{operationName} failed");
-                if (!string.IsNullOrWhiteSpace(output))
-                {
-                    Console.WriteLine(output);
-                }
-                return 1;
-            }
+            return success ? 0 : 1;
         }
 
         private static (string infrastructurePath, string webApiCsprojRelativePath) FindProjectPaths()

@@ -65,7 +65,7 @@ namespace Spiderly.CLI.Commands
                     },
                     Examples = new List<string>
                     {
-                        "spiderly add-migration InitialMigration"
+                        "spiderly add-migration YourMigrationName"
                     }
                 },
                 new CommandInfo
