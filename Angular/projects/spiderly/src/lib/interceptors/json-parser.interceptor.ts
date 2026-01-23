@@ -1,28 +1,33 @@
-import { HttpEvent, HttpResponse, HttpInterceptorFn, HttpRequest, HttpParams } from '@angular/common/http';
+import {
+  HttpEvent,
+  HttpResponse,
+  HttpInterceptorFn,
+  HttpRequest,
+  HttpParams,
+} from '@angular/common/http';
 import { tap } from 'rxjs';
 
 export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
   const cleanedBody = getCleanRequestBody(req.body);
   const clonedRequest: HttpRequest<any> = req.clone({
-    body: cleanedBody
+    body: cleanedBody,
   });
 
-  return next(clonedRequest)
-    .pipe(
-      tap((event: HttpEvent<any>) => {
-        if (event instanceof HttpResponse) {
-          convertToDate(event.body);
-        }
+  return next(clonedRequest).pipe(
+    tap((event: HttpEvent<any>) => {
+      if (event instanceof HttpResponse) {
+        convertToDate(event.body);
       }
-  ));
-}
+    }),
+  );
+};
 
 const getCleanRequestBody = (obj: unknown): unknown => {
   if (
-    obj === null || 
+    obj === null ||
     obj === undefined ||
-    obj instanceof FormData || 
-    obj instanceof Blob || 
+    obj instanceof FormData ||
+    obj instanceof Blob ||
     obj instanceof File ||
     obj instanceof ArrayBuffer
   ) {
@@ -30,7 +35,7 @@ const getCleanRequestBody = (obj: unknown): unknown => {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => getCleanRequestBody(item));
+    return obj.map((item) => getCleanRequestBody(item));
   }
 
   if (obj instanceof Date) {
@@ -57,7 +62,7 @@ const convertToDate = (
   key?: number | string,
 ) => {
   if (object === null) return;
-  
+
   const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
   if (typeof object === 'string') {
@@ -66,8 +71,7 @@ const convertToDate = (
       parent[key] = date;
     }
   } else if (Array.isArray(object)) {
-    for (let i = 0; i < object.length; i++)
-      convertToDate(object[i], object, i);
+    for (let i = 0; i < object.length; i++) convertToDate(object[i], object, i);
   } else {
     for (const key of Object.keys(object as Record<string, unknown>)) {
       convertToDate(
@@ -77,4 +81,4 @@ const convertToDate = (
       );
     }
   }
-}
+};

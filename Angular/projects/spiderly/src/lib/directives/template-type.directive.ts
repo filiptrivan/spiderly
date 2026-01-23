@@ -8,7 +8,7 @@ export class SpiderlyTemplateTypeDirective<T> {
 
   static ngTemplateContextGuard<T>(
     dir: SpiderlyTemplateTypeDirective<T>,
-    ctx: unknown
+    ctx: unknown,
   ): ctx is T {
     return true;
   }

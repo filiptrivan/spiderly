@@ -1,24 +1,21 @@
-import { BaseEntity } from "../entities/base-entity";
+import { BaseEntity } from '../entities/base-entity';
 
-export class PrimengOption extends BaseEntity
-{
+export class PrimengOption extends BaseEntity {
+  label?: string;
+  code?: any; // Can't be value: https://github.com/primefaces/primeng/issues/17332#issuecomment-2922861294
+
+  constructor({
+    label,
+    code,
+  }: {
     label?: string;
-    code?: any; // Can't be value: https://github.com/primefaces/primeng/issues/17332#issuecomment-2922861294
-  
-    constructor(
-    {
-        label,
-        code,
-    }:{
-        label?: string;
-        code?: any;
-    } = {}
-    ) {
-        super();
+    code?: any;
+  } = {}) {
+    super();
 
-        this.label = label;
-        this.code = code;
-    }
+    this.label = label;
+    this.code = code;
+  }
 
-    static readonly typeName = 'PrimengOption' as const;
+  static readonly typeName = 'PrimengOption' as const;
 }

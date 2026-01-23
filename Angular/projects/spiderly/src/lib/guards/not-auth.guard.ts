@@ -7,11 +7,7 @@ import { AuthServiceBase } from '../services/auth.service.base';
   providedIn: 'root',
 })
 export class NotAuthGuard implements CanActivate {
-  constructor(
-    private authService: AuthServiceBase, 
-  ) {
-
-  }
+  constructor(private authService: AuthServiceBase) {}
 
   canActivate(): Observable<boolean> {
     return this.checkAuth();
@@ -23,11 +19,10 @@ export class NotAuthGuard implements CanActivate {
         if (user) {
           this.authService.navigateToDashboard();
           return false;
-        } 
-        else {
+        } else {
           return true;
         }
-      })
+      }),
     );
   }
 }

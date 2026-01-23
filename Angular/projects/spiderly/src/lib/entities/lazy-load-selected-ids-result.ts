@@ -1,24 +1,21 @@
-import { BaseEntity } from "../entities/base-entity";
+import { BaseEntity } from '../entities/base-entity';
 
-export class LazyLoadSelectedIdsResult extends BaseEntity
-{
-    selectedIds?: number[] = []; // FT: Only for showing checkboxes, we will not send this to the backend
-    totalRecordsSelected?: number = 0;
+export class LazyLoadSelectedIdsResult extends BaseEntity {
+  selectedIds?: number[] = []; // FT: Only for showing checkboxes, we will not send this to the backend
+  totalRecordsSelected?: number = 0;
 
-    constructor(
-    {
-        selectedIds,
-        totalRecordsSelected,
-    }:{
-        selectedIds?: number[];
-        totalRecordsSelected?: number;
-    } = {}
-    ) {
-        super();
+  constructor({
+    selectedIds,
+    totalRecordsSelected,
+  }: {
+    selectedIds?: number[];
+    totalRecordsSelected?: number;
+  } = {}) {
+    super();
 
-        this.selectedIds = selectedIds;
-        this.totalRecordsSelected = totalRecordsSelected;
-    }
+    this.selectedIds = selectedIds;
+    this.totalRecordsSelected = totalRecordsSelected;
+  }
 
-    static readonly typeName = 'LazyLoadSelectedIdsResult' as const;
+  static readonly typeName = 'LazyLoadSelectedIdsResult' as const;
 }

@@ -8,38 +8,35 @@ import { CheckboxChangeEvent, CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-checkbox',
-    templateUrl: './spiderly-checkbox.component.html',
-    styleUrl: './spiderly-checkbox.component.scss',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        CheckboxModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-checkbox',
+  templateUrl: './spiderly-checkbox.component.html',
+  styleUrl: './spiderly-checkbox.component.scss',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    CheckboxModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
 export class SpiderlyCheckboxComponent extends BaseControl implements OnInit {
-    @Input() fakeLabel = true;
-    @Input() initializeToFalse = false;
-    @Input() inlineLabel = false;
-    @Output() onChange = new EventEmitter<CheckboxChangeEvent>();
+  @Input() fakeLabel = true;
+  @Input() initializeToFalse = false;
+  @Input() inlineLabel = false;
+  @Output() onChange = new EventEmitter<CheckboxChangeEvent>();
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-     override ngOnInit(){
-        if (this.initializeToFalse == true)
-            this.control.setValue(false);
+  override ngOnInit() {
+    if (this.initializeToFalse == true) this.control.setValue(false);
 
-        super.ngOnInit();
-    }
+    super.ngOnInit();
+  }
 
-    change = (event: CheckboxChangeEvent) => {
-        this.onChange.next(event);
-    }
+  change = (event: CheckboxChangeEvent) => {
+    this.onChange.next(event);
+  };
 }

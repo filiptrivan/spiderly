@@ -9,42 +9,42 @@ import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-dropdown',
-    templateUrl: './spiderly-dropdown.component.html',
-    styles: [],
-    imports: [
-        ReactiveFormsModule,
-        FormsModule,
-        SelectModule,
-        TooltipModule,
-        CommonModule,
-        RequiredComponent,
-    ]
+  selector: 'spiderly-dropdown',
+  templateUrl: './spiderly-dropdown.component.html',
+  styles: [],
+  imports: [
+    ReactiveFormsModule,
+    FormsModule,
+    SelectModule,
+    TooltipModule,
+    CommonModule,
+    RequiredComponent,
+  ],
 })
-export class SpiderlyDropdownComponent extends BaseDropdownControl implements OnInit {
-    @Input() isBooleanPicker: boolean = false;
-    @Output() onChange = new EventEmitter<DropdownChangeEvent>();
+export class SpiderlyDropdownComponent
+  extends BaseDropdownControl
+  implements OnInit
+{
+  @Input() isBooleanPicker: boolean = false;
+  @Output() onChange = new EventEmitter<DropdownChangeEvent>();
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
+
+  override ngOnInit() {
+    if (this.isBooleanPicker) {
+      this.options = [
+        { displayName: this.translocoService.translate('True'), id: true },
+        { displayName: this.translocoService.translate('False'), id: false },
+        { displayName: this.translocoService.translate('Empty'), id: null },
+      ];
     }
 
-    override ngOnInit(){
-        if (this.isBooleanPicker) {
-            this.options = [
-                {displayName: this.translocoService.translate('True'), id: true},
-                {displayName: this.translocoService.translate('False'), id: false},
-                {displayName: this.translocoService.translate('Empty'), id: null},
-            ]
-        }
+    super.ngOnInit();
+  }
 
-        super.ngOnInit();
-    }
-
-    change(event: DropdownChangeEvent){
-        this.onChange.next(event);
-    }
-
+  change(event: DropdownChangeEvent) {
+    this.onChange.next(event);
+  }
 }

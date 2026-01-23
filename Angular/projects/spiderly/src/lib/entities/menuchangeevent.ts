@@ -1,4 +1,4 @@
 export class MenuChangeEvent {
-    key: string;
-    routeEvent?: boolean;
+  key: string;
+  routeEvent?: boolean;
 }

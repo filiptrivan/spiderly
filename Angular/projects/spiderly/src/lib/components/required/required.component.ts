@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'required',
@@ -7,7 +7,5 @@ import { Component } from "@angular/core";
   standalone: true,
 })
 export class RequiredComponent {
-
   constructor() {}
-
 }

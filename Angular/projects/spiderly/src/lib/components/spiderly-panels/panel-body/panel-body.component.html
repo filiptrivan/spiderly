@@ -1,9 +1,11 @@
 <!-- this is selector, not the class -->
-<div class="panel-body"
-    [ngClass]="{
-        'non-grid-panel-bottom-padding': normalBottomPadding, 
-    }"
-    style="overflow: auto;">
-    <!-- 'card': true, -->
-    <ng-content></ng-content>
+<div
+  class="panel-body"
+  [ngClass]="{
+    'non-grid-panel-bottom-padding': normalBottomPadding,
+  }"
+  style="overflow: auto"
+>
+  <!-- 'card': true, -->
+  <ng-content></ng-content>
 </div>

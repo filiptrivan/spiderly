@@ -1,27 +1,35 @@
-<div style="display: flex; flex-direction: column; gap: 0.5rem;">
-
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
   <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
-    <label>{{getTranslatedLabel()}}</label>
+    <label>{{ getTranslatedLabel() }}</label>
     <required *ngIf="control?.required && showRequired"></required>
     <!-- tabindex="-1": Makes the element focusable, but removes it from the tab order. -->
-    <i *ngIf="showTooltip" class="{{tooltipIcon}}" style="margin-left: 5px; cursor: pointer;" [pTooltip]="tooltipText" tabindex="-1" tooltipEvent="focus"></i>
+    <i
+      *ngIf="showTooltip"
+      class="{{ tooltipIcon }}"
+      style="margin-left: 5px; cursor: pointer"
+      [pTooltip]="tooltipText"
+      tabindex="-1"
+      tooltipEvent="focus"
+    ></i>
   </div>
 
   <!-- Don't support p-inputgroup -->
   <p-select
-  *ngIf="control"
-  [pTooltip]="getValidationErrrorMessages()" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid" 
-  [id]="label"
-  [formControl]="control"
-  [placeholder]="placeholder"
-  [options]="options"
-  optionLabel="displayName"
-  optionValue="id"
-  [showClear]="true"
-  (onHide)="dropdownMarkAsDirty()"
-  (onChange)="change($event)"
-  [fluid]="true"
-  appendTo="body"
+    *ngIf="control"
+    [pTooltip]="getValidationErrrorMessages()"
+    tooltipPosition="bottom"
+    [tooltipDisabled]="control.valid"
+    tooltipStyleClass="spiderly-tooltip-invalid"
+    [id]="label"
+    [formControl]="control"
+    [placeholder]="placeholder"
+    [options]="options"
+    optionLabel="displayName"
+    optionValue="id"
+    [showClear]="true"
+    (onHide)="dropdownMarkAsDirty()"
+    (onChange)="change($event)"
+    [fluid]="true"
+    appendTo="body"
   />
-  
 </div>

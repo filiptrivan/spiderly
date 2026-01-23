@@ -3,8 +3,8 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
-import { ProfileAvatarComponent } from "../profile-avatar/profile-avatar.component";
-import { MenubarModule } from "primeng/menubar";
+import { ProfileAvatarComponent } from '../profile-avatar/profile-avatar.component';
+import { MenubarModule } from 'primeng/menubar';
 import { SpiderlyMenuItem } from '../sidebar/sidebar-menu.component';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { Subscription } from 'rxjs';
@@ -19,16 +19,16 @@ import { Subscription } from 'rxjs';
     MenubarModule,
     AvatarModule,
     ProfileAvatarComponent,
-]
+  ],
 })
 export class TopBarComponent {
   @Input() menu: SpiderlyMenuItem[] = [];
   companyName = this.config.companyName;
   logoPath = this.config.logoPath;
   /**
- * Determines whether to show background color on hover
- * for root menu items. Defaults to `false`.
- */
+   * Determines whether to show background color on hover
+   * for root menu items. Defaults to `false`.
+   */
   @Input() showHoverBgOnRootItems: boolean = false;
 
   private permissionSubscription: Subscription | null = null;
@@ -36,31 +36,41 @@ export class TopBarComponent {
   constructor(
     private authService: AuthServiceBase,
     private config: ConfigServiceBase,
-  ) {
-
-  }
+  ) {}
 
   ngOnInit() {
-    this.permissionSubscription = this.authService.currentUserPermissionCodes$.subscribe((currentUserPermissionCodes: string[]) => {
-      this.hideMenuItemsBasedOnPermissions(this.menu, currentUserPermissionCodes);
-    });
+    this.permissionSubscription =
+      this.authService.currentUserPermissionCodes$.subscribe(
+        (currentUserPermissionCodes: string[]) => {
+          this.hideMenuItemsBasedOnPermissions(
+            this.menu,
+            currentUserPermissionCodes,
+          );
+        },
+      );
   }
 
-  hideMenuItemsBasedOnPermissions = (menu: SpiderlyMenuItem[], currentUserPermissionCodes: string[]) => {
-    menu.forEach(menuItem => {
+  hideMenuItemsBasedOnPermissions = (
+    menu: SpiderlyMenuItem[],
+    currentUserPermissionCodes: string[],
+  ) => {
+    menu.forEach((menuItem) => {
       if (menuItem.items) {
-        this.hideMenuItemsBasedOnPermissions(menuItem.items, currentUserPermissionCodes)
+        this.hideMenuItemsBasedOnPermissions(
+          menuItem.items,
+          currentUserPermissionCodes,
+        );
       }
       if (typeof menuItem.hasPermission === 'function') {
-        menuItem.visible = menuItem.hasPermission(currentUserPermissionCodes) ?? false;
+        menuItem.visible =
+          menuItem.hasPermission(currentUserPermissionCodes) ?? false;
       }
     });
-  }
+  };
 
   ngOnDestroy() {
-      if (this.permissionSubscription) {
-          this.permissionSubscription.unsubscribe();
-      }
+    if (this.permissionSubscription) {
+      this.permissionSubscription.unsubscribe();
+    }
   }
-
 }

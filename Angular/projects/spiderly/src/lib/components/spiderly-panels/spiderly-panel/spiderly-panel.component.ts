@@ -1,12 +1,19 @@
-import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 
 @Component({
-    selector: 'spiderly-panel',
-    templateUrl: './spiderly-panel.component.html',
-    styleUrl: './spiderly-panel.component.scss',
-    standalone: false
+  selector: 'spiderly-panel',
+  templateUrl: './spiderly-panel.component.html',
+  styleUrl: './spiderly-panel.component.scss',
+  standalone: false,
 })
 export class SpiderlyPanelComponent implements OnInit {
   @Input() isFirstMultiplePanel: boolean = false;
@@ -25,19 +32,17 @@ export class SpiderlyPanelComponent implements OnInit {
   @Output() onRemoveIconClick: EventEmitter<null> = new EventEmitter();
 
   @ViewChild('menu') menu: Menu;
-  
-  constructor() { }
 
-  ngOnInit(): void {
-  }
+  constructor() {}
 
-  menuItemClick(index: number, event){
+  ngOnInit(): void {}
+
+  menuItemClick(index: number, event) {
     this.menu.toggle(event);
     this.onMenuIconClick.next(index);
   }
 
-  removeItemClick(){
+  removeItemClick() {
     this.onRemoveIconClick.next(null);
   }
-
 }

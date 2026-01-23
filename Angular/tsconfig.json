@@ -18,16 +18,11 @@
     "importHelpers": true,
     "target": "ES2022",
     "paths": {
-      "spiderly": [
-        "./dist/spiderly",
-      ]
+      "spiderly": ["./dist/spiderly"]
     },
     "module": "ES2022",
     "useDefineForClassFields": false,
-    "lib": [
-      "ES2022",
-      "dom"
-    ]
+    "lib": ["ES2022", "dom"]
   },
   "angularCompilerOptions": {
     "enableIvy": false,

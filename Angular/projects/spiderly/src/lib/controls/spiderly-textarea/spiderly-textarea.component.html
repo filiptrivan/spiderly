@@ -1,18 +1,22 @@
 <!-- Can't put (onBlur) in this control -->
 
-<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
   <div>
-    <label>{{getTranslatedLabel()}}</label>
+    <label>{{ getTranslatedLabel() }}</label>
     <required *ngIf="control?.required && showRequired"></required>
   </div>
   <textarea
     *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
+    [pTooltip]="getValidationErrrorMessages()"
+    [tooltipEvent]="errorMessageTooltipEvent"
+    tooltipPosition="bottom"
+    [tooltipDisabled]="control.valid"
+    tooltipStyleClass="spiderly-tooltip-invalid"
     pTextarea
     [formControl]="control"
     [id]="control.label"
     (blur)="control.markAsDirty()"
     [autoResize]="true"
     [class]="control.disabled ? 'disabled' : ''"
-    ></textarea>
-  </div>
+  ></textarea>
+</div>

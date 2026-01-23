@@ -35,19 +35,19 @@
     transform: rotate(30deg);
     color: var(--p-primary-400);
     opacity: 0.2;
-    position: absolute; 
-    overflow: hidden; 
-    right: -30px; 
-    top: -25px; 
+    position: absolute;
+    overflow: hidden;
+    right: -30px;
+    top: -25px;
     z-index: 1;
-    
+
     i {
       font-size: 270px;
     }
   }
 }
 
-::ng-deep{
+::ng-deep {
   html.dark .info-card {
     background-color: var(--p-primary-950);
 

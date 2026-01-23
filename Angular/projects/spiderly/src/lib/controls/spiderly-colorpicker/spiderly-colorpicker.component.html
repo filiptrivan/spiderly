@@ -1,28 +1,36 @@
 <!-- Can't put (onBlur) in this control -->
 
-<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
   <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
-    <label>{{getTranslatedLabel()}}</label>
+    <label>{{ getTranslatedLabel() }}</label>
     <required *ngIf="control?.required && showRequired"></required>
   </div>
-  <div style="display: flex; gap: 10px;">
+  <div style="display: flex; gap: 10px">
     <input
-    *ngIf="control && showInputTextField"
-    [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
-    pInputText
-    [placeholder]="placeholder"
-    [formControl]="control"
-    [id]="control.label"
-    (blur)="control.markAsDirty()"
-    [fluid]="true"
+      *ngIf="control && showInputTextField"
+      [pTooltip]="getValidationErrrorMessages()"
+      [tooltipEvent]="errorMessageTooltipEvent"
+      tooltipPosition="bottom"
+      [tooltipDisabled]="control.valid"
+      tooltipStyleClass="spiderly-tooltip-invalid"
+      pInputText
+      [placeholder]="placeholder"
+      [formControl]="control"
+      [id]="control.label"
+      (blur)="control.markAsDirty()"
+      [fluid]="true"
     />
     <p-colorpicker
-    *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
-    [formControl]="control"
-    [id]="control.label"
-    (blur)="control.markAsDirty()"
-    appendTo="body"
+      *ngIf="control"
+      [pTooltip]="getValidationErrrorMessages()"
+      [tooltipEvent]="errorMessageTooltipEvent"
+      tooltipPosition="bottom"
+      [tooltipDisabled]="control.valid"
+      tooltipStyleClass="spiderly-tooltip-invalid"
+      [formControl]="control"
+      [id]="control.label"
+      (blur)="control.markAsDirty()"
+      appendTo="body"
     ></p-colorpicker>
   </div>
 </div>

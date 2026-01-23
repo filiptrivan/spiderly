@@ -1,9 +1,8 @@
-export enum MatchModeCodes
-{
-    StartsWith,
-    Contains,
-    Equals,
-    LessThan,
-    GreaterThan,
-    In,
+export enum MatchModeCodes {
+  StartsWith,
+  Contains,
+  Equals,
+  LessThan,
+  GreaterThan,
+  In,
 }

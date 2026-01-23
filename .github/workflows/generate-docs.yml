@@ -7,41 +7,41 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: "9.0.x"
 
 jobs:
   generate-and-deploy-docs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
       - name: Checkout Spiderly repo
         uses: actions/checkout@v4
         with:
           path: spiderly
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      
+
       - name: Clone DotNetDocMerge tool repo
         run: git clone https://github.com/filiptrivan/dotnet-docmerge.git
-      
+
       - name: Build and install DotNetDocMerge tool
         run: |
           set -e
           cd dotnet-docmerge/DotNetDocMerge
           dotnet pack
           dotnet tool install --global --add-source ./nupkg DotNetDocMerge
-      
+
       - name: Generate documentation
         run: |
           set -e
           cd spiderly
           docmerge
-      
+
       - name: Verify documentation was generated
         run: |
           set -e
@@ -51,34 +51,34 @@ jobs:
           fi
           echo "✅ Documentation generated successfully!"
           ls -lh spiderly/documentation.html
-      
+
       - name: Checkout spiderly-website repo
         uses: actions/checkout@v4
         with:
           repository: filiptrivan/spiderly-website
           path: website
           token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
-      
+
       - name: Update documentation in website repo
         run: |
           set -e
           mkdir -p website/public/assets/docs
           cp spiderly/documentation.html website/public/assets/docs/attributes.html
           echo "✅ Documentation copied to website repo"
-      
+
       - name: Commit and push to website repo
         run: |
           set -e
           cd website
-          
+
           # Determine the default branch dynamically
           DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')
           echo "Target branch: $DEFAULT_BRANCH"
-          
+
           git config user.name "Spiderly Docs Bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/assets/docs/attributes.html
-          
+
           if git diff --staged --quiet; then
             echo "📝 No changes to documentation"
           else

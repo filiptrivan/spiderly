@@ -1,29 +1,26 @@
-export class FilterSortMeta
-{
-    field: string;
-    order: number;
+export class FilterSortMeta {
+  field: string;
+  order: number;
 
-    constructor(
-        {
-            field,
-            order,
-        }: {
-            field?: string;
-            order?: number;
-        } = {}
-    ) {
-        this.field = field as string;
-        this.order = order as number;
-    }
+  constructor({
+    field,
+    order,
+  }: {
+    field?: string;
+    order?: number;
+  } = {}) {
+    this.field = field as string;
+    this.order = order as number;
+  }
 
-    static schema = {
-        field: {
-            type: 'string',
-        },
-        order: {
-            type: 'number',
-        },
-    } as const;
+  static schema = {
+    field: {
+      type: 'string',
+    },
+    order: {
+      type: 'number',
+    },
+  } as const;
 
-    static readonly typeName = 'FilterSortMeta' as const;
+  static readonly typeName = 'FilterSortMeta' as const;
 }

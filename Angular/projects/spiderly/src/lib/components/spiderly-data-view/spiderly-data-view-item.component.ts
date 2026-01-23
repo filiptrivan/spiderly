@@ -1,4 +1,10 @@
-import { Directive, Input, OnInit, TemplateRef, ViewContainerRef } from "@angular/core";
+import {
+  Directive,
+  Input,
+  OnInit,
+  TemplateRef,
+  ViewContainerRef,
+} from '@angular/core';
 
 interface ItemContext<T> {
   $implicit: T;
@@ -14,7 +20,7 @@ export class MyItemListDirective<T> implements OnInit {
 
   constructor(
     private vcRef: ViewContainerRef,
-    private templateRef: TemplateRef<ItemContext<T>>
+    private templateRef: TemplateRef<ItemContext<T>>,
   ) {}
 
   ngOnInit() {
@@ -23,7 +29,7 @@ export class MyItemListDirective<T> implements OnInit {
       this.vcRef.createEmbeddedView(this.templateRef, {
         $implicit: item,
         item,
-        index
+        index,
       });
     });
   }

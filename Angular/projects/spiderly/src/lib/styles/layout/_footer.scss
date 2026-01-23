@@ -1,11 +1,11 @@
-@use './_variables' as *;
+@use "./_variables" as *;
 
 .layout-footer {
-    transition: margin-left $transitionDuration;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--surface-border);
-    margin-top: 2rem;
+  transition: margin-left $transitionDuration;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-border);
+  margin-top: 2rem;
 }

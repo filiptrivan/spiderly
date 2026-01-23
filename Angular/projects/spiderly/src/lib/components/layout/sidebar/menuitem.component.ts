@@ -1,6 +1,19 @@
-import { ChangeDetectorRef, Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  HostBinding,
+  Input,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { animate, state, style, transition, trigger } from '@angular/animations';
+import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger,
+} from '@angular/animations';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { SidebarMenuService } from './sidebar-menu.service';
@@ -17,163 +30,195 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { Namebook } from '../../../entities/namebook';
 
 @Component({
-    // eslint-disable-next-line @angular-eslint/component-selector
-    selector: '[menuitem]',
-    templateUrl: './menuitem.component.html',
-    animations: [
-        trigger('children', [
-            state('collapsed', style({
-                height: '0'
-            })),
-            state('expanded', style({
-                height: '*'
-            })),
-            transition('collapsed <=> expanded', animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'))
-        ])
-    ],
-    imports: [
-        CommonModule,
-        RouterModule,
-        TranslocoDirective,
-        SpiderlyControlsModule,
-    ]
+  // eslint-disable-next-line @angular-eslint/component-selector
+  selector: '[menuitem]',
+  templateUrl: './menuitem.component.html',
+  animations: [
+    trigger('children', [
+      state(
+        'collapsed',
+        style({
+          height: '0',
+        }),
+      ),
+      state(
+        'expanded',
+        style({
+          height: '*',
+        }),
+      ),
+      transition(
+        'collapsed <=> expanded',
+        animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'),
+      ),
+    ]),
+  ],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslocoDirective,
+    SpiderlyControlsModule,
+  ],
 })
 export class MenuitemComponent implements OnInit, OnDestroy {
+  @Input() item: SpiderlyMenuItem;
 
-    @Input() item: SpiderlyMenuItem;
+  @Input() index!: number;
 
-    @Input() index!: number;
+  @Input() @HostBinding('class.layout-root-menuitem') root!: boolean;
 
-    @Input() @HostBinding('class.layout-root-menuitem') root!: boolean;
+  @Input() parentKey!: string;
 
-    @Input() parentKey!: string;
+  active = false;
 
-    active = false;
+  private menuSourceSubscription: Subscription;
 
-    private menuSourceSubscription: Subscription;
+  private menuResetSubscription: Subscription;
 
-    private menuResetSubscription: Subscription;
+  private permissionSubscription: Subscription | null = null;
 
-    private permissionSubscription: Subscription | null = null;
+  key: string = '';
 
-    key: string = "";
+  selectedPartner = new SpiderlyFormControl<Namebook>(null, {
+    updateOn: 'change',
+  });
 
-    selectedPartner = new SpiderlyFormControl<Namebook>(null, { updateOn: 'change' });
+  partnerOptions: Namebook[];
 
-    partnerOptions: Namebook[];
-
-    constructor(
-        public layoutService: LayoutServiceBase, 
-        private cd: ChangeDetectorRef, 
-        public router: Router, 
-        private menuService: SidebarMenuService, 
-        private authService: AuthServiceBase,
-        private apiService: ApiSecurityService,
-        private config: ConfigServiceBase
-    ) {
-        this.menuSourceSubscription = this.menuService.menuSource$.subscribe(value => {
-            Promise.resolve(null).then(() => {
-                if (value.routeEvent) {
-                    this.active = (value.key === this.key || value.key.startsWith(this.key + '-')) ? true : false;
-                }
-                else {
-                    if (value.key !== this.key && !value.key.startsWith(this.key + '-')) {
-                        this.active = false;
-                    }
-                }
-            });
-        });
-
-        this.menuResetSubscription = this.menuService.resetSource$.subscribe(() => {
-            this.active = false;
-        });
-
-        this.router.events.pipe(filter(event => event instanceof NavigationEnd))
-            .subscribe(params => {
-                if (this.item.routerLink) {
-                    this.updateActiveStateFromRoute();
-                }
-            });
-    }
-
-    ngOnInit() {
-        this.item.visible = this.item.visible ?? true;
-
-        this.key = this.parentKey ? this.parentKey + '-' + this.index : String(this.index);
-        
-        if (this.item.routerLink) {
-            this.updateActiveStateFromRoute();
-        }
-
-        this.permissionSubscription = this.authService.currentUserPermissionCodes$.subscribe((currentUserPermissionCodes: string[]) => {
-            if (this.item && typeof this.item.hasPermission === 'function') {
-                this.item.visible = this.item.hasPermission(currentUserPermissionCodes);
+  constructor(
+    public layoutService: LayoutServiceBase,
+    private cd: ChangeDetectorRef,
+    public router: Router,
+    private menuService: SidebarMenuService,
+    private authService: AuthServiceBase,
+    private apiService: ApiSecurityService,
+    private config: ConfigServiceBase,
+  ) {
+    this.menuSourceSubscription = this.menuService.menuSource$.subscribe(
+      (value) => {
+        Promise.resolve(null).then(() => {
+          if (value.routeEvent) {
+            this.active =
+              value.key === this.key || value.key.startsWith(this.key + '-')
+                ? true
+                : false;
+          } else {
+            if (
+              value.key !== this.key &&
+              !value.key.startsWith(this.key + '-')
+            ) {
+              this.active = false;
             }
+          }
         });
-    }
+      },
+    );
 
-    updateActiveStateFromRoute() {
-        let activeRoute = this.router.isActive(this.item.routerLink[0], { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' });
+    this.menuResetSubscription = this.menuService.resetSource$.subscribe(() => {
+      this.active = false;
+    });
 
-        if (activeRoute) {
-            this.menuService.onMenuStateChange({ key: this.key, routeEvent: true });
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((params) => {
+        if (this.item.routerLink) {
+          this.updateActiveStateFromRoute();
         }
+      });
+  }
+
+  ngOnInit() {
+    this.item.visible = this.item.visible ?? true;
+
+    this.key = this.parentKey
+      ? this.parentKey + '-' + this.index
+      : String(this.index);
+
+    if (this.item.routerLink) {
+      this.updateActiveStateFromRoute();
     }
 
-    itemClick(event: Event) {
-        // avoid processing disabled items
-        if (this.item.disabled || event === null) {
-            event.preventDefault();
-            return;
-        }
+    this.permissionSubscription =
+      this.authService.currentUserPermissionCodes$.subscribe(
+        (currentUserPermissionCodes: string[]) => {
+          if (this.item && typeof this.item.hasPermission === 'function') {
+            this.item.visible = this.item.hasPermission(
+              currentUserPermissionCodes,
+            );
+          }
+        },
+      );
+  }
 
-        // execute command
-        if (this.item.command) {
-            this.item.command({ originalEvent: event, item: this.item });
-        }
+  updateActiveStateFromRoute() {
+    let activeRoute = this.router.isActive(this.item.routerLink[0], {
+      paths: 'exact',
+      queryParams: 'ignored',
+      matrixParams: 'ignored',
+      fragment: 'ignored',
+    });
 
-        // toggle active state
-        if (this.item.items) {
-            this.active = !this.active;
-        }
-        
-        this.menuService.onMenuStateChange({ key: this.key });
+    if (activeRoute) {
+      this.menuService.onMenuStateChange({ key: this.key, routeEvent: true });
+    }
+  }
+
+  itemClick(event: Event) {
+    // avoid processing disabled items
+    if (this.item.disabled || event === null) {
+      event.preventDefault();
+      return;
     }
 
-    get submenuAnimation() {
-        return this.root ? 'expanded' : (this.active ? 'expanded' : 'collapsed');
+    // execute command
+    if (this.item.command) {
+      this.item.command({ originalEvent: event, item: this.item });
     }
 
-    @HostBinding('class.active-menuitem') 
-    get activeClass() {
-        return this.active && !this.root;
+    // toggle active state
+    if (this.item.items) {
+      this.active = !this.active;
     }
 
-    //#region HACK: Partner
+    this.menuService.onMenuStateChange({ key: this.key });
+  }
 
-    searchPartners(event: AutoCompleteCompleteEvent) {
-        this.layoutService.searchPartners(event).subscribe(po => {
-            this.partnerOptions = po;    
-        })
+  get submenuAnimation() {
+    return this.root ? 'expanded' : this.active ? 'expanded' : 'collapsed';
+  }
+
+  @HostBinding('class.active-menuitem')
+  get activeClass() {
+    return this.active && !this.root;
+  }
+
+  //#region HACK: Partner
+
+  searchPartners(event: AutoCompleteCompleteEvent) {
+    this.layoutService.searchPartners(event).subscribe((po) => {
+      this.partnerOptions = po;
+    });
+  }
+
+  partnersAutocompleteButtonClick = async () => {
+    this.layoutService.partnersAutocompleteButtonClick(
+      this.selectedPartner.value,
+    );
+  };
+
+  //#endregion
+
+  ngOnDestroy() {
+    if (this.menuSourceSubscription) {
+      this.menuSourceSubscription.unsubscribe();
     }
 
-    partnersAutocompleteButtonClick = async () => {
-        this.layoutService.partnersAutocompleteButtonClick(this.selectedPartner.value);
+    if (this.menuResetSubscription) {
+      this.menuResetSubscription.unsubscribe();
     }
 
-    //#endregion
-
-    ngOnDestroy() {
-        if (this.menuSourceSubscription) {
-            this.menuSourceSubscription.unsubscribe();
-        }
-
-        if (this.menuResetSubscription) {
-            this.menuResetSubscription.unsubscribe();
-        }
-
-        if (this.permissionSubscription) {
-            this.permissionSubscription.unsubscribe();
-        }
+    if (this.permissionSubscription) {
+      this.permissionSubscription.unsubscribe();
     }
+  }
 }

@@ -4,20 +4,13 @@ import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 
 @Component({
-    selector: 'not-found',
-    templateUrl: './not-found.component.html',
-    imports: [
-        RouterModule,
-        ButtonModule,
-    ]
+  selector: 'not-found',
+  templateUrl: './not-found.component.html',
+  imports: [RouterModule, ButtonModule],
 })
-export class NotFoundComponent { 
-    companyName = this.config.companyName;
-    logoPath: string = this.config.logoPath;
+export class NotFoundComponent {
+  companyName = this.config.companyName;
+  logoPath: string = this.config.logoPath;
 
-    constructor(
-        private config: ConfigServiceBase
-    ) { 
-
-    }
+  constructor(private config: ConfigServiceBase) {}
 }

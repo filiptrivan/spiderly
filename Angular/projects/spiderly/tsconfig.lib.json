@@ -11,7 +11,5 @@
   "angularCompilerOptions": {
     "enableIvy": false
   },
-  "exclude": [
-    "**/*.spec.ts"
-  ]
+  "exclude": ["**/*.spec.ts"]
 }

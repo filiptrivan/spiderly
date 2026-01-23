@@ -1,17 +1,17 @@
 <div class="card responsive-card-padding info-card">
-    <div class="info-card__content">
-      <div>
-        <div class="info-card__header">
-          <i *ngIf="showSmallIcon" class="{{icon}} info-card__icon"></i>
-          {{header}}
-        </div>
-        <div class="info-card__body">
-          <ng-content></ng-content>
-        </div>
+  <div class="info-card__content">
+    <div>
+      <div class="info-card__header">
+        <i *ngIf="showSmallIcon" class="{{ icon }} info-card__icon"></i>
+        {{ header }}
+      </div>
+      <div class="info-card__body">
+        <ng-content></ng-content>
       </div>
     </div>
+  </div>
 
-    <div class="info-card__background-icon">
-      <i class="{{icon}}"></i>
-    </div>
+  <div class="info-card__background-icon">
+    <i class="{{ icon }}"></i>
+  </div>
 </div>

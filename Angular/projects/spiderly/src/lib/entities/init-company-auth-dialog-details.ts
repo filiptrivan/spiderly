@@ -1,24 +1,21 @@
-import { BaseEntity } from "./base-entity";
+import { BaseEntity } from './base-entity';
 
-export class InitCompanyAuthDialogDetails extends BaseEntity
-{
+export class InitCompanyAuthDialogDetails extends BaseEntity {
+  image?: string;
+  companyName?: string;
+
+  constructor({
+    image,
+    companyName,
+  }: {
     image?: string;
     companyName?: string;
-  
-    constructor(
-    {
-        image,
-        companyName,
-    }:{
-        image?: string;
-        companyName?: string;
-    } = {}
-    ) {
-        super();
+  } = {}) {
+    super();
 
-        this.image = image;
-        this.companyName = companyName;
-    }
+    this.image = image;
+    this.companyName = companyName;
+  }
 
-    static readonly typeName = 'InitCompanyAuthDialogDetails' as const;
+  static readonly typeName = 'InitCompanyAuthDialogDetails' as const;
 }

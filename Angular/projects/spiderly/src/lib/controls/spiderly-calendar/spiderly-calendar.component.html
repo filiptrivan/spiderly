@@ -1,23 +1,37 @@
-<div style="display: flex; flex-direction: column; gap: 0.5rem;">
-    <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null" style="display: flex; align-items: center;">
-        <div>
-            <label>{{getTranslatedLabel()}}</label>
-            <required *ngIf="control?.required && showRequired"></required>
-        </div>
-        <!-- tabindex="-1": Makes the element focusable, but removes it from the tab order. -->
-        <i *ngIf="showTooltip" class="{{tooltipIcon}}" style="margin-left: 8px; cursor: pointer;" [pTooltip]="tooltipText" tabindex="-1" tooltipEvent="focus"></i>
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
+  <div
+    *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null"
+    style="display: flex; align-items: center"
+  >
+    <div>
+      <label>{{ getTranslatedLabel() }}</label>
+      <required *ngIf="control?.required && showRequired"></required>
     </div>
-    <p-datepicker
+    <!-- tabindex="-1": Makes the element focusable, but removes it from the tab order. -->
+    <i
+      *ngIf="showTooltip"
+      class="{{ tooltipIcon }}"
+      style="margin-left: 8px; cursor: pointer"
+      [pTooltip]="tooltipText"
+      tabindex="-1"
+      tooltipEvent="focus"
+    ></i>
+  </div>
+  <p-datepicker
     *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
+    [pTooltip]="getValidationErrrorMessages()"
+    [tooltipEvent]="errorMessageTooltipEvent"
+    tooltipPosition="bottom"
+    [tooltipDisabled]="control.valid"
+    tooltipStyleClass="spiderly-tooltip-invalid"
     [formControl]="control"
     (onBlur)="control.markAsDirty()"
     dateFormat="dd.mm.yy."
-    iconDisplay="input" 
-    [showIcon]="true" 
+    iconDisplay="input"
+    [showIcon]="true"
     [showTime]="showTime"
     (onSelect)="setDate($event)"
     appendTo="body"
     [fluid]="true"
-    />
+  />
 </div>

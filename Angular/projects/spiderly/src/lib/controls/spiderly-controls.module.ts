@@ -48,11 +48,9 @@ import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/re
     SpiderlyDropdownComponent,
     SpiderlyEditorComponent,
     SpiderlyColorPickerComponent,
-    SpiderlyFileComponent
+    SpiderlyFileComponent,
   ],
-  declarations: [
-  ],
-  providers: [
-  ]
+  declarations: [],
+  providers: [],
 })
 export class SpiderlyControlsModule {}

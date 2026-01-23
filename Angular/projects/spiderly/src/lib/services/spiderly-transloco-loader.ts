@@ -3,8 +3,8 @@ import { Injectable } from '@angular/core';
 import { TranslocoLoader } from '@jsverse/transloco';
 import { HttpClient } from '@angular/common/http';
 
-@Injectable({ 
-  providedIn: 'root' 
+@Injectable({
+  providedIn: 'root',
 })
 export class SpiderlyTranslocoLoader implements TranslocoLoader {
   constructor(
@@ -15,5 +15,4 @@ export class SpiderlyTranslocoLoader implements TranslocoLoader {
   getTranslation(lang: string) {
     return this.http.get(`${this.config.frontendUrl}/assets/i18n/${lang}.json`);
   }
-
 }

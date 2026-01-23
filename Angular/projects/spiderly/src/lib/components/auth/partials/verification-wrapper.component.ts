@@ -1,6 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef, Component, EventEmitter, Input, KeyValueDiffers, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  KeyValueDiffers,
+  OnInit,
+  Output,
+} from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -14,57 +22,79 @@ import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-con
 import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.module';
 
 @Component({
-    selector: 'verification-wrapper',
-    templateUrl: './verification-wrapper.component.html',
-    imports: [
-        CommonModule,
-        FormsModule,
-        ReactiveFormsModule,
-        SpiderlyControlsModule,
-        SpiderlyPanelsModule,
-        ButtonModule,
-        TranslocoDirective,
-    ]
+  selector: 'verification-wrapper',
+  templateUrl: './verification-wrapper.component.html',
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    SpiderlyControlsModule,
+    SpiderlyPanelsModule,
+    ButtonModule,
+    TranslocoDirective,
+  ],
 })
-export class VerificationWrapperComponent extends BaseFormCopy implements OnInit {
-    verificationTokenRequestFormGroup = new SpiderlyFormGroup<VerificationTokenRequest>({});
+export class VerificationWrapperComponent
+  extends BaseFormCopy
+  implements OnInit
+{
+  verificationTokenRequestFormGroup =
+    new SpiderlyFormGroup<VerificationTokenRequest>({});
 
-    @Input() email: string;
-    @Output() onResendVerificationToken: EventEmitter<any> = new EventEmitter();
-    @Output() onCodeSubmit: EventEmitter<string> = new EventEmitter();
+  @Input() email: string;
+  @Output() onResendVerificationToken: EventEmitter<any> = new EventEmitter();
+  @Output() onCodeSubmit: EventEmitter<string> = new EventEmitter();
 
-    constructor(
-      protected override differs: KeyValueDiffers,
-      protected override http: HttpClient,
-      protected override messageService: SpiderlyMessageService, 
-      protected override changeDetectorRef: ChangeDetectorRef,
-      protected override router: Router, 
-      protected override route: ActivatedRoute,
-      protected override translocoService: TranslocoService,
-      protected override baseFormService: BaseFormService,
-    ) { 
-      super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
+  constructor(
+    protected override differs: KeyValueDiffers,
+    protected override http: HttpClient,
+    protected override messageService: SpiderlyMessageService,
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected override router: Router,
+    protected override route: ActivatedRoute,
+    protected override translocoService: TranslocoService,
+    protected override baseFormService: BaseFormService,
+  ) {
+    super(
+      differs,
+      http,
+      messageService,
+      changeDetectorRef,
+      router,
+      route,
+      translocoService,
+      baseFormService,
+    );
+  }
+
+  override ngOnInit() {
+    this.initVerificationTokenRequestFormGroup(
+      new VerificationTokenRequest({ email: this.email }),
+    );
+  }
+
+  initVerificationTokenRequestFormGroup(model: VerificationTokenRequest) {
+    this.baseFormService.initFormGroup(
+      this.verificationTokenRequestFormGroup,
+      VerificationTokenRequest,
+      model,
+      ['verificationCode'],
+    );
+  }
+
+  codeSubmit() {
+    let isValid: boolean = this.baseFormService.isControlValid(
+      this.verificationTokenRequestFormGroup,
+    );
+
+    if (isValid) {
+      this.onCodeSubmit.next(
+        this.verificationTokenRequestFormGroup.controls.verificationCode.getRawValue(),
+      );
     }
+  }
 
-    override ngOnInit(){
-        this.initVerificationTokenRequestFormGroup(new VerificationTokenRequest({email: this.email}));
-    }
-
-    initVerificationTokenRequestFormGroup(model: VerificationTokenRequest){
-        this.baseFormService.initFormGroup(this.verificationTokenRequestFormGroup, VerificationTokenRequest, model, ['verificationCode']);
-    }
-
-    codeSubmit(){
-        let isValid: boolean = this.baseFormService.isControlValid(this.verificationTokenRequestFormGroup);
-    
-        if(isValid){
-            this.onCodeSubmit.next(this.verificationTokenRequestFormGroup.controls.verificationCode.getRawValue());
-        }
-    }
-
-    resendVerificationToken(){
-        this.onResendVerificationToken.next(null);
-    }
-
+  resendVerificationToken() {
+    this.onResendVerificationToken.next(null);
+  }
 }
-

@@ -4,20 +4,29 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 import { map, tap, delay, finalize } from 'rxjs/operators';
 import { SocialUser, SocialAuthService } from '@abacritt/angularx-social-login';
-import { ExternalProvider, Login, VerificationTokenRequest, AuthResult, RefreshTokenRequest, UserBase } from '../entities/security-entities';
+import {
+  ExternalProvider,
+  Login,
+  VerificationTokenRequest,
+  AuthResult,
+  RefreshTokenRequest,
+  UserBase,
+} from '../entities/security-entities';
 import { ConfigServiceBase } from './config.service.base';
 import { ApiSecurityService } from './api.service.security';
 import { InitCompanyAuthDialogDetails } from '../entities/init-company-auth-dialog-details';
 import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthServiceBase implements OnDestroy {
   private readonly apiUrl: string = this.config.apiUrl;
   private timer?: Subscription;
 
-  protected _currentUserPermissionCodes = new BehaviorSubject<string[] | null>(undefined);
+  protected _currentUserPermissionCodes = new BehaviorSubject<string[] | null>(
+    undefined,
+  );
   currentUserPermissionCodes$ = this._currentUserPermissionCodes.asObservable();
 
   protected _user = new BehaviorSubject<UserBase | null>(undefined);
@@ -28,14 +37,14 @@ export class AuthServiceBase implements OnDestroy {
   private extAuthChangeSub = new Subject<SocialUser>();
   public authChanged = this.authChangeSub.asObservable();
   public extAuthChanged = this.extAuthChangeSub.asObservable();
-  
+
   constructor(
     protected router: Router,
     protected http: HttpClient,
     protected externalAuthService: SocialAuthService,
     protected apiService: ApiSecurityService,
     protected config: ConfigServiceBase,
-    @Inject(PLATFORM_ID) protected platformId: Object
+    @Inject(PLATFORM_ID) protected platformId: Object,
   ) {
     if (isPlatformBrowser(platformId)) {
       window.addEventListener('storage', this.storageEventListener);
@@ -45,9 +54,9 @@ export class AuthServiceBase implements OnDestroy {
     this.externalAuthService.authState.subscribe((user) => {
       const externalAuth: ExternalProvider = {
         // provider: user.provider,
-        idToken: user.idToken
-      }
-      this.loginExternal(externalAuth).subscribe(authResult => {
+        idToken: user.idToken,
+      };
+      this.loginExternal(externalAuth).subscribe((authResult) => {
         this.onAfterLoginExternal();
       });
       this.extAuthChangeSub.next(user);
@@ -66,16 +75,16 @@ export class AuthServiceBase implements OnDestroy {
         this.stopTokenTimer();
 
         this.apiService.getCurrentUserBase().subscribe((user: UserBase) => {
-            this._user.next({
-              id: user.id,
-              email: user.email
-            });
-
-            this.setCurrentUserPermissionCodes().subscribe();
+          this._user.next({
+            id: user.id,
+            email: user.email,
           });
+
+          this.setCurrentUserPermissionCodes().subscribe();
+        });
       }
     }
-  }
+  };
 
   sendLoginVerificationEmail(body: Login): Observable<any> {
     const browserId = this.getBrowserId();
@@ -86,22 +95,28 @@ export class AuthServiceBase implements OnDestroy {
   login(body: VerificationTokenRequest): Observable<Promise<AuthResult>> {
     const browserId = this.getBrowserId();
     body.browserId = browserId;
-    const loginResultObservable = this.http.post<AuthResult>(`${this.apiUrl}/Security/Login`, body);
+    const loginResultObservable = this.http.post<AuthResult>(
+      `${this.apiUrl}/Security/Login`,
+      body,
+    );
     return this.handleLoginResult(loginResultObservable);
   }
 
   loginExternal(body: ExternalProvider): Observable<Promise<AuthResult>> {
     const browserId = this.getBrowserId();
     body.browserId = browserId;
-    const loginResultObservable = this.http.post<AuthResult>(`${this.apiUrl}/Security/LoginExternal`, body);
+    const loginResultObservable = this.http.post<AuthResult>(
+      `${this.apiUrl}/Security/LoginExternal`,
+      body,
+    );
     return this.handleLoginResult(loginResultObservable);
   }
 
   onAfterLoginExternal = () => {
     this.navigateToDashboard();
-  }
+  };
 
-  handleLoginResult(loginResultObservable: Observable<AuthResult>){
+  handleLoginResult(loginResultObservable: Observable<AuthResult>) {
     return loginResultObservable.pipe(
       map(async (loginResult: AuthResult) => {
         this.setLocalStorage(loginResult);
@@ -110,9 +125,9 @@ export class AuthServiceBase implements OnDestroy {
           email: loginResult.email,
         });
         this.startTokenTimer();
-        this.setCurrentUserPermissionCodes().subscribe()
+        this.setCurrentUserPermissionCodes().subscribe();
         return loginResult;
-      })
+      }),
     );
   }
 
@@ -126,7 +141,7 @@ export class AuthServiceBase implements OnDestroy {
           this._user.next(null);
           this.onAfterLogout();
           this.stopTokenTimer();
-        })
+        }),
       )
       .subscribe();
   }
@@ -134,7 +149,7 @@ export class AuthServiceBase implements OnDestroy {
   onAfterLogout = () => {
     this._currentUserPermissionCodes.next(null);
     this.router.navigate([this.config.loginSlug]);
-  }
+  };
 
   refreshToken(): Observable<AuthResult> {
     const refreshToken = localStorage.getItem(this.config.refreshTokenKey);
@@ -148,28 +163,32 @@ export class AuthServiceBase implements OnDestroy {
     const body = new RefreshTokenRequest();
     body.browserId = browserId;
     body.refreshToken = refreshToken;
-    
+
     return this.http
-      .post<AuthResult>(`${this.apiUrl}/Security/RefreshToken`, body, this.config.httpSkipSpinnerOptions)
+      .post<AuthResult>(
+        `${this.apiUrl}/Security/RefreshToken`,
+        body,
+        this.config.httpSkipSpinnerOptions,
+      )
       .pipe(
         map((loginResult) => {
           this._user.next({
             id: loginResult.userId,
-            email: loginResult.email
+            email: loginResult.email,
           });
-          
+
           this.setLocalStorage(loginResult);
           this.startTokenTimer();
           this.onAfterRefreshToken();
-          
+
           return loginResult;
-        })
+        }),
       );
   }
 
   onAfterRefreshToken = () => {
     this.setCurrentUserPermissionCodes().subscribe(); // FT: Needs to be after setting local storage
-  }
+  };
 
   setLocalStorage(loginResult: AuthResult) {
     localStorage.setItem(this.config.accessTokenKey, loginResult.accessToken);
@@ -194,7 +213,7 @@ export class AuthServiceBase implements OnDestroy {
 
   isAccessTokenExpired(): boolean {
     const expired = this.getTokenRemainingTime() < 5000;
-    
+
     return expired;
   }
 
@@ -207,7 +226,7 @@ export class AuthServiceBase implements OnDestroy {
 
     const jwtToken = JSON.parse(atob(accessToken.split('.')[1]));
     const expires = new Date(jwtToken.exp * 1000);
-    
+
     return expires.getTime() - Date.now();
   }
 
@@ -226,7 +245,7 @@ export class AuthServiceBase implements OnDestroy {
         delay(timeout),
         tap({
           next: () => this.refreshToken().subscribe(),
-        })
+        }),
       )
       .subscribe();
   }
@@ -235,33 +254,37 @@ export class AuthServiceBase implements OnDestroy {
     this.timer?.unsubscribe();
   }
 
-  navigateToDashboard(){
+  navigateToDashboard() {
     this.router.navigate(['/']);
   }
 
-  initCompanyAuthDialogDetails = (): Observable<InitCompanyAuthDialogDetails> => {
-    return of(
-      new InitCompanyAuthDialogDetails ({
-        image: this.config.logoPath, 
-        companyName: this.config.companyName,
-      })
-    );
-  }
+  initCompanyAuthDialogDetails =
+    (): Observable<InitCompanyAuthDialogDetails> => {
+      return of(
+        new InitCompanyAuthDialogDetails({
+          image: this.config.logoPath,
+          companyName: this.config.companyName,
+        }),
+      );
+    };
 
   setCurrentUserPermissionCodes(): Observable<string[]> {
     return this.apiService.getCurrentUserPermissionCodes().pipe(
-      map(permissionCodes => {
+      map((permissionCodes) => {
         this._currentUserPermissionCodes.next(permissionCodes);
         return permissionCodes;
-      }
-    ));
+      }),
+    );
   }
 
   ngOnDestroy(): void {
     if (isPlatformBrowser(this.platformId)) {
-      window.removeEventListener('storage', this.storageEventListener.bind(this));
+      window.removeEventListener(
+        'storage',
+        this.storageEventListener.bind(this),
+      );
     }
-      
+
     this.onAfterNgOnDestroy();
   }
 

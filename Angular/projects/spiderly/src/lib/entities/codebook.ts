@@ -1,25 +1,22 @@
-import { BaseEntity } from "./base-entity";
+import { BaseEntity } from './base-entity';
 
 // FT HACK: Fake class, because of api imports
-export class Codebook extends BaseEntity
-{
+export class Codebook extends BaseEntity {
+  code?: string;
+  displayName?: string;
+
+  constructor({
+    code,
+    displayName,
+  }: {
     code?: string;
     displayName?: string;
-  
-    constructor(
-    {
-        code,
-        displayName,
-    }:{
-        code?: string;
-        displayName?: string;
-    } = {}
-    ) {
-        super();
+  } = {}) {
+    super();
 
-        this.code = code;
-        this.displayName = displayName;
-    }
+    this.code = code;
+    this.displayName = displayName;
+  }
 
-    static readonly typeName = 'Codebook' as const;
+  static readonly typeName = 'Codebook' as const;
 }

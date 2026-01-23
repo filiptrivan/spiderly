@@ -12,7 +12,6 @@
   "private": false,
   "dependencies": {
     "@abacritt/angularx-social-login": "^2.2.0",
-
     "@angular/animations": "^19.2.0",
     "@angular/common": "^19.2.0",
     "@angular/compiler": "^19.2.0",
@@ -21,9 +20,7 @@
     "@angular/platform-browser": "^19.2.0",
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
-
     "@jsverse/transloco": "7.5.0",
-    
     "file-saver": "2.0.5",
     "json-parser": "3.1.2",
     "ngx-spinner": "19.0.0",

@@ -1,13 +1,10 @@
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export abstract class TranslateLabelsAbstractService {
+  constructor() {}
 
-    constructor(
-    ) {
-    }
-
-    abstract translate (name: string): string;
+  abstract translate(name: string): string;
 }

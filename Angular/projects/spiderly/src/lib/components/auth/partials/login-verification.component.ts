@@ -5,37 +5,42 @@ import { SpiderlyMessageService } from '../../../services/spiderly-message.servi
 import { AuthServiceBase } from '../../../services/auth.service.base';
 
 @Component({
-    selector: 'login-verification',
-    templateUrl: './login-verification.component.html',
-    imports: [
-        VerificationWrapperComponent
-    ]
+  selector: 'login-verification',
+  templateUrl: './login-verification.component.html',
+  imports: [VerificationWrapperComponent],
 })
 export class LoginVerificationComponent implements OnInit {
-    @Input() email: string;
-    @Input() userId: number;
+  @Input() email: string;
+  @Input() userId: number;
 
-    constructor(
-      private authService: AuthServiceBase, 
-      private messageService: SpiderlyMessageService,
-      private translocoService: TranslocoService,
-    ) { 
-    }
+  constructor(
+    private authService: AuthServiceBase,
+    private messageService: SpiderlyMessageService,
+    private translocoService: TranslocoService,
+  ) {}
 
-    ngOnInit(){
-    }
-    
-    resendVerificationToken(){
-        this.authService.sendLoginVerificationEmail({email: this.email}).subscribe(() => {
-            this.messageService.successMessage(this.translocoService.translate('SuccessfullySentVerificationCode'));
-        });
-    }
+  ngOnInit() {}
 
-    onCodeSubmit(event: string){
-        this.authService.login({email: this.email, verificationCode: event}).subscribe(() => {
-            this.messageService.successMessage(this.translocoService.translate('YouHaveSuccessfullyVerifiedYourAccount'));
-            this.authService.navigateToDashboard();
-        });
-    }
+  resendVerificationToken() {
+    this.authService
+      .sendLoginVerificationEmail({ email: this.email })
+      .subscribe(() => {
+        this.messageService.successMessage(
+          this.translocoService.translate('SuccessfullySentVerificationCode'),
+        );
+      });
+  }
+
+  onCodeSubmit(event: string) {
+    this.authService
+      .login({ email: this.email, verificationCode: event })
+      .subscribe(() => {
+        this.messageService.successMessage(
+          this.translocoService.translate(
+            'YouHaveSuccessfullyVerifiedYourAccount',
+          ),
+        );
+        this.authService.navigateToDashboard();
+      });
+  }
 }
-

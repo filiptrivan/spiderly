@@ -1,21 +1,25 @@
-<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
   <div>
-    <label>{{getTranslatedLabel()}}</label>
+    <label>{{ getTranslatedLabel() }}</label>
     <required *ngIf="control?.required && showRequired"></required>
   </div>
   <p-multiSelect
-  *ngIf="control"
-  [pTooltip]="getValidationErrrorMessages()" [tooltipEvent]="errorMessageTooltipEvent" tooltipPosition="bottom" [tooltipDisabled]="control.valid" tooltipStyleClass="spiderly-tooltip-invalid"
-  [id]="label"
-  [formControl]="control"
-  [options]="options"
-  optionLabel="displayName"
-  optionValue="id"
-  display="chip"
-  [maxSelectedLabels]="20"
-  [placeholder]="placeholder"
-  [fluid]="true"
-  appendTo="body"
+    *ngIf="control"
+    [pTooltip]="getValidationErrrorMessages()"
+    [tooltipEvent]="errorMessageTooltipEvent"
+    tooltipPosition="bottom"
+    [tooltipDisabled]="control.valid"
+    tooltipStyleClass="spiderly-tooltip-invalid"
+    [id]="label"
+    [formControl]="control"
+    [options]="options"
+    optionLabel="displayName"
+    optionValue="id"
+    display="chip"
+    [maxSelectedLabels]="20"
+    [placeholder]="placeholder"
+    [fluid]="true"
+    appendTo="body"
   />
   <!-- [virtualScroll]="true" FT: I think that this is not doing anything, check -->
   <!-- (onFilter)="search($event)" FT: While they don't implement lazy load like here: https://github.com/yelhouti/primeng/blob/8.0.0-rc2/src/app/components/multiselect/multiselect.ts

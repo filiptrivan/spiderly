@@ -9,37 +9,39 @@ import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 
 @Component({
-    selector: 'spiderly-colorpicker',
-    templateUrl: './spiderly-colorpicker.component.html',
-    styles: [],
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        ColorPickerModule,
-        InputTextModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-colorpicker',
+  templateUrl: './spiderly-colorpicker.component.html',
+  styles: [],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    ColorPickerModule,
+    InputTextModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
-export class SpiderlyColorPickerComponent extends BaseControl implements OnInit {
-    @Input() showInputTextField: boolean = true;
+export class SpiderlyColorPickerComponent
+  extends BaseControl
+  implements OnInit
+{
+  @Input() showInputTextField: boolean = true;
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    override ngOnInit(){
-        this.control.valueChanges.subscribe((value) => {
-            this.control.setValue(value, { emitEvent: false }); // Preventing infinite loop
-        });
+  override ngOnInit() {
+    this.control.valueChanges.subscribe((value) => {
+      this.control.setValue(value, { emitEvent: false }); // Preventing infinite loop
+    });
 
-        if (this.control.value == null)
-            this.placeholder = this.translocoService.translate('ColorPickerPlaceholder');
+    if (this.control.value == null)
+      this.placeholder = this.translocoService.translate(
+        'ColorPickerPlaceholder',
+      );
 
-        super.ngOnInit();
-    }
-
+    super.ngOnInit();
+  }
 }

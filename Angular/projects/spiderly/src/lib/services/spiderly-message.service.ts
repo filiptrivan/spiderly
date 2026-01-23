@@ -5,16 +5,18 @@ import { MessageService } from 'primeng/api';
 @Injectable({
   providedIn: 'root',
 })
-export class SpiderlyMessageService { // TODO FT: nece da prikaze poruku ako je neki angular error koji se dogodi tek nakon api poziva
+export class SpiderlyMessageService {
+  // TODO FT: nece da prikaze poruku ako je neki angular error koji se dogodi tek nakon api poziva
   constructor(
-    private messageService: MessageService, 
+    private messageService: MessageService,
     private translocoService: TranslocoService,
-    private ngZone: NgZone
-  ) {
-    
-  }
+    private ngZone: NgZone,
+  ) {}
 
-  successMessage(detail: string, title: string = this.translocoService.translate('SuccessfulAction')) {
+  successMessage(
+    detail: string,
+    title: string = this.translocoService.translate('SuccessfulAction'),
+  ) {
     this.messageService.add({
       severity: 'success',
       summary: title,
@@ -23,17 +25,20 @@ export class SpiderlyMessageService { // TODO FT: nece da prikaze poruku ako je 
     });
   }
 
-  warningMessage(detail: string, title?: string, sticky?: boolean){
+  warningMessage(detail: string, title?: string, sticky?: boolean) {
     this.messageService.add({
       severity: 'warn',
       summary: title ?? this.translocoService.translate('Warning'),
       detail: detail,
       life: 10000,
-      sticky: sticky
+      sticky: sticky,
     });
   }
 
-  errorMessage(detail: string, title: string = this.translocoService.translate('Error')){
+  errorMessage(
+    detail: string,
+    title: string = this.translocoService.translate('Error'),
+  ) {
     this.messageService.add({
       severity: 'error',
       summary: title,
@@ -42,7 +47,7 @@ export class SpiderlyMessageService { // TODO FT: nece da prikaze poruku ako je 
     });
   }
 
-  infoMessage(detail: string, title?: string, sticky?: boolean){
+  infoMessage(detail: string, title?: string, sticky?: boolean) {
     this.messageService.add({
       severity: 'info',
       summary: title ?? this.translocoService.translate('Info'),
@@ -51,5 +56,4 @@ export class SpiderlyMessageService { // TODO FT: nece da prikaze poruku ako je 
       sticky: sticky,
     });
   }
-  
 }

@@ -8,11 +8,7 @@ import { MenuModule } from 'primeng/menu';
 import { PanelModule } from 'primeng/panel';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    MenuModule,
-    PanelModule
-  ],
+  imports: [CommonModule, MenuModule, PanelModule],
   exports: [
     PanelHeaderComponent,
     PanelBodyComponent,
@@ -25,7 +21,6 @@ import { PanelModule } from 'primeng/panel';
     PanelFooterComponent,
     SpiderlyPanelComponent,
   ],
-  providers: [
-  ]
+  providers: [],
 })
 export class SpiderlyPanelsModule {}

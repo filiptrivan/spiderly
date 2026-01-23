@@ -1,44 +1,58 @@
-<p-panel 
-[showHeader]="showPanelHeader"
-[ngClass]="{
-    'multiple-panel-first-without-header': isFirstMultiplePanel && !showPanelHeader,
+<p-panel
+  [showHeader]="showPanelHeader"
+  [ngClass]="{
+    'multiple-panel-first-without-header':
+      isFirstMultiplePanel && !showPanelHeader,
     'multiple-panel-first': isFirstMultiplePanel,
-    'multiple-panel-middle-without-header': isMiddleMultiplePanel && !showPanelHeader,
+    'multiple-panel-middle-without-header':
+      isMiddleMultiplePanel && !showPanelHeader,
     'multiple-panel-middle': isMiddleMultiplePanel,
-    'multiple-panel-last-without-header': isLastMultiplePanel && !showPanelHeader,
+    'multiple-panel-last-without-header':
+      isLastMultiplePanel && !showPanelHeader,
     'multiple-panel-last': isLastMultiplePanel,
     'panel-border': !isFirstMultiplePanel,
     'spiderly-panel': true,
-    'panel-header-cursor-pointer': toggler === 'header' && toggleable
-}"
-[toggleable]="toggleable"
-[toggler]="toggler"
-[collapsed]="toggleable && collapsed"
-expandIcon="pi pi-chevron-up"
-collapseIcon="pi pi-chevron-down"
+    'panel-header-cursor-pointer': toggler === 'header' && toggleable,
+  }"
+  [toggleable]="toggleable"
+  [toggler]="toggler"
+  [collapsed]="toggleable && collapsed"
+  expandIcon="pi pi-chevron-up"
+  collapseIcon="pi pi-chevron-down"
 >
-    <ng-template pTemplate="header">
-        <div>
-            <ng-content select="panel-header"></ng-content>
-            <ng-content select="[panelHeader]"></ng-content>
-        </div>
-    </ng-template>
-
-    <ng-template pTemplate="icons">
-        <div *ngIf="showCrudMenu && crudMenu" class="mr-2">
-            <i class="pi pi-ellipsis-h icon-hover" (click)="menuItemClick(index, $event)"></i>
-            <!-- https://github.com/primefaces/primeng/issues/13934 -->
-            <p-menu #menu [model]="crudMenu" [popup]="true" appendTo="body" [tabindex]="undefined"></p-menu>
-        </div>
-        <div *ngIf="showRemoveIcon" class="mr-2">
-            <i class="pi pi-minus icon-hover error-color-light" (click)="removeItemClick()"></i>
-        </div>
-    </ng-template>
-
-    <div class="panel-body-wrapper">
-        <ng-content select="panel-body"></ng-content>
+  <ng-template pTemplate="header">
+    <div>
+      <ng-content select="panel-header"></ng-content>
+      <ng-content select="[panelHeader]"></ng-content>
     </div>
+  </ng-template>
 
-    <ng-content select="panel-footer"></ng-content>
+  <ng-template pTemplate="icons">
+    <div *ngIf="showCrudMenu && crudMenu" class="mr-2">
+      <i
+        class="pi pi-ellipsis-h icon-hover"
+        (click)="menuItemClick(index, $event)"
+      ></i>
+      <!-- https://github.com/primefaces/primeng/issues/13934 -->
+      <p-menu
+        #menu
+        [model]="crudMenu"
+        [popup]="true"
+        appendTo="body"
+        [tabindex]="undefined"
+      ></p-menu>
+    </div>
+    <div *ngIf="showRemoveIcon" class="mr-2">
+      <i
+        class="pi pi-minus icon-hover error-color-light"
+        (click)="removeItemClick()"
+      ></i>
+    </div>
+  </ng-template>
 
+  <div class="panel-body-wrapper">
+    <ng-content select="panel-body"></ng-content>
+  </div>
+
+  <ng-content select="panel-footer"></ng-content>
 </p-panel>

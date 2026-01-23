@@ -10,34 +10,32 @@ import { BadgeModule } from 'primeng/badge';
 import { ProfileAvatarComponent } from '../profile-avatar/profile-avatar.component';
 
 @Component({
-    selector: 'spiderly-sidemenu-topbar',
-    templateUrl: './sidemenu-topbar.component.html',
-    imports: [
-        CommonModule,
-        RouterModule,
-        AvatarModule,
-        BadgeModule,
-        ProfileAvatarComponent,
-    ]
+  selector: 'spiderly-sidemenu-topbar',
+  templateUrl: './sidemenu-topbar.component.html',
+  imports: [
+    CommonModule,
+    RouterModule,
+    AvatarModule,
+    BadgeModule,
+    ProfileAvatarComponent,
+  ],
 })
 export class SideMenuTopBarComponent {
   companyName = this.config.companyName;
   @ViewChild('menubutton') menuButton!: ElementRef;
 
   constructor(
-    public layoutService: LayoutServiceBase, 
+    public layoutService: LayoutServiceBase,
     protected router: Router,
     private config: ConfigServiceBase,
     private translocoService: TranslocoService,
-  ) { 
-  }
+  ) {}
 
-  async ngOnInit(){
+  async ngOnInit() {
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         this.layoutService.state.profileDropdownSidebarVisible = false;
       });
   }
-
 }

@@ -1,15 +1,36 @@
 <div class="topbar-wrapper">
-  <nav class="topbar {{showHoverBgOnRootItems ? '' : 'show-hover-bg-on-root-items'}}">
+  <nav
+    class="topbar {{
+      showHoverBgOnRootItems ? '' : 'show-hover-bg-on-root-items'
+    }}"
+  >
     <p-menubar [model]="menu" [style]="{ border: '0' }">
       <ng-template #start>
-        <img style="margin-left: 11px; cursor: pointer;" width="45" height="45" routerLink="/" [src]="logoPath" alt="Logo">
+        <img
+          style="margin-left: 11px; cursor: pointer"
+          width="45"
+          height="45"
+          routerLink="/"
+          [src]="logoPath"
+          alt="Logo"
+        />
       </ng-template>
       <ng-template #end>
-        <div style="margin-right: 11px; display: flex; gap: 10px; align-items: center; position: relative;">
+        <div
+          style="
+            margin-right: 11px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+          "
+        >
           <div>
             <ng-content select="[ACTIONS]"></ng-content>
           </div>
-          <spiderly-profile-avatar [isSideMenuLayout]="false"></spiderly-profile-avatar>
+          <spiderly-profile-avatar
+            [isSideMenuLayout]="false"
+          ></spiderly-profile-avatar>
         </div>
       </ng-template>
     </p-menubar>

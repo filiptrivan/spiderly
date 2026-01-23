@@ -9,12 +9,10 @@ import { ConfigServiceBase } from '../services/config.service.base';
 })
 export class AuthGuard implements CanActivate {
   constructor(
-    private authService: AuthServiceBase, 
+    private authService: AuthServiceBase,
     private router: Router,
-    private config: ConfigServiceBase
-  ) {
-
-  }
+    private config: ConfigServiceBase,
+  ) {}
 
   canActivate(): Observable<boolean> {
     return this.checkAuth();
@@ -33,7 +31,7 @@ export class AuthGuard implements CanActivate {
           this.router.navigate([this.config.loginSlug]);
           return false;
         }
-      })
+      }),
     );
   }
 }

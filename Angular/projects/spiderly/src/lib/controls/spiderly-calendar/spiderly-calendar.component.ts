@@ -8,32 +8,28 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-calendar',
-    templateUrl: './spiderly-calendar.component.html',
-    styles: [],
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        DatePickerModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-calendar',
+  templateUrl: './spiderly-calendar.component.html',
+  styles: [],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    DatePickerModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
 export class SpiderlyCalendarComponent extends BaseControl implements OnInit {
-    @Input() showTime: boolean = false;
+  @Input() showTime: boolean = false;
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    override ngOnInit(){
-        super.ngOnInit();
-    }
+  override ngOnInit() {
+    super.ngOnInit();
+  }
 
-    setDate(event:Date) { 
-        
-    }
+  setDate(event: Date) {}
 }

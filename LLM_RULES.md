@@ -1,6 +1,7 @@
 # Cursor Coding Guidelines
 
 ## Commenting
+
 - Avoid unnecessary comments. Only write comments when they provide essential clarification or context.
 
 ## .NET (C#)

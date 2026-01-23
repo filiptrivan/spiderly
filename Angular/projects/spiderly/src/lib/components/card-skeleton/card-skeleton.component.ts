@@ -1,11 +1,11 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input } from '@angular/core';
 import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
-    selector: 'card-skeleton',
-    templateUrl: './card-skeleton.component.html',
-    styles: [],
-    imports: [SkeletonModule]
+  selector: 'card-skeleton',
+  templateUrl: './card-skeleton.component.html',
+  styles: [],
+  imports: [SkeletonModule],
 })
 export class CardSkeletonComponent {
   @Input() height: number = 400;
@@ -15,7 +15,12 @@ export class CardSkeletonComponent {
   titleMarginBottom: number = 14;
   titleMarginTop: number = 4;
 
-  ngOnInit(){
-    this.dataHeight = this.height - (this.titleHeight + this.padding * 2 + this.titleMarginBottom + this.titleMarginTop)
+  ngOnInit() {
+    this.dataHeight =
+      this.height -
+      (this.titleHeight +
+        this.padding * 2 +
+        this.titleMarginBottom +
+        this.titleMarginTop);
   }
 }

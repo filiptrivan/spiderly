@@ -1,30 +1,49 @@
 <ng-container *transloco="let t">
-    @if (loginFormGroup != null) {
-        @if (showEmailSentDialog == false) {
-            <auth (onCompanyNameChange)="companyNameChange($event)">
-                <!-- We are not loading anything from the server here so we don't need defer block -->
-                <form [formGroup]="loginFormGroup" style="margin-bottom: 16px;">
-                    <div class="col-12" style="padding-left: 0; padding-right: 0;">
-                        <spiderly-textbox [control]="loginFormGroup.getControl('email')"></spiderly-textbox>
-                    </div>
-                    
-                    <div class="mb-4 gap-5">
-                        <div class="text-center" style="font-size: smaller;">
-                            {{t('AgreementsOnRegister')}} <b routerLink="/user-agreement" class="primary-color cursor-pointer">{{t('UserAgreement')}}</b> {{t('and')}} <b routerLink="/privacy-policy" class="primary-color cursor-pointer">{{t('PrivacyPolicy')}}</b>.
-                        </div>
-                    </div>
+  @if (loginFormGroup != null) {
+    @if (showEmailSentDialog == false) {
+      <auth (onCompanyNameChange)="companyNameChange($event)">
+        <!-- We are not loading anything from the server here so we don't need defer block -->
+        <form [formGroup]="loginFormGroup" style="margin-bottom: 16px">
+          <div class="col-12" style="padding-left: 0; padding-right: 0">
+            <spiderly-textbox
+              [control]="loginFormGroup.getControl('email')"
+            ></spiderly-textbox>
+          </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <spiderly-button [label]="t('Login')" (onClick)="sendLoginVerificationEmail()" [outlined]="true" [style]="{width: '100%'}" type="submit"></spiderly-button>
-                    </div>
-                </form>
-            </auth>
-        }
-        @else {
-            <login-verification [email]="loginFormGroup.controls.email.getRawValue()"></login-verification>
-        }
+          <div class="mb-4 gap-5">
+            <div class="text-center" style="font-size: smaller">
+              {{ t("AgreementsOnRegister") }}
+              <b
+                routerLink="/user-agreement"
+                class="primary-color cursor-pointer"
+                >{{ t("UserAgreement") }}</b
+              >
+              {{ t("and") }}
+              <b
+                routerLink="/privacy-policy"
+                class="primary-color cursor-pointer"
+                >{{ t("PrivacyPolicy") }}</b
+              >.
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <spiderly-button
+              [label]="t('Login')"
+              (onClick)="sendLoginVerificationEmail()"
+              [outlined]="true"
+              [style]="{ width: '100%' }"
+              type="submit"
+            ></spiderly-button>
+          </div>
+        </form>
+      </auth>
+    } @else {
+      <login-verification
+        [email]="loginFormGroup.controls.email.getRawValue()"
+      ></login-verification>
     }
-    @else {
-        <!-- TODO: Add skeleton -->
-    }
+  } @else {
+    <!-- TODO: Add skeleton -->
+  }
 </ng-container>

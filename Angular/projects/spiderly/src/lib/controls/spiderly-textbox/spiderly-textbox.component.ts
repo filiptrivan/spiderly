@@ -8,36 +8,32 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-textbox',
-    templateUrl: './spiderly-textbox.component.html',
-    styleUrl: '../base-controls.scss',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        InputTextModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-textbox',
+  templateUrl: './spiderly-textbox.component.html',
+  styleUrl: '../base-controls.scss',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    InputTextModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
 export class SpiderlyTextboxComponent extends BaseControl implements OnInit {
-    @Input() showButton: boolean = false;
-    @Input() buttonIcon: string;
-    @Output() onButtonClick = new EventEmitter();
-    
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+  @Input() showButton: boolean = false;
+  @Input() buttonIcon: string;
+  @Output() onButtonClick = new EventEmitter();
 
-    override ngOnInit(){
-        super.ngOnInit();
-    }
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    
-    buttonClick() {
-        this.onButtonClick.next(null);
-    }
-    
+  override ngOnInit() {
+    super.ngOnInit();
+  }
+
+  buttonClick() {
+    this.onButtonClick.next(null);
+  }
 }

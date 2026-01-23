@@ -1,5 +1,4 @@
 export class PaginatedResult<T = any> {
-    data?: T[];
-    totalRecords: number;
+  data?: T[];
+  totalRecords: number;
 }
-    

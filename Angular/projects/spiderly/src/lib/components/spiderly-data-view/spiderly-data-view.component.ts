@@ -1,5 +1,21 @@
-import { Component, ContentChild, EventEmitter, Inject, Input, LOCALE_ID, OnInit, Output, TemplateRef, ViewChild } from '@angular/core';
-import { Table, TableFilterEvent, TableLazyLoadEvent, TableModule } from 'primeng/table';
+import {
+  Component,
+  ContentChild,
+  EventEmitter,
+  Inject,
+  Input,
+  LOCALE_ID,
+  OnInit,
+  Output,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
+import {
+  Table,
+  TableFilterEvent,
+  TableLazyLoadEvent,
+  TableModule,
+} from 'primeng/table';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -22,31 +38,31 @@ import { BaseEntity } from '../../entities/base-entity';
 import { PrimengOption } from '../../entities/primeng-option';
 
 @Component({
-    selector: 'spiderly-data-view',
-    templateUrl: './spiderly-data-view.component.html',
-    styleUrl: 'spiderly-data-view.component.scss',
-    imports: [
-        FormsModule,
-        CommonModule,
-        TranslocoDirective,
-        SpiderlyControlsModule,
-        TableModule,
-        ButtonModule,
-        MultiSelectModule,
-        CheckboxModule,
-        TooltipModule,
-        DatePickerModule,
-        InputTextModule,
-        InputNumberModule,
-        SelectModule,
-    ]
+  selector: 'spiderly-data-view',
+  templateUrl: './spiderly-data-view.component.html',
+  styleUrl: 'spiderly-data-view.component.scss',
+  imports: [
+    FormsModule,
+    CommonModule,
+    TranslocoDirective,
+    SpiderlyControlsModule,
+    TableModule,
+    ButtonModule,
+    MultiSelectModule,
+    CheckboxModule,
+    TooltipModule,
+    DatePickerModule,
+    InputTextModule,
+    InputNumberModule,
+    SelectModule,
+  ],
 })
 export class SpiderlyDataViewComponent<T> implements OnInit {
   @ViewChild('dt') table: Table;
   /**
    * List of items in the table.
    * Should be provided only when `hasLazyLoad === false`.
-  */
+   */
   @Input() items: T[];
   @Input() rows: number = 10;
   @Input() filters: DataViewFilter<T>[] = [];
@@ -62,52 +78,75 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   @Input() showTotalRecordsNumber: boolean = false;
   @Input() applyFiltersIcon: string = 'pi pi-filter';
   @Input() clearFiltersIcon: string = 'pi pi-filter-slash';
-  
-  @Input() getPaginatedListObservableMethod: (filter: Filter) => Observable<PaginatedResult>;
+
+  @Input() getPaginatedListObservableMethod: (
+    filter: Filter,
+  ) => Observable<PaginatedResult>;
 
   lastLazyLoadEvent: TableLazyLoadEvent;
   loading: boolean = true;
 
   matchModeDateOptions: SelectItem[] = [];
   matchModeNumberOptions: SelectItem[] = [];
-  
+
   @ContentChild('cardBody', { read: TemplateRef }) cardBody!: TemplateRef<any>;
 
   constructor(
     private translocoService: TranslocoService,
-    @Inject(LOCALE_ID) private locale: string
+    @Inject(LOCALE_ID) private locale: string,
   ) {}
 
   ngOnInit(): void {
     this.matchModeDateOptions = [
-      { label: this.translocoService.translate('OnDate'), value: MatchModeCodes.Equals },
-      { label: this.translocoService.translate('DatesBefore'), value: MatchModeCodes.LessThan },
-      { label: this.translocoService.translate('DatesAfter'), value: MatchModeCodes.GreaterThan },
+      {
+        label: this.translocoService.translate('OnDate'),
+        value: MatchModeCodes.Equals,
+      },
+      {
+        label: this.translocoService.translate('DatesBefore'),
+        value: MatchModeCodes.LessThan,
+      },
+      {
+        label: this.translocoService.translate('DatesAfter'),
+        value: MatchModeCodes.GreaterThan,
+      },
     ];
 
     this.matchModeNumberOptions = [
-      { label: this.translocoService.translate('Equals'), value: MatchModeCodes.Equals },
-      { label: this.translocoService.translate('LessThan'), value: MatchModeCodes.LessThan },
-      { label: this.translocoService.translate('MoreThan'), value: MatchModeCodes.GreaterThan },
+      {
+        label: this.translocoService.translate('Equals'),
+        value: MatchModeCodes.Equals,
+      },
+      {
+        label: this.translocoService.translate('LessThan'),
+        value: MatchModeCodes.LessThan,
+      },
+      {
+        label: this.translocoService.translate('MoreThan'),
+        value: MatchModeCodes.GreaterThan,
+      },
     ];
   }
-  
+
   lazyLoad(event: TableLazyLoadEvent) {
     this.lastLazyLoadEvent = event;
-    
-    const transformedFilter: { [K in keyof T]?: { value: any; matchMode: MatchModeCodes }[] } = {};
+
+    const transformedFilter: {
+      [K in keyof T]?: { value: any; matchMode: MatchModeCodes }[];
+    } = {};
 
     for (const key in event.filters) {
       const filterMeta = event.filters[key];
 
       if (Array.isArray(filterMeta)) {
         transformedFilter[key] = filterMeta;
-      } 
-      else {
-        transformedFilter[key] = [{
-          value: filterMeta.value,
-          matchMode: filterMeta.matchMode
-        }];
+      } else {
+        transformedFilter[key] = [
+          {
+            value: filterMeta.value,
+            matchMode: filterMeta.matchMode,
+          },
+        ];
       }
     }
 
@@ -116,9 +155,9 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     tableFilter.filters = transformedFilter;
 
     this.onLazyLoad.next(tableFilter);
-    
+
     this.getPaginatedListObservableMethod(tableFilter).subscribe({
-      next: async (res) => { 
+      next: async (res) => {
         this.items = res.data;
         this.totalRecords = res.totalRecords;
 
@@ -130,60 +169,59 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     });
   }
 
-  filter(event: TableFilterEvent){
-  }
-  
+  filter(event: TableFilterEvent) {}
+
   getDefaultMatchMode(filterType: string): any {
     switch (filterType) {
-        case 'text':
-          return MatchModeCodes.Contains;
-        case 'date':
-          return MatchModeCodes.Equals;
-        case 'multiselect':
-          return MatchModeCodes.In;
-        case 'boolean':
-          return MatchModeCodes.Equals;
-        case 'numeric':
-          return MatchModeCodes.Equals
-        default:
-          return null;
-      }
+      case 'text':
+        return MatchModeCodes.Contains;
+      case 'date':
+        return MatchModeCodes.Equals;
+      case 'multiselect':
+        return MatchModeCodes.In;
+      case 'boolean':
+        return MatchModeCodes.Equals;
+      case 'numeric':
+        return MatchModeCodes.Equals;
+      default:
+        return null;
+    }
   }
 
-  getMatchModeOptions(filterType: string){
+  getMatchModeOptions(filterType: string) {
     switch (filterType) {
-        case 'text':
-          return [];
-        case 'date':
-          return this.matchModeDateOptions;
-        case 'multiselect':
-          return [];
-        case 'boolean':
-          return [];
-        case 'numeric':
-          return this.matchModeNumberOptions;
-        default:
-          return [];
-      }
+      case 'text':
+        return [];
+      case 'date':
+        return this.matchModeDateOptions;
+      case 'multiselect':
+        return [];
+      case 'boolean':
+        return [];
+      case 'numeric':
+        return this.matchModeNumberOptions;
+      default:
+        return [];
+    }
   }
 
-  reload(){
+  reload() {
     this.loading = true;
     this.items = null;
     this.lazyLoad(this.lastLazyLoadEvent);
   }
 
-  colTrackByFn(index, item){
+  colTrackByFn(index, item) {
     return item.field;
   }
 
-  actionTrackByFn(index, item: Action){
-    return `${index}${item.field}`
+  actionTrackByFn(index, item: Action) {
+    return `${index}${item.field}`;
   }
 
   applyFilters = () => {
     this.table._filter();
-  }
+  };
 
   clearFilters() {
     this.table.clear();

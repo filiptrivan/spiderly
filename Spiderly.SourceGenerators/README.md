@@ -90,7 +90,7 @@ export class NotificationDetailsComponent
     protected override route: ActivatedRoute,
     protected override translocoService: TranslocoService,
     protected override baseFormService: BaseFormService,
-    private apiService: ApiService
+    private apiService: ApiService,
   ) {
     super(
       differs,
@@ -100,7 +100,7 @@ export class NotificationDetailsComponent
       router,
       route,
       translocoService,
-      baseFormService
+      baseFormService,
     );
   }
 
@@ -119,11 +119,11 @@ export class NotificationDetailsComponent
     this.apiService
       .sendNotificationEmail(
         this.notificationFormGroup.controls.id.value,
-        this.notificationFormGroup.controls.version.value
+        this.notificationFormGroup.controls.version.value,
       )
       .subscribe(() => {
         this.messageService.successMessage(
-          this.translocoService.translate("SuccessfulAttempt")
+          this.translocoService.translate("SuccessfulAttempt"),
         );
       });
   };

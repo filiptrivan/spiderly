@@ -1,11 +1,11 @@
 .topbar-wrapper {
-  background-color: var(--p-content-background); 
-  width: 100%; 
-  border-bottom: 1px solid var(--p-content-border-color); 
+  background-color: var(--p-content-background);
+  width: 100%;
+  border-bottom: 1px solid var(--p-content-border-color);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: sticky; 
-  top: 0; 
-  left: 0; 
+  position: sticky;
+  top: 0;
+  left: 0;
   z-index: 1000;
 }
 
@@ -14,7 +14,7 @@
   margin: auto;
 }
 
-::ng-deep{
+::ng-deep {
   .show-hover-bg-on-root-items {
     .p-menubar-root-list > .p-menubar-item > .p-menubar-item-content {
       background-color: transparent !important;

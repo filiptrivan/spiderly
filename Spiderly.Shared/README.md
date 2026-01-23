@@ -1,5 +1,4 @@
-﻿
-# Spiderly.Shared
+﻿# Spiderly.Shared
 
 Spiderly.Shared package provides shared features that can be used by all other Spiderly packages.
 

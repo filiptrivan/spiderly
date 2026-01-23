@@ -8,25 +8,26 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-multiselect',
-    templateUrl: './spiderly-multiselect.component.html',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        MultiSelectModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-multiselect',
+  templateUrl: './spiderly-multiselect.component.html',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    MultiSelectModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
-export class SpiderlyMultiSelectComponent extends BaseDropdownControl implements OnInit {
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+export class SpiderlyMultiSelectComponent
+  extends BaseDropdownControl
+  implements OnInit
+{
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    override ngOnInit(){
-        super.ngOnInit();
-    }
+  override ngOnInit() {
+    super.ngOnInit();
+  }
 }

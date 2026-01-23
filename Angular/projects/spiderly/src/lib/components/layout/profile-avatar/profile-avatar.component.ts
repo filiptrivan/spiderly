@@ -1,4 +1,11 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
@@ -8,7 +15,7 @@ import { filter, Subscription } from 'rxjs';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { BadgeModule } from 'primeng/badge';
-import { SpiderlyButtonComponent } from "../../spiderly-buttons/spiderly-button/spiderly-button.component";
+import { SpiderlyButtonComponent } from '../../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { ConfigServiceBase } from '../../../services/config.service.base';
 
 @Component({
@@ -22,7 +29,7 @@ import { ConfigServiceBase } from '../../../services/config.service.base';
     BadgeModule,
     SpiderlyButtonComponent,
     TranslocoDirective,
-]
+  ],
 })
 export class ProfileAvatarComponent {
   @Input() isSideMenuLayout = true;
@@ -30,7 +37,17 @@ export class ProfileAvatarComponent {
   @Input() showLoginButton = true;
   @Input() routeToLoginPage = true;
   @Input() loginButtonOutlined = false;
-  @Input() loginButtonSeverity: 'success' | 'info' | 'warn' | 'danger' | 'help' | 'primary' | 'secondary' | 'contrast' | null | undefined = 'primary';
+  @Input() loginButtonSeverity:
+    | 'success'
+    | 'info'
+    | 'warn'
+    | 'danger'
+    | 'help'
+    | 'primary'
+    | 'secondary'
+    | 'contrast'
+    | null
+    | undefined = 'primary';
   @Input() loginButtonSize: 'small' | 'large' | undefined;
   @Output() onLoginButtonClick = new EventEmitter();
   @Input() menuItems: ProfileAvatarModalMenuItem[] = [];
@@ -43,8 +60,7 @@ export class ProfileAvatarComponent {
   avatarLabel: string;
   showProfileIcon = false;
 
-  notificationMenuItem: ProfileAvatarModalMenuItem =
-  {
+  notificationMenuItem: ProfileAvatarModalMenuItem = {
     label: this.translocoService.translate('Notifications'),
     icon: 'pi-bell',
     showNotificationBadge: true,
@@ -55,18 +71,18 @@ export class ProfileAvatarComponent {
 
   @ViewChild('topbarmenu') menu!: ElementRef;
 
-  @ViewChild('topbarprofiledropdownmenubutton') topbarProfileDropdownMenuButton!: ElementRef;
+  @ViewChild('topbarprofiledropdownmenubutton')
+  topbarProfileDropdownMenuButton!: ElementRef;
 
   constructor(
-    public layoutService: LayoutServiceBase, 
-    private authService: AuthServiceBase, 
+    public layoutService: LayoutServiceBase,
+    private authService: AuthServiceBase,
     protected router: Router,
     private translocoService: TranslocoService,
     public config: ConfigServiceBase,
-  ) { 
-  }
+  ) {}
 
-  async ngOnInit(){
+  async ngOnInit() {
     if (this.menuItems.length === 0) {
       this.menuItems = [
         {
@@ -75,7 +91,7 @@ export class ProfileAvatarComponent {
           showSeparator: true,
           onClick: () => {
             this.routeToUserPage();
-          }
+          },
         },
         this.notificationMenuItem,
         {
@@ -84,13 +100,13 @@ export class ProfileAvatarComponent {
           showSeparator: true,
           onClick: () => {
             this.authService.logout();
-          }
-        }
+          },
+        },
       ];
     }
 
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         this.layoutService.state.profileDropdownSidebarVisible = false;
       });
@@ -99,27 +115,30 @@ export class ProfileAvatarComponent {
   }
 
   onAfterNgOnInit = () => {
-    this.initTopBarSubscription = this.layoutService.initTopBarData().subscribe(initTopBarData => {
-      this.userProfilePath = initTopBarData.userProfilePath;
-      this.unreadNotificationsCount = initTopBarData.unreadNotificationsCount;
-      this.notificationMenuItem.showNotificationBadge = initTopBarData.unreadNotificationsCount > 0;
-      this.showProfileIcon = initTopBarData.showProfileIcon;
-      this.currentUser = initTopBarData.currentUser;
-      this.avatarLabel = initTopBarData.currentUser?.email.charAt(0).toLocaleUpperCase();
-    });
-  }
+    this.initTopBarSubscription = this.layoutService
+      .initTopBarData()
+      .subscribe((initTopBarData) => {
+        this.userProfilePath = initTopBarData.userProfilePath;
+        this.unreadNotificationsCount = initTopBarData.unreadNotificationsCount;
+        this.notificationMenuItem.showNotificationBadge =
+          initTopBarData.unreadNotificationsCount > 0;
+        this.showProfileIcon = initTopBarData.showProfileIcon;
+        this.currentUser = initTopBarData.currentUser;
+        this.avatarLabel = initTopBarData.currentUser?.email
+          .charAt(0)
+          .toLocaleUpperCase();
+      });
+  };
 
   onDocumentClick(event: any) {
-    if (
-      !this.menu.nativeElement.contains(event.target) 
-    ) {
+    if (!this.menu.nativeElement.contains(event.target)) {
       if (this.layoutService.state.profileDropdownSidebarVisible == true) {
         this.layoutService.state.profileDropdownSidebarVisible = false;
       }
     }
   }
 
-  routeToUserPage(){
+  routeToUserPage() {
     if (this.routeOnLargeProfileAvatarClick) {
       this.router.navigateByUrl(this.userProfilePath);
     }
@@ -129,7 +148,7 @@ export class ProfileAvatarComponent {
     if (this.routeToLoginPage) {
       this.router.navigateByUrl(this.config.loginSlug);
     }
-    
+
     this.onLoginButtonClick.next(null);
   }
 
@@ -138,7 +157,6 @@ export class ProfileAvatarComponent {
       this.initTopBarSubscription.unsubscribe();
     }
   }
-
 }
 
 export interface ProfileAvatarModalMenuItem {

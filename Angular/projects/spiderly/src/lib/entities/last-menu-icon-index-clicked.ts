@@ -1,20 +1,17 @@
-import { BaseEntity } from "./base-entity";
+import { BaseEntity } from './base-entity';
 
-export class LastMenuIconIndexClicked extends BaseEntity
-{
+export class LastMenuIconIndexClicked extends BaseEntity {
+  index?: number;
+
+  constructor({
+    index,
+  }: {
     index?: number;
+  } = {}) {
+    super();
 
-    constructor(
-    {
-        index,
-    }:{
-        index?: number;
-    } = {}
-    ) {
-        super(); 
+    this.index = index;
+  }
 
-        this.index = index;
-    }
-
-    static readonly typeName = 'LastMenuIconIndexClicked' as const;
+  static readonly typeName = 'LastMenuIconIndexClicked' as const;
 }

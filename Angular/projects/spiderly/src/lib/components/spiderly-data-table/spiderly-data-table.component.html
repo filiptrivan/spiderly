@@ -1,38 +1,111 @@
 <ng-container *transloco="let t">
-  <div [class]="showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''">
-    <p-table #dt [value]="items" [rows]="rows" [rowHover]="true" [paginator]="showPaginator" responsiveLayout="scroll" [lazy]="hasLazyLoad"
-    (onLazyLoad)="lazyLoad($event)" [totalRecords]="totalRecords" class="spiderly-table" [loading]="(items === undefined || loading === true)" [selectionMode]="selectionMode" dataKey="id" 
-    (onFilter)="filter($event)"> 
+  <div
+    [class]="
+      showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''
+    "
+  >
+    <p-table
+      #dt
+      [value]="items"
+      [rows]="rows"
+      [rowHover]="true"
+      [paginator]="showPaginator"
+      responsiveLayout="scroll"
+      [lazy]="hasLazyLoad"
+      (onLazyLoad)="lazyLoad($event)"
+      [totalRecords]="totalRecords"
+      class="spiderly-table"
+      [loading]="items === undefined || loading === true"
+      [selectionMode]="selectionMode"
+      dataKey="id"
+      (onFilter)="filter($event)"
+    >
       <ng-template pTemplate="caption">
         <div class="table-header overflow-auto">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <i class="{{tableIcon}}" style="font-size: 20px;"></i>
-            <div style="margin: 0px; font-size: 17.5px;">{{tableTitle}}</div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <i class="{{ tableIcon }}" style="font-size: 20px"></i>
+            <div style="margin: 0px; font-size: 17.5px">{{ tableTitle }}</div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button pButton [label]="t('ClearFilters')" class="p-button-outlined" style="flex: none;" icon="pi pi-filter-slash" (click)="clear(dt)"></button>
-            <button pButton *ngIf="showExportToExcelButton" [label]="t('ExportToExcel')" class="p-button-outlined" style="flex: none;" icon="pi pi-download" (click)="exportListToExcel()"></button>
-            <button pButton *ngIf="showReloadTableButton" [label]="t('Reload')" class="p-button-outlined" style="flex: none;" icon="pi pi-refresh" (click)="reload()"></button>
+          <div style="display: flex; gap: 8px">
+            <button
+              pButton
+              [label]="t('ClearFilters')"
+              class="p-button-outlined"
+              style="flex: none"
+              icon="pi pi-filter-slash"
+              (click)="clear(dt)"
+            ></button>
+            <button
+              pButton
+              *ngIf="showExportToExcelButton"
+              [label]="t('ExportToExcel')"
+              class="p-button-outlined"
+              style="flex: none"
+              icon="pi pi-download"
+              (click)="exportListToExcel()"
+            ></button>
+            <button
+              pButton
+              *ngIf="showReloadTableButton"
+              [label]="t('Reload')"
+              class="p-button-outlined"
+              style="flex: none"
+              icon="pi pi-refresh"
+              (click)="reload()"
+            ></button>
           </div>
         </div>
       </ng-template>
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 0rem;" *ngIf="selectionMode == 'multiple'">
-            <div style="display: flex; gap: 8px;">
-              <p-checkbox [disabled]="readonly" (onChange)="selectAll($event.checked)" [(ngModel)]="fakeIsAllSelected" [binary]="true"></p-checkbox> ({{rowsSelectedNumber}})
+          <th style="width: 0rem" *ngIf="selectionMode == 'multiple'">
+            <div style="display: flex; gap: 8px">
+              <p-checkbox
+                [disabled]="readonly"
+                (onChange)="selectAll($event.checked)"
+                [(ngModel)]="fakeIsAllSelected"
+                [binary]="true"
+              ></p-checkbox>
+              ({{ rowsSelectedNumber }})
             </div>
           </th>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
             <th [style]="getColHeaderWidth(col.filterType)">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                {{col.name}}
-                <p-columnFilter *ngIf="col.filterType != null && col.filterType !== 'blob'" [type]="col.filterType" [field]="col.filterField ?? col.field" display="menu" [placeholder]="col.filterPlaceholder" 
-                [showOperator]="false" [showMatchModes]="col.showMatchModes" [showAddButton]="col.showAddButton" [matchModeOptions]="getColMatchModeOptions(col.filterType)"
-                [matchMode]="getColMatchMode(col.filterType)"
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                {{ col.name }}
+                <p-columnFilter
+                  *ngIf="col.filterType != null && col.filterType !== 'blob'"
+                  [type]="col.filterType"
+                  [field]="col.filterField ?? col.field"
+                  display="menu"
+                  [placeholder]="col.filterPlaceholder"
+                  [showOperator]="false"
+                  [showMatchModes]="col.showMatchModes"
+                  [showAddButton]="col.showAddButton"
+                  [matchModeOptions]="getColMatchModeOptions(col.filterType)"
+                  [matchMode]="getColMatchMode(col.filterType)"
                 >
-                  <ng-template *ngIf="isDropOrMulti(col.filterType)" pTemplate="filter" let-value let-filter="filterCallback">
-                    <p-multiSelect [ngModel]="value" [options]="col.dropdownOrMultiselectValues" [placeholder]="t('All')" (onChange)="filter($event.value)" optionLabel="label" optionValue="code" [style]="{'width':'240px'}">
+                  <ng-template
+                    *ngIf="isDropOrMulti(col.filterType)"
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-multiSelect
+                      [ngModel]="value"
+                      [options]="col.dropdownOrMultiselectValues"
+                      [placeholder]="t('All')"
+                      (onChange)="filter($event.value)"
+                      optionLabel="label"
+                      optionValue="code"
+                      [style]="{ width: '240px' }"
+                    >
                       <ng-template let-item pTemplate="item">
                         <div class="p-multiselect-representative-option">
                           <span class="ml-2">{{ item.label }}</span>
@@ -40,61 +113,112 @@
                       </ng-template>
                     </p-multiSelect>
                   </ng-template>
-                  <ng-template *ngIf="col.filterType == 'date'" pTemplate="filter" let-value let-filter="filterCallback">
-                      <p-datepicker 
-                      [ngModel]="value" 
+                  <ng-template
+                    *ngIf="col.filterType == 'date'"
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-datepicker
+                      [ngModel]="value"
                       [showTime]="col.showTime"
                       (onSelect)="filter($event)"
-                      ></p-datepicker>
+                    ></p-datepicker>
                   </ng-template>
-              </p-columnFilter>
+                </p-columnFilter>
               </div>
             </th>
           </ng-container>
         </tr>
       </ng-template>
-      <ng-template pTemplate="body" let-rowData let-index="rowIndex" let-editing="editing">
-        <tr [class.clickable]=" navigateOnRowClick"
-        (click)="onRowClick(rowData)">
+      <ng-template
+        pTemplate="body"
+        let-rowData
+        let-index="rowIndex"
+        let-editing="editing"
+      >
+        <tr
+          [class.clickable]="navigateOnRowClick"
+          (click)="onRowClick(rowData)"
+        >
           <td *ngIf="selectionMode == 'multiple'">
-              <p-checkbox [disabled]="readonly" (onChange)="selectRow(rowData[idField], rowData.index)" [ngModel]="isRowSelected(rowData[idField])" [binary]="true"></p-checkbox>
+            <p-checkbox
+              [disabled]="readonly"
+              (onChange)="selectRow(rowData[idField], rowData.index)"
+              [ngModel]="isRowSelected(rowData[idField])"
+              [binary]="true"
+            ></p-checkbox>
           </td>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
             <td [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
-                <ng-container *ngFor="let action of col.actions; trackBy: actionTrackByFn" >
-                  <span [pTooltip]="action.name" [class]="getClassForAction(action)" [style]="getStyleForAction(action)" (click)="getMethodForAction(action, rowData)"></span>
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 18px;
+                "
+              >
+                <ng-container
+                  *ngFor="let action of col.actions; trackBy: actionTrackByFn"
+                >
+                  <span
+                    [pTooltip]="action.name"
+                    [class]="getClassForAction(action)"
+                    [style]="getStyleForAction(action)"
+                    (click)="getMethodForAction(action, rowData)"
+                  ></span>
                 </ng-container>
               </div>
-               <ng-container *ngIf="col.filterType === 'blob'">
-                <img width="45" [src]="getRowData(rowData, col)" alt="">
-               </ng-container>
-               <ng-container *ngIf="col.filterType !== 'blob'">
-                {{getRowData(rowData, col)}}
-               </ng-container>
+              <ng-container *ngIf="col.filterType === 'blob'">
+                <img width="45" [src]="getRowData(rowData, col)" alt="" />
+              </ng-container>
+              <ng-container *ngIf="col.filterType !== 'blob'">
+                {{ getRowData(rowData, col) }}
+              </ng-container>
             </td>
             <td *ngIf="col.editable">
-              <spiderly-number [control]="getFormArrayControlByIndex(col.field, rowData.index)" [showLabel]="false"></spiderly-number>
+              <spiderly-number
+                [control]="getFormArrayControlByIndex(col.field, rowData.index)"
+                [showLabel]="false"
+              ></spiderly-number>
             </td>
           </ng-container>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td [attr.colspan]="cols?.length + (selectionMode === 'multiple' ? 1 : 0)">{{t('NoRecordsFound')}}</td>
+          <td
+            [attr.colspan]="
+              cols?.length + (selectionMode === 'multiple' ? 1 : 0)
+            "
+          >
+            {{ t("NoRecordsFound") }}
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="loadingbody">
         <tr>
-          <td [attr.colspan]="cols?.length + (selectionMode === 'multiple' ? 1 : 0)">{{t('Loading')}}...</td>
+          <td
+            [attr.colspan]="
+              cols?.length + (selectionMode === 'multiple' ? 1 : 0)
+            "
+          >
+            {{ t("Loading") }}...
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="paginatorleft">
-        {{t('TotalRecords')}}: {{totalRecords}}
+        {{ t("TotalRecords") }}: {{ totalRecords }}
       </ng-template>
       <ng-template pTemplate="paginatorright">
-        <div style="display: flex; justify-content: end; gap: 10px;">
-          <spiderly-button *ngIf="showAddButton" [label]="t('AddNew')" icon="pi pi-plus" (onClick)="navigateToDetails(0)"></spiderly-button>
+        <div style="display: flex; justify-content: end; gap: 10px">
+          <spiderly-button
+            *ngIf="showAddButton"
+            [label]="t('AddNew')"
+            icon="pi pi-plus"
+            (onClick)="navigateToDetails(0)"
+          ></spiderly-button>
         </div>
       </ng-template>
     </p-table>

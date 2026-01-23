@@ -5,28 +5,25 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ConfigServiceBase } from '../services/config.service.base';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SpiderlyErrorHandler implements ErrorHandler {
   constructor(
-    private messageService: SpiderlyMessageService, 
-    private translocoService: TranslocoService, 
+    private messageService: SpiderlyMessageService,
+    private translocoService: TranslocoService,
     private config: ConfigServiceBase,
-  ) {
-
-  }
+  ) {}
 
   handleError(error: any): void {
-    if(this.config.production == false){
+    if (this.config.production == false) {
       console.error(error);
     }
 
-    if(error instanceof HttpErrorResponse == false){
+    if (error instanceof HttpErrorResponse == false) {
       this.messageService.errorMessage(
         this.translocoService.translate('UnexpectedErrorDetails'),
         this.translocoService.translate('UnexpectedErrorTitle'),
       );
     }
-
   }
 }

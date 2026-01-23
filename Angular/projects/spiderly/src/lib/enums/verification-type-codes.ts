@@ -1,5 +1,4 @@
-export enum VerificationTypeCodes
-{
-    Login = 0,
-	Registration = 1,
+export enum VerificationTypeCodes {
+  Login = 0,
+  Registration = 1,
 }

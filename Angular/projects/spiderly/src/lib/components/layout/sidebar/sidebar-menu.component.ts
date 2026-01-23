@@ -9,36 +9,26 @@ import { MenuitemComponent } from './menuitem.component';
 import { CommonModule } from '@angular/common';
 
 export interface SpiderlyMenuItem extends MenuItem {
-    hasPermission?: (permissionCodes: string[]) => boolean;
-    showPartnerDialog?: boolean; 
+  hasPermission?: (permissionCodes: string[]) => boolean;
+  showPartnerDialog?: boolean;
 }
 
 @Component({
-    selector: 'sidebar-menu', // FT: Don't change selector to 'menu', because other style will apply to it
-    templateUrl: './sidebar-menu.component.html',
-    imports: [
-        CommonModule,
-        MenuitemComponent
-    ]
+  selector: 'sidebar-menu', // FT: Don't change selector to 'menu', because other style will apply to it
+  templateUrl: './sidebar-menu.component.html',
+  imports: [CommonModule, MenuitemComponent],
 })
 export class SidebarMenuComponent implements OnInit {
-    @Input() menu: SpiderlyMenuItem[];
+  @Input() menu: SpiderlyMenuItem[];
 
-    constructor(
-        public layoutService: LayoutServiceBase, 
-        private authService: AuthServiceBase,
-        private translocoService: TranslocoService,
-        private config: ConfigServiceBase
-    ) {
-        
-    }
+  constructor(
+    public layoutService: LayoutServiceBase,
+    private authService: AuthServiceBase,
+    private translocoService: TranslocoService,
+    private config: ConfigServiceBase,
+  ) {}
 
-    ngOnInit() {
-    }
+  ngOnInit() {}
 
-
-    ngOnDestroy(): void {
-
-    }
-
+  ngOnDestroy(): void {}
 }

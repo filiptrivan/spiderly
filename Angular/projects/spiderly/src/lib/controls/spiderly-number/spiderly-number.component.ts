@@ -8,31 +8,28 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-number',
-    templateUrl: './spiderly-number.component.html',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        InputNumberModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-number',
+  templateUrl: './spiderly-number.component.html',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    InputNumberModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
 export class SpiderlyNumberComponent extends BaseControl implements OnInit {
-    @Input() prefix: string;
-    @Input() showButtons: boolean = true;
-    @Input() decimal: boolean;
-    @Input() maxFractionDigits: number = 0;
+  @Input() prefix: string;
+  @Input() showButtons: boolean = true;
+  @Input() decimal: boolean;
+  @Input() maxFractionDigits: number = 0;
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    override ngOnInit(){
-        super.ngOnInit();
-    }
-    
+  override ngOnInit() {
+    super.ngOnInit();
+  }
 }

@@ -8,26 +8,23 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
-    selector: 'spiderly-textarea',
-    templateUrl: './spiderly-textarea.component.html',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        TextareaModule,
-        TooltipModule,
-        RequiredComponent
-    ]
+  selector: 'spiderly-textarea',
+  templateUrl: './spiderly-textarea.component.html',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    TextareaModule,
+    TooltipModule,
+    RequiredComponent,
+  ],
 })
 export class SpiderlyTextareaComponent extends BaseControl implements OnInit {
+  constructor(protected override translocoService: TranslocoService) {
+    super(translocoService);
+  }
 
-    constructor(
-        protected override translocoService: TranslocoService,
-    ) { 
-        super(translocoService);
-    }
-
-    override ngOnInit(){
-        super.ngOnInit();
-    }
+  override ngOnInit() {
+    super.ngOnInit();
+  }
 }
