@@ -546,14 +546,14 @@ jobs:
         if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
         run: |
           current_branch=$(git branch --show-current)
-          echo "Merging stable release from $current_branch to main..."
+          echo "Rebasing stable release from $current_branch to main..."
 
           git fetch origin main
           git checkout main
-          git merge --no-ff "origin/$current_branch" -m "chore: merge stable release v${{ needs.validate.outputs.new_version }} to main"
+          git rebase "origin/$current_branch"
           git push origin main
 
-          echo "Successfully merged to main"
+          echo "Successfully rebased to main"
 
   dry-run-summary:
     name: Dry Run Summary

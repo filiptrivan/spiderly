@@ -290,4 +290,10 @@
 
 (Prikazano ovde jer ste u razvojnom okruženju bez podešenog email-a)</value>
   </data>
+  <data name="ImageWidthMustBeExact" xml:space="preserve">
+    <value>Širina slike mora biti tačno {0}px (trenutno: {1}px).</value>
+  </data>
+  <data name="ImageHeightMustBeExact" xml:space="preserve">
+    <value>Visina slike mora biti tačno {0}px (trenutno: {1}px).</value>
+  </data>
 </root>

@@ -3267,7 +3267,7 @@ namespace {{appName}}.WebAPI
       "JwtAudience": "https://localhost:7260;",
       "ClockSkewMinutes": 1,
       "ConnectionString": "",
-      "RequestsLimitNumber": 120,
+      "RequestsLimitNumber": 240,
       "RequestsLimitWindow": 60
     },
     "Spiderly.Security": {
@@ -4587,6 +4587,8 @@ export const ThemePreset = definePreset(Aura, {
     "NumberRangeMin": "Vrednost polja mora da bude veća ili jednaka {{min}}.",
     "SingleLength": "Polje mora da ima {{length}} karaktera.",
     "NotEmptyPrecisionScale": "Vrednost polja mora da ima ukupno {{precision}} cifara, i broj cifara nakon zareza ne sme biti veci od {{scale}}.",
+    "ImageWidthMustBeExact": "Širina slike mora biti tačno {{ 0 }}px (trenutno: {{ 1 }}px).",
+    "ImageHeightMustBeExact": "Visina slike mora biti tačno {{ 0 }}px (trenutno: {{ 1 }}px).",
     "IdToken": "/",
     "Browser": "/",
     "NewPassword": "Nova lozinka",
@@ -4863,6 +4865,8 @@ export const ThemePreset = definePreset(Aura, {
   "NumberRangeMin": "Field value must be greater than or equal to {{min}}.",
   "SingleLength": "Field must have {{length}} characters.",
   "NotEmptyPrecisionScale": "Field value must have a total of {{precision}} digits, and the number of digits after the decimal point must not be greater than {{scale}}.",
+  "ImageWidthMustBeExact": "Image width must be exactly {{ 0 }}px (current: {{ 1 }}px).",
+  "ImageHeightMustBeExact": "Image height must be exactly {{ 0 }}px (current: {{ 1 }}px).",
   "IdToken": "/",
   "Browser": "/",
   "NewPassword": "New password",

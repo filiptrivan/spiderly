@@ -982,7 +982,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
@@ -1052,6 +1052,24 @@ export class {{entity.Name}}BaseDetailsComponent {
                 return formGroup;
 
             return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
+        }
+
+        private static string GetImageDimensionsHtmlAttributes(SpiderlyProperty property)
+        {
+            int imageWidth = property.GetImageWidth();
+            int imageHeight = property.GetImageHeight();
+
+            List<string> attributes = new();
+
+            if (imageWidth > 0)
+                attributes.Add($"[imageWidth]=\"{imageWidth}\"");
+            if (imageHeight > 0)
+                attributes.Add($"[imageHeight]=\"{imageHeight}\"");
+
+            if (attributes.Count == 0)
+                return "";
+
+            return string.Join(" ", attributes);
         }
 
         private static string GetUIControlWidth(SpiderlyProperty property)

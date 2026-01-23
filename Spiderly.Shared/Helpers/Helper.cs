@@ -9,6 +9,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Resources;
 using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -506,6 +507,23 @@ Currently authenticated user id: {{userId}}); <br>
                     return outputStream.ToArray();
                 }
             }
+        }
+
+        public static async Task ValidateImageDimensions(
+            Stream imageStream,
+            int width = 0,
+            int height = 0
+        )
+        {
+            ImageInfo imageInfo = await Image.IdentifyAsync(imageStream);
+            int actualWidth = imageInfo.Width;
+            int actualHeight = imageInfo.Height;
+
+            if (width > 0 && actualWidth != width)
+                throw new HackerException(string.Format(SharedTerms.ImageWidthMustBeExact, width, actualWidth));
+
+            if (height > 0 && actualHeight != height)
+                throw new HackerException(string.Format(SharedTerms.ImageHeightMustBeExact, height, actualHeight));
         }
 
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)

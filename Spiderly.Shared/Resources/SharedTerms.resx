@@ -348,4 +348,12 @@
 
 (Prikazano ovde jer ste u razvojnom okruženju bez podešenog email-a)</comment>
   </data>
+  <data name="ImageWidthMustBeExact" xml:space="preserve">
+    <value>Image width must be exactly {0}px (current: {1}px).</value>
+    <comment>Širina slike mora biti tačno {0}px (trenutno: {1}px).</comment>
+  </data>
+  <data name="ImageHeightMustBeExact" xml:space="preserve">
+    <value>Image height must be exactly {0}px (current: {1}px).</value>
+    <comment>Visina slike mora biti tačno {0}px (trenutno: {1}px).</comment>
+  </data>
 </root>

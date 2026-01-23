@@ -697,5 +697,27 @@ namespace Spiderly.Shared.Resources
                 return ResourceManager.GetString("Version", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Image width must be exactly {0}px (current: {1}px)..
+        /// </summary>
+        public static string ImageWidthMustBeExact
+        {
+            get
+            {
+                return ResourceManager.GetString("ImageWidthMustBeExact", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Image height must be exactly {0}px (current: {1}px)..
+        /// </summary>
+        public static string ImageHeightMustBeExact
+        {
+            get
+            {
+                return ResourceManager.GetString("ImageHeightMustBeExact", resourceCulture);
+            }
+        }
     }
 }

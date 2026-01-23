@@ -1519,28 +1519,68 @@ namespace {{basePartOfNamespace}}.Services
 
         /// <summary>
         /// Lifecycle hook called before blob is uploaded to storage.
-        /// Default implementation optimizes images. Override to customize file processing.
+        /// Default implementation validates and optimizes images. Override to customize file processing.
         /// </summary>
         /// <param name="stream">The file stream</param>
         /// <param name="file">The form file</param>
         /// <param name="id">The entity ID</param>
         /// <returns>Processed file bytes</returns>
-        public virtual async Task<byte[]> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, IFormFile file, {{entityIdType}} id) 
+        public virtual async Task<byte[]> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, IFormFile file, {{entityIdType}} id)
         {
             if (file.ContentType.StartsWith("image/"))
             {
-                return await Helper.OptimizeImage(stream); 
+                await ValidateImageFor{{property.Name}}Of{{entity.Name}}(stream, file, id);
+                stream.Position = 0;
+                return await OptimizeImageFor{{property.Name}}Of{{entity.Name}}(stream, file, id);
             }
             else
             {
                 return await Helper.ReadAllBytesAsync(stream);
             }
         }
+
+        /// <summary>
+        /// Validates image dimensions and other constraints for the {{property.Name}} property.
+        /// Override to customize validation logic (e.g., different dimension requirements, aspect ratio checks).
+        /// </summary>
+        /// <param name="stream">The image stream</param>
+        /// <param name="file">The form file</param>
+        /// <param name="id">The entity ID</param>
+        public virtual async Task ValidateImageFor{{property.Name}}Of{{entity.Name}}(Stream stream, IFormFile file, {{entityIdType}} id)
+        {
+{{GetImageDimensionsValidation(property)}}
+        }
+
+        /// <summary>
+        /// Optimizes the image for the {{property.Name}} property.
+        /// Override to customize optimization (e.g., different quality, resizing, format conversion).
+        /// </summary>
+        /// <param name="stream">The image stream</param>
+        /// <param name="file">The form file</param>
+        /// <param name="id">The entity ID</param>
+        /// <returns>Optimized image bytes</returns>
+        public virtual async Task<byte[]> OptimizeImageFor{{property.Name}}Of{{entity.Name}}(Stream stream, IFormFile file, {{entityIdType}} id)
+        {
+            return await Helper.OptimizeImage(stream);
+        }
 """
 );
             }
 
             return result;
+        }
+
+        private static string GetImageDimensionsValidation(SpiderlyProperty property)
+        {
+            int imageWidth = property.GetImageWidth();
+            int imageHeight = property.GetImageHeight();
+
+            if (imageWidth == 0 && imageHeight == 0)
+                return "";
+
+            return $"""
+            await Helper.ValidateImageDimensions(stream, width: {imageWidth}, height: {imageHeight});
+""";
         }
 
         #endregion

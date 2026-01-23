@@ -265,6 +265,28 @@ namespace Spiderly.SourceGenerators.Shared
             return true;
         }
 
+        public static int GetImageWidth(this SpiderlyProperty property)
+        {
+            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "ImageWidth");
+
+            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
+                return 0;
+
+            int.TryParse(attribute.Value, out int width);
+            return width;
+        }
+
+        public static int GetImageHeight(this SpiderlyProperty property)
+        {
+            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "ImageHeight");
+
+            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
+                return 0;
+
+            int.TryParse(attribute.Value, out int height);
+            return height;
+        }
+
         /// <summary>
         /// Should use this method for the referenced project types
         /// </summary>
