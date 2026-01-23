@@ -24,7 +24,7 @@ namespace Spiderly.Shared.Helpers
                 Name = ".vscode",
                 Files =
                 {
-                    new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData() },
+                    new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData(dbProvider) },
                     new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
                     new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
                     new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
@@ -3216,32 +3216,33 @@ namespace {{appName}}.WebAPI
     {
       return $$"""
 {
-    "Serilog": {
-        "Using": [
-            "Serilog.Sinks.ApplicationInsights",
-            "Serilog.Sinks.Console"
-        ],
-        "MinimumLevel": {
-        "Default": "Information",
-        "Override": {
-            "Microsoft": "Warning",
-            "System": "Warning"
-        }
-        },
-        "WriteTo": [
-        {
-            "Name": "Console"
-        },
-        {
-            "Name": "ApplicationInsights",
-            "Args": {
-            "connectionString": "",
-            "telemetryConverter": "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
-            }
-        }
-        ],
-        "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ]
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "Serilog": {
+    "Using": [
+      "Serilog.Sinks.ApplicationInsights",
+      "Serilog.Sinks.Console"
+    ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
     },
+    "WriteTo": [
+      {
+        "Name": "Console"
+      },
+      {
+        "Name": "ApplicationInsights",
+        "Args": {
+          "connectionString": "",
+          "telemetryConverter": "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ]
+  },
   "AppSettings": {
     "AllowedHosts": "*",
     "{{appName}}.WebAPI": {
@@ -3256,29 +3257,25 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}", // Email address used to send verification emails during login or registration.
-      "UnhandledExceptionRecipients": [ // Email addresses that will receive notifications when an unhandled exception occurs in production.
+      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}",
+      "UnhandledExceptionRecipients": [
         "{{emailSender ?? "youremail@gmail.com"}}"
       ],
       "SmtpHost": "smtp.gmail.com",
       "SmtpPort": 587,
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires.
-
-      // ConnectionString is configured in user secrets. Run: dotnet user-secrets list
-      // If not configured, set it with: dotnet user-secrets set "AppSettings:Spiderly.Shared:ConnectionString" "YourConnectionString"
+      "ClockSkewMinutes": 1,
       "ConnectionString": "",
-
       "RequestsLimitNumber": 120,
       "RequestsLimitWindow": 60
     },
     "Spiderly.Security": {
       "JwtIssuer": "https://localhost:7260;",
       "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1, // Making it to 1 minute because of the frontend sends request exactly when it expires. 
+      "ClockSkewMinutes": 1,
       "AccessTokenExpiration": 20,
-      "RefreshTokenExpiration": 1440, // 24 hours
+      "RefreshTokenExpiration": 1440,
       "VerificationTokenExpiration": 5,
       "NumberOfFailedLoginAttemptsInARowToDisableUser": 40,
       "AllowTheUseOfAppWithDifferentIpAddresses": true,
@@ -3888,16 +3885,19 @@ namespace {{appName}}.Business.DataMappers
 
     #region Angular
 
-    private static string GetExtensionsJsonData()
+    private static string GetExtensionsJsonData(DbProviderCodes dbProvider)
     {
-      return """
+      string dbExtension = dbProvider == DbProviderCodes.PostgreSQL
+          ? "ckolkman.vscode-postgres"
+          : "ms-mssql.mssql";
+
+      return $$"""
 {
   "recommendations": [
     "angular.ng-template",
     "formulahendry.auto-rename-tag",
-    "ckolkman.vscode-postgres",
-    "esbenp.prettier-vscode",
-    "ms-mssql.mssql"
+    "{{dbExtension}}",
+    "esbenp.prettier-vscode"
   ]
 }
 
@@ -3920,6 +3920,7 @@ namespace {{appName}}.Business.DataMappers
       "args": [],
       "cwd": "${workspaceFolder}/Backend/{{appName}}.WebAPI",
       "stopAtEntry": false,
+      "launchSettingsProfile": "http",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -4176,125 +4177,130 @@ namespace {{appName}}.Business.DataMappers
     {
       return $$"""
 {
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
-  "version": 1,
-  "newProjectRoot": "projects",
-  "projects": {
-    "{{appName}}": {
-      "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "scss",
-          "standalone": false
-        },
-        "@schematics/angular:directive": {
-          "standalone": false
-        },
-        "@schematics/angular:pipe": {
-          "standalone": false
-        }
-      },
-      "root": "",
-      "sourceRoot": "src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:application",
-          "options": {
-            "preserveSymlinks": true,
-            "outputPath": "dist/{{appName}}",
-            "index": "src/index.html",
-            "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
-            "tsConfig": "tsconfig.app.json",
-            "inlineStyleLanguage": "scss",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets",
-              "src/robots.txt"
-            ],
-            "styles": [
-              "src/assets/styles.scss"
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "1mb",
-                  "maximumError": "3mb"
+    "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+    "version": 1,
+    "newProjectRoot": "projects",
+    "projects": {
+        "{{appName}}": {
+            "projectType": "application",
+            "schematics": {
+                "@schematics/angular:component": {
+                    "style": "scss",
+                    "standalone": false
                 },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                "@schematics/angular:directive": {
+                    "standalone": false
+                },
+                "@schematics/angular:pipe": {
+                    "standalone": false
                 }
-              ],
-              "outputHashing": "all",
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
+            },
+            "root": "",
+            "sourceRoot": "src",
+            "prefix": "app",
+            "architect": {
+                "build": {
+                    "builder": "@angular-devkit/build-angular:application",
+                    "options": {
+                        "preserveSymlinks": true,
+                        "outputPath": "dist/{{appName}}",
+                        "index": "src/index.html",
+                        "browser": "src/main.ts",
+                        "polyfills": [
+                            "zone.js"
+                        ],
+                        "tsConfig": "tsconfig.app.json",
+                        "inlineStyleLanguage": "scss",
+                        "assets": [
+                            "src/favicon.ico",
+                            "src/assets",
+                            "src/robots.txt"
+                        ],
+                        "styles": [
+                            "src/assets/styles.scss"
+                        ],
+                        "scripts": [],
+                        "stylePreprocessorOptions": {
+                            "sass": {
+                                "silenceDeprecations": ["global-builtin", "import"]
+                            }
+                        }
+                    },
+                    "configurations": {
+                        "production": {
+                            "budgets": [
+                                {
+                                    "type": "initial",
+                                    "maximumWarning": "1mb",
+                                    "maximumError": "3mb"
+                                },
+                                {
+                                    "type": "anyComponentStyle",
+                                    "maximumWarning": "2kb",
+                                    "maximumError": "4kb"
+                                }
+                            ],
+                            "outputHashing": "all",
+                            "fileReplacements": [
+                                {
+                                    "replace": "src/environments/environment.ts",
+                                    "with": "src/environments/environment.prod.ts"
+                                }
+                            ]
+                        },
+                        "development": {
+                            "optimization": false,
+                            "extractLicenses": false,
+                            "sourceMap": true,
+                            "outputHashing": "all",
+                            "namedChunks": true,
+                            "aot": false
+                        }
+                    },
+                    "defaultConfiguration": "production"
+                },
+                "serve": {
+                    "builder": "@angular-devkit/build-angular:dev-server",
+                    "configurations": {
+                        "production": {
+                            "buildTarget": "{{appName}}:build:production"
+                        },
+                        "development": {
+                            "buildTarget": "{{appName}}:build:development"
+                        }
+                    },
+                    "defaultConfiguration": "development"
+                },
+                "extract-i18n": {
+                    "builder": "@angular-devkit/build-angular:extract-i18n",
+                    "options": {
+                        "buildTarget": "{{appName}}:build"
+                    }
+                },
+                "test": {
+                    "builder": "@angular-devkit/build-angular:karma",
+                    "options": {
+                        "polyfills": [
+                            "zone.js",
+                            "zone.js/testing"
+                        ],
+                        "tsConfig": "tsconfig.spec.json",
+                        "inlineStyleLanguage": "scss",
+                        "assets": [
+                            "src/assets"
+                        ],
+                        "styles": [
+                            "src/assets/styles.scss"
+                        ],
+                        "scripts": []
+                    }
                 }
-              ]
-            },
-            "development": {
-              "optimization": false,
-			  "extractLicenses": false,
-              "sourceMap": true,
-			  "outputHashing": "all",
-			  "namedChunks": true,
-              "aot": false
             }
-          },
-          "defaultConfiguration": "production"
-        },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "{{appName}}:build:production"
-            },
-            "development": {
-              "buildTarget": "{{appName}}:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
-        "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
-          "options": {
-            "buildTarget": "{{appName}}:build"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
-            "tsConfig": "tsconfig.spec.json",
-            "inlineStyleLanguage": "scss",
-            "assets": [
-              "src/assets"
-            ],
-            "styles": [
-              "src/assets/styles.scss"
-            ],
-            "scripts": []
-          }
         }
-      }
+    },
+    "cli": {
+        "analytics": false
     }
-  },
-  "cli": {
-    "analytics": false
-  }
 }
 """;
     }
@@ -4369,7 +4375,7 @@ bootstrapApplication(AppComponent, appConfig)
       return $$"""
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44388/api',
+  apiUrl: 'http://localhost:5000/api',
   frontendUrl: 'http://localhost:4200',
   GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',

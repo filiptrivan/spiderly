@@ -44,7 +44,7 @@ namespace Spiderly.CLI.Services
                 {
                     if (e.Data != null)
                     {
-                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
+                        Console.WriteLine(e.Data); // We can't use AnsiConsole here because of the unexpected markup
                         outputBuilder.AppendLine(e.Data);
                     }
                 };
@@ -52,7 +52,7 @@ namespace Spiderly.CLI.Services
                 process.ErrorDataReceived += (sender, e) =>
                 {
                     if (e.Data != null)
-                        Console.WriteLine(e.Data); // We shouldn't use AnsiConsole here because of the unexpected markup
+                        Console.WriteLine(e.Data); // We can't use AnsiConsole here because of the unexpected markup
                 };
 
                 process.Start();

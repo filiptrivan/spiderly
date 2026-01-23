@@ -5,3 +5,4 @@
 - If Method A calls Method B, list Method A first, then Method B.
 - Prefer existing available methods over creating new ones.
 - Split logic into smaller, focused methods whenever possible.
+- Prefer raw string literals ($$""" """) for multiline strings in C#.

@@ -33,12 +33,29 @@ namespace Spiderly.CLI
 
                 return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider);
             }
-            else if (args.HasArg("add-new-page"))
+            else if (args.HasArg("add-new-entity"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
 
-                await AddNewPageCommand.Execute(shouldGenerateDataView);
+                await AddNewEntityCommand.Execute(shouldGenerateDataView);
                 return 0;
+            }
+            else if (args.HasArg("add-migration"))
+            {
+                string migrationName = args.GetArgValue("add-migration");
+                return await MigrationCommand.AddMigration(migrationName);
+            }
+            else if (args.HasArg("update-database"))
+            {
+                return await MigrationCommand.UpdateDatabase();
+            }
+            else if (args.HasArg("remove-migration"))
+            {
+                return await MigrationCommand.RemoveMigration();
+            }
+            else if (args.HasArg("list-migrations"))
+            {
+                return await MigrationCommand.ListMigrations();
             }
             else if (args.Length == 0)
             {

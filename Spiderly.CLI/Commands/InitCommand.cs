@@ -174,6 +174,9 @@ namespace Spiderly.CLI.Commands
             {
                 ConsoleHelper.MarkupLineOK("App initialized successfully. Continue with the [blue]Open the Project[/] step in the documentation: [link]https://www.spiderly.dev/docs/getting-started#open-the-project[/]");
                 Console.WriteLine();
+                AnsiConsole.MarkupLine($"cd [blue]{appName.ToKebabCase()}[/]");
+                AnsiConsole.MarkupLine("code .");
+                Console.WriteLine();
 
                 return 0;
             }
@@ -221,9 +224,10 @@ namespace Spiderly.CLI.Commands
         {
             if (!string.IsNullOrWhiteSpace(appName))
             {
-                if (appName.Contains(" "))
+                string validationError = ValidateAppName(appName);
+                if (validationError != null)
                 {
-                    ConsoleHelper.MarkupLineERROR("App name can't contain spaces");
+                    ConsoleHelper.MarkupLineERROR(validationError);
                     return null;
                 }
                 return appName;
@@ -236,19 +240,37 @@ namespace Spiderly.CLI.Commands
             }
 
             return AnsiConsole.Prompt(
-                new TextPrompt<string>("App name without spaces (e.g., YourAppName):")
+                new TextPrompt<string>("App name in PascalCase (e.g., YourAppName):")
                     .PromptStyle("blue")
-                    .ValidationErrorMessage("[red]App name can't be empty or contain spaces[/]")
+                    .ValidationErrorMessage("[red]Invalid app name[/]")
                     .Validate(name =>
                     {
-                        if (string.IsNullOrWhiteSpace(name))
-                            return ValidationResult.Error("[red]App name can't be null or empty[/]");
-
-                        if (name.Contains(" "))
-                            return ValidationResult.Error("[red]App name can't have spaces[/]");
+                        string error = ValidateAppName(name);
+                        if (error != null)
+                            return ValidationResult.Error($"[red]{error}[/]");
 
                         return ValidationResult.Success();
                     }));
+        }
+
+        private static string ValidateAppName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "App name can't be null or empty";
+
+            if (name.Contains(' '))
+                return "App name can't contain spaces";
+
+            if (!char.IsUpper(name[0]))
+                return "App name must start with an uppercase letter (PascalCase). Example: YourAppName";
+
+            if (name.Contains('-'))
+                return "App name must be in PascalCase. Example: YourAppName (your root folder will be created as your-app-name)";
+
+            if (name.Contains('_'))
+                return "App name must be in PascalCase without underscores. Example: YourAppName";
+
+            return null;
         }
 
         private static DbProviderCodes? GetDatabaseProvider(string dbProviderArg)

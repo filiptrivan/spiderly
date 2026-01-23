@@ -35,8 +35,8 @@ namespace Spiderly.CLI.Commands
                 },
                 new CommandInfo
                 {
-                    Name = "add-new-page",
-                    Description = "This command generates starter files to support CRUD operations for a new entity.",
+                    Name = "add-new-entity",
+                    Description = "This command creates a new entity and generates all necessary files: Entity class, Angular pages (list/details), routes, and menu item.",
                     Options = new List<OptionInfo>
                     {
                         new OptionInfo
@@ -47,8 +47,52 @@ namespace Spiderly.CLI.Commands
                     },
                     Examples = new List<string>
                     {
-                        "spiderly add-new-page",
-                        "spiderly add-new-page --data-view"
+                        "spiderly add-new-entity",
+                        "spiderly add-new-entity --data-view"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "add-migration",
+                    Description = "Create a new EF Core migration.",
+                    Options = new List<OptionInfo>
+                    {
+                        new OptionInfo
+                        {
+                            Name = "<name>",
+                            Description = "The name for the new migration."
+                        }
+                    },
+                    Examples = new List<string>
+                    {
+                        "spiderly add-migration YourMigrationName"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "update-database",
+                    Description = "Apply pending migrations to the database.",
+                    Examples = new List<string>
+                    {
+                        "spiderly update-database"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "remove-migration",
+                    Description = "Remove the last migration.",
+                    Examples = new List<string>
+                    {
+                        "spiderly remove-migration"
+                    }
+                },
+                new CommandInfo
+                {
+                    Name = "list-migrations",
+                    Description = "List all available migrations.",
+                    Examples = new List<string>
+                    {
+                        "spiderly list-migrations"
                     }
                 }
             };

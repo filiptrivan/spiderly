@@ -83,10 +83,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get current version
+        id: current
+        run: |
+          current_version=$(grep -oPm1 "(?<=<Version>)[^<]+" Spiderly.Shared/Spiderly.Shared.csproj)
+          echo "Current version: $current_version"
+
+          base_version="$current_version"
+          is_preview="false"
+          if [[ "$current_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            base_version="${BASH_REMATCH[1]}"
+            if [ "$current_version" != "$base_version" ]; then
+              is_preview="true"
+            fi
+          fi
+
+          echo "CURRENT_VERSION=$current_version" >> $GITHUB_OUTPUT
+          echo "BASE_VERSION=$base_version" >> $GITHUB_OUTPUT
+          echo "IS_PREVIEW=$is_preview" >> $GITHUB_OUTPUT
+
       - name: Validate inputs
         run: |
-          if [ "${{ inputs.release_type }}" == "stable" ] && [ "${{ inputs.version_bump }}" == "none" ]; then
-            echo "::error::Version bump is required for stable releases"
+          if [ "${{ inputs.release_type }}" == "stable" ] && [ "${{ inputs.version_bump }}" == "none" ] && [ "${{ steps.current.outputs.IS_PREVIEW }}" == "false" ]; then
+            echo "::error::Version bump is required for stable releases from a stable version. Use 'none' only when promoting a preview to stable."
             exit 1
           fi
 
@@ -129,19 +148,15 @@ jobs:
       - name: Calculate new version
         id: version
         run: |
-          current_version=$(grep -oPm1 "(?<=<Version>)[^<]+" Spiderly.Shared/Spiderly.Shared.csproj)
-          echo "Current version: $current_version"
-
-          base_version="$current_version"
-          if [[ "$current_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-            base_version="${BASH_REMATCH[1]}"
-          fi
+          current_version="${{ steps.current.outputs.CURRENT_VERSION }}"
+          base_version="${{ steps.current.outputs.BASE_VERSION }}"
 
           IFS='.' read -ra parts <<< "$base_version"
           version_bump="${{ inputs.version_bump }}"
 
           if [ "${{ inputs.release_type }}" == "stable" ]; then
             case "$version_bump" in
+              none) new_version="$base_version" ;;
               major) new_version="$((parts[0] + 1)).0.0" ;;
               minor) new_version="${parts[0]}.$(( parts[1] + 1 )).0" ;;
               patch) new_version="${parts[0]}.${parts[1]}.$(( parts[2] + 1 ))" ;;
@@ -492,7 +507,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Download version files
         uses: actions/download-artifact@v4
