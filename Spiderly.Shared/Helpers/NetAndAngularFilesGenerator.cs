@@ -3920,6 +3920,7 @@ namespace {{appName}}.Business.DataMappers
       "args": [],
       "cwd": "${workspaceFolder}/Backend/{{appName}}.WebAPI",
       "stopAtEntry": false,
+      "launchSettingsProfile": "http",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -4374,7 +4375,7 @@ bootstrapApplication(AppComponent, appConfig)
       return $$"""
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44388/api',
+  apiUrl: 'http://localhost:5000/api',
   frontendUrl: 'http://localhost:4200',
   GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',

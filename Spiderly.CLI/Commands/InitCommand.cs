@@ -174,6 +174,9 @@ namespace Spiderly.CLI.Commands
             {
                 ConsoleHelper.MarkupLineOK("App initialized successfully. Continue with the [blue]Open the Project[/] step in the documentation: [link]https://www.spiderly.dev/docs/getting-started#open-the-project[/]");
                 Console.WriteLine();
+                AnsiConsole.MarkupLine($"cd [blue]{appName.ToKebabCase()}[/]");
+                AnsiConsole.MarkupLine("code .");
+                Console.WriteLine();
 
                 return 0;
             }
