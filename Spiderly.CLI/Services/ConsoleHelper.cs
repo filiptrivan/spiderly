@@ -9,7 +9,7 @@ namespace Spiderly.CLI.Services
         public static bool PromptYesNo(string message)
         {
             return AnsiConsole.Prompt(
-                new TextPrompt<bool>($"{message} [y/n]")
+                new TextPrompt<bool>($"{message} [[y/n]]")
                     .AddChoice(true)
                     .AddChoice(false)
                     .WithConverter(choice => choice ? "y" : "n"));
