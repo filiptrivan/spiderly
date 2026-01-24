@@ -4,7 +4,7 @@
 
 # Spiderly
 
-Spiderly is a .NET (C#) code generation library that transforms an EF Core model into a fully customizable .NET (C#) + Angular web application, automatically updating all repetitive boilerplate code as your model evolves.
+Spiderly is a free, open-source .NET (C#) code generator that transforms an EF Core model into a fully customizable .NET (C#) + Angular web application, automatically updating all repetitive boilerplate code as your model evolves.
 
 ## Key Generation Features
 
@@ -38,7 +38,7 @@ Follow [Getting Started guide](https://www.spiderly.dev/docs/getting-started) to
 
 ## Examples
 
-With the [Playground](https://www.spiderly.dev/playground) on the [Spiderly Website](https://www.spiderly.dev), you can create your own examples, live. Here is the first one to get you started:
+With the [Interactive Demo](https://www.spiderly.dev/#interactive-demo), you can run the `spiderly init` command and add dummy properties to see how Spiderly works. Here is the first example to get you started:
 
 ```csharp
 [TranslatePluralEn("Users")]

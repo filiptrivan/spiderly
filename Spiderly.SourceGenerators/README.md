@@ -13,7 +13,7 @@ Spiderly.SourceGenerators generates a lot of features for both .NET and Angular 
 ```csharp
 namespace PlayertyLoyals.Business.Entities
 {
-    [TranslateSingularSrLatnRS("Korisnik")] // Where necessary, the entity UserExtended will be translated into Serbian as "Korisnik"
+    [TranslateSrLatnRS("Korisnik")] // Where necessary, the entity UserExtended will be translated into Serbian as "Korisnik"
     public class UserExtended : BusinessObject<long>, IUser
     {
         [UIControlWidth("col-12")] // On the UI this control will be displayed over the entire width of the screen for any device size (by default it is half, then from a certain number of pixels the whole screen)
@@ -32,7 +32,7 @@ namespace PlayertyLoyals.Business.Entities
         [WithMany(nameof(Gender.Users))] // Connected one to many property
         public virtual Gender Gender { get; set; }
 
-        [BusinessServiceDoNotGenerate] // Frontend structure and controller method will be generated, but method inside BusinessServiceGenerated will not
+        [ExcludeServiceMethodsFromGeneration] // Frontend structure and controller method will be generated, but method inside BusinessServiceGenerated will not
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))] // This many to many property will be handled with multiselect on the UI (the necessary structure will be generated on the Backend to support it too)
         public virtual List<Role> Roles { get; } = new(); // M2M
     }
@@ -213,25 +213,19 @@ export class NotificationDetailsComponent
 - Set to the many to one property.
 - Pass enumerable parameter in order to know which enumerable property on the other side many to one property connects to.
 
-### ManyToOneRequired
+### CascadeDelete
 
 - Set to the many to one property to perform a `cascade` delete.
-- We also use it to generate validations (Backend and Frontend).
-- The parent entity cannot exist without the property which has this attribute.
+- When the referenced entity is deleted, all entities that reference it will automatically be deleted as well.
+- The child entity cannot exist without the parent entity which has this attribute.
 
 ### SetNull
 
 - Set to the many to one property to perform a `set null` delete.
 
-### M2MEntity
+### M2MWithMany
 
 - Set to a property in the M2M class that represents a reference to another entity.
-- As a parameter, you need to pass an enumerable property from the referenced entity.
-
-### M2MMaintanceEntity
-
-- Set to a property in the M2M class that represents a reference to another entity.
-- M2M relationship will be maintained through this referenced entity, both on the UI and on the backend.
 - As a parameter, you need to pass an enumerable property from the referenced entity.
 
 ### SimpleManyToManyTableLazyLoad
@@ -327,10 +321,10 @@ public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 - If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
 - e.g. `Korisnici.xlsx`
 
-#### TranslateSingularEn
+#### TranslateEn
 
 - e.g. `User`
 
-#### TranslateSingularSrLatnRS
+#### TranslateSrLatnRS
 
 - e.g. `Korisnik`
