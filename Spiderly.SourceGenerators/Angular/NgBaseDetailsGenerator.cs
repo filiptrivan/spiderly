@@ -683,7 +683,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
                 {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                     List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
                         .Where(x =>
                             x.WithMany() != property.Name &&
@@ -721,7 +721,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
                 {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
                     List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
                         .Where(x =>
                             x.WithMany() != property.Name &&
@@ -762,7 +762,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                     result.AddRange(GetUploadImageMethods(extractedEntity.Properties, extractedEntity, entities));
 
@@ -798,7 +798,7 @@ export class {{entity.Name}}BaseDetailsComponent {
         {
             List<string> result = new();
 
-            SpiderlyClass customDTOClass = customDTOClasses.Where(x => x.Name.Replace("DTO", "") == entity.Name).SingleOrDefault();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
 
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
@@ -818,6 +818,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                     <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property)}}">
                         <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
                     </div>
+                    <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
 """);
             }
 
@@ -834,7 +835,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             List<SpiderlyProperty> properties = entity.Properties.ToList();
 
-            SpiderlyClass customDTOClass = customDTOClasses.Where(x => x.Name.Replace("DTO", "") == entity.Name).SingleOrDefault();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
 
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
@@ -919,7 +920,7 @@ export class {{entity.Name}}BaseDetailsComponent {
         {
             List<SpiderlyProperty> result = new();
 
-            SpiderlyClass customDTOClass = customDTOClasses.Where(x => x.Name.Replace("DTO", "") == entity.Name).SingleOrDefault();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
 
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
@@ -930,7 +931,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                     List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
                         .Where(x =>
@@ -1096,7 +1097,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
         private static UIControlTypeCodes GetUIControlType(SpiderlyProperty property)
         {
-            SpiderlyAttribute uiControlTypeAttribute = property.Attributes.Where(x => x.Name == "UIControlType").SingleOrDefault();
+            SpiderlyAttribute uiControlTypeAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlType");
 
             if (uiControlTypeAttribute != null)
             {

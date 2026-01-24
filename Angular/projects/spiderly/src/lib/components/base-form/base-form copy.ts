@@ -27,8 +27,8 @@ import { BaseFormService } from './../../services/base-form.service';
 })
 export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
   parentFormGroup = new SpiderlyFormGroup<T>({} as any);
-  mainUIFormClass: SchemaAwareConstructor<any>;
-  saveBodyClass: SchemaAwareConstructor<any>;
+  mainUIFormClass: SchemaAwareConstructor<T>;
+  saveBodyClass: SchemaAwareConstructor<T>;
   saveBody: any;
   successfulSaveToastDescription: string = this.translocoService.translate(
     'SuccessfulSaveToastDescription',
