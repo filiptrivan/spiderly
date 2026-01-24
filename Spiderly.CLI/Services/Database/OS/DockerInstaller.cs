@@ -1,22 +1,29 @@
+using System.Runtime.InteropServices;
+
 namespace Spiderly.CLI.Services.Database.OS
 {
+    // TODO: Move docker install logic to specific OS installers
     internal static class DockerInstaller
     {
+        private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
         public static async Task<bool> InstallPostgreSQLDocker()
         {
             ConsoleHelper.MarkupLineLoading("Installing PostgreSQL via Docker...");
             Console.WriteLine("This may take several minutes...");
 
-            string dockerCommand = "run --name spiderly-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:latest";
+            string dockerCommand = "run --name spiderly-postgres -e POSTGRES_PASSWORD=postgres -p 54320:5432 -d postgres:latest";
 
-            (bool successful, _) = await ProcessRunner.RunCommand("docker", dockerCommand);
+            (bool successful, _) = IsLinux
+                ? await ProcessRunner.RunCommand("sudo", $"docker {dockerCommand}")
+                : await ProcessRunner.RunCommand("docker", dockerCommand);
 
             if (successful)
             {
                 ConsoleHelper.MarkupLineOK("PostgreSQL container has been started.");
                 Console.WriteLine("Connection details:");
                 Console.WriteLine("  Host: localhost");
-                Console.WriteLine("  Port: 5432");
+                Console.WriteLine("  Port: 54320");
                 Console.WriteLine("  Username: postgres");
                 Console.WriteLine("  Password: postgres");
                 return true;
@@ -53,17 +60,19 @@ namespace Spiderly.CLI.Services.Database.OS
             ConsoleHelper.MarkupLineLoading("Docker detected. Installing SQL Server via Docker...");
             Console.WriteLine("This may take several minutes...");
 
-            string dockerCommand = "run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourPassword123.\" -p 1433:1433 --name spiderly-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest";
+            string dockerCommand = "run -e \"ACCEPT_EULA=Y\" -e \"MSSQL_SA_PASSWORD=SqlServer123\" -p 14330:1433 --name spiderly-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest";
 
-            (bool successful, _) = await ProcessRunner.RunCommand("docker", dockerCommand);
+            (bool successful, _) = IsLinux
+                ? await ProcessRunner.RunCommand("sudo", $"docker {dockerCommand}")
+                : await ProcessRunner.RunCommand("docker", dockerCommand);
 
             if (successful)
             {
                 ConsoleHelper.MarkupLineOK("SQL Server container has been started.");
                 Console.WriteLine("Connection details:");
-                Console.WriteLine("  Server: localhost,1433");
+                Console.WriteLine("  Server: localhost,14330");
                 Console.WriteLine("  Username: sa");
-                Console.WriteLine("  Password: YourPassword123.");
+                Console.WriteLine("  Password: SqlServer123");
                 return true;
             }
 

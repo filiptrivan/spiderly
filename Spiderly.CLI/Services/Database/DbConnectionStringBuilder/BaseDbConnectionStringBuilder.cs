@@ -17,21 +17,20 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
         public async Task<string> CreateConnectionString(string appName)
         {
-            ConsoleHelper.MarkupLineLoading($"Checking if your {DbProviderName} service is running...");
+            ConsoleHelper.MarkupLineLoading(Installer.GetCheckingServiceMessage(DbProviderName));
 
             bool isServiceRunning = await IsDatabaseServiceRunning();
             string connectionString;
 
             if (isServiceRunning)
             {
-                ConsoleHelper.MarkupLineOK($"Your {DbProviderName} service is running.");
+                ConsoleHelper.MarkupLineOK(Installer.GetServiceRunningMessage(DbProviderName));
 
                 ConsoleHelper.MarkupLineLoading($"Connecting to database...");
                 connectionString = CreateDatabaseConnectionString(appName);
 
                 if (connectionString == null)
                 {
-
                     return null;
                 }
 
@@ -40,7 +39,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
             if (
                 ConsoleHelper.IsInteractive() &&
-                ConsoleHelper.PromptYesNo($"We couldn't find running {DbProviderName} service. Would you like to install {DbProviderName} now?")
+                ConsoleHelper.PromptYesNo(Installer.GetInstallPrompt(DbProviderName))
             )
             {
                 bool installed = await InstallDatabaseProvider();
@@ -48,15 +47,10 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
                 {
                     ConsoleHelper.MarkupLineOK($"{DbProviderName} has been installed successfully!");
 
-                    await Task.Delay(3000);
-
-                    ConsoleHelper.MarkupLineLoading($"Connecting to database...");
-
-                    connectionString = CreateDatabaseConnectionString(appName);
+                    connectionString = await TryCreateDatabaseConnectionString(appName);
 
                     if (connectionString == null)
                     {
-                        ConsoleHelper.MarkupLineWARNING("We couldn't connect to a database.");
                         return null;
                     }
 
@@ -67,9 +61,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
                 return null;
             }
 
-            AnsiConsole.MarkupLine($"Please ensure {DbProviderName} is installed and running, then rerun 'spiderly init' or run migrations on your own with EF Core.");
-            AnsiConsole.MarkupLine($"To install {DbProviderName} manually:");
-            AnsiConsole.MarkupLine($"  [dim]Download from: {ManualInstallUrl}[/]");
+            Installer.ShowDeclinedInstallMessage(DbProviderName, ManualInstallUrl);
 
             return null;
         }
@@ -77,5 +69,26 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected abstract Task<bool> InstallDatabaseProvider();
         protected abstract string CreateDatabaseConnectionString(string appName);
         protected abstract Task<bool> IsDatabaseServiceRunning();
+
+        private async Task<string> TryCreateDatabaseConnectionString(string appName)
+        {
+            int[] delaysInSeconds = [3, 5, 10];
+
+            for (int attempt = 0; attempt < delaysInSeconds.Length; attempt++)
+            {
+                await Task.Delay(delaysInSeconds[attempt] * 1000);
+
+                ConsoleHelper.MarkupLineLoading($"Connecting to database (attempt {attempt + 1}/{delaysInSeconds.Length})...");
+
+                string connectionString = CreateDatabaseConnectionString(appName);
+
+                if (connectionString != null)
+                {
+                    return connectionString;
+                }
+            }
+
+            return null;
+        }
     }
 }

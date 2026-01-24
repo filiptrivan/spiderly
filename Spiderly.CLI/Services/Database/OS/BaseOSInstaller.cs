@@ -47,5 +47,27 @@ namespace Spiderly.CLI.Services.Database.OS
             AnsiConsole.MarkupLine($"You can also install {displayName} manually:");
             AnsiConsole.MarkupLine($"  [link]{url}[/]");
         }
+
+        public virtual string GetCheckingServiceMessage(string dbProviderName)
+        {
+            return $"Checking if your {dbProviderName} service is running...";
+        }
+
+        public virtual string GetServiceRunningMessage(string dbProviderName)
+        {
+            return $"Your {dbProviderName} service is running.";
+        }
+
+        public virtual string GetInstallPrompt(string dbProviderName)
+        {
+            return $"We couldn't find running {dbProviderName} service. Would you like to install {dbProviderName} now?";
+        }
+
+        public virtual void ShowDeclinedInstallMessage(string dbProviderName, string manualInstallUrl)
+        {
+            AnsiConsole.MarkupLine($"Please ensure {dbProviderName} is installed and running, then rerun 'spiderly init' or run migrations on your own with EF Core.");
+            AnsiConsole.MarkupLine($"To install {dbProviderName} manually:");
+            AnsiConsole.MarkupLine($"  [dim]Download from: {manualInstallUrl}[/]");
+        }
     }
 }

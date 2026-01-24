@@ -21,10 +21,18 @@ namespace Spiderly.CLI.Commands
                 return 1;
             }
 
-            DbProviderCodes? dbProvider = GetDatabaseProvider(dbProviderArg);
-            if (dbProvider == null)
+            (DbProviderCodes provider, bool skipped)? dbProviderResult = GetDatabaseProvider(dbProviderArg);
+            if (dbProviderResult == null)
             {
                 return 1;
+            }
+
+            DbProviderCodes dbProvider = dbProviderResult.Value.provider;
+            bool skipDatabaseSetup = dbProviderResult.Value.skipped;
+
+            if (skipDatabaseSetup)
+            {
+                ConsoleHelper.MarkupLineWARNING("Database setup skipped. You can configure the database later, but the app will not work until you set up the database, run migrations, and update the database.");
             }
 
             string currentPath = Environment.CurrentDirectory;
@@ -36,22 +44,27 @@ namespace Spiderly.CLI.Commands
             bool hasUserSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
+            string connectionString = null;
 
-            BaseOSInstaller osInstaller = GetOSInstaller(dbProvider.Value);
-            BaseDbConnectionStringBuilder databaseInstaller = GetDatabaseInstaller(dbProvider.Value, osInstaller);
-            string connectionString = await databaseInstaller.CreateConnectionString(appName);
-
-            if (connectionString == null)
+            if (!skipDatabaseSetup)
             {
-                return 1;
-            }
+                BaseOSInstaller osInstaller = GetOSInstaller(dbProvider);
+                BaseDbConnectionStringBuilder databaseInstaller = GetDatabaseInstaller(dbProvider, osInstaller);
+                connectionString = await databaseInstaller.CreateConnectionString(appName);
 
-            ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
+                if (connectionString == null)
+                {
+                    ConsoleHelper.MarkupLineERROR("Failed to connect to the database.");
+                    return 1;
+                }
+
+                ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
+            }
 
             try
             {
                 ConsoleHelper.MarkupLineLoading("Generating files for the app...");
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider.Value);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider);
                 ConsoleHelper.MarkupLineOK("Files generated successfully");
             }
             catch (Exception ex)
@@ -79,11 +92,8 @@ namespace Spiderly.CLI.Commands
                 }
             }
             string backendPath = Path.Combine(rootPath, "Backend");
-            string infrastructurePath = Path.Combine(backendPath, $"{appName}.Infrastructure");
             string frontendPath = Path.Combine(rootPath, "Frontend");
             string solutionPath = Path.Combine(backendPath, $"{appName}.sln");
-            string infrastructureCsprojPath = Path.Combine(".", $"{appName}.Infrastructure.csproj");
-            string webApiCsprojPath = Path.Combine("..", $"{appName}.WebAPI", $"{appName}.WebAPI.csproj");
 
             bool hasRestoreErrors = false;
 
@@ -99,30 +109,30 @@ namespace Spiderly.CLI.Commands
                 hasRestoreErrors = true;
             }
 
-            string migrationArgs = $"ef migrations add InitialCreate --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            ConsoleHelper.MarkupLineLoading("Generating the database migration...");
-            (bool migrationSuccess, string _) = await ProcessRunner.RunCommand("dotnet", migrationArgs, infrastructurePath);
-            if (migrationSuccess)
+            if (!skipDatabaseSetup)
             {
-                ConsoleHelper.MarkupLineOK("Database migration generated successfully");
-            }
-            else
-            {
-                ConsoleHelper.MarkupLineERROR("Failed to generate the database migration");
-                hasEfMigrationErrors = true;
-            }
+                if (!await DotnetEfToolService.EnsureDotnetEfAvailable(backendPath))
+                {
+                    hasEfMigrationErrors = true;
+                }
 
-            string updateArgs = $"ef database update --project {infrastructureCsprojPath} --startup-project {webApiCsprojPath}";
-            ConsoleHelper.MarkupLineLoading("Updating the database...");
-            (bool updateSuccess, string _) = await ProcessRunner.RunCommand("dotnet", updateArgs, infrastructurePath);
-            if (updateSuccess)
-            {
-                ConsoleHelper.MarkupLineOK("Database updated successfully");
-            }
-            else
-            {
-                ConsoleHelper.MarkupLineERROR("Failed to update the database");
-                hasDatabaseUpdateErrors = true;
+                if (!hasEfMigrationErrors)
+                {
+                    int migrationResult = await MigrationCommand.AddMigration("InitialCreate", backendPath);
+                    if (migrationResult != 0)
+                    {
+                        hasEfMigrationErrors = true;
+                    }
+                }
+
+                if (!hasEfMigrationErrors)
+                {
+                    int updateResult = await MigrationCommand.UpdateDatabase(backendPath);
+                    if (updateResult != 0)
+                    {
+                        hasDatabaseUpdateErrors = true;
+                    }
+                }
             }
 
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -273,36 +283,43 @@ namespace Spiderly.CLI.Commands
             return null;
         }
 
-        private static DbProviderCodes? GetDatabaseProvider(string dbProviderArg)
+        private static (DbProviderCodes provider, bool skipped)? GetDatabaseProvider(string dbProviderArg)
         {
             if (!string.IsNullOrWhiteSpace(dbProviderArg))
             {
                 if (dbProviderArg.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-                {
-                    return DbProviderCodes.PostgreSQL;
-                }
+                    return (DbProviderCodes.PostgreSQL, false);
 
                 if (dbProviderArg.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-                {
-                    return DbProviderCodes.SQLServer;
-                }
+                    return (DbProviderCodes.SQLServer, false);
 
-                ConsoleHelper.MarkupLineERROR("Invalid database provider. Use 'postgresql' or 'sqlserver'");
+                if (dbProviderArg.Equals("skip", StringComparison.OrdinalIgnoreCase))
+                    return (DbProviderCodes.PostgreSQL, true);
+
+                ConsoleHelper.MarkupLineERROR("Invalid database provider. Use 'postgresql', 'sqlserver', or 'skip'");
                 return null;
             }
 
             if (!IsInteractive())
             {
-                ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db postgresql or --db sqlserver");
+                ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db postgresql, --db sqlserver, or --db skip");
                 return null;
             }
 
             AnsiConsole.WriteLine();
-            return AnsiConsole.Prompt(
-                new SelectionPrompt<DbProviderCodes>()
+            string choice = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
                     .Title("Select database provider:")
-                    .AddChoices(DbProviderCodes.PostgreSQL, DbProviderCodes.SQLServer)
-                    .UseConverter(choice => choice == DbProviderCodes.PostgreSQL ? "PostgreSQL (recommended in most cases)" : "SQL Server"));
+                    .AddChoices("PostgreSQL (recommended in most cases)", "SQL Server", "Skip database setup")
+                    .UseConverter(c => c));
+
+            return choice switch
+            {
+                "PostgreSQL (recommended in most cases)" => (DbProviderCodes.PostgreSQL, false),
+                "SQL Server" => (DbProviderCodes.SQLServer, false),
+                "Skip database setup" => (DbProviderCodes.PostgreSQL, true),
+                _ => null
+            };
         }
 
         private static bool IsInteractive()

@@ -1,4 +1,3 @@
-using Spectre.Console;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Helpers;
 
@@ -20,48 +19,7 @@ namespace Spiderly.CLI.Services.Database.OS
 
         public override async Task<bool> InstallPostgreSQL()
         {
-            ConsoleHelper.MarkupLineLoading("Attempting to install PostgreSQL on Linux...");
-
-            if (await IsCommandAvailable("apt-get"))
-            {
-                ConsoleHelper.MarkupLineLoading("APT package manager detected. Installing PostgreSQL...");
-                Console.WriteLine("This may take several minutes and may require sudo password...");
-
-                (bool updateSuccess, _) = await ProcessRunner.RunCommand("sudo", "apt-get update");
-                (bool installSuccess, _) = await ProcessRunner.RunCommand("sudo", "apt-get install -y postgresql postgresql-contrib");
-
-                if (updateSuccess && installSuccess)
-                {
-                    ConsoleHelper.MarkupLineLoading("Starting PostgreSQL service...");
-                    await ProcessRunner.RunCommand("sudo", "systemctl start postgresql");
-                    await ProcessRunner.RunCommand("sudo", "systemctl enable postgresql");
-                    await ConfigurePostgreSQLAuthentication();
-                    return true;
-                }
-            }
-            else
-            {
-                ConsoleHelper.MarkupLineWARNING("APT package manager was not detected.");
-
-                if (await IsCommandAvailable("docker"))
-                {
-                    if (ConsoleHelper.PromptYesNo("Would you like to install PostgreSQL via Docker instead?"))
-                    {
-                        return await DockerInstaller.InstallPostgreSQLDocker();
-                    }
-                }
-                else if (ConsoleHelper.PromptYesNo("Would you like to install Docker to run PostgreSQL in a container?"))
-                {
-                    if (await InstallDocker())
-                    {
-                        ConsoleHelper.MarkupLineOK("Docker installed successfully! Now installing PostgreSQL...");
-                        return await DockerInstaller.InstallPostgreSQLDocker();
-                    }
-                }
-            }
-
-            ShowManualInstallMessage("PostgreSQL", "https://www.postgresql.org/download/linux/");
-            return false;
+            return await InstallPostgreSQLViaDocker();
         }
 
         public override async Task<bool> InstallSqlServer()
@@ -72,18 +30,56 @@ namespace Spiderly.CLI.Services.Database.OS
 
         public override async Task<bool> IsPostgreSQLServiceRunning()
         {
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=spiderly-postgres --filter status=running --format '{{.Names}}'");
-            if (dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput))
-                return true;
-
-            (bool success, string output) = await ProcessRunner.RunCommand("sudo", "systemctl is-active postgresql");
-            return success && output.Trim() == "active";
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("sudo", "docker ps --filter name=spiderly-postgres --filter status=running --format '{{.Names}}'");
+            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
         }
 
         public override async Task<bool> IsSqlServerServiceRunning()
         {
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=spiderly-sqlserver --filter status=running --format '{{.Names}}'");
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("sudo", "docker ps --filter name=spiderly-sqlserver --filter status=running --format '{{.Names}}'");
             return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
+        }
+
+        private async Task<bool> InstallPostgreSQLViaDocker()
+        {
+            if (!await IsCommandAvailable("docker"))
+            {
+                ConsoleHelper.MarkupLineWARNING("Docker is not installed.");
+
+                if (!ConsoleHelper.PromptYesNo("Would you like to install Docker first?"))
+                {
+                    ShowManualInstallMessage("Docker", "https://docs.docker.com/engine/install/");
+                    return false;
+                }
+
+                if (!await InstallDocker())
+                {
+                    return false;
+                }
+
+                ConsoleHelper.MarkupLineOK("Docker installed successfully! Now installing PostgreSQL...");
+            }
+
+            return await DockerInstaller.InstallPostgreSQLDocker();
+        }
+
+        public override string GetCheckingServiceMessage(string dbProviderName)
+        {
+            return $"Checking if your {dbProviderName} container is running...";
+        }
+
+        public override string GetServiceRunningMessage(string dbProviderName)
+        {
+            return $"Your {dbProviderName} container is running.";
+        }
+
+        public override string GetInstallPrompt(string dbProviderName)
+        {
+            return $"We couldn't find a running {dbProviderName} container. Would you like to install {dbProviderName} via Docker now?";
+        }
+
+        public override void ShowDeclinedInstallMessage(string dbProviderName, string manualInstallUrl)
+        {
         }
 
         private async Task<bool> InstallDocker()

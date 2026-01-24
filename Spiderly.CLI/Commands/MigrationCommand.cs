@@ -4,7 +4,7 @@ namespace Spiderly.CLI.Commands
 {
     internal static class MigrationCommand
     {
-        public static async Task<int> AddMigration(string migrationName)
+        public static async Task<int> AddMigration(string migrationName, string backendPath = null)
         {
             if (string.IsNullOrWhiteSpace(migrationName))
             {
@@ -12,12 +12,12 @@ namespace Spiderly.CLI.Commands
                 return 1;
             }
 
-            return await RunEfCommand($"migrations add {migrationName}", "Creating migration");
+            return await RunEfCommand($"migrations add {migrationName}", "Creating migration", backendPath);
         }
 
-        public static async Task<int> UpdateDatabase()
+        public static async Task<int> UpdateDatabase(string backendPath = null)
         {
-            return await RunEfCommand("database update", "Updating database");
+            return await RunEfCommand("database update", "Updating database", backendPath);
         }
 
         public static async Task<int> RemoveMigration()
@@ -30,9 +30,17 @@ namespace Spiderly.CLI.Commands
             return await RunEfCommand("migrations list", "Listing migrations");
         }
 
-        private static async Task<int> RunEfCommand(string efArgs, string operationName)
+        private static async Task<int> RunEfCommand(string efArgs, string operationName, string backendPath = null)
         {
-            (string infrastructurePath, string webApiCsprojRelativePath) = FindProjectPaths();
+            backendPath ??= FindBackendPath();
+
+            if (backendPath == null)
+            {
+                ConsoleHelper.MarkupLineERROR("Could not find Backend folder. Please run this command from within your Spiderly project directory.");
+                return 1;
+            }
+
+            (string infrastructurePath, string webApiCsprojRelativePath) = FindProjectPaths(backendPath);
 
             if (infrastructurePath == null || webApiCsprojRelativePath == null)
             {
@@ -50,15 +58,8 @@ namespace Spiderly.CLI.Commands
             return success ? 0 : 1;
         }
 
-        private static (string infrastructurePath, string webApiCsprojRelativePath) FindProjectPaths()
+        private static (string infrastructurePath, string webApiCsprojRelativePath) FindProjectPaths(string backendPath)
         {
-            string backendPath = FindBackendPath();
-            if (backendPath == null)
-            {
-                ConsoleHelper.MarkupLineERROR("Could not find Backend folder. Please run this command from within your Spiderly project directory.");
-                return (null, null);
-            }
-
             string infrastructurePath = Directory.GetDirectories(backendPath, "*.Infrastructure").FirstOrDefault();
             if (infrastructurePath == null)
             {

@@ -108,10 +108,32 @@ namespace Spiderly.Shared.Helpers
 
         #region SQL Server
 
-        /// <summary>
-        /// Attempts to find an available SQL Server connection string by checking common data sources.
-        /// </summary>
         public static string CreateSqlServerConnectionString(string databaseName)
+        {
+            string dockerConnectionString = TryDockerSqlServerConnection(databaseName);
+            if (dockerConnectionString != null)
+                return dockerConnectionString;
+
+            return TryWindowsAuthSqlServerConnection(databaseName);
+        }
+
+        private static string TryDockerSqlServerConnection(string databaseName)
+        {
+            string dataSource = "localhost,14330";
+            Console.WriteLine($"  Trying Docker SQL Server at {dataSource}...");
+            SqlConnectionStringBuilder connectionStringBuilder = BuildDockerSqlConnectionString(dataSource, connectTimeout: 3);
+
+            if (TrySqlServerConnection(connectionStringBuilder.ConnectionString))
+            {
+                connectionStringBuilder.InitialCatalog = databaseName;
+                connectionStringBuilder.ConnectTimeout = 15;
+                return connectionStringBuilder.ConnectionString;
+            }
+
+            return null;
+        }
+
+        private static string TryWindowsAuthSqlServerConnection(string databaseName)
         {
             List<string> dataSources = new List<string>
             {
@@ -122,10 +144,13 @@ namespace Spiderly.Shared.Helpers
 
             foreach (string dataSource in dataSources)
             {
-                if (TrySQLServerConnection(dataSource))
+                Console.WriteLine($"  Trying Windows Auth SQL Server at {dataSource}...");
+                SqlConnectionStringBuilder connectionStringBuilder = BuildWindowsAuthSqlConnectionString(dataSource, connectTimeout: 3);
+
+                if (TrySqlServerConnection(connectionStringBuilder.ConnectionString))
                 {
-                    SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource);
                     connectionStringBuilder.InitialCatalog = databaseName;
+                    connectionStringBuilder.ConnectTimeout = 15;
                     return connectionStringBuilder.ConnectionString;
                 }
             }
@@ -133,29 +158,37 @@ namespace Spiderly.Shared.Helpers
             return null;
         }
 
-        /// <summary>
-        /// Tries to open a connection using the provided connection string.
-        /// </summary>
-        private static bool TrySQLServerConnection(string dataSource)
+        private static bool TrySqlServerConnection(string connectionString)
         {
             try
             {
-                SqlConnectionStringBuilder connectionStringBuilder = BuildSQLConnectionString(dataSource, connectTimeout: 3);
-                using SqlConnection connection = new SqlConnection(connectionStringBuilder.ConnectionString);
+                using SqlConnection connection = new SqlConnection(connectionString);
                 connection.Open();
                 return true;
             }
-            catch (Exception) { }
+            catch { }
 
             return false;
         }
 
-        /// <summary>
-        /// Constructs a SQL Server connection string for either the default or SQL Express instance.
-        /// </summary>
-        public static SqlConnectionStringBuilder BuildSQLConnectionString(string dataSource, int connectTimeout = 15)
+        private static SqlConnectionStringBuilder BuildDockerSqlConnectionString(string dataSource, int connectTimeout = 15)
         {
-            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder
+            return new SqlConnectionStringBuilder
+            {
+                DataSource = dataSource,
+                InitialCatalog = "master",
+                UserID = "sa",
+                Password = "SqlServer123",
+                Encrypt = false,
+                MultipleActiveResultSets = true,
+                ConnectTimeout = connectTimeout,
+                TrustServerCertificate = true
+            };
+        }
+
+        private static SqlConnectionStringBuilder BuildWindowsAuthSqlConnectionString(string dataSource, int connectTimeout = 15)
+        {
+            return new SqlConnectionStringBuilder
             {
                 DataSource = dataSource,
                 InitialCatalog = "master",
@@ -164,8 +197,6 @@ namespace Spiderly.Shared.Helpers
                 MultipleActiveResultSets = true,
                 ConnectTimeout = connectTimeout,
             };
-
-            return builder;
         }
 
         #endregion
@@ -200,6 +231,7 @@ namespace Spiderly.Shared.Helpers
         {
             List<(string host, int port)> dataSources = new List<(string, int)>
             {
+                ("localhost", 54320),
                 ("localhost", 5432),
                 ("127.0.0.1", 5432)
             };
@@ -208,6 +240,8 @@ namespace Spiderly.Shared.Helpers
             {
                 foreach ((string password, bool useIntegratedSecurity) in authMethods)
                 {
+                    string authType = useIntegratedSecurity ? "Integrated Security" : (string.IsNullOrEmpty(password) ? "no password" : "password auth");
+                    Console.WriteLine($"  Trying PostgreSQL at {host}:{port} with {authType}...");
                     string connectionString = BuildPostgresConnectionString(host, port, "postgres", password, useIntegratedSecurity);
                     if (TryConnectPostgres(connectionString))
                     {
