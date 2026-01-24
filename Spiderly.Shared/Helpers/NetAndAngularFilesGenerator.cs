@@ -332,6 +332,14 @@ namespace Spiderly.Shared.Helpers
                 {
                     new SpiderlyFolder
                     {
+                        Name = ".config",
+                        Files =
+                        {
+                            new SpiderlyFile { Name = "dotnet-tools.json", Data = GetDotnetToolsJsonData() },
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
                         Name = $"{appName}.Business",
                         ChildFolders =
                         {
@@ -3967,6 +3975,24 @@ namespace {{appName}}.Business.DataMappers
 
   "[csharp]": {
     "editor.defaultFormatter": "ms-dotnettools.csharp"
+  }
+}
+""";
+    }
+
+    private static string GetDotnetToolsJsonData()
+    {
+      return """
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-ef": {
+      "version": "9.0.1",
+      "commands": [
+        "dotnet-ef"
+      ]
+    }
   }
 }
 """;
