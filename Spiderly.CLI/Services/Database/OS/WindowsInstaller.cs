@@ -88,7 +88,7 @@ namespace Spiderly.CLI.Services.Database.OS
             if (!string.IsNullOrWhiteSpace(output))
                 return true;
 
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=sqlserver --filter status=running --format '{{.Names}}'");
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=spiderly-sqlserver --filter status=running --format '{{.Names}}'");
             return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
         }
 

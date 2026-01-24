@@ -72,17 +72,17 @@ namespace Spiderly.CLI.Services.Database.OS
 
         public override async Task<bool> IsPostgreSQLServiceRunning()
         {
-            (bool success, string output) = await ProcessRunner.RunCommand("sudo", "systemctl is-active postgresql");
-            if (success && output.Trim() == "active")
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=spiderly-postgres --filter status=running --format '{{.Names}}'");
+            if (dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput))
                 return true;
 
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=postgres --filter status=running --format '{{.Names}}'");
-            return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
+            (bool success, string output) = await ProcessRunner.RunCommand("sudo", "systemctl is-active postgresql");
+            return success && output.Trim() == "active";
         }
 
         public override async Task<bool> IsSqlServerServiceRunning()
         {
-            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=sqlserver --filter status=running --format '{{.Names}}'");
+            (bool dockerSuccess, string dockerOutput) = await ProcessRunner.RunCommand("docker", "ps --filter name=spiderly-sqlserver --filter status=running --format '{{.Names}}'");
             return dockerSuccess && !string.IsNullOrWhiteSpace(dockerOutput);
         }
 

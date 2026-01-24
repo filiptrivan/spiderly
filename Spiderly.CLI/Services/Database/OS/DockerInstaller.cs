@@ -7,7 +7,7 @@ namespace Spiderly.CLI.Services.Database.OS
             ConsoleHelper.MarkupLineLoading("Installing PostgreSQL via Docker...");
             Console.WriteLine("This may take several minutes...");
 
-            string dockerCommand = "run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:latest";
+            string dockerCommand = "run --name spiderly-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:latest";
 
             (bool successful, _) = await ProcessRunner.RunCommand("docker", dockerCommand);
 
@@ -53,7 +53,7 @@ namespace Spiderly.CLI.Services.Database.OS
             ConsoleHelper.MarkupLineLoading("Docker detected. Installing SQL Server via Docker...");
             Console.WriteLine("This may take several minutes...");
 
-            string dockerCommand = "run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourPassword123.\" -p 1433:1433 --name sqlserver -d mcr.microsoft.com/mssql/server:2022-latest";
+            string dockerCommand = "run -e \"ACCEPT_EULA=Y\" -e \"SA_PASSWORD=YourPassword123.\" -p 1433:1433 --name spiderly-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest";
 
             (bool successful, _) = await ProcessRunner.RunCommand("docker", dockerCommand);
 
