@@ -817,8 +817,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                 result.Add($$"""
                     <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property)}}">
                         <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
+                        <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
                     </div>
-                    <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
 """);
             }
 
