@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.AspNetCore.StaticFiles;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -37,12 +38,22 @@ namespace Spiderly.Shared.Services
                 newFileName = $"{objectType}/{objectProperty}/{objectId}/{objectId}-{Guid.NewGuid()}.{fileExtension}";
             }
 
+            FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
+            if (!provider.TryGetContentType(fileName, out string contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
             PutObjectRequest putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = newFileName,
                 InputStream = content,
+                ContentType = contentType,
                 DisablePayloadSigning = true, // Essential fix for R2
+                Headers = {
+                    CacheControl = "public, max-age=31536000, immutable"
+                },
             };
 
             await _s3Client.PutObjectAsync(putRequest);
