@@ -221,7 +221,7 @@ export function toCommaSeparatedString<T>(input: T[]): string {
   }
 }
 
-export function isImageFileType(mimeType: string): boolean {
+export function isFileImageType(mimeType: string): boolean {
   if (mimeType.startsWith('image/')) {
     return true;
   }

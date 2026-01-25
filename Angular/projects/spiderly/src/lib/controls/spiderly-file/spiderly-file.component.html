@@ -49,7 +49,7 @@
               class="card m-0 px-3 py-3 flex flex-column align-items-center gap-3"
               style="justify-content: center; overflow: hidden"
             >
-              <div *ngIf="isImageFileType(file.type)" class="image-container">
+              <div *ngIf="isFileImageType(file.type)" class="image-container">
                 <img role="presentation" [src]="file.objectURL" />
               </div>
               <div *ngIf="isExcelFileType(file.type)" class="excel-container">

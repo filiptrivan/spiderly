@@ -158,7 +158,8 @@ export class {{entity.Name}}BaseDetailsComponent {
     @Input() showReturnButton: boolean = true;
     @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve({{(!Helpers.ShouldAuthorizeEntity(entity)).ToString().ToLower()}});
     isAuthorizedForSave: boolean = {{(!Helpers.ShouldAuthorizeEntity(entity)).ToString().ToLower()}};
-    @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>(); 
+    @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>();
+{{string.Join("\n", GetBlobUploadedOutputVariables(entity.Properties, entity, allEntities, isFromOrderedOneToMany: false))}}
 
     modelId: number;
     loading: boolean = true;
@@ -249,7 +250,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetAutocompleteSearchMethods(entity.Properties, entity, allEntities))}}
 
-{{string.Join("\n", GetUploadImageMethods(entity.Properties, entity, allEntities))}}
+{{string.Join("\n", GetUploadImageMethods(entity.Properties, entity, allEntities, isFromOrderedOneToMany: false))}}
 
     save(){
         this.onSave.next();
@@ -754,7 +755,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetUploadImageMethods(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetBlobUploadedOutputVariables(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities, bool isFromOrderedOneToMany)
         {
             List<string> result = new();
 
@@ -764,7 +765,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                 {
                     SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
-                    result.AddRange(GetUploadImageMethods(extractedEntity.Properties, extractedEntity, entities));
+                    result.AddRange(GetBlobUploadedOutputVariables(extractedEntity.Properties, extractedEntity, entities, isFromOrderedOneToMany: true));
 
                     continue;
                 }
@@ -773,16 +774,66 @@ export class {{entity.Name}}BaseDetailsComponent {
 
                 if (controlType == UIControlTypeCodes.File)
                 {
-                    result.Add($$"""
+                    if (isFromOrderedOneToMany)
+                    {
+                        result.Add($$"""
+    @Output() on{{property.Name}}For{{entity.Name}}Uploaded = new EventEmitter<{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }>();
+""");
+                    }
+                    else
+                    {
+                        result.Add($$"""
+    @Output() on{{property.Name}}Uploaded = new EventEmitter<SpiderlyFileSelectEvent>();
+""");
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static List<string> GetUploadImageMethods(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities, bool isFromOrderedOneToMany)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in properties.Where(x => x.HasUIDoNotGenerateAttribute() == false))
+            {
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+                    result.AddRange(GetUploadImageMethods(extractedEntity.Properties, extractedEntity, entities, isFromOrderedOneToMany: true));
+
+                    continue;
+                }
+
+                UIControlTypeCodes controlType = GetUIControlType(property);
+
+                if (controlType == UIControlTypeCodes.File)
+                {
+                    if (isFromOrderedOneToMany)
+                    {
+                        result.Add($$"""
     upload{{property.Name}}For{{entity.Name}}(event: SpiderlyFileSelectEvent, formGroup: SpiderlyFormGroup){
         this.apiService.upload{{property.Name}}For{{entity.Name}}(event.formData).subscribe((completeFileName: string) => {
             formGroup.controls['{{property.Name.FirstCharToLower()}}'].setValue(completeFileName);
+            this.on{{property.Name}}For{{entity.Name}}Uploaded.emit({ event, formGroup });
         });
     }
 """);
-
+                    }
+                    else
+                    {
+                        result.Add($$"""
+    upload{{property.Name}}For{{entity.Name}}(event: SpiderlyFileSelectEvent, formGroup: SpiderlyFormGroup){
+        this.apiService.upload{{property.Name}}For{{entity.Name}}(event.formData).subscribe((completeFileName: string) => {
+            formGroup.controls['{{property.Name.FirstCharToLower()}}'].setValue(completeFileName);
+            this.on{{property.Name}}Uploaded.emit(event);
+        });
+    }
+""");
+                    }
                 }
-
             }
 
             return result;

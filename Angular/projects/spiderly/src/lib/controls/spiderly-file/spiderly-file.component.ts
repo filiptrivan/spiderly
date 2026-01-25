@@ -7,9 +7,10 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { SpiderlyButtonComponent } from '../../components/spiderly-buttons/spiderly-button/spiderly-button.component';
 import { BaseEntity } from '../../entities/base-entity';
 import {
+  getImageDimensions,
   getMimeTypeForFileName,
   isExcelFileType,
-  isImageFileType,
+  isFileImageType,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { ValidatorAbstractService } from '../../services/validator-abstract.service';
@@ -81,7 +82,7 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     const file = event.files[0];
 
     if (
-      this.isImageFileType(file.type) &&
+      this.isFileImageType(file.type) &&
       this.hasImageDimensionConstraints()
     ) {
       this.files = [];
@@ -100,12 +101,21 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     }
   }
 
-  private emitFileSelected(file: File): void {
+  private async emitFileSelected(file: File): Promise<void> {
     const formData = new FormData();
     formData.append('file', file, `${this.objectId}-${file.name}`);
 
+    let width: number | undefined;
+    let height: number | undefined;
+
+    if (this.isFileImageType(file.type)) {
+      const dimensions = await getImageDimensions(file);
+      width = dimensions.width;
+      height = dimensions.height;
+    }
+
     this.onFileSelected.next(
-      new SpiderlyFileSelectEvent({ file: file, formData: formData }),
+      new SpiderlyFileSelectEvent({ file, formData, width, height }),
     );
   }
 
@@ -165,8 +175,8 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
     return file;
   }
 
-  isImageFileType(mimeType: string): boolean {
-    return isImageFileType(mimeType);
+  isFileImageType(mimeType: string): boolean {
+    return isFileImageType(mimeType);
   }
 
   isExcelFileType(mimeType: string): boolean {
@@ -177,18 +187,26 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
 export class SpiderlyFileSelectEvent extends BaseEntity {
   file?: File;
   formData?: FormData;
+  width?: number;
+  height?: number;
 
   constructor({
     file,
     formData,
+    width,
+    height,
   }: {
     file?: File;
     formData?: FormData;
+    width?: number;
+    height?: number;
   } = {}) {
     super();
 
     this.file = file;
     this.formData = formData;
+    this.width = width;
+    this.height = height;
   }
 
   static readonly typeName = 'SpiderlyFileSelectEvent' as const;
