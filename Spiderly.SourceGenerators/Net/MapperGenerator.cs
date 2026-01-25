@@ -17,7 +17,7 @@ namespace Spiderly.SourceGenerators.Net
     /// the creation of mapping configurations between your entities and DTOs using the Mapster library.
     /// </summary>
     [Generator]
-    public class MapperlyGenerator : IIncrementalGenerator
+    public class MapperGenerator : IIncrementalGenerator
     {
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -59,7 +59,7 @@ namespace Spiderly.SourceGenerators.Net
             if (classes.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(MapperlyGenerator), jsonConfigContent))
+            if (Helpers.ShouldSkipGenerator(nameof(MapperGenerator), jsonConfigContent))
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);

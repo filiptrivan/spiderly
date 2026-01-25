@@ -7,7 +7,7 @@
   "NgValidatorsGenerator": false,
   "TranslationsGenerator": false,
   "PermissionCodesGenerator": false,
-  "MapperlyGenerator": false,
+  "MapperGenerator": false,
   "FluentValidationGenerator": true,
   "ExcelPropertiesGenerator": false,
   "EntitiesToDTOGenerator": false,
