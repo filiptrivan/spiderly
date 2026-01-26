@@ -561,23 +561,6 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetManyToManyMultiControlTypesForkJoinParameters(SpiderlyClass entity)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty property in entity.Properties
-                .Where(x =>
-                    x.IsMultiSelectControlType() ||
-                    x.IsMultiAutocompleteControlType()))
-            {
-                result.Add($$"""
-                    {{property.Name.FirstCharToLower()}}For{{entity.Name}}: this.apiService.get{{property.Name}}NamebookListFor{{entity.Name}}(this.modelId),
-""");
-            }
-
-            return result;
-        }
-
         #region Ordered One To Many
 
         private static List<string> GetOrderedOneToManyForkJoinParameters(SpiderlyClass entity, List<SpiderlyClass> allEntities)

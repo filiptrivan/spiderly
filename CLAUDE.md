@@ -6,3 +6,5 @@
 - Prefer existing available methods over creating new ones.
 - Split logic into smaller, focused methods whenever possible.
 - Prefer raw string literals ($$""" """) for multiline strings in C#.
+- Enum types in Spiderly follow the `...Codes` naming convention (e.g., `StatusCodes`, `UIControlTypeCodes`).
+- Use `List<T>` for one-to-many and many-to-many collections, not `IList<T>` or other collection interfaces.
