@@ -39,6 +39,7 @@ export function getMimeTypeForFileName(fileName: string): string {
     '.png': 'image/png',
     '.webp': 'image/webp',
     '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
     '.pdf': 'application/pdf',
     '.txt': 'text/plain',
     '.html': 'text/html',

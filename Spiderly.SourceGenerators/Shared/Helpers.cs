@@ -1223,9 +1223,6 @@ namespace Spiderly.SourceGenerators.Shared
             if (cSharpType.IsEnum())
                 return cSharpType;
 
-            if (cSharpType.EndsWith("MimeTypes") || cSharpType.EndsWith("MimeTypes>"))
-                return cSharpType;
-
             if (cSharpType.Contains(DTONamespaceEnding) || (cSharpType.Contains("Task<") && cSharpType.Contains("ActionResult") == false)) // FT: We don't want to handle "ActionResult"
                 return ExtractAngularTypeFromGenericCSharpType(cSharpType); // ManyToOne
 

@@ -65,7 +65,6 @@ export * from './lib/entities/is-authorized-for-save-event';
 export * from './lib/entities/last-menu-icon-index-clicked';
 export * from './lib/entities/lazy-load-selected-ids-result';
 export * from './lib/entities/menuchangeevent';
-export * from './lib/entities/mime-type';
 export * from './lib/entities/namebook';
 export * from './lib/entities/paginated-result';
 export * from './lib/entities/primeng-option';
