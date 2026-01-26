@@ -142,15 +142,23 @@ export enum {{enume.Identifier.Text}}
 
             List<string> currentProjectEntitiesPermissionCodes = Helpers.GetPermissionCodesForEntites(currentProjectEntities);
 
-            foreach (SpiderlyClass classEnum in currentProjectClassEnums.OrderBy(x => x.Name).ToList())
-            {
-                List<string> angularEnumItemNameValuePairs = GetAngularEnumItemNameValuePairs(classEnum.Properties.Select(x => x.Name).ToList());
+            IOrderedEnumerable<IGrouping<string, SpiderlyClass>> groupedClassEnums = currentProjectClassEnums
+                .GroupBy(x => x.Name)
+                .OrderBy(x => x.Key);
 
-                if (classEnum.Name == $"PermissionCodes")
-                    angularEnumItemNameValuePairs.AddRange(GetAngularEnumItemNameValuePairs(currentProjectEntitiesPermissionCodes));
+            foreach (IGrouping<string, SpiderlyClass> group in groupedClassEnums)
+            {
+                List<string> propertyNames = group
+                    .SelectMany(x => x.Properties.Select(p => p.Name))
+                    .ToList();
+
+                if (group.Key == "PermissionCodes")
+                    propertyNames.AddRange(currentProjectEntitiesPermissionCodes);
+
+                List<string> angularEnumItemNameValuePairs = GetAngularEnumItemNameValuePairs(propertyNames.Distinct().ToList());
 
                 sb.AppendLine($$"""
-export enum {{classEnum.Name}}
+export enum {{group.Key}}
 {
     {{string.Join("\n\t", angularEnumItemNameValuePairs)}}
 }
