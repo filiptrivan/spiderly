@@ -389,6 +389,11 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "M2MWithMany");
         }
 
+        public static bool HasWithManyAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "WithMany");
+        }
+
         public static bool HasGenerateCommaSeparatedDisplayNameAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "GenerateCommaSeparatedDisplayName");

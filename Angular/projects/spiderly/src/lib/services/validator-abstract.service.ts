@@ -19,6 +19,11 @@ export abstract class ValidatorAbstractService {
     className: string,
   ): SpiderlyValidatorFn;
 
+  abstract setFormArrayValidator(
+    formArray: SpiderlyFormArray,
+    className: string,
+  ): void;
+
   validateImageDimensions(
     file: File,
     imageWidth: number,
@@ -101,7 +106,7 @@ export abstract class ValidatorAbstractService {
     control.updateValueAndValidity();
   };
 
-  isFormArrayEmpty = (control: SpiderlyFormArray): SpiderlyValidatorFn => {
+  isFormArrayEmpty = (control: SpiderlyFormArray): void => {
     const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
       const value = control;
 
@@ -116,6 +121,7 @@ export abstract class ValidatorAbstractService {
     };
     validator.hasNotEmptyRule = true;
     control.required = true;
-    return validator;
+    control.setValidators(validator);
+    control.updateValueAndValidity();
   };
 }

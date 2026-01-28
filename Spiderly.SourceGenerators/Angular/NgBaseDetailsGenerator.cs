@@ -147,7 +147,7 @@ namespace Spiderly.SourceGenerators.Angular
 export class {{entity.Name}}BaseDetailsComponent {
     @Output() onSave = new EventEmitter<void>();
     @Output() onAfterFormGroupInit = new EventEmitter<void>();
-    @Input() parentFormGroup: SpiderlyFormGroup<{{entity.Name}}MainUIForm>;
+    @Input() parentFormGroup: SpiderlyFormGroup<{{entity.Name}}SaveBody>;
     @Input() isFirstMultiplePanel: boolean = false;
     @Input() isMiddleMultiplePanel: boolean = false;
     @Input() isLastMultiplePanel: boolean = false;
@@ -187,12 +187,7 @@ export class {{entity.Name}}BaseDetailsComponent {
     ) {}
 
     ngOnInit(){
-        this.parentFormGroup.initSaveBody = () => { 
-            let saveBody = new {{entity.Name}}SaveBody();
-            saveBody = this.baseFormService.mapMainUIFormToSaveBody({{entity.Name}}MainUIForm, this.parentFormGroup.getRawValue());
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoadSaveBodyAssignements(entity))}}
-            return saveBody;
-        }
 
         this.parentFormGroup.saveObservableMethod = this.apiService.save{{entity.Name}};
 
@@ -207,14 +202,18 @@ export class {{entity.Name}}BaseDetailsComponent {
                     mainUIFormDTO: this.apiService.get{{entity.Name}}MainUIFormDTO(this.modelId),
                 })
                 .subscribe(async ({ mainUIFormDTO }) => {
-                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm, mainUIFormDTO);
+                    const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
+                        {{entity.Name}}MainUIForm,
+                        mainUIFormDTO,
+                    );
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody, saveBody);
                     await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
             else {
-                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}MainUIForm);
+                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody);
                 await this.handleAuthorizationForSave();
                 this.loading = false;
                 this.onAfterFormGroupInit.next();
@@ -489,10 +488,10 @@ export class {{entity.Name}}BaseDetailsComponent {
             foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
             {
                 result.Add($$"""
-            saveBody.selected{{property.Name}}Ids = this.newlySelected{{property.Name}}IdsFor{{entity.Name}};
-            saveBody.unselected{{property.Name}}Ids = this.unselected{{property.Name}}IdsFor{{entity.Name}};
-            saveBody.areAll{{property.Name}}Selected = this.areAll{{property.Name}}SelectedFor{{entity.Name}};
-            saveBody.{{property.Name.FirstCharToLower()}}TableFilter = this.last{{property.Name}}LazyLoadTableFilterFor{{entity.Name}};
+        this.parentFormGroup.controls.selected{{property.Name}}Ids.setValue(this.newlySelected{{property.Name}}IdsFor{{entity.Name}});
+        this.parentFormGroup.controls.unselected{{property.Name}}Ids.setValue(this.unselected{{property.Name}}IdsFor{{entity.Name}});
+        this.parentFormGroup.controls.areAll{{property.Name}}Selected.setValue(this.areAll{{property.Name}}SelectedFor{{entity.Name}});
+        this.parentFormGroup.controls.{{property.Name.FirstCharToLower()}}TableFilter.setValue(this.last{{property.Name}}LazyLoadTableFilterFor{{entity.Name}});
 """);
             }
 
@@ -654,7 +653,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (isFromOrderedOneToMany)
                 return $"{entity.Name.FirstCharToLower()}FormGroup.controls.ordered{property.Name}MainUIFormDTO";
             else
-                return $"this.parentFormGroup.controls.ordered{property.Name}MainUIFormDTO";
+                return $"this.parentFormGroup.controls.ordered{property.Name}SaveBodyDTO";
         }
 
         #endregion
@@ -991,10 +990,10 @@ export class {{entity.Name}}BaseDetailsComponent {
                 return $"{property.Name.FirstCharToLower()}Id";
 
             if (property.IsMultiSelectControlType())
-                return $"{property.Name.FirstCharToLower()}Ids";
+                return $"selected{property.Name}Ids";
 
             if (property.IsMultiAutocompleteControlType())
-                return $"{property.Name.FirstCharToLower()}NamebookDTOList";
+                return $"selected{property.Name}NamebookDTOList";
 
             return property.Name.FirstCharToLower();
         }

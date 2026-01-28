@@ -21,12 +21,12 @@ namespace Spiderly.SourceGenerators.Net
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-// #if DEBUG
-//             if (!Debugger.IsAttached)
-//             {
-//                 Debugger.Launch();
-//             }
-// #endif
+            // #if DEBUG
+            //             if (!Debugger.IsAttached)
+            //             {
+            //                 Debugger.Launch();
+            //             }
+            // #endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
@@ -100,7 +100,10 @@ namespace {{basePartOfNamespace}}.ValidationRules
                     DTOAttributes.AddRange(DTOClass.Attributes);
                 }
 
-                SpiderlyClass entity = currentProjectEntities.SingleOrDefault(x => DTOClassGroup.Key.Replace("DTO", "") == x.Name); // If it is null then we only made DTO, without entity class
+                SpiderlyClass entity = currentProjectEntities.SingleOrDefault(x =>
+                    DTOClassGroup.Key.Replace("DTO", "") == x.Name ||
+                    DTOClassGroup.Key.Replace("SaveBodyDTO", "") == x.Name
+                ); // If it is null then we only made DTO, without entity class
 
                 List<SpiderValidationRule> rules = Helpers.GetValidationRules(DTOProperties, DTOAttributes, entity);
 

@@ -8,3 +8,4 @@
 - Prefer raw string literals ($$""" """) for multiline strings in C#.
 - Enum types in Spiderly follow the `...Codes` naming convention (e.g., `StatusCodes`, `UIControlTypeCodes`).
 - Use `List<T>` for one-to-many and many-to-many collections, not `IList<T>` or other collection interfaces.
+- `[StringLength(X)]` without `MinimumLength` generates an **exact length** validation. Use `[StringLength(X, MinimumLength = Y)]` for a range.

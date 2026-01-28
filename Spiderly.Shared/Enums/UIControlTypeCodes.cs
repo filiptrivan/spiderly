@@ -66,7 +66,7 @@ namespace Spiderly.Shared.Enums
         /// Example:
         /// <code>
         /// [UIControlType(nameof(UIControlTypeCodes.TextArea))]
-        /// [StringLength(2000)]
+        /// [StringLength(2000, MinimumLength = 1)]
         /// public string Description { get; set; }
         /// </code>
         /// </example>
@@ -91,7 +91,7 @@ namespace Spiderly.Shared.Enums
         /// <example>
         /// Example:
         /// <code>
-        /// [StringLength(100)]
+        /// [StringLength(100, MinimumLength = 1)]
         /// public string FirstName { get; set; }
         /// </code>
         /// </example>
@@ -141,7 +141,7 @@ namespace Spiderly.Shared.Enums
         /// Example:
         /// <code>
         /// [UIControlType(nameof(UIControlTypeCodes.ColorPicker))]
-        /// [StringLength(10)]
+        /// [StringLength(10, MinimumLength = 1)]
         /// public string BackgroundColor { get; set; }
         /// </code>
         /// </example>
@@ -155,7 +155,7 @@ namespace Spiderly.Shared.Enums
         /// Example:
         /// <code>
         /// [UIControlType(nameof(UIControlTypeCodes.Editor))]
-        /// [StringLength(10000)]
+        /// [StringLength(10000, MinimumLength = 1)]
         /// public string Content { get; set; }
         /// </code>
         /// </example>
@@ -195,7 +195,7 @@ namespace Spiderly.Shared.Enums
         /// Example:
         /// <code>
         /// [UIControlType(nameof(UIControlTypeCodes.Password))]
-        /// [StringLength(100)]
+        /// [StringLength(100, MinimumLength = 1)]
         /// public string PasswordHash { get; set; }
         /// </code>
         /// </example>

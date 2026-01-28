@@ -66,10 +66,10 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else if (baseClass == null)
                 {
-                    SpiderlyClass spiderBaseClass = referencedProjectsClasses.SingleOrDefault(x => x.Name == c.Identifier.Text);
+                    SpiderlyClass spiderlyBaseClass = referencedProjectsClasses.SingleOrDefault(x => x.Name == c.Identifier.Text);
 
-                    if (spiderBaseClass != null)
-                        properties.AddRange(spiderBaseClass.Properties);
+                    if (spiderlyBaseClass != null)
+                        properties.AddRange(spiderlyBaseClass.Properties);
 
                     break;
                 }
@@ -195,12 +195,12 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static string GetDisplayNameProperty(SpiderlyClass entity)
         {
-            SpiderlyAttribute entityDisplayNameAttribute = entity.Attributes.Where(x => x.Name == "DisplayName").SingleOrDefault();
+            SpiderlyAttribute entityDisplayNameAttribute = entity.Attributes.SingleOrDefault(x => x.Name == "DisplayName");
 
             if (entityDisplayNameAttribute != null)
                 return entityDisplayNameAttribute.Value;
 
-            SpiderlyProperty displayNamePropForClass = entity.Properties.Where(x => x.Attributes.Any(x => x.Name == DisplayNameAttribute)).SingleOrDefault();
+            SpiderlyProperty displayNamePropForClass = entity.Properties.SingleOrDefault(x => x.Attributes.Any(x => x.Name == DisplayNameAttribute));
 
             if (displayNamePropForClass == null)
                 return $"Id.ToString()";
@@ -321,23 +321,21 @@ namespace Spiderly.SourceGenerators.Shared
                 throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {manyToManyEntity.Name}.");
 
             SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties // Category
-                .Where(x => x.Attributes
-                    .Any(x => x.Value != oneToManyProperty.Name))
-                .Single();
+                .Single(x => x.Attributes
+                    .Any(x => x.Value != oneToManyProperty.Name));
 
             string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single(); // Products
 
-            return extractedPropertyEntity.Properties.Where(x => x.Name == propertyName).SingleOrDefault(); // List<Product> Products
+            return extractedPropertyEntity.Properties.SingleOrDefault(x => x.Name == propertyName); // List<Product> Products
         }
 
         /// <param name="entity">Main entity from which we get one to many property</param>
         public static SpiderlyClass GetManyToManyEntityWithAttributeValue(string attributeValue, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             return entities
-                .Where(x => x.HasM2MAttribute() && x.Properties
+                .SingleOrDefault(x => x.HasM2MAttribute() && x.Properties
                     .Any(x => x.Type == entity.Name && x.Attributes
-                        .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)))
-                .SingleOrDefault();
+                        .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)));
         }
 
         #endregion
@@ -769,7 +767,12 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" };
+
+                    if (property.Attributes.Any(x => x.Name == "Required"))
+                        orderedProp.Attributes.Add(new SpiderlyAttribute { Name = "Required" });
+
+                    result.Add(orderedProp);
                 }
                 else if (property.IsMultiSelectControlType())
                 {
@@ -810,7 +813,12 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                    SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" };
+
+                    if (property.Attributes.Any(x => x.Name == "Required"))
+                        orderedProp.Attributes.Add(new SpiderlyAttribute { Name = "Required" });
+
+                    result.Add(orderedProp);
                 }
                 else if (property.IsMultiSelectControlType())
                 {
@@ -925,7 +933,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                     rules.Add(new SpiderValidationRule
                     {
-                        Property = DTOProperties.Where(x => x.Name == rulePropertyName).Single(),
+                        Property = DTOProperties.Single(x => x.Name == rulePropertyName),
                         ValidationRuleParts = GetValidationRulePartsForCustomClassValidator(attribute.Value),
                     });
                 }
@@ -962,10 +970,15 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties)
         {
-            if (property.Type.IsEnumerable())
+            if (property.Type.IsEnumerable() && !property.Attributes.Any(x => x.Name == "Required"))
                 return null;
 
-            string rulePropertyName = GetManyToOnePropertyNameForRule(property);
+            string rulePropertyName = GetRulePropertyName(property);
+            SpiderlyProperty dtoProperty = DTOProperties.SingleOrDefault(x => x.Name == rulePropertyName);
+
+            if (dtoProperty == null)
+                return null;
+
             List<SpiderValidationRulePart> ruleParts = GetRulePartsForProperty(property, rulePropertyName); // NotEmpty(), Length(0, 70);
 
             if (ruleParts.Count == 0)
@@ -973,15 +986,18 @@ namespace Spiderly.SourceGenerators.Shared
 
             return new SpiderValidationRule
             {
-                Property = DTOProperties.Where(x => x.Name == rulePropertyName).Single(),
+                Property = dtoProperty,
                 ValidationRuleParts = ruleParts
             };
         }
 
-        private static string GetManyToOnePropertyNameForRule(SpiderlyProperty property)
+        private static string GetRulePropertyName(SpiderlyProperty property)
         {
-            if (property.Type.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
+            if (property.HasWithManyAttribute() && property.Type.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
                 return $"{property.Name}Id";
+
+            if (property.HasUIOrderedOneToManyAttribute())
+                return $"Ordered{property.Name}SaveBodyDTO";
 
             return property.Name;
         }

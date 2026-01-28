@@ -8,9 +8,10 @@ import {
 import { TranslocoService } from '@jsverse/transloco';
 import { MenuItem } from 'primeng/api';
 import { Observable } from 'rxjs';
-import { BaseEntity, SchemaAwareConstructor } from '../../entities/base-entity';
+import { SchemaAwareConstructor } from '../../entities/base-entity';
 import { Namebook } from '../../entities/namebook';
 import { BaseFormService } from '../../services/base-form.service';
+import { BaseEntity } from './../../entities/base-entity';
 
 export interface SpiderlyValidatorFn extends ValidatorFn {
   hasNotEmptyRule?: boolean;
@@ -78,7 +79,7 @@ export class SpiderlyFormGroup<TValue = any> extends FormGroup {
   public trackingId: string = crypto.randomUUID();
   public name?: string; // Using for nested form groups
   public saveObservableMethod?: (saveBody: any) => Observable<any>;
-  public initSaveBody?: () => BaseEntity = () => null;
+  // TODO: Delete controlNamesFromHtml and add UIDoNotGenerate flag into ng entity generator, we shouldn't even add those into parentFormGroup
   public controlNamesFromHtml?: string[] = [];
 
   public getControl = <TKey extends Extract<keyof TValue, string>>(

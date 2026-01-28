@@ -25,11 +25,66 @@ import { BaseFormService } from './../../services/base-form.service';
   styles: [],
   standalone: false,
 })
-export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
-  parentFormGroup = new SpiderlyFormGroup<T>({} as any);
-  mainUIFormClass: SchemaAwareConstructor<T>;
-  saveBodyClass: SchemaAwareConstructor<T>;
-  saveBody: any;
+export class BaseFormCopy<
+  TMainUIForm extends BaseEntity = any,
+  TSaveBody extends BaseEntity = any,
+> implements OnInit {
+  /**
+   * The root form group that holds all form controls, typed to `TSaveBody`.
+   * Assign `saveObservableMethod` on it to define the HTTP call used for saving.
+   * The form controls are built automatically from the `TSaveBody` schema when you call
+   * `baseFormService.initFormGroup(this.parentFormGroup, saveBodyClass, saveBody)`.
+   *
+   * @example
+   * ```ts
+   * this.parentFormGroup.saveObservableMethod = this.apiService.saveProduct;
+   *
+   * this.baseFormService.initFormGroup(
+   *   this.parentFormGroup,
+   *   ProductSaveBody,
+   *   saveBody,
+   * );
+   * ```
+   */
+  parentFormGroup = new SpiderlyFormGroup<TSaveBody>({} as any);
+
+  /**
+   * The class reference for the main UI form entity (`TMainUIForm`).
+   * This represents the shape of the data **returned by the API** after a save.
+   * Used internally by `mapMainUIFormToSaveBody` to transform the API response back into `TSaveBody`
+   * for form re-initialization.
+   *
+   * @example
+   * ```ts
+   * this.mainUIFormClass = ProductMainUIForm;
+   * ```
+   */
+  mainUIFormClass: SchemaAwareConstructor<TMainUIForm>;
+
+  /**
+   * The class reference for the save body entity (`TSaveBody`).
+   * This represents the shape of the data **sent to the API** when saving.
+   * Used internally to build form controls from the schema via `initFormGroup`,
+   * and to locate the main DTO property (marked with `isSaveBodyMainDTO: true`) for extracting the saved entity's ID.
+   *
+   * @example
+   * ```ts
+   * this.saveBodyClass = ProductSaveBody;
+   * ```
+   */
+  saveBodyClass: SchemaAwareConstructor<TSaveBody>;
+
+  /**
+   * The toast message displayed after a successful save.
+   * Override this to customize the success notification text for a specific entity.
+   * If you want to change the message for all entities, update the `SuccessfulSaveToastDescription` key
+   * in your translation JSON file instead.
+   *
+   * @example
+   * ```ts
+   * this.successfulSaveToastDescription = 'Product saved successfully!';
+   * ```
+   */
   successfulSaveToastDescription: string = this.translocoService.translate(
     'SuccessfulSaveToastDescription',
   );
@@ -51,40 +106,67 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
 
   //#region Model
 
+  /**
+   * Executes the save flow for the form. The execution order is:
+   * 1. Builds the save body from the form's raw value.
+   * 2. Calls {@link onBeforeSave} — use this to modify the save body before validation.
+   * 3. Validates the form. If invalid, shows an error message and stops.
+   * 4. Sends the save HTTP request via `saveObservableMethod`.
+   * 5. Calls {@link onAfterSaveRequest} — fires immediately after the request is sent, before the response arrives.
+   * 6. On successful response: shows a success toast, reroutes, and calls {@link onAfterSave}. The form is re-initialized only when `rerouteToParentSlugAfterSave` is `false`.
+   *
+   * @param rerouteToParentSlugAfterSave - When `true` (default), navigates to the parent URL after save. When `false`, re-initializes the form and navigates to the saved object's URL.
+   *
+   * @example
+   * ```html
+   * <button (click)="onSave()">Save</button>
+   * ```
+   *
+   * @example
+   * ```html
+   * <!-- Save and stay on the saved object's page -->
+   * <button (click)="onSave(false)">Save and stay</button>
+   * ```
+   */
   // onSave method is here only because of the hooks, we should move everything except them to the BaseFromService
-  onSave = (reroute: boolean = true) => {
+  onSave = (rerouteToParentSlugAfterSave: boolean = true) => {
     if (!this.saveBodyClass)
       throw new SpiderlyError('You did not initialize saveBodyClass');
 
     if (!this.mainUIFormClass)
       throw new SpiderlyError('You did not initialize mainUIFormClass');
 
-    this.saveBody = this.parentFormGroup.initSaveBody();
+    let saveBody = this.parentFormGroup.getRawValue();
 
-    this.onBeforeSave(this.saveBody);
-
-    this.saveBody = this.saveBody ?? this.parentFormGroup.getRawValue();
+    this.onBeforeSave(saveBody);
 
     const isValid = this.baseFormService.isControlValid(this.parentFormGroup);
 
     if (isValid) {
       this.parentFormGroup
-        .saveObservableMethod(this.saveBody)
-        .subscribe((res) => {
+        .saveObservableMethod(saveBody)
+        .subscribe((res: TMainUIForm) => {
           this.messageService.successMessage(
             this.successfulSaveToastDescription,
           );
 
-          this.baseFormService.initFormGroup(
-            this.parentFormGroup,
-            this.mainUIFormClass,
-            res,
-          );
+          if (rerouteToParentSlugAfterSave) {
+            this.rerouteToSavedObject(undefined);
+          } else {
+            saveBody = this.baseFormService.mapMainUIFormToSaveBody(
+              this.mainUIFormClass,
+              res,
+            );
 
-          if (reroute) {
+            this.baseFormService.initFormGroup(
+              this.parentFormGroup,
+              this.saveBodyClass,
+              saveBody,
+            );
+
             const saveBodyMainDTOKey =
               this.baseFormService.getSaveBodyMainDTOKey(this.saveBodyClass);
-            const savedObjectId = res[saveBodyMainDTOKey]?.id;
+            const savedObjectId = saveBody[saveBodyMainDTOKey]?.id;
             this.rerouteToSavedObject(savedObjectId); // You always need to have id, because of id == 0 and version change
           }
 
@@ -97,6 +179,21 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
     }
   };
 
+  /**
+   * Handles navigation after a successful save.
+   * Override this to customize the post-save navigation behavior.
+   * By default, navigates to the parent URL when `rerouteId` is not provided, or to the saved object's URL otherwise.
+   *
+   * @param rerouteId - The ID of the saved object, used to build the target URL. When not provided, navigates to the parent URL.
+   *
+   * @example
+   * ```ts
+   * // Override to navigate to a custom route after save
+   * rerouteToSavedObject = (rerouteId: number | string): void => {
+   *   this.router.navigateByUrl(`/products/${rerouteId}/details`);
+   * };
+   * ```
+   */
   rerouteToSavedObject = (rerouteId: number | string): void => {
     if (rerouteId == null) {
       const currentUrl = this.router.url;
@@ -112,8 +209,45 @@ export class BaseFormCopy<T extends BaseEntity = any> implements OnInit {
     this.router.navigateByUrl(newUrl);
   };
 
-  onBeforeSave = (saveBody?: any) => {};
+  /**
+   * Hook that runs **before** form validation and the save request.
+   * Use this to modify the save body or perform any pre-save logic (e.g., transforming data, setting computed fields).
+   *
+   * @param saveBody - The current save body built from the form's raw value. Mutate it directly to change what gets sent to the server.
+   *
+   * @example
+   * ```ts
+   * onBeforeSave = (saveBody?: ProductSaveBody) => {
+   *   saveBody.productDTO.fullName = saveBody.productDTO.firstName + ' ' + saveBody.productDTO.lastName;
+   * };
+   * ```
+   */
+  onBeforeSave = (saveBody?: TSaveBody) => {};
+
+  /**
+   * Hook that runs **after** a successful save response is received.
+   * Use this for post-save side effects (e.g., refreshing related data, showing additional notifications).
+   *
+   * @example
+   * ```ts
+   * onAfterSave = () => {
+   *   this.loadRelatedProducts();
+   * };
+   * ```
+   */
   onAfterSave = () => {};
+
+  /**
+   * Hook that runs immediately **after** the save HTTP request is sent, but **before** the response arrives.
+   * Use this for side effects that should happen as soon as the request is dispatched (e.g., disabling UI elements, starting a loading indicator).
+   *
+   * @example
+   * ```ts
+   * onAfterSaveRequest = () => {
+   *   this.isSaving = true;
+   * };
+   * ```
+   */
   onAfterSaveRequest = () => {};
 
   //#endregion

@@ -560,7 +560,7 @@ import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormServic
         {{entityName}}BaseDetailsComponent
     ]
 })
-export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}MainUIForm> implements OnInit {
+export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}MainUIForm, {{entityName}}SaveBody> implements OnInit {
     override mainUIFormClass = {{entityName}}MainUIForm;
     override saveBodyClass = {{entityName}}SaveBody;
 
@@ -797,9 +797,9 @@ import { ApiService } from 'src/app/business/services/api/api.service';
         NotificationBaseDetailsComponent,
     ],
 })
-export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainUIForm> implements OnInit {
-    override saveBodyClass = NotificationSaveBody;
+export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainUIForm, NotificationSaveBody> implements OnInit {
     override mainUIFormClass = NotificationMainUIForm;
+    override saveBodyClass = NotificationSaveBody;
 
     isMarkedAsRead = new SpiderlyFormControl<boolean>(true, { updateOn: 'change' });
 
@@ -949,7 +949,7 @@ import { RoleMainUIForm, RoleSaveBody } from 'src/app/business/entities/entities
     templateUrl: './role-details.component.html',
     imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, RoleBaseDetailsComponent],
 })
-export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm> implements OnInit {
+export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm, RoleSaveBody> implements OnInit {
     override saveBodyClass = RoleSaveBody;
     override mainUIFormClass = RoleMainUIForm;
 
@@ -1074,7 +1074,7 @@ import { AuthService } from 'src/app/business/services/auth/auth.service';
     templateUrl: './user-details.component.html',
     imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, UserBaseDetailsComponent],
 })
-export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm> implements OnInit {
+export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm, UserSaveBody> implements OnInit {
     override saveBodyClass = UserSaveBody;
     override mainUIFormClass = UserMainUIForm;
 
@@ -5097,28 +5097,19 @@ export const ThemePreset = definePreset(Aura, {
     private static string GetValidatorsTsCode()
     {
       return $$"""
-import { TranslocoService } from '@jsverse/transloco';
 import { Injectable } from '@angular/core';
-import { ValidatorServiceGenerated } from "./validators.generated";
-import { ValidatorAbstractService, SpiderlyFormControl, SpiderlyValidatorFn } from 'spiderly';
+import { TranslocoService } from '@jsverse/transloco';
+import { ValidatorServiceGenerated } from './validators.generated';
 
 @Injectable({
     providedIn: 'root',
 })
-export class ValidatorService extends ValidatorAbstractService {
-
-    constructor(
-        protected override translocoService: TranslocoService,
-        private validatorServiceGenerated: ValidatorServiceGenerated,
-    ) {
+export class ValidatorService extends ValidatorServiceGenerated {
+    constructor(protected override translocoService: TranslocoService) {
         super(translocoService);
     }
-
-    override setValidator = (formControl: SpiderlyFormControl, className: string): SpiderlyValidatorFn => {
-        return this.validatorServiceGenerated.setValidator(formControl, className);
-    }
-
 }
+
 """;
     }
 

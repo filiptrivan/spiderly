@@ -53,6 +53,10 @@ export class BaseFormService {
             propSchema.nestedConstructor,
             propInitialValue,
           );
+          this.validatorService.setFormArrayValidator(
+            existingControl,
+            targetClass.typeName,
+          );
         } else {
           const control = new SpiderlyFormArray<T>(
             [],
@@ -67,6 +71,10 @@ export class BaseFormService {
 
           control.label = formControlName;
           control.labelForDisplay = this.getTranslatedLabel(formControlName);
+          this.validatorService.setFormArrayValidator(
+            control,
+            targetClass.typeName,
+          );
 
           formGroup.setControl(formControlName, control);
         }
@@ -222,11 +230,14 @@ export class BaseFormService {
     );
   };
 
-  mapMainUIFormToSaveBody = <T extends BaseEntity>(
-    mainUIFormClass: SchemaAwareConstructor<T>,
-    mainUIFormValues: T,
-  ) => {
-    let saveBody = {};
+  mapMainUIFormToSaveBody = <
+    TMainUIForm extends BaseEntity,
+    TSaveBody extends BaseEntity,
+  >(
+    mainUIFormClass: SchemaAwareConstructor<TMainUIForm>,
+    mainUIFormValues: TMainUIForm,
+  ): TSaveBody => {
+    let saveBody = {} as TSaveBody;
 
     Object.keys(mainUIFormClass.schema).forEach((propName) => {
       const property = mainUIFormClass.schema[propName];
@@ -285,6 +296,14 @@ export class BaseFormService {
         }
       });
     } else if (control instanceof SpiderlyFormArray) {
+      if (control.errors) {
+        control.markAsDirty();
+        this.messageService.warningMessage(
+          `${control.labelForDisplay}: ${control.errors['_']}`,
+        );
+        invalid = true;
+      }
+
       control.controls.forEach(
         (
           nestedControl:

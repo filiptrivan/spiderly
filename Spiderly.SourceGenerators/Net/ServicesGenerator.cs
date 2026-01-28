@@ -1160,6 +1160,8 @@ namespace {{basePartOfNamespace}}.Services
         /// <returns>{{entity.Name}}MainUIFormDTO with saved data and updated collections</returns>
         public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
         {
+            new {{entity.Name}}SaveBodyDTOValidationRules().ValidateAndThrow(saveBodyDTO);
+
             return await _context.WithTransactionAsync(async () =>
             {
                 await OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO);
