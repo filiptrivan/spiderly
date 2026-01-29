@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
+using Spiderly.Shared.DTO;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
@@ -191,6 +192,8 @@ namespace Spiderly.Shared.Extensions
                     Title = "WebAPI",
                     Version = "v1"
                 });
+
+                options.DocumentFilter<ErrorResponseFilter>();
             });
         }
 
@@ -328,7 +331,7 @@ namespace Spiderly.Shared.Extensions
                             userId
                         );
 
-                        await context.Response.WriteAsJsonAsync(new
+                        await context.Response.WriteAsJsonAsync(new ApiErrorDTO
                         {
                             StatusCode = context.Response.StatusCode,
                             Message = message,

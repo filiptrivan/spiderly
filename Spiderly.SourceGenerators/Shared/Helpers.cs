@@ -38,7 +38,8 @@ namespace Spiderly.SourceGenerators.Shared
             "FilterRule",
             "FilterSortMeta",
             "LazyLoadSelectedIdsResult",
-            "EmailVerifyUI"
+            "EmailVerifyUI",
+            "ApiError"
         };
 
         #region Source Generator
