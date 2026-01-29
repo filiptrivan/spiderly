@@ -140,15 +140,6 @@ namespace Spiderly.Shared.Helpers
                                                     },
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "translates",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "merge-class-names.ts", Data = GetMergeClassNamesTsCode() },
-                                                            new SpiderlyFile { Name = "merge-labels.ts", Data = GetMergeLabelsCode() },
-                                                        }
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
                                                         Name = "validators",
                                                         Files =
                                                         {
@@ -1774,10 +1765,9 @@ import { routes, scrollConfig, routerConfigOptions } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
-import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, SpiderlyTranslocoLoader, TranslateLabelsAbstractService, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, SpiderlyTranslocoLoader, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
 import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
-import { TranslateLabelsService } from './business/services/translates/merge-labels';
 import { ValidatorService } from './business/services/validators/validators';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { ConfigService } from './business/services/config.service';
@@ -1860,10 +1850,6 @@ export const appConfig: ApplicationConfig = {
     {
       provide: ValidatorAbstractService,
       useClass: ValidatorService,
-    },
-    {
-      provide: TranslateLabelsAbstractService,
-      useClass: TranslateLabelsService,
     },
     {
       provide: AuthServiceBase,
@@ -5137,66 +5123,6 @@ export class ConfigService extends ConfigServiceBase
     constructor(
     ) {
         super();
-    }
-}
-""";
-    }
-
-    private static string GetMergeLabelsCode()
-    {
-      return $$"""
-import { Injectable } from "@angular/core";
-import { TranslateLabelsGeneratedService } from "./labels.generated";
-import { TranslateLabelsAbstractService } from 'spiderly';
-
-@Injectable({
-    providedIn: 'root',
-})
-export class TranslateLabelsService extends TranslateLabelsAbstractService {
-
-    constructor(
-        private translateLabelsGeneratedService: TranslateLabelsGeneratedService,
-    ) {
-        super();
-    }
-
-    translate = (name: string) => {
-        let result = null;
-
-        result = this.translateLabelsGeneratedService.translate(name);
-        if (result != null)
-            return result;
-
-        return name;
-    }
-}
-""";
-    }
-
-    private static string GetMergeClassNamesTsCode()
-    {
-      return $$"""
-import { Injectable } from "@angular/core";
-import { TranslateClassNamesGeneratedService } from "./class-names.generated";
-
-@Injectable({
-    providedIn: 'root',
-})
-export class TranslateClassNamesService {
-
-    constructor(
-        private translateClassNamesGeneratedService: TranslateClassNamesGeneratedService,
-    ) {
-    }
-
-    translate(name: string){
-        let result = null;
-
-        result = this.translateClassNamesGeneratedService.translate(name);
-        if (result != null)
-            return result;
-
-        return name;
     }
 }
 """;

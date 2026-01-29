@@ -19,7 +19,13 @@ export interface SpiderlyValidatorFn extends ValidatorFn {
 
 // It's made like generic type because of <number>, <string> etc. not to put class like User.
 export class SpiderlyFormControl<T = any> extends FormControl<T> {
+  /**
+   * Control name stored in label because it was easier than really accessing the FormControl's name
+   */
   public label: string;
+  /**
+   * Translated label
+   */
   public labelForDisplay: string;
   public required: boolean;
   public parentClassName: string;

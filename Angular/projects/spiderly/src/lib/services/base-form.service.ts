@@ -7,9 +7,8 @@ import {
 } from '../components/spiderly-form-control/spiderly-form-control';
 import { BaseEntity, SchemaAwareConstructor } from '../entities/base-entity';
 import { SpiderlyError } from '../errors/spiderly-error';
-import { capitalizeFirstChar } from './helper-functions';
+import { capitalizeFirstChar, firstCharToUpper } from './helper-functions';
 import { SpiderlyMessageService } from './spiderly-message.service';
-import { TranslateLabelsAbstractService } from './translate-labels-abstract.service';
 import { ValidatorAbstractService } from './validator-abstract.service';
 
 @Injectable({
@@ -17,7 +16,6 @@ import { ValidatorAbstractService } from './validator-abstract.service';
 })
 export class BaseFormService {
   constructor(
-    private translateLabelsService: TranslateLabelsAbstractService,
     private validatorService: ValidatorAbstractService,
     private messageService: SpiderlyMessageService,
     private translocoService: TranslocoService,
@@ -149,7 +147,7 @@ export class BaseFormService {
       formControlName = formControlName.replace('DisplayName', '');
     }
 
-    return this.translateLabelsService.translate(formControlName);
+    return this.translocoService.translate(firstCharToUpper(formControlName));
   }
 
   addNewFormGroupToFormArray<T extends BaseEntity>(

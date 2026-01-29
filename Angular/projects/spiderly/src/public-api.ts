@@ -95,7 +95,6 @@ export * from './lib/services/config.service.base';
 export * from './lib/services/helper-functions';
 export * from './lib/services/spiderly-message.service';
 export * from './lib/services/spiderly-transloco-loader';
-export * from './lib/services/translate-labels-abstract.service';
 export * from './lib/services/validator-abstract.service';
 
 export * from './lib/directives/template-type.directive';

@@ -2,7 +2,6 @@
   "NgBaseDetailsGenerator": false,
   "NgControllersGenerator": false,
   "NgEntitiesGenerator": false,
-  "NgTranslatesGenerator": false,
   "NgEnumsGenerator": false,
   "NgValidatorsGenerator": false,
   "TranslationsGenerator": false,

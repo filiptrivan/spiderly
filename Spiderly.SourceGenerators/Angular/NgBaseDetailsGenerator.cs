@@ -181,7 +181,6 @@ export class {{entity.Name}}BaseDetailsComponent {
         private route: ActivatedRoute,
         private baseFormService: BaseFormService,
         private validatorService: ValidatorService,
-        private translateLabelsService: TranslateLabelsService,
         private translocoService: TranslocoService,
         private authService: AuthService,
     ) {}
@@ -1272,7 +1271,6 @@ export class {{entity.Name}}BaseDetailsComponent {
 import { ValidatorService } from 'src/app/business/services/validators/validators';
 import { DropdownChangeEvent } from 'primeng/dropdown';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
-import { TranslateLabelsService } from '../services/translates/merge-labels';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';

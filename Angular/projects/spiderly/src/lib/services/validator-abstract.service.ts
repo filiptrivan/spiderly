@@ -1,11 +1,11 @@
-import { TranslocoService } from '@jsverse/transloco';
 import { Injectable } from '@angular/core';
+import { ValidationErrors } from '@angular/forms';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   SpiderlyFormArray,
   SpiderlyFormControl,
   SpiderlyValidatorFn,
 } from '../components/spiderly-form-control/spiderly-form-control';
-import { ValidationErrors } from '@angular/forms';
 import { ImageDimensionsValidationResult } from '../entities/image-dimensions-validation-result';
 
 @Injectable({
@@ -69,24 +69,6 @@ export abstract class ValidatorAbstractService {
     });
   }
 
-  isArrayEmpty = (control: SpiderlyFormControl): SpiderlyValidatorFn => {
-    const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
-      const value = control.value;
-
-      const notEmptyRule =
-        typeof value !== 'undefined' && value !== null && value.length !== 0;
-
-      const arrayValid = notEmptyRule;
-
-      return arrayValid
-        ? null
-        : { _: this.translocoService.translate('NotEmpty') };
-    };
-    validator.hasNotEmptyRule = true;
-    control.required = true;
-    return validator;
-  };
-
   notEmpty = (control: SpiderlyFormControl): void => {
     const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
       const value = control.value;
@@ -106,9 +88,34 @@ export abstract class ValidatorAbstractService {
     control.updateValueAndValidity();
   };
 
+  /** Validates that a SpiderlyFormArray (collection of form controls/groups) is not empty. */
   isFormArrayEmpty = (control: SpiderlyFormArray): void => {
     const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
       const value = control;
+
+      const notEmptyRule =
+        typeof value !== 'undefined' && value !== null && value.length !== 0;
+
+      const arrayValid = notEmptyRule;
+
+      return arrayValid
+        ? null
+        : {
+            _: this.translocoService.translate('ListCanNotBeEmpty', {
+              value: control.labelForDisplay,
+            }),
+          };
+    };
+    validator.hasNotEmptyRule = true;
+    control.required = true;
+    control.setValidators(validator);
+    control.updateValueAndValidity();
+  };
+
+  /** Validates that a SpiderlyFormControl holding an array value (e.g., multi-select dropdown) is not empty. */
+  isArrayEmpty = (control: SpiderlyFormControl): SpiderlyValidatorFn => {
+    const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
+      const value = control.value;
 
       const notEmptyRule =
         typeof value !== 'undefined' && value !== null && value.length !== 0;
@@ -121,7 +128,6 @@ export abstract class ValidatorAbstractService {
     };
     validator.hasNotEmptyRule = true;
     control.required = true;
-    control.setValidators(validator);
-    control.updateValueAndValidity();
+    return validator;
   };
 }
