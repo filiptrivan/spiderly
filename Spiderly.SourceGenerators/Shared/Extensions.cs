@@ -414,7 +414,7 @@ namespace Spiderly.SourceGenerators.Shared
             return parameter.Attributes.Any(x => x.Name == "FromForm");
         }
 
-        public static bool HasUIDoNotGenerateAttribute(this SpiderMethod method)
+        public static bool HasUIDoNotGenerateAttribute(this SpiderlyMethod method)
         {
             return method.Attributes.Any(x => x.Name == "UIDoNotGenerate");
         }

@@ -29,6 +29,6 @@ namespace Spiderly.SourceGenerators.Models
 
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
 
-        public List<SpiderMethod> Methods { get; set; } = new();
+        public List<SpiderlyMethod> Methods { get; set; } = new();
     }
 }

@@ -169,10 +169,10 @@ namespace Spiderly.SourceGenerators.Shared
             return properties;
         }
 
-        public static List<SpiderMethod> GetMethodsOfCurrentClass(ClassDeclarationSyntax c)
+        public static List<SpiderlyMethod> GetMethodsOfCurrentClass(ClassDeclarationSyntax c)
         {
-            List<SpiderMethod> methods = c.Members.OfType<MethodDeclarationSyntax>()
-                .Select(method => new SpiderMethod()
+            List<SpiderlyMethod> methods = c.Members.OfType<MethodDeclarationSyntax>()
+                .Select(method => new SpiderlyMethod()
                 {
                     Name = method.Identifier.Text,
                     ReturnType = method.ReturnType.ToString(),
@@ -446,7 +446,9 @@ namespace Spiderly.SourceGenerators.Shared
                         classes.AddRange(GetClassesFromReferencedAssemblies(referencedAssembly.GlobalNamespace, namespaceExtensions));
                     }
 
-                    return classes;
+                    return classes
+                        .OrderBy(c => c.Name)
+                        .ToList();
                 });
         }
 
@@ -457,6 +459,7 @@ namespace Spiderly.SourceGenerators.Shared
             List<INamedTypeSymbol> types = namespaceSymbol.GetTypeMembers()
                 .Where(type => type.TypeKind == TypeKind.Class &&
                        namespaceExtensions.Any(namespaceExtension => GetFullNamespace(type).EndsWith($".{namespaceExtension}")))
+                .OrderBy(type => type.Name)
                 .ToList();
 
             // Add all the type members (classes, structs, etc.) in this namespace
@@ -508,37 +511,34 @@ namespace Spiderly.SourceGenerators.Shared
 
             while (type != null)
             {
-                foreach (ISymbol member in type.GetMembers())
+                foreach (IPropertySymbol propertySymbol in type.GetMembers().OfType<IPropertySymbol>())
                 {
-                    if (member is IPropertySymbol propertySymbol)
+                    if (propertySymbol.ExplicitInterfaceImplementations.Any())
+                        continue;
+
+                    if (propertySymbol.Type.TypeKind == TypeKind.Interface)
+                        continue;
+
+                    SpiderlyProperty property = new SpiderlyProperty
                     {
-                        if (propertySymbol.ExplicitInterfaceImplementations.Any())
-                            continue;
+                        Type = propertySymbol.Type.TypeToDisplayString(),
+                        Name = propertySymbol.Name,
+                        EntityName = type.Name,
+                        Attributes = GetAttributesFromReferencedAssemblies(propertySymbol),
+                    };
 
-                        if (propertySymbol.Type.TypeKind == TypeKind.Interface)
-                            continue;
-
-                        SpiderlyProperty property = new SpiderlyProperty
-                        {
-                            Type = propertySymbol.Type.TypeToDisplayString(),
-                            Name = member.Name,
-                            EntityName = type.Name,
-                            Attributes = GetAttributesFromReferencedAssemblies(member),
-                        };
-
-                        properties.Add(property);
-                    }
+                    properties.Add(property);
                 }
 
                 type = type.BaseType;
             }
 
-            return properties;
+            return properties.OrderBy(x => x.Name).ToList();
         }
 
         private static List<SpiderlyAttribute> GetAttributesFromReferencedAssemblies(ISymbol symbol)
         {
-            List<SpiderlyAttribute> attributes = new List<SpiderlyAttribute>();
+            List<SpiderlyAttribute> attributes = [];
 
             foreach (AttributeData attribute in symbol.GetAttributes())
             {
@@ -594,32 +594,29 @@ namespace Spiderly.SourceGenerators.Shared
                 attributes.Add(spiderAttribute);
             }
 
-            return attributes;
+            return attributes.OrderBy(x => x.Name).ToList();
         }
 
         /// <summary>
         /// Cant get method Body and method DescendantNodes from referenced assemblies
         /// </summary>
-        private static List<SpiderMethod> GetMethodsOfCurrentClassFromReferencedAssemblies(INamedTypeSymbol type)
+        private static List<SpiderlyMethod> GetMethodsOfCurrentClassFromReferencedAssemblies(INamedTypeSymbol type)
         {
-            List<SpiderMethod> methods = new List<SpiderMethod>();
+            List<SpiderlyMethod> methods = [];
 
-            foreach (ISymbol member in type.GetMembers())
+            foreach (IMethodSymbol methodSymbol in type.GetMembers().OfType<IMethodSymbol>())
             {
-                if (member is IMethodSymbol methodSymbol)
+                SpiderlyMethod method = new SpiderlyMethod
                 {
-                    SpiderMethod method = new SpiderMethod
-                    {
-                        Name = member.Name,
-                        ReturnType = methodSymbol.ReturnType.ToString(),
-                        Attributes = GetAttributesFromReferencedAssemblies(member),
-                    };
+                    Name = methodSymbol.Name,
+                    ReturnType = methodSymbol.ReturnType.ToString(),
+                    Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
+                };
 
-                    methods.Add(method);
-                }
+                methods.Add(method);
             }
 
-            return methods;
+            return methods.OrderBy(x => x.Name).ToList();
         }
 
         public static List<string> GetEntityClassesUsings(List<SpiderlyClass> referencedProjectEntities)
@@ -627,6 +624,7 @@ namespace Spiderly.SourceGenerators.Shared
             List<string> namespaces = referencedProjectEntities
                 .Where(x => x.Namespace.EndsWith(".Entities"))
                 .Select(x => $"using {x.Namespace};")
+                .OrderBy(x => x)
                 .Distinct()
                 .ToList();
 
@@ -638,6 +636,7 @@ namespace Spiderly.SourceGenerators.Shared
             List<string> namespaces = referencedProjectEntities
                 .Where(x => x.Namespace.EndsWith(".Entities"))
                 .Select(x => $"using {x.Namespace.Replace(".Entities", ".DTO")};")
+                .OrderBy(x => x)
                 .Distinct()
                 .ToList();
 

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Spiderly.SourceGenerators.Models
 {
-    public class SpiderMethod
+    public class SpiderlyMethod
     {
         public string Name { get; set; }
         public string ReturnType { get; set; }

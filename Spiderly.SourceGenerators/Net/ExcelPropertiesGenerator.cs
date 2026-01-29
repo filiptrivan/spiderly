@@ -115,7 +115,7 @@ namespace {{basePartOfNamespace}}.ExcelProperties
         {
             List<string> DTOClassPropertiesToExclude = new();
 
-            SpiderMethod excelMethod = customMapperClass.Methods
+            SpiderlyMethod excelMethod = customMapperClass.Methods
                 .SingleOrDefault(x => x.ReturnType == DTOClassName && x.Name == "ExcelProjectTo");
 
             List<SpiderlyAttribute> excludePropertyAttributes = new();

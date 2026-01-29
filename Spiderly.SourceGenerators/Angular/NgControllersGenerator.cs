@@ -119,7 +119,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             {
                 string controllerName = controllerClass.Name.Replace("Controller", "");
 
-                foreach (SpiderMethod controllerMethod in controllerClass.Methods)
+                foreach (SpiderlyMethod controllerMethod in controllerClass.Methods)
                 {
                     if (controllerMethod.HasUIDoNotGenerateAttribute())
                         continue;
@@ -180,7 +180,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         #region Custom Angular Controller Method
 
-        private static string GetCustomAngularControllerMethod(SpiderMethod controllerMethod, string controllerName)
+        private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerName)
         {
             string angularReturnType = Helpers.GetAngularType(controllerMethod.ReturnType);
 
@@ -197,7 +197,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return GetAngularControllerMethod(controllerMethod.Name, inputParameters, angularReturnType, httpType, controllerName, httpOptions);
         }
 
-        private static string GetHttpOptions(SpiderMethod controllerMethod)
+        private static string GetHttpOptions(SpiderlyMethod controllerMethod)
         {
             if (Helpers.GetAngularType(controllerMethod.ReturnType) == "string")
                 return Settings.HttpOptionsText;
@@ -219,7 +219,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return Settings.HttpOptionsBase;
         }
 
-        private static HttpTypeCodes GetHttpType(SpiderMethod controllerMethod)
+        private static HttpTypeCodes GetHttpType(SpiderlyMethod controllerMethod)
         {
             if (controllerMethod.Attributes.Any(attr => attr.Name == "HttpGet"))
             {
@@ -276,7 +276,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 """;
         }
 
-        private static string GetCustomFromFormControllerMethod(SpiderMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList)
+        private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList)
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
             SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type).SingleOrDefault();
