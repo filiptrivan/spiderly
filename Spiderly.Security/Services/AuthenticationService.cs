@@ -34,6 +34,11 @@ namespace Spiderly.Security.Services
             return Helper.GetCurrentUserId(_httpContextAccessor.HttpContext);
         }
 
+        public long? GetCurrentUserIdOrDefault()
+        {
+            return Helper.GetCurrentUserIdOrDefault(_httpContextAccessor.HttpContext);
+        }
+
         public async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()
         {
             long currentUserId = GetCurrentUserId();

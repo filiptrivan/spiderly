@@ -101,6 +101,10 @@ export class BaseFormService {
           propInitialValue = 0;
         }
 
+        if (propSchema.type.endsWith('[]') && propInitialValue == null) {
+          propInitialValue = [];
+        }
+
         if (existingControl instanceof SpiderlyFormControl) {
           existingControl.setValue(propInitialValue);
         } else {
@@ -296,9 +300,7 @@ export class BaseFormService {
     } else if (control instanceof SpiderlyFormArray) {
       if (control.errors) {
         control.markAsDirty();
-        this.messageService.warningMessage(
-          `${control.labelForDisplay}: ${control.errors['_']}`,
-        );
+        this.messageService.warningMessage(control.errors['_']);
         invalid = true;
       }
 
