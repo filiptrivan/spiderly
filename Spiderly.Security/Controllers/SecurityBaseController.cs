@@ -72,12 +72,22 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         }
 
         /// <summary>
-        /// Here we would put [Authorize] attribute, because we don't validate life time of the access token, but we are not because deeper in the method we are validating it without life time also. 
+        /// Here we would put [Authorize] attribute, because we don't validate life time of the access token, but we are not because deeper in the method we are validating it without life time also.
         /// </summary>
         [HttpPost]
         public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO request)
         {
             return await _securityServiceBase.RefreshToken(request);
+        }
+
+        /// <summary>
+        /// Refreshes the access token using the refresh token stored in an HttpOnly cookie.
+        /// The new refresh token is automatically set in the response cookie.
+        /// </summary>
+        [HttpGet]
+        public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        {
+            return await _securityServiceBase.RefreshTokenWithCookies(browserId);
         }
 
         #endregion

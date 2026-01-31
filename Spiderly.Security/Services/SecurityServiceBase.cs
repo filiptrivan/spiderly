@@ -238,6 +238,28 @@ namespace Spiderly.Security.Services
             };
         }
 
+        public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        {
+            string refreshToken = _authenticationService.GetRefreshTokenFromCookie();
+
+            RefreshTokenRequestDTO refreshTokenRequestDTO = new RefreshTokenRequestDTO
+            {
+                RefreshToken = refreshToken,
+                BrowserId = browserId
+            };
+
+            AuthResultDTO authResultDTO = await RefreshToken(refreshTokenRequestDTO);
+
+            _authenticationService.SetRefreshTokenCookie(authResultDTO.RefreshToken);
+
+            return new AuthResultWithCookiesDTO
+            {
+                UserId = authResultDTO.UserId,
+                Email = authResultDTO.Email,
+                AccessToken = authResultDTO.AccessToken
+            };
+        }
+
         public async Task<string> GetUserEmailByIdAsync(long id)
         {
             return await _context.WithTransactionAsync(async () =>

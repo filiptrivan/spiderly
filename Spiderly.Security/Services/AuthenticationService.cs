@@ -76,5 +76,36 @@ namespace Spiderly.Security.Services
         {
             return Helper.GetIPAddress(_httpContextAccessor.HttpContext);
         }
+
+        public string GetRefreshTokenFromCookie()
+        {
+            return _httpContextAccessor.HttpContext?.Request.Cookies[SettingsProvider.Current.RefreshTokenCookieName];
+        }
+
+        public void SetRefreshTokenCookie(string refreshToken)
+        {
+            CookieOptions cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(SettingsProvider.Current.RefreshTokenExpiration)
+            };
+
+            _httpContextAccessor.HttpContext.Response.Cookies.Append(SettingsProvider.Current.RefreshTokenCookieName, refreshToken, cookieOptions);
+        }
+
+        public void ClearRefreshTokenCookie()
+        {
+            CookieOptions cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+
+            _httpContextAccessor.HttpContext.Response.Cookies.Append(SettingsProvider.Current.RefreshTokenCookieName, string.Empty, cookieOptions);
+        }
     }
 }

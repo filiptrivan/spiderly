@@ -31,5 +31,7 @@
 
         public bool UseRedisCache { get; set; }
         public string RedisConnectionString { get; set; }
+
+        public string RefreshTokenCookieName { get; set; } = "refresh_token";
     }
 }
