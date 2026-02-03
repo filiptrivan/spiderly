@@ -21,7 +21,7 @@ namespace Spiderly.Security.Services
         {
             string redisKey = _keyPrefix + key;
             string serializedToken = JsonSerializer.Serialize(token);
-            TimeSpan? expiration = token.ExpireAt > DateTime.UtcNow ? token.ExpireAt - DateTime.UtcNow : null;
+            TimeSpan? expiration = token.ExpiresAt > DateTime.UtcNow ? token.ExpiresAt - DateTime.UtcNow : null;
 
             await _database.StringSetAsync(redisKey, serializedToken, expiration);
         }

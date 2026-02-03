@@ -14,6 +14,6 @@ namespace Spiderly.Security.DTO
         public string IpAddress { get; set; }
         public string BrowserId { get; set; }
         public string TokenString { get; set; }
-        public DateTime ExpireAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
     }
 }

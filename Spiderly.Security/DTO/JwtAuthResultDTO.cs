@@ -3,7 +3,7 @@
     public class JwtAuthResultDTO
     {
         public long UserId { get; set; }
-        public string AccessToken { get; set; }
-        public RefreshTokenDTO Token { get; set; }
+        public AccessTokenDTO AccessTokenDTO { get; set; }
+        public RefreshTokenDTO RefreshTokenDTO { get; set; }
     }
 }

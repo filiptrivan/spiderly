@@ -172,25 +172,25 @@ export class LoginVerificationToken extends BaseEntity {
   email?: string;
   userId?: number;
   browserId?: string;
-  expireAt?: Date;
+  expiresAt?: Date;
 
   constructor({
     email,
     userId,
     browserId,
-    expireAt,
+    expiresAt,
   }: {
     email?: string;
     userId?: number;
     browserId?: string;
-    expireAt?: Date;
+    expiresAt?: Date;
   } = {}) {
     super();
 
     this.email = email;
     this.userId = userId;
     this.browserId = browserId;
-    this.expireAt = expireAt;
+    this.expiresAt = expiresAt;
   }
 
   static readonly schema = {
@@ -203,7 +203,7 @@ export class LoginVerificationToken extends BaseEntity {
     browserId: {
       type: 'string',
     },
-    expireAt: {
+    expiresAt: {
       type: 'Date',
     },
   } as const;

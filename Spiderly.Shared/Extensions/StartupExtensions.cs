@@ -87,13 +87,34 @@ namespace Spiderly.Shared.Extensions
                 {
                     OnMessageReceived = context =>
                     {
-                        string accessToken = context.Request.Query["access_token"];
                         PathString path = context.HttpContext.Request.Path;
 
-                        if (!string.IsNullOrEmpty(accessToken) &&
-                            (path.StartsWithSegments("/api/hubs")))
+                        string accessTokenKey = SettingsProvider.Current.AccessTokenKey;
+
+                        // SignalR: allow token in query string for hubs only
+                        if (path.StartsWithSegments("/api/hubs"))
                         {
-                            context.Token = accessToken;
+                            string accessToken = context.Request.Query[accessTokenKey];
+
+                            if (!string.IsNullOrEmpty(accessToken))
+                            {
+                                context.Token = accessToken;
+                                return Task.CompletedTask;
+                            }
+                        }
+
+                        // Cookie auth:
+                        // JwtBearer will be used by default,
+                        // this is used only when Authorization header doesn't exist
+                        // E.g. we can use this for Next.js SSR
+                        if (string.IsNullOrEmpty(context.Token))
+                        {
+                            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string cookieToken) &&
+                                !string.IsNullOrWhiteSpace(cookieToken))
+                            {
+                                context.Token = cookieToken;
+                                return Task.CompletedTask;
+                            }
                         }
 
                         return Task.CompletedTask;
@@ -316,6 +337,10 @@ namespace Spiderly.Shared.Extensions
                             context.Response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
                             message = securityTokenEx.Message;
                             logLevel = LogEventLevel.Information;
+
+                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AccessTokenKey, httpOnly: true);
+                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
+                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
                         }
                         else
                         {

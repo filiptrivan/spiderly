@@ -20,7 +20,10 @@ namespace Spiderly.Shared.Attributes
 
         public async override void OnActionExecuting(ActionExecutingContext context)
         {
-            string accessToken = await context.HttpContext.GetTokenAsync("Bearer", "access_token");
+            string accessToken = await context.HttpContext.GetTokenAsync("Bearer", SettingsProvider.Current.AccessTokenKey);
+
+            if (string.IsNullOrEmpty(accessToken))
+                accessToken = context.HttpContext.Request.Cookies[SettingsProvider.Current.AccessTokenKey];
 
             if (string.IsNullOrEmpty(accessToken))
             {

@@ -61,12 +61,39 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             return await _securityServiceBase.LoginExternal(externalProviderDTO);
         }
 
+        [HttpPost]
+        public virtual async Task<AuthResultWithCookiesDTO> LoginWithCookies(VerificationTokenRequestDTO request)
+        {
+            return await _securityServiceBase.LoginWithCookies(request);
+        }
+
+        [HttpPost]
+        [UIDoNotGenerate]
+        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
+        {
+            return await _securityServiceBase.LoginExternalWithCookies(externalProviderDTO);
+        }
+
         [HttpGet]
         [AuthGuard]
         public async Task<ActionResult> Logout(string browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
             await _jwtAuthManagerService.LogoutAsync(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
+
+            return Ok();
+        }
+
+        [HttpGet]
+        [AuthGuard]
+        public async Task<ActionResult> LogoutWithCookies(string browserId)
+        {
+            long userId = _authenticationService.GetCurrentUserId();
+            await _jwtAuthManagerService.LogoutAsync(browserId, userId);
+
+            _authenticationService.ClearRefreshTokenCookie();
+            _authenticationService.ClearAccessTokenCookie();
+            _authenticationService.ClearAuthResultCookie();
 
             return Ok();
         }
@@ -82,7 +109,6 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         /// <summary>
         /// Refreshes the access token using the refresh token stored in an HttpOnly cookie.
-        /// The new refresh token is automatically set in the response cookie.
         /// </summary>
         [HttpGet]
         public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)

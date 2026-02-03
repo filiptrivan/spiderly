@@ -6,6 +6,6 @@ namespace Spiderly.Security.DTO
     {
         public string Email { get; set; }
         public string BrowserId { get; set; }
-        public DateTime ExpireAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
     }
 }

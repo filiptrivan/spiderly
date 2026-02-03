@@ -22,6 +22,9 @@
         public string JwtIssuer { get; set; }
         public string JwtAudience { get; set; }
         public int ClockSkewMinutes { get; set; }
+        public string AccessTokenKey { get; set; } = "access_token";
+        public string RefreshTokenKey { get; set; } = "refresh_token";
+        public string AuthResultKey { get; set; } = "auth_status";
 
 
         public string BlobStorageConnectionString { get; set; }

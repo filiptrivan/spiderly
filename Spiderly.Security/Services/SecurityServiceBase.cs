@@ -148,8 +148,9 @@ namespace Spiderly.Security.Services
                 {
                     UserId = user.Id,
                     Email = user.Email,
-                    AccessToken = jwtAuthResultDTO.AccessToken,
-                    RefreshToken = jwtAuthResultDTO.Token.TokenString,
+                    AccessToken = jwtAuthResultDTO.AccessTokenDTO.TokenString,
+                    AccessTokenExpiresAt = jwtAuthResultDTO.AccessTokenDTO.ExpiresAt,
+                    RefreshToken = jwtAuthResultDTO.RefreshTokenDTO.TokenString,
                 };
 
                 await OnAfterLogin(authResultDTO);
@@ -199,8 +200,9 @@ namespace Spiderly.Security.Services
                 {
                     UserId = user.Id,
                     Email = user.Email,
-                    AccessToken = jwtAuthResultDTO.AccessToken,
-                    RefreshToken = jwtAuthResultDTO.Token.TokenString,
+                    AccessToken = jwtAuthResultDTO.AccessTokenDTO.TokenString,
+                    AccessTokenExpiresAt = jwtAuthResultDTO.AccessTokenDTO.ExpiresAt,
+                    RefreshToken = jwtAuthResultDTO.RefreshTokenDTO.TokenString,
                 };
 
                 await OnAfterLogin(authResultDTO);
@@ -210,6 +212,42 @@ namespace Spiderly.Security.Services
         }
 
         public virtual async Task OnAfterLogin(AuthResultDTO authResultDTO) { }
+
+        public async Task<AuthResultWithCookiesDTO> LoginWithCookies(VerificationTokenRequestDTO verificationRequestDTO)
+        {
+            AuthResultDTO authResultDTO = await Login(verificationRequestDTO);
+
+            AuthResultWithCookiesDTO authResultWithCookiesDTO = new AuthResultWithCookiesDTO
+            {
+                userId = authResultDTO.UserId,
+                email = authResultDTO.Email,
+                accessTokenExpiresAt = authResultDTO.AccessTokenExpiresAt,
+            };
+
+            _authenticationService.SetRefreshTokenCookie(authResultDTO.RefreshToken);
+            _authenticationService.SetAccessTokenCookie(authResultDTO.AccessToken);
+            _authenticationService.SetAuthResultCookie(authResultWithCookiesDTO);
+
+            return authResultWithCookiesDTO;
+        }
+
+        public async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
+        {
+            AuthResultDTO authResultDTO = await LoginExternal(externalProviderDTO);
+
+            AuthResultWithCookiesDTO authResultWithCookiesDTO = new AuthResultWithCookiesDTO
+            {
+                userId = authResultDTO.UserId,
+                email = authResultDTO.Email,
+                accessTokenExpiresAt = authResultDTO.AccessTokenExpiresAt,
+            };
+
+            _authenticationService.SetRefreshTokenCookie(authResultDTO.RefreshToken);
+            _authenticationService.SetAccessTokenCookie(authResultDTO.AccessToken);
+            _authenticationService.SetAuthResultCookie(authResultWithCookiesDTO);
+
+            return authResultWithCookiesDTO;
+        }
 
         #endregion
 
@@ -233,8 +271,9 @@ namespace Spiderly.Security.Services
             {
                 UserId = jwtResult.UserId, // Here it will always be user, if there is not, it will break earlier
                 Email = emailFromTheDb,
-                AccessToken = jwtResult.AccessToken,
-                RefreshToken = jwtResult.Token.TokenString
+                AccessToken = jwtResult.AccessTokenDTO.TokenString,
+                AccessTokenExpiresAt = jwtResult.AccessTokenDTO.ExpiresAt,
+                RefreshToken = jwtResult.RefreshTokenDTO.TokenString
             };
         }
 
@@ -250,14 +289,18 @@ namespace Spiderly.Security.Services
 
             AuthResultDTO authResultDTO = await RefreshToken(refreshTokenRequestDTO);
 
-            _authenticationService.SetRefreshTokenCookie(authResultDTO.RefreshToken);
-
-            return new AuthResultWithCookiesDTO
+            AuthResultWithCookiesDTO authResultWithCookiesDTO = new AuthResultWithCookiesDTO
             {
-                UserId = authResultDTO.UserId,
-                Email = authResultDTO.Email,
-                AccessToken = authResultDTO.AccessToken
+                userId = authResultDTO.UserId,
+                email = authResultDTO.Email,
+                accessTokenExpiresAt = authResultDTO.AccessTokenExpiresAt,
             };
+
+            _authenticationService.SetRefreshTokenCookie(authResultDTO.RefreshToken);
+            _authenticationService.SetAccessTokenCookie(authResultDTO.AccessToken);
+            _authenticationService.SetAuthResultCookie(authResultWithCookiesDTO);
+
+            return authResultWithCookiesDTO;
         }
 
         public async Task<string> GetUserEmailByIdAsync(long id)

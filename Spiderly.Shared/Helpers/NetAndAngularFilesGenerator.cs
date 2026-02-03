@@ -3763,6 +3763,7 @@ namespace {{appName}}.Business.Services
                 int count = await notificationUsersQuery.CountAsync();
 
                 var notificationUsers = await notificationUsersQuery
+                    .OrderBy(x => x.NotificationId)
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ToListAsync();
@@ -4604,7 +4605,7 @@ export const ThemePreset = definePreset(Aura, {
     "IdToken": "/",
     "Browser": "/",
     "NewPassword": "Nova lozinka",
-    "ExpireAt": "Ističe",
+    "ExpiresAt": "Ističe",
     "UserEmail": "Email",
     "AccessToken": "/",
     "Token": "/",
@@ -4882,7 +4883,7 @@ export const ThemePreset = definePreset(Aura, {
   "IdToken": "/",
   "Browser": "/",
   "NewPassword": "New password",
-  "ExpireAt": "Expires at",
+  "ExpiresAt": "Expires at",
   "UserEmail": "Email",
   "AccessToken": "/",
   "Token": "/",
