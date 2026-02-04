@@ -117,6 +117,9 @@ export class ApiGeneratedService extends ApiSecurityService {
 
             foreach (SpiderlyClass controllerClass in controllerClasses)
             {
+                if (controllerClass.HasUIDoNotGenerateAttribute())
+                    continue;
+
                 string controllerName = controllerClass.Name.Replace("Controller", "");
 
                 foreach (SpiderlyMethod controllerMethod in controllerClass.Methods)
