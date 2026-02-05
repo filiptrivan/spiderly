@@ -620,7 +620,7 @@ namespace {{basePartOfNamespace}}.Services
                             );
 
                         if (m2mProperty == null)
-                            throw new Exception("You didn't specify correct M2MWithMany attribute");
+                            throw new Exception($"You didn't specify correct M2MWithMany attribute (entity:{entity.Name}).");
 
                         result.Add(GetPaginatedListForComplexM2MMethod(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, allEntityClasses));
                     }
