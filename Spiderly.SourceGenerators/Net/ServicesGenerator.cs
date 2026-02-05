@@ -1125,6 +1125,7 @@ namespace {{basePartOfNamespace}}.Services
         /// <summary>
         /// Lifecycle hook called before the {{entity.Name}}DTO is mapped to the entity.
         /// Override this method to add custom validation or modify the DTO before mapping.
+        /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO about to be mapped</param>
         protected virtual async Task OnBefore{{entity.Name}}IsMapped({{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
@@ -1132,6 +1133,7 @@ namespace {{basePartOfNamespace}}.Services
         /// <summary>
         /// Lifecycle hook called before updating an existing {{entity.Name}} entity.
         /// Override this method to add custom business logic during updates.
+        /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}">The existing entity being updated</param>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing new data</param>
@@ -1140,6 +1142,7 @@ namespace {{basePartOfNamespace}}.Services
         /// <summary>
         /// Lifecycle hook called before inserting a new {{entity.Name}} entity.
         /// Override this method to add custom business logic during inserts.
+        /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}">The new entity being inserted</param>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing the data</param>
@@ -1168,8 +1171,6 @@ namespace {{basePartOfNamespace}}.Services
 
                 var savedDTO = await Save{{entity.Name}}AndReturnDTO(saveBodyDTO.{{entity.Name}}DTO, authorizeUpdate, authorizeInsert);
 
-                await OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO(savedDTO, saveBodyDTO);
-
 {{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, allEntities))}}
 {{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, allEntities))}}
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoad(entity, allEntities))}}
@@ -1181,6 +1182,8 @@ namespace {{basePartOfNamespace}}.Services
 {{GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(entity, allEntities)}}
                 };
 
+                await OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, result);
+
                 return result;
             });
         }
@@ -1191,17 +1194,19 @@ namespace {{basePartOfNamespace}}.Services
         /// <summary>
         /// Lifecycle hook called before saving {{entity.Name}} with MainUIFormDTO.
         /// Override this method to add custom validation or modify the SaveBodyDTO.
+        /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
         protected virtual async Task OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) { }
 
         /// <summary>
-        /// Lifecycle hook called after saving {{entity.Name}} but before updating related collections.
+        /// Lifecycle hook called after saving {{entity.Name}} and after updating related collections.
         /// Override this method to add custom business logic after the main entity is saved.
+        /// This method runs inside a database transaction.
         /// </summary>
-        /// <param name="savedDTO">The saved entity DTO</param>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
-        protected virtual async Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}DTO savedDTO, {{entity.Name}}SaveBodyDTO saveBodyDTO) { }
+        /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
+        protected virtual async Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, {{entity.Name}}MainUIFormDTO mainUIFormDTO) { }
 """;
         }
 
@@ -1213,7 +1218,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                 result.Add($$"""
                 var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);

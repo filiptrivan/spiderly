@@ -1,6 +1,6 @@
 <!-- Can't put (onBlur) in this control -->
 
-<div style="display: flex; flex-direction: column; gap: 0.5rem">
+<div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1px">
   <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
     <label>{{ getTranslatedLabel() }}</label>
     <required *ngIf="control?.required && showRequired"></required>
