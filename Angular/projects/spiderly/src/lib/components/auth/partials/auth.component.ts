@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { Subscription } from 'rxjs';
 import { AuthServiceBase } from '../../../services/auth.service.base';
@@ -16,13 +16,12 @@ export class AuthComponent {
   private initCompanyAuthDialogDetailsSubscription: Subscription | null = null;
 
   @Output() onCompanyNameChange: EventEmitter<string> = new EventEmitter();
-  @Input() showGoogleAuth: boolean = false;
 
   companyName: string;
   image: string;
 
   constructor(
-    private config: ConfigServiceBase,
+    public config: ConfigServiceBase,
     private authService: AuthServiceBase,
   ) {}
 
