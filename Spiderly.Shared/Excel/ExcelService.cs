@@ -1,10 +1,7 @@
-﻿using OfficeOpenXml;
+﻿using ClosedXML.Excel;
 using System.Globalization;
 using System.Reflection;
 using Spiderly.Shared.Excel.DTO;
-using System.Drawing;
-using OfficeOpenXml.Style;
-using OfficeOpenXml.Table;
 using System.Resources;
 using Spiderly.Shared.Resources;
 using Spiderly.Shared.Extensions;
@@ -52,17 +49,17 @@ namespace Spiderly.Shared.Excel
 
             MemoryStream outputStream = new MemoryStream();
 
-            using (ExcelPackage excel = new ExcelPackage())
+            using (XLWorkbook workbook = new XLWorkbook())
             {
                 if (data != null && count > 0)
                 {
-                    ExcelWorksheet sheet = excel.Workbook.Worksheets.Add(options.DataSheetName);
+                    var worksheet = workbook.Worksheets.Add(options.DataSheetName);
                     Type type = typeof(T);
                     PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
 
-                    LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, resourceManager);
+                    LoadFromCollectionOverride(data, count, type, worksheet, propertiesToInclude, resourceManager);
                 }
-                excel.SaveAs(outputStream);
+                workbook.SaveAs(outputStream);
             }
 
             outputStream.Position = 0;
@@ -73,14 +70,13 @@ namespace Spiderly.Shared.Excel
         {
             PropertyInfo[] memberInfos = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                // uzmi svaki property koji nema isto ime kao parametar iz customAttributeDataList
                 .Where(prop => excelPropertiesToExclude.Contains(prop.Name) == false)
                 .ToArray();
 
             return memberInfos;
         }
 
-        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, ExcelWorksheet sheet, PropertyInfo[] propertiesToInclude, ResourceManager resourceManager)
+        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, IXLWorksheet worksheet, PropertyInfo[] propertiesToInclude, ResourceManager resourceManager)
         {
             int cellRow = 0;
             int cellCol = 0;
@@ -89,29 +85,29 @@ namespace Spiderly.Shared.Excel
                 cellCol = headerIndex + 1;
 
                 string propertyName = propertiesToInclude[headerIndex].Name;
-                sheet.Cells[1, cellCol].Value = GetHeaderTranslation(resourceManager, propertyName);
+                worksheet.Cell(1, cellCol).Value = GetHeaderTranslation(resourceManager, propertyName);
 
-                sheet.Cells[1, cellCol].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                sheet.Cells[1, cellCol].Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#F0F0F0"));
-                sheet.Cells[1, cellCol].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                sheet.Column(cellCol).Width = 22;
+                worksheet.Cell(1, cellCol).Style.Fill.PatternType = XLFillPatternValues.Solid;
+                worksheet.Cell(1, cellCol).Style.Fill.BackgroundColor = XLColor.FromHtml("#F0F0F0");
+                worksheet.Cell(1, cellCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                worksheet.Column(cellCol).Width = 22;
 
                 for (int dataIndex = 0; dataIndex < count; dataIndex++)
                 {
                     cellRow = dataIndex + 2;
-                    if (typeofT==typeof(string) || typeofT==typeof(decimal) || typeofT==typeof(DateTime) || typeofT.IsPrimitive)
+                    if (typeofT == typeof(string) || typeofT == typeof(decimal) || typeofT == typeof(DateTime) || typeofT.IsPrimitive)
                     {
-                        sheet.Cells[cellRow, cellCol].Value = data[dataIndex];
+                        worksheet.Cell(cellRow, cellCol).Value = data[dataIndex];
                     }
                     else
                     {
-                        sheet.Cells[cellRow, cellCol].Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
+                        worksheet.Cell(cellRow, cellCol).Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
                     }
                 }
 
-                if (propertiesToInclude[headerIndex].PropertyType==typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType==typeof(DateTime?))
+                if (propertiesToInclude[headerIndex].PropertyType == typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType == typeof(DateTime?))
                 {
-                    sheet.Column(cellCol).Style.Numberformat.Format = "dd.MM.yyyy."; // TODO FT: make this with locale
+                    worksheet.Column(cellCol).Style.NumberFormat.Format = "dd.MM.yyyy.";
                 }
             }
         }
@@ -125,9 +121,9 @@ namespace Spiderly.Shared.Excel
         }
 
         /// <summary>
-        /// https://stackoverflow.com/questions/36637882/epplus-read-excel-table
+        /// Convert table to objects using ClosedXML
         /// </summary>
-        public static IEnumerable<T> ConvertTableToObjects<T>(ExcelTable table) where T : new()
+        public static IEnumerable<T> ConvertTableToObjects<T>(IXLTable table) where T : new()
         {
             //DateTime Conversion
             var convertDateTime = new Func<double, DateTime>(excelDate =>
@@ -151,17 +147,17 @@ namespace Spiderly.Shared.Excel
                 .ToList();
 
             //Get the cells based on the table address
-            var start = table.Address.Start;
-            var end = table.Address.End;
-            var cells = new List<ExcelRangeBase>();
+            var start = table.RangeAddress.FirstAddress;
+            var end = table.RangeAddress.LastAddress;
+            var cells = new List<IXLCell>();
 
-            //Have to use for loops insteadof worksheet.Cells to protect against empties
-            for (var r = start.Row; r <= end.Row; r++)
-                for (var c = start.Column; c <= end.Column; c++)
-                    cells.Add(table.WorkSheet.Cells[r, c]);
+            //Have to use for loops instead of worksheet.Cells to protect against empties
+            for (var r = start.RowNumber; r <= end.RowNumber; r++)
+                for (var c = start.ColumnNumber; c <= end.ColumnNumber; c++)
+                    cells.Add(table.Worksheet.Cell(r, c));
 
             var groups = cells
-                .GroupBy(cell => cell.Start.Row)
+                .GroupBy(cell => cell.Address.RowNumber)
                 .ToList();
 
             //Assume the second row represents column data types (big assumption!)
