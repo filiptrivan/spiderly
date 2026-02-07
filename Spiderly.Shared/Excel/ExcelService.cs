@@ -100,6 +100,7 @@ namespace Spiderly.Shared.Excel
 
                 if (propertiesToInclude[headerIndex].PropertyType == typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType == typeof(DateTime?))
                 {
+                    // Apply culture-invariant date format for consistent Excel output
                     worksheet.Column(cellCol).Style.NumberFormat.Format = "dd.MM.yyyy.";
                 }
             }
@@ -192,7 +193,8 @@ namespace Spiderly.Shared.Excel
                                 //Unbox it
                                 var unboxedVal = (double)val;
 
-                                //FAR FROM A COMPLETE LIST!!!
+                                // Supported types: Int32, double, DateTime
+                                // Additional types can be added as needed
                                 if (prop.PropertyType == typeof(Int32))
                                     prop.SetValue(tnew, (int)unboxedVal);
                                 else if (prop.PropertyType == typeof(double))
