@@ -95,14 +95,7 @@ namespace Spiderly.Shared.Excel
                 for (int dataIndex = 0; dataIndex < count; dataIndex++)
                 {
                     cellRow = dataIndex + 2;
-                    if (typeofT == typeof(string) || typeofT == typeof(decimal) || typeofT == typeof(DateTime) || typeofT.IsPrimitive)
-                    {
-                        worksheet.Cell(cellRow, cellCol).Value = data[dataIndex];
-                    }
-                    else
-                    {
-                        worksheet.Cell(cellRow, cellCol).Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
-                    }
+                    worksheet.Cell(cellRow, cellCol).Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
                 }
 
                 if (propertiesToInclude[headerIndex].PropertyType == typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType == typeof(DateTime?))

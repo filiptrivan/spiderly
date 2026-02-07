@@ -1,7 +1,10 @@
 using ClosedXML.Excel;
+using FluentAssertions;
+using Moq;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Excel.DTO;
 using System.Resources;
+using Xunit;
 
 namespace Spiderly.Shared.Tests.Excel
 {
@@ -45,13 +48,12 @@ namespace Spiderly.Shared.Tests.Excel
 
         #endregion
 
-        #region Setup and Teardown
+        #region Setup
 
-        private ExcelService _excelService = null!;
-        private Mock<ResourceManager> _mockResourceManager = null!;
+        private readonly ExcelService _excelService;
+        private readonly Mock<ResourceManager> _mockResourceManager;
 
-        [SetUp]
-        public void SetUp()
+        public ExcelServiceTests()
         {
             _excelService = new ExcelService();
             _mockResourceManager = new Mock<ResourceManager>();
@@ -61,21 +63,21 @@ namespace Spiderly.Shared.Tests.Excel
 
         #region Constructor Tests
 
-        [Test]
+        [Fact]
         public void Constructor_CreatesInstanceWithoutErrors()
         {
             // Arrange & Act
             var service = new ExcelService();
 
             // Assert
-            Assert.That(service, Is.Not.Null);
+            service.Should().NotBeNull();
         }
 
         #endregion
 
         #region FillReportTemplate Tests
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithValidData_ReturnsValidMemoryStream()
         {
             // Arrange
@@ -90,11 +92,11 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithEmptyList_ReturnsEmptyMemoryStream()
         {
             // Arrange
@@ -105,11 +107,11 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, 0, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithNullOptions_UsesDefaultOptions()
         {
             // Arrange
@@ -123,11 +125,11 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object, null);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithExcludedProperties_ExcludesSpecifiedColumns()
         {
             // Arrange
@@ -141,16 +143,16 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
+            result.Should().NotBeNull();
 
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
+
             // Verify IsActive column is not present
-            Assert.That(worksheet.ColumnsUsed().Count(), Is.EqualTo(4)); // Id, Name, Price, CreatedDate (4 columns)
+            worksheet.ColumnsUsed().Count().Should().Be(4); // Id, Name, Price, CreatedDate (4 columns)
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithStringData_HandlesCorrectly()
         {
             // Arrange
@@ -165,11 +167,11 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithNullableDateTime_HandlesCorrectly()
         {
             // Arrange
@@ -184,31 +186,31 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
         }
 
         #endregion
 
         #region ConvertTableToObjects Tests
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithValidTable_ReturnsCorrectObjects()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             // Setup header row
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "Name";
             worksheet.Cell(1, 3).Value = "Price";
-            
+
             // Setup data rows
             worksheet.Cell(2, 1).Value = 1;
             worksheet.Cell(2, 2).Value = "Product 1";
             worksheet.Cell(2, 3).Value = 99.99;
-            
+
             worksheet.Cell(3, 1).Value = 2;
             worksheet.Cell(3, 2).Value = "Product 2";
             worksheet.Cell(3, 3).Value = 149.99;
@@ -220,22 +222,22 @@ namespace Spiderly.Shared.Tests.Excel
             var result = ExcelService.ConvertTableToObjects<TestDataItem>(table).ToList();
 
             // Assert
-            Assert.That(result, Has.Count.EqualTo(2));
-            Assert.That(result[0].Id, Is.EqualTo(1));
-            Assert.That(result[0].Name, Is.EqualTo("Product 1"));
-            Assert.That(result[0].Price, Is.EqualTo(99.99m));
-            Assert.That(result[1].Id, Is.EqualTo(2));
-            Assert.That(result[1].Name, Is.EqualTo("Product 2"));
-            Assert.That(result[1].Price, Is.EqualTo(149.99m));
+            result.Should().HaveCount(2);
+            result[0].Id.Should().Be(1);
+            result[0].Name.Should().Be("Product 1");
+            result[0].Price.Should().Be(99.99m);
+            result[1].Id.Should().Be(2);
+            result[1].Name.Should().Be("Product 2");
+            result[1].Price.Should().Be(149.99m);
         }
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithEmptyTable_ReturnsEmptyList()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             // Setup header row only
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "Name";
@@ -247,19 +249,19 @@ namespace Spiderly.Shared.Tests.Excel
             var result = ExcelService.ConvertTableToObjects<TestDataItem>(table).ToList();
 
             // Assert
-            Assert.That(result, Is.Empty);
+            result.Should().BeEmpty();
         }
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithInt32Conversion_ConvertsCorrectly()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "Name";
-            
+
             worksheet.Cell(2, 1).Value = 42.0; // Excel stores all numbers as double
             worksheet.Cell(2, 2).Value = "Test";
 
@@ -270,21 +272,21 @@ namespace Spiderly.Shared.Tests.Excel
             var result = ExcelService.ConvertTableToObjects<TestDataItem>(table).ToList();
 
             // Assert
-            Assert.That(result, Has.Count.EqualTo(1));
-            Assert.That(result[0].Id, Is.EqualTo(42));
-            Assert.That(result[0].Id, Is.InstanceOf<int>());
+            result.Should().HaveCount(1);
+            result[0].Id.Should().Be(42);
+            result[0].Id.Should().BeOfType<int>();
         }
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithDateTimeConversion_ConvertsCorrectly()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "CreatedDate";
-            
+
             // Excel serial date for 2024-01-15 is approximately 45306
             worksheet.Cell(2, 1).Value = 1;
             worksheet.Cell(2, 2).Value = 45306.0;
@@ -296,22 +298,22 @@ namespace Spiderly.Shared.Tests.Excel
             var result = ExcelService.ConvertTableToObjects<TestDataItem>(table).ToList();
 
             // Assert
-            Assert.That(result, Has.Count.EqualTo(1));
-            Assert.That(result[0].CreatedDate.Year, Is.EqualTo(2024));
-            Assert.That(result[0].CreatedDate.Month, Is.EqualTo(1));
-            Assert.That(result[0].CreatedDate.Day, Is.EqualTo(15));
+            result.Should().HaveCount(1);
+            result[0].CreatedDate.Year.Should().Be(2024);
+            result[0].CreatedDate.Month.Should().Be(1);
+            result[0].CreatedDate.Day.Should().Be(15);
         }
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithInvalidDate_ThrowsArgumentException()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "CreatedDate";
-            
+
             worksheet.Cell(2, 1).Value = 1;
             worksheet.Cell(2, 2).Value = 0; // Invalid date (less than 1)
 
@@ -322,16 +324,16 @@ namespace Spiderly.Shared.Tests.Excel
             Assert.Throws<ArgumentException>(() => ExcelService.ConvertTableToObjects<TestDataItem>(table).ToList());
         }
 
-        [Test]
+        [Fact]
         public void ConvertTableToObjects_WithUnsupportedType_ThrowsNotImplementedException()
         {
             // Arrange
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Test");
-            
+
             worksheet.Cell(1, 1).Value = "Id";
             worksheet.Cell(1, 2).Value = "Price";
-            
+
             worksheet.Cell(2, 1).Value = 1;
             worksheet.Cell(2, 2).Value = 99.99;
 
@@ -346,7 +348,7 @@ namespace Spiderly.Shared.Tests.Excel
 
         #region Backward Compatibility Tests
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_BackwardCompatibility_WithDecimal_HandlesCorrectly()
         {
             // Arrange - Test backward compatibility with decimal types
@@ -360,17 +362,17 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            
+            result.Should().NotBeNull();
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
+
             // Verify decimal value is preserved
             var cellValue = worksheet.Cell(2, 3).Value;
-            Assert.That(cellValue, Is.EqualTo(123.45));
+            cellValue.Should().Be(123.45);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_BackwardCompatibility_WithBoolean_HandlesCorrectly()
         {
             // Arrange - Test backward compatibility with boolean types
@@ -385,17 +387,17 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            
+            result.Should().NotBeNull();
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
+
             // Verify boolean values are preserved
-            Assert.That(worksheet.Cell(2, 5).Value, Is.EqualTo(true));
-            Assert.That(worksheet.Cell(3, 5).Value, Is.EqualTo(false));
+            worksheet.Cell(2, 5).Value.Should().Be(true);
+            worksheet.Cell(3, 5).Value.Should().Be(false);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_BackwardCompatibility_WithDateTime_HandlesCorrectly()
         {
             // Arrange - Test backward compatibility with DateTime types
@@ -410,33 +412,33 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            
+            result.Should().NotBeNull();
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
+
             // Verify date is preserved with correct format
-            Assert.That(worksheet.Column(4).Style.NumberFormat.Format, Is.EqualTo("dd.MM.yyyy."));
+            worksheet.Column(4).Style.NumberFormat.Format.Should().Be("dd.MM.yyyy.");
         }
 
         #endregion
 
         #region Edge Case Tests
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithLargeDataSet_HandlesCorrectly()
         {
             // Arrange - Test with larger dataset for performance and correctness
             var data = new List<TestDataItem>();
             for (int i = 0; i < 1000; i++)
             {
-                data.Add(new TestDataItem 
-                { 
-                    Id = i, 
-                    Name = $"Product {i}", 
-                    Price = i * 10.00m, 
+                data.Add(new TestDataItem
+                {
+                    Id = i,
+                    Name = $"Product {i}",
+                    Price = i * 10.00m,
                     CreatedDate = DateTime.Now.AddDays(i),
-                    IsActive = i % 2 == 0 
+                    IsActive = i % 2 == 0
                 });
             }
             var propertiesToExclude = Array.Empty<string>();
@@ -445,29 +447,29 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Length, Is.GreaterThan(0));
-            
+            result.Should().NotBeNull();
+            result.Length.Should().BeGreaterThan(0);
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
+
             // Verify all rows are present (header + 1000 data rows)
-            Assert.That(worksheet.RowCount(), Is.GreaterThanOrEqualTo(1001));
+            worksheet.RowCount().Should().BeGreaterThanOrEqualTo(1001);
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithSpecialCharactersInData_HandlesCorrectly()
         {
             // Arrange - Test with special characters
             var data = new List<TestDataItem>
             {
-                new TestDataItem 
-                { 
-                    Id = 1, 
-                    Name = "Product with \"quotes\" and 'apostrophes' & < > characters", 
-                    Price = 100.00m, 
+                new TestDataItem
+                {
+                    Id = 1,
+                    Name = "Product with \"quotes\" and 'apostrophes' & < > characters",
+                    Price = 100.00m,
                     CreatedDate = DateTime.Now,
-                    IsActive = true 
+                    IsActive = true
                 }
             };
             var propertiesToExclude = Array.Empty<string>();
@@ -476,27 +478,27 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            
+            result.Should().NotBeNull();
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
-            Assert.That(worksheet.Cell(2, 2).Value.ToString(), Contains.Substring("quotes"));
+
+            worksheet.Cell(2, 2).Value.ToString().Should().Contain("quotes");
         }
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithEmptyStrings_HandlesCorrectly()
         {
             // Arrange - Test with empty string values
             var data = new List<TestDataItem>
             {
-                new TestDataItem 
-                { 
-                    Id = 1, 
-                    Name = "", 
-                    Price = 0.00m, 
+                new TestDataItem
+                {
+                    Id = 1,
+                    Name = "",
+                    Price = 0.00m,
                     CreatedDate = DateTime.Now,
-                    IsActive = false 
+                    IsActive = false
                 }
             };
             var propertiesToExclude = Array.Empty<string>();
@@ -505,19 +507,19 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
-            
+            result.Should().NotBeNull();
+
             using var workbook = new XLWorkbook(result);
             var worksheet = workbook.Worksheets.First();
-            
-            Assert.That(worksheet.Cell(2, 2).Value.ToString(), Is.Empty);
+
+            worksheet.Cell(2, 2).Value.ToString().Should().BeEmpty();
         }
 
         #endregion
 
         #region Error Handling Tests
 
-        [Test]
+        [Fact]
         public void FillReportTemplate_WithAllPropertiesExcluded_CreatesEmptySheet()
         {
             // Arrange - Test with all properties excluded
@@ -531,7 +533,7 @@ namespace Spiderly.Shared.Tests.Excel
             var result = _excelService.FillReportTemplate(data, data.Count, propertiesToExclude, _mockResourceManager.Object);
 
             // Assert
-            Assert.That(result, Is.Not.Null);
+            result.Should().NotBeNull();
         }
 
         #endregion
