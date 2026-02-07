@@ -31,5 +31,9 @@ namespace Spiderly.Shared.Attributes.Entity.Translation
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
     public class TranslateSrLatnRSAttribute(string translation) : Attribute
     {
+        /// <summary>
+        /// Gets the Serbian (Latin) translation for the entity or property.
+        /// </summary>
+        public string Translation { get; } = translation;
     }
 }

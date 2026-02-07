@@ -25,5 +25,9 @@ namespace Spiderly.Shared.Attributes.Entity.Translation
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class TranslateExcelSrLatnRSAttribute(string translation) : Attribute
     {
+        /// <summary>
+        /// Gets the Serbian (Latin) translation for the Excel file name.
+        /// </summary>
+        public string Translation { get; } = translation;
     }
 }

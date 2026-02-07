@@ -32,5 +32,9 @@ namespace Spiderly.Shared.Attributes.Entity.Translation
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
     public class TranslateEnAttribute(string translation) : Attribute
     {
+        /// <summary>
+        /// Gets the English translation for the entity or property.
+        /// </summary>
+        public string Translation { get; } = translation;
     }
 }

@@ -27,5 +27,9 @@ namespace Spiderly.Shared.Attributes.Entity.Translation
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class TranslatePluralEnAttribute(string translation) : Attribute
     {
+        /// <summary>
+        /// Gets the English plural translation for the entity.
+        /// </summary>
+        public string Translation { get; } = translation;
     }
 }
