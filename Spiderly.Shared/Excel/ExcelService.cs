@@ -1,6 +1,7 @@
-﻿using ClosedXML.Excel;
+using ClosedXML.Excel;
 using System.Globalization;
 using System.Reflection;
+using System.ComponentModel;
 using Spiderly.Shared.Excel.DTO;
 using System.Resources;
 using Spiderly.Shared.Resources;
@@ -59,6 +60,11 @@ namespace Spiderly.Shared.Excel
 
                     LoadFromCollectionOverride(data, count, type, worksheet, propertiesToInclude, resourceManager);
                 }
+                else
+                {
+                    // ClosedXML requires at least one worksheet - add a placeholder
+                    workbook.Worksheets.Add(options.DataSheetName);
+                }
                 workbook.SaveAs(outputStream);
             }
 
@@ -95,7 +101,21 @@ namespace Spiderly.Shared.Excel
                 for (int dataIndex = 0; dataIndex < count; dataIndex++)
                 {
                     cellRow = dataIndex + 2;
-                    worksheet.Cell(cellRow, cellCol).Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
+                    object cellValue = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
+                    
+                    // Handle DateTime separately to preserve the date value in Excel
+                    if (propertiesToInclude[headerIndex].PropertyType == typeof(DateTime) || 
+                        propertiesToInclude[headerIndex].PropertyType == typeof(DateTime?))
+                    {
+                        if (cellValue == null)
+                            worksheet.Cell(cellRow, cellCol).Value = "";
+                        else
+                            worksheet.Cell(cellRow, cellCol).Value = (DateTime)cellValue;
+                    }
+                    else
+                    {
+                        worksheet.Cell(cellRow, cellCol).Value = (cellValue ?? "").ToString();
+                    }
                 }
 
                 if (propertiesToInclude[headerIndex].PropertyType == typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType == typeof(DateTime?))
@@ -115,11 +135,53 @@ namespace Spiderly.Shared.Excel
         }
 
         /// <summary>
+        /// Helper method to convert a value to the target type using TypeDescriptor for proper type conversion
+        /// </summary>
+        private static object ConvertValueToType(object value, Type targetType)
+        {
+            if (value == null)
+            {
+                return targetType.IsValueType && Nullable.GetUnderlyingType(targetType) == null 
+                    ? Activator.CreateInstance(targetType) 
+                    : null;
+            }
+
+            var valueType = value.GetType();
+
+            // If the value is already the target type, return it directly
+            if (valueType == targetType || targetType.IsAssignableFrom(valueType))
+                return value;
+
+            // Use TypeDescriptor for proper conversion
+            var converter = TypeDescriptor.GetConverter(targetType);
+            if (converter.CanConvertFrom(valueType))
+                return converter.ConvertFrom(value)!;
+
+            // Try converting from string
+            if (converter.CanConvertFrom(typeof(string)))
+            {
+                var stringValue = value.ToString();
+                if (!string.IsNullOrEmpty(stringValue))
+                    return converter.ConvertFrom(stringValue)!;
+            }
+
+            // Fallback to Convert.ChangeType for numeric conversions
+            try
+            {
+                return Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                throw new InvalidOperationException($"Cannot convert value of type '{valueType.Name}' to type '{targetType.Name}'.");
+            }
+        }
+
+        /// <summary>
         /// Convert table to objects using ClosedXML
         /// </summary>
         public static IEnumerable<T> ConvertTableToObjects<T>(IXLTable table) where T : new()
         {
-            //DateTime Conversion
+            //DateTime Conversion - Excel stores dates as serial numbers
             var convertDateTime = new Func<double, DateTime>(excelDate =>
             {
                 if (excelDate < 1)
@@ -154,16 +216,24 @@ namespace Spiderly.Shared.Excel
                 .GroupBy(cell => cell.Address.RowNumber)
                 .ToList();
 
-            //Assume the second row represents column data types (big assumption!)
-            var types = groups
-                .Skip(1)
-                .First()
-                .Select(rcell => rcell.Value.GetType())
-                .ToList();
+            //Check if we have enough rows for header and data
+            if (groups.Count < 2)
+            {
+                // Return empty list if not enough data (only header or empty)
+                return new List<T>();
+            }
 
             //Assume first row has the column names
-            var colnames = groups
-                .First()
+            var headerGroup = groups.First();
+            var headerCells = headerGroup.ToList();
+            var columnCount = headerCells.Count;
+
+            //Assume the second row represents column data types
+            var dataTypesRow = groups.Skip(1).First();
+            var dataTypeCells = dataTypesRow.ToList();
+
+            //Get column names from header - only include columns that match properties
+            var colnames = headerCells
                 .Select((hcell, idx) => new { Name = hcell.Value.ToString(), index = idx })
                 .Where(o => tprops.Select(p => p.Name).Contains(o.Name))
                 .ToList();
@@ -178,39 +248,86 @@ namespace Spiderly.Shared.Excel
                 .Select(row =>
                 {
                     var tnew = new T();
-                    colnames.ForEach(colname =>
+                    
+                    foreach (var colname in colnames)
                     {
-                        //This is the real wrinkle to using reflection - Excel stores all numbers as double including int
+                        // Check if the column index exists in both the header and the row
+                        if (colname.index >= columnCount || colname.index >= row.Count)
+                            continue;
+                            
                         var val = row[colname.index];
-                        var type = types[colname.index];
-                        var prop = tprops.First(p => p.Name == colname.Name);
+                        var dataType = val.Type;
+                        var prop = tprops.FirstOrDefault(p => p.Name == colname.Name);
+                        
+                        if (prop == null)
+                            continue;
 
-                        //If it is numeric it is a double since that is how excel stores all numbers
-                        if (type == typeof(double))
+                        // Get the target type from the property, not from the data row
+                        // This ensures we convert data values to the correct property type
+                        var targetType = prop.PropertyType;
+                        
+                        //Extract values based on XLDataType
+                        try
                         {
-                            if (!string.IsNullOrWhiteSpace(val?.ToString()))
+                            switch (dataType)
                             {
-                                //Unbox it
-                                var unboxedVal = (double)val;
-
-                                // Supported types: Int32, double, DateTime
-                                // Additional types can be added as needed
-                                if (prop.PropertyType == typeof(Int32))
-                                    prop.SetValue(tnew, (int)unboxedVal);
-                                else if (prop.PropertyType == typeof(double))
-                                    prop.SetValue(tnew, unboxedVal);
-                                else if (prop.PropertyType == typeof(DateTime))
-                                    prop.SetValue(tnew, convertDateTime(unboxedVal));
-                                else
-                                    throw new NotImplementedException(String.Format("Type '{0}' not implemented yet!", prop.PropertyType.Name));
+                                case XLDataType.Number:
+                                    var numVal = (double)val;
+                                    
+                                    // Check if property type is DateTime (Excel date serial number)
+                                    if (targetType == typeof(DateTime))
+                                    {
+                                        prop.SetValue(tnew, convertDateTime(numVal));
+                                    }
+                                    else if (targetType == typeof(DateTime?))
+                                    {
+                                        prop.SetValue(tnew, convertDateTime(numVal));
+                                    }
+                                    else
+                                    {
+                                        // Use helper method for proper type conversion
+                                        var convertedValue = ConvertValueToType(numVal, targetType);
+                                        prop.SetValue(tnew, convertedValue);
+                                    }
+                                    break;
+                                case XLDataType.Boolean:
+                                    var boolVal = (bool)val;
+                                    if (targetType == typeof(bool))
+                                        prop.SetValue(tnew, boolVal);
+                                    else if (targetType == typeof(bool?))
+                                        prop.SetValue(tnew, boolVal);
+                                    else
+                                        throw new NotImplementedException(String.Format("Type '{0}' not implemented yet!", targetType.Name));
+                                    break;
+                                case XLDataType.DateTime:
+                                    var dateVal = (DateTime)val;
+                                    if (targetType == typeof(DateTime) || targetType == typeof(DateTime?))
+                                        prop.SetValue(tnew, dateVal);
+                                    else
+                                        throw new NotImplementedException(String.Format("Type '{0}' not implemented yet!", targetType.Name));
+                                    break;
+                            default:
+                                //String, Empty, or Error type
+                                var strVal = val.ToString();
+                                
+                                // Handle all target types from string values using TypeDescriptor
+                                var stringConvertedValue = ConvertValueToType(strVal, targetType);
+                                prop.SetValue(tnew, stringConvertedValue);
+                                break;
                             }
                         }
-                        else
+                        catch (Exception ex) when (ex is NotImplementedException || ex is InvalidOperationException)
                         {
-                            //Its a string
-                            prop.SetValue(tnew, val);
+                            // Re-throw known exceptions
+                            throw;
                         }
-                    });
+                        catch (Exception ex)
+                        {
+                            // Wrap other exceptions for clarity
+                            throw new InvalidOperationException(
+                                $"Failed to set property '{prop.Name}' with value from Excel cell: {ex.Message}", ex);
+                        }
+                    }
 
                     return tnew;
                 });
