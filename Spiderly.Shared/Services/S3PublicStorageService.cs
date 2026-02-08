@@ -94,20 +94,29 @@ namespace Spiderly.Shared.Services
         {
             string key = ExtractS3KeyFromUrl(url);
 
-            GetObjectRequest getRequest = new GetObjectRequest
+            try
             {
-                BucketName = _bucketName,
-                Key = key
-            };
+                GetObjectRequest getRequest = new GetObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key
+                };
 
-            using GetObjectResponse response = await _s3Client.GetObjectAsync(getRequest);
-            using MemoryStream memoryStream = new MemoryStream();
-            await response.ResponseStream.CopyToAsync(memoryStream);
+                using GetObjectResponse response = await _s3Client.GetObjectAsync(getRequest);
+                using MemoryStream memoryStream = new MemoryStream();
+                await response.ResponseStream.CopyToAsync(memoryStream);
 
-            byte[] byteArray = memoryStream.ToArray();
-            string base64 = Convert.ToBase64String(byteArray);
+                byte[] byteArray = memoryStream.ToArray();
+                string base64 = Convert.ToBase64String(byteArray);
 
-            return $"filename={key};base64,{base64}";
+                return $"filename={key};base64,{base64}";
+            }
+            catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // TODO: Add logging
+                Console.Error.WriteLine($"[S3PublicStorageService] S3 key not found: {key}");
+                return null;
+            }
         }
 
         public async Task DeleteNonActiveEditorImages(
