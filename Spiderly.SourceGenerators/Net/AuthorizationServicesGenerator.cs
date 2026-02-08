@@ -125,6 +125,8 @@ namespace {{basePartOfNamespace}}.Services
 
 {{GetBloblAuthorizeEntityMethods(entity, entityIdType)}}
 
+{{GetEditorImageAuthorizeEntityMethods(entity, entityIdType)}}
+
         #endregion
 
 """);
@@ -143,6 +145,26 @@ namespace {{basePartOfNamespace}}.Services
 {{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Update, $"{entityIdType} {entity.Name.FirstCharToLower()}Id")}} // Blob update
 
 {{GetAuthorizeEntityMethod($"{property.Name}For{entity.Name}", entity, CrudCodes.Insert, $"")}} // Blob insert, the id will always be 0, so we don't need to pass it.
+""");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string GetEditorImageAuthorizeEntityMethods(SpiderlyClass entity, string entityIdType)
+        {
+            StringBuilder sb = new();
+
+            List<SpiderlyProperty> editorProperties = entity.Properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+
+            foreach (SpiderlyProperty property in editorProperties)
+            {
+                sb.AppendLine($$"""
+{{GetAuthorizeEntityMethod($"{property.Name}ImageFor{entity.Name}", entity, CrudCodes.Update, $"{entityIdType} {entity.Name.FirstCharToLower()}Id")}} // Editor image update
+
+{{GetAuthorizeEntityMethod($"{property.Name}ImageFor{entity.Name}", entity, CrudCodes.Insert, $"")}} // Editor image insert
 """);
             }
 
