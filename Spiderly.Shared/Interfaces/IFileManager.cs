@@ -8,6 +8,8 @@
         // Before this in save method the authorization is being done, so we don't need to do it here also
         Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId);
 
+        Task DeleteNonActiveEditorImages(List<string> activeImageUrls, string objectType, string objectProperty, string objectId);
+
         Task<string> GetFileDataAsync(string key);
     }
 }

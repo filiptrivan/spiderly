@@ -221,6 +221,8 @@ namespace {{basePartOfNamespace}}.Controllers
 
 {{string.Join("\n\n", GetUploadBlobControllerMethods(controllerEntity, allEntities))}}
 
+{{string.Join("\n\n", GetUploadEditorImageControllerMethods(controllerEntity, allEntities))}}
+
         #endregion
 
         #region Delete
@@ -497,6 +499,29 @@ namespace {{basePartOfNamespace}}.Controllers
         }
 """
 );
+            }
+
+            return result;
+        }
+
+        private static List<string> GetUploadEditorImageControllerMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            List<string> result = new();
+
+            List<SpiderlyProperty> editorProperties = entity.Properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+
+            foreach (SpiderlyProperty property in editorProperties)
+            {
+                result.Add($$"""
+        [HttpPost]
+        [AuthGuard]
+        public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
+        {
+            return await _businessService.Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+        }
+""");
             }
 
             return result;

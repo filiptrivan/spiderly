@@ -18,6 +18,7 @@ using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -573,6 +574,23 @@ Currently authenticated user id: {{userId}}); <br>
             }
 
             return bytes;
+        }
+
+        public static List<string> ExtractImageUrlsFromHtml(string htmlContent)
+        {
+            if (string.IsNullOrEmpty(htmlContent))
+                return new List<string>();
+
+            List<string> urls = new();
+            Regex regex = new Regex(@"<img[^>]+src=""([^""]+)""", RegexOptions.IgnoreCase);
+
+            foreach (Match match in regex.Matches(htmlContent))
+            {
+                if (match.Groups.Count > 1)
+                    urls.Add(match.Groups[1].Value);
+            }
+
+            return urls;
         }
 
         #endregion

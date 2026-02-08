@@ -815,6 +815,14 @@ export class {{entity.Name}}BaseDetailsComponent {
 """);
                     }
                 }
+                else if (controlType == UIControlTypeCodes.Editor && property.HasS3PublicUrlAttribute())
+                {
+                    result.Add($$"""
+    upload{{property.Name}}ImageFor{{entity.Name}} = (formData: FormData): Observable<string> => {
+        return this.apiService.upload{{property.Name}}ImageFor{{entity.Name}}(formData);
+    }
+""");
+                }
             }
 
             return result;
@@ -1067,6 +1075,15 @@ export class {{entity.Name}}BaseDetailsComponent {
             else if (controlType == UIControlTypeCodes.ColorPicker)
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showInputTextField]=\"show{property.Name}TextFieldFor{entity.Name}\"";
+            }
+            else if (controlType == UIControlTypeCodes.Editor)
+            {
+                if (property.HasS3PublicUrlAttribute())
+                {
+                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\"";
+                }
+
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
             }
 
             return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";

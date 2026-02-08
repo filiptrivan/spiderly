@@ -77,5 +77,14 @@ namespace Spiderly.Shared.Services
 
             return $"filename={key};base64,{base64}";
         }
+
+        public Task DeleteNonActiveEditorImages(
+            List<string> activeImageUrls,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

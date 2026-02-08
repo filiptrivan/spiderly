@@ -117,5 +117,14 @@ namespace Spiderly.Shared.Services
                 var deleteResult = await _cloudinary.DeleteResourcesAsync(deleteParams);
             }
         }
+
+        public Task DeleteNonActiveEditorImages(
+            List<string> activeImageUrls,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

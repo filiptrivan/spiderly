@@ -139,7 +139,9 @@ namespace {{basePartOfNamespace}}.Services
 {{GetSavingData(entity, allEntityClasses)}}
 
 {{string.Join("\n\n", GetUploadBlobMethods(entity, allEntityClasses))}}
-        
+
+{{string.Join("\n\n", GetUploadEditorImageMethods(entity, allEntityClasses))}}
+
         #endregion
 
         #region Delete
@@ -1117,6 +1119,8 @@ namespace {{basePartOfNamespace}}.Services
                 await _context.SaveChangesAsync();
 
 {{string.Join("\n", GetNonActiveDeleteBlobMethods(entity))}}
+
+{{string.Join("\n", GetNonActiveDeleteEditorImageMethods(entity))}}
             });
 
             return poco;
@@ -1467,6 +1471,25 @@ namespace {{basePartOfNamespace}}.Services
             return result;
         }
 
+        private static List<string> GetNonActiveDeleteEditorImageMethods(SpiderlyClass entity)
+        {
+            List<string> result = new();
+
+            List<SpiderlyProperty> editorProperties = entity.Properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+
+            foreach (SpiderlyProperty property in editorProperties)
+            {
+                result.Add($$"""
+                List<string> active{{property.Name}}ImageUrls = Helper.ExtractImageUrlsFromHtml(dto.{{property.Name}});
+                await _s3PublicStorageService.DeleteNonActiveEditorImages(active{{property.Name}}ImageUrls, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}) + "Image", poco.Id.ToString());
+""");
+            }
+
+            return result;
+        }
+
         private static List<string> GetUploadBlobMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             List<string> result = new();
@@ -1588,6 +1611,52 @@ namespace {{basePartOfNamespace}}.Services
             return $"""
             await Helper.ValidateImageDimensions(stream, width: {imageWidth}, height: {imageHeight});
 """;
+        }
+
+        private static List<string> GetUploadEditorImageMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            string entityIdType = entity.GetIdType(allEntities);
+
+            List<SpiderlyProperty> editorProperties = entity.Properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+
+            foreach (SpiderlyProperty property in editorProperties)
+            {
+                result.Add($$"""
+        public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert)
+        {
+            {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
+
+            if (id > 0 && authorizeUpdate)
+            {
+                {{GetAuthorizeEntityMethodCall($"{property.Name}ImageFor{entity.Name}", CrudCodes.Update, "id")}}
+            }
+            else if (authorizeInsert)
+            {
+                {{GetAuthorizeEntityMethodCall($"{property.Name}ImageFor{entity.Name}", CrudCodes.Insert, "")}}
+            }
+
+            string imageUrl;
+
+            using (Stream stream = file.OpenReadStream())
+            {
+                byte[] byteArray = await Helper.OptimizeImage(stream);
+
+                using (Stream updatedStream = new MemoryStream(byteArray))
+                {
+                    imageUrl = await _s3PublicStorageService.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}) + "Image", id.ToString(), updatedStream);
+                }
+            }
+
+            return imageUrl;
+        }
+""");
+            }
+
+            return result;
         }
 
         #endregion

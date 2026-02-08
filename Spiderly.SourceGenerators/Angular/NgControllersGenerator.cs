@@ -274,6 +274,8 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
 {{string.Join("\n\n", GetBaseUploadBlobAngularControllerMethods(entity, alreadyAddedMethods))}}
 
+{{string.Join("\n\n", GetBaseUploadEditorImageAngularControllerMethods(entity, alreadyAddedMethods))}}
+
 {{GetBaseDeleteAngularControllerMethods(entity, alreadyAddedMethods)}}
 
 """;
@@ -492,6 +494,29 @@ import { {{ngType}} } from '../../entities/entities.generated';
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "file", "FormData" } };
 
             return GetAngularControllerMethod(methodName, postAndPutParameter, "string", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsText);
+        }
+
+        private static List<string> GetBaseUploadEditorImageAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        {
+            List<string> result = new();
+
+            List<SpiderlyProperty> editorProperties = entity.Properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+
+            foreach (SpiderlyProperty property in editorProperties)
+            {
+                string methodName = $"Upload{property.Name}ImageFor{entity.Name}";
+
+                if (alreadyAddedMethods.Contains(methodName))
+                    continue;
+
+                Dictionary<string, string> postParameter = new Dictionary<string, string> { { "file", "FormData" } };
+
+                result.Add(GetAngularControllerMethod(methodName, postParameter, "string", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsText));
+            }
+
+            return result;
         }
 
         private static string GetBaseSaveAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)

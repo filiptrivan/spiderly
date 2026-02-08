@@ -20,6 +20,7 @@
     [id]="control.label"
     [placeholder]="placeholder"
     (click)="onClick()"
+    (onInit)="onEditorInit($event)"
     [style]="{ height: '320px' }"
   ></p-editor>
 </div>

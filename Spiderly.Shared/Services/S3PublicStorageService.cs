@@ -110,6 +110,37 @@ namespace Spiderly.Shared.Services
             return $"filename={key};base64,{base64}";
         }
 
+        public async Task DeleteNonActiveEditorImages(
+            List<string> activeImageUrls,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            if (objectId == "0")
+                return;
+
+            HashSet<string> activeKeys = activeImageUrls
+                .Select(ExtractS3KeyFromUrl)
+                .ToHashSet();
+
+            string prefix = $"{objectType}/{objectProperty}/{objectId}/";
+
+            ListObjectsV2Request listRequest = new ListObjectsV2Request
+            {
+                BucketName = _bucketName,
+                Prefix = prefix
+            };
+
+            ListObjectsV2Response response = await _s3Client.ListObjectsV2Async(listRequest);
+
+            List<S3Object> s3Objects = response.S3Objects ?? [];
+
+            foreach (S3Object obj in s3Objects.Where(o => !activeKeys.Contains(o.Key)))
+            {
+                await _s3Client.DeleteObjectAsync(_bucketName, obj.Key);
+            }
+        }
+
         private string ExtractS3KeyFromUrl(string urlOrKey)
         {
             if (urlOrKey?.StartsWith("http") == true)

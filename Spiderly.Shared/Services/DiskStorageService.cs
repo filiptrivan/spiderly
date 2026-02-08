@@ -129,5 +129,14 @@ namespace Spiderly.Shared.Services
 
             return Task.CompletedTask;
         }
+
+        public Task DeleteNonActiveEditorImages(
+            List<string> activeImageUrls,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
