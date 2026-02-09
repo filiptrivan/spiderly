@@ -830,7 +830,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                 string controlType = GetUIStringControlType(GetUIControlType(property));
 
                 result.Add($$"""
-                    <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property)}}">
+                    <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property, isFromOrderedOneToMany)}}">
                         <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
                         <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
                     </div>
@@ -1056,7 +1056,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             return string.Join(" ", attributes);
         }
 
-        private static string GetUIControlWidth(SpiderlyProperty property)
+        private static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
         {
             SpiderlyAttribute uiControlWidthAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlWidth");
 
@@ -1074,6 +1074,9 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 return "col-8";
             }
+
+            if (isFromOrderedOneToMany)
+                return "col-8";
 
             return "col-8 md:col-4";
         }
