@@ -186,12 +186,30 @@ namespace {{basePartOfNamespace}}.Services
                     {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                return new {{entity.Name}}MainUIFormDTO
+                var result = new {{entity.Name}}MainUIFormDTO
                 {
 {{GetMainUIFormDTOInitializationProperties(entity, allEntities)}}
                 };
+
+                await OnAfterGet{{entity.Name}}MainUIFormDTO(result);
+
+                return result;
             });
         }
+
+        /// <summary>
+        /// Lifecycle hook called after retrieving {{entity.Name}} MainUIFormDTO.
+        /// Override this method to enrich the MainUIFormDTO with additional data (e.g., computed fields, extra queries).
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <example>
+        /// protected override async Task OnAfterGet{{entity.Name}}MainUIFormDTO({{entity.Name}}MainUIFormDTO mainUIFormDTO)
+        /// {
+        ///     mainUIFormDTO.CustomProperty = await _context.DbSet&lt;OtherEntity&gt;().Where(x => x.{{entity.Name}}Id == mainUIFormDTO.{{entity.Name}}DTO.Id).CountAsync();
+        /// }
+        /// </example>
+        /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
+        protected virtual async Task OnAfterGet{{entity.Name}}MainUIFormDTO({{entity.Name}}MainUIFormDTO mainUIFormDTO) { }
 
         /// <summary>
         /// Retrieves a single {{entity.Name}} entity as a DTO with blob data populated.

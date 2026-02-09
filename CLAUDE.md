@@ -9,3 +9,4 @@
 - Enum types in Spiderly follow the `...Codes` naming convention (e.g., `StatusCodes`, `UIControlTypeCodes`).
 - Use `List<T>` for one-to-many and many-to-many collections, not `IList<T>` or other collection interfaces.
 - `[StringLength(X)]` without `MinimumLength` generates an **exact length** validation. Use `[StringLength(X, MinimumLength = Y)]` for a range.
+- All generated methods that Spiderly end users can use (virtual hooks, overridable methods, etc.) must have XML `<summary>` documentation with `<example>` showing usage.
