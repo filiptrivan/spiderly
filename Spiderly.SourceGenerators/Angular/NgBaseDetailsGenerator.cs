@@ -587,6 +587,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 result.Add($$"""
     @Input() {{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed: boolean = false;
+    @Input() additionalContentTemplateFor{{property.Name}}For{{entity.Name}}: TemplateRef<any> | undefined;
 """);
 
                 SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
@@ -633,6 +634,9 @@ export class {{entity.Name}}BaseDetailsComponent {
                                     >
                                         <form [formGroup]="{{extractedEntity.Name.FirstCharToLower()}}FormGroup" class="spiderly-grid">
 {{string.Join("\n", GetPropertyBlocks(propertyBlocks, extractedEntity, allEntities, customDTOClasses, isFromOrderedOneToMany: true))}}
+                                            <ng-container *ngIf="additionalContentTemplateFor{{property.Name}}For{{entity.Name}}">
+                                                <ng-container *ngTemplateOutlet="additionalContentTemplateFor{{property.Name}}For{{entity.Name}}; context: { $implicit: {{extractedEntity.Name.FirstCharToLower()}}FormGroup, formGroup: {{extractedEntity.Name.FirstCharToLower()}}FormGroup, index: index, last: last }"></ng-container>
+                                            </ng-container>
                                         </form>
                                     </index-card>
                                 }
@@ -1220,7 +1224,7 @@ import { DropdownChangeEvent } from 'primeng/dropdown';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, TemplateRef } from '@angular/core';
 import { ApiService } from '../services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
