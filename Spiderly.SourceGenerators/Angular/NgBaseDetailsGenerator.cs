@@ -166,7 +166,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetOrderedOneToManyVariables(entity, allEntities))}}
 
-{{string.Join("\n", GetPrimengOptionVariables(entity.Properties, entity, allEntities))}}
+{{string.Join("\n", GetPrimengOptionVariables(entity, allEntities, customDTOClasses))}}
 
 {{string.Join("\n", GetManyToManyTableVariables(entity, allEntities))}}
 
@@ -246,7 +246,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetSimpleManyToManyMethods(entity, allEntities))}}
 
-{{string.Join("\n", GetAutocompleteSearchMethods(entity.Properties, entity, allEntities))}}
+{{string.Join("\n", GetAutocompleteSearchMethods(entity, allEntities, customDTOClasses))}}
 
 {{string.Join("\n", GetUploadImageMethods(entity.Properties, entity, allEntities, isFromOrderedOneToMany: false))}}
 
@@ -265,12 +265,12 @@ export class {{entity.Name}}BaseDetailsComponent {
         {
             StringBuilder sb = new();
 
-            List<AngularFormBlock> formBlocks = GetAngularFormBlocks(entity, entities, customDTOClasses);
+            List<PropertyWithContext> contexts = GetAllPropertiesWithContext(entity, entities, customDTOClasses);
 
-            foreach (AngularFormBlock formBlock in formBlocks)
+            foreach (PropertyWithContext context in contexts)
             {
                 sb.AppendLine($$"""
-    @Input() show{{formBlock.Property.Name}}For{{formBlock.Property.EntityName}} = true;
+    @Input() show{{context.Property.Name}}For{{context.Entity.Name}} = true;
 """);
             }
 
@@ -281,34 +281,34 @@ export class {{entity.Name}}BaseDetailsComponent {
         {
             StringBuilder sb = new();
 
-            List<SpiderlyProperty> properties = GetAllFormControlProperties(entity.Properties.ToList(), entity, customDTOClasses, entities);
+            List<PropertyWithContext> contexts = GetAllPropertiesWithContext(entity, entities, customDTOClasses);
 
-            foreach (SpiderlyProperty property in properties)
+            foreach (PropertyWithContext context in contexts.Where(x => x.FormControlName != null))
             {
-                UIControlTypeCodes controlType = GetUIControlType(property);
+                UIControlTypeCodes controlType = GetUIControlType(context.Property);
 
                 if (controlType == UIControlTypeCodes.Dropdown)
                 {
                     sb.AppendLine($$"""
-    @Output() on{{property.Name}}For{{property.EntityName}}Change = new EventEmitter<DropdownChangeEvent>();
+    @Output() on{{context.Property.Name}}For{{context.Entity.Name}}Change = new EventEmitter<DropdownChangeEvent>();
 """);
                 }
                 else if (controlType == UIControlTypeCodes.Calendar)
                 {
                     sb.AppendLine($$"""
-    @Input() showTimeOn{{property.Name}}For{{property.EntityName}} = false;
+    @Input() showTimeOn{{context.Property.Name}}For{{context.Entity.Name}} = false;
 """);
                 }
                 else if (controlType == UIControlTypeCodes.CheckBox)
                 {
                     sb.AppendLine($$"""
-    @Output() on{{property.Name}}For{{property.EntityName}}Change = new EventEmitter<CheckboxChangeEvent>();
+    @Output() on{{context.Property.Name}}For{{context.Entity.Name}}Change = new EventEmitter<CheckboxChangeEvent>();
 """);
                 }
                 else if (controlType == UIControlTypeCodes.ColorPicker)
                 {
                     sb.AppendLine($$"""
-    @Input() show{{property.Name}}TextFieldFor{{property.EntityName}} = true;
+    @Input() show{{context.Property.Name}}TextFieldFor{{context.Entity.Name}} = true;
 """);
                 }
             }
@@ -650,35 +650,22 @@ export class {{entity.Name}}BaseDetailsComponent {
         private static string GetOrderedOneToManyFormArray(SpiderlyClass entity, SpiderlyProperty property, bool isFromOrderedOneToMany)
         {
             if (isFromOrderedOneToMany)
-                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.ordered{property.Name}MainUIFormDTO";
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.ordered{property.Name}SaveBodyDTO";
             else
                 return $"this.parentFormGroup.controls.ordered{property.Name}SaveBodyDTO";
         }
 
         #endregion
 
-        private static List<string> GetPrimengOptionVariables(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetPrimengOptionVariables(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in properties.Where(x => x.Attributes.Any(x => x.Name == "UIDoNotGenerate") == false))
+            List<PropertyWithContext> contexts = GetAllPropertiesWithContext(entity, entities, customDTOClasses);
+
+            foreach (PropertyWithContext context in contexts.Where(x => x.FormControlName != null))
             {
-                if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
-                {
-                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-                    List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
-                        .Where(x =>
-                            x.WithMany() != property.Name &&
-                            x.Type.IsEnumerable() == false
-                        )
-                        .ToList();
-
-                    GetPrimengOptionVariables(extractedProperties, extractedEntity, entities);
-
-                    continue;
-                }
-
-                UIControlTypeCodes controlType = GetUIControlType(property);
+                UIControlTypeCodes controlType = GetUIControlType(context.Property);
 
                 if (controlType == UIControlTypeCodes.Autocomplete ||
                     controlType == UIControlTypeCodes.Dropdown ||
@@ -686,51 +673,35 @@ export class {{entity.Name}}BaseDetailsComponent {
                     controlType == UIControlTypeCodes.MultiSelect)
                 {
                     result.Add($$"""
-    {{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}}: Namebook[];
+    {{context.Property.Name.FirstCharToLower()}}OptionsFor{{context.Entity.Name}}: Namebook[];
 """);
-
                 }
             }
 
             return result;
         }
 
-        private static List<string> GetAutocompleteSearchMethods(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetAutocompleteSearchMethods(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in properties.Where(x => x.Attributes.Any(x => x.Name == "UIDoNotGenerate") == false))
+            List<PropertyWithContext> contexts = GetAllPropertiesWithContext(entity, entities, customDTOClasses);
+
+            foreach (PropertyWithContext context in contexts.Where(x => x.FormControlName != null))
             {
-                if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
-                {
-                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-                    List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
-                        .Where(x =>
-                            x.WithMany() != property.Name &&
-                            x.Type.IsEnumerable() == false
-                        )
-                        .ToList();
-
-                    GetAutocompleteSearchMethods(extractedProperties, extractedEntity, entities);
-
-                    continue;
-                }
-
-                UIControlTypeCodes controlType = GetUIControlType(property);
+                UIControlTypeCodes controlType = GetUIControlType(context.Property);
 
                 if (controlType == UIControlTypeCodes.Autocomplete ||
                     controlType == UIControlTypeCodes.MultiAutocomplete)
                 {
                     result.Add($$"""
-    search{{property.Name}}For{{entity.Name}}(event: AutoCompleteCompleteEvent, modelId: number = null) {
-        this.apiService.get{{property.Name}}AutocompleteListFor{{entity.Name}}(50, event?.query ?? '', modelId).subscribe(no => {
-            this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
+    search{{context.Property.Name}}For{{context.Entity.Name}}(event: AutoCompleteCompleteEvent, modelId: number = null) {
+        this.apiService.get{{context.Property.Name}}AutocompleteListFor{{context.Entity.Name}}(50, event?.query ?? '', modelId).subscribe(no => {
+            this.{{context.Property.Name.FirstCharToLower()}}OptionsFor{{context.Entity.Name}} = no;
         });
     }
 """);
-
                 }
-
             }
 
             return result;
@@ -865,57 +836,51 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<AngularFormBlock> GetAngularFormBlocks(
+        private static List<PropertyWithContext> GetAllPropertiesWithContext(
             SpiderlyClass entity,
             List<SpiderlyClass> allEntities,
             List<SpiderlyClass> customDTOClasses
         )
         {
-            List<AngularFormBlock> result = new();
+            List<PropertyWithContext> result = new();
 
             List<SpiderlyProperty> properties = entity.Properties.ToList();
-
             SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
-
             if (customDTOClass != null)
-                properties.AddRange(customDTOClass.Properties);
+                properties = properties.Concat(customDTOClass.Properties).ToList();
 
-            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties))
+            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties);
+
+            foreach (SpiderlyProperty property in orderedProperties)
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    result.Add(new AngularFormBlock // FT: Name is null because there is no form control for the one to many properties
+                    result.Add(new PropertyWithContext
                     {
                         Property = property,
                         Entity = entity,
+                        FormControlName = null
                     });
 
-                    SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-
-                    result.AddRange(GetAngularFormBlocks(extractedEntity, allEntities, customDTOClasses));
+                    SpiderlyClass nestedEntity = allEntities.SingleOrDefault(
+                        x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)
+                    );
+                    result.AddRange(GetAllPropertiesWithContext(nestedEntity, allEntities, customDTOClasses));
 
                     continue;
                 }
 
                 UIControlTypeCodes controlType = GetUIControlType(property);
+                string formControlName = controlType == UIControlTypeCodes.Table
+                    ? null
+                    : GetFormControlName(property);
 
-                if (controlType != UIControlTypeCodes.Table)
+                result.Add(new PropertyWithContext
                 {
-                    result.Add(new AngularFormBlock
-                    {
-                        FormControlName = GetFormControlName(property),
-                        Property = property,
-                        Entity = entity,
-                    });
-                }
-                else if (controlType == UIControlTypeCodes.Table)
-                {
-                    result.Add(new AngularFormBlock // FT: Name is null because there is no form control for the table
-                    {
-                        Property = property,
-                        Entity = entity,
-                    });
-                }
+                    Property = property,
+                    Entity = entity,
+                    FormControlName = formControlName
+                });
             }
 
             return result;
@@ -954,41 +919,6 @@ export class {{entity.Name}}BaseDetailsComponent {
                 .ToList();
 
             return orderedProperties;
-        }
-
-        private static List<SpiderlyProperty> GetAllFormControlProperties(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> entities)
-        {
-            List<SpiderlyProperty> result = new();
-
-            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
-
-            if (customDTOClass != null)
-                properties.AddRange(customDTOClass.Properties);
-
-            List<SpiderlyProperty> filteredProperties = GetOrderedPropertiesForUIBlocks(properties);
-
-            foreach (SpiderlyProperty property in filteredProperties)
-            {
-                if (property.HasUIOrderedOneToManyAttribute())
-                {
-                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-
-                    List<SpiderlyProperty> extractedProperties = extractedEntity.Properties
-                        .Where(x =>
-                            x.WithMany() != property.Name &&
-                            x.Type.IsEnumerable() == false
-                        )
-                        .ToList();
-
-                    result.AddRange(GetAllFormControlProperties(extractedProperties, extractedEntity, customDTOClasses, entities));
-
-                    continue;
-                }
-
-                result.Add(property);
-            }
-
-            return result;
         }
 
         private static string GetFormControlName(SpiderlyProperty property)

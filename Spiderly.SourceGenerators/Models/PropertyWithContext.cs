@@ -1,6 +1,6 @@
 ﻿namespace Spiderly.SourceGenerators.Models
 {
-    public class AngularFormBlock
+    public class PropertyWithContext
     {
         public string FormControlName { get; set; }
         public SpiderlyClass Entity { get; set; }
