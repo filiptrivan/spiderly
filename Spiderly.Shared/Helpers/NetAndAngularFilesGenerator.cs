@@ -3911,8 +3911,13 @@ namespace {{appName}}.Business.DataMappers
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/Backend/{{appName}}.WebAPI/bin/Debug/net9.0/{{appName}}.WebAPI.dll",
-      "args": [],
+      "program": "dotnet",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/Backend/{{appName}}.WebAPI/{{appName}}.WebAPI.csproj"
+      ],
       "cwd": "${workspaceFolder}/Backend/{{appName}}.WebAPI",
       "stopAtEntry": false,
       "launchSettingsProfile": "http",
