@@ -221,13 +221,13 @@ using {{item}};
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.StartsWith:
-                                        condition = x => x.{{entityDotNotation}}.StartsWith(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}}.ToLower().StartsWith(filterRuleDTO.Value.ToString().ToLower());
                                         break;
                                     case MatchModeCodes.Contains:
-                                        condition = x => x.{{entityDotNotation}}.Contains(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}}.ToLower().Contains(filterRuleDTO.Value.ToString().ToLower());
                                         break;
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{entityDotNotation}}.Equals(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}}.ToLower().Equals(filterRuleDTO.Value.ToString().ToLower());
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid string match mode!");

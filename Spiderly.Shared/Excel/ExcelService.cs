@@ -1,10 +1,7 @@
-﻿using OfficeOpenXml;
+﻿using ClosedXML.Excel;
 using System.Globalization;
 using System.Reflection;
 using Spiderly.Shared.Excel.DTO;
-using System.Drawing;
-using OfficeOpenXml.Style;
-using OfficeOpenXml.Table;
 using System.Resources;
 using Spiderly.Shared.Resources;
 using Spiderly.Shared.Extensions;
@@ -52,17 +49,17 @@ namespace Spiderly.Shared.Excel
 
             MemoryStream outputStream = new MemoryStream();
 
-            using (ExcelPackage excel = new ExcelPackage())
+            using (XLWorkbook workbook = new XLWorkbook())
             {
                 if (data != null && count > 0)
                 {
-                    ExcelWorksheet sheet = excel.Workbook.Worksheets.Add(options.DataSheetName);
+                    IXLWorksheet sheet = workbook.Worksheets.Add(options.DataSheetName);
                     Type type = typeof(T);
                     PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
 
                     LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, resourceManager);
                 }
-                excel.SaveAs(outputStream);
+                workbook.SaveAs(outputStream);
             }
 
             outputStream.Position = 0;
@@ -80,7 +77,7 @@ namespace Spiderly.Shared.Excel
             return memberInfos;
         }
 
-        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, ExcelWorksheet sheet, PropertyInfo[] propertiesToInclude, ResourceManager resourceManager)
+        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, IXLWorksheet sheet, PropertyInfo[] propertiesToInclude, ResourceManager resourceManager)
         {
             int cellRow = 0;
             int cellCol = 0;
@@ -89,11 +86,10 @@ namespace Spiderly.Shared.Excel
                 cellCol = headerIndex + 1;
 
                 string propertyName = propertiesToInclude[headerIndex].Name;
-                sheet.Cells[1, cellCol].Value = GetHeaderTranslation(resourceManager, propertyName);
+                sheet.Cell(1, cellCol).Value = GetHeaderTranslation(resourceManager, propertyName);
 
-                sheet.Cells[1, cellCol].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                sheet.Cells[1, cellCol].Style.Fill.BackgroundColor.SetColor(ColorTranslator.FromHtml("#F0F0F0"));
-                sheet.Cells[1, cellCol].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                sheet.Cell(1, cellCol).Style.Fill.BackgroundColor = XLColor.FromHtml("#F0F0F0");
+                sheet.Cell(1, cellCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
                 sheet.Column(cellCol).Width = 22;
 
                 for (int dataIndex = 0; dataIndex < count; dataIndex++)
@@ -101,35 +97,34 @@ namespace Spiderly.Shared.Excel
                     cellRow = dataIndex + 2;
                     if (typeofT==typeof(string) || typeofT==typeof(decimal) || typeofT==typeof(DateTime) || typeofT.IsPrimitive)
                     {
-                        sheet.Cells[cellRow, cellCol].Value = data[dataIndex];
+                        sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(data[dataIndex]));
                     }
                     else
                     {
-                        sheet.Cells[cellRow, cellCol].Value = propertiesToInclude[headerIndex].GetValue(data[dataIndex], null);
+                        sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(propertiesToInclude[headerIndex].GetValue(data[dataIndex], null)));
                     }
                 }
 
                 if (propertiesToInclude[headerIndex].PropertyType==typeof(DateTime) || propertiesToInclude[headerIndex].PropertyType==typeof(DateTime?))
                 {
-                    sheet.Column(cellCol).Style.Numberformat.Format = "dd.MM.yyyy."; // TODO FT: make this with locale
+                    sheet.Column(cellCol).Style.NumberFormat.Format = "dd.MM.yyyy."; // TODO FT: make this with locale
                 }
             }
         }
 
         private static string GetHeaderTranslation(ResourceManager resourceManager, string propertyName)
         {
-            return 
-               resourceManager.GetTranslation(propertyName) ?? 
-               SharedTerms.ResourceManager.GetTranslation(propertyName) ?? 
+            return
+               resourceManager.GetTranslation(propertyName) ??
+               SharedTerms.ResourceManager.GetTranslation(propertyName) ??
                propertyName;
         }
 
         /// <summary>
         /// https://stackoverflow.com/questions/36637882/epplus-read-excel-table
         /// </summary>
-        public static IEnumerable<T> ConvertTableToObjects<T>(ExcelTable table) where T : new()
+        public static IEnumerable<T> ConvertTableToObjects<T>(IXLTable table) where T : new()
         {
-            //DateTime Conversion
             var convertDateTime = new Func<double, DateTime>(excelDate =>
             {
                 if (excelDate < 1)
@@ -144,66 +139,59 @@ namespace Spiderly.Shared.Excel
                 return dateOfReference.AddDays(excelDate);
             });
 
-            //Get the properties of T
             var tprops = (new T())
                 .GetType()
                 .GetProperties()
                 .ToList();
 
-            //Get the cells based on the table address
-            var start = table.Address.Start;
-            var end = table.Address.End;
-            var cells = new List<ExcelRangeBase>();
+            IXLRangeAddress address = table.RangeAddress;
+            int startRow = address.FirstAddress.RowNumber;
+            int endRow = address.LastAddress.RowNumber;
+            int startCol = address.FirstAddress.ColumnNumber;
+            int endCol = address.LastAddress.ColumnNumber;
 
-            //Have to use for loops insteadof worksheet.Cells to protect against empties
-            for (var r = start.Row; r <= end.Row; r++)
-                for (var c = start.Column; c <= end.Column; c++)
-                    cells.Add(table.WorkSheet.Cells[r, c]);
+            List<IXLCell> cells = new List<IXLCell>();
+
+            for (int r = startRow; r <= endRow; r++)
+                for (int c = startCol; c <= endCol; c++)
+                    cells.Add(table.Worksheet.Cell(r, c));
 
             var groups = cells
-                .GroupBy(cell => cell.Start.Row)
+                .GroupBy(cell => cell.Address.RowNumber)
                 .ToList();
 
-            //Assume the second row represents column data types (big assumption!)
             var types = groups
                 .Skip(1)
                 .First()
-                .Select(rcell => rcell.Value.GetType())
+                .Select(rcell => rcell.Value.Type == XLDataType.Number ? typeof(double) : typeof(string))
                 .ToList();
 
-            //Assume first row has the column names
             var colnames = groups
                 .First()
-                .Select((hcell, idx) => new { Name = hcell.Value.ToString(), index = idx })
+                .Select((hcell, idx) => new { Name = hcell.GetString(), index = idx })
                 .Where(o => tprops.Select(p => p.Name).Contains(o.Name))
                 .ToList();
 
-            //Everything after the header is data
             var rowvalues = groups
-                .Skip(1) //Exclude header
-                .Select(cg => cg.Select(c => c.Value).ToList());
+                .Skip(1)
+                .Select(cg => cg.Select(c => (object)(c.Value.Type == XLDataType.Number ? c.GetDouble() : c.GetString())).ToList());
 
-            //Create the collection container
             var collection = rowvalues
                 .Select(row =>
                 {
                     var tnew = new T();
                     colnames.ForEach(colname =>
                     {
-                        //This is the real wrinkle to using reflection - Excel stores all numbers as double including int
                         var val = row[colname.index];
                         var type = types[colname.index];
                         var prop = tprops.First(p => p.Name == colname.Name);
 
-                        //If it is numeric it is a double since that is how excel stores all numbers
                         if (type == typeof(double))
                         {
                             if (!string.IsNullOrWhiteSpace(val?.ToString()))
                             {
-                                //Unbox it
                                 var unboxedVal = (double)val;
 
-                                //FAR FROM A COMPLETE LIST!!!
                                 if (prop.PropertyType == typeof(Int32))
                                     prop.SetValue(tnew, (int)unboxedVal);
                                 else if (prop.PropertyType == typeof(double))
@@ -216,7 +204,6 @@ namespace Spiderly.Shared.Excel
                         }
                         else
                         {
-                            //Its a string
                             prop.SetValue(tnew, val);
                         }
                     });
@@ -225,7 +212,6 @@ namespace Spiderly.Shared.Excel
                 });
 
 
-            //Send it back
             return collection;
         }
     }
