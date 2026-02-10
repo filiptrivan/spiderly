@@ -551,7 +551,7 @@ namespace {{basePartOfNamespace}}.Services
                 }
 
                 if (!string.IsNullOrEmpty(filter))
-                    query = query.Where(x => x.{{autocompleteEntityDisplayName}}.Contains(filter));
+                    query = query.Where(x => x.{{autocompleteEntityDisplayName}}.ToLower().Contains(filter.ToLower()));
 
                 var result = await query
                     .AsNoTracking()

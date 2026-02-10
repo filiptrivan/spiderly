@@ -279,11 +279,11 @@ namespace {{basePartOfNamespace}}.Controllers
             return $$"""
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string query, {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
+        public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter, {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
         {
             return await _businessService.Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
-                limit, 
-                query, 
+                limit,
+                filter,
                 _context.DbSet<{{manyToOneEntity.Name}}>(),
                 {{Helpers.GetShouldAuthorizeEntityString(entity)}},
                 {{entity.Name.FirstCharToLower()}}Id
