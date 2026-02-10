@@ -287,6 +287,16 @@ namespace Spiderly.SourceGenerators.Shared
             return height;
         }
 
+        public static List<string> GetAcceptedFileTypes(this SpiderlyProperty property)
+        {
+            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "AcceptedFileTypes");
+
+            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
+                return null;
+
+            return attribute.Value.Split(',').Select(x => x.Trim()).ToList();
+        }
+
         /// <summary>
         /// Should use this method for the referenced project types
         /// </summary>

@@ -957,7 +957,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} {GetAcceptedFileTypesHtmlAttribute(property)} ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
@@ -1054,6 +1054,17 @@ export class {{entity.Name}}BaseDetailsComponent {
                 return "";
 
             return string.Join(" ", attributes);
+        }
+
+        private static string GetAcceptedFileTypesHtmlAttribute(SpiderlyProperty property)
+        {
+            List<string> fileTypes = property.GetAcceptedFileTypes();
+
+            if (fileTypes == null || fileTypes.Count == 0)
+                return "";
+
+            string arrayLiteral = "[" + string.Join(", ", fileTypes.Select(t => $"'{t}'")) + "]";
+            return $"[acceptedFileTypes]=\"{arrayLiteral}\"";
         }
 
         private static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)

@@ -37,6 +37,8 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
   @Input() fileData: string;
   @Input() acceptedFileTypes: Array<
     | 'image/*'
+    | 'application/pdf'
+    | '.pdf'
     | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     | 'application/vnd.ms-excel'
     | '.xlsx'
