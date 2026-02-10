@@ -3939,7 +3939,7 @@ namespace {{appName}}.Business.DataMappers
   ],
   "compounds": [
     {
-      "name": "Launch {{appName}} (Backend + Frontend)",
+      "name": "Launch (Backend + Frontend)",
       "configurations": ["Launch Backend (.NET)", "Launch Frontend (Angular)"],
       "stopAll": true,
       "presentation": {
