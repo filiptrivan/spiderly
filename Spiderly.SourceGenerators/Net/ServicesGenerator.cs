@@ -1541,7 +1541,7 @@ namespace {{basePartOfNamespace}}.Services
             {
                 {{GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Insert, "")}}
             }
-
+{{GetFileSizeValidation(property)}}
             string fileName;
 
             using (Stream stream = file.OpenReadStream())
@@ -1628,6 +1628,19 @@ namespace {{basePartOfNamespace}}.Services
 
             return $"""
             await Helper.ValidateImageDimensions(stream, width: {imageWidth}, height: {imageHeight});
+""";
+        }
+
+        private static string GetFileSizeValidation(SpiderlyProperty property)
+        {
+            int maxFileSize = property.GetMaxFileSize();
+
+            if (maxFileSize == 0)
+                return "";
+
+            return $"""
+
+            Helper.ValidateFileSize(file.Length, {maxFileSize});
 """;
         }
 

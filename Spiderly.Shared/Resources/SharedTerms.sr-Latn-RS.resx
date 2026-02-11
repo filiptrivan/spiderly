@@ -296,4 +296,7 @@
   <data name="ImageHeightMustBeExact" xml:space="preserve">
     <value>Visina slike mora biti tačno {0}px (trenutno: {1}px).</value>
   </data>
+  <data name="FileSizeExceeded" xml:space="preserve">
+    <value>Veličina fajla ne sme da prelazi {0} MB.</value>
+  </data>
 </root>

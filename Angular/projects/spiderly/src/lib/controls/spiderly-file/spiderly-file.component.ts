@@ -49,6 +49,7 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
   @Input() isCloudinaryFileData: boolean = true;
   @Input() imageWidth: number = 0;
   @Input() imageHeight: number = 0;
+  @Input() maxFileSize: number = 20_000_000;
 
   acceptedFileTypesCommaSeparated: string;
   @Input() files: File[] = [];

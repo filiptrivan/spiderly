@@ -356,4 +356,8 @@
     <value>Image height must be exactly {0}px (current: {1}px).</value>
     <comment>Visina slike mora biti tačno {0}px (trenutno: {1}px).</comment>
   </data>
+  <data name="FileSizeExceeded" xml:space="preserve">
+    <value>File size must not exceed {0} MB.</value>
+    <comment>Veličina fajla ne sme da prelazi {0} MB.</comment>
+  </data>
 </root>
