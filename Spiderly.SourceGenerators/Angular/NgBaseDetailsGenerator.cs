@@ -957,7 +957,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
             else if (controlType == UIControlTypeCodes.File)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} {GetAcceptedFileTypesHtmlAttribute(property)} ";
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} {GetAcceptedFileTypesHtmlAttribute(property)} {GetMaxFileSizeHtmlAttribute(property)} ";
             }
             else if (controlType == UIControlTypeCodes.Dropdown)
             {
@@ -1065,6 +1065,16 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             string arrayLiteral = "[" + string.Join(", ", fileTypes.Select(t => $"'{t}'")) + "]";
             return $"[acceptedFileTypes]=\"{arrayLiteral}\"";
+        }
+
+        private static string GetMaxFileSizeHtmlAttribute(SpiderlyProperty property)
+        {
+            int maxFileSize = property.GetMaxFileSize();
+
+            if (maxFileSize <= 0)
+                return "";
+
+            return $"[maxFileSize]=\"{maxFileSize}\"";
         }
 
         private static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)

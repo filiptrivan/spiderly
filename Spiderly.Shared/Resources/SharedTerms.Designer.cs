@@ -719,5 +719,16 @@ namespace Spiderly.Shared.Resources
                 return ResourceManager.GetString("ImageHeightMustBeExact", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to File size must not exceed {0} MB..
+        /// </summary>
+        public static string FileSizeExceeded
+        {
+            get
+            {
+                return ResourceManager.GetString("FileSizeExceeded", resourceCulture);
+            }
+        }
     }
 }

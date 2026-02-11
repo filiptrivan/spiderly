@@ -297,6 +297,17 @@ namespace Spiderly.SourceGenerators.Shared
             return attribute.Value.Split(',').Select(x => x.Trim()).ToList();
         }
 
+        public static int GetMaxFileSize(this SpiderlyProperty property)
+        {
+            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");
+
+            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
+                return 0;
+
+            int.TryParse(attribute.Value, out int maxFileSize);
+            return maxFileSize;
+        }
+
         /// <summary>
         /// Should use this method for the referenced project types
         /// </summary>

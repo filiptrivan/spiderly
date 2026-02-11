@@ -561,6 +561,12 @@ Currently authenticated user id: {{userId}}); <br>
                 throw new HackerException(string.Format(SharedTerms.ImageHeightMustBeExact, height, actualHeight));
         }
 
+        public static void ValidateFileSize(long fileSize, int maxFileSize)
+        {
+            if (maxFileSize > 0 && fileSize > maxFileSize)
+                throw new HackerException(string.Format(SharedTerms.FileSizeExceeded, maxFileSize / 1_000_000));
+        }
+
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);
