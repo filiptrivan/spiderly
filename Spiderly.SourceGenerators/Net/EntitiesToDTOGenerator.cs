@@ -63,6 +63,9 @@ namespace Spiderly.SourceGenerators.Net
 
             List<SpiderlyClass> currentProjectEntities = Helpers.GetSpiderlyClasses(classes, referencedProjectEntities);
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
+
+            Validations.ValidateDisplayNameAttributes(currentProjectEntities, allEntities);
+
             List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(currentProjectEntities, allEntities);
 
             string namespaceValue = currentProjectEntities[0].Namespace;
