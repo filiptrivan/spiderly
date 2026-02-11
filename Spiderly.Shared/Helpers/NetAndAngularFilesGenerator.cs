@@ -1025,7 +1025,7 @@ export class RoleListComponent implements OnInit {
       return $$"""
 <ng-container *transloco="let t">
     <user-base-details
-        [panelTitle]="t('Profile')"
+        [panelTitle]="parentFormGroup.controls.userDTO?.controls?.email?.getRawValue()"
         panelIcon="pi pi-user"
         [parentFormGroup]="parentFormGroup"
         (onSave)="onSave()"
@@ -2492,7 +2492,7 @@ namespace {{appName}}.Business.Entities
     [Index(nameof(Email), IsUnique = true)]
     public class User : BusinessObject<long>, IUser
     {
-        [UIControlWidth("col-8")]
+        [UIDoNotGenerate]
         [DisplayName]
         [CustomValidator("EmailAddress()")]
         [StringLength(70, MinimumLength = 5)]
@@ -3571,14 +3571,7 @@ namespace {{appName}}.Business.Services
                 User user = await GetInstanceAsync<User, long>(userDTO.Id, null);
 
                 if (user.Email != userDTO.Email)
-                {
-                    User existingUser = await _securityService.GetUserByEmailAsync(userDTO.Email);
-
-                    if (existingUser != null)
-                    {
-                        throw new BusinessException(SharedTerms.SameEmailAlreadyExistsException);
-                    }
-                }
+                    throw new HackerException($"No one can change {nameof(userDTO.Email)} from the main UI form.");
 
                 if (userDTO.HasLoggedInWithGoogleAsExternalProvider != user.HasLoggedInWithGoogleAsExternalProvider)
                     throw new HackerException($"No one can change {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
