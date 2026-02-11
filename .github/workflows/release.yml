@@ -497,7 +497,10 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
-      needs.create-release.result == 'success'
+      (
+        needs.create-release.result == 'success' ||
+        (needs.validate.outputs.is_prerelease == 'true' && (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success'))
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write
