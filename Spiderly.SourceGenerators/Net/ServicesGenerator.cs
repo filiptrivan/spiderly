@@ -636,7 +636,7 @@ namespace {{basePartOfNamespace}}.Services
                             .SingleOrDefault(x =>
                                 x.HasM2MWithManyAttribute() &&
                                 x.Type == entity.Name &&
-                                x.Attributes.Any(x => x.Value == oneToManyProperty.Name)
+                                x.Attributes.Any(x => x.Name == "M2MWithMany" && x.Value == oneToManyProperty.Name)
                             );
 
                         if (m2mProperty == null)

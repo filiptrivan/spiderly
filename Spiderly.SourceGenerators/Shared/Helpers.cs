@@ -323,7 +323,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties // Category
                 .Single(x => x.Attributes
-                    .Any(x => x.Value != oneToManyProperty.Name));
+                    .Any(x => x.Name == "M2MWithMany" && x.Value != oneToManyProperty.Name));
 
             string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single(); // Products
 
