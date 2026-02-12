@@ -24,7 +24,7 @@
         let-uploadCallback="uploadCallback"
       >
         <div
-          class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2"
+          class="flex flex-wrap justify-between items-center flex-1 gap-2"
         >
           <div class="flex gap-2">
             <spiderly-button
@@ -43,10 +43,10 @@
         let-removeFileCallback="removeFileCallback"
       >
         <div *ngIf="files.length > 0">
-          <div class="flex justify-content-center p-0 gap-5">
+          <div class="flex justify-center p-0 gap-8">
             <div
               *ngFor="let file of files; let index = index"
-              class="card m-0 px-3 py-3 flex flex-column align-items-center gap-3"
+              class="card m-0 px-4 py-4 flex flex-col items-center gap-4"
               style="justify-content: center; overflow: hidden"
             >
               <div *ngIf="isFileImageType(file.type)" class="image-container">
@@ -75,11 +75,11 @@
       </ng-template>
       <ng-template pTemplate="file"> </ng-template>
       <ng-template pTemplate="empty">
-        <div class="flex align-items-center justify-content-center flex-column">
+        <div class="flex items-center justify-center flex-col">
           <i
-            class="pi pi-cloud-upload border-2 border-circle p-5 text-8xl text-400 border-400 mt-3"
+            class="pi pi-cloud-upload border-2 rounded-full p-8 text-8xl text-gray-400 border-gray-400 mt-4"
           ></i>
-          <p class="mt-4 mb-0">{{ t("DragAndDropFilesHereToUpload") }}</p>
+          <p class="mt-6 mb-0">{{ t("DragAndDropFilesHereToUpload") }}</p>
         </div>
       </ng-template>
     </p-fileUpload>

@@ -283,6 +283,7 @@ namespace Spiderly.Shared.Helpers
                                 {
                                     new SpiderlyFile { Name = "primeng-theme.ts", Data = GetPrimeNGThemeTsData() },
                                     new SpiderlyFile { Name = "styles.scss", Data = GetStylesScssData(isRunningFromNuget) },
+                                    new SpiderlyFile { Name = "tailwind.css", Data = GetTailwindCssData(isRunningFromNuget) },
                                 }
                             },
                             new SpiderlyFolder
@@ -305,6 +306,7 @@ namespace Spiderly.Shared.Helpers
                 Files =
                 {
                     new SpiderlyFile { Name = ".editorconfig", Data = GetEditOrConfigData() },
+                    new SpiderlyFile { Name = ".postcssrc.json", Data = GetPostCssRcJsonData() },
                     new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
                     new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
                     new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
@@ -4154,7 +4156,6 @@ namespace {{appName}}.Business.DataMappers
         "file-saver": "2.0.5",
         "json-parser": "3.1.2",
         "ngx-spinner": "19.0.0",
-        "primeflex": "3.3.1",
         "primeicons": "7.0.0",
         "primeng": "19.1.3",
         "@primeng/themes": "19.1.3",
@@ -4178,6 +4179,8 @@ namespace {{appName}}.Business.DataMappers
         "karma-coverage": "2.2.0",
         "karma-jasmine": "5.1.0",
         "karma-jasmine-html-reporter": "2.1.0",
+        "tailwindcss": "^4.0.0",
+        "@tailwindcss/postcss": "^4.0.0",
         "typescript": "5.5.4"
     }
 }
@@ -4228,6 +4231,7 @@ namespace {{appName}}.Business.DataMappers
                             "src/robots.txt"
                         ],
                         "styles": [
+                            "src/assets/tailwind.css",
                             "src/assets/styles.scss"
                         ],
                         "scripts": [],
@@ -4301,6 +4305,7 @@ namespace {{appName}}.Business.DataMappers
                             "src/assets"
                         ],
                         "styles": [
+                            "src/assets/tailwind.css",
                             "src/assets/styles.scss"
                         ],
                         "scripts": []
@@ -4459,7 +4464,6 @@ export const ThemePreset = definePreset(Aura, {
       return $$"""
 //#region PrimeNG
 
-@use "../../node_modules/primeflex/primeflex.scss";
 @use "../../node_modules/primeicons/primeicons.css";
 @use "../../node_modules/ngx-spinner/animations/ball-clip-rotate-multiple.css";
 
@@ -4476,6 +4480,32 @@ export const ThemePreset = definePreset(Aura, {
 """, !isRunningFromNuget)}}
 
 //#endregion
+""";
+    }
+
+    private static string GetTailwindCssData(bool isRunningFromNuget)
+    {
+      return $$"""
+@import "tailwindcss";
+
+{{SlashCommented("""
+@source "../../../../spiderly/Angular/projects/spiderly/src/lib";
+""", isRunningFromNuget)}}
+
+{{SlashCommented("""
+@source "../../node_modules/spiderly";
+""", !isRunningFromNuget)}}
+""";
+    }
+
+    private static string GetPostCssRcJsonData()
+    {
+      return """
+{
+    "plugins": {
+        "@tailwindcss/postcss": {}
+    }
+}
 """;
     }
 

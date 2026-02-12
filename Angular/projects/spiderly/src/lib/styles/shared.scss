@@ -406,12 +406,12 @@
   font-size: 14px;
 }
 
-.grid {
-  margin: 0;
+.surface-card {
+  background: var(--surface-card);
 }
 
-.grid [class^="col-"] {
-  padding: 14px 9px;
+.surface-border {
+  border-color: var(--surface-border);
 }
 
 .p-colorpicker-preview {

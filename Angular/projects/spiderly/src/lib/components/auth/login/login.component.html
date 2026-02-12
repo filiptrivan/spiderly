@@ -4,13 +4,13 @@
       <auth (onCompanyNameChange)="companyNameChange($event)">
         <!-- We are not loading anything from the server here so we don't need defer block -->
         <form [formGroup]="loginFormGroup" style="margin-bottom: 16px">
-          <div class="col-12" style="padding-left: 0; padding-right: 0">
+          <div>
             <spiderly-textbox
               [control]="loginFormGroup.getControl('email')"
             ></spiderly-textbox>
           </div>
 
-          <div class="mb-4 gap-5">
+          <div class="mb-6 gap-8">
             <div class="text-center" style="font-size: smaller">
               {{ t("AgreementsOnRegister") }}
               <b

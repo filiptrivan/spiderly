@@ -1,7 +1,7 @@
 <div class="flex min-h-screen overflow-hidden" style="padding: 20px">
-  <div class="flex flex-column w-full">
+  <div class="flex flex-col w-full">
     <div
-      class="w-full sm:w-30rem"
+      class="w-full sm:w-[30rem]"
       style="
         margin: auto;
         border-radius: 50px;
@@ -13,23 +13,23 @@
         );
       "
     >
-      <div class="surface-card py-6 px-5 sm:px-6" style="border-radius: 45px">
+      <div class="surface-card py-12 px-8 sm:px-12" style="border-radius: 45px">
         <div class="text-center">
           <img
             [src]="logoPath"
             alt="{{ companyName }} Logo"
             title="{{ companyName }} Logo"
             height="60"
-            class="mb-4"
+            class="mb-6"
           />
         </div>
-        <h1 class="mb-4">
+        <h1 class="mb-6">
           <div class="font-bold text-5xl lg:text-6xl spiderly-gradient-title">
             404
           </div>
           <div class="font-bold text-5xl lg:text-6xl">Page Not Found</div>
         </h1>
-        <div class="text-600 text-lg mb-5">
+        <div class="text-gray-600 text-lg mb-8">
           The page you're looking for doesn't exist or has been moved. Let's get
           you back on track.
         </div>

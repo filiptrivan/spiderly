@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity.UI
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies the width of a UI field using PrimeNG (PrimeFlex) column classes. <br/> <br/>
+    /// <b>Usage:</b> Specifies the width of a UI field using Spiderly column classes (from spiderly-grid). <br/> <br/>
     /// 
     /// <b>Default values:</b>
     /// - <i>"col-8"</i> for TextArea and Editor controls <br/>
