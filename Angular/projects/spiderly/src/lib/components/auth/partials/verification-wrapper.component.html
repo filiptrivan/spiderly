@@ -23,13 +23,12 @@
                 {{ t("AccountVerificationDescription", { email: email }) }}
               </div>
               <div class="col-8">
-                <spiderly-textbox
-                  [control]="
-                    verificationTokenRequestFormGroup.getControl(
-                      'verificationCode'
-                    )
-                  "
-                ></spiderly-textbox>
+                <p-inputOtp
+                  [formControl]="verificationTokenRequestFormGroup.getControl('verificationCode')"
+                  [length]="6"
+                  [integerOnly]="true"
+                  [autofocus]="true"
+                ></p-inputOtp>
               </div>
               <div class="col-8">
                 <spiderly-button

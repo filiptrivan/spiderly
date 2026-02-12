@@ -13,6 +13,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
+import { InputOtp } from 'primeng/inputotp';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { VerificationTokenRequest } from '../../../entities/security-entities';
 import { BaseFormService } from '../../../services/base-form.service';
@@ -31,6 +32,7 @@ import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.modu
     SpiderlyControlsModule,
     SpiderlyPanelsModule,
     ButtonModule,
+    InputOtp,
     TranslocoDirective,
   ],
 })
