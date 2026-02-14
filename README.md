@@ -4,7 +4,7 @@
 
 # Spiderly
 
-Spiderly is a free, open-source .NET (C#) code generator that transforms an EF Core model into a fully customizable .NET (C#) + Angular web application, automatically updating all repetitive boilerplate code as your model evolves.
+Spiderly is a free, open-source .NET (C#) code generator that transforms an EF Core model into a fully customizable .NET (C#) + Angular web application, automatically updating all boilerplate code as your model evolves.
 
 ## Key Generation Features
 
@@ -32,9 +32,54 @@ Spiderly is a free, open-source .NET (C#) code generator that transforms an EF C
 - **.NET + Angular App Starter**  
   Sets up the .NET (C#) and Angular app template with built-in support for: authentication (including Google Sign-In), authorization, emailing, logging, global error handling, and more.
 
-## Installation
+## Getting Started
 
-Follow [Getting Started guide](https://www.spiderly.dev/docs/getting-started) to start using Spiderly.
+Follow this quick start guide to see which prerequisites you need to install and how to initialize your Spiderly app. For the full guide, visit the [official getting started page](https://www.spiderly.dev/docs/getting-started).
+
+### Install Prerequisites
+
+Before getting started with Spiderly, make sure you have the following prerequisites installed:
+
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [.NET 9.0](https://dotnet.microsoft.com/)
+- [PostgreSQL](https://www.postgresql.org/) or [SQL Server](https://www.microsoft.com/en-us/sql-server)
+- [Node.js](https://nodejs.org/)
+- [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) (VS Code extension)
+
+Run the Spiderly CLI installation command from any terminal location:
+
+```
+dotnet tool install -g Spiderly.CLI
+```
+
+### Initialize the App
+
+Open a terminal in the folder **where you want your app to be created** and run:
+
+```
+spiderly init
+```
+
+This will create a new folder with your app name containing the full Spiderly project structure.
+
+### Open the Project
+
+Navigate into your newly created app folder and open it in VS Code:
+
+```
+cd your-app-name
+code .
+```
+
+> If the `code .` command doesn't work, open your newly created app folder manually in VS Code.
+
+### Start the App
+
+Press `F5` to start the app.
+
+### Register the User
+
+Use the UI of your generated app to register a new user via email.
 
 ## Examples
 
@@ -80,7 +125,7 @@ These two classes alone will generate app like this:
 
 ## Documentation
 
-For detailed documentation, please visit the [official documentation page](https://www.spiderly.dev/docs/getting-started) on our website.
+For detailed documentation, please visit the [official documentation page](https://www.spiderly.dev/docs) on our website.
 
 ### Spiderly.CLI
 
@@ -117,7 +162,7 @@ Every contribution is appreciated and helps make this project better for everyon
 To set up your development environment for contributing to Spiderly, follow these steps:
 
 1. **Make Sure All Prerequisites Are Installed**
-   - You can find the full list of prerequisites in Step 1 of the official [Spiderly getting started guide](https://www.spiderly.dev/docs/getting-started). Make sure everything is installed before moving on.
+   - You can find the full list of prerequisites in the "Install Prerequisites" section of the official [Spiderly getting started guide](https://www.spiderly.dev/docs/getting-started). Make sure everything is installed before moving on.
 2. **Choose a Working Directory**
    - Select a location on your local machine where you want to store the project files. For example, you might choose: `C:\Users\your-name\Documents`
 3. **Clone the Spiderly Repository**
@@ -138,12 +183,12 @@ To set up your development environment for contributing to Spiderly, follow thes
    - Run the `spiderly\Spiderly.CLI\cli-local-pack.ps1` PowerShell script.
 6. **Initialize a New Spiderly Test App in Development Mode**
    - This step creates a new test application that will serve as a sandbox environment for testing and developing the Spiderly library. It allows you to see changes in real time as you work on the core library.
-   - Run the following command in your working directory (`C:\Users\your-name\Documents`):
+   - Run the following command in your working directory (e.g. `C:\Users\your-name\Documents`):
      ```bash
      spiderly init --dev
      ```
 7. **Finish Setting Up the Spiderly Test App**
-   - Start from step 4 of the official [Spiderly getting started guide](https://www.spiderly.dev/docs/getting-started), as the previous steps have already been completed.
+   - Start from the "Start the App" section of the official [Spiderly getting started guide](https://www.spiderly.dev/docs/getting-started), as the previous steps have already been completed.
 
 Any changes made to the Spiderly source code will now be reflected in your newly created Spiderly test app. You shouldn't manually build or start the Spiderly library—changes will automatically reflect in the test app each time you save a file.
 
