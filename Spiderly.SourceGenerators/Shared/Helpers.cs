@@ -1473,9 +1473,9 @@ namespace Spiderly.SourceGenerators.Shared
         {
             if (data != null)
             {
-                StreamWriter sw = new StreamWriter(path, false);
-                sw.WriteLine(data);
-                sw.Close();
+                data = data.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
+                using StreamWriter sw = new StreamWriter(path, false);
+                sw.Write(data);
             }
         }
 
@@ -1483,9 +1483,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             if (data != null)
             {
-                StreamWriter sw = new StreamWriter(path, false);
-                sw.WriteLine(data);
-                sw.Close();
+                WriteToTheFile(data.ToString(), path);
             }
         }
 
