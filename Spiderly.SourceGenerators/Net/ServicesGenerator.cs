@@ -312,7 +312,7 @@ namespace {{basePartOfNamespace}}.Services
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
-            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.ResourceManager).ToArray();
+            return _excelService.FillReportTemplate<{{entity.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.GetTranslation).ToArray();
         }
 
         /// <summary>
@@ -952,7 +952,7 @@ namespace {{basePartOfNamespace}}.Services
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
-            return _excelService.FillReportTemplate<{{listEntitty.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.ResourceManager).ToArray();
+            return _excelService.FillReportTemplate<{{listEntitty.Name}}DTO>(dtoList, paginationResult.TotalRecords, excelPropertiesToExclude, TermsGenerated.GetTranslation).ToArray();
         }
 """;
         }

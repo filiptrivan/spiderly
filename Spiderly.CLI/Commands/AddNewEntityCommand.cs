@@ -212,7 +212,6 @@ namespace Spiderly.CLI.Commands
             return $$"""
 using Spiderly.Shared.BaseEntities;
 using Spiderly.Shared.Attributes.Entity;
-using Spiderly.Shared.Attributes.Entity.Translation;
 using Spiderly.Shared.Attributes.Entity.UI;
 using System.ComponentModel.DataAnnotations;
 

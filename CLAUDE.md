@@ -72,7 +72,7 @@ Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
 - **UI attributes**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
 - **Validation attributes**: `GreaterThanOrEqual`, `CustomValidator`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
 - **Storage attributes**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
-- **Translation attributes**: `TranslateEn`, `TranslatePluralEn`, `TranslateSrLatnRS`, etc.
+- **Translations**: JSON files in `{Shared}/Translations/` (not attributes). Auto-scaffolded by `TranslationsGenerator`.
 
 ### Base entities
 

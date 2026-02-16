@@ -5,6 +5,7 @@ using Spiderly.Shared.Excel.DTO;
 using System.Resources;
 using Spiderly.Shared.Resources;
 using Spiderly.Shared.Extensions;
+using System;
 
 namespace Spiderly.Shared.Excel
 {
@@ -41,7 +42,7 @@ namespace Spiderly.Shared.Excel
             return mem;
         }
 
-        public MemoryStream FillReportTemplate<T>(IList<T> data, int count, string[] excelPropertiesToExclude, ResourceManager resourceManager, ExcelReportOptionsDTO options = null)
+        public MemoryStream FillReportTemplate<T>(IList<T> data, int count, string[] excelPropertiesToExclude, Func<string, string> getTranslation, ExcelReportOptionsDTO options = null)
             where T : class
         {
             if (options == null)
@@ -57,7 +58,7 @@ namespace Spiderly.Shared.Excel
                     Type type = typeof(T);
                     PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
 
-                    LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, resourceManager);
+                    LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, getTranslation);
                 }
                 workbook.SaveAs(outputStream);
             }
@@ -77,7 +78,7 @@ namespace Spiderly.Shared.Excel
             return memberInfos;
         }
 
-        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, IXLWorksheet sheet, PropertyInfo[] propertiesToInclude, ResourceManager resourceManager)
+        private static void LoadFromCollectionOverride<T>(IList<T> data, int count, Type typeofT, IXLWorksheet sheet, PropertyInfo[] propertiesToInclude, Func<string, string> getTranslation)
         {
             int cellRow = 0;
             int cellCol = 0;
@@ -86,7 +87,7 @@ namespace Spiderly.Shared.Excel
                 cellCol = headerIndex + 1;
 
                 string propertyName = propertiesToInclude[headerIndex].Name;
-                sheet.Cell(1, cellCol).Value = GetHeaderTranslation(resourceManager, propertyName);
+                sheet.Cell(1, cellCol).Value = GetHeaderTranslation(getTranslation, propertyName);
 
                 sheet.Cell(1, cellCol).Style.Fill.BackgroundColor = XLColor.FromHtml("#F0F0F0");
                 sheet.Cell(1, cellCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
@@ -112,10 +113,10 @@ namespace Spiderly.Shared.Excel
             }
         }
 
-        private static string GetHeaderTranslation(ResourceManager resourceManager, string propertyName)
+        private static string GetHeaderTranslation(Func<string, string> getTranslation, string propertyName)
         {
             return
-               resourceManager.GetTranslation(propertyName) ??
+               getTranslation(propertyName) ??
                SharedTerms.ResourceManager.GetTranslation(propertyName) ??
                propertyName;
         }

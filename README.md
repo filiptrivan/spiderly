@@ -86,7 +86,6 @@ Use the UI of your generated app to register a new user via email.
 With the [Interactive Demo](https://www.spiderly.dev/#interactive-demo), you can run the `spiderly init` command and add dummy properties to see how Spiderly works. Here is the first example to get you started:
 
 ```csharp
-[TranslatePluralEn("Users")]
 public class User
 {
     [Required]
@@ -105,7 +104,6 @@ public class User
 ```
 
 ```csharp
-[TranslatePluralEn("Genders")]
 public class Gender
 {
     [Required]

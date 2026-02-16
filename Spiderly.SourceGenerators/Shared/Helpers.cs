@@ -4,11 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Resources.NetStandard;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -1485,76 +1483,6 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 WriteToTheFile(data.ToString(), path);
             }
-        }
-
-        public static void UpdateResourceFile(Dictionary<string, string> data, string path)
-        {
-            Dictionary<string, string> resourceEntries = new();
-
-            if (File.Exists(path))
-            {
-                //Get existing resources
-                ResXResourceReader reader = new ResXResourceReader(path);
-                resourceEntries = reader.Cast<DictionaryEntry>().ToDictionary(d => d.Key.ToString(), d => d.Value?.ToString() ?? "");
-                reader.Close();
-            }
-            else
-            {
-                return;
-            }
-
-            foreach (KeyValuePair<string, string> entry in data)
-            {
-                if (!resourceEntries.ContainsKey(entry.Key))
-                {
-                    if (!resourceEntries.ContainsValue(entry.Value))
-                    {
-                        resourceEntries.Add(entry.Key, entry.Value);
-                    }
-                }
-            }
-
-            string directoryPath = Path.GetDirectoryName(path);
-
-            if (!string.IsNullOrEmpty(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-
-            //Write the combined resource file
-            ResXResourceWriter resourceWriter = new ResXResourceWriter(path);
-
-            foreach (KeyValuePair<string, string> entry in resourceEntries)
-            {
-                resourceWriter.AddResource(entry.Key, resourceEntries[entry.Key]);
-            }
-
-            resourceWriter.Generate();
-
-            resourceWriter.Close();
-        }
-
-        public static void WriteResourceFile(Dictionary<string, string> data, string path)
-        {
-            if (File.Exists(path) == false)
-                return;
-
-            Dictionary<string, string> resourceEntries = new();
-
-            foreach (KeyValuePair<string, string> entry in data)
-            {
-                if (resourceEntries.ContainsKey(entry.Key) == false)
-                    resourceEntries.Add(entry.Key, entry.Value);
-            }
-
-            ResXResourceWriter resourceWriter = new ResXResourceWriter(path);
-
-            foreach (KeyValuePair<string, string> entry in resourceEntries)
-                resourceWriter.AddResource(entry.Key, entry.Value ?? "");
-
-            resourceWriter.Generate();
-
-            resourceWriter.Close();
         }
 
         #endregion

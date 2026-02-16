@@ -182,7 +182,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent, 
                 SettingsProvider.Current.ExcelContentType, 
-                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
             );
         }
 
@@ -365,7 +365,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent, 
                 SettingsProvider.Current.ExcelContentType, 
-                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }
 
@@ -398,7 +398,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent, 
                 SettingsProvider.Current.ExcelContentType, 
-                Uri.EscapeDataString($"{TermsGenerated.ResourceManager.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }
 """;

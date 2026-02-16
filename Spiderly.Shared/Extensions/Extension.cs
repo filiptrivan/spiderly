@@ -82,19 +82,6 @@ namespace Spiderly.Shared.Extensions
 
         #region ResourceManager
 
-        public static string GetExcelTranslation(this ResourceManager manager, string excelKey, string pluralKey)
-        {
-            string result = manager.GetTranslation(excelKey);
-
-            if (result == null)
-                result = manager.GetTranslation(pluralKey);
-
-            if (result == null)
-                result = SharedTerms.ResourceManager.GetTranslation(pluralKey);
-
-            return string.IsNullOrEmpty(result) ? pluralKey : result;
-        }
-
         public static string GetTranslation(this ResourceManager manager, string key)
         {
             string result = manager.GetString(key, CultureInfo.CurrentCulture);

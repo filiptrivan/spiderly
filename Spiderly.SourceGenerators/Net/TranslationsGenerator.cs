@@ -1,33 +1,30 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Enums;
+using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// Generates translation resource files (`TermsGenerated.resx`, `TermsGenerated.sr-Latn-RS.resx`)
-    /// in the `.Shared` project and Angular i18n JSON files (`en.generated.json`, `sr-Latn-RS.generated.json`)
-    /// in the Angular project's `src/assets/i18n` folder. These files contain translations for
-    /// entity names (singular and plural), Excel export names, and property names, based on
-    /// the `[Translate]` attribute applied to your entity classes and their properties.
+    /// Reads translation JSON files from `{Shared}/Translations/` and generates:
+    /// 1. `TermsGenerated.generated.cs` — C# class with inline Dictionary for all translations
+    /// 2. `{lang}.generated.json` — Angular i18n JSON files in `Frontend/src/assets/i18n/`
+    ///
+    /// Auto-scaffolds missing keys (entity names, plural forms, Excel export names, property names)
+    /// into the source JSON files with empty string values.
     /// </summary>
     [Generator]
     public class TranslationsGenerator : IIncrementalGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            //#if DEBUG
-            //            if (!Debugger.IsAttached)
-            //            {
-            //                Debugger.Launch();
-            //            }
-            //#endif
             IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
@@ -71,111 +68,185 @@ namespace Spiderly.SourceGenerators.Net
 
             referencedProjectEntities = referencedProjectEntities.OrderBy(x => x.Name).ToList();
 
-            Dictionary<string, string> dataEn = referencedProjectEntities
-                .Select(entity => GetTranslationData(entity, LanguageCodes.En))
-                .PrepareForTranslation();
+            string sharedProjectPath = callingProjectDirectory.Replace(".WebAPI", ".Shared");
+            string translationsFolder = Path.Combine(sharedProjectPath, "Translations");
 
-            Dictionary<string, string> dataSrLatnRS = referencedProjectEntities
-                .Select(entity => GetTranslationData(entity, LanguageCodes.SrLatnRS))
-                .PrepareForTranslation();
+            if (!Directory.Exists(translationsFolder))
+                return;
 
-            string sharedBusinessProjectPath = callingProjectDirectory.Replace(".WebAPI", ".Shared");
+            string[] jsonFiles = Directory.GetFiles(translationsFolder, "*.json");
 
-            Helpers.WriteResourceFile(dataEn, Path.Combine(sharedBusinessProjectPath, GetTermsFilePath(LanguageCodes.En)));
-            Helpers.WriteResourceFile(dataSrLatnRS, Path.Combine(sharedBusinessProjectPath, GetTermsFilePath(LanguageCodes.SrLatnRS)));
+            if (jsonFiles.Length == 0)
+                return;
 
-            // your-app-name\Backend\YourAppName.Shared -> your-app-name\Frontend\src\assets\i18n
+            List<string> expectedKeys = BuildExpectedKeys(referencedProjectEntities);
+
+            Dictionary<string, Dictionary<string, string>> allLanguageTranslations = new Dictionary<string, Dictionary<string, string>>();
+
+            foreach (string jsonFile in jsonFiles)
+            {
+                string langCode = Path.GetFileNameWithoutExtension(jsonFile);
+                Dictionary<string, string> translations = ReadJsonTranslations(jsonFile);
+
+                ScaffoldMissingKeys(translations, expectedKeys);
+                Dictionary<string, string> sorted = SortDictionary(translations);
+
+                WriteJsonTranslations(jsonFile, sorted);
+
+                allLanguageTranslations[langCode] = sorted;
+            }
+
+            string generatedCs = GenerateTermsGeneratedCs(allLanguageTranslations, sharedProjectPath);
+            Helpers.WriteToTheFile(generatedCs, Path.Combine(sharedProjectPath, "Resources", "TermsGenerated.generated.cs"));
+
             string rootPath = callingProjectDirectory.GetRootPath();
             string angulari18nFolderPath = Path.Combine(rootPath, "Frontend", "src", "assets", "i18n");
 
-            Helpers.WriteToTheFile(GetJsonFromDictionaryList(dataEn), Path.Combine(angulari18nFolderPath, GetAngulari18nFilePath(LanguageCodes.En)));
-            Helpers.WriteToTheFile(GetJsonFromDictionaryList(dataSrLatnRS), Path.Combine(angulari18nFolderPath, GetAngulari18nFilePath(LanguageCodes.SrLatnRS)));
-        }
-
-        private static Dictionary<string, string> GetTranslationData(SpiderlyClass entity, LanguageCodes language)
-        {
-            Dictionary<string, string> dictionary = new()
+            foreach (KeyValuePair<string, Dictionary<string, string>> langEntry in allLanguageTranslations)
             {
-                { $"{entity.Name}", entity.Translate(language) },
-                { $"{entity.Name}List", entity.Translate(language, TranslationCodes.Plural) },
-                { $"{entity.Name}ExcelExportName", entity.Translate(language, TranslationCodes.Excel) ?? entity.Translate(language, TranslationCodes.Plural).ToTrainCase() },
-            };
-
-            foreach (SpiderlyProperty property in entity.Properties)
-                dictionary.Add(property.Name, property.Translate(language));
-
-            return dictionary;
-        }
-
-        private static string GetTermsFilePath(LanguageCodes language)
-        {
-            return @$"Resources\TermsGenerated{GetTermsFileExtension(language)}.resx"; ;
-        }
-
-        private static string GetTermsFileExtension(LanguageCodes language)
-        {
-            string extension = null;
-
-            if (language == LanguageCodes.En)
-            {
-                extension = null;
+                string angularJson = GenerateAngularJson(langEntry.Value);
+                Helpers.WriteToTheFile(angularJson, Path.Combine(angulari18nFolderPath, $"{langEntry.Key}.generated.json"));
             }
-            else if (language == LanguageCodes.SrLatnRS)
-            {
-                extension = ".sr-Latn-RS";
-            }
-
-            return extension;
         }
 
-        private static string GetJsonFromDictionaryList(Dictionary<string, string> data)
+        private static List<string> BuildExpectedKeys(List<SpiderlyClass> entities)
         {
-            return $$"""
-{
-{{string.Join(",\n", GetJsonElementsFromDictionaryList(data))}}
-}
-""";
-        }
+            HashSet<string> keys = new HashSet<string>();
 
-        private static List<string> GetJsonElementsFromDictionaryList(Dictionary<string, string> data)
-        {
-            List<string> result = new();
-            Dictionary<string, string> alreadyAddedKeyValuePairs = new Dictionary<string, string>();
-
-            foreach (KeyValuePair<string, string> keyValuePair in data)
+            foreach (SpiderlyClass entity in entities)
             {
-                KeyValuePair<string, string> alreadyAddedKeyValuePair = alreadyAddedKeyValuePairs.Where(x => x.Key == keyValuePair.Key).SingleOrDefault();
+                keys.Add(entity.Name);
+                keys.Add($"{entity.Name}List");
+                keys.Add($"{entity.Name}ExcelExportName");
 
-                if (alreadyAddedKeyValuePair.Key == null)
+                foreach (SpiderlyProperty property in entity.Properties)
                 {
-                    alreadyAddedKeyValuePairs.Add(keyValuePair.Key, keyValuePair.Value);
-
-                    string row = $$"""
-    "{{keyValuePair.Key}}": "{{keyValuePair.Value}}"
-""";
-
-                    result.Add(row);
+                    keys.Add(property.Name);
                 }
             }
 
-            return result;
+            return keys.OrderBy(x => x).ToList();
         }
 
-        private static string GetAngulari18nFilePath(LanguageCodes language)
+        private static Dictionary<string, string> ReadJsonTranslations(string filePath)
         {
-            string filePath = null;
+            string json = File.ReadAllText(filePath);
 
-            if (language == LanguageCodes.En)
-            {
-                filePath = "en.generated.json";
-            }
-            else if (language == LanguageCodes.SrLatnRS)
-            {
-                filePath = "sr-Latn-RS.generated.json";
-            }
+            if (string.IsNullOrWhiteSpace(json))
+                return new Dictionary<string, string>();
 
-            return filePath;
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
         }
 
+        private static void ScaffoldMissingKeys(Dictionary<string, string> translations, List<string> expectedKeys)
+        {
+            foreach (string key in expectedKeys)
+            {
+                if (!translations.ContainsKey(key))
+                {
+                    translations[key] = "";
+                }
+            }
+        }
+
+        private static Dictionary<string, string> SortDictionary(Dictionary<string, string> dictionary)
+        {
+            return dictionary.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+        }
+
+        private static void WriteJsonTranslations(string filePath, Dictionary<string, string> translations)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            };
+
+            string json = JsonSerializer.Serialize(translations, options);
+            json = json.Replace("\r\n", "\n");
+
+            File.WriteAllText(filePath, json, Encoding.UTF8);
+        }
+
+        private static string GenerateTermsGeneratedCs(Dictionary<string, Dictionary<string, string>> allLanguageTranslations, string sharedProjectPath)
+        {
+            string namespaceName = new DirectoryInfo(sharedProjectPath).Name + ".Resources";
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Globalization;");
+            sb.AppendLine("using Spiderly.Shared.Extensions;");
+            sb.AppendLine();
+            sb.AppendLine($"namespace {namespaceName}");
+            sb.AppendLine("{");
+            sb.AppendLine("    public static class TermsGenerated");
+            sb.AppendLine("    {");
+            sb.AppendLine("        private static readonly Dictionary<string, Dictionary<string, string>> _translations = new Dictionary<string, Dictionary<string, string>>()");
+            sb.AppendLine("        {");
+
+            foreach (KeyValuePair<string, Dictionary<string, string>> langEntry in allLanguageTranslations)
+            {
+                sb.AppendLine($"            {{ \"{langEntry.Key}\", new Dictionary<string, string>()");
+                sb.AppendLine("                {");
+
+                foreach (KeyValuePair<string, string> kvp in langEntry.Value)
+                {
+                    string escapedValue = kvp.Value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                    sb.AppendLine($"                    {{ \"{kvp.Key}\", \"{escapedValue}\" }},");
+                }
+
+                sb.AppendLine("                }");
+                sb.AppendLine("            },");
+            }
+
+            sb.AppendLine("        };");
+            sb.AppendLine();
+            sb.AppendLine("        public static string GetTranslation(string key)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            string langCode = CultureInfo.CurrentCulture.Name;");
+            sb.AppendLine();
+            sb.AppendLine("            if (_translations.TryGetValue(langCode, out Dictionary<string, string> langDict) && langDict.TryGetValue(key, out string value) && !string.IsNullOrEmpty(value))");
+            sb.AppendLine("                return value;");
+            sb.AppendLine();
+            sb.AppendLine("            return null;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public static string GetExcelTranslation(string excelKey, string pluralKey)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            string result = GetTranslation(excelKey);");
+            sb.AppendLine();
+            sb.AppendLine("            if (result == null)");
+            sb.AppendLine("                result = GetTranslation(pluralKey);");
+            sb.AppendLine();
+            sb.AppendLine("            if (result == null)");
+            sb.AppendLine("                result = Spiderly.Shared.Resources.SharedTerms.ResourceManager.GetTranslation(pluralKey);");
+            sb.AppendLine();
+            sb.AppendLine("            return string.IsNullOrEmpty(result) ? pluralKey : result;");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        private static string GenerateAngularJson(Dictionary<string, string> translations)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("{");
+
+            List<KeyValuePair<string, string>> entries = translations.ToList();
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                string escapedValue = entries[i].Value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                string comma = i < entries.Count - 1 ? "," : "";
+                sb.AppendLine($"    \"{entries[i].Key}\": \"{escapedValue}\"{comma}");
+            }
+
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
     }
 }

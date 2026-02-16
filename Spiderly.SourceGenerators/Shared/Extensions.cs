@@ -55,14 +55,6 @@ namespace Spiderly.SourceGenerators.Shared
             return kebabCaseString;
         }
 
-        public static string ToTrainCase(this string text)
-        {
-            if (text == null)
-                return null;
-
-            return text.ToPascalCase().SplitCamelCase("_").FirstCharToUpper().Replace("--", "_");
-        }
-
         /// <summary>
         /// Converts the specified string to PascalCase.
         /// </summary>
@@ -583,16 +575,6 @@ namespace Spiderly.SourceGenerators.Shared
                 .Select((texts, _) => texts.FirstOrDefault() ?? string.Empty);
         }
 
-        public static string Translate(this SpiderlyClass entity, LanguageCodes language, TranslationCodes? translation = null)
-        {
-            return entity.Attributes.Where(x => x.Name == $"Translate{translation}{language}").Select(x => x.Value).SingleOrDefault();
-        }
-
-        public static string Translate(this SpiderlyProperty property, LanguageCodes language)
-        {
-            return property.Attributes.Where(x => x.Name == $"Translate{language}").Select(x => x.Value).SingleOrDefault();
-        }
-
         public static string GetDecimalScale(this SpiderlyProperty property)
         {
             SpiderlyAttribute precissionAttribute = property.Attributes.Where(x => x.Name == "Precision").SingleOrDefault();
@@ -689,30 +671,6 @@ namespace Spiderly.SourceGenerators.Shared
 
             // Get the part before the key and append the new value.
             return $"{source.Substring(0, index)}{valueToInsert}";
-        }
-
-        public static Dictionary<string, string> PrepareForTranslation(this IEnumerable<Dictionary<string, string>> data)
-        {
-            Dictionary<string, string> alreadyAddedKeyValuePairs = new Dictionary<string, string>();
-
-            foreach (var dictionary in data)
-            {
-                foreach (var keyValuePair in dictionary)
-                {
-                    if (!alreadyAddedKeyValuePairs.ContainsKey(keyValuePair.Key))
-                    {
-                        // Add the new key-value pair if it doesn't already exist.
-                        alreadyAddedKeyValuePairs[keyValuePair.Key] = keyValuePair.Value;
-                    }
-                    else if (alreadyAddedKeyValuePairs[keyValuePair.Key] == null)
-                    {
-                        // Update the value if it exists but is null.
-                        alreadyAddedKeyValuePairs[keyValuePair.Key] = keyValuePair.Value;
-                    }
-                }
-            }
-
-            return alreadyAddedKeyValuePairs;
         }
 
         public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source)

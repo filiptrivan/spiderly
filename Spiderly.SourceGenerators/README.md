@@ -13,7 +13,6 @@ Spiderly.SourceGenerators generates a lot of features for both .NET and Angular 
 ```csharp
 namespace PlayertyLoyals.Business.Entities
 {
-    [TranslateSrLatnRS("Korisnik")] // Where necessary, the entity UserExtended will be translated into Serbian as "Korisnik"
     public class UserExtended : BusinessObject<long>, IUser
     {
         [UIControlWidth("col-12")] // On the UI this control will be displayed over the entire width of the screen for any device size (by default it is half, then from a certain number of pixels the whole screen)
@@ -303,30 +302,6 @@ public int OrderNumber { get; set; }
 public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 ```
 
-### Translation Attributes
+### Translations
 
-#### TranslatePluralEn
-
-- e.g. `Users`
-
-#### TranslatePluralSrLatnRS
-
-- e.g. `Korisnici`
-
-#### TranslateExcelEn
-
-- If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
-- e.g. `Users.xlsx`
-
-#### TranslateExcelSrLatnRS
-
-- If you don't pass a property for this attribute, but you do pass for plural, we'll use that translation.
-- e.g. `Korisnici.xlsx`
-
-#### TranslateEn
-
-- e.g. `User`
-
-#### TranslateSrLatnRS
-
-- e.g. `Korisnik`
+Translations are managed via JSON files in `{Shared}/Translations/`. Each file is named by language code (e.g., `en.json`, `sr-Latn-RS.json`). The `TranslationsGenerator` auto-scaffolds missing keys with empty values on build. To add a new language, create a new JSON file and build.
