@@ -12,8 +12,6 @@ namespace Spiderly.Shared.Interfaces
 
         public string Description { get; set; }
 
-        public string EmailBody { get; set; }
-
         public List<T> Recipients { get; } // M2M
     }
 }

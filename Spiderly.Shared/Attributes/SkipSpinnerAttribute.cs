@@ -18,9 +18,9 @@ namespace Spiderly.Shared.Attributes
     /// <code>
     /// [HttpGet]
     /// [SkipSpinner]
-    /// public async Task SendNotificationEmail(long notificationId)
+    /// public async Task&lt;int&gt; GetUnreadNotificationsCountForCurrentUser()
     /// {
-    ///     await SendNotificationEmail(notificationId);
+    ///     return await _businessService.GetUnreadNotificationsCountForCurrentUser();
     /// }
     /// </code>
     /// </summary>

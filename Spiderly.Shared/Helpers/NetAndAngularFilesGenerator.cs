@@ -745,16 +745,6 @@ export class {{entityName}}ListComponent implements OnInit {
             [isLastMultiplePanel]="true"
             (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
         >
-            <div
-                buttons
-                *ngIf="isAuthorizedForSave && parentFormGroup.controls.notificationDTO?.controls?.id?.value > 0"
-            >
-                <spiderly-button
-                    [label]="t('SendEmailNotification')"
-                    (onClick)="sendEmailNotification()"
-                    icon="pi pi-send"
-                />
-            </div>
         </notification-base-details>
     </spiderly-card>
 </ng-container>
@@ -782,7 +772,6 @@ import {
 } from 'spiderly';
 import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details.generated';
 import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/entities/entities.generated';
-import { ApiService } from 'src/app/business/services/api/api.service';
 
 @Component({
     selector: 'notification-details',
@@ -813,7 +802,6 @@ export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainU
         protected override route: ActivatedRoute,
         protected override translocoService: TranslocoService,
         protected override baseFormService: BaseFormService,
-        private apiService: ApiService
     ) {
         super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
     }
@@ -828,17 +816,6 @@ export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainU
         } else {
             this.isMarkedAsRead.disable();
         }
-    };
-
-    sendEmailNotification = () => {
-        this.apiService
-            .sendNotificationEmail(
-                this.parentFormGroup.controls.notificationDTO.controls.id.value,
-                this.parentFormGroup.controls.notificationDTO.controls.version.value
-            )
-            .subscribe(() => {
-                this.messageService.successMessage(this.translocoService.translate('SuccessfulAttempt'));
-            });
     };
 
     override onBeforeSave = (): void => {
@@ -2458,13 +2435,6 @@ namespace {{appName}}.WebAPI.Controllers
             _businessService = businessService;
         }
 
-        [HttpGet]
-        [AuthGuard]
-        public async Task SendNotificationEmail(long notificationId, int notificationVersion)
-        {
-            await _businessService.SendNotificationEmail(notificationId, notificationVersion);
-        }
-
         [HttpDelete]
         [AuthGuard]
         public async Task DeleteNotificationForCurrentUser(long notificationId, int notificationVersion)
@@ -2636,10 +2606,6 @@ namespace {{appName}}.Business.Entities
         [StringLength(400, MinimumLength = 1)]
         [Required]
         public string Description { get; set; }
-
-        [UIControlType(nameof(UIControlTypeCodes.Editor))]
-        [StringLength(1000, MinimumLength = 1)]
-        public string EmailBody { get; set; }
 
         #region UITableColumn
         [UITableColumn(nameof(UserDTO.Email))]
@@ -3412,7 +3378,6 @@ using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
 using Spiderly.Security.Services;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
@@ -3425,15 +3390,12 @@ namespace {{appName}}.Business.Services
         private readonly {{appName}}.Business.Services.AuthorizationService _authorizationService;
         private readonly AuthenticationService _authenticationService;
         private readonly SecurityService<User> _securityService;
-        private readonly IEmailingService _emailingService;
-
         public BusinessService(
             IApplicationDbContext context,
             ExcelService excelService,
             {{appName}}.Business.Services.AuthorizationService authorizationService,
             SecurityService<User> securityService,
             AuthenticationService authenticationService,
-            IEmailingService emailingService,
             IFileManager fileManager
         )
             : base(context, excelService, authorizationService, fileManager)
@@ -3442,25 +3404,9 @@ namespace {{appName}}.Business.Services
             _authorizationService = authorizationService;
             _securityService = securityService;
             _authenticationService = authenticationService;
-            _emailingService = emailingService;
         }
 
         #region Notification
-
-        public async Task SendNotificationEmail(long notificationId, int notificationVersion)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateNotification);
-
-                // Checking version because if the user didn't save and some other user changed the version, he will send emails to wrong users
-                Notification notification = await GetInstanceAsync<Notification, long>(notificationId, notificationVersion);
-
-                List<string> recipients = notification.Recipients.Select(x => x.Email).ToList();
-
-                await _emailingService.SendEmailAsync(recipients, notification.Title, notification.EmailBody);
-            });
-        }
 
         /// <summary>
         /// Don't need authorization because user can do whatever he wants with his notifications
