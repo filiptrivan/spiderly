@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
@@ -73,9 +72,14 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public async Task<string> GetAccessTokenAsync()
+        public string GetAccessTokenFromHeader()
         {
-            return await _httpContextAccessor.HttpContext.GetTokenAsync("Bearer", SettingsProvider.Current.AccessTokenKey);
+            return Helper.GetAccessTokenFromHeader(_httpContextAccessor.HttpContext);
+        }
+
+        public string GetAccessTokenFromCookie()
+        {
+            return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext);
         }
 
         public string GetIPAddress()

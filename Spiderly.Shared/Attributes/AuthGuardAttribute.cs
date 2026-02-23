@@ -1,9 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using Microsoft.AspNetCore.Authentication;
 using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Attributes
@@ -18,12 +14,10 @@ namespace Spiderly.Shared.Attributes
         {
         }
 
-        public async override void OnActionExecuting(ActionExecutingContext context)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            string accessToken = await context.HttpContext.GetTokenAsync("Bearer", SettingsProvider.Current.AccessTokenKey);
-
-            if (string.IsNullOrEmpty(accessToken))
-                accessToken = context.HttpContext.Request.Cookies[SettingsProvider.Current.AccessTokenKey];
+            string accessToken = Helper.GetAccessTokenFromHeader(context.HttpContext)
+                ?? Helper.GetAccessTokenFromCookie(context.HttpContext);
 
             if (string.IsNullOrEmpty(accessToken))
             {

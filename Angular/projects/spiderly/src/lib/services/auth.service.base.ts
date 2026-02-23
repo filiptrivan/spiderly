@@ -166,7 +166,7 @@ export class AuthServiceBase implements OnDestroy {
 
     return this.http
       .post<AuthResult>(
-        `${this.apiUrl}/Security/RefreshToken`,
+        `${this.apiUrl}/Security/RefreshTokenWithHeaders`,
         body,
         this.config.httpSkipSpinnerOptions,
       )

@@ -8,6 +8,8 @@ Spiderly is a .NET 9 + Angular 19 code generator. It reads EF Core entity classe
 
 Docs: https://www.spiderly.dev/docs
 
+Spiderly is a fast-moving startup — no backward compatibility needed. Make breaking changes freely.
+
 ## Project structure
 
 ```
@@ -107,7 +109,7 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 ## Coding conventions
 
 - Don't use `var` unless it's an anonymous type
-- Add comments only for hacks/non-obvious workarounds and for documentation (XML `<summary>`)
+- Add comments only for hacks/non-obvious workarounds and for documentation (XML `<summary>`). Never place `//` comments above methods — use `<summary>` or nothing
 - Don't delete existing comments
 - Reference types aren't nullable in .NET (C#)
 - If Method A calls Method B, list Method A first, then Method B

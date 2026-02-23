@@ -125,7 +125,7 @@ namespace Spiderly.Shared.Extensions
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
-                    ValidateLifetime = false,
+                    ValidateLifetime = true, // GetTokenAsync() returns null for rejected tokens, so code that needs the raw token uses Helper.GetAccessTokenFromHeader/Cookie() instead
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = SettingsProvider.Current.JwtIssuer,
                     ValidAudience = SettingsProvider.Current.JwtAudience,

@@ -102,9 +102,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// Here we would put [Authorize] attribute, because we don't validate life time of the access token, but we are not because deeper in the method we are validating it without life time also.
         /// </summary>
         [HttpPost]
-        public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO request)
+        public async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO request)
         {
-            return await _securityServiceBase.RefreshToken(request);
+            return await _securityServiceBase.RefreshTokenWithHeaders(request);
         }
 
         /// <summary>

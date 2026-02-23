@@ -57,9 +57,9 @@ export class ApiSecurityService {
     );
   };
 
-  refreshToken = (request: RefreshTokenRequest): Observable<AuthResult> => {
+  refreshTokenWithHeaders = (request: RefreshTokenRequest): Observable<AuthResult> => {
     return this.http.post<AuthResult>(
-      `${this.config.apiUrl}/Security/RefreshToken`,
+      `${this.config.apiUrl}/Security/RefreshTokenWithHeaders`,
       request,
       this.config.httpOptions,
     );

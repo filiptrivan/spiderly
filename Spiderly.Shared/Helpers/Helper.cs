@@ -385,6 +385,36 @@ Currently authenticated user id: {{userId}}); <br>
 
         #region JWT
 
+        /// <summary>
+        /// Reads the access token from the Authorization: Bearer header.
+        /// </summary>
+        public static string GetAccessTokenFromHeader(HttpContext context)
+        {
+            string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                string token = authHeader.Substring("Bearer ".Length).Trim();
+                if (!string.IsNullOrEmpty(token))
+                    return token;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Reads the access token from the cookie.
+        /// </summary>
+        public static string GetAccessTokenFromCookie(HttpContext context)
+        {
+            if (context.Request.Cookies.TryGetValue(SettingsProvider.Current.AccessTokenKey, out string cookieToken) &&
+                !string.IsNullOrWhiteSpace(cookieToken))
+            {
+                return cookieToken;
+            }
+
+            return null;
+        }
+
         public static bool IsJwtTokenValid(string accessToken)
         {
             try

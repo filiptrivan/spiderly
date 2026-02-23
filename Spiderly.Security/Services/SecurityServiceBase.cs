@@ -253,12 +253,11 @@ namespace Spiderly.Security.Services
 
         #region Helpers
 
-        public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO)
+        public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string accessToken)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
-            string accessToken = await _authenticationService.GetAccessTokenAsync();
             List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
 
             long accesTokenUserId = long.Parse(claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid)?.Value);
@@ -277,9 +276,16 @@ namespace Spiderly.Security.Services
             };
         }
 
+        public async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO refreshTokenRequestDTO)
+        {
+            string accessToken = _authenticationService.GetAccessTokenFromHeader();
+            return await RefreshToken(refreshTokenRequestDTO, accessToken);
+        }
+
         public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
         {
             string refreshToken = _authenticationService.GetRefreshTokenFromCookie();
+            string accessToken = _authenticationService.GetAccessTokenFromCookie();
 
             RefreshTokenRequestDTO refreshTokenRequestDTO = new RefreshTokenRequestDTO
             {
@@ -287,7 +293,7 @@ namespace Spiderly.Security.Services
                 BrowserId = browserId
             };
 
-            AuthResultDTO authResultDTO = await RefreshToken(refreshTokenRequestDTO);
+            AuthResultDTO authResultDTO = await RefreshToken(refreshTokenRequestDTO, accessToken);
 
             AuthResultWithCookiesDTO authResultWithCookiesDTO = new AuthResultWithCookiesDTO
             {
