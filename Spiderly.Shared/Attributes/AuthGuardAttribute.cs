@@ -14,10 +14,12 @@ namespace Spiderly.Shared.Attributes
         {
         }
 
-        public virtual override void OnActionExecuting(ActionExecutingContext context)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            string accessToken = Helper.GetAccessTokenFromHeader(context.HttpContext)
-                ?? Helper.GetAccessTokenFromCookie(context.HttpContext);
+            string accessTokenFromHeader = Helper.GetAccessTokenFromHeader(context.HttpContext);
+            string accessTokenFromCookie = Helper.GetAccessTokenFromCookie(context.HttpContext);
+
+            string accessToken = accessTokenFromHeader ?? accessTokenFromCookie;
 
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -29,6 +31,18 @@ namespace Spiderly.Shared.Attributes
             {
                 context.Result = new UnauthorizedResult();
                 return;
+            }
+
+            string method = context.HttpContext.Request.Method;
+            bool isStateChangingMethod = method != "GET" && method != "HEAD" && method != "OPTIONS";
+
+            if (isStateChangingMethod && accessTokenFromHeader == null)
+            {
+                if (!context.HttpContext.Request.Headers.ContainsKey("X-CSRF"))
+                {
+                    context.Result = new ForbidResult();
+                    return;
+                }
             }
 
             base.OnActionExecuting(context);
