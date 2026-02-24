@@ -14,7 +14,7 @@ namespace Spiderly.Shared.Attributes
         {
         }
 
-        public override void OnActionExecuting(ActionExecutingContext context)
+        public virtual override void OnActionExecuting(ActionExecutingContext context)
         {
             string accessToken = Helper.GetAccessTokenFromHeader(context.HttpContext)
                 ?? Helper.GetAccessTokenFromCookie(context.HttpContext);
