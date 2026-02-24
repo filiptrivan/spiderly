@@ -2790,7 +2790,6 @@ using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Enums;
 using {{appName}}.WebAPI.DI;
 using {{appName}}.Infrastructure;
-using Quartz;
 
 public class Startup
 {
@@ -2925,7 +2924,6 @@ namespace {{appName}}.WebAPI
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
         <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-        <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.3.1" />
@@ -2982,7 +2980,6 @@ namespace {{appName}}.WebAPI
   "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
   "Serilog": {
     "Using": [
-      "Serilog.Sinks.ApplicationInsights",
       "Serilog.Sinks.Console"
     ],
     "MinimumLevel": {
@@ -2995,13 +2992,6 @@ namespace {{appName}}.WebAPI
     "WriteTo": [
       {
         "Name": "Console"
-      },
-      {
-        "Name": "ApplicationInsights",
-        "Args": {
-          "connectionString": "",
-          "telemetryConverter": "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
-        }
       }
     ],
     "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ]
@@ -3264,7 +3254,6 @@ namespace {{appName}}.Business
     </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
 {{XmlCommented($$"""
         <PackageReference Include="Spiderly.Security" Version="{{version}}" />
         <PackageReference Include="Spiderly.SourceGenerators" Version="{{version}}" />

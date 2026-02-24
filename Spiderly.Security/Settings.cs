@@ -2,7 +2,7 @@
 {
     public static class SettingsProvider
     {
-        public static Settings Current { internal get; set; } = new Settings();
+        public static Settings Current { get; set; } = new Settings();
     }
 
     public class Settings
