@@ -2799,11 +2799,11 @@ public class Startup
     {
         Configuration = configuration;
 
-        {{appName}}.WebAPI.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.WebAPI").Get<{{appName}}.WebAPI.Settings>();
-        {{appName}}.Business.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.Business").Get<{{appName}}.Business.Settings>();
-        Spiderly.Infrastructure.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Infrastructure").Get<Spiderly.Infrastructure.Settings>();
-        Spiderly.Security.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Security").Get<Spiderly.Security.Settings>();
-        Spiderly.Shared.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Shared").Get<Spiderly.Shared.Settings>();
+        {{appName}}.WebAPI.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.WebAPI").Get<{{appName}}.WebAPI.Settings>() ?? new();
+        {{appName}}.Business.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.Business").Get<{{appName}}.Business.Settings>() ?? new();
+        Spiderly.Infrastructure.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Infrastructure").Get<Spiderly.Infrastructure.Settings>() ?? new();
+        Spiderly.Security.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Security").Get<Spiderly.Security.Settings>() ?? new();
+        Spiderly.Shared.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Shared").Get<Spiderly.Shared.Settings>() ?? new();
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -2854,9 +2854,9 @@ namespace {{appName}}.WebAPI
 
     public class Settings
     {
-        public string FrontendUrl { get; set; }
+        public string FrontendUrl { get; set; } = "http://localhost:4200";
 
-        public string ExcelContentType { get; set; }
+        public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 }
 """;
@@ -2999,43 +2999,20 @@ namespace {{appName}}.WebAPI
   "AppSettings": {
     "AllowedHosts": "*",
     "{{appName}}.WebAPI": {
-      "FrontendUrl": "http://localhost:4200",
-      "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     },
     "{{appName}}.Business": {
     },
     "Spiderly.Infrastructure": {
-      "UseGoogleAsExternalProvider": true,
-      "AppHasLatinTranslation": false
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
       "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}",
       "UnhandledExceptionRecipients": [
         "{{emailSender ?? "youremail@gmail.com"}}"
-      ],
-      "SmtpHost": "smtp.gmail.com",
-      "SmtpPort": 587,
-      "JwtIssuer": "https://localhost:7260;",
-      "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1,
-      "ConnectionString": "",
-      "RequestsLimitNumber": 240,
-      "RequestsLimitWindow": 60
+      ]
     },
     "Spiderly.Security": {
-      "JwtIssuer": "https://localhost:7260;",
-      "JwtAudience": "https://localhost:7260;",
-      "ClockSkewMinutes": 1,
-      "AccessTokenExpiration": 20,
-      "RefreshTokenExpiration": 1440,
-      "VerificationTokenExpiration": 5,
-      "NumberOfFailedLoginAttemptsInARowToDisableUser": 40,
-      "AllowTheUseOfAppWithDifferentIpAddresses": true,
-      "AllowedBrowsersForTheSingleUser": 5,
-      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      "ExcelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "OnlyAdminCanAddUsers": false
+      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
     }
   }
 }

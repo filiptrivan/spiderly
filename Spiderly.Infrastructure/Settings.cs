@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,6 @@ namespace Spiderly.Infrastructure
 
     public class Settings
     {
-        public bool UseGoogleAsExternalProvider { get; set; }
+        public bool UseGoogleAsExternalProvider { get; set; } = true;
     }
 }

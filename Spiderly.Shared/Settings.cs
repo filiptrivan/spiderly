@@ -14,29 +14,29 @@
         public List<string> UnhandledExceptionRecipients { get; set; }
         public string EmailSender { get; set; }
         public string EmailSenderPassword { get; set; }
-        public string SmtpHost { get; set; }
-        public int SmtpPort { get; set; }
+        public string SmtpHost { get; set; } = "smtp.gmail.com";
+        public int SmtpPort { get; set; } = 587;
+
+        public string TelegramBotToken { get; set; }
+        public string TelegramChatId { get; set; }
+        public int NotificationRateLimitMinutes { get; set; } = 5;
 
 
         public string JwtKey { get; set; }
-        public string JwtIssuer { get; set; }
-        public string JwtAudience { get; set; }
-        public int ClockSkewMinutes { get; set; }
+        public string JwtIssuer { get; set; } = "https://localhost:7260;";
+        public string JwtAudience { get; set; } = "https://localhost:7260;";
+        public int ClockSkewMinutes { get; set; } = 1;
         public string AccessTokenKey { get; set; } = "access_token";
         public string RefreshTokenKey { get; set; } = "refresh_token";
         public string AuthResultKey { get; set; } = "auth_status";
-
 
         public string BlobStorageConnectionString { get; set; }
         public string BlobStorageUrl { get; set; }
         public string BlobStorageContainerName { get; set; }
 
-        public int RequestsLimitNumber { get; set; }
-        public int RequestsLimitWindow { get; set; }
+        public int RequestsLimitNumber { get; set; } = 240;
+        public int RequestsLimitWindow { get; set; } = 60;
         public string RateLimitingFixedByIpPolicy { get; } = "fixed-by-ip";
-
-        public string SpiderlySecretLicenseToken { get; set; }
-        public string SpiderlyPublicLicenseKey { get; } = @"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq58peHBU8tzIXs8WEhUVKKWQ6ZadWRAnzm1UwkGEoAIcz0uObTXuBqeh4WvDIRwnqUrhZ0s7wCuuujwH7bm7aw==";
 
         public string CloudinaryCloudName { get; set; }
         public string CloudinaryApiKey { get; set; }

@@ -137,14 +137,14 @@ namespace Spiderly.Security.Services
 
         private AccessTokenDTO GenerateAccessToken(List<Claim> claims, int? verificationExpiration = null)
         {
-            byte[] secretKey = Encoding.UTF8.GetBytes(SettingsProvider.Current.JwtKey);
+            byte[] secretKey = Encoding.UTF8.GetBytes(Spiderly.Shared.SettingsProvider.Current.JwtKey);
             SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256Signature);
             DateTime expiresAt = DateTime.UtcNow.AddMinutes(verificationExpiration ?? SettingsProvider.Current.AccessTokenExpiration);
 
             bool shouldAddAudienceClaim = string.IsNullOrWhiteSpace(claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Aud)?.Value);
             JwtSecurityToken jwtToken = new JwtSecurityToken(
-                SettingsProvider.Current.JwtIssuer,
-                shouldAddAudienceClaim ? SettingsProvider.Current.JwtAudience : string.Empty,
+                Spiderly.Shared.SettingsProvider.Current.JwtIssuer,
+                shouldAddAudienceClaim ? Spiderly.Shared.SettingsProvider.Current.JwtAudience : string.Empty,
                 claims,
                 expires: expiresAt,
                 signingCredentials: credentials);
@@ -181,20 +181,20 @@ namespace Spiderly.Security.Services
             if (string.IsNullOrWhiteSpace(accessToken))
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
-            byte[] secretKey = Encoding.UTF8.GetBytes(SettingsProvider.Current.JwtKey);
+            byte[] secretKey = Encoding.UTF8.GetBytes(Spiderly.Shared.SettingsProvider.Current.JwtKey);
 
             new JwtSecurityTokenHandler()
                 .ValidateToken(accessToken,
                     new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = SettingsProvider.Current.JwtIssuer,
+                        ValidIssuer = Spiderly.Shared.SettingsProvider.Current.JwtIssuer,
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-                        ValidAudience = SettingsProvider.Current.JwtAudience,
+                        ValidAudience = Spiderly.Shared.SettingsProvider.Current.JwtAudience,
                         ValidateAudience = true, // Checking if the audience is the valid one (localhost:7260)
                         ValidateLifetime = false, // If the token has expired, it will not be valid, so we don't need to do something like this: if (existingRefreshToken.ExpiresAt - jwtToken.ExpiresAt > SettingsProvider.Current.RefreshTokenExpiration - SettingsProvider.Current.AccessTokenExpiration) ...
-                        ClockSkew = TimeSpan.FromMinutes(SettingsProvider.Current.ClockSkewMinutes)
+                        ClockSkew = TimeSpan.FromMinutes(Spiderly.Shared.SettingsProvider.Current.ClockSkewMinutes)
                     },
             out SecurityToken validatedToken);
 
