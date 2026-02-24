@@ -457,7 +457,8 @@ namespace Spiderly.SourceGenerators.Shared
 
             List<INamedTypeSymbol> types = namespaceSymbol.GetTypeMembers()
                 .Where(type => type.TypeKind == TypeKind.Class &&
-                       namespaceExtensions.Any(namespaceExtension => GetFullNamespace(type).EndsWith($".{namespaceExtension}")))
+                       namespaceExtensions.Any(namespaceExtension => GetFullNamespace(type).EndsWith($".{namespaceExtension}")) &&
+                       (!GetFullNamespace(type).EndsWith($".{NamespaceExtensionCodes.Entities}") || IsSpiderlyEntity(type)))
                 .OrderBy(type => type.Name)
                 .ToList();
 
@@ -488,6 +489,23 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             return classes;
+        }
+
+        private static bool IsSpiderlyEntity(INamedTypeSymbol type)
+        {
+            INamedTypeSymbol current = type.BaseType;
+            while (current != null && current.SpecialType != SpecialType.System_Object)
+            {
+                string name = current.OriginalDefinition?.Name;
+                if (name == "BusinessObject" || name == "ReadonlyObject")
+                    return true;
+                current = current.BaseType;
+            }
+
+            // M2M join entities inherit directly from object but carry Spiderly attributes (e.g. [M2M]).
+            // Third-party entities (e.g. Hangfire) have no Spiderly attributes.
+            return type.GetAttributes().Any(attr =>
+                attr.AttributeClass?.ContainingAssembly?.Name?.StartsWith("Spiderly") == true);
         }
 
         private static string GetFullNamespace(INamedTypeSymbol symbol)
