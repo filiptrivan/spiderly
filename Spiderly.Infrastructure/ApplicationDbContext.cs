@@ -52,6 +52,15 @@ namespace Spiderly.Infrastructure
 
             List<IMutableEntityType> mutableEntityTypes = modelBuilder.Model.GetEntityTypes().ToList();
 
+            foreach (IMutableEntityType mutableEntityType in mutableEntityTypes)
+            {
+                Type entityType = mutableEntityType.ClrType;
+                if (entityType.IsSubclassOf(typeof(BusinessObject<byte>)))
+                {
+                    modelBuilder.Entity(entityType).Property("Id").ValueGeneratedOnAdd();
+                }
+            }
+
             if (SettingsProvider.Current.UseGoogleAsExternalProvider == false)
             {
                 modelBuilder.Entity<TUser>().Ignore(x => x.HasLoggedInWithGoogleAsExternalProvider);
