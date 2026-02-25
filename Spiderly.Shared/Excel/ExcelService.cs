@@ -52,14 +52,11 @@ namespace Spiderly.Shared.Excel
 
             using (XLWorkbook workbook = new XLWorkbook())
             {
-                if (data != null && count > 0)
-                {
-                    IXLWorksheet sheet = workbook.Worksheets.Add(options.DataSheetName);
-                    Type type = typeof(T);
-                    PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
+                IXLWorksheet sheet = workbook.Worksheets.Add(options.DataSheetName);
+                Type type = typeof(T);
+                PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
 
-                    LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, getTranslation);
-                }
+                LoadFromCollectionOverride(data, count, type, sheet, propertiesToInclude, getTranslation);
                 workbook.SaveAs(outputStream);
             }
 
@@ -93,16 +90,19 @@ namespace Spiderly.Shared.Excel
                 sheet.Cell(1, cellCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
                 sheet.Column(cellCol).Width = 22;
 
-                for (int dataIndex = 0; dataIndex < count; dataIndex++)
+                if (data != null && count > 0)
                 {
-                    cellRow = dataIndex + 2;
-                    if (typeofT==typeof(string) || typeofT==typeof(decimal) || typeofT==typeof(DateTime) || typeofT.IsPrimitive)
+                    for (int dataIndex = 0; dataIndex < count; dataIndex++)
                     {
-                        sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(data[dataIndex]));
-                    }
-                    else
-                    {
-                        sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(propertiesToInclude[headerIndex].GetValue(data[dataIndex], null)));
+                        cellRow = dataIndex + 2;
+                        if (typeofT==typeof(string) || typeofT==typeof(decimal) || typeofT==typeof(DateTime) || typeofT.IsPrimitive)
+                        {
+                            sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(data[dataIndex]));
+                        }
+                        else
+                        {
+                            sheet.Cell(cellRow, cellCol).SetValue(XLCellValue.FromObject(propertiesToInclude[headerIndex].GetValue(data[dataIndex], null)));
+                        }
                     }
                 }
 
