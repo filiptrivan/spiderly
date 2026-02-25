@@ -32,11 +32,11 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import { ConfigServiceBase } from '../../services/config.service.base';
 import {
   exportListToExcel,
   getHtmlImgDisplayString64,
 } from '../../services/helper-functions';
-import { ConfigServiceBase } from '../../services/config.service.base';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
@@ -64,7 +64,6 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() tableIcon: string = 'pi pi-list';
   @Input() items: any[]; // Pass only when hasLazyLoad === false
   @Input() rows: number;
-  @Input() rowsPerPageOptions: number[];
   @Input() cols: Column[];
   @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
   @Input() showCardWrapper: boolean = false;
@@ -153,8 +152,6 @@ export class SpiderlyDataTableComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
-    if (this.rowsPerPageOptions == null)
-      this.rowsPerPageOptions = this.configService.pageSizeOptions;
 
     this.matchModeDateOptions = [
       {

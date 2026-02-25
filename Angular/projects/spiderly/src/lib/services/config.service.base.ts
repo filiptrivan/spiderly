@@ -31,7 +31,6 @@ export class ConfigServiceBase {
 
   /* Pagination */
   defaultPageSize = 10;
-  pageSizeOptions: number[] = [10, 25, 50];
 
   constructor() {}
 }
