@@ -45,5 +45,8 @@
         public string S3BucketName { get; set; }
         public string S3PublicEndpoint { get; set; }
 
+        public string FrontendUrl { get; set; } = "http://localhost:4200";
+        public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     }
 }
