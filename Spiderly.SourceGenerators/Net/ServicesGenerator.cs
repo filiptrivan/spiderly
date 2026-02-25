@@ -24,27 +24,14 @@ namespace Spiderly.SourceGenerators.Net
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                });
+            var combined = Helpers.CreatePipeline(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                });
-
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(jsonConfig);
-
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndReferenced, jsonContent) = source;
-                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+                var ((classes, referencedClasses), jsonContent) = source;
+                Execute(classes, referencedClasses, jsonContent, spc);
             });
         }
 
@@ -384,7 +371,7 @@ namespace {{basePartOfNamespace}}.Services
                 )
             )
             {
-                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -427,7 +414,7 @@ namespace {{basePartOfNamespace}}.Services
                 )
             )
             {
-                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
                 string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
 
                 if (property.IsMultiSelectControlType())
@@ -1374,7 +1361,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
                 var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
@@ -1390,7 +1377,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
                     Ordered{{property.Name}}MainUIFormDTO = savedOrdered{{property.Name}}MainUIFormDTO,
@@ -1406,7 +1393,7 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = allEntities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
 
                 result.Add($$"""
         /// <summary>
@@ -1509,7 +1496,7 @@ namespace {{basePartOfNamespace}}.Services
                 .Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute())
             )
             {
-                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
                 var all{{property.Name}}Query = await GetAll{{property.Name}}QueryFor{{entity.Name}}(_context.DbSet<{{extractedEntity.Name}}>());
@@ -1530,7 +1517,7 @@ namespace {{basePartOfNamespace}}.Services
                 .Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute())
             )
             {
-                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
         /// <summary>
@@ -1659,9 +1646,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             List<string> result = new();
 
-            List<SpiderlyProperty> editorProperties = entity.Properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
-                .ToList();
+            List<SpiderlyProperty> editorProperties = Helpers.GetEditorImageProperties(entity.Properties);
 
             foreach (SpiderlyProperty property in editorProperties)
             {
@@ -1816,9 +1801,7 @@ namespace {{basePartOfNamespace}}.Services
 
             string entityIdType = entity.GetIdType(allEntities);
 
-            List<SpiderlyProperty> editorProperties = entity.Properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
-                .ToList();
+            List<SpiderlyProperty> editorProperties = Helpers.GetEditorImageProperties(entity.Properties);
 
             foreach (SpiderlyProperty property in editorProperties)
             {

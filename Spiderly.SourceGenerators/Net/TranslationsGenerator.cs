@@ -25,25 +25,9 @@ namespace Spiderly.SourceGenerators.Net
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
-                .CreateSyntaxProvider(
-                    predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
-                    transform: static (ctx, _) => Helpers.GetSemanticTargetForGenerationEveryClass(ctx))
-                .Where(static c => c is not null);
-
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                });
-
-            IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var combined = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+            var combined = Helpers.CreatePipelineWithCallingPath(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {

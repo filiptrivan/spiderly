@@ -29,30 +29,14 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO,
-                    NamespaceExtensionCodes.DataMappers,
-                });
+            var combined = Helpers.CreatePipeline(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO, NamespaceExtensionCodes.DataMappers },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO,
-                });
-
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(jsonConfig);
-
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndReferenced, jsonContent) = source;
-                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+                var ((classes, referencedClasses), jsonContent) = source;
+                Execute(classes, referencedClasses, jsonContent, spc);
             });
         }
 

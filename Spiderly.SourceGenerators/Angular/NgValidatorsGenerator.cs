@@ -31,26 +31,9 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
-                .CreateSyntaxProvider(
-                    predicate: static (s, _) => Helpers.IsSyntaxTargetForGenerationEveryClass(s),
-                    transform: static (ctx, _) => Helpers.GetSemanticTargetForGenerationEveryClass(ctx))
-                .Where(static c => c is not null);
-
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO
-                });
-
-            IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var combined = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+            var combined = Helpers.CreatePipelineWithCallingPath(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {

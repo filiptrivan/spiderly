@@ -28,25 +28,9 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Controllers,
-                });
-
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO,
-                });
-
-            IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var combined = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+            var combined = Helpers.CreatePipelineWithCallingPath(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -418,7 +402,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
-            SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+            SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
             return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{extractedEntity.Name}>", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
         }
@@ -527,9 +511,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         {
             List<string> result = new();
 
-            List<SpiderlyProperty> editorProperties = entity.Properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
-                .ToList();
+            List<SpiderlyProperty> editorProperties = Helpers.GetEditorImageProperties(entity.Properties);
 
             foreach (SpiderlyProperty property in editorProperties)
             {

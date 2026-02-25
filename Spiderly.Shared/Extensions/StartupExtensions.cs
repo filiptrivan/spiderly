@@ -342,18 +342,6 @@ namespace Spiderly.Shared.Extensions
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
                         }
-                        else if (ex is BusinessExceptionWithoutLog businessExWithoutLog)
-                        {
-                            context.Response.StatusCode = businessExWithoutLog.StatusCode;
-                            message = businessExWithoutLog.Message;
-                            logLevel = LogEventLevel.Warning;
-                        }
-                        else if (ex is ExceptionWithoutLog)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                            message = SharedTerms.GlobalError;
-                            logLevel = LogEventLevel.Error;
-                        }
                         else
                         {
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;

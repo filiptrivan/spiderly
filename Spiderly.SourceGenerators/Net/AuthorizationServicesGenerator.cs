@@ -6,8 +6,6 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -30,27 +28,14 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                });
+            var combined = Helpers.CreatePipeline(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                });
-
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var allClasses = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(jsonConfig);
-
-            context.RegisterImplementationSourceOutput(allClasses, static (spc, source) =>
+            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndReferenced, jsonContent) = source;
-                Execute(classesAndReferenced.Left, classesAndReferenced.Right, jsonContent, spc);
+                var ((classes, referencedClasses), jsonContent) = source;
+                Execute(classes, referencedClasses, jsonContent, spc);
             });
         }
 
@@ -155,9 +140,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             StringBuilder sb = new();
 
-            List<SpiderlyProperty> editorProperties = entity.Properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
-                .ToList();
+            List<SpiderlyProperty> editorProperties = Helpers.GetEditorImageProperties(entity.Properties);
 
             foreach (SpiderlyProperty property in editorProperties)
             {
