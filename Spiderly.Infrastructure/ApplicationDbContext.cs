@@ -6,6 +6,7 @@ using System.Reflection;
 using Spiderly.Security.Interfaces;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Spiderly.Infrastructure.Converters;
+using Spiderly.Shared.Attributes.Entity;
 
 namespace Spiderly.Infrastructure
 {
@@ -32,14 +33,18 @@ namespace Spiderly.Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Automatically register all classes marked with the [Entity] attribute
             List<Assembly> assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
 
             List<string> alreadyEntityTypeNames = modelBuilder.Model.GetEntityTypes().Select(x => x.Name).ToList();
 
             List<Type> entityTypes = assemblies
                 .SelectMany(assembly => assembly.GetTypes())
-                .Where(type => type != null && type.Namespace != null && type.Namespace.EndsWith(".Entities"))
+                .Where(type =>
+                    type != null &&
+                    type.Namespace != null &&
+                    type.Namespace.EndsWith(".Entities") &&
+                    (type.IsBusinessOrReadonlyEntity() || type.IsDefined(typeof(M2MAttribute), inherit: true))
+                )
                 .ToList();
 
             foreach (Type entityType in entityTypes)

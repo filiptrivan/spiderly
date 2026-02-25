@@ -131,15 +131,24 @@ namespace Spiderly.Infrastructure
             }
         }
 
-        private static bool IsBusinessOrReadonlyEntity(this Type type)
+        public static bool IsBusinessOrReadonlyEntity(this Type type)
         {
-            return
-                type.BaseType == typeof(BusinessObject<byte>) ||
-                type.BaseType == typeof(BusinessObject<int>) ||
-                type.BaseType == typeof(BusinessObject<long>) ||
-                type.BaseType == typeof(ReadonlyObject<byte>) ||
-                type.BaseType == typeof(ReadonlyObject<int>) ||
-                type.BaseType == typeof(ReadonlyObject<long>);
+            for (Type? current = type; current != null; current = current.BaseType)
+            {
+                if (
+                    current == typeof(BusinessObject<byte>) ||
+                    current == typeof(BusinessObject<int>) ||
+                    current == typeof(BusinessObject<long>) ||
+                    current == typeof(ReadonlyObject<byte>) ||
+                    current == typeof(ReadonlyObject<int>) ||
+                    current == typeof(ReadonlyObject<long>)
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsM2MEntity(this Type type)
