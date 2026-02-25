@@ -19,7 +19,6 @@ using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Resources;
 using System.Globalization;
 using System.Text;
@@ -360,11 +359,8 @@ namespace Spiderly.Shared.Extensions
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                             message = SharedTerms.GlobalError;
                             logLevel = LogEventLevel.Error;
-                            INotificationDispatcher dispatcher = context.RequestServices.GetService<INotificationDispatcher>();
-                            if (dispatcher != null)
-                                dispatcher.DispatchUnhandledException(userId, !env.IsDevelopment(), ex);
-                            else
-                                _ = Task.Run(async () => await Helper.SendUnhandledExceptionNotificationsAsync(userId, !env.IsDevelopment(), ex.ToString()));
+                            context.RequestServices.GetService<IExceptionNotificationDispatcher>()
+                                ?.DispatchUnhandledException(userId, !env.IsDevelopment(), ex);
                         }
 
                         Log.Write(

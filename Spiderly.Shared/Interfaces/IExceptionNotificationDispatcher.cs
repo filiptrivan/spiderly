@@ -1,6 +1,6 @@
-namespace Spiderly.Shared.Notifications
+namespace Spiderly.Shared.Interfaces
 {
-    public interface INotificationDispatcher
+    public interface IExceptionNotificationDispatcher
     {
         void DispatchUnhandledException(long? userId, bool isProduction, Exception ex);
     }

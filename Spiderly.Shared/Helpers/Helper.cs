@@ -291,19 +291,6 @@ namespace Spiderly.Shared.Helpers
         private static readonly HttpClient _telegramHttpClient = new();
         private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
 
-        public static async Task SendUnhandledExceptionNotificationsAsync(long? userId, bool isProduction, string exceptionString)
-        {
-            List<Task> tasks = new();
-
-            if (isProduction && IsEmailingConfigured())
-                tasks.Add(SendUnhandledExceptionEmailAsync(userId, exceptionString));
-
-            if (isProduction && IsTelegramConfigured())
-                tasks.Add(SendTelegramNotificationAsync(userId, exceptionString));
-
-            await Task.WhenAll(tasks);
-        }
-
         private static async Task SendUnhandledExceptionEmailAsync(long? userId, string exceptionString)
         {
             try
@@ -398,6 +385,18 @@ User ID: {{{userId}}}
                 Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender, SettingsProvider.Current.EmailSenderPassword),
                 EnableSsl = true
             };
+        }
+
+        public static async Task SendUnhandledExceptionNotificationsAsync(long? userId, bool isProduction, string exceptionString)
+        {
+            if (!isProduction)
+                return;
+
+            if (IsEmailingConfigured() && SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0)
+                await SendUnhandledExceptionEmailAsync(userId, exceptionString);
+
+            if (IsTelegramConfigured())
+                await SendTelegramNotificationAsync(userId, exceptionString);
         }
 
         public static bool IsEmailingConfigured()

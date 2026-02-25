@@ -2784,10 +2784,14 @@ EndGlobal
     private static string GetStartupCsData(string appName, DbProviderCodes dbProvider)
     {
       return $$"""
+using Hangfire;
+using Hangfire.Dashboard;
 using LightInject;
-using Spiderly.Shared.Helpers;
-using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Enums;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Helpers;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Notifications;
 using {{appName}}.WebAPI.DI;
 using {{appName}}.Infrastructure;
 
@@ -2808,6 +2812,12 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddHangfire(config =>
+            config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)" : "UseHangfirePostgreSqlStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)")}}
+        );
+        services.AddHangfireServer();
+        services.AddSingleton<IExceptionNotificationDispatcher, HangfireExceptionNotificationDispatcher>();
+
         services.SpiderlyConfigureServices<{{appName}}ApplicationDbContext>(dbProvider: DbProviderCodes.{{dbProvider}});
     }
 
@@ -2826,11 +2836,16 @@ public class Startup
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithOrigins(new[] { {{appName}}.WebAPI.SettingsProvider.Current.FrontendUrl })
+                .WithOrigins(new[] { Spiderly.Shared.SettingsProvider.Current.FrontendUrl })
                 .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
         });
 
         app.SpiderlyConfigure(env);
+
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization = new[] { new LocalRequestsOnlyAuthorizationFilter() },
+        });
 
         app.UseEndpoints(endpoints =>
         {
@@ -2854,9 +2869,6 @@ namespace {{appName}}.WebAPI
 
     public class Settings
     {
-        public string FrontendUrl { get; set; } = "http://localhost:4200";
-
-        public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 }
 """;
@@ -2919,6 +2931,8 @@ namespace {{appName}}.WebAPI
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
+		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
+		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Hangfire.SqlServer\" Version=\"1.8.*\" />" : "<PackageReference Include=\"Hangfire.PostgreSql\" Version=\"1.20.*\" />")}}
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />

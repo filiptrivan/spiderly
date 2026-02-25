@@ -166,6 +166,8 @@ export class {{entity.Name}}BaseDetailsComponent {
 
 {{string.Join("\n", GetOrderedOneToManyVariables(entity, allEntities))}}
 
+{{string.Join("\n", GetComplexManyToManyListVariables(entity, allEntities))}}
+
 {{string.Join("\n", GetPrimengOptionVariables(entity, allEntities, customDTOClasses))}}
 
 {{string.Join("\n", GetManyToManyTableVariables(entity, allEntities))}}
@@ -199,23 +201,23 @@ export class {{entity.Name}}BaseDetailsComponent {
             if (this.modelId > 0) {
                 forkJoin({
                     mainUIFormDTO: this.apiService.get{{entity.Name}}MainUIFormDTO(this.modelId),
+{{string.Join("\n", GetComplexManyToManyListForkJoinParameters(entity, allEntities))}}
                 })
-                .subscribe(async ({ mainUIFormDTO }) => {
+                .subscribe(async (data) => {
+{{string.Join("\n", GetComplexManyToManyListForkJoinAssignments(entity, allEntities))}}
                     const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
                         {{entity.Name}}MainUIForm,
-                        mainUIFormDTO,
+                        data.mainUIFormDTO,
                     );
                     this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody, saveBody);
+{{string.Join("\n", GetComplexManyToManyListFormGroupInitialValues(entity, allEntities, isFromOrderedOneToMany: false))}}
                     await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
             else {
-                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody);
-                await this.handleAuthorizationForSave();
-                this.loading = false;
-                this.onAfterFormGroupInit.next();
+{{GetComplexManyToManyListNewEntityInit(entity, allEntities)}}
             }
         });
     }
@@ -245,6 +247,8 @@ export class {{entity.Name}}BaseDetailsComponent {
     };
 
 {{string.Join("\n", GetSimpleManyToManyMethods(entity, allEntities))}}
+
+{{string.Join("\n", GetComplexManyToManyListMethods(entity, allEntities))}}
 
 {{string.Join("\n", GetAutocompleteSearchMethods(entity, allEntities, customDTOClasses))}}
 
@@ -661,6 +665,258 @@ export class {{entity.Name}}BaseDetailsComponent {
 
         #endregion
 
+        #region Complex Many To Many List
+
+        private static (SpiderlyClass JunctionEntity, SpiderlyProperty CurrentSideM2MProperty, SpiderlyProperty OtherSideM2MProperty, SpiderlyClass OtherSideEntity) ResolveComplexManyToManyListInfo(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities
+        )
+        {
+            SpiderlyClass junctionEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+            SpiderlyProperty currentSideM2MProperty = junctionEntity.Properties
+                .Single(x =>
+                    x.HasM2MWithManyAttribute() &&
+                    x.Type == entity.Name &&
+                    x.Attributes.Any(a => a.Name == "M2MWithMany" && a.Value == property.Name)
+                );
+
+            SpiderlyProperty otherSideM2MProperty = junctionEntity.Properties
+                .Where(x => x.HasM2MWithManyAttribute())
+                .Single(x => x != currentSideM2MProperty);
+
+            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type);
+
+            return (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity);
+        }
+
+        private static string GetComplexManyToManyListBlock(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities,
+            bool isFromOrderedOneToMany
+        )
+        {
+            var (junctionEntity, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+            string formArrayAccess = GetComplexManyToManyListFormArray(entity, property, isFromOrderedOneToMany);
+            string junctionFormGroupVar = $"{junctionEntity.Name.FirstCharToLower()}FormGroup";
+
+            List<SpiderlyProperty> additionalFields = junctionEntity.Properties
+                .Where(p => !p.Type.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
+                .ToList();
+
+            StringBuilder fieldsHtml = new();
+            foreach (SpiderlyProperty field in additionalFields)
+            {
+                UIControlTypeCodes controlType = GetUIControlType(field);
+                string controlTag = GetUIStringControlType(controlType);
+                string formControlName = field.Name.FirstCharToLower();
+
+                string controlAttr = $"[control]=\"{junctionFormGroupVar}.getControl('{formControlName}')\"";
+
+                if (controlType == UIControlTypeCodes.Decimal)
+                    controlAttr += $" [decimal]=\"true\" [maxFractionDigits]=\"{field.GetDecimalScale()}\"";
+
+                fieldsHtml.AppendLine($$"""
+                                            <div class="col-8">
+                                                <{{controlTag}} {{controlAttr}}></{{controlTag}}>
+                                            </div>
+""");
+            }
+
+            return $$"""
+                     <div class="col-8">
+                        <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed">
+                            <panel-header [title]="t('{{property.Name}}')" icon="pi pi-list"></panel-header>
+                            <panel-body [normalBottomPadding]="true">
+                                @for ({{junctionFormGroupVar}} of {{formArrayAccess}}.getFormGroups(); track {{junctionFormGroupVar}}.trackingId; let index = $index) {
+                                    <index-card
+                                    [index]="index"
+                                    [last]="false"
+                                    [header]="get{{otherSideEntity.Name}}DisplayNameFor{{entity.Name}}({{junctionFormGroupVar}}, {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}})"
+                                    [showCrudMenu]="false"
+                                    >
+                                        <form [formGroup]="{{junctionFormGroupVar}}" class="spiderly-grid">
+{{fieldsHtml}}
+                                        </form>
+                                    </index-card>
+                                }
+
+                            </panel-body>
+                        </spiderly-panel>
+                    </div>
+""";
+        }
+
+        private static string GetComplexManyToManyListFormArray(SpiderlyClass entity, SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}";
+            else
+                return $"this.parentFormGroup.controls.{property.Name.FirstCharToLower()}";
+        }
+
+        private static List<string> GetComplexManyToManyListVariables(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+                result.Add($$"""
+    @Input() {{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed: boolean = false;
+    {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}}: {{otherSideEntity.Name}}[] = [];
+""");
+            }
+
+            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                result.AddRange(GetComplexManyToManyListVariables(extractedEntity, allEntities));
+            }
+
+            return result;
+        }
+
+        private static List<string> GetComplexManyToManyListMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                var (_, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+                string otherSideFKName = $"{otherSideM2MProperty.Name.FirstCharToLower()}Id";
+
+                string displayNameProp = Helpers.GetDisplayNameProperty(otherSideEntity);
+                string tsDisplayNameAccess = displayNameProp.EndsWith(".ToString()")
+                    ? displayNameProp.Replace(".ToString()", "").FirstCharToLower() + "?.toString()"
+                    : displayNameProp.FirstCharToLower();
+
+                result.Add($$"""
+    get{{otherSideEntity.Name}}DisplayNameFor{{entity.Name}}(formGroup: SpiderlyFormGroup, entityList: {{otherSideEntity.Name}}[]): string {
+        const id = formGroup.controls['{{otherSideFKName}}']?.getRawValue();
+        return entityList.find(x => x.id === id)?.{{tsDisplayNameAccess}} ?? '';
+    }
+""");
+            }
+
+            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                result.AddRange(GetComplexManyToManyListMethods(extractedEntity, allEntities));
+            }
+
+            return result;
+        }
+
+        private static List<string> GetComplexManyToManyListForkJoinParameters(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+                result.Add($$"""
+                    {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}}: this.apiService.get{{otherSideEntity.Name}}List(),
+""");
+            }
+
+            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                result.AddRange(GetComplexManyToManyListForkJoinParameters(extractedEntity, allEntities));
+            }
+
+            return result;
+        }
+
+        private static string GetComplexManyToManyListNewEntityInit(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> forkJoinParams = GetComplexManyToManyListForkJoinParameters(entity, allEntities);
+
+            if (forkJoinParams.Count == 0)
+            {
+                return $$"""
+                this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody);
+                await this.handleAuthorizationForSave();
+                this.loading = false;
+                this.onAfterFormGroupInit.next();
+""";
+            }
+
+            List<string> forkJoinAssignments = GetComplexManyToManyListForkJoinAssignments(entity, allEntities);
+            List<string> formGroupInitValues = GetComplexManyToManyListFormGroupInitialValues(entity, allEntities, isFromOrderedOneToMany: false);
+
+            return $$"""
+                forkJoin({
+{{string.Join("\n", forkJoinParams)}}
+                })
+                .subscribe(async (data) => {
+{{string.Join("\n", forkJoinAssignments)}}
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody);
+{{string.Join("\n", formGroupInitValues)}}
+                    await this.handleAuthorizationForSave();
+                    this.loading = false;
+                    this.onAfterFormGroupInit.next();
+                });
+""";
+        }
+
+        private static List<string> GetComplexManyToManyListForkJoinAssignments(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+                result.Add($$"""
+                    this.{{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}} = data.{{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}};
+""");
+            }
+
+            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                result.AddRange(GetComplexManyToManyListForkJoinAssignments(extractedEntity, allEntities));
+            }
+
+            return result;
+        }
+
+        private static List<string> GetComplexManyToManyListFormGroupInitialValues(SpiderlyClass entity, List<SpiderlyClass> allEntities, bool isFromOrderedOneToMany)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty orderedProp in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass childEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(orderedProp.Type)).SingleOrDefault();
+
+                foreach (SpiderlyProperty m2mProp in childEntity.GetComplexManyToManyListProperties())
+                {
+                    var (_, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(childEntity, m2mProp, allEntities);
+                    string otherSideFKName = $"{otherSideM2MProperty.Name.FirstCharToLower()}Id";
+                    string orderedFormArray = GetOrderedOneToManyFormArray(entity, orderedProp, isFromOrderedOneToMany);
+                    string entityListVar = $"{otherSideEntity.Name.FirstCharToLower()}ListFor{childEntity.Name}";
+
+                    result.Add($$"""
+                    {{orderedFormArray}}.formGroupInitialValues = {
+                        ...{{orderedFormArray}}.formGroupInitialValues,
+                        {{m2mProp.Name.FirstCharToLower()}}: this.{{entityListVar}}.map(x => ({ {{otherSideFKName}}: x.id }))
+                    };
+""");
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
+
         private static List<string> GetPrimengOptionVariables(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();
@@ -827,6 +1083,13 @@ export class {{entity.Name}}BaseDetailsComponent {
                     continue;
                 }
 
+                if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(GetComplexManyToManyListBlock(entity, property, allEntities, isFromOrderedOneToMany));
+
+                    continue;
+                }
+
                 string controlType = GetUIStringControlType(GetUIControlType(property));
 
                 result.Add($$"""
@@ -874,6 +1137,18 @@ export class {{entity.Name}}BaseDetailsComponent {
                     continue;
                 }
 
+                if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new PropertyWithContext
+                    {
+                        Property = property,
+                        Entity = entity,
+                        FormControlName = null
+                    });
+
+                    continue;
+                }
+
                 UIControlTypeCodes controlType = GetUIControlType(property);
                 string formControlName = controlType == UIControlTypeCodes.Table
                     ? null
@@ -909,7 +1184,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                         x.IsMultiSelectControlType() ||
                         x.IsMultiAutocompleteControlType() ||
                         x.HasSimpleManyToManyTableLazyLoadAttribute() ||
-                        x.HasComplexManyToManyReadonlyTableAttribute()
+                        x.HasComplexManyToManyReadonlyTableAttribute() ||
+                        x.HasComplexManyToManyListAttribute()
                     ) &&
                     x.HasUIDoNotGenerateAttribute() == false
                 )
@@ -918,7 +1194,8 @@ export class {{entity.Name}}BaseDetailsComponent {
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.Editor.ToString()) ? 3 :
                     x.Attributes.Any(attr => attr.Name == "UIOrderedOneToMany") ? 4 :
-                    x.Attributes.Any(attr => attr.Name == "SimpleManyToManyTableLazyLoad") ? 5
+                    x.Attributes.Any(attr => attr.Name == "SimpleManyToManyTableLazyLoad") ? 5 :
+                    x.Attributes.Any(attr => attr.Name == "ComplexManyToManyList") ? 6
                     : 1)
                 .ToList();
 

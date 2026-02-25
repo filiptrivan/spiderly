@@ -379,7 +379,8 @@ namespace {{basePartOfNamespace}}.Services
                 .Where(x =>
                     x.HasUIOrderedOneToManyAttribute() ||
                     x.IsMultiSelectControlType() ||
-                    x.IsMultiAutocompleteControlType()
+                    x.IsMultiAutocompleteControlType() ||
+                    x.HasComplexManyToManyListAttribute()
                 )
             )
             {
@@ -402,6 +403,12 @@ namespace {{basePartOfNamespace}}.Services
                 {
                     result.Add($$"""
                     {{property.Name}}NamebookDTOList = await Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false),
+""");
+                }
+                else if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add($$"""
+                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(id, false),
 """);
                 }
             }
@@ -628,21 +635,25 @@ namespace {{basePartOfNamespace}}.Services
                 SpiderlyClass extractedPropertyEntity = allEntityClasses.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)); // Role
                 string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(allEntityClasses); // int
 
-                if (extractedPropertyEntity.HasM2MAttribute()) // Complex M2M List
+                if (extractedPropertyEntity.HasM2MAttribute()) // Complex M2M
                 {
+                    SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
+                        .SingleOrDefault(x =>
+                            x.HasM2MWithManyAttribute() &&
+                            x.Type == entity.Name &&
+                            x.Attributes.Any(x => x.Name == "M2MWithMany" && x.Value == oneToManyProperty.Name)
+                        );
+
+                    if (m2mProperty == null)
+                        throw new Exception($"You didn't specify correct M2MWithMany attribute (entity:{entity.Name}).");
+
                     if (oneToManyProperty.HasComplexManyToManyReadonlyTableAttribute())
                     {
-                        SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
-                            .SingleOrDefault(x =>
-                                x.HasM2MWithManyAttribute() &&
-                                x.Type == entity.Name &&
-                                x.Attributes.Any(x => x.Name == "M2MWithMany" && x.Value == oneToManyProperty.Name)
-                            );
-
-                        if (m2mProperty == null)
-                            throw new Exception($"You didn't specify correct M2MWithMany attribute (entity:{entity.Name}).");
-
                         result.Add(GetPaginatedListForComplexM2MMethod(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, allEntityClasses));
+                    }
+                    else if (oneToManyProperty.HasComplexManyToManyListAttribute())
+                    {
+                        result.Add(GetComplexManyToManyListMethods(extractedPropertyEntity, oneToManyProperty, m2mProperty, entity, allEntityClasses));
                     }
 
                     continue;
@@ -957,6 +968,106 @@ namespace {{basePartOfNamespace}}.Services
 """;
         }
 
+        private static string GetComplexManyToManyListMethods(
+            SpiderlyClass junctionEntity,
+            SpiderlyProperty oneToManyProperty,
+            SpiderlyProperty currentSideM2MProperty,
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntityClasses)
+        {
+            string entityIdType = entity.GetIdType(allEntityClasses);
+
+            SpiderlyProperty otherSideM2MProperty = junctionEntity.Properties
+                .Where(x => x.HasM2MWithManyAttribute())
+                .Single(x => x != currentSideM2MProperty);
+
+            SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type);
+            string otherSideEntityIdType = otherSideEntity.GetIdType(allEntityClasses);
+
+            string currentSideFKName = $"{currentSideM2MProperty.Name}Id";
+            string otherSideFKName = $"{otherSideM2MProperty.Name}Id";
+
+            List<SpiderlyProperty> additionalFields = junctionEntity.Properties
+                .Where(p => !p.Type.IsManyToOneType() && !p.Type.IsOneToManyType())
+                .ToList();
+
+            StringBuilder additionalFieldMappings = new();
+            foreach (SpiderlyProperty field in additionalFields)
+            {
+                string dtoPropertyName = field.Name;
+                bool needsValueAccess = field.Type != "string" && field.Type.IsBaseDataType() && !field.Type.EndsWith("?");
+                string valueAccess = needsValueAccess ? ".Value" : "";
+                additionalFieldMappings.AppendLine($$"""
+                        poco.{{field.Name}} = dto.{{dtoPropertyName}}{{valueAccess}};
+""");
+            }
+
+            return $$"""
+        /// <summary>
+        /// Retrieves all {{junctionEntity.Name}} DTOs for a {{entity.Name}}, including default records for {{otherSideEntity.Name}} entities without existing junction records.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of {{junctionEntity.Name}}DTO for all {{otherSideEntity.Name}} entities</returns>
+        public async virtual Task<List<{{junctionEntity.Name}}DTO>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, bool authorize)
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
+                }
+
+                var allOtherSideIds = await _context.DbSet<{{otherSideEntity.Name}}>()
+                    .AsNoTracking()
+                    .OrderBy(x => x.Id)
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                var existingRecords = await _context.DbSet<{{junctionEntity.Name}}>()
+                    .AsNoTracking()
+                    .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
+                    .ProjectToType<{{junctionEntity.Name}}DTO>(Mapper.{{junctionEntity.Name}}ProjectToConfig())
+                    .ToListAsync();
+
+                var result = new List<{{junctionEntity.Name}}DTO>();
+                foreach (var otherSideId in allOtherSideIds)
+                {
+                    var existing = existingRecords.FirstOrDefault(x => x.{{otherSideFKName}} == otherSideId);
+                    result.Add(existing ?? new {{junctionEntity.Name}}DTO { {{otherSideFKName}} = otherSideId });
+                }
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Updates all {{junctionEntity.Name}} records for a {{entity.Name}} by deleting existing records and inserting new ones.
+        /// </summary>
+        /// <param name="id">The ID of the {{entity.Name}} entity</param>
+        /// <param name="dtos">List of {{junctionEntity.Name}}DTO to save</param>
+        public async virtual Task Update{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, List<{{junctionEntity.Name}}DTO> dtos)
+        {
+            await _context.WithTransactionAsync(async () =>
+            {
+                await _context.DbSet<{{junctionEntity.Name}}>()
+                    .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
+                    .ExecuteDeleteAsync();
+
+                foreach (var dto in dtos)
+                {
+                    new {{junctionEntity.Name}}DTOValidationRules().ValidateAndThrow(dto);
+
+                    var poco = new {{junctionEntity.Name}}();
+{{additionalFieldMappings}}
+                    var entry = await _context.DbSet<{{junctionEntity.Name}}>().AddAsync(poco);
+
+                    entry.Property("{{currentSideFKName}}").CurrentValue = id;
+                    entry.Property("{{otherSideFKName}}").CurrentValue = dto.{{otherSideFKName}};
+                }
+            });
+        }
+""";
+        }
 
         private static string GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
@@ -1196,12 +1307,14 @@ namespace {{basePartOfNamespace}}.Services
 {{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, allEntities))}}
 {{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, allEntities))}}
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoad(entity, allEntities))}}
+{{string.Join("\n", GetComplexManyToManyListUpdateCalls(entity))}}
 
                 var result = new {{entity.Name}}MainUIFormDTO
                 {
                     {{entity.Name}}DTO = savedDTO,
 {{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(entity, allEntities))}}
 {{GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(entity, allEntities)}}
+{{string.Join("\n", GetComplexManyToManyListResultProperties(entity))}}
                 };
 
                 await OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, result);
@@ -1305,11 +1418,13 @@ namespace {{basePartOfNamespace}}.Services
                     var savedDTO = await Save{{extractedEntity.Name}}AndReturnDTO(DTO, false, false);
 
 {{string.Join("\n", GetOrderedOneToManyUpdateVariables(extractedEntity, allEntities))}}
+{{string.Join("\n", GetComplexManyToManyListUpdateCalls(extractedEntity, "saveBodyDTO"))}}
 
                     savedOrderedItemsDTO.Add(new {{extractedEntity.Name}}MainUIFormDTO
                     {
                         {{extractedEntity.Name}}DTO = savedDTO,
 {{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
+{{string.Join("\n", GetComplexManyToManyListResultProperties(extractedEntity))}}
                     });
                 }
 
@@ -1407,6 +1522,36 @@ namespace {{basePartOfNamespace}}.Services
         {
             return query;
         }
+""");
+            }
+
+            return result;
+        }
+
+        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string saveBodyDTOVariable = null)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                string saveBodyAccess = saveBodyDTOVariable ?? "saveBodyDTO";
+
+                result.Add($$"""
+                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, {{saveBodyAccess}}.{{property.Name}});
+""");
+            }
+
+            return result;
+        }
+
+        private static List<string> GetComplexManyToManyListResultProperties(SpiderlyClass entity)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                result.Add($$"""
+                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(savedDTO.Id, false),
 """);
             }
 

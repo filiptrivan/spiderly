@@ -402,6 +402,11 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "ComplexManyToManyReadonlyTable");
         }
 
+        public static bool HasComplexManyToManyListAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "ComplexManyToManyList");
+        }
+
         public static bool HasM2MWithManyAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "M2MWithMany");
@@ -598,6 +603,11 @@ namespace Spiderly.SourceGenerators.Shared
         public static List<SpiderlyProperty> GetOrderedOneToManyProperties(this SpiderlyClass entity)
         {
             return entity.Properties.Where(x => x.HasUIOrderedOneToManyAttribute()).ToList();
+        }
+
+        public static List<SpiderlyProperty> GetComplexManyToManyListProperties(this SpiderlyClass entity)
+        {
+            return entity.Properties.Where(x => x.HasComplexManyToManyListAttribute()).ToList();
         }
 
         public static string GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)

@@ -773,7 +773,8 @@ namespace Spiderly.SourceGenerators.Shared
                     x.HasUIOrderedOneToManyAttribute() ||
                     x.IsMultiSelectControlType() ||
                     x.IsMultiAutocompleteControlType() ||
-                    x.HasSimpleManyToManyTableLazyLoadAttribute()
+                    x.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                    x.HasComplexManyToManyListAttribute()
                 )
             )
             {
@@ -805,6 +806,10 @@ namespace Spiderly.SourceGenerators.Shared
                     result.Add(new SpiderlyProperty { Name = $"AreAll{property.Name}Selected", Type = "bool?", EntityName = $"{entity.Name}SaveBodyDTO" });
                     result.Add(new SpiderlyProperty { Name = $"{property.Name}TableFilter", Type = "FilterDTO", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
+                else if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new SpiderlyProperty { Name = property.Name, Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
             }
 
             return result;
@@ -820,7 +825,8 @@ namespace Spiderly.SourceGenerators.Shared
                 .Where(x =>
                     x.HasUIOrderedOneToManyAttribute() ||
                     x.IsMultiSelectControlType() ||
-                    x.IsMultiAutocompleteControlType()
+                    x.IsMultiAutocompleteControlType() ||
+                    x.HasComplexManyToManyListAttribute()
                 )
             )
             {
@@ -843,6 +849,10 @@ namespace Spiderly.SourceGenerators.Shared
                 else if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                }
+                else if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new SpiderlyProperty { Name = property.Name, Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
             }
 
