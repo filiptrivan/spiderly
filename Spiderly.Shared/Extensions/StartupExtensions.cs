@@ -19,6 +19,7 @@ using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Resources;
 using System.Globalization;
 using System.Text;
@@ -342,11 +343,28 @@ namespace Spiderly.Shared.Extensions
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
                         }
+                        else if (ex is BusinessExceptionWithoutLog businessExWithoutLog)
+                        {
+                            context.Response.StatusCode = businessExWithoutLog.StatusCode;
+                            message = businessExWithoutLog.Message;
+                            logLevel = LogEventLevel.Warning;
+                        }
+                        else if (ex is ExceptionWithoutLog)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                            message = SharedTerms.GlobalError;
+                            logLevel = LogEventLevel.Error;
+                        }
                         else
                         {
-                            Helper.SendUnhandledExceptionEmails(userId, env, ex);
-                            message = $"{SharedTerms.GlobalError}";
+                            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                            message = SharedTerms.GlobalError;
                             logLevel = LogEventLevel.Error;
+                            INotificationDispatcher dispatcher = context.RequestServices.GetService<INotificationDispatcher>();
+                            if (dispatcher != null)
+                                dispatcher.DispatchUnhandledException(userId, !env.IsDevelopment(), ex);
+                            else
+                                _ = Task.Run(async () => await Helper.SendUnhandledExceptionNotificationsAsync(userId, !env.IsDevelopment(), ex.ToString()));
                         }
 
                         Log.Write(

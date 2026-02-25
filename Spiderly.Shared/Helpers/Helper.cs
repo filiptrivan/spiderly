@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -10,9 +8,12 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Resources;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Net.Mail;
 using System.Net.Sockets;
 using System.Security.Claims;
@@ -285,7 +286,95 @@ namespace Spiderly.Shared.Helpers
 
         #endregion
 
-        #region Emailing
+        #region Notifications
+
+        private static readonly HttpClient _telegramHttpClient = new();
+        private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
+
+        public static async Task SendUnhandledExceptionNotificationsAsync(long? userId, bool isProduction, string exceptionString)
+        {
+            List<Task> tasks = new();
+
+            if (isProduction && IsEmailingConfigured())
+                tasks.Add(SendUnhandledExceptionEmailAsync(userId, exceptionString));
+
+            if (isProduction && IsTelegramConfigured())
+                tasks.Add(SendTelegramNotificationAsync(userId, exceptionString));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private static async Task SendUnhandledExceptionEmailAsync(long? userId, string exceptionString)
+        {
+            try
+            {
+                using (SmtpClient smtpClient = GetSmtpClient())
+                using (MailMessage mailMessage = new MailMessage
+                {
+                    From = new MailAddress(SettingsProvider.Current.EmailSender),
+                    Subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception",
+                    Body = $$"""
+Currently authenticated user id: {{userId}}); <br>
+{{exceptionString}}
+""",
+                    BodyEncoding = Encoding.UTF8,
+                    IsBodyHtml = true,
+                })
+                {
+                    foreach (string recipient in SettingsProvider.Current.UnhandledExceptionRecipients)
+                        mailMessage.To.Add(new MailAddress(recipient));
+
+                    await smtpClient.SendMailAsync(mailMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unhandled Exception email is not sent; Currently authenticated user id: {userId});", userId);
+            }
+        }
+
+        private static async Task SendTelegramNotificationAsync(long? userId, string exceptionString)
+        {
+            try
+            {
+                Settings settings = SettingsProvider.Current;
+                string truncated = exceptionString.Length > 2000 ? exceptionString[..2000] : exceptionString;
+                string text = $$$"""
+[{{{settings.ApplicationName}}}] Unhandled Exception
+User ID: {{{userId}}}
+{{{truncated}}}
+""";
+
+                string url = $"https://api.telegram.org/bot{settings.TelegramBotToken}/sendMessage";
+                await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unhandled Exception Telegram notification is not sent; Currently authenticated user id: {userId});", userId);
+            }
+        }
+
+        public static bool ShouldSendNotification(Exception ex)
+        {
+            if (SettingsProvider.Current.NotificationRateLimitMinutes <= 0)
+                return true;
+
+            string key = $"{ex.GetType().FullName}:{ex.Message.GetHashCode()}";
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            DateTimeOffset threshold = now.AddMinutes(-SettingsProvider.Current.NotificationRateLimitMinutes);
+
+            foreach (string staleKey in _rateLimitCache.Keys)
+            {
+                if (_rateLimitCache.TryGetValue(staleKey, out DateTimeOffset ts) && ts < threshold)
+                    _rateLimitCache.TryRemove(staleKey, out _);
+            }
+
+            if (_rateLimitCache.TryGetValue(key, out DateTimeOffset lastSent) && lastSent >= threshold)
+                return false;
+
+            _rateLimitCache[key] = now;
+            return true;
+        }
 
         public static async Task SendEmailAsync(string recipient, string subject, string body)
         {
@@ -300,43 +389,6 @@ namespace Spiderly.Shared.Helpers
             {
                 await smtpClient.SendMailAsync(mailMessage);
             }
-        }
-
-        public static void SendUnhandledExceptionEmails(long? userId, IWebHostEnvironment env, Exception unhandledEx)
-        {
-            Task.Run(async () =>
-            {
-                try
-                {
-                    using (SmtpClient smtpClient = GetSmtpClient())
-                    using (MailMessage mailMessage = new MailMessage
-                    {
-                        From = new MailAddress(SettingsProvider.Current.EmailSender),
-                        Subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception",
-                        Body = $$"""
-Currently authenticated user id: {{userId}}); <br>
-{{unhandledEx}}
-""",
-                        BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                        IsBodyHtml = true,
-                    })
-                    {
-                        foreach (string recipient in SettingsProvider.Current.UnhandledExceptionRecipients)
-                            mailMessage.To.Add(new MailAddress(recipient));
-
-                        if (env.IsDevelopment() == false)
-                            await smtpClient.SendMailAsync(mailMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(
-                        ex,
-                        "Unhandled Exception email is not sent; Currently authenticated user id: {userId});",
-                        userId
-                    );
-                }
-            });
         }
 
         public static SmtpClient GetSmtpClient()
@@ -355,6 +407,13 @@ Currently authenticated user id: {{userId}}); <br>
                    !string.IsNullOrWhiteSpace(settings.EmailSenderPassword) &&
                    !string.IsNullOrWhiteSpace(settings.SmtpHost) &&
                    settings.SmtpPort > 0;
+        }
+
+        public static bool IsTelegramConfigured()
+        {
+            Settings settings = SettingsProvider.Current;
+            return !string.IsNullOrWhiteSpace(settings.TelegramBotToken) &&
+                   !string.IsNullOrWhiteSpace(settings.TelegramChatId);
         }
 
         #endregion
