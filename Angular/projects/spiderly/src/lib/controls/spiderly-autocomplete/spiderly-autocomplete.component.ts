@@ -9,7 +9,6 @@ import {
 } from 'primeng/autocomplete';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { TooltipModule } from 'primeng/tooltip';
 import { RequiredComponent } from '../../components/required/required.component';
 import { ValidatorAbstractService } from '../../services/validator-abstract.service';
 import { BaseAutocompleteControl } from '../base-autocomplete-control';
@@ -25,7 +24,6 @@ import { Namebook } from '../../entities/namebook';
     AutoCompleteModule,
     InputGroupAddonModule,
     InputGroupModule,
-    TooltipModule,
     CommonModule,
     RequiredComponent,
     TranslocoDirective,

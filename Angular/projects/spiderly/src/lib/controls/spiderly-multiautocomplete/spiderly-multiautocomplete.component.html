@@ -9,11 +9,6 @@
     <!-- Showing label fix: https://github.com/primefaces/primeng/issues/17332#issuecomment-2922861294 -->
     <p-autocomplete
       *ngIf="control"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       [id]="label"
       [formControl]="control"
       [placeholder]="placeholder"
@@ -33,5 +28,8 @@
       dataKey="id"
     >
     </p-autocomplete>
+    <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+      {{ getValidationErrrorMessages() }}
+    </small>
   </div>
 </ng-container>

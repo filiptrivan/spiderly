@@ -7,11 +7,6 @@
   </div>
   <textarea
     *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()"
-    [tooltipEvent]="errorMessageTooltipEvent"
-    tooltipPosition="bottom"
-    [tooltipDisabled]="control.valid"
-    tooltipStyleClass="spiderly-tooltip-invalid"
     pTextarea
     [formControl]="control"
     [id]="control.label"
@@ -19,4 +14,7 @@
     [autoResize]="true"
     [class]="control.disabled ? 'disabled' : ''"
   ></textarea>
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

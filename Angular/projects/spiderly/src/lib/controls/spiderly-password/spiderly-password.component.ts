@@ -5,7 +5,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
 import { PasswordModule } from 'primeng/password';
-import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'spiderly-password',
@@ -15,7 +14,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ReactiveFormsModule,
     FormsModule,
     PasswordModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })

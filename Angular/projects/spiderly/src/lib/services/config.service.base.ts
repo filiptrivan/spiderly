@@ -29,5 +29,9 @@ export class ConfigServiceBase {
 
   logoPath = 'assets/images/logo/logo.svg';
 
+  /* Pagination */
+  defaultPageSize = 10;
+  pageSizeOptions: number[] = [10, 25, 50];
+
   constructor() {}
 }

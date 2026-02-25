@@ -13,11 +13,6 @@
     <!-- The margin-top is intentional: it vertically aligns the checkbox with other input controls that have greater height. -->
     <p-checkbox
       *ngIf="control"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       [formControl]="control"
       [value]="inlineLabel ? label : null"
       [id]="label"
@@ -25,4 +20,7 @@
       (onChange)="change($event)"
     />
   </div>
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

@@ -8,11 +8,6 @@
   <div style="display: flex; gap: 10px">
     <input
       *ngIf="control && showInputTextField"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       pInputText
       [placeholder]="placeholder"
       [formControl]="control"
@@ -22,15 +17,13 @@
     />
     <p-colorpicker
       *ngIf="control"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       [formControl]="control"
       [id]="control.label"
       (blur)="control.markAsDirty()"
       appendTo="body"
     ></p-colorpicker>
   </div>
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

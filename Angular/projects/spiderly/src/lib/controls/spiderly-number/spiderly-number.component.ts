@@ -5,7 +5,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'spiderly-number',
@@ -15,7 +14,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ReactiveFormsModule,
     FormsModule,
     InputNumberModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })

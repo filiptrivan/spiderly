@@ -5,7 +5,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
 import { ColorPickerModule } from 'primeng/colorpicker';
-import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 
 @Component({
@@ -18,7 +17,6 @@ import { InputTextModule } from 'primeng/inputtext';
     FormsModule,
     ColorPickerModule,
     InputTextModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })

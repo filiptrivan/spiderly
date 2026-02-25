@@ -8,11 +8,6 @@
   <div class="spiderly-inputgroup">
     <input
       *ngIf="control"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       pInputText
       [formControl]="control"
       [id]="control.label"
@@ -28,4 +23,7 @@
       <i class="{{ buttonIcon }}"></i>
     </span>
   </div>
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

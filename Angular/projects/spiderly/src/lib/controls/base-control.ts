@@ -19,15 +19,10 @@ export class BaseControl {
   @Input() showTooltip: boolean = false;
   @Input() tooltipText: string = null;
   @Input() tooltipIcon: string = 'pi pi-info-circle';
-  errorMessageTooltipEvent: 'hover' | 'focus';
-
   constructor(protected translocoService: TranslocoService) {}
 
   ngOnInit() {
     if (this.control != null && this.disabled == true) this.control.disable();
-
-    this.errorMessageTooltipEvent =
-      window.innerWidth > 1000 ? 'hover' : 'focus';
   }
 
   ngAfterViewInit() {}

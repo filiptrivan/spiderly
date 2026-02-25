@@ -5,6 +5,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -697,15 +698,44 @@ namespace Spiderly.SourceGenerators.Shared
                 return false;
 
             using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
+
+            if (document.RootElement.TryGetProperty("generators", out JsonElement generatorsElement)
+                && generatorsElement.TryGetProperty(generatorName, out JsonElement nestedValue))
+            {
+                if (nestedValue.ValueKind == JsonValueKind.False)
+                    return true;
+
+                return false;
+            }
+
             if (document.RootElement.TryGetProperty(generatorName, out JsonElement value))
             {
-                if (value.ValueKind == JsonValueKind.True)
-                    return false;
                 if (value.ValueKind == JsonValueKind.False)
                     return true;
+
+                return false;
             }
 
             return false;
+        }
+
+        public static string GetConfigString(string jsonConfigContent, params string[] path)
+        {
+            if (string.IsNullOrWhiteSpace(jsonConfigContent))
+                return null;
+
+            using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
+            JsonElement current = document.RootElement;
+
+            foreach (string key in path)
+            {
+                if (!current.TryGetProperty(key, out JsonElement next))
+                    return null;
+
+                current = next;
+            }
+
+            return current.ValueKind == JsonValueKind.String ? current.GetString() : null;
         }
 
         #region DTO
@@ -778,7 +808,7 @@ namespace Spiderly.SourceGenerators.Shared
                 )
             )
             {
-                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = GetEntityByPropertyType(property, entities);
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
 
@@ -830,7 +860,7 @@ namespace Spiderly.SourceGenerators.Shared
                 )
             )
             {
-                SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
+                SpiderlyClass extractedEntity = GetEntityByPropertyType(property, entities);
                 string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -1404,6 +1434,75 @@ namespace Spiderly.SourceGenerators.Shared
         public static List<SpiderlyProperty> GetBlobProperties(List<SpiderlyProperty> properties)
         {
             return properties.Where(x => x.Attributes.Any(x => x.Name == "BlobName")).ToList();
+        }
+
+        public static List<SpiderlyProperty> GetEditorImageProperties(List<SpiderlyProperty> properties)
+        {
+            return properties
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .ToList();
+        }
+
+        #endregion
+
+        #region Entity Lookup
+
+        public static SpiderlyClass GetEntityByPropertyType(SpiderlyProperty property, List<SpiderlyClass> entities)
+        {
+            return entities.SingleOrDefault(x => x.Name == ExtractTypeFromGenericType(property.Type));
+        }
+
+        #endregion
+
+        #region Namespace
+
+        public static string GetAppName(string namespaceValue)
+        {
+            return namespaceValue.Split('.')[0];
+        }
+
+        #endregion
+
+        #region Pipeline
+
+        /// <summary>
+        /// Creates a standard generator pipeline: namespace-filtered class declarations + referenced assemblies + json config.
+        /// </summary>
+        public static IncrementalValueProvider<((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string JsonConfig)> CreatePipeline(
+            IncrementalGeneratorInitializationContext context,
+            List<NamespaceExtensionCodes> syntaxNamespaces,
+            List<NamespaceExtensionCodes> referencedNamespaces)
+        {
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxNamespaces);
+
+            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
+
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+
+            return classDeclarations.Collect()
+                .Combine(referencedProjectClasses)
+                .Combine(jsonConfig);
+        }
+
+        /// <summary>
+        /// Creates a generator pipeline with callingPath: namespace-filtered class declarations + referenced assemblies + callingPath + json config.
+        /// </summary>
+        public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), string JsonConfig)> CreatePipelineWithCallingPath(
+            IncrementalGeneratorInitializationContext context,
+            List<NamespaceExtensionCodes> syntaxNamespaces,
+            List<NamespaceExtensionCodes> referencedNamespaces)
+        {
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxNamespaces);
+
+            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
+
+            IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
+            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+
+            return classDeclarations.Collect()
+                .Combine(referencedProjectClasses)
+                .Combine(callingProjectDirectory)
+                .Combine(jsonConfig);
         }
 
         #endregion

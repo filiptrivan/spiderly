@@ -9,11 +9,6 @@
     <!-- Don't support p-inputgroup -->
     <p-autocomplete
       *ngIf="control"
-      [pTooltip]="getValidationErrrorMessages()"
-      [tooltipEvent]="errorMessageTooltipEvent"
-      tooltipPosition="bottom"
-      [tooltipDisabled]="control.valid"
-      tooltipStyleClass="spiderly-tooltip-invalid"
       [id]="label"
       [formControl]="helperFormControl"
       [placeholder]="placeholder"
@@ -33,5 +28,8 @@
       [lazy]="true"
       optionLabel="displayName"
     ></p-autocomplete>
+    <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+      {{ getValidationErrrorMessages() }}
+    </small>
   </div>
 </ng-container>

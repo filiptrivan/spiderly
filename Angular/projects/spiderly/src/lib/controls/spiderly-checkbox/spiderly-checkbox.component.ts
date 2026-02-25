@@ -5,7 +5,6 @@ import { CommonModule } from '@angular/common';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoService } from '@jsverse/transloco';
 import { CheckboxChangeEvent, CheckboxModule } from 'primeng/checkbox';
-import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'spiderly-checkbox',
@@ -16,7 +15,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ReactiveFormsModule,
     FormsModule,
     CheckboxModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })

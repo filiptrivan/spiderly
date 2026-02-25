@@ -27,26 +27,9 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO
-                });
-
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
-                {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.DTO,
-                });
-
-            IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
-
-            var combined = classDeclarations.Collect()
-                .Combine(referencedProjectClasses)
-                .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+            var combined = Helpers.CreatePipelineWithCallingPath(context,
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -56,7 +39,6 @@ namespace Spiderly.SourceGenerators.Angular
 
                 Execute(classes, referencedClasses, callingPath, jsonContent, spc);
             });
-
         }
 
         private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
@@ -374,7 +356,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (UITableColumn col in property.GetUITableColumns())
             {
-                SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
                 SpiderlyProperty extractedEntityProperty = extractedEntity?.Properties?.Where(x => x.Name == col.Field.Replace("DisplayName", "").Replace("CommaSeparated", ""))?.SingleOrDefault();
 
                 SpiderlyClass extractedDTO = customDTOClasses.Where(x => x.Name == $"{Helpers.ExtractTypeFromGenericType(property.Type)}DTO").SingleOrDefault();
@@ -407,6 +389,10 @@ export class {{entity.Name}}BaseDetailsComponent {
                 case "float?":
                 case "double":
                 case "double?":
+                    string decimalScale = property.GetDecimalScale();
+                    return decimalScale != null
+                        ? $", showMatchModes: true, decimalPlaces: {decimalScale}"
+                        : ", showMatchModes: true";
                 case "long":
                 case "long?":
                 case "int":
@@ -490,7 +476,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                     property.HasComplexManyToManyReadonlyTableAttribute()
                 )
                 {
-                    SpiderlyClass extractedEntity = entities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                    SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                     result.Add($$"""
     {{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}: Column<{{extractedEntity.Name}}>[];
@@ -572,7 +558,7 @@ export class {{entity.Name}}BaseDetailsComponent {
     @Input() additionalContentTemplateFor{{property.Name}}For{{entity.Name}}: TemplateRef<any> | undefined;
 """);
 
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
                 result.AddRange(GetOrderedOneToManyVariables(extractedEntity, allEntities));
             }
 
@@ -594,7 +580,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             bool isFromOrderedOneToMany
         )
         {
-            SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault(); // eg. SegmentationItem
+            SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities); // eg. SegmentationItem
 
             // Every property of SegmentationItem without the many to one reference (Segmentation)
             List<SpiderlyProperty> propertyBlocks = extractedEntity.Properties
@@ -749,7 +735,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
                 result.AddRange(GetComplexManyToManyListVariables(extractedEntity, allEntities));
             }
 
@@ -855,7 +841,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (SpiderlyProperty orderedProp in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass childEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(orderedProp.Type)).SingleOrDefault();
+                SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(orderedProp, allEntities);
 
                 foreach (SpiderlyProperty m2mProp in childEntity.GetComplexManyToManyListProperties())
                 {
@@ -937,7 +923,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                    SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                     result.AddRange(GetBlobUploadedOutputVariables(extractedEntity.Properties, extractedEntity, entities, isFromOrderedOneToMany: true));
 
@@ -974,7 +960,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
-                    SpiderlyClass extractedEntity = entities.SingleOrDefault(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+                    SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                     result.AddRange(GetUploadImageMethods(extractedEntity.Properties, extractedEntity, entities, isFromOrderedOneToMany: true));
 

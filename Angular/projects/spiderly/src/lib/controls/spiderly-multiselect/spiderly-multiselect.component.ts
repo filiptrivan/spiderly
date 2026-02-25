@@ -5,7 +5,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { BaseDropdownControl } from '../base-dropdown-control';
 import { TranslocoService } from '@jsverse/transloco';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'spiderly-multiselect',
@@ -15,7 +14,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ReactiveFormsModule,
     FormsModule,
     MultiSelectModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })

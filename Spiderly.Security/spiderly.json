@@ -1,17 +1,19 @@
 {
-  "NgBaseDetailsGenerator": false,
-  "NgControllersGenerator": false,
-  "NgEntitiesGenerator": false,
-  "NgEnumsGenerator": false,
-  "NgValidatorsGenerator": false,
-  "TranslationsGenerator": false,
-  "PermissionCodesGenerator": false,
-  "MapperGenerator": false,
-  "FluentValidationGenerator": true,
-  "ExcelPropertiesGenerator": false,
-  "EntitiesToDTOGenerator": false,
-  "PaginatedResultGenerator": false,
-  "ControllerGenerator": false,
-  "AuthorizationServicesGenerator": false,
-  "ServicesGenerator": false
+  "generators": {
+    "NgBaseDetailsGenerator": false,
+    "NgControllersGenerator": false,
+    "NgEntitiesGenerator": false,
+    "NgEnumsGenerator": false,
+    "NgValidatorsGenerator": false,
+    "TranslationsGenerator": false,
+    "PermissionCodesGenerator": false,
+    "MapperGenerator": false,
+    "FluentValidationGenerator": true,
+    "ExcelPropertiesGenerator": false,
+    "EntitiesToDTOGenerator": false,
+    "PaginatedResultGenerator": false,
+    "ControllerGenerator": false,
+    "AuthorizationServicesGenerator": false,
+    "ServicesGenerator": false
+  }
 }

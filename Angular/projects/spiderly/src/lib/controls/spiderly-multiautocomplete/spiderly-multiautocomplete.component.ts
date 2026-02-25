@@ -8,7 +8,6 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RequiredComponent } from '../../components/required/required.component';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'spiderly-multiautocomplete',
@@ -17,7 +16,6 @@ import { TooltipModule } from 'primeng/tooltip';
     ReactiveFormsModule,
     FormsModule,
     AutoCompleteModule,
-    TooltipModule,
     CommonModule,
     RequiredComponent,
     TranslocoDirective,

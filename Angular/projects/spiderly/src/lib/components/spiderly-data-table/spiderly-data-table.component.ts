@@ -1,4 +1,4 @@
-import { CommonModule, formatDate } from '@angular/common';
+import { CommonModule, formatDate, formatNumber } from '@angular/common';
 import {
   Component,
   EventEmitter,
@@ -36,6 +36,7 @@ import {
   exportListToExcel,
   getHtmlImgDisplayString64,
 } from '../../services/helper-functions';
+import { ConfigServiceBase } from '../../services/config.service.base';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
@@ -62,7 +63,8 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
   @Input() items: any[]; // Pass only when hasLazyLoad === false
-  @Input() rows: number = 10;
+  @Input() rows: number;
+  @Input() rowsPerPageOptions: number[];
   @Input() cols: Column[];
   @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
   @Input() showCardWrapper: boolean = false;
@@ -145,10 +147,15 @@ export class SpiderlyDataTableComponent implements OnInit {
     private route: ActivatedRoute,
     private messageService: SpiderlyMessageService,
     private translocoService: TranslocoService,
+    private configService: ConfigServiceBase,
     @Inject(LOCALE_ID) private locale: string,
   ) {}
 
   ngOnInit(): void {
+    if (this.rows == null) this.rows = this.configService.defaultPageSize;
+    if (this.rowsPerPageOptions == null)
+      this.rowsPerPageOptions = this.configService.pageSizeOptions;
+
     this.matchModeDateOptions = [
       {
         label: this.translocoService.translate('OnDate'),
@@ -451,12 +458,8 @@ export class SpiderlyDataTableComponent implements OnInit {
         if (rowData[col.field] == null) return null;
 
         if (col.showTime)
-          return formatDate(
-            rowData[col.field],
-            'dd.MM.yyyy. HH:mm',
-            this.locale,
-          );
-        else return formatDate(rowData[col.field], 'dd.MM.yyyy.', this.locale);
+          return formatDate(rowData[col.field], 'short', this.locale);
+        else return formatDate(rowData[col.field], 'shortDate', this.locale);
       case 'multiselect':
         return rowData[col.field];
       case 'boolean':
@@ -464,8 +467,14 @@ export class SpiderlyDataTableComponent implements OnInit {
           ? this.translocoService.translate('Yes')
           : this.translocoService.translate('No');
       case 'numeric':
-        // TODO: make decimal pipe
-        return rowData[col.field];
+        if (rowData[col.field] == null) return null;
+        return formatNumber(
+          rowData[col.field],
+          this.locale,
+          col.decimalPlaces != null
+            ? `1.${col.decimalPlaces}-${col.decimalPlaces}`
+            : '1.0-2',
+        );
       case 'blob':
         return getHtmlImgDisplayString64(rowData[col.field]);
       default:
@@ -678,6 +687,7 @@ export class Column<T = any> {
   actions?: Action[];
   editable?: boolean;
   showTime?: boolean;
+  decimalPlaces?: number;
 
   constructor({
     name,
@@ -691,6 +701,7 @@ export class Column<T = any> {
     actions,
     editable,
     showTime,
+    decimalPlaces,
   }: {
     name?: string;
     field?: string & keyof T;
@@ -703,6 +714,7 @@ export class Column<T = any> {
     actions?: Action[];
     editable?: boolean;
     showTime?: boolean;
+    decimalPlaces?: number;
   } = {}) {
     this.name = name;
     this.field = field;
@@ -715,6 +727,7 @@ export class Column<T = any> {
     this.actions = actions;
     this.editable = editable;
     this.showTime = showTime;
+    this.decimalPlaces = decimalPlaces;
   }
 }
 

@@ -16,10 +16,6 @@
   <!-- Don't support p-inputgroup -->
   <p-select
     *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()"
-    tooltipPosition="bottom"
-    [tooltipDisabled]="control.valid"
-    tooltipStyleClass="spiderly-tooltip-invalid"
     [id]="label"
     [formControl]="control"
     [placeholder]="placeholder"
@@ -32,4 +28,7 @@
     [fluid]="true"
     appendTo="body"
   />
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

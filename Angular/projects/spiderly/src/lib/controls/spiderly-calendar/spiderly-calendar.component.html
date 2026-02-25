@@ -19,11 +19,6 @@
   </div>
   <p-datepicker
     *ngIf="control"
-    [pTooltip]="getValidationErrrorMessages()"
-    [tooltipEvent]="errorMessageTooltipEvent"
-    tooltipPosition="bottom"
-    [tooltipDisabled]="control.valid"
-    tooltipStyleClass="spiderly-tooltip-invalid"
     [formControl]="control"
     (onBlur)="control.markAsDirty()"
     dateFormat="dd.mm.yy."
@@ -34,4 +29,7 @@
     appendTo="body"
     [fluid]="true"
   />
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
 </div>

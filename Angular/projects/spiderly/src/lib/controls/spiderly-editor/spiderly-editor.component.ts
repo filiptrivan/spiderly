@@ -5,7 +5,6 @@ import { RequiredComponent } from '../../components/required/required.component'
 import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
 import { Editor, EditorModule, EditorInitEvent } from 'primeng/editor';
-import { Tooltip, TooltipModule } from 'primeng/tooltip';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -17,13 +16,11 @@ import { Observable } from 'rxjs';
     ReactiveFormsModule,
     FormsModule,
     EditorModule,
-    TooltipModule,
     RequiredComponent,
   ],
 })
 export class SpiderlyEditorComponent extends BaseControl implements OnInit {
   @ViewChild(Editor) editor: Editor;
-  @ViewChild(Tooltip) tooltip: Tooltip;
 
   @Input() uploadImageMethod: (formData: FormData) => Observable<string>;
   @Input() objectId: number = 0;
@@ -72,19 +69,6 @@ export class SpiderlyEditorComponent extends BaseControl implements OnInit {
 
     editableArea.onblur = () => {
       this.control.markAsDirty();
-      this.tooltip.deactivate();
-    };
-
-    editableArea.onfocus = () => {
-      if (this.errorMessageTooltipEvent == 'focus') {
-        this.tooltip.activate();
-      }
-    };
-
-    editableArea.onmouseover = () => {
-      if (this.errorMessageTooltipEvent == 'hover') {
-        this.tooltip.activate();
-      }
     };
   }
 }
