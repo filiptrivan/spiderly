@@ -37,20 +37,20 @@ namespace Spiderly.SourceGenerators.Angular
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntitiesAndPath, config) = source;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
+                Execute(classes, referencedClasses, callingPath, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
         {
             if (referencedProjectClasses.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(NgValidatorsGenerator), jsonConfigContent))
+            if (!config.IsGeneratorEnabled(nameof(NgValidatorsGenerator)))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)

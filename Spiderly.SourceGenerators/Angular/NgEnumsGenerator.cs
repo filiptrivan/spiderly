@@ -46,28 +46,28 @@ namespace Spiderly.SourceGenerators.Angular
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+            IncrementalValueProvider<SpiderlyConfig> config = context.GetSpiderlyConfig();
 
             var combined = enumDeclarations.Collect()
                 .Combine(classDeclarations.Collect())
                 .Combine(referencedProjectClasses)
                 .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+                .Combine(config);
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var ((((enums, classDeclarations), referencedProjectClasses), callingPath), jsonContent) = source;
+                var ((((enums, classDeclarations), referencedProjectClasses), callingPath), config) = source;
 
-                Execute(enums, classDeclarations, referencedProjectClasses, callingPath, jsonContent, spc);
+                Execute(enums, classDeclarations, referencedProjectClasses, callingPath, config, spc);
             });
         }
 
-        private static void Execute(IList<EnumDeclarationSyntax> currentProjectEnums, IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
+        private static void Execute(IList<EnumDeclarationSyntax> currentProjectEnums, IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
         {
             if (currentProjectEnums.Count == 0 && classes.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(NgEnumsGenerator), jsonConfigContent))
+            if (!config.IsGeneratorEnabled(nameof(NgEnumsGenerator)))
                 return;
 
             List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);

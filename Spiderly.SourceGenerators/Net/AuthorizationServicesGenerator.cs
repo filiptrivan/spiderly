@@ -34,17 +34,17 @@ namespace Spiderly.SourceGenerators.Net
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var ((classes, referencedClasses), jsonContent) = source;
-                Execute(classes, referencedClasses, jsonContent, spc);
+                var ((classes, referencedClasses), config) = source;
+                Execute(classes, referencedClasses, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string jsonConfigContent, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(AuthorizationServicesGenerator), jsonConfigContent))
+            if (!config.IsGeneratorEnabled(nameof(AuthorizationServicesGenerator)))
                 return;
 
             List<SpiderlyClass> currentProjectEntities = Helpers.GetSpiderlyClasses(classes, referencedProjectEntities);

@@ -568,16 +568,16 @@ namespace Spiderly.SourceGenerators.Shared
                 });
         }
 
-        /// <summary>Gets the content of spiderly.json configuration file.</summary>
+        /// <summary>Gets the parsed spiderly.json configuration.</summary>
         /// <param name="context">The context of the Generator's initialization.</param>
-        /// <returns>The JSON configuration content as string.</returns>
-        public static IncrementalValueProvider<string> GetJsonConfig(this IncrementalGeneratorInitializationContext context)
+        /// <returns>The parsed <see cref="SpiderlyConfig"/> instance.</returns>
+        public static IncrementalValueProvider<SpiderlyConfig> GetSpiderlyConfig(this IncrementalGeneratorInitializationContext context)
         {
             return context.AdditionalTextsProvider
                 .Where(file => file.Path.EndsWith("spiderly.json"))
                 .Select((text, cancellationToken) => text.GetText(cancellationToken)?.ToString() ?? string.Empty)
                 .Collect()
-                .Select((texts, _) => texts.FirstOrDefault() ?? string.Empty);
+                .Select((texts, _) => SpiderlyConfig.Parse(texts.FirstOrDefault()));
         }
 
         public static string GetDecimalScale(this SpiderlyProperty property)

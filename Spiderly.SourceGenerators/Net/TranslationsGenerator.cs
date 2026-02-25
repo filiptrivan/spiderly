@@ -31,20 +31,20 @@ namespace Spiderly.SourceGenerators.Net
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntitiesAndPath, config) = source;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
+                Execute(classes, referencedClasses, callingPath, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
         {
             if (referencedProjectEntities.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(TranslationsGenerator), jsonConfigContent))
+            if (!config.IsGeneratorEnabled(nameof(TranslationsGenerator)))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)

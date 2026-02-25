@@ -33,20 +33,20 @@ namespace Spiderly.SourceGenerators.Net
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var (classesAndEntitiesAndPath, jsonContent) = source;
+                var (classesAndEntitiesAndPath, config) = source;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, jsonContent, spc);
+                Execute(classes, referencedClasses, callingPath, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, string callingProjectDirectory, string jsonConfigContent, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
 
-            if (Helpers.ShouldSkipGenerator(nameof(ControllerGenerator), jsonConfigContent))
+            if (!config.IsGeneratorEnabled(nameof(ControllerGenerator)))
                 return;
 
             if (callingProjectDirectory.Contains(".WebAPI") == false)
@@ -85,16 +85,16 @@ using {{appName}}.Business.Services;
 
 namespace {{basePartOfNamespace}}.Controllers
 {
-{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, jsonConfigContent))}}
+{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, config))}}
 }
 """;
 
             context.AddSource($"BaseControllers.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, string jsonConfigContent)
+        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config)
         {
-            string routePrefix = Helpers.GetConfigString(jsonConfigContent, "api", "routePrefix") ?? "/api";
+            string routePrefix = config.Api.RoutePrefix;
             List<string> result = new();
 
             foreach (IGrouping<string, SpiderlyClass> groupedControllerEntities in allEntities.GroupBy(x => x.ControllerName))

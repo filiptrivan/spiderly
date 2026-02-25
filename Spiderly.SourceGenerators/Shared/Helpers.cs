@@ -9,7 +9,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Spiderly.SourceGenerators.Shared
@@ -692,51 +691,6 @@ namespace Spiderly.SourceGenerators.Shared
                 .ToList();
         }
 
-        public static bool ShouldSkipGenerator(string generatorName, string jsonConfigContent)
-        {
-            if (string.IsNullOrWhiteSpace(jsonConfigContent))
-                return false;
-
-            using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
-
-            if (document.RootElement.TryGetProperty("generators", out JsonElement generatorsElement)
-                && generatorsElement.TryGetProperty(generatorName, out JsonElement nestedValue))
-            {
-                if (nestedValue.ValueKind == JsonValueKind.False)
-                    return true;
-
-                return false;
-            }
-
-            if (document.RootElement.TryGetProperty(generatorName, out JsonElement value))
-            {
-                if (value.ValueKind == JsonValueKind.False)
-                    return true;
-
-                return false;
-            }
-
-            return false;
-        }
-
-        public static string GetConfigString(string jsonConfigContent, params string[] path)
-        {
-            if (string.IsNullOrWhiteSpace(jsonConfigContent))
-                return null;
-
-            using JsonDocument document = JsonDocument.Parse(jsonConfigContent);
-            JsonElement current = document.RootElement;
-
-            foreach (string key in path)
-            {
-                if (!current.TryGetProperty(key, out JsonElement next))
-                    return null;
-
-                current = next;
-            }
-
-            return current.ValueKind == JsonValueKind.String ? current.GetString() : null;
-        }
 
         #region DTO
 
@@ -1466,9 +1420,9 @@ namespace Spiderly.SourceGenerators.Shared
         #region Pipeline
 
         /// <summary>
-        /// Creates a standard generator pipeline: namespace-filtered class declarations + referenced assemblies + json config.
+        /// Creates a standard generator pipeline: namespace-filtered class declarations + referenced assemblies + spiderly config.
         /// </summary>
-        public static IncrementalValueProvider<((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string JsonConfig)> CreatePipeline(
+        public static IncrementalValueProvider<((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), SpiderlyConfig Config)> CreatePipeline(
             IncrementalGeneratorInitializationContext context,
             List<NamespaceExtensionCodes> syntaxNamespaces,
             List<NamespaceExtensionCodes> referencedNamespaces)
@@ -1477,17 +1431,17 @@ namespace Spiderly.SourceGenerators.Shared
 
             IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
 
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+            IncrementalValueProvider<SpiderlyConfig> config = context.GetSpiderlyConfig();
 
             return classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(jsonConfig);
+                .Combine(config);
         }
 
         /// <summary>
-        /// Creates a generator pipeline with callingPath: namespace-filtered class declarations + referenced assemblies + callingPath + json config.
+        /// Creates a generator pipeline with callingPath: namespace-filtered class declarations + referenced assemblies + callingPath + spiderly config.
         /// </summary>
-        public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), string JsonConfig)> CreatePipelineWithCallingPath(
+        public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), SpiderlyConfig Config)> CreatePipelineWithCallingPath(
             IncrementalGeneratorInitializationContext context,
             List<NamespaceExtensionCodes> syntaxNamespaces,
             List<NamespaceExtensionCodes> referencedNamespaces)
@@ -1497,12 +1451,12 @@ namespace Spiderly.SourceGenerators.Shared
             IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
-            IncrementalValueProvider<string> jsonConfig = context.GetJsonConfig();
+            IncrementalValueProvider<SpiderlyConfig> config = context.GetSpiderlyConfig();
 
             return classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
                 .Combine(callingProjectDirectory)
-                .Combine(jsonConfig);
+                .Combine(config);
         }
 
         #endregion
