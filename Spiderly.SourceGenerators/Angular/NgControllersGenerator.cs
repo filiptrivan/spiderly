@@ -270,6 +270,8 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
 {{string.Join("\n\n", GetBaseManyToManyAngularControllerMethods(entity, allEntities, alreadyAddedMethods))}}
 
+{{string.Join("\n\n", GetBaseComplexManyToManyListAngularControllerMethods(entity, allEntities, alreadyAddedMethods))}}
+
 {{GetBaseSaveAngularControllerMethod(entity, alreadyAddedMethods)}}
 
 {{string.Join("\n\n", GetBaseUploadBlobAngularControllerMethods(entity, alreadyAddedMethods))}}
@@ -452,6 +454,31 @@ import { {{ngType}} } from '../../entities/entities.generated';
         }
 
         #endregion
+
+        #endregion
+
+        #region Complex Many To Many List
+
+        private static List<string> GetBaseComplexManyToManyListAngularControllerMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, HashSet<string> alreadyAddedMethods)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                SpiderlyClass junctionEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+                string methodName = $"GetDefault{property.Name}For{entity.Name}";
+
+                if (alreadyAddedMethods.Contains(methodName))
+                    continue;
+
+                result.Add(GetAngularControllerMethod(
+                    methodName, null, $"{junctionEntity.Name}[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner
+                ));
+            }
+
+            return result;
+        }
 
         #endregion
 

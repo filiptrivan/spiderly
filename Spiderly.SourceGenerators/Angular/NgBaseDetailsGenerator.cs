@@ -198,27 +198,7 @@ export class {{entity.Name}}BaseDetailsComponent {
 {{string.Join("\n", GetManyToManyMultiSelectListForDropdownMethods(entity, allEntities))}}
 {{string.Join("\n", GetManyToManyTableColsInitializations(entity, allEntities, customDTOClasses))}}
 
-            if (this.modelId > 0) {
-                forkJoin({
-                    mainUIFormDTO: this.apiService.get{{entity.Name}}MainUIFormDTO(this.modelId),
-{{string.Join("\n", GetComplexManyToManyListForkJoinParameters(entity, allEntities))}}
-                })
-                .subscribe(async (data) => {
-{{string.Join("\n", GetComplexManyToManyListForkJoinAssignments(entity, allEntities))}}
-                    const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
-                        {{entity.Name}}MainUIForm,
-                        data.mainUIFormDTO,
-                    );
-                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody, saveBody);
-{{string.Join("\n", GetComplexManyToManyListFormGroupInitialValues(entity, allEntities, isFromOrderedOneToMany: false))}}
-                    await this.handleAuthorizationForSave();
-                    this.loading = false;
-                    this.onAfterFormGroupInit.next();
-                });
-            }
-            else {
-{{GetComplexManyToManyListNewEntityInit(entity, allEntities)}}
-            }
+{{GetEntityInitBlock(entity, allEntities)}}
         });
     }
 
@@ -247,8 +227,6 @@ export class {{entity.Name}}BaseDetailsComponent {
     };
 
 {{string.Join("\n", GetSimpleManyToManyMethods(entity, allEntities))}}
-
-{{string.Join("\n", GetComplexManyToManyListMethods(entity, allEntities))}}
 
 {{string.Join("\n", GetAutocompleteSearchMethods(entity, allEntities, customDTOClasses))}}
 
@@ -735,7 +713,7 @@ export class {{entity.Name}}BaseDetailsComponent {
                                     <index-card
                                     [index]="index"
                                     [last]="false"
-                                    [header]="get{{otherSideEntity.Name}}DisplayNameFor{{entity.Name}}({{junctionFormGroupVar}}, {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}})"
+                                    [header]="{{junctionFormGroupVar}}.getControl('{{otherSideM2MProperty.Name.FirstCharToLower()}}DisplayName')?.getRawValue()"
                                     [showCrudMenu]="false"
                                     >
                                         <form [formGroup]="{{junctionFormGroupVar}}" class="spiderly-grid">
@@ -764,11 +742,8 @@ export class {{entity.Name}}BaseDetailsComponent {
 
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
-                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
-
                 result.Add($$"""
     @Input() {{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed: boolean = false;
-    {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}}: {{otherSideEntity.Name}}[] = [];
 """);
             }
 
@@ -781,63 +756,42 @@ export class {{entity.Name}}BaseDetailsComponent {
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetEntityInitBlock(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            List<string> result = new();
+            var (forkJoinParams, formGroupInitValues, newEntityInitValues) = CollectComplexManyToManyListInfo(entity, allEntities, isFromOrderedOneToMany: false);
 
-            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
-            {
-                var (_, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
-                string otherSideFKName = $"{otherSideM2MProperty.Name.FirstCharToLower()}Id";
+            string existingEntityBlock = GetExistingEntityBlock(entity, forkJoinParams, formGroupInitValues);
+            string newEntityBlock = GetNewEntityBlock(entity, forkJoinParams, formGroupInitValues, newEntityInitValues);
 
-                string displayNameProp = Helpers.GetDisplayNameProperty(otherSideEntity);
-                string tsDisplayNameAccess = displayNameProp.EndsWith(".ToString()")
-                    ? displayNameProp.Replace(".ToString()", "").FirstCharToLower() + "?.toString()"
-                    : displayNameProp.FirstCharToLower();
-
-                result.Add($$"""
-    get{{otherSideEntity.Name}}DisplayNameFor{{entity.Name}}(formGroup: SpiderlyFormGroup, entityList: {{otherSideEntity.Name}}[]): string {
-        const id = formGroup.controls['{{otherSideFKName}}']?.getRawValue();
-        return entityList.find(x => x.id === id)?.{{tsDisplayNameAccess}} ?? '';
-    }
-""");
+            return $$"""
+            if (this.modelId > 0) {
+{{existingEntityBlock}}
             }
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-                result.AddRange(GetComplexManyToManyListMethods(extractedEntity, allEntities));
+            else {
+{{newEntityBlock}}
             }
-
-            return result;
+""";
         }
 
-        private static List<string> GetComplexManyToManyListForkJoinParameters(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetExistingEntityBlock(SpiderlyClass entity, List<string> forkJoinParams, List<string> formGroupInitValues)
         {
-            List<string> result = new();
+            string forkJoinParamsBlock = forkJoinParams.Count > 0 ? "\n" + string.Join("\n", forkJoinParams).TrimEnd('\r', '\n') : "";
 
-            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
-            {
-                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+            string allForkJoinParams = $"                    mainUIFormDTO: this.apiService.get{entity.Name}MainUIFormDTO(this.modelId),{forkJoinParamsBlock}";
 
-                result.Add($$"""
-                    {{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}}: this.apiService.get{{otherSideEntity.Name}}List(),
-""");
-            }
+            string initFormGroupStatement = $$"""
+                    const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
+                        {{entity.Name}}MainUIForm,
+                        data.mainUIFormDTO,
+                    );
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody, saveBody);
+""";
 
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-                result.AddRange(GetComplexManyToManyListForkJoinParameters(extractedEntity, allEntities));
-            }
-
-            return result;
+            return BuildForkJoinSubscribeBlock(allForkJoinParams, initFormGroupStatement, BuildFormGroupInitValuesBlock(formGroupInitValues));
         }
 
-        private static string GetComplexManyToManyListNewEntityInit(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetNewEntityBlock(SpiderlyClass entity, List<string> forkJoinParams, List<string> formGroupInitValues, List<string> newEntityInitValues)
         {
-            List<string> forkJoinParams = GetComplexManyToManyListForkJoinParameters(entity, allEntities);
-
             if (forkJoinParams.Count == 0)
             {
                 return $$"""
@@ -848,49 +802,56 @@ export class {{entity.Name}}BaseDetailsComponent {
 """;
             }
 
-            List<string> forkJoinAssignments = GetComplexManyToManyListForkJoinAssignments(entity, allEntities);
-            List<string> formGroupInitValues = GetComplexManyToManyListFormGroupInitialValues(entity, allEntities, isFromOrderedOneToMany: false);
+            string newEntityInitFormGroupArg = "";
+            if (newEntityInitValues.Count > 0)
+            {
+                newEntityInitFormGroupArg = $$"""
+, {
+{{string.Join(",\n", newEntityInitValues)}}
+                    }
+""";
+                newEntityInitFormGroupArg = newEntityInitFormGroupArg.TrimEnd('\r', '\n');
+            }
 
-            return $$"""
+            string allForkJoinParams = string.Join("\n", forkJoinParams).TrimEnd('\r', '\n');
+
+            string initFormGroupStatement = $"                    this.baseFormService.initFormGroup(this.parentFormGroup, {entity.Name}SaveBody{newEntityInitFormGroupArg});";
+
+            return BuildForkJoinSubscribeBlock(allForkJoinParams, initFormGroupStatement, BuildFormGroupInitValuesBlock(formGroupInitValues));
+        }
+
+        private static string BuildFormGroupInitValuesBlock(List<string> formGroupInitValues) =>
+            formGroupInitValues.Count > 0 ? "\n" + string.Join("\n", formGroupInitValues) : "";
+
+        private static string BuildForkJoinSubscribeBlock(string forkJoinParams, string initFormGroupStatement, string formGroupInitValuesBlock) =>
+            $$"""
                 forkJoin({
-{{string.Join("\n", forkJoinParams)}}
+{{forkJoinParams}}
                 })
                 .subscribe(async (data) => {
-{{string.Join("\n", forkJoinAssignments)}}
-                    this.baseFormService.initFormGroup(this.parentFormGroup, {{entity.Name}}SaveBody);
-{{string.Join("\n", formGroupInitValues)}}
+{{initFormGroupStatement}}{{formGroupInitValuesBlock}}
                     await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
 """;
-        }
 
-        private static List<string> GetComplexManyToManyListForkJoinAssignments(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static (List<string> ForkJoinParams, List<string> FormGroupInitialValues, List<string> NewEntityInitValues) CollectComplexManyToManyListInfo(SpiderlyClass entity, List<SpiderlyClass> allEntities, bool isFromOrderedOneToMany)
         {
-            List<string> result = new();
+            List<string> forkJoinParams = new();
+            List<string> formGroupInitialValues = new();
+            List<string> newEntityInitValues = new();
 
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
-                var (_, _, _, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+                forkJoinParams.Add($$"""
+                    default{{property.Name}}For{{entity.Name}}: this.apiService.getDefault{{property.Name}}For{{entity.Name}}(),
+""");
 
-                result.Add($$"""
-                    this.{{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}} = data.{{otherSideEntity.Name.FirstCharToLower()}}ListFor{{entity.Name}};
+                newEntityInitValues.Add($$"""
+                        {{property.Name.FirstCharToLower()}}: data.default{{property.Name}}For{{entity.Name}}
 """);
             }
-
-            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
-            {
-                SpiderlyClass extractedEntity = allEntities.Where(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)).SingleOrDefault();
-                result.AddRange(GetComplexManyToManyListForkJoinAssignments(extractedEntity, allEntities));
-            }
-
-            return result;
-        }
-
-        private static List<string> GetComplexManyToManyListFormGroupInitialValues(SpiderlyClass entity, List<SpiderlyClass> allEntities, bool isFromOrderedOneToMany)
-        {
-            List<string> result = new();
 
             foreach (SpiderlyProperty orderedProp in entity.GetOrderedOneToManyProperties())
             {
@@ -898,21 +859,22 @@ export class {{entity.Name}}BaseDetailsComponent {
 
                 foreach (SpiderlyProperty m2mProp in childEntity.GetComplexManyToManyListProperties())
                 {
-                    var (_, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(childEntity, m2mProp, allEntities);
-                    string otherSideFKName = $"{otherSideM2MProperty.Name.FirstCharToLower()}Id";
                     string orderedFormArray = GetOrderedOneToManyFormArray(entity, orderedProp, isFromOrderedOneToMany);
-                    string entityListVar = $"{otherSideEntity.Name.FirstCharToLower()}ListFor{childEntity.Name}";
 
-                    result.Add($$"""
+                    formGroupInitialValues.Add($$"""
                     {{orderedFormArray}}.formGroupInitialValues = {
                         ...{{orderedFormArray}}.formGroupInitialValues,
-                        {{m2mProp.Name.FirstCharToLower()}}: this.{{entityListVar}}.map(x => ({ {{otherSideFKName}}: x.id }))
+                        {{m2mProp.Name.FirstCharToLower()}}: data.default{{m2mProp.Name}}For{{childEntity.Name}}
                     };
 """);
                 }
+
+                var nested = CollectComplexManyToManyListInfo(childEntity, allEntities, isFromOrderedOneToMany: true);
+                forkJoinParams.AddRange(nested.ForkJoinParams);
+                formGroupInitialValues.AddRange(nested.FormGroupInitialValues);
             }
 
-            return result;
+            return (forkJoinParams, formGroupInitialValues, newEntityInitValues);
         }
 
         #endregion

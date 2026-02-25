@@ -213,6 +213,8 @@ namespace {{basePartOfNamespace}}.Controllers
 
 {{string.Join("\n\n", GetManyToManyControllerMethods(controllerEntity, allEntities))}}
 
+{{string.Join("\n\n", GetComplexManyToManyListControllerMethods(controllerEntity, allEntities))}}
+
         #endregion
 
         #region Save
@@ -436,6 +438,31 @@ namespace {{basePartOfNamespace}}.Controllers
         public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
             return await _businessService.GetOrdered{{property.Name}}For{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+        }
+""");
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Complex Many To Many List
+
+        private static List<string> GetComplexManyToManyListControllerMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            List<string> result = new();
+
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                SpiderlyClass junctionEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+                result.Add($$"""
+        [HttpGet]
+        [AuthGuard]
+        public virtual async Task<List<{{junctionEntity.Name}}DTO>> GetDefault{{property.Name}}For{{entity.Name}}()
+        {
+            return await _businessService.GetDefault{{property.Name}}For{{entity.Name}}();
         }
 """);
             }

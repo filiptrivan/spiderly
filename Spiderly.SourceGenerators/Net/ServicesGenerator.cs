@@ -1066,6 +1066,27 @@ namespace {{basePartOfNamespace}}.Services
                 }
             });
         }
+
+        /// <summary>
+        /// Returns default junction DTOs for all {{otherSideEntity.Name}} entities (without existing records).
+        /// Used when creating a new {{entity.Name}} to pre-populate the ComplexManyToManyList form.
+        /// </summary>
+        /// <returns>List of {{junctionEntity.Name}}DTO with {{otherSideM2MProperty.Name}}Id and {{otherSideM2MProperty.Name}}DisplayName populated</returns>
+        public async virtual Task<List<{{junctionEntity.Name}}DTO>> GetDefault{{oneToManyProperty.Name}}For{{entity.Name}}()
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                return await _context.DbSet<{{otherSideEntity.Name}}>()
+                    .AsNoTracking()
+                    .OrderBy(x => x.Id)
+                    .Select(x => new {{junctionEntity.Name}}DTO
+                    {
+                        {{otherSideFKName}} = x.Id,
+                        {{otherSideM2MProperty.Name}}DisplayName = x.{{Helpers.GetDisplayNameProperty(otherSideEntity)}},
+                    })
+                    .ToListAsync();
+            });
+        }
 """;
         }
 
