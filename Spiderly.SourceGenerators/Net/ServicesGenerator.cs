@@ -298,7 +298,7 @@ namespace {{basePartOfNamespace}}.Services
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
             return await _excelService.FillReportTemplateAsync(
-                exportQuery.AsEnumerable(),
+                exportQuery.AsAsyncEnumerable(),
                 excelPropertiesToExclude,
                 TermsGenerated.GetTranslation,
                 cancellationToken);
@@ -952,7 +952,7 @@ namespace {{basePartOfNamespace}}.Services
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
             return await _excelService.FillReportTemplateAsync(
-                exportQuery.AsEnumerable(),
+                exportQuery.AsAsyncEnumerable(),
                 excelPropertiesToExclude,
                 TermsGenerated.GetTranslation,
                 cancellationToken);

@@ -13,7 +13,7 @@ namespace Spiderly.Shared.Excel
     public class ExcelService
     {
         public async Task<byte[]> FillReportTemplateAsync<T>(
-            IEnumerable<T> data,
+            IAsyncEnumerable<T> data,
             string[] excelPropertiesToExclude,
             Func<string, string> getTranslation,
             CancellationToken cancellationToken = default)
@@ -56,12 +56,6 @@ namespace Spiderly.Shared.Excel
                     col.Index = visibleIndex++;
                     col.Name = GetHeaderTranslation(getTranslation, prop.Name);
                     col.Width = GetColumnWidth(prop);
-
-                    if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
-                    {
-                        // Placeholder format — gets replaced with built-in format ID 14 (locale-dependent short date) in ApplyBuiltInDateFormat
-                        col.Format = "yyyy-MM-dd";
-                    }
                 }
 
                 columns[i] = col;
