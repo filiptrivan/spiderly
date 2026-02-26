@@ -105,7 +105,7 @@ namespace {{basePartOfNamespace}}.Filtering
                         string entityDotNotation = DTOprop.Name; // RoleDisplayName
                         string DTOpropType = DTOprop.Type;
 
-                        if (efClassProps.Where(x => x.Name == DTOprop.Name).Any() == false) // If a property in the DTO doesn't exist in the EF class (e.g., RoleDisplayName doesn't exist).
+                        if (efClassProps.Any(x => x.Name == DTOprop.Name) == false) // If a property in the DTO doesn't exist in the EF class (e.g., RoleDisplayName doesn't exist).
                         {
                             if (entityDotNotation.EndsWith("CommaSeparated") && pairDTOClass.IsGenerated == true)
                             {
