@@ -25,7 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Emailing\Templates\" />
-    <Folder Include="Excel\ExcelTemplates\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.11.3" />
@@ -47,7 +46,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ClosedXML" Version="0.104.2" />
+<PackageReference Include="MiniExcel" Version="1.42.0" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -60,11 +59,6 @@
     <EmbeddedResource Update="Resources\SharedTerms.sr-Latn-RS.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Excel\ExcelTemplates\TableTemplate.xlsx">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources\SharedTerms.Designer.cs">

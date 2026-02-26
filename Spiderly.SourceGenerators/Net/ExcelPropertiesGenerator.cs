@@ -58,7 +58,6 @@ namespace Spiderly.SourceGenerators.Net
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
             sb.AppendLine($$"""
-using Spiderly.Shared.Excel.DTO;
 using {{basePartOfNamespace}}.DTO;
 
 namespace {{basePartOfNamespace}}.ExcelProperties

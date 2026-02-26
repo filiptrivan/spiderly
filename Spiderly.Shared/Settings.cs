@@ -48,5 +48,8 @@
         public string FrontendUrl { get; set; } = "http://localhost:4200";
         public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+        public int ExcelExportMaxRows { get; set; } = 100_000;
+        public int ExcelExportBatchSize { get; set; } = 10_000;
+
     }
 }
