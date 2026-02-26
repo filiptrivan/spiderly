@@ -280,40 +280,28 @@ namespace {{basePartOfNamespace}}.Services
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
         /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize)
+        public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize, CancellationToken cancellationToken = default)
         {
-            PaginatedResult<{{entity.Name}}> paginationResult = new();
-            List<{{entity.Name}}DTO> dtoList = new();
+            IQueryable<{{entity.Name}}DTO> exportQuery = null;
 
             await _context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
-
+                PaginatedResult<{{entity.Name}}> paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
                 int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
-                int batchSize = Spiderly.Shared.SettingsProvider.Current.ExcelExportBatchSize;
-                int rowsToExport = Math.Min(paginationResult.TotalRecords, maxRows);
-                IQueryable<{{entity.Name}}> exportQuery = paginationResult.Query.OrderBy(x => x.Id);
-
-                for (int i = 0; i < rowsToExport; i += batchSize)
-                {
-                    int take = Math.Min(batchSize, rowsToExport - i);
-                    List<{{entity.Name}}DTO> batch = await exportQuery
-                        .Skip(i)
-                        .Take(take)
-                        .ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ExcelProjectToConfig())
-                        .ToListAsync();
-                    dtoList.AddRange(batch);
-                }
-
-                if (authorize)
-                {
-                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
-                }
+                exportQuery = paginationResult.Query
+                    .OrderBy(x => x.Id)
+                    .Take(maxRows)
+                    .ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ExcelProjectToConfig());
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
-            return await _excelService.FillReportTemplateAsync<{{entity.Name}}DTO>(dtoList, excelPropertiesToExclude, TermsGenerated.GetTranslation);
+            return await _excelService.FillReportTemplateAsync(
+                exportQuery.AsEnumerable(),
+                excelPropertiesToExclude,
+                TermsGenerated.GetTranslation,
+                cancellationToken);
         }
 
         /// <summary>
@@ -947,40 +935,27 @@ namespace {{basePartOfNamespace}}.Services
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
         /// <param name="authorize">Whether to perform authorization check</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize)
+        public async virtual Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, bool authorize, CancellationToken cancellationToken = default)
         {
-            PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
-            List<{{listEntitty.Name}}DTO> dtoList = new();
+            IQueryable<{{listEntitty.Name}}DTO> exportQuery = null;
 
             await _context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
-
+                PaginatedResult<{{listEntitty.Name}}> paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
                 int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
-                int batchSize = Spiderly.Shared.SettingsProvider.Current.ExcelExportBatchSize;
-                int rowsToExport = Math.Min(paginationResult.TotalRecords, maxRows);
-                IQueryable<{{listEntitty.Name}}> exportQuery = paginationResult.Query{{(hasId ? ".OrderBy(x => x.Id)" : "")}};
-
-                for (int i = 0; i < rowsToExport; i += batchSize)
-                {
-                    int take = Math.Min(batchSize, rowsToExport - i);
-                    List<{{listEntitty.Name}}DTO> batch = await exportQuery
-                        .Skip(i)
-                        .Take(take)
-                        .ProjectToType<{{listEntitty.Name}}DTO>(Mapper.{{listEntitty.Name}}ExcelProjectToConfig())
-                        .ToListAsync();
-                    dtoList.AddRange(batch);
-                }
-
-                if (authorize)
-                {
-                    {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"dtoList.Select(x => ({entity.GetIdType(allEntityClasses)})x.{m2mProperty.Name}Id).ToList()")}}
-                }
+                exportQuery = paginationResult.Query{{(hasId ? ".OrderBy(x => x.Id)" : "")}}
+                    .Take(maxRows)
+                    .ProjectToType<{{listEntitty.Name}}DTO>(Mapper.{{listEntitty.Name}}ExcelProjectToConfig());
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
-            return await _excelService.FillReportTemplateAsync<{{listEntitty.Name}}DTO>(dtoList, excelPropertiesToExclude, TermsGenerated.GetTranslation);
+            return await _excelService.FillReportTemplateAsync(
+                exportQuery.AsEnumerable(),
+                excelPropertiesToExclude,
+                TermsGenerated.GetTranslation,
+                cancellationToken);
         }
 """;
         }

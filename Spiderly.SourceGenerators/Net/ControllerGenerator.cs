@@ -164,7 +164,7 @@ namespace {{basePartOfNamespace}}.Controllers
         {
             byte[] fileContent = await _businessService.Export{{controllerEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
             return File(
-                fileContent, 
+                fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
                 Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
             );
@@ -349,7 +349,7 @@ namespace {{basePartOfNamespace}}.Controllers
         {
             byte[] fileContent = await _businessService.Export{{extractedEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), false);
             return File(
-                fileContent, 
+                fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
                 Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
@@ -382,7 +382,7 @@ namespace {{basePartOfNamespace}}.Controllers
         {
             byte[] fileContent = await _businessService.Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
             return File(
-                fileContent, 
+                fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
                 Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );

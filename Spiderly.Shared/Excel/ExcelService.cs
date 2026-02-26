@@ -1,6 +1,7 @@
 using MiniExcelLibs;
 using MiniExcelLibs.Attributes;
 using MiniExcelLibs.OpenXml;
+using System.ComponentModel.DataAnnotations;
 using System.IO.Compression;
 using System.Reflection;
 using System.Xml.Linq;
@@ -11,16 +12,16 @@ namespace Spiderly.Shared.Excel
 {
     public class ExcelService
     {
-        public async Task<byte[]> FillReportTemplateAsync<T>(IList<T> data, string[] excelPropertiesToExclude, Func<string, string> getTranslation)
+        public async Task<byte[]> FillReportTemplateAsync<T>(
+            IEnumerable<T> data,
+            string[] excelPropertiesToExclude,
+            Func<string, string> getTranslation,
+            CancellationToken cancellationToken = default)
             where T : class
         {
             Type type = typeof(T);
-            PropertyInfo[] propertiesToInclude = GetMembersToInclude(excelPropertiesToExclude, type);
-            bool hasDateColumns = propertiesToInclude.Any(p => p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(DateTime?));
-
-            IEnumerable<Dictionary<string, object>> rows = StreamRows(data, propertiesToInclude);
-
-            DynamicExcelColumn[] columns = BuildColumnConfig(propertiesToInclude, getTranslation);
+            PropertyInfo[] allProperties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            DynamicExcelColumn[] columns = BuildColumnConfig(allProperties, excelPropertiesToExclude, getTranslation);
 
             OpenXmlConfiguration config = new()
             {
@@ -29,59 +30,38 @@ namespace Spiderly.Shared.Excel
                 AutoFilter = false
             };
 
-            MemoryStream stream = new();
-            await MiniExcel.SaveAsAsync(stream, rows, configuration: config);
-
-            if (hasDateColumns)
-                ApplyBuiltInDateFormat(stream);
+            using MemoryStream stream = new();
+            await MiniExcel.SaveAsAsync(stream, data, configuration: config, cancellationToken: cancellationToken);
 
             return stream.ToArray();
         }
 
-        private static IEnumerable<Dictionary<string, object>> StreamRows<T>(IList<T> data, PropertyInfo[] propertiesToInclude) where T : class
+        private static DynamicExcelColumn[] BuildColumnConfig(
+            PropertyInfo[] allProperties,
+            string[] excelPropertiesToExclude,
+            Func<string, string> getTranslation)
         {
-            int count = data != null ? data.Count : 0;
+            DynamicExcelColumn[] columns = new DynamicExcelColumn[allProperties.Length];
+            int visibleIndex = 0;
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < allProperties.Length; i++)
             {
-                Dictionary<string, object> row = new(propertiesToInclude.Length);
+                PropertyInfo prop = allProperties[i];
+                bool excluded = excelPropertiesToExclude.Contains(prop.Name);
 
-                foreach (PropertyInfo prop in propertiesToInclude)
+                DynamicExcelColumn col = new(prop.Name) { Ignore = excluded };
+
+                if (!excluded)
                 {
-                    row[prop.Name] = prop.GetValue(data[i], null);
-                }
+                    col.Index = visibleIndex++;
+                    col.Name = GetHeaderTranslation(getTranslation, prop.Name);
+                    col.Width = GetColumnWidth(prop);
 
-                yield return row;
-            }
-
-            if (count >= SettingsProvider.Current.ExcelExportMaxRows && propertiesToInclude.Length > 0)
-            {
-                yield return new Dictionary<string, object>
-                {
-                    [propertiesToInclude[0].Name] = $"Showing first {count} records. Apply filters to narrow results."
-                };
-            }
-        }
-
-        private static DynamicExcelColumn[] BuildColumnConfig(PropertyInfo[] propertiesToInclude, Func<string, string> getTranslation)
-        {
-            DynamicExcelColumn[] columns = new DynamicExcelColumn[propertiesToInclude.Length];
-
-            for (int i = 0; i < propertiesToInclude.Length; i++)
-            {
-                PropertyInfo prop = propertiesToInclude[i];
-
-                DynamicExcelColumn col = new(prop.Name)
-                {
-                    Index = i,
-                    Name = GetHeaderTranslation(getTranslation, prop.Name),
-                    Width = 22
-                };
-
-                if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
-                {
-                    // Placeholder format — gets replaced with built-in format ID 14 (locale-dependent short date) in ApplyBuiltInDateFormat
-                    col.Format = "yyyy-MM-dd";
+                    if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
+                    {
+                        // Placeholder format — gets replaced with built-in format ID 14 (locale-dependent short date) in ApplyBuiltInDateFormat
+                        col.Format = "yyyy-MM-dd";
+                    }
                 }
 
                 columns[i] = col;
@@ -90,84 +70,24 @@ namespace Spiderly.Shared.Excel
             return columns;
         }
 
-        /// <summary>
-        /// Post-processes the xlsx stream to replace MiniExcel's custom date number format
-        /// with Excel's built-in format ID 14 (short date), which renders locale-dependent
-        /// (e.g. "2/26/2026" on US, "26.2.2026." on Serbian, "26.02.2026" on German).
-        /// </summary>
-        private static void ApplyBuiltInDateFormat(MemoryStream stream)
+        private static double GetColumnWidth(PropertyInfo prop)
         {
-            stream.Position = 0;
+            Type type = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
-            using (ZipArchive archive = new(stream, ZipArchiveMode.Update, leaveOpen: true))
+            if (type == typeof(bool)) return 10;
+            if (type == typeof(byte) || type == typeof(short) || type == typeof(int) || type == typeof(long)) return 14;
+            if (type == typeof(decimal) || type == typeof(double) || type == typeof(float)) return 16;
+            if (type == typeof(DateTime) || type == typeof(DateOnly)) return 18;
+
+            StringLengthAttribute strLen = prop.GetCustomAttribute<StringLengthAttribute>();
+            if (strLen != null)
             {
-                ZipArchiveEntry stylesEntry = archive.GetEntry("xl/styles.xml");
-                if (stylesEntry == null)
-                    return;
-
-                XDocument doc;
-                using (Stream entryStream = stylesEntry.Open())
-                {
-                    doc = XDocument.Load(entryStream);
-                }
-
-                XNamespace ns = doc.Root.Name.Namespace;
-                XElement numFmts = doc.Root.Element(ns + "numFmts");
-                if (numFmts == null)
-                    return;
-
-                List<string> dateFormatIds = new();
-
-                foreach (XElement numFmt in numFmts.Elements(ns + "numFmt").ToList())
-                {
-                    string formatCode = numFmt.Attribute("formatCode")?.Value;
-                    if (formatCode == "yyyy-MM-dd")
-                    {
-                        dateFormatIds.Add(numFmt.Attribute("numFmtId").Value);
-                        numFmt.Remove();
-                    }
-                }
-
-                if (dateFormatIds.Count == 0)
-                    return;
-
-                int remaining = numFmts.Elements(ns + "numFmt").Count();
-                if (remaining == 0)
-                    numFmts.Remove();
-                else
-                    numFmts.SetAttributeValue("count", remaining);
-
-                XElement cellXfs = doc.Root.Element(ns + "cellXfs");
-                if (cellXfs != null)
-                {
-                    foreach (XElement xf in cellXfs.Elements(ns + "xf"))
-                    {
-                        string fmtId = xf.Attribute("numFmtId")?.Value;
-                        if (dateFormatIds.Contains(fmtId))
-                        {
-                            xf.SetAttributeValue("numFmtId", "14");
-                        }
-                    }
-                }
-
-                stylesEntry.Delete();
-                ZipArchiveEntry newEntry = archive.CreateEntry("xl/styles.xml");
-                using (Stream entryStream = newEntry.Open())
-                {
-                    doc.Save(entryStream);
-                }
+                if (strLen.MaximumLength <= 50) return 20;
+                if (strLen.MaximumLength <= 200) return 30;
+                return 40;
             }
-        }
 
-        private static PropertyInfo[] GetMembersToInclude(string[] excelPropertiesToExclude, Type type)
-        {
-            PropertyInfo[] memberInfos = type
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                // uzmi svaki property koji nema isto ime kao parametar iz customAttributeDataList
-                .Where(prop => excelPropertiesToExclude.Contains(prop.Name) == false)
-                .ToArray();
-
-            return memberInfos;
+            return 22;
         }
 
         private static string GetHeaderTranslation(Func<string, string> getTranslation, string propertyName)
