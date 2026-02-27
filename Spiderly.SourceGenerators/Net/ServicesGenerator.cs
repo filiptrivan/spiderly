@@ -1010,10 +1010,10 @@ namespace {{basePartOfNamespace}}.Services
                     {{GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                var allOtherSideIds = await _context.DbSet<{{otherSideEntity.Name}}>()
+                var allOtherSideEntries = await _context.DbSet<{{otherSideEntity.Name}}>()
                     .AsNoTracking()
                     .OrderBy(x => x.Id)
-                    .Select(x => x.Id)
+                    .Select(x => new { x.Id, DisplayName = x.{{Helpers.GetDisplayNameProperty(otherSideEntity)}} })
                     .ToListAsync();
 
                 var existingRecords = await _context.DbSet<{{junctionEntity.Name}}>()
@@ -1023,11 +1023,13 @@ namespace {{basePartOfNamespace}}.Services
                     .ToListAsync();
 
                 var result = new List<{{junctionEntity.Name}}DTO>();
-                foreach (var otherSideId in allOtherSideIds)
+
+                foreach (var otherSideEntry in allOtherSideEntries)
                 {
-                    var existing = existingRecords.FirstOrDefault(x => x.{{otherSideFKName}} == otherSideId);
-                    result.Add(existing ?? new {{junctionEntity.Name}}DTO { {{otherSideFKName}} = otherSideId });
+                    var existing = existingRecords.FirstOrDefault(x => x.{{otherSideFKName}} == otherSideEntry.Id);
+                    result.Add(existing ?? new {{junctionEntity.Name}}DTO { {{otherSideFKName}} = otherSideEntry.Id, {{otherSideM2MProperty.Name}}DisplayName = otherSideEntry.DisplayName });
                 }
+                
                 return result;
             });
         }
