@@ -338,6 +338,7 @@ jobs:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           published=()
+          skipped=()
           failed=()
 
           for package in nupkg/*.nupkg; do
@@ -346,28 +347,45 @@ jobs:
               continue
             fi
 
+            package_name=$(basename "$package" .nupkg | sed 's/\.[0-9].*//')
             echo "Publishing $package..."
-            if dotnet nuget push "$package" \
+
+            push_output=$(dotnet nuget push "$package" \
               --api-key "$NUGET_API_KEY" \
-              --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate; then
-              package_name=$(basename "$package" .nupkg | sed 's/\.[0-9].*//')
+              --source https://api.nuget.org/v3/index.json 2>&1) && push_exit=0 || push_exit=$?
+
+            if [ $push_exit -eq 0 ]; then
               published+=("$package_name")
               echo "Successfully published $package_name"
+            elif echo "$push_output" | grep -qi "already exists"; then
+              skipped+=("$package_name")
+              echo "::warning::Skipped $package_name (already exists on NuGet.org)"
             else
               failed+=("$(basename "$package")")
               echo "::warning::Failed to publish $package"
+              echo "$push_output"
             fi
           done
+
+          echo ""
+          echo "--- Publish Summary ---"
+          echo "Published: ${published[*]:-none}"
+          echo "Skipped (already existed): ${skipped[*]:-none}"
+          echo "Failed: ${failed[*]:-none}"
+          echo "---"
 
           if [ ${#failed[@]} -gt 0 ]; then
             echo "::error::Failed to publish: ${failed[*]}"
             exit 1
           fi
 
+          if [ ${#published[@]} -eq 0 ]; then
+            echo "::error::No packages were newly published. All packages already exist on NuGet.org. Did you forget to bump the version?"
+            exit 1
+          fi
+
           published_json=$(printf '%s\n' "${published[@]}" | jq -R . | jq -sc . 2>/dev/null || echo "[]")
           echo "published_packages=$published_json" >> $GITHUB_OUTPUT
-          echo "Published packages: ${published[*]}"
 
   publish-npm:
     name: Publish to npm
