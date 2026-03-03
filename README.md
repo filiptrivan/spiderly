@@ -145,6 +145,26 @@ By using the [Spiderly.CLI](https://github.com/filiptrivan/spiderly/tree/main/Sp
 
 [Spiderly.Shared](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.Shared) provides shared features that can be used by all other Spiderly libraries.
 
+## Claude Code Plugin
+
+Spiderly includes a [Claude Code](https://claude.ai/code) plugin that gives Claude framework-specific knowledge — entity attributes, lifecycle hooks, migration commands, and filtering patterns.
+
+**Install:**
+
+```bash
+claude plugin add filiptrivan/spiderly
+```
+
+**What's included:**
+
+| Type | Name | Description |
+|------|------|-------------|
+| Skill | `entity-design` | Correct attributes, relationships, UI mappings |
+| Skill | `backend-hooks` | Lifecycle hook signatures, execution order, MARS pitfall |
+| Skill | `migration-workflow` | Spiderly CLI commands, what needs migrations |
+| Skill | `filtering-patterns` | FilterDTO, paginated list overrides, AdditionalFilterId |
+| Command | `/spiderly:add-entity` | Guided end-to-end entity scaffolding |
+
 ## Contributing
 
 We welcome contributions from the community! Whether you have ideas, found a bug, or want to add a new feature — feel free to get involved. You can:
