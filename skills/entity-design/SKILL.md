@@ -53,7 +53,7 @@ public class Comment : BusinessObject<long>
 
 ```csharp
 [M2M]
-public class RolePermission : BusinessObject<long>
+public class RolePermission
 {
     [CascadeDelete]
     [M2MWithMany(nameof(Role.Permissions))]
