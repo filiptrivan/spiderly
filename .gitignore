@@ -52,3 +52,7 @@
 # System files
 **/.DS_Store
 **/Thumbs.db
+
+# Claude Code ephemeral directories
+.claude/plans/
+.claude/worktrees/
