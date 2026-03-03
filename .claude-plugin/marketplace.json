@@ -1,0 +1,17 @@
+{
+  "name": "spiderly",
+  "owner": {
+    "name": "Spiderly"
+  },
+  "metadata": {
+    "description": "Official Spiderly plugins for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "spiderly",
+      "source": "./",
+      "version": "1.0.0",
+      "description": "Claude Code skills for Spiderly — entity design, backend hooks, filtering patterns, and migration workflow"
+    }
+  ]
+}

@@ -1,13 +1,11 @@
 {
   "name": "spiderly",
-  "version": "1.0.0",
-  "description": "Skills and commands for building apps with Spiderly (.NET 9 + Angular 19 code generator)",
+  "description": "Claude Code skills for Spiderly — entity design, backend hooks, filtering patterns, and migration workflow for .NET + Angular code generation",
   "author": {
-    "name": "Filip Trivan",
-    "url": "https://www.spiderly.dev"
+    "name": "Spiderly"
   },
   "homepage": "https://www.spiderly.dev/docs",
   "repository": "https://github.com/filiptrivan/spiderly",
   "license": "MIT",
-  "keywords": ["spiderly", "dotnet", "angular", "code-generator", "ef-core", "crud"]
+  "keywords": ["spiderly", "dotnet", "angular", "code-generator", "crud", "entity-framework"]
 }

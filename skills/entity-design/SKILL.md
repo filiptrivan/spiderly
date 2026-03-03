@@ -1,12 +1,6 @@
 ---
 name: entity-design
-description: Design Spiderly entities with correct attributes, relationships, and UI mappings
-triggers:
-  - creating or modifying entity classes
-  - choosing entity attributes
-  - setting up relationships (M2O, M2M, ordered O2M)
-  - configuring file uploads on entities
-  - asking about UI control mapping
+description: Design Spiderly entities with correct attributes, relationships, and UI mappings. Use when creating or modifying entity classes, choosing entity attributes, setting up relationships (M2O, M2M, ordered O2M), configuring file uploads on entities, or asking about UI control mapping.
 ---
 
 # Entity Design

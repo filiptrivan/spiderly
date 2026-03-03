@@ -1,11 +1,6 @@
 ---
 name: migration-workflow
-description: Create and manage EF Core migrations using the Spiderly CLI
-triggers:
-  - creating or applying migrations
-  - schema changes (adding/removing entities or properties)
-  - removing a bad migration
-  - asking about dotnet ef commands
+description: Create and manage EF Core migrations using the Spiderly CLI. Use when creating or applying migrations, making schema changes (adding/removing entities or properties), removing a bad migration, or asking about dotnet ef commands.
 ---
 
 # Migration Workflow

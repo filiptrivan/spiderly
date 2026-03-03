@@ -1,12 +1,6 @@
 ---
 name: filtering-patterns
-description: Customize server-side filtering, pagination, and paginated list overrides
-triggers:
-  - custom server-side filtering
-  - overriding paginated lists
-  - FilterDTO usage
-  - AdditionalFilterId for parent-child filtering
-  - programmatic filter construction
+description: Customize server-side filtering, pagination, and paginated list overrides. Use when doing custom server-side filtering, overriding paginated lists, working with FilterDTO, using AdditionalFilterId for parent-child filtering, or building programmatic filters.
 ---
 
 # Filtering Patterns

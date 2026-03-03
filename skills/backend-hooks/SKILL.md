@@ -1,12 +1,6 @@
 ---
 name: backend-hooks
-description: Override Spiderly lifecycle hooks to customize generated CRUD behavior
-triggers:
-  - overriding lifecycle hooks
-  - customizing generated CRUD logic
-  - adding business logic to save/delete/get operations
-  - MARS exceptions or transaction issues
-  - throwing business or hacker exceptions
+description: Override Spiderly lifecycle hooks to customize generated CRUD behavior. Use when overriding lifecycle hooks, customizing generated CRUD logic, adding business logic to save/delete/get operations, handling MARS exceptions or transaction issues, or throwing business/hacker exceptions.
 ---
 
 # Backend Hooks
