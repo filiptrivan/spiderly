@@ -16,27 +16,20 @@ namespace Spiderly.Shared.Attributes
 
         public override void OnActionExecuting(ActionExecutingContext context)
         {
+            if (context.HttpContext.User.Identity?.IsAuthenticated != true)
+            {
+                context.Result = new UnauthorizedResult();
+                return;
+            }
+
             string accessTokenFromHeader = Helper.GetAccessTokenFromHeader(context.HttpContext);
             string accessTokenFromCookie = Helper.GetAccessTokenFromCookie(context.HttpContext);
-
-            string accessToken = accessTokenFromHeader ?? accessTokenFromCookie;
-
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                context.Result = new UnauthorizedResult();
-                return;
-            }
-
-            if (Helper.IsJwtTokenValid(accessToken) == false)
-            {
-                context.Result = new UnauthorizedResult();
-                return;
-            }
+            bool authenticatedViaCookie = accessTokenFromHeader == null && accessTokenFromCookie != null;
 
             string method = context.HttpContext.Request.Method;
             bool isStateChangingMethod = method != "GET" && method != "HEAD" && method != "OPTIONS";
 
-            if (isStateChangingMethod && accessTokenFromHeader == null)
+            if (isStateChangingMethod && authenticatedViaCookie)
             {
                 if (!context.HttpContext.Request.Headers.ContainsKey("X-CSRF"))
                 {
