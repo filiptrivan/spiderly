@@ -21,6 +21,14 @@ namespace Spiderly.Shared.Helpers
         {
             new SpiderlyFolder
             {
+                Name = ".claude",
+                Files =
+                {
+                    new SpiderlyFile { Name = "settings.json", Data = GetClaudeSettingsJsonData() },
+                }
+            },
+            new SpiderlyFolder
+            {
                 Name = ".vscode",
                 Files =
                 {
@@ -4219,6 +4227,25 @@ export const ThemePreset = definePreset(Aura, {
 {
     "plugins": {
         "@tailwindcss/postcss": {}
+    }
+}
+""";
+    }
+
+    private static string GetClaudeSettingsJsonData()
+    {
+      return """
+{
+    "extraKnownMarketplaces": {
+        "spiderly": {
+            "source": {
+                "source": "github",
+                "repo": "filiptrivan/spiderly"
+            }
+        }
+    },
+    "enabledPlugins": {
+        "spiderly@spiderly": true
     }
 }
 """;
