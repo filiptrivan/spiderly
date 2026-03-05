@@ -555,7 +555,7 @@ import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
 import { {{entityName}}MainUIForm, {{entityName}}SaveBody } from 'src/app/business/entities/entities.generated';
 import { {{entityName}}BaseDetailsComponent } from 'src/app/business/components/base-details.generated';
-import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
+import { BaseFormComponent, SpiderlyFormGroup, SpiderlyMessageService, BaseFormService, SpiderlyPanelsModule, SpiderlyControlsModule } from 'spiderly';
 
 @Component({
     selector: '{{kebabEntityName}}-details',
@@ -567,7 +567,7 @@ import { BaseFormCopy, SpiderlyFormGroup, SpiderlyMessageService, BaseFormServic
         {{entityName}}BaseDetailsComponent
     ]
 })
-export class {{entityName}}DetailsComponent extends BaseFormCopy<{{entityName}}MainUIForm, {{entityName}}SaveBody> implements OnInit {
+export class {{entityName}}DetailsComponent extends BaseFormComponent<{{entityName}}MainUIForm, {{entityName}}SaveBody> implements OnInit {
     override mainUIFormClass = {{entityName}}MainUIForm;
     override saveBodyClass = {{entityName}}SaveBody;
 
@@ -769,7 +769,7 @@ import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import {
-    BaseFormCopy,
+    BaseFormComponent,
     BaseFormService,
     IsAuthorizedForSaveEvent,
     SpiderlyCardComponent,
@@ -793,7 +793,7 @@ import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/e
         NotificationBaseDetailsComponent,
     ],
 })
-export class NotificationDetailsComponent extends BaseFormCopy<NotificationMainUIForm, NotificationSaveBody> implements OnInit {
+export class NotificationDetailsComponent extends BaseFormComponent<NotificationMainUIForm, NotificationSaveBody> implements OnInit {
     override mainUIFormClass = NotificationMainUIForm;
     override saveBodyClass = NotificationSaveBody;
 
@@ -919,7 +919,7 @@ import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import {
-    BaseFormCopy,
+    BaseFormComponent,
     BaseFormService,
     SpiderlyControlsModule,
     SpiderlyMessageService,
@@ -933,7 +933,7 @@ import { RoleMainUIForm, RoleSaveBody } from 'src/app/business/entities/entities
     templateUrl: './role-details.component.html',
     imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, RoleBaseDetailsComponent],
 })
-export class RoleDetailsComponent extends BaseFormCopy<RoleMainUIForm, RoleSaveBody> implements OnInit {
+export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, RoleSaveBody> implements OnInit {
     override saveBodyClass = RoleSaveBody;
     override mainUIFormClass = RoleMainUIForm;
 
@@ -1042,7 +1042,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import {
-    BaseFormCopy,
+    BaseFormComponent,
     BaseFormService,
     SpiderlyControlsModule,
     SpiderlyMessageService,
@@ -1058,7 +1058,7 @@ import { AuthService } from 'src/app/business/services/auth/auth.service';
     templateUrl: './user-details.component.html',
     imports: [TranslocoDirective, SpiderlyPanelsModule, SpiderlyControlsModule, UserBaseDetailsComponent],
 })
-export class UserDetailsComponent extends BaseFormCopy<UserMainUIForm, UserSaveBody> implements OnInit {
+export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, UserSaveBody> implements OnInit {
     override saveBodyClass = UserSaveBody;
     override mainUIFormClass = UserMainUIForm;
 

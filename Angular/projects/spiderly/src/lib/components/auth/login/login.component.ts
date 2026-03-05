@@ -15,7 +15,7 @@ import { AuthServiceBase } from '../../../services/auth.service.base';
 import { BaseFormService } from '../../../services/base-form.service';
 import { ConfigServiceBase } from '../../../services/config.service.base';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { BaseFormCopy } from '../../base-form/base-form copy';
+import { BaseFormComponent } from '../../base-form/base-form.component';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
 import { AuthComponent } from '../partials/auth.component';
 import { LoginVerificationComponent } from '../partials/login-verification.component';
@@ -32,7 +32,7 @@ import { LoginVerificationComponent } from '../partials/login-verification.compo
     TranslocoDirective,
   ],
 })
-export class LoginComponent extends BaseFormCopy implements OnInit {
+export class LoginComponent extends BaseFormComponent implements OnInit {
   loginFormGroup = new SpiderlyFormGroup<Login>({});
 
   companyName: string;

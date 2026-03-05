@@ -18,7 +18,7 @@ import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.modu
 import { VerificationTokenRequest } from '../../../entities/security-entities';
 import { BaseFormService } from '../../../services/base-form.service';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
-import { BaseFormCopy } from '../../base-form/base-form copy';
+import { BaseFormComponent } from '../../base-form/base-form.component';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
 import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.module';
 
@@ -37,7 +37,7 @@ import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.modu
   ],
 })
 export class VerificationWrapperComponent
-  extends BaseFormCopy
+  extends BaseFormComponent
   implements OnInit
 {
   verificationTokenRequestFormGroup =

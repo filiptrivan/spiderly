@@ -240,7 +240,7 @@ namespace Spiderly.CLI.Commands
                 return appName;
             }
 
-            if (!IsInteractive())
+            if (!ConsoleHelper.IsInteractive())
             {
                 ConsoleHelper.MarkupLineERROR("App name is required in non-interactive mode. Use: spiderly init --name YourAppName");
                 return null;
@@ -297,7 +297,7 @@ namespace Spiderly.CLI.Commands
                 return null;
             }
 
-            if (!IsInteractive())
+            if (!ConsoleHelper.IsInteractive())
             {
                 ConsoleHelper.MarkupLineERROR("Database provider is required in non-interactive mode. Use: --db postgresql, --db sqlserver, or --db skip");
                 return null;
@@ -317,11 +317,6 @@ namespace Spiderly.CLI.Commands
                 "Skip database setup" => (DbProviderCodes.PostgreSQL, true),
                 _ => null
             };
-        }
-
-        private static bool IsInteractive()
-        {
-            return !Console.IsInputRedirected && Environment.UserInteractive;
         }
 
         private static BaseDbConnectionStringBuilder GetDatabaseConnectionStringBuilder(DbProviderCodes dbProvider)

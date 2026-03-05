@@ -55,7 +55,7 @@ import { TranslocoService } from "@jsverse/transloco";
 import { Notification } from "src/app/business/entities/entities.generated";
 import { ApiService } from "src/app/business/services/api/api.service";
 import {
-  BaseFormCopy,
+  BaseFormComponent,
   SpiderlyFormGroup,
   SpiderlyFormControl,
   SpiderlyButton,
@@ -69,7 +69,7 @@ import {
   styles: [],
 })
 export class NotificationDetailsComponent
-  extends BaseFormCopy
+  extends BaseFormComponent
   implements OnInit
 {
   notificationFormGroup = new SpiderlyFormGroup<Notification>({});

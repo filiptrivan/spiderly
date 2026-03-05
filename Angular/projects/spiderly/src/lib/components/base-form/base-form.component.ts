@@ -25,7 +25,7 @@ import { BaseFormService } from './../../services/base-form.service';
   styles: [],
   standalone: false,
 })
-export class BaseFormCopy<
+export class BaseFormComponent<
   TMainUIForm extends BaseEntity = any,
   TSaveBody extends BaseEntity = any,
 > implements OnInit {

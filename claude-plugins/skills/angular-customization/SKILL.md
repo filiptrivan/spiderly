@@ -24,7 +24,7 @@ Never modify `.generated.ts` files — they regenerate on build.
 ### Inheritance Chain
 
 ```
-BaseFormCopy<TMainUIForm, TSaveBody>  (Spiderly library)
+BaseFormComponent<TMainUIForm, TSaveBody>  (Spiderly library)
         ↓
 {Entity}BaseDetailsComponent          (generated)
         ↓
@@ -48,7 +48,7 @@ BaseFormCopy<TMainUIForm, TSaveBody>  (Spiderly library)
 
 ```typescript
 export class ProductDetailsComponent
-  extends BaseFormCopy<ProductMainUIForm, ProductSaveBody>
+  extends BaseFormComponent<ProductMainUIForm, ProductSaveBody>
   implements OnInit
 {
   override mainUIFormClass = ProductMainUIForm;

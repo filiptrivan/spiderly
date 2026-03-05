@@ -23,7 +23,7 @@ export * from './lib/controls/spiderly-textbox/spiderly-textbox.component';
 export * from './lib/components/auth/login/login.component';
 export * from './lib/components/auth/partials/login-verification.component';
 export * from './lib/components/auth/partials/verification-wrapper.component';
-export * from './lib/components/base-form/base-form copy';
+export * from './lib/components/base-form/base-form.component';
 export * from './lib/components/card-skeleton/card-skeleton.component';
 export * from './lib/components/footer/footer.component';
 export * from './lib/components/index-card/index-card.component';
