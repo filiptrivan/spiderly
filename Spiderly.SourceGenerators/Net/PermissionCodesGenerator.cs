@@ -26,7 +26,7 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipeline(context,
+            var combined = PipelineFactory.CreatePipeline(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
@@ -45,7 +45,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(PermissionCodesGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectEntities);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 

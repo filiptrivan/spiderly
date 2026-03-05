@@ -28,7 +28,7 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipeline(context,
+            var combined = PipelineFactory.CreatePipeline(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DataMappers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DataMappers });
 
@@ -47,7 +47,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(MapperGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
 
@@ -208,7 +208,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     if (manyToOneEntity == null)
                         continue;
 
-                    string manyToOneEntityDisplayName = Helpers.GetDisplayNameProperty(manyToOneEntity);
+                    string manyToOneEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
                     manyToOneEntityDisplayName = manyToOneEntityDisplayName.Replace(".ToString()", ""); // TODO FT: Check why are you doing this, maybe it's okay to do ToString()
 
                     manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => src.{property.Name}.Id)"); // "dest.TierId", "src.Tier.Id"
@@ -222,7 +222,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     if (extractedEntity == null)
                         continue;
 
-                    string extractedEntityDisplayName = Helpers.GetDisplayNameProperty(extractedEntity);
+                    string extractedEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(extractedEntity);
                     extractedEntityDisplayName = extractedEntityDisplayName.Replace(".ToString()", "");
 
                     if (property.HasGenerateCommaSeparatedDisplayNameAttribute())

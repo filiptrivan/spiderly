@@ -9,7 +9,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
 
   let accessToken = null;
   if (isPlatformBrowser(platformId)) {
-    accessToken = localStorage.getItem('access_token');
+    accessToken = localStorage.getItem(config.accessTokenKey);
   }
 
   const isApiUrl = req.url.startsWith(config.apiUrl);

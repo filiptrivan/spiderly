@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Net
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            var combined = Helpers.CreatePipelineWithCallingPath(context,
+            var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 

@@ -27,7 +27,7 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipelineWithCallingPath(context,
+            var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
@@ -49,9 +49,9 @@ namespace Spiderly.SourceGenerators.Angular
             if (!config.IsGeneratorEnabled(nameof(NgEntitiesGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
-            List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(currentProjectClasses, allClasses);
+            List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\entities\entities.generated.ts
             string rootPath = callingProjectDirectory.GetRootPath();
@@ -75,7 +75,7 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, Namebook } from 'spider
                 List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties);
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
-                sbImports.Append(string.Join("\n", Helpers.GetAngularImports(DTOProperties)));
+                sbImports.Append(string.Join("\n", AngularTypeMapper.GetAngularImports(DTOProperties)));
 
                 sb.AppendLine($$"""
 
@@ -119,7 +119,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             {
                 string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
 
-                string angularDataType = Helpers.GetAngularType(DTOProp.Type);
+                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type);
                 result.Add($"{DTOPropLowerCase}?: {angularDataType};");
             }
 
@@ -146,7 +146,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             foreach (SpiderlyProperty DTOProp in DTOProperties)
             {
                 string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
-                string angularDataType = Helpers.GetAngularType(DTOProp.Type);
+                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type);
 
                 result.AppendLine($$"""
         {{DTOPropLowerCase}}: {

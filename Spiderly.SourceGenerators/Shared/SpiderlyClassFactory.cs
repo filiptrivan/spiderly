@@ -1,0 +1,236 @@
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Spiderly.SourceGenerators.Models;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Spiderly.SourceGenerators.Shared
+{
+    public static class SpiderlyClassFactory
+    {
+        public static SpiderlyClass GetSettingsClass(List<SpiderlyClass> classes)
+        {
+            return classes.SingleOrDefault(x => x.Namespace.EndsWith($".GeneratorSettings"));
+        }
+
+        public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
+        {
+            return currentProjectClasses
+                .Select(x =>
+                {
+                    return new SpiderlyClass
+                    {
+                        Name = x.Identifier.Text,
+                        Namespace = x.Ancestors()
+                            .OfType<NamespaceDeclarationSyntax>()
+                            .FirstOrDefault()?.Name.ToString(),
+                        BaseType = x.GetBaseType(),
+                        IsAbstract = x.IsAbstract(),
+                        Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
+                        Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
+                        Methods = ClassAnalyzer.GetMethodsOfCurrentClass(x),
+                    };
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
+        }
+
+        #region DTO
+
+        public static List<SpiderlyClass> GetDTOClasses(List<SpiderlyClass> currentProjectClasses, List<SpiderlyClass> allClasses)
+        {
+            List<SpiderlyClass> DTOList = new();
+
+            foreach (var x in currentProjectClasses
+                .Where(x => x.Namespace.EndsWith($".{Helpers.EntitiesNamespaceEnding}") || x.Namespace.EndsWith($".{Helpers.DTONamespaceEnding}"))
+            )
+            {
+                if (x.Name.EndsWith("DTO") || x.Namespace.EndsWith(".DTO"))
+                {
+                    DTOList.Add(new SpiderlyClass
+                    {
+                        Name = x.Name,
+                        Properties = x.Properties,
+                        Attributes = x.Attributes,
+                        BaseType = x.BaseType,
+                        IsAbstract = x.IsAbstract,
+                        Methods = x.Methods,
+                        Namespace = x.Namespace,
+                        IsGenerated = false,
+                    });
+                }
+                else // Entity
+                {
+                    DTOList.Add(new SpiderlyClass
+                    {
+                        Name = $"{x.Name}DTO",
+                        BaseType = x.GetDTOBaseType(),
+                        Properties = GetSpiderlyDTOProperties(x, allClasses),
+                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        IsGenerated = true
+                    });
+                    DTOList.Add(new SpiderlyClass
+                    {
+                        Name = $"{x.Name}SaveBodyDTO",
+                        Properties = GetSaveBodyDTOProperties(x, allClasses),
+                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        IsGenerated = true
+                    });
+                    DTOList.Add(new SpiderlyClass
+                    {
+                        Name = $"{x.Name}MainUIFormDTO",
+                        Properties = GetMainUIFormDTOProperties(x, allClasses),
+                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        IsGenerated = true
+                    });
+                }
+            }
+
+            return DTOList;
+        }
+
+        private static List<SpiderlyProperty> GetSaveBodyDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            List<SpiderlyProperty> result = new();
+
+            result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}SaveBodyDTO", IsSaveBodyMainDTO = true });
+
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.HasUIOrderedOneToManyAttribute() ||
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType() ||
+                    x.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                    x.HasComplexManyToManyListAttribute()
+                )
+            )
+            {
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
+                string extractedEntityIdType = extractedEntity.GetIdType(entities);
+
+
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" };
+
+                    if (property.Attributes.Any(x => x.Name == "Required"))
+                        orderedProp.Attributes.Add(new SpiderlyAttribute { Name = "Required" });
+
+                    result.Add(orderedProp);
+                }
+                else if (property.IsMultiSelectControlType())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
+                else if (property.IsMultiAutocompleteControlType())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
+                else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"Unselected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"AreAll{property.Name}Selected", Type = "bool?", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}TableFilter", Type = "FilterDTO", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
+                else if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new SpiderlyProperty { Name = property.Name, Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                }
+            }
+
+            return result;
+        }
+
+        private static List<SpiderlyProperty> GetMainUIFormDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            List<SpiderlyProperty> result = new();
+
+            result.Add(new SpiderlyProperty { Name = $"{entity.Name}DTO", Type = $"{entity.Name}DTO", EntityName = $"{entity.Name}MainUIFormDTO" });
+
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(x =>
+                    x.HasUIOrderedOneToManyAttribute() ||
+                    x.IsMultiSelectControlType() ||
+                    x.IsMultiAutocompleteControlType() ||
+                    x.HasComplexManyToManyListAttribute()
+                )
+            )
+            {
+                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
+                string extractedEntityIdType = extractedEntity.GetIdType(entities);
+
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" };
+
+                    if (property.Attributes.Any(x => x.Name == "Required"))
+                        orderedProp.Attributes.Add(new SpiderlyAttribute { Name = "Required" });
+
+                    result.Add(orderedProp);
+                }
+                else if (property.IsMultiSelectControlType())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                }
+                else if (property.IsMultiAutocompleteControlType())
+                {
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                }
+                else if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new SpiderlyProperty { Name = property.Name, Type = $"List<{extractedEntity.Name}DTO>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                }
+            }
+
+            return result;
+        }
+
+        public static List<SpiderlyProperty> GetSpiderlyDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            List<SpiderlyProperty> DTOProperties = new(); // public string Email { get; set; }
+
+            foreach (SpiderlyProperty property in entity.Properties)
+            {
+                if (property.ShouldSkipPropertyInDTO())
+                    continue;
+
+                if (property.Type.IsManyToOneType())
+                {
+                    SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type);
+
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DisplayName", Type = "string", EntityName = $"{property.EntityName}DTO" });
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", EntityName = $"{property.EntityName}DTO" });
+                }
+                else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
+                {
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}CommaSeparated", Type = "string", EntityName = $"{property.EntityName}DTO" });
+                }
+                else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
+                {
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DTOList", Type = property.Type.Replace(">", "DTO>"), EntityName = $"{property.EntityName}DTO" });
+                }
+                else if (property.IsBlob())
+                {
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Data", Type = "string", EntityName = $"{property.EntityName}DTO" });
+                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = "string", EntityName = $"{property.EntityName}DTO" });
+                }
+                else
+                {
+                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO" });
+                }
+            }
+
+            return DTOProperties;
+        }
+
+        public static string GetFormatedDTOPropertyType(string propertyType)
+        {
+            if (propertyType != "string" && propertyType.IsBaseDataType())
+                return $"{propertyType}?".Replace("??", "?");
+
+            return propertyType;
+        }
+
+        #endregion
+    }
+}

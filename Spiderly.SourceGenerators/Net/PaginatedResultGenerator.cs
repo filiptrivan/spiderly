@@ -29,7 +29,7 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipeline(context,
+            var combined = PipelineFactory.CreatePipeline(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO, NamespaceExtensionCodes.DataMappers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
@@ -48,9 +48,9 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(PaginatedResultGenerator)))
                 return;
 
-            List<SpiderlyClass> spiderlyClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> spiderlyClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = spiderlyClasses.Concat(referencedProjectClasses).ToList();
-            List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(spiderlyClasses, allClasses);
+            List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(spiderlyClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> allEntities = allClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
 
@@ -321,7 +321,7 @@ using {{item}};
                 SpiderlyProperty propertyInEntityClass = entity.Properties.Where(x => x.Name == baseClassInDotNotation).Single();
                 string typeOfThePropertyInEntityClass = propertyInEntityClass.Type; // "Role"
                 SpiderlyClass entityClassWhichWeAreSearchingDisplayNameFor = allClasses.Where(x => x.Name == typeOfThePropertyInEntityClass).Single();
-                string displayName = Helpers.GetDisplayNameProperty(entityClassWhichWeAreSearchingDisplayNameFor); // Name
+                string displayName = ClassAnalyzer.GetDisplayNameProperty(entityClassWhichWeAreSearchingDisplayNameFor); // Name
                 displayName = displayName.Replace(".ToString()", "");
                 return $"{baseClassInDotNotation}.{displayName}"; // FT: It's okay to do it like this, because when we generating DisplayNames for DTO, we are doing it just for the first level.
             }

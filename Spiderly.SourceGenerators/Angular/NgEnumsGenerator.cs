@@ -28,17 +28,17 @@ namespace Spiderly.SourceGenerators.Angular
             //#endif
             IncrementalValuesProvider<EnumDeclarationSyntax> enumDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
-                    predicate: static (s, _) => Helpers.IsEnumSyntaxTargetForGeneration(s),
-                    transform: static (ctx, _) => Helpers.GetEnumSemanticTargetForGeneration(ctx))
+                    predicate: static (s, _) => PipelineFactory.IsEnumSyntaxTargetForGeneration(s),
+                    transform: static (ctx, _) => PipelineFactory.GetEnumSemanticTargetForGeneration(ctx))
                 .Where(static c => c is not null);
 
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = Helpers.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = PipelineFactory.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
                     NamespaceExtensionCodes.Enums, // HACK: Because we can't make partial enums we are doing this
                 });
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = Helpers.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
+            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
                 new List<NamespaceExtensionCodes>
                 {
                     NamespaceExtensionCodes.Entities,
@@ -70,7 +70,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (!config.IsGeneratorEnabled(nameof(NgEnumsGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
 
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses
                 .Where(x => x.Namespace.EndsWith(".Entities"))

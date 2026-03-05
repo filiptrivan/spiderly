@@ -31,7 +31,7 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipelineWithCallingPath(context,
+            var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
@@ -76,7 +76,7 @@ namespace Spiderly.SourceGenerators.Angular
                     dtoClass.Name.Replace("SaveBodyDTO", "") == x.Name
                 ); // If it is null then we only made DTO, without entity class
 
-                List<SpiderValidationRule> rules = Helpers.GetValidationRules(dtoClass.Properties, dtoClass.Attributes, entityClass);
+                List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(dtoClass.Properties, dtoClass.Attributes, entityClass);
                 List<SpiderValidationRule> formControlRules = rules.Where(r => !r.Property.Type.IsEnumerable()).ToList();
                 List<SpiderValidationRule> formArrayRules = rules.Where(r => r.Property.Type.IsEnumerable()).ToList();
 

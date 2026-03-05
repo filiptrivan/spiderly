@@ -27,7 +27,7 @@ namespace Spiderly.SourceGenerators.Net
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipelineWithCallingPath(context,
+            var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.Services });
 
@@ -52,7 +52,7 @@ namespace Spiderly.SourceGenerators.Net
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices);
 
             List<SpiderlyClass> customControllers = currentProjectClasses
                 .Where(x => x.Namespace.EndsWith(".Controllers"))
@@ -80,8 +80,8 @@ using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.DTO;
 using {{appName}}.Shared.Resources;
 using {{appName}}.Business.Services;
-{{string.Join("\n", Helpers.GetEntityClassesUsings(allEntities))}}
-{{string.Join("\n", Helpers.GetDTOClassesUsings(allEntities))}}
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetEntityClassesUsings(allEntities))}}
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetDTOClassesUsings(allEntities))}}
 
 namespace {{basePartOfNamespace}}.Controllers
 {
@@ -260,7 +260,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
-            string manyToOneDisplayName = Helpers.GetDisplayNameProperty(manyToOneEntity);
+            string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
         [HttpGet]
@@ -286,7 +286,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
-            string manyToOneDisplayName = Helpers.GetDisplayNameProperty(manyToOneEntity);
+            string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
         [HttpGet]

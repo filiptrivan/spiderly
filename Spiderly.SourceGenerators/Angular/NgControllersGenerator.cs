@@ -28,7 +28,7 @@ namespace Spiderly.SourceGenerators.Angular
             //                Debugger.Launch();
             //            }
             //#endif
-            var combined = Helpers.CreatePipelineWithCallingPath(context,
+            var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
@@ -57,7 +57,7 @@ namespace Spiderly.SourceGenerators.Angular
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "api", "api.service.generated.ts");
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
 
             List<SpiderlyClass> controllerClasses = currentProjectClasses
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Controllers}"))
@@ -169,14 +169,14 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerName)
         {
-            string angularReturnType = Helpers.GetAngularType(controllerMethod.ReturnType);
+            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType);
 
             HttpTypeCodes httpType = GetHttpType(controllerMethod);
 
             Dictionary<string, string> inputParameters = controllerMethod.Parameters
                 .ToDictionary(
                     x => x.Name,
-                    x => Helpers.GetAngularType(x.Type)
+                    x => AngularTypeMapper.GetAngularType(x.Type)
                 );
 
             string httpOptions = GetHttpOptions(controllerMethod);
@@ -186,7 +186,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         private static string GetHttpOptions(SpiderlyMethod controllerMethod)
         {
-            if (Helpers.GetAngularType(controllerMethod.ReturnType) == "string")
+            if (AngularTypeMapper.GetAngularType(controllerMethod.ReturnType) == "string")
                 return Settings.HttpOptionsText;
 
             if (controllerMethod.ReturnType.Contains("IActionResult"))
@@ -271,7 +271,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
             SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type).SingleOrDefault();
-            string angularReturnType = Helpers.GetAngularType(controllerMethod.ReturnType);
+            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType);
 
             return $$"""
     {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{parameter.Type.Replace("DTO", "")}}): Observable<{{angularReturnType}}> => { 

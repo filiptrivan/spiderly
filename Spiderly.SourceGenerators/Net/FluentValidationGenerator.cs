@@ -27,7 +27,7 @@ namespace Spiderly.SourceGenerators.Net
             //                 Debugger.Launch();
             //             }
             // #endif
-            var combined = Helpers.CreatePipeline(context,
+            var combined = PipelineFactory.CreatePipeline(context,
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
@@ -46,9 +46,9 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(FluentValidationGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = Helpers.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
-            List<SpiderlyClass> currentProjectDTOClasses = Helpers.GetDTOClasses(currentProjectClasses, allClasses);
+            List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
 
             string namespaceValue = currentProjectEntities.Count > 0
@@ -90,7 +90,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
                     DTOClassGroup.Key.Replace("SaveBodyDTO", "") == x.Name
                 ); // If it is null then we only made DTO, without entity class
 
-                List<SpiderValidationRule> rules = Helpers.GetValidationRules(DTOProperties, DTOAttributes, entity);
+                List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(DTOProperties, DTOAttributes, entity);
 
                 result.Add($$"""
     public class {{DTOClassGroup.Key}}ValidationRules : AbstractValidator<{{DTOClassGroup.Key}}>

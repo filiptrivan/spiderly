@@ -16,8 +16,10 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 spiderly/
 ├── Spiderly.Shared/          # Core: attributes (44), base entities, DTOs, enums, interfaces, helpers
 ├── Spiderly.SourceGenerators/ # IIncrementalGenerator-based code generators (netstandard2.0)
-│   ├── Net/                   # 10 .NET generators (controllers, services, DTOs, validators, mappers, etc.)
-│   ├── Angular/               # 5 Angular generators (entities, base-details, controllers, validators, enums)
+│   ├── Net/                   # .NET generators (controllers, DTOs, validators, mappers, etc.)
+│   │   └── Services/          # Service generators (ServicesGenerator + helper generators)
+│   ├── Angular/               # Angular generators (entities, controllers, validators, enums)
+│   │   └── BaseDetails/       # Base details generators (NgBaseDetailsGenerator + helper generators)
 │   ├── Shared/                # Helpers.cs (core reflection/analysis), Extensions.cs, Validations.cs
 │   ├── Models/                # SpiderlyClass, SpiderlyProperty, SpiderlyAttribute, etc.
 │   └── Enums/                 # UIControlTypeCodes, CrudCodes, NamespaceExtensionCodes, etc.

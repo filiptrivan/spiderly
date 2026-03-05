@@ -279,10 +279,7 @@ export class AuthServiceBase implements OnDestroy {
 
   ngOnDestroy(): void {
     if (isPlatformBrowser(this.platformId)) {
-      window.removeEventListener(
-        'storage',
-        this.storageEventListener.bind(this),
-      );
+      window.removeEventListener('storage', this.storageEventListener);
     }
 
     this.onAfterNgOnDestroy();

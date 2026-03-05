@@ -1,0 +1,589 @@
+using Spiderly.SourceGenerators.Enums;
+using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Spiderly.SourceGenerators.Angular
+{
+    internal static class NgDetailsPropertyBlockGenerator
+    {
+        internal static List<string> GetPropertyBlocks(
+            List<SpiderlyProperty> properties,
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses,
+            bool isFromOrderedOneToMany
+        )
+        {
+            List<string> result = new();
+
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+
+            if (customDTOClass != null)
+                properties.AddRange(customDTOClass.Properties);
+
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties))
+            {
+                if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
+                {
+                    result.Add(GetOrderedOneToManyBlock(entity, property, allEntities, customDTOClasses, isFromOrderedOneToMany));
+
+                    continue;
+                }
+
+                if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(GetComplexManyToManyListBlock(entity, property, allEntities, isFromOrderedOneToMany));
+
+                    continue;
+                }
+
+                string controlType = GetUIStringControlType(GetUIControlType(property));
+
+                result.Add($$"""
+                    <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property, isFromOrderedOneToMany)}}">
+                        <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
+                        <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
+                    </div>
+""");
+            }
+
+            return result;
+        }
+
+        internal static List<PropertyWithContext> GetAllPropertiesWithContext(
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses
+        )
+        {
+            List<PropertyWithContext> result = new();
+
+            List<SpiderlyProperty> properties = entity.Properties.ToList();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            if (customDTOClass != null)
+                properties = properties.Concat(customDTOClass.Properties).ToList();
+
+            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties);
+
+            foreach (SpiderlyProperty property in orderedProperties)
+            {
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    result.Add(new PropertyWithContext
+                    {
+                        Property = property,
+                        Entity = entity,
+                        FormControlName = null
+                    });
+
+                    SpiderlyClass nestedEntity = allEntities.SingleOrDefault(
+                        x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)
+                    );
+                    result.AddRange(GetAllPropertiesWithContext(nestedEntity, allEntities, customDTOClasses));
+
+                    continue;
+                }
+
+                if (property.HasComplexManyToManyListAttribute())
+                {
+                    result.Add(new PropertyWithContext
+                    {
+                        Property = property,
+                        Entity = entity,
+                        FormControlName = null
+                    });
+
+                    continue;
+                }
+
+                UIControlTypeCodes controlType = GetUIControlType(property);
+                string formControlName = controlType == UIControlTypeCodes.Table
+                    ? null
+                    : GetFormControlName(property);
+
+                result.Add(new PropertyWithContext
+                {
+                    Property = property,
+                    Entity = entity,
+                    FormControlName = formControlName
+                });
+            }
+
+            return result;
+        }
+
+        internal static UIControlTypeCodes GetUIControlType(SpiderlyProperty property)
+        {
+            SpiderlyAttribute uiControlTypeAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlType");
+
+            if (uiControlTypeAttribute != null)
+            {
+                Enum.TryParse(uiControlTypeAttribute.Value, out UIControlTypeCodes parseResult);
+                return parseResult;
+            }
+
+            if (property.IsBlob())
+                return UIControlTypeCodes.File;
+
+            if (property.Type.IsManyToOneType())
+                return UIControlTypeCodes.Autocomplete;
+
+            if (property.HasSimpleManyToManyTableLazyLoadAttribute())
+                return UIControlTypeCodes.Table;
+
+            if (property.HasComplexManyToManyReadonlyTableAttribute())
+                return UIControlTypeCodes.Table;
+
+            switch (property.Type)
+            {
+                case "string":
+                    return UIControlTypeCodes.TextBox;
+                case "bool":
+                case "bool?":
+                    return UIControlTypeCodes.CheckBox;
+                case "DateTime":
+                case "DateTime?":
+                    return UIControlTypeCodes.Calendar;
+                case "decimal":
+                case "decimal?":
+                case "float":
+                case "float?":
+                case "double":
+                case "double?":
+                    return UIControlTypeCodes.Decimal;
+                case "long":
+                case "long?":
+                case "int":
+                case "int?":
+                case "byte":
+                case "byte?":
+                    return UIControlTypeCodes.Integer;
+                default:
+                    break;
+            }
+
+            return UIControlTypeCodes.None; // Note: We can't throw exception here
+        }
+
+        internal static string GetUIStringControlType(UIControlTypeCodes controlType)
+        {
+            switch (controlType)
+            {
+                case UIControlTypeCodes.Autocomplete:
+                    return "spiderly-autocomplete";
+                case UIControlTypeCodes.Calendar:
+                    return "spiderly-calendar";
+                case UIControlTypeCodes.CheckBox:
+                    return "spiderly-checkbox";
+                case UIControlTypeCodes.ColorPicker:
+                    return "spiderly-colorpicker";
+                case UIControlTypeCodes.Dropdown:
+                    return "spiderly-dropdown";
+                case UIControlTypeCodes.Editor:
+                    return "spiderly-editor";
+                case UIControlTypeCodes.File:
+                    return "spiderly-file";
+                case UIControlTypeCodes.MultiAutocomplete:
+                    return "spiderly-multiautocomplete";
+                case UIControlTypeCodes.MultiSelect:
+                    return "spiderly-multiselect";
+                case UIControlTypeCodes.Integer:
+                case UIControlTypeCodes.Decimal:
+                    return "spiderly-number";
+                case UIControlTypeCodes.Password:
+                    return "spiderly-password";
+                case UIControlTypeCodes.TextArea:
+                    return "spiderly-textarea";
+                case UIControlTypeCodes.TextBlock:
+                    return "spiderly-textblock";
+                case UIControlTypeCodes.TextBox:
+                    return "spiderly-textbox";
+                case UIControlTypeCodes.Table:
+                    return "spiderly-data-table";
+                default:
+                    return $"Unknown UIControlType: '{controlType}'.";
+
+            }
+        }
+
+        internal static string GetFormControlName(SpiderlyProperty property)
+        {
+            if (property.Type.IsManyToOneType())
+                return $"{property.Name.FirstCharToLower()}Id";
+
+            if (property.IsMultiSelectControlType())
+                return $"selected{property.Name}Ids";
+
+            if (property.IsMultiAutocompleteControlType())
+                return $"selected{property.Name}NamebookDTOList";
+
+            return property.Name.FirstCharToLower();
+        }
+
+        internal static string GetMainDTOFormGroupForMainUIForm(SpiderlyClass entity, bool isFromOrderedOneToMany, bool isControlDirectlyOnParent = false)
+        {
+            string formGroup;
+
+            if (isFromOrderedOneToMany)
+                formGroup = $"{entity.Name.FirstCharToLower()}FormGroup";
+            else
+                formGroup = $"this.parentFormGroup";
+
+            if (isControlDirectlyOnParent)
+                return formGroup;
+
+            return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
+        }
+
+        internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
+        {
+            List<SpiderlyProperty> orderedProperties = properties
+                .Where(x =>
+                    x.Name != "Version" &&
+                    x.Name != "Id" &&
+                    x.Name != "CreatedAt" &&
+                    x.Name != "ModifiedAt" &&
+                    (
+                        x.Type.IsEnumerable() == false ||
+                        x.HasUIOrderedOneToManyAttribute() ||
+                        x.IsMultiSelectControlType() ||
+                        x.IsMultiAutocompleteControlType() ||
+                        x.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                        x.HasComplexManyToManyReadonlyTableAttribute() ||
+                        x.HasComplexManyToManyListAttribute()
+                    ) &&
+                    x.HasUIDoNotGenerateAttribute() == false
+                )
+                .OrderBy(x =>
+                    x.Attributes.Any(attr => attr.Name == "BlobName") ? 0 :
+                    x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :
+                    x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.Editor.ToString()) ? 3 :
+                    x.Attributes.Any(attr => attr.Name == "UIOrderedOneToMany") ? 4 :
+                    x.Attributes.Any(attr => attr.Name == "SimpleManyToManyTableLazyLoad") ? 5 :
+                    x.Attributes.Any(attr => attr.Name == "ComplexManyToManyList") ? 6
+                    : 1)
+                .ToList();
+
+            return orderedProperties;
+        }
+
+        internal static string GetOrderedOneToManyFormArray(SpiderlyClass entity, SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.ordered{property.Name}SaveBodyDTO";
+            else
+                return $"this.parentFormGroup.controls.ordered{property.Name}SaveBodyDTO";
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <param name="property">eg. List<SegmentationItem> SegmentationItems</param>
+        /// <param name="allEntities"></param>
+        /// <param name="customDTOClasses"></param>
+        /// <returns></returns>
+        private static string GetOrderedOneToManyBlock(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses,
+            bool isFromOrderedOneToMany
+        )
+        {
+            SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities); // eg. SegmentationItem
+
+            // Every property of SegmentationItem without the many to one reference (Segmentation)
+            List<SpiderlyProperty> propertyBlocks = extractedEntity.Properties
+                .Where(x => x.WithMany() != property.Name)
+                .ToList();
+
+            return $$"""
+                     <div class="col-8">
+                        <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed">
+                            <panel-header [title]="t('{{property.Name}}')" icon="pi pi-list"></panel-header>
+                            <panel-body [normalBottomPadding]="true">
+                                @for ({{extractedEntity.Name.FirstCharToLower()}}FormGroup of {{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.getFormGroups(); track {{extractedEntity.Name.FirstCharToLower()}}FormGroup.trackingId; let index = $index; let last = $last) {
+                                    <index-card
+                                    [index]="index"
+                                    [last]="false"
+                                    [crudMenu]="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.getCrudMenuForOrderedData()"
+                                    [showCrudMenu]="isAuthorizedForSave"
+                                    (onMenuIconClick)="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.lastMenuIconIndexClicked = $event"
+                                    >
+                                        <form [formGroup]="{{extractedEntity.Name.FirstCharToLower()}}FormGroup" class="spiderly-grid">
+{{string.Join("\n", GetPropertyBlocks(propertyBlocks, extractedEntity, allEntities, customDTOClasses, isFromOrderedOneToMany: true))}}
+                                            <ng-container *ngIf="additionalContentTemplateFor{{property.Name}}For{{entity.Name}}">
+                                                <ng-container *ngTemplateOutlet="additionalContentTemplateFor{{property.Name}}For{{entity.Name}}; context: { $implicit: {{extractedEntity.Name.FirstCharToLower()}}FormGroup, formGroup: {{extractedEntity.Name.FirstCharToLower()}}FormGroup, index: index, last: last }"></ng-container>
+                                            </ng-container>
+                                        </form>
+                                    </index-card>
+                                }
+
+                                <div class="panel-add-button">
+                                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="{{GetOrderedOneToManyFormArray(entity, property, isFromOrderedOneToMany)}}.addNewFormGroup(null)" [label]="t('AddNew{{Helpers.ExtractTypeFromGenericType(property.Type)}}')" icon="pi pi-plus"></spiderly-button>
+                                </div>
+
+                            </panel-body>
+                        </spiderly-panel>
+                    </div>
+""";
+        }
+
+        private static (SpiderlyClass JunctionEntity, SpiderlyProperty CurrentSideM2MProperty, SpiderlyProperty OtherSideM2MProperty, SpiderlyClass OtherSideEntity) ResolveComplexManyToManyListInfo(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities
+        )
+        {
+            SpiderlyClass junctionEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
+
+            SpiderlyProperty currentSideM2MProperty = junctionEntity.Properties
+                .Single(x =>
+                    x.HasM2MWithManyAttribute() &&
+                    x.Type == entity.Name &&
+                    x.Attributes.Any(a => a.Name == "M2MWithMany" && a.Value == property.Name)
+                );
+
+            SpiderlyProperty otherSideM2MProperty = junctionEntity.Properties
+                .Where(x => x.HasM2MWithManyAttribute())
+                .Single(x => x != currentSideM2MProperty);
+
+            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type);
+
+            return (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity);
+        }
+
+        private static string GetComplexManyToManyListBlock(
+            SpiderlyClass entity,
+            SpiderlyProperty property,
+            List<SpiderlyClass> allEntities,
+            bool isFromOrderedOneToMany
+        )
+        {
+            var (junctionEntity, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+            string formArrayAccess = GetComplexManyToManyListFormArray(entity, property, isFromOrderedOneToMany);
+            string junctionFormGroupVar = $"{junctionEntity.Name.FirstCharToLower()}FormGroup";
+
+            List<SpiderlyProperty> additionalFields = junctionEntity.Properties
+                .Where(p => !p.Type.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
+                .ToList();
+
+            StringBuilder fieldsHtml = new();
+            foreach (SpiderlyProperty field in additionalFields)
+            {
+                UIControlTypeCodes controlType = GetUIControlType(field);
+                string controlTag = GetUIStringControlType(controlType);
+                string formControlName = field.Name.FirstCharToLower();
+
+                string controlAttr = $"[control]=\"{junctionFormGroupVar}.getControl('{formControlName}')\"";
+
+                if (controlType == UIControlTypeCodes.Decimal)
+                    controlAttr += $" [decimal]=\"true\" [maxFractionDigits]=\"{field.GetDecimalScale()}\"";
+
+                fieldsHtml.AppendLine($$"""
+                                            <div class="col-8">
+                                                <{{controlTag}} {{controlAttr}}></{{controlTag}}>
+                                            </div>
+""");
+            }
+
+            return $$"""
+                     <div class="col-8">
+                        <spiderly-panel [toggleable]="true" [collapsed]="{{property.Name.FirstCharToLower()}}For{{entity.Name}}PanelCollapsed">
+                            <panel-header [title]="t('{{property.Name}}')" icon="pi pi-list"></panel-header>
+                            <panel-body [normalBottomPadding]="true">
+                                @for ({{junctionFormGroupVar}} of {{formArrayAccess}}.getFormGroups(); track {{junctionFormGroupVar}}.trackingId; let index = $index) {
+                                    <index-card
+                                    [index]="index"
+                                    [last]="false"
+                                    [header]="{{junctionFormGroupVar}}.getControl('{{otherSideM2MProperty.Name.FirstCharToLower()}}DisplayName')?.getRawValue()"
+                                    [showCrudMenu]="false"
+                                    >
+                                        <form [formGroup]="{{junctionFormGroupVar}}" class="spiderly-grid">
+{{fieldsHtml}}
+                                        </form>
+                                    </index-card>
+                                }
+
+                            </panel-body>
+                        </spiderly-panel>
+                    </div>
+""";
+        }
+
+        private static string GetComplexManyToManyListFormArray(SpiderlyClass entity, SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return $"{entity.Name.FirstCharToLower()}FormGroup.controls.{property.Name.FirstCharToLower()}";
+            else
+                return $"this.parentFormGroup.controls.{property.Name.FirstCharToLower()}";
+        }
+
+        private static string GetControlAttributes(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany)
+        {
+            UIControlTypeCodes controlType = GetUIControlType(property);
+
+            if (controlType == UIControlTypeCodes.Decimal)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [decimal]=\"true\" [maxFractionDigits]=\"{property.GetDecimalScale()}\"";
+            }
+            else if (controlType == UIControlTypeCodes.Calendar)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
+            }
+            else if (controlType == UIControlTypeCodes.CheckBox)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
+            }
+            else if (controlType == UIControlTypeCodes.File)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [fileData]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}Data.getRawValue()\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" (onFileSelected)=\"upload{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)})\" [disabled]=\"!isAuthorizedForSave\" [isCloudinaryFileData]=\"{property.HasCloudinaryPublicIdAttribute().ToString().ToLower()}\" {GetImageDimensionsHtmlAttributes(property)} {GetAcceptedFileTypesHtmlAttribute(property)} {GetMaxFileSizeHtmlAttribute(property)} ";
+            }
+            else if (controlType == UIControlTypeCodes.Dropdown)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onChange)=\"on{property.Name}For{entity.Name}Change.next($event)\"";
+            }
+            else if (controlType == UIControlTypeCodes.Autocomplete)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [displayName]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" ";
+            }
+            else if (controlType == UIControlTypeCodes.MultiSelect)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany, isControlDirectlyOnParent: true)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" [label]=\"t('{property.Name}')\" ";
+            }
+            else if (controlType == UIControlTypeCodes.MultiAutocomplete)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany, isControlDirectlyOnParent: true)}\" [options]=\"{property.Name.FirstCharToLower()}OptionsFor{entity.Name}\" (onTextInput)=\"search{property.Name}For{entity.Name}($event, {GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue())\" [label]=\"t('{property.Name}')\" ";
+            }
+            else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
+            {
+                return $$"""
+
+                            [tableTitle]="t('{{property.Name}}')"
+                            [cols]="{{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}"
+                            [getPaginatedListObservableMethod]="getPaginated{{property.Name}}ListObservableMethodFor{{entity.Name}}"
+                            [exportListToExcelObservableMethod]="export{{property.Name}}ListToExcelObservableMethodFor{{entity.Name}}"
+                            [showAddButton]="false"
+                            [readonly]="!isAuthorizedForSave"
+                            selectionMode="multiple"
+                            [newlySelectedItems]="newlySelected{{property.Name}}IdsFor{{entity.Name}}"
+                            [unselectedItems]="unselected{{property.Name}}IdsFor{{entity.Name}}"
+                            [rows]="5"
+                            (onLazyLoad)="on{{property.Name}}LazyLoadFor{{entity.Name}}($event)"
+                            [selectedLazyLoadObservableMethod]="selected{{property.Name}}LazyLoadMethodFor{{entity.Name}}"
+                            (onIsAllSelectedChange)="areAll{{property.Name}}SelectedChangeFor{{entity.Name}}($event)"
+""";
+            }
+            else if (property.HasComplexManyToManyReadonlyTableAttribute())
+            {
+                return $$"""
+
+                            [tableTitle]="t('{{property.Name}}')"
+                            [cols]="{{property.Name.FirstCharToLower()}}TableColsFor{{entity.Name}}"
+                            [getPaginatedListObservableMethod]="getPaginated{{property.Name}}ListObservableMethodFor{{entity.Name}}"
+                            [exportListToExcelObservableMethod]="export{{property.Name}}ListToExcelObservableMethodFor{{entity.Name}}"
+                            [showAddButton]="false"
+                            [readonly]="true"
+""";
+            }
+            else if (controlType == UIControlTypeCodes.ColorPicker)
+            {
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showInputTextField]=\"show{property.Name}TextFieldFor{entity.Name}\"";
+            }
+            else if (controlType == UIControlTypeCodes.Editor)
+            {
+                if (property.HasS3PublicUrlAttribute())
+                {
+                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\"";
+                }
+
+                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
+            }
+
+            return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
+        }
+
+        private static string GetControlHtmlAttributeValue(SpiderlyProperty property, SpiderlyClass entity, bool isFromOrderedOneToMany, bool isControlDirectlyOnParent = false)
+        {
+            return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany, isControlDirectlyOnParent)}.getControl('{GetFormControlName(property)}')";
+        }
+
+        private static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            SpiderlyAttribute uiControlWidthAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlWidth");
+
+            if (uiControlWidthAttribute != null)
+                return uiControlWidthAttribute.Value;
+
+            UIControlTypeCodes controlType = GetUIControlType(property);
+
+            if (controlType == UIControlTypeCodes.File ||
+                controlType == UIControlTypeCodes.TextArea ||
+                controlType == UIControlTypeCodes.MultiSelect ||
+                controlType == UIControlTypeCodes.MultiAutocomplete ||
+                controlType == UIControlTypeCodes.Table ||
+                controlType == UIControlTypeCodes.Editor)
+            {
+                return "col-8";
+            }
+
+            if (isFromOrderedOneToMany)
+                return "col-8";
+
+            return "col-8 md:col-4";
+        }
+
+        private static string GetNgIfForPropertyBlock(SpiderlyProperty property, bool isFromOrderedOneToMany)
+        {
+            if (isFromOrderedOneToMany)
+                return null;
+
+            return $$"""
+*ngIf="show{{property.Name}}For{{property.EntityName}}"
+""";
+        }
+
+        private static string GetImageDimensionsHtmlAttributes(SpiderlyProperty property)
+        {
+            int imageWidth = property.GetImageWidth();
+            int imageHeight = property.GetImageHeight();
+
+            List<string> attributes = new();
+
+            if (imageWidth > 0)
+                attributes.Add($"[imageWidth]=\"{imageWidth}\"");
+            if (imageHeight > 0)
+                attributes.Add($"[imageHeight]=\"{imageHeight}\"");
+
+            if (attributes.Count == 0)
+                return "";
+
+            return string.Join(" ", attributes);
+        }
+
+        private static string GetAcceptedFileTypesHtmlAttribute(SpiderlyProperty property)
+        {
+            List<string> fileTypes = property.GetAcceptedFileTypes();
+
+            if (fileTypes == null || fileTypes.Count == 0)
+                return "";
+
+            string arrayLiteral = "[" + string.Join(", ", fileTypes.Select(t => $"'{t}'")) + "]";
+            return $"[acceptedFileTypes]=\"{arrayLiteral}\"";
+        }
+
+        private static string GetMaxFileSizeHtmlAttribute(SpiderlyProperty property)
+        {
+            int maxFileSize = property.GetMaxFileSize();
+
+            if (maxFileSize <= 0)
+                return "";
+
+            return $"[maxFileSize]=\"{maxFileSize}\"";
+        }
+    }
+}
