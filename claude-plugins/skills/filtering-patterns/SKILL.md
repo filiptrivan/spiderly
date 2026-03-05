@@ -21,12 +21,12 @@ public class FilterDTO
 public class FilterRuleDTO
 {
     public object Value { get; set; }
-    public MatchModeCodes MatchMode { get; set; }
+    public string MatchMode { get; set; }
     public string Operator { get; set; }    // "and" / "or"
 }
 ```
 
-**Match modes:** `StartsWith`, `Contains`, `Equals`, `LessThan`, `GreaterThan`, `In`
+**Match modes (string constants in `MatchModeCodes`):** `"startsWith"`, `"contains"`, `"equals"`, `"lessThan"`, `"greaterThan"`, `"in"`
 
 Filter dictionary keys are **camelCase DTO property names**. The generated `PaginatedResultGenerator` auto-resolves them to entity paths (e.g., `categoryDisplayName` → `x.Category.Name`).
 

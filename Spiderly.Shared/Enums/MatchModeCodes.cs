@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Spiderly.Shared.Enums
 {
-    public enum MatchModeCodes
+    public static class MatchModeCodes
     {
-        StartsWith,
-        Contains,
-        Equals,
-        LessThan,
-        GreaterThan,
-        In,
+        public const string StartsWith = "startsWith";
+        public const string Contains = "contains";
+        public const string Equals = "equals";
+        public const string LessThan = "lessThan";
+        public const string GreaterThan = "greaterThan";
+        public const string In = "in";
     }
 }

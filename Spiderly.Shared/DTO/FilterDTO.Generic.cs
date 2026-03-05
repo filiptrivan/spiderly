@@ -1,4 +1,3 @@
-using Spiderly.Shared.Enums;
 using System.Linq.Expressions;
 
 namespace Spiderly.Shared.DTO
@@ -8,7 +7,7 @@ namespace Spiderly.Shared.DTO
         public FilterDTO<TEntity> AddFilter<TProperty>(
             Expression<Func<TEntity, TProperty>> property,
             TProperty value,
-            MatchModeCodes matchMode)
+            string matchMode)
         {
             string propertyName = GetPropertyName(property);
 
