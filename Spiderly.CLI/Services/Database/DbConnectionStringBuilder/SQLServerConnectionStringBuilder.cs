@@ -7,22 +7,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected override string DbProviderName => "SQL Server";
         protected override string ManualInstallUrl => "https://www.microsoft.com/en-us/sql-server/sql-server-downloads";
 
-        protected override string DockerComposeContent => """
-            services:
-              db:
-                image: mcr.microsoft.com/mssql/server:2022-latest
-                container_name: spiderly-sqlserver
-                environment:
-                  ACCEPT_EULA: "Y"
-                  MSSQL_SA_PASSWORD: "SqlServer123"
-                ports:
-                  - "14330:1433"
-                volumes:
-                  - sqlserver_data:/var/opt/mssql
-
-            volumes:
-              sqlserver_data:
-            """.Replace("            ", "");
+        protected override string DockerRunArguments => "run --name spiderly-sqlserver -e ACCEPT_EULA=Y -e \"MSSQL_SA_PASSWORD=SqlServer123\" -p 14330:1433 -v spiderly_sqlserver_data:/var/opt/mssql -d mcr.microsoft.com/mssql/server:2022-latest";
 
         protected override string CreateDatabaseConnectionString(string appName)
         {

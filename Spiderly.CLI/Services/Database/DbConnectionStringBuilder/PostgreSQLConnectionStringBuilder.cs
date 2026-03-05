@@ -8,21 +8,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected override string DbProviderName => "PostgreSQL";
         protected override string ManualInstallUrl => "https://www.postgresql.org/download/";
 
-        protected override string DockerComposeContent => """
-            services:
-              db:
-                image: postgres:latest
-                container_name: spiderly-postgres
-                environment:
-                  POSTGRES_PASSWORD: postgres
-                ports:
-                  - "54320:5432"
-                volumes:
-                  - postgres_data:/var/lib/postgresql/data
-
-            volumes:
-              postgres_data:
-            """.Replace("            ", "");
+        protected override string DockerRunArguments => "run --name spiderly-postgres -e POSTGRES_PASSWORD=postgres -p 54320:5432 -v spiderly_postgres_data:/var/lib/postgresql/data -d postgres:latest";
 
         protected override string CreateDatabaseConnectionString(string appName)
         {

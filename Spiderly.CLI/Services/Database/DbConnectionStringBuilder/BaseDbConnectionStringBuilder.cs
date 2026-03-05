@@ -1,4 +1,3 @@
-using CaseConverter;
 using Spectre.Console;
 using System.Runtime.InteropServices;
 
@@ -7,7 +6,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
     public abstract class BaseDbConnectionStringBuilder
     {
         protected abstract string DbProviderName { get; }
-        protected abstract string DockerComposeContent { get; }
+        protected abstract string DockerRunArguments { get; }
         protected abstract string ManualInstallUrl { get; }
 
         public async Task<string> CreateConnectionString(string appName)
@@ -21,13 +20,13 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
                 return connectionString;
             }
 
-            bool isDockerAvailable = await IsDockerComposeAvailable();
+            bool isDockerAvailable = await IsDockerAvailable();
 
             if (isDockerAvailable && ConsoleHelper.IsInteractive())
             {
                 if (ConsoleHelper.PromptYesNo($"No running {DbProviderName} found. Install via Docker?"))
                 {
-                    if (await StartDockerCompose(appName))
+                    if (await StartDockerContainer())
                     {
                         connectionString = await TryCreateDatabaseConnectionString(appName);
                         if (connectionString != null)
@@ -42,7 +41,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
             }
             else if (isDockerAvailable)
             {
-                ConsoleHelper.MarkupLineERROR($"No running {DbProviderName} found. In non-interactive mode, start the database manually or run: docker compose up -d");
+                ConsoleHelper.MarkupLineERROR($"No running {DbProviderName} found. In non-interactive mode, start the database manually or run: docker {DockerRunArguments}");
                 return null;
             }
 
@@ -54,35 +53,24 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
         protected abstract string CreateDatabaseConnectionString(string appName);
 
-        private async Task<bool> IsDockerComposeAvailable()
+        private async Task<bool> IsDockerAvailable()
         {
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string shell = isWin ? "cmd.exe" : "/bin/bash";
-            string args = isWin ? "/c docker compose version" : "-c \"docker compose version\"";
+            string args = isWin ? "/c docker version" : "-c \"docker version\"";
 
             return await ProcessRunner.IsCommandAvailable(shell, args);
         }
 
-        private async Task<bool> StartDockerCompose(string appName)
+        private async Task<bool> StartDockerContainer()
         {
-            string projectRoot = Path.Combine(Environment.CurrentDirectory, appName.ToKebabCase());
-            string dockerComposeDir = Directory.Exists(projectRoot) ? projectRoot : Environment.CurrentDirectory;
-            string dockerComposePath = Path.Combine(dockerComposeDir, "docker-compose.yml");
-
-            if (!File.Exists(dockerComposePath))
-            {
-                ConsoleHelper.MarkupLineLoading("Generating docker-compose.yml...");
-                File.WriteAllText(dockerComposePath, DockerComposeContent);
-                ConsoleHelper.MarkupLineOK($"Created {dockerComposePath}");
-            }
-
-            ConsoleHelper.MarkupLineLoading($"Starting {DbProviderName} via Docker Compose...");
+            ConsoleHelper.MarkupLineLoading($"Starting {DbProviderName} via Docker...");
 
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string shell = isWin ? "cmd.exe" : "/bin/bash";
-            string args = isWin ? "/c docker compose up -d" : "-c \"docker compose up -d\"";
+            string args = isWin ? $"/c docker {DockerRunArguments}" : $"-c \"docker {DockerRunArguments}\"";
 
-            (bool success, string _) = await ProcessRunner.RunCommand(shell, args, dockerComposeDir);
+            (bool success, string _) = await ProcessRunner.RunCommand(shell, args);
 
             if (success)
             {
