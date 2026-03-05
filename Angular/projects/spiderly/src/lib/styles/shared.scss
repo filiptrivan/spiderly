@@ -6,91 +6,6 @@
   }
 }
 
-.spiderly-dashboard-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  border: solid 1px #e0e0e0;
-  border-radius: 5px;
-  padding: 20px 30px;
-  flex-grow: 1;
-
-  &__icon {
-    margin-bottom: 10px;
-    font-size: 3.2em;
-  }
-  &__title {
-    font-size: 1.1em;
-    text-align: center;
-    text-decoration: none !important;
-  }
-  &__bullets {
-  }
-  &__bullet {
-  }
-
-  &__bg {
-    position: absolute;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
-    background-color: #fff;
-    z-index: -5;
-
-    &-icon {
-      position: absolute;
-      bottom: 0px;
-      right: 30px;
-      font-size: 15em;
-      //transform: rotate(-45deg);
-      opacity: 0.04;
-      text-decoration: none !important;
-    }
-  }
-
-  &--eo {
-    min-height: 200px;
-  }
-  &--codebooks {
-    min-height: 100px;
-    cursor: pointer;
-  }
-  &--home {
-    min-height: 160px;
-    cursor: pointer;
-    z-index: 1;
-    &:hover {
-      text-decoration: none;
-
-      .c-dashboard-item__bg {
-        background-color: #f8f8f8;
-      }
-      .c-dashboard-item__bg-icon {
-        opacity: 0.2;
-        transform: rotate(0deg);
-      }
-    }
-
-    .c-dashboard-item__icon {
-      font-size: 4em;
-    }
-    .c-dashboard-item__title {
-      font-size: 1.3em;
-    }
-    .c-dashboard-item__bg-icon {
-      font-size: 9em;
-      right: 40px;
-      bottom: 20px;
-      transform: rotate(-20deg);
-      opacity: 0.1;
-      transition: all 1s;
-    }
-  }
-}
-
 .dashboard-card-wrapper {
   display: flex;
   flex-direction: column;
@@ -439,13 +354,6 @@
   @media (min-width: 600px) {
     font-size: 4.5rem;
   }
-}
-
-ul,
-ol {
-  padding-left: 25px;
-  margin-top: 10px;
-  margin-bottom: 10px;
 }
 
 $grid-columns: 8;
