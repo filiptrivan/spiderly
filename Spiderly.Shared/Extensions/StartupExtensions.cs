@@ -256,7 +256,10 @@ namespace Spiderly.Shared.Extensions
 
             app.SpiderlyConfigureLocalization();
 
-            app.SpiderlyConfigureSwagger();
+            if (env.IsDevelopment())
+            {
+                app.SpiderlyConfigureSwagger();
+            }
 
             if (env.IsProduction())
             {
