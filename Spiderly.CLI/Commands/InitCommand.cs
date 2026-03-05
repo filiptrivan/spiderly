@@ -2,11 +2,9 @@ using CaseConverter;
 using Spectre.Console;
 using Spiderly.CLI.Services;
 using Spiderly.CLI.Services.Database.DbConnectionStringBuilder;
-using Spiderly.CLI.Services.Database.OS;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI.Commands
@@ -48,9 +46,8 @@ namespace Spiderly.CLI.Commands
 
             if (!skipDatabaseSetup)
             {
-                BaseOSInstaller osInstaller = GetOSInstaller(dbProvider);
-                BaseDbConnectionStringBuilder databaseInstaller = GetDatabaseInstaller(dbProvider, osInstaller);
-                connectionString = await databaseInstaller.CreateConnectionString(appName);
+                BaseDbConnectionStringBuilder dbConnectionStringBuilder = GetDatabaseConnectionStringBuilder(dbProvider);
+                connectionString = await dbConnectionStringBuilder.CreateConnectionString(appName);
 
                 if (connectionString == null)
                 {
@@ -327,34 +324,14 @@ namespace Spiderly.CLI.Commands
             return !Console.IsInputRedirected && Environment.UserInteractive;
         }
 
-        private static BaseOSInstaller GetOSInstaller(DbProviderCodes dbProvider)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return new WindowsInstaller(dbProvider);
-            }
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                return new LinuxInstaller(dbProvider);
-            }
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return new MacInstaller(dbProvider);
-            }
-
-            throw new PlatformNotSupportedException("Unsupported operating system");
-        }
-
-        private static BaseDbConnectionStringBuilder GetDatabaseInstaller(DbProviderCodes dbProvider, BaseOSInstaller osInstaller)
+        private static BaseDbConnectionStringBuilder GetDatabaseConnectionStringBuilder(DbProviderCodes dbProvider)
         {
             if (dbProvider == DbProviderCodes.SQLServer)
             {
-                return new SQLServerConnectionStringBuilder(osInstaller);
+                return new SQLServerConnectionStringBuilder();
             }
 
-            return new PostgreSQLConnectionStringBuilder(osInstaller);
+            return new PostgreSQLConnectionStringBuilder();
         }
     }
 }

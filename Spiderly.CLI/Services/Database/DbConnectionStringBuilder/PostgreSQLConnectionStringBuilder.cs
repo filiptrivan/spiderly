@@ -1,5 +1,4 @@
 using Spectre.Console;
-using Spiderly.CLI.Services.Database.OS;
 using Spiderly.Shared.Helpers;
 
 namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
@@ -9,43 +8,51 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected override string DbProviderName => "PostgreSQL";
         protected override string ManualInstallUrl => "https://www.postgresql.org/download/";
 
-        public PostgreSQLConnectionStringBuilder(BaseOSInstaller installer) : base(installer)
-        {
-        }
+        protected override string DockerComposeContent => """
+            services:
+              db:
+                image: postgres:latest
+                container_name: spiderly-postgres
+                environment:
+                  POSTGRES_PASSWORD: postgres
+                ports:
+                  - "54320:5432"
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
 
-        protected override async Task<bool> IsDatabaseServiceRunning()
-        {
-            return await Installer.IsPostgreSQLServiceRunning();
-        }
-
-        protected override async Task<bool> InstallDatabaseProvider()
-        {
-            return await Installer.InstallPostgreSQL();
-        }
+            volumes:
+              postgres_data:
+            """.Replace("            ", "");
 
         protected override string CreateDatabaseConnectionString(string appName)
         {
             string connectionString = Helper.CreatePostgreSQLConnectionString(appName);
 
-            if (connectionString == null)
+            if (connectionString != null)
             {
-                ConsoleHelper.MarkupLineWARNING("We tried to connect to the database with a couple of standard passwords without success. Please enter the password for the 'postgres' user:");
+                return connectionString;
+            }
 
-                while (connectionString == null)
+            if (!ConsoleHelper.IsInteractive())
+            {
+                return null;
+            }
+
+            ConsoleHelper.MarkupLineWARNING("We tried to connect to the database with a couple of standard passwords without success. Please enter the password for the 'postgres' user:");
+
+            while (connectionString == null)
+            {
+                string password = AnsiConsole.Prompt(new TextPrompt<string>("Password:"));
+
+                connectionString = Helper.CreatePostgreSQLConnectionString(appName, password);
+
+                if (connectionString == null)
                 {
-                    string password = AnsiConsole.Prompt(new TextPrompt<string>("Password:"));
-
-                    connectionString = Helper.CreatePostgreSQLConnectionString(appName, password);
-
-                    if (connectionString == null)
-                    {
-                        ConsoleHelper.MarkupLineERROR("Invalid password. Please try again.");
-                    }
+                    ConsoleHelper.MarkupLineERROR("Invalid password. Please try again.");
                 }
             }
 
             return connectionString;
         }
-
     }
 }

@@ -1,74 +1,96 @@
+using CaseConverter;
 using Spectre.Console;
-using Spiderly.CLI.Services.Database.OS;
-using Spiderly.Shared.Helpers;
+using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 {
     public abstract class BaseDbConnectionStringBuilder
     {
         protected abstract string DbProviderName { get; }
+        protected abstract string DockerComposeContent { get; }
         protected abstract string ManualInstallUrl { get; }
-        protected BaseOSInstaller Installer { get; }
-
-        protected BaseDbConnectionStringBuilder(BaseOSInstaller installer)
-        {
-            Installer = installer;
-        }
 
         public async Task<string> CreateConnectionString(string appName)
         {
-            ConsoleHelper.MarkupLineLoading(Installer.GetCheckingServiceMessage(DbProviderName));
+            ConsoleHelper.MarkupLineLoading($"Looking for a running {DbProviderName} instance...");
 
-            bool isServiceRunning = await IsDatabaseServiceRunning();
-            string connectionString;
+            string connectionString = CreateDatabaseConnectionString(appName);
 
-            if (isServiceRunning)
+            if (connectionString != null)
             {
-                ConsoleHelper.MarkupLineOK(Installer.GetServiceRunningMessage(DbProviderName));
-
-                ConsoleHelper.MarkupLineLoading($"Connecting to database...");
-                connectionString = CreateDatabaseConnectionString(appName);
-
-                if (connectionString == null)
-                {
-                    return null;
-                }
-
                 return connectionString;
             }
 
-            if (
-                ConsoleHelper.IsInteractive() &&
-                ConsoleHelper.PromptYesNo(Installer.GetInstallPrompt(DbProviderName))
-            )
+            bool isDockerAvailable = await IsDockerComposeAvailable();
+
+            if (isDockerAvailable && ConsoleHelper.IsInteractive())
             {
-                bool installed = await InstallDatabaseProvider();
-                if (installed)
+                if (ConsoleHelper.PromptYesNo($"No running {DbProviderName} found. Install via Docker?"))
                 {
-                    ConsoleHelper.MarkupLineOK($"{DbProviderName} has been installed successfully!");
-
-                    connectionString = await TryCreateDatabaseConnectionString(appName);
-
-                    if (connectionString == null)
+                    if (await StartDockerCompose(appName))
                     {
-                        return null;
+                        connectionString = await TryCreateDatabaseConnectionString(appName);
+                        if (connectionString != null)
+                        {
+                            return connectionString;
+                        }
                     }
 
-                    return connectionString;
+                    ConsoleHelper.MarkupLineERROR($"Failed to start {DbProviderName} via Docker.");
+                    return null;
                 }
-
-                ConsoleHelper.MarkupLineERROR($"{DbProviderName} installation failed.");
+            }
+            else if (isDockerAvailable)
+            {
+                ConsoleHelper.MarkupLineERROR($"No running {DbProviderName} found. In non-interactive mode, start the database manually or run: docker compose up -d");
                 return null;
             }
 
-            Installer.ShowDeclinedInstallMessage(DbProviderName, ManualInstallUrl);
-
+            ConsoleHelper.MarkupLineERROR($"No running {DbProviderName} found and Docker is not available.");
+            AnsiConsole.MarkupLine($"Install {DbProviderName} from: [link]{ManualInstallUrl}[/]");
+            AnsiConsole.MarkupLine("Or install Docker: [link]https://docs.docker.com/get-docker/[/]");
             return null;
         }
 
-        protected abstract Task<bool> InstallDatabaseProvider();
         protected abstract string CreateDatabaseConnectionString(string appName);
-        protected abstract Task<bool> IsDatabaseServiceRunning();
+
+        private async Task<bool> IsDockerComposeAvailable()
+        {
+            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            string shell = isWin ? "cmd.exe" : "/bin/bash";
+            string args = isWin ? "/c docker compose version" : "-c \"docker compose version\"";
+
+            return await ProcessRunner.IsCommandAvailable(shell, args);
+        }
+
+        private async Task<bool> StartDockerCompose(string appName)
+        {
+            string projectRoot = Path.Combine(Environment.CurrentDirectory, appName.ToKebabCase());
+            string dockerComposeDir = Directory.Exists(projectRoot) ? projectRoot : Environment.CurrentDirectory;
+            string dockerComposePath = Path.Combine(dockerComposeDir, "docker-compose.yml");
+
+            if (!File.Exists(dockerComposePath))
+            {
+                ConsoleHelper.MarkupLineLoading("Generating docker-compose.yml...");
+                File.WriteAllText(dockerComposePath, DockerComposeContent);
+                ConsoleHelper.MarkupLineOK($"Created {dockerComposePath}");
+            }
+
+            ConsoleHelper.MarkupLineLoading($"Starting {DbProviderName} via Docker Compose...");
+
+            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            string shell = isWin ? "cmd.exe" : "/bin/bash";
+            string args = isWin ? "/c docker compose up -d" : "-c \"docker compose up -d\"";
+
+            (bool success, string _) = await ProcessRunner.RunCommand(shell, args, dockerComposeDir);
+
+            if (success)
+            {
+                ConsoleHelper.MarkupLineOK($"{DbProviderName} container started.");
+            }
+
+            return success;
+        }
 
         private async Task<string> TryCreateDatabaseConnectionString(string appName)
         {

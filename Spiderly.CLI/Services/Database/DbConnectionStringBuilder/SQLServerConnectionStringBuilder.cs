@@ -1,4 +1,3 @@
-using Spiderly.CLI.Services.Database.OS;
 using Spiderly.Shared.Helpers;
 
 namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
@@ -8,23 +7,26 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected override string DbProviderName => "SQL Server";
         protected override string ManualInstallUrl => "https://www.microsoft.com/en-us/sql-server/sql-server-downloads";
 
-        public SQLServerConnectionStringBuilder(BaseOSInstaller installer) : base(installer)
-        {
-        }
+        protected override string DockerComposeContent => """
+            services:
+              db:
+                image: mcr.microsoft.com/mssql/server:2022-latest
+                container_name: spiderly-sqlserver
+                environment:
+                  ACCEPT_EULA: "Y"
+                  MSSQL_SA_PASSWORD: "SqlServer123"
+                ports:
+                  - "14330:1433"
+                volumes:
+                  - sqlserver_data:/var/opt/mssql
 
-        protected override async Task<bool> InstallDatabaseProvider()
-        {
-            return await Installer.InstallSqlServer();
-        }
+            volumes:
+              sqlserver_data:
+            """.Replace("            ", "");
 
         protected override string CreateDatabaseConnectionString(string appName)
         {
             return Helper.CreateSqlServerConnectionString(appName);
-        }
-
-        protected override async Task<bool> IsDatabaseServiceRunning()
-        {
-            return await Installer.IsSqlServerServiceRunning();
         }
     }
 }
