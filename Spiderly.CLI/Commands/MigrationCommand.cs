@@ -55,6 +55,12 @@ namespace Spiderly.CLI.Commands
             ConsoleHelper.MarkupLineLoading($"{operationName}...");
             (bool success, _) = await ProcessRunner.RunCommand("dotnet", fullArgs, infrastructurePath);
 
+            if (!success)
+            {
+                ConsoleHelper.MarkupLineLoading("Running dotnet build to show detailed errors...");
+                await ProcessRunner.RunCommand("dotnet", $"build {webApiCsprojRelativePath}", infrastructurePath);
+            }
+
             return success ? 0 : 1;
         }
 

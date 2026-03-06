@@ -403,11 +403,7 @@ namespace Spiderly.Shared.Helpers
                     new SpiderlyFolder
                     {
                         Name = $"{appName}.Infrastructure",
-                        Files =
-                        {
-                            new SpiderlyFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
-                            new SpiderlyFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, spiderlyVersion, isRunningFromNuget) },
-                        }
+                        Files = GetInfrastructureFiles(appName, spiderlyVersion, isRunningFromNuget, dbProvider)
                     },
                     new SpiderlyFolder
                     {
@@ -3170,7 +3166,44 @@ namespace {{appName}}.WebAPI.DI
 """;
     }
 
-    private static string GetInfrastructureCsProjData(string appName, string version, bool isRunningFromNuget)
+    private static List<SpiderlyFile> GetInfrastructureFiles(string appName, string spiderlyVersion, bool isRunningFromNuget, DbProviderCodes dbProvider)
+    {
+        List<SpiderlyFile> files = new()
+        {
+            new SpiderlyFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
+            new SpiderlyFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, spiderlyVersion, isRunningFromNuget, dbProvider) },
+        };
+
+        if (dbProvider == DbProviderCodes.PostgreSQL)
+        {
+            files.Add(new SpiderlyFile { Name = "HangfireStorageExtensions.cs", Data = GetHangfireStorageExtensionsCsData(appName) });
+        }
+
+        return files;
+    }
+
+    private static string GetHangfireStorageExtensionsCsData(string appName)
+    {
+      return $$"""
+using Hangfire;
+using Hangfire.PostgreSql;
+
+namespace {{appName}}.Infrastructure
+{
+    public static class HangfireStorageExtensions
+    {
+        public static IGlobalConfiguration UseHangfirePostgreSqlStorage(this IGlobalConfiguration config, string connectionString)
+        {
+            return config.UsePostgreSqlStorage(options =>
+                options.UseNpgsqlConnection(connectionString)
+            );
+        }
+    }
+}
+""";
+    }
+
+    private static string GetInfrastructureCsProjData(string appName, string version, bool isRunningFromNuget, DbProviderCodes dbProvider)
     {
       return $$"""
 <Project Sdk="Microsoft.NET.Sdk">
@@ -3181,6 +3214,7 @@ namespace {{appName}}.WebAPI.DI
 	</PropertyGroup>
 
 	<ItemGroup>
+{{(dbProvider == DbProviderCodes.PostgreSQL ? "\t\t<PackageReference Include=\"Hangfire.PostgreSql\" Version=\"1.20.*\" />" : "")}}
 	</ItemGroup>
 
 	<ItemGroup>
