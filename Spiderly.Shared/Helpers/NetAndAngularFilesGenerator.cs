@@ -822,8 +822,8 @@ export class NotificationDetailsComponent extends BaseFormComponent<Notification
         }
     };
 
-    override onBeforeSave = (): void => {
-        this.saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
+    override onBeforeSave = (saveBody: NotificationSaveBody): void => {
+        saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
     };
 }
 
@@ -5241,7 +5241,7 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
     {
       if (shouldComment)
       {
-        return $"// {input}";
+        return $"/* {input} */";
       }
 
       return input;
