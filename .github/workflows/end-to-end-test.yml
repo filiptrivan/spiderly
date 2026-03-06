@@ -164,7 +164,7 @@ jobs:
 
           echo "Building Angular frontend..."
           cd "$FRONTEND_PATH"
-          npm run build
+          npm run build -- --configuration=development
           if [ $? -ne 0 ]; then
             echo "ERROR: Angular build failed"
             exit 1
@@ -216,7 +216,7 @@ jobs:
                 reuseExistingServer: false,
               },
               {
-                command: 'npm run start',
+                command: 'npx -y serve dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
                 url: 'http://localhost:4200',
                 timeout: 120000,
                 reuseExistingServer: false,
