@@ -215,12 +215,16 @@ jobs:
                 url: 'http://localhost:5000',
                 timeout: 120000,
                 reuseExistingServer: false,
+                stdout: 'pipe',
+                stderr: 'pipe',
               },
               {
                 command: 'npx -y serve dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
                 url: 'http://localhost:4200',
                 timeout: 120000,
                 reuseExistingServer: false,
+                stdout: 'pipe',
+                stderr: 'pipe',
               },
             ],
           });
