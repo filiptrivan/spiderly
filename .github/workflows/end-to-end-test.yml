@@ -11,7 +11,6 @@ env:
   DOTNET_VERSION: "9.0.x"
   NODE_VERSION: "24"
   TEST_APP_NAME: "TestApp"
-  APP_FOLDER: "../test-app"
 
 jobs:
   integration-test:
@@ -22,6 +21,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set environment paths
+        run: echo "APP_FOLDER=$(dirname "$GITHUB_WORKSPACE")/test-app" >> $GITHUB_ENV
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -363,7 +365,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: ../test-app/Frontend/playwright-report/
+          path: ${{ env.APP_FOLDER }}/Frontend/playwright-report/
           retention-days: 7
 
       - name: Upload test videos
@@ -371,7 +373,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-videos
-          path: ../test-app/Frontend/test-results/
+          path: ${{ env.APP_FOLDER }}/Frontend/test-results/
           retention-days: 7
 
       - name: Test Summary
