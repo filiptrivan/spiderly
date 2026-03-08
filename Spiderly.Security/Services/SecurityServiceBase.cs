@@ -77,7 +77,8 @@ namespace Spiderly.Security.Services
             {
                 return new SendLoginVerificationEmailResultDTO
                 {
-                    Message = string.Format(SharedTerms.VerificationCodeDevelopmentMode, verificationCode)
+                    Message = string.Format(SharedTerms.VerificationCodeDevelopmentMode, verificationCode),
+                    VerificationCode = verificationCode
                 };
             }
 
