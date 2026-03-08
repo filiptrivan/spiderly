@@ -212,7 +212,7 @@ jobs:
               {
                 command: 'dotnet run --no-build -c Release --urls=http://localhost:5000',
                 cwd: '../Backend/${{ env.TEST_APP_NAME }}.WebAPI',
-                url: 'http://localhost:5000',
+                port: 5000,
                 timeout: 120000,
                 reuseExistingServer: false,
                 stdout: 'pipe',
