@@ -12,24 +12,12 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 
 ## Project structure
 
-```
-spiderly/
-├── Spiderly.Shared/          # Core: attributes (44), base entities, DTOs, enums, interfaces, helpers
-├── Spiderly.SourceGenerators/ # IIncrementalGenerator-based code generators (netstandard2.0)
-│   ├── Net/                   # .NET generators (controllers, DTOs, validators, mappers, etc.)
-│   │   └── Services/          # Service generators (ServicesGenerator + helper generators)
-│   ├── Angular/               # Angular generators (entities, controllers, validators, enums)
-│   │   └── BaseDetails/       # Base details generators (NgBaseDetailsGenerator + helper generators)
-│   ├── Shared/                # Helpers.cs (core reflection/analysis), Extensions.cs, Validations.cs
-│   ├── Models/                # SpiderlyClass, SpiderlyProperty, SpiderlyAttribute, etc.
-│   └── Enums/                 # UIControlTypeCodes, CrudCodes, NamespaceExtensionCodes, etc.
-├── Spiderly.Infrastructure/   # ApplicationDbContext<TUser>, M2M/M2O config, concurrency, audit tracking
-├── Spiderly.Security/         # JWT auth, Google OAuth, token management, permission-based authorization
-├── Spiderly.CLI/              # `spiderly` CLI tool (init, add-new-entity, migrations)
-├── Angular/                   # Angular library (npm: "spiderly")
-│   └── projects/spiderly/     # UI controls, layout, data table, auth, forms, interceptors, guards
-└── Spiderly.sln
-```
+- **Spiderly.Shared** — Core: attributes (44), base entities, DTOs, enums, interfaces, helpers
+- **Spiderly.SourceGenerators** — IIncrementalGenerator-based code generators (netstandard2.0). Subfolders: `Net/` (.NET generators), `Angular/` (Angular generators), `Shared/` (Helpers.cs, Extensions.cs), `Models/`, `Enums/`
+- **Spiderly.Infrastructure** — ApplicationDbContext<TUser>, M2M/M2O config, concurrency, audit tracking
+- **Spiderly.Security** — JWT auth, Google OAuth, token management, permission-based authorization
+- **Spiderly.CLI** — `spiderly` CLI tool (init, add-new-entity, migrations)
+- **Angular/** — Angular library (npm: "spiderly"). UI controls, layout, data table, auth, forms, interceptors
 
 ## Build commands
 
@@ -55,54 +43,31 @@ cd Angular && npm run lint
 # Run Spiderly.CLI/cli-local-pack.ps1
 ```
 
-## Architecture deep dive
+## Architecture
 
 ### Source generators
 
-All 15 generators implement `IIncrementalGenerator` (Roslyn incremental source generation). They:
-1. Discover entity classes in the `*.Entities` namespace that inherit `BusinessObject<T>` or `ReadonlyObject<T>`
-2. Read attributes on those entities/properties via Roslyn syntax analysis
-3. Generate `*.generated.cs` files (.NET) and `*.generated.ts` files (Angular) using CodegenCS
-4. Generated files are written to the consumer's project — Spiderly itself doesn't contain generated output
+All 15 generators implement `IIncrementalGenerator` (Roslyn incremental source generation). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>` or `ReadonlyObject<T>`, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
 
-Key shared logic lives in `Spiderly.SourceGenerators/Shared/Helpers.cs` (~1,566 lines) — entity discovery, property analysis, base class resolution, attribute extraction.
-
-The `SourceGenerators` project targets **netstandard2.0** (Roslyn requirement) and ships as an analyzer in the NuGet package.
+Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` (~1,566 lines) — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
 
 ### Attribute-driven generation
 
 Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
-- **Entity attributes**: `M2M`, `M2MWithMany`, `WithMany`, `CascadeDelete`, `SetNull`, `DisplayName`, `DoNotAuthorize`, `Controller`
-- **UI attributes**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
-- **Validation attributes**: `GreaterThanOrEqual`, `CustomValidator`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
-- **Storage attributes**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
-- **Translations**: JSON files in `{Shared}/Translations/` (not attributes). Auto-scaffolded by `TranslationsGenerator`.
+- **Entity**: `M2M`, `M2MWithMany`, `WithMany`, `CascadeDelete`, `SetNull`, `DisplayName`, `DoNotAuthorize`, `Controller`
+- **UI**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
+- **Validation**: `GreaterThanOrEqual`, `CustomValidator`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
+- **Storage**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
+- **Translations**: JSON files in `{Shared}/Translations/` (auto-scaffolded by `TranslationsGenerator`)
 
 ### Base entities
 
 - `BusinessObject<T>` (T = long/int/byte) — Id, Version (optimistic concurrency via `[ConcurrencyCheck]`), CreatedAt, ModifiedAt
 - `ReadonlyObject<T>` — for lookup/reference tables (no CRUD generation, no timestamps)
 
-### Angular library
+### Versioning
 
-Published as npm package "spiderly". Provides:
-- 13+ UI control components (autocomplete, calendar, checkbox, dropdown, editor, file, multiselect, etc.) wrapping PrimeNG
-- Layout system (sidebar, topbar, profile avatar)
-- Data table and data view components with pagination/filtering
-- Auth system (login, JWT interceptor, auth guard, Google sign-in)
-- Base form class, form controls, validation service
-- HTTP interceptors (loading spinner, JWT, unauthorized redirect, JSON parser)
-- Localization via `@jsverse/transloco` (EN + SR-Latn-RS)
-
-### Release pipeline
-
-Versioning: `X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version.
-
-Published artifacts:
-- **NuGet**: Spiderly.Shared, Spiderly.SourceGenerators, Spiderly.Security, Spiderly.Infrastructure, Spiderly.CLI
-- **npm**: spiderly (Angular library)
-
-Version is stored in each `.csproj` `<Version>` tag and `Angular/projects/spiderly/package.json`.
+`X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag and `Angular/projects/spiderly/package.json`.
 
 ## Documentation updates
 
