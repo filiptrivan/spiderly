@@ -235,6 +235,7 @@ jobs:
 
           test.describe('Product CRUD Operations', () => {
             let accessToken: string;
+            let refreshToken: string;
             let productId: number;
 
             test.beforeAll(async ({ request }) => {
@@ -260,6 +261,7 @@ jobs:
               expect(loginResponse.ok()).toBeTruthy();
               const loginResult = await loginResponse.json();
               accessToken = loginResult.accessToken;
+              refreshToken = loginResult.refreshToken;
               expect(accessToken).toBeTruthy();
             });
 
@@ -296,19 +298,29 @@ jobs:
               expect(Array.isArray(products)).toBeTruthy();
             });
 
-            test('should load the application homepage', async ({ page }) => {
+            async function authenticateBrowser(page: any) {
               await page.goto('/');
+              await page.evaluate(([at, rt]: [string, string]) => {
+                localStorage.setItem('access_token', at);
+                localStorage.setItem('refresh_token', rt);
+                localStorage.setItem('browser_id', 'e2e-browser');
+              }, [accessToken, refreshToken]);
+              await page.reload();
+              await page.waitForLoadState('networkidle');
+            }
+
+            test('should load the application homepage', async ({ page }) => {
+              await authenticateBrowser(page);
               await expect(page).toHaveTitle(/${{ env.TEST_APP_NAME }}/);
+              await expect(page).not.toHaveURL(/.*login.*/);
             });
 
             test('should navigate to product list page', async ({ page }) => {
-              await page.goto('/');
-              await page.waitForLoadState('networkidle');
+              await authenticateBrowser(page);
               const productLink = page.locator('text=Product').first();
-              if (await productLink.isVisible()) {
-                await productLink.click();
-                await page.waitForURL('**/product**');
-              }
+              await expect(productLink).toBeVisible();
+              await productLink.click();
+              await page.waitForURL('**/product**');
             });
 
             test('should update product via API', async ({ request }) => {
