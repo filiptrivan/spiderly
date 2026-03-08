@@ -11,7 +11,7 @@ env:
   DOTNET_VERSION: "9.0.x"
   NODE_VERSION: "24"
   TEST_APP_NAME: "TestApp"
-  APP_FOLDER: "test-app"
+  APP_FOLDER: "../test-app"
 
 jobs:
   integration-test:
@@ -53,13 +53,11 @@ jobs:
           dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
           dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
 
-      - name: Setup folder structure for --dev mode
-        run: |
-          ln -s . spiderly
-
       - name: Run Spiderly init
         run: |
           export PATH="$HOME/.dotnet/tools:$PATH"
+
+          cd ..
 
           echo "Running spiderly init with app name: ${{ env.TEST_APP_NAME }}"
           spiderly init --dev --name "${{ env.TEST_APP_NAME }}" --db postgresql
@@ -139,7 +137,7 @@ jobs:
       - name: Install Spiderly Angular library dependencies
         run: |
           echo "Installing Spiderly Angular library dependencies..."
-          cd spiderly/Angular
+          cd Angular
           npm ci
           if [ $? -ne 0 ]; then
             echo "ERROR: npm ci for Spiderly Angular failed"
@@ -365,7 +363,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: test-app/Frontend/playwright-report/
+          path: ../test-app/Frontend/playwright-report/
           retention-days: 7
 
       - name: Upload test videos
@@ -373,7 +371,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-videos
-          path: test-app/Frontend/test-results/
+          path: ../test-app/Frontend/test-results/
           retention-days: 7
 
       - name: Test Summary
