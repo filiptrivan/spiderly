@@ -47,13 +47,14 @@ cd Angular && npm run lint
 
 ### Source generators
 
-All 15 generators implement `IIncrementalGenerator` (Roslyn incremental source generation). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>` or `ReadonlyObject<T>`, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
+All 15 generators implement `IIncrementalGenerator` (Roslyn incremental source generation). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
 
-Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` (~1,566 lines) — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
+Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
 
 ### Attribute-driven generation
 
 Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
+
 - **Entity**: `M2M`, `M2MWithMany`, `WithMany`, `CascadeDelete`, `SetNull`, `DisplayName`, `DoNotAuthorize`, `Controller`
 - **UI**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
 - **Validation**: `GreaterThanOrEqual`, `CustomValidator`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
