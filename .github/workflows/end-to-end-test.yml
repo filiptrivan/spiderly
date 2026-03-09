@@ -69,11 +69,17 @@ jobs:
             exit 1
           fi
 
-      - name: Add test entity
+      - name: Add test entity via CLI
+        run: |
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          cd ${{ env.APP_FOLDER }}
+          spiderly add-new-entity --name Product
+          echo "✓ Added test entity via CLI (entity file + Angular pages + routes + menu item)"
+
+      - name: Overwrite entity with detailed properties
         run: |
           APP_NAME="${{ env.TEST_APP_NAME }}"
-          ENTITIES_PATH="${{ env.APP_FOLDER }}/Backend/$APP_NAME.Business/Entities"
-          ENTITY_FILE="$ENTITIES_PATH/Product.cs"
+          ENTITY_FILE="${{ env.APP_FOLDER }}/Backend/$APP_NAME.Business/Entities/Product.cs"
 
           cat > "$ENTITY_FILE" <<'PRODUCTCS'
           using System.ComponentModel.DataAnnotations;
@@ -107,7 +113,7 @@ jobs:
               }
           }
           PRODUCTCS
-          echo "✓ Created test entity: Product.cs"
+          echo "✓ Overwrote Product.cs with detailed properties"
 
       - name: Build .NET backend
         run: |

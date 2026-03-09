@@ -36,8 +36,9 @@ namespace Spiderly.CLI
             else if (args.HasArg("add-new-entity"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
+                string entityName = args.GetArgValue("--name");
 
-                await AddNewEntityCommand.Execute(shouldGenerateDataView);
+                await AddNewEntityCommand.Execute(shouldGenerateDataView, entityName);
                 return 0;
             }
             else if (args.HasArg("add-migration"))

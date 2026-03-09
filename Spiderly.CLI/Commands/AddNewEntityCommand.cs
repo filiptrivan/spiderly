@@ -9,25 +9,28 @@ namespace Spiderly.CLI.Commands
 {
     internal static class AddNewEntityCommand
     {
-        public static async Task Execute(bool shouldGenerateDataView)
+        public static async Task Execute(bool shouldGenerateDataView, string entityName = null)
         {
-            string entityName = AnsiConsole.Prompt(
-                new TextPrompt<string>("Entity name without spaces (e.g., YourEntityName):")
-                    .PromptStyle("blue")
-                    .ValidationErrorMessage("[red]Entity name can't be empty or contain spaces[/]")
-                    .Validate(name =>
-                    {
-                        if (string.IsNullOrWhiteSpace(name))
-                            return ValidationResult.Error("[red]Entity name can't be null or empty[/]");
+            if (string.IsNullOrWhiteSpace(entityName))
+            {
+                entityName = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Entity name without spaces (e.g., YourEntityName):")
+                        .PromptStyle("blue")
+                        .ValidationErrorMessage("[red]Entity name can't be empty or contain spaces[/]")
+                        .Validate(name =>
+                        {
+                            if (string.IsNullOrWhiteSpace(name))
+                                return ValidationResult.Error("[red]Entity name can't be null or empty[/]");
 
-                        if (name.Contains(" "))
-                            return ValidationResult.Error("[red]Entity name can't have spaces[/]");
+                            if (name.Contains(" "))
+                                return ValidationResult.Error("[red]Entity name can't have spaces[/]");
 
-                        if (!char.IsUpper(name[0]))
-                            return ValidationResult.Error("[red]Entity name must start with an uppercase letter (PascalCase)[/]");
+                            if (!char.IsUpper(name[0]))
+                                return ValidationResult.Error("[red]Entity name must start with an uppercase letter (PascalCase)[/]");
 
-                        return ValidationResult.Success();
-                    }));
+                            return ValidationResult.Success();
+                        }));
+            }
 
             ConsoleHelper.MarkupLineLoading("Generating files for the entity...");
 
