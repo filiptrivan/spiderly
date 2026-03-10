@@ -95,7 +95,7 @@ jobs:
           npm config set registry http://localhost:4873/
 
           cd Angular/dist/spiderly
-          npm publish --registry http://localhost:4873/
+          npm publish --registry http://localhost:4873/ --tag latest
 
       - name: Run Spiderly init
         run: |
