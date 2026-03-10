@@ -44,16 +44,58 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef --version 9.0.1
 
-      - name: Build and pack Spiderly.CLI
+      - name: Build and pack all Spiderly packages
         run: |
           dotnet restore
           dotnet build -c Release
-          dotnet pack Spiderly.CLI/Spiderly.CLI.csproj -c Release -o ./nupkg
+          dotnet pack -c Release -o ./nupkg --no-build
 
       - name: Install Spiderly.CLI
         run: |
           dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
           dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
+
+      - name: Add local NuGet source
+        run: dotnet nuget add source "$(pwd)/nupkg" --name local-spiderly
+
+      - name: Build Spiderly Angular library
+        run: |
+          cd Angular
+          npm ci
+          npm run build -- spiderly --configuration production
+
+      - name: Setup Verdaccio and publish spiderly package
+        run: |
+          npm install -g verdaccio
+
+          mkdir -p ~/.config/verdaccio
+          cat > ~/.config/verdaccio/config.yaml << 'EOF'
+          storage: ./storage
+          uplinks:
+            npmjs:
+              url: https://registry.npmjs.org/
+          packages:
+            'spiderly':
+              access: $all
+              publish: $anonymous
+            '@*/*':
+              access: $all
+              proxy: npmjs
+            '**':
+              access: $all
+              proxy: npmjs
+          log: { type: stdout, format: pretty, level: warn }
+          EOF
+
+          verdaccio --config ~/.config/verdaccio/config.yaml &
+
+          timeout 30 bash -c 'until curl -sf http://localhost:4873/-/ping > /dev/null 2>&1; do sleep 0.5; done'
+          echo "Verdaccio is ready"
+
+          npm config set registry http://localhost:4873/
+
+          cd Angular/dist/spiderly
+          npm publish --registry http://localhost:4873/
 
       - name: Run Spiderly init
         run: |
@@ -62,7 +104,7 @@ jobs:
           cd ..
 
           echo "Running spiderly init with app name: ${{ env.TEST_APP_NAME }}"
-          spiderly init --dev --name "${{ env.TEST_APP_NAME }}" --db postgresql
+          spiderly init --name "${{ env.TEST_APP_NAME }}" --db postgresql
 
           if [ $? -ne 0 ]; then
             echo "ERROR: spiderly init failed with exit code $?"
@@ -141,18 +183,6 @@ jobs:
 
           echo "Updating database..."
           dotnet ef database update --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
-
-      - name: Install frontend dependencies
-        run: |
-          FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
-
-          echo "Installing frontend packages..."
-          cd "$FRONTEND_PATH"
-          npm ci
-          if [ $? -ne 0 ]; then
-            echo "ERROR: npm ci failed"
-            exit 1
-          fi
 
       - name: Build Angular frontend
         run: |
