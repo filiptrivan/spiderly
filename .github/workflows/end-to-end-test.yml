@@ -93,6 +93,7 @@ jobs:
           echo "Verdaccio is ready"
 
           npm config set registry http://localhost:4873/
+          npm config set //localhost:4873/:_authToken "fake-token"
 
           cd Angular/dist/spiderly
           npm publish --registry http://localhost:4873/ --tag latest
