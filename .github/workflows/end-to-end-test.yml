@@ -142,16 +142,6 @@ jobs:
           echo "Updating database..."
           dotnet ef database update --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
 
-      - name: Install Spiderly Angular library dependencies
-        run: |
-          echo "Installing Spiderly Angular library dependencies..."
-          cd Angular
-          npm ci
-          if [ $? -ne 0 ]; then
-            echo "ERROR: npm ci for Spiderly Angular failed"
-            exit 1
-          fi
-
       - name: Install frontend dependencies
         run: |
           FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"

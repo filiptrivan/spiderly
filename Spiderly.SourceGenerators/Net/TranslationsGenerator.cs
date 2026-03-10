@@ -128,7 +128,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 if (!translations.ContainsKey(key))
                 {
-                    translations[key] = "";
+                    translations[key] = key.SplitCamelCase();
                 }
             }
         }
