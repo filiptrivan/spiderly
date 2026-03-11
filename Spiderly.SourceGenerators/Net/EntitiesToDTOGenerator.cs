@@ -99,8 +99,10 @@ namespace {{basePartOfNamespace}}.DTO
                 if (property.EntityName != currentProjectDTOClass.Name)
                     continue;
 
+                string listInitializer = property.Type.IsEnumerable() ? " = new();" : "";
+
                 result.Add($$"""
-        public {{property.Type}} {{property.Name}} { get; set; }
+        public {{property.Type}} {{property.Name}} { get; set; }{{listInitializer}}
 """);
             }
 
