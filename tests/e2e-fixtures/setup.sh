@@ -33,6 +33,7 @@ find "$ENTITIES_DIR" "$INFRA_DIR" -name "*.cs" -exec sed -i "s/__APP_NAME__/$APP
 
 # --- Copy E2E test specs ---
 echo "Copying E2E test specs..."
+mkdir -p "$E2E_DIR"
 cp "$SCRIPT_DIR/frontend/tests/e2e/specs/"*.spec.ts "$E2E_DIR/"
 
 # --- Copy page objects (overwrites base-page.ts) ---
