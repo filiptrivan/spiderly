@@ -34,6 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Setup PostgreSQL
         run: |
@@ -48,11 +49,10 @@ jobs:
         run: |
           dotnet restore
           dotnet build -c Release
-          dotnet pack -c Release -o ./nupkg --no-build
+          dotnet pack -c Release -o ./nupkg
 
       - name: Install Spiderly.CLI
         run: |
-          dotnet tool uninstall --global Spiderly.CLI 2>/dev/null || true
           dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
 
       - name: Add local NuGet source
