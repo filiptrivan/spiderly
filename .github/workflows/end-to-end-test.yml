@@ -16,7 +16,7 @@ jobs:
   integration-test:
     name: Test CLI Generated Application
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -115,51 +115,19 @@ jobs:
             exit 1
           fi
 
-      - name: Add test entity via CLI
+      - name: Add test entities via CLI
         run: |
           export PATH="$HOME/.dotnet/tools:$PATH"
           cd ${{ env.APP_FOLDER }}
           spiderly add-new-entity --name Product
-          echo "✓ Added test entity via CLI (entity file + Angular pages + routes + menu item)"
+          spiderly add-new-entity --name Project
+          spiderly add-new-entity --name TaskComment
+          echo "✓ Added test entities via CLI (entity files + Angular pages + routes + menu items)"
 
-      - name: Overwrite entity with detailed properties
+      - name: Copy test fixtures
         run: |
-          APP_NAME="${{ env.TEST_APP_NAME }}"
-          ENTITY_FILE="${{ env.APP_FOLDER }}/Backend/$APP_NAME.Business/Entities/Product.cs"
-
-          cat > "$ENTITY_FILE" <<'PRODUCTCS'
-          using System.ComponentModel.DataAnnotations;
-          using Spiderly.Shared.Attributes.Entity;
-          using Spiderly.Shared.Attributes.Entity.UI;
-          using Spiderly.Shared.BaseEntities;
-          using Spiderly.Shared.Enums;
-
-          namespace ${{ env.TEST_APP_NAME }}.Business.Entities
-          {
-              [DoNotAuthorize]
-              public class Product : BusinessObject<int>
-              {
-                  [DisplayName]
-                  [Required]
-                  [MaxLength(100)]
-                  public string Name { get; set; }
-
-                  [UIControlType(nameof(UIControlTypeCodes.TextArea))]
-                  [MaxLength(500)]
-                  public string Description { get; set; }
-
-                  [Required]
-                  [Range(0.01, 999999.99)]
-                  public decimal Price { get; set; }
-
-                  [Range(0, 999999)]
-                  public int Stock { get; set; }
-
-                  public bool? IsActive { get; set; }
-              }
-          }
-          PRODUCTCS
-          echo "✓ Overwrote Product.cs with detailed properties"
+          chmod +x "$GITHUB_WORKSPACE/tests/e2e-fixtures/setup.sh"
+          "$GITHUB_WORKSPACE/tests/e2e-fixtures/setup.sh" "${{ env.TEST_APP_NAME }}" "${{ env.APP_FOLDER }}"
 
       - name: Build .NET backend
         run: |
@@ -176,14 +144,14 @@ jobs:
 
           echo "✓ Backend build successful"
 
-      - name: Run EF migration for Product entity
+      - name: Run EF migration for test entities
         run: |
           INFRASTRUCTURE_PATH="${{ env.APP_FOLDER }}/Backend/${{ env.TEST_APP_NAME }}.Infrastructure"
 
           cd "$INFRASTRUCTURE_PATH"
 
-          echo "Adding migration for Product entity..."
-          dotnet ef migrations add AddProductEntity --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
+          echo "Adding migration for test entities..."
+          dotnet ef migrations add AddTestEntities --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
 
           echo "Updating database..."
           dotnet ef database update --startup-project ../${{ env.TEST_APP_NAME }}.WebAPI/${{ env.TEST_APP_NAME }}.WebAPI.csproj
@@ -428,11 +396,12 @@ jobs:
           echo "### Tests Completed:" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ Spiderly CLI initialization" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ Project structure generation" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Entity creation (Product)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Entity creation (Product, Project, TaskComment)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Test fixtures (TaskCategory, ProjectMember, ProjectTask, User override)" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ .NET backend build" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ EF Core migrations" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ Source generators execution" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ Angular frontend build" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Playwright E2E tests (API + UI)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Playwright E2E tests (Product CRUD, Project CRUD, ProjectTask inline, TaskComment + cascade delete)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Result:** All integration and E2E tests passed! 🎉" >> $GITHUB_STEP_SUMMARY
