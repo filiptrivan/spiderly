@@ -4243,7 +4243,9 @@ export const ThemePreset = definePreset(Aura, {
     private static string GetTailwindCssData(bool isRunningFromNuget)
     {
       return $$"""
-@import "tailwindcss";
+@layer primeng;
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
 
 {{SlashCommented("""
 @source "../../../../spiderly/Angular/projects/spiderly/src/lib";

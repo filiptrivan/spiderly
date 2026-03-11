@@ -50,6 +50,8 @@ jobs:
         run: |
           dotnet restore
           dotnet build -c Release
+          # --no-build breaks SourceGenerators packaging: the GetDependencyTargetPaths target
+          # (which bundles analyzer DLLs into analyzers/dotnet/cs/) only runs during build.
           dotnet pack -c Release -o ./nupkg
 
       - name: Install Spiderly.CLI
