@@ -57,6 +57,8 @@ test.describe('Project CRUD Operations', () => {
             maxMembers: 10,
             isArchived: false,
           },
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [],
         },
       }
     );
@@ -111,6 +113,8 @@ test.describe('Project CRUD Operations', () => {
             maxMembers: 15,
             isArchived: false,
           },
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [],
         },
       }
     );

@@ -43,6 +43,8 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
             budget: 5000,
             maxMembers: 3,
           },
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [],
         },
       }
     );

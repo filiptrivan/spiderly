@@ -42,6 +42,8 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
             budget: 10000,
             maxMembers: 5,
           },
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [],
         },
       }
     );
