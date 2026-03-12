@@ -135,10 +135,10 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    await page.goto(`/administration/project/${projectId}`);
+    await page.goto(`/project-list/${projectId}`);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=Updated E2E Task').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('index-card input').first()).toHaveValue('Updated E2E Task', { timeout: 10000 });
   });
 
   test('should delete project task via API', async ({ request }) => {

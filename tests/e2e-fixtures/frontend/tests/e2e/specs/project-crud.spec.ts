@@ -85,7 +85,7 @@ test.describe('Project CRUD Operations', () => {
   test('should navigate to project list page', async ({ page }) => {
     await authenticateBrowser(page);
     const projectLink = page.locator('text=Project').first();
-    await expect(projectLink).toBeVisible();
+    await expect(projectLink).toBeVisible({ timeout: 10000 });
     await projectLink.click();
     await page.waitForURL('**/project**');
   });

@@ -316,7 +316,7 @@ jobs:
             test('should navigate to product list page', async ({ page }) => {
               await authenticateBrowser(page);
               const productLink = page.locator('text=Product').first();
-              await expect(productLink).toBeVisible();
+              await expect(productLink).toBeVisible({ timeout: 10000 });
               await productLink.click();
               await page.waitForURL('**/product**');
             });

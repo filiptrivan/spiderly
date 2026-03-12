@@ -7,7 +7,8 @@ export class ProjectListPage extends BasePage {
   }
 
   async goto() {
-    await this.navigate('/administration/project');
+    await this.navigate('/project-list');
+    await this.waitForNavigation();
   }
 
   async clickAddNew() {
