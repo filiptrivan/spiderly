@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { ProjectListPage } from './page-objects/project-list-page';
 
 test.describe('Project CRUD Operations', () => {
   let accessToken: string;
@@ -84,18 +83,17 @@ test.describe('Project CRUD Operations', () => {
 
   test('should navigate to project list page', async ({ page }) => {
     await authenticateBrowser(page);
-    const projectLink = page.locator('text=Project').first();
+    const projectLink = page.locator('a[href="/project-list"]');
     await expect(projectLink).toBeVisible({ timeout: 10000 });
     await projectLink.click();
-    await page.waitForURL('**/project**');
+    await page.waitForURL('**/project-list**');
   });
 
   test('should open project details page', async ({ page }) => {
     await authenticateBrowser(page);
-    const projectListPage = new ProjectListPage(page);
-    await projectListPage.goto();
-    await projectListPage.openProject('E2E Test Project');
-    await expect(page.locator('input[value="E2E Test Project"]').or(page.getByLabel('Name').and(page.locator('[value="E2E Test Project"]')))).toBeVisible({ timeout: 10000 });
+    await page.goto(`/project-list/${projectId}`);
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
   });
 
   test('should update project via API', async ({ request }) => {

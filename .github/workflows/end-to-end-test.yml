@@ -315,10 +315,10 @@ jobs:
 
             test('should navigate to product list page', async ({ page }) => {
               await authenticateBrowser(page);
-              const productLink = page.locator('text=Product').first();
+              const productLink = page.locator('a[href="/product-list"]');
               await expect(productLink).toBeVisible({ timeout: 10000 });
               await productLink.click();
-              await page.waitForURL('**/product**');
+              await page.waitForURL('**/product-list**');
             });
 
             test('should update product via API', async ({ request }) => {
