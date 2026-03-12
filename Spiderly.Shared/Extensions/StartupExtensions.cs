@@ -240,6 +240,21 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
+        /// <summary>
+        /// Registers a named <c>"Brevo"</c> HttpClient pre-configured with the Brevo API base address
+        /// and the API key from <see cref="SettingsProvider.Current"/>.<br/>
+        /// Call this in addition to (not instead of) <see cref="SpiderlyConfigureServices{TDbContext}"/>
+        /// when using <see cref="Emailing.BrevoEmailingService"/>.
+        /// </summary>
+        public static void SpiderlyAddBrevoEmailingService(this IServiceCollection services)
+        {
+            services.AddHttpClient("Brevo", client =>
+            {
+                client.BaseAddress = new Uri("https://api.brevo.com/v3/");
+                client.DefaultRequestHeaders.Add("api-key", SettingsProvider.Current.BrevoApiKey);
+            });
+        }
+
         #endregion
 
         #region Configure

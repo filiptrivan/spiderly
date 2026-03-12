@@ -16,6 +16,7 @@
         public string EmailSenderPassword { get; set; }
         public string SmtpHost { get; set; } = "smtp.gmail.com";
         public int SmtpPort { get; set; } = 587;
+        public string BrevoApiKey { get; set; }
 
         public string TelegramBotToken { get; set; }
         public string TelegramChatId { get; set; }
