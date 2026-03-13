@@ -7,7 +7,6 @@ using Azure;
 using System.ComponentModel;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Serilog;
 using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Services

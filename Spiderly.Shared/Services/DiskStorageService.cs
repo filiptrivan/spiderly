@@ -1,4 +1,5 @@
-﻿using Spiderly.Shared.Helpers;
+﻿using Microsoft.Extensions.Logging;
+using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Services
@@ -6,22 +7,24 @@ namespace Spiderly.Shared.Services
     public class DiskStorageService : IFileManager
     {
         private readonly string _rootPath;
+        private readonly ILogger<DiskStorageService> _logger;
 
         /// <summary>
         /// By default, files will be stored in:
         ///   {CurrentDirectory}/FileStorage
         /// </summary>
-        public DiskStorageService()
-            : this(Path.Combine(Directory.GetCurrentDirectory(), "FileStorage"))
+        public DiskStorageService(ILogger<DiskStorageService> logger)
+            : this(Path.Combine(Directory.GetCurrentDirectory(), "FileStorage"), logger)
         {
         }
 
         /// <summary>
         /// If you want to store files under a custom root, pass it in here.
         /// </summary>
-        public DiskStorageService(string rootPath)
+        public DiskStorageService(string rootPath, ILogger<DiskStorageService> logger)
         {
             _rootPath = rootPath;
+            _logger = logger;
             Directory.CreateDirectory(_rootPath);
         }
 
@@ -119,10 +122,9 @@ namespace Spiderly.Shared.Services
                     {
                         File.Delete(fullPath);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // In production, you might log or rethrow. 
-                        // Here we swallow exceptions so other files can still be processed.
+                        _logger.LogWarning(ex, "Failed to delete blob file: {FilePath}", fullPath);
                     }
                 }
             }

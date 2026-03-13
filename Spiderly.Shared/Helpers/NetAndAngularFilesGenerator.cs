@@ -2791,6 +2791,7 @@ EndGlobal
 using Hangfire;
 using Hangfire.Dashboard;
 using LightInject;
+using Serilog;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
@@ -2843,6 +2844,8 @@ public class Startup
                 .WithOrigins(new[] { Spiderly.Shared.SettingsProvider.Current.FrontendUrl })
                 .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
         });
+
+        app.UseSerilogRequestLogging();
 
         app.SpiderlyConfigure(env);
 
@@ -2940,6 +2943,7 @@ namespace {{appName}}.WebAPI
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
         <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />

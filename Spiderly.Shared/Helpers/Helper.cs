@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
-using Serilog;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
@@ -289,36 +289,7 @@ namespace Spiderly.Shared.Helpers
         private static readonly HttpClient _telegramHttpClient = new();
         private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
 
-        private static async Task SendUnhandledExceptionEmailAsync(long? userId, string exceptionString)
-        {
-            try
-            {
-                using (SmtpClient smtpClient = GetSmtpClient())
-                using (MailMessage mailMessage = new MailMessage
-                {
-                    From = new MailAddress(SettingsProvider.Current.EmailSender),
-                    Subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception",
-                    Body = $$"""
-Currently authenticated user id: {{userId}}); <br>
-{{exceptionString}}
-""",
-                    BodyEncoding = Encoding.UTF8,
-                    IsBodyHtml = true,
-                })
-                {
-                    foreach (string recipient in SettingsProvider.Current.UnhandledExceptionRecipients)
-                        mailMessage.To.Add(new MailAddress(recipient));
-
-                    await smtpClient.SendMailAsync(mailMessage);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Unhandled Exception email is not sent; Currently authenticated user id: {userId});", userId);
-            }
-        }
-
-        private static async Task SendTelegramNotificationAsync(long? userId, string exceptionString)
+        public static async Task SendTelegramNotificationAsync(long? userId, string exceptionString, ILogger logger)
         {
             try
             {
@@ -335,7 +306,7 @@ User ID: {{{userId}}}
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Unhandled Exception Telegram notification is not sent; Currently authenticated user id: {userId});", userId);
+                logger.LogError(ex, "Unhandled Exception Telegram notification is not sent; Currently authenticated user id: {userId});", userId);
             }
         }
 
@@ -383,18 +354,6 @@ User ID: {{{userId}}}
                 Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender, SettingsProvider.Current.EmailSenderPassword),
                 EnableSsl = true
             };
-        }
-
-        public static async Task SendUnhandledExceptionNotificationsAsync(long? userId, bool isProduction, string exceptionString)
-        {
-            if (!isProduction)
-                return;
-
-            if (IsEmailingConfigured() && SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0)
-                await SendUnhandledExceptionEmailAsync(userId, exceptionString);
-
-            if (IsTelegramConfigured())
-                await SendTelegramNotificationAsync(userId, exceptionString);
         }
 
         public static bool IsEmailingConfigured()

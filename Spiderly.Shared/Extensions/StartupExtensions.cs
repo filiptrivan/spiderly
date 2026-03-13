@@ -12,8 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Serilog;
-using Serilog.Events;
+using Microsoft.Extensions.Logging;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
@@ -198,9 +197,6 @@ namespace Spiderly.Shared.Extensions
                     options.UseNpgsql(SettingsProvider.Current.ConnectionString);
                 }
 
-#if DEBUG
-                options.LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
-#endif
             });
         }
 
@@ -264,6 +260,8 @@ namespace Spiderly.Shared.Extensions
         /// </summary>
         public static void SpiderlyConfigure(this IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseMiddleware<RequestIdMiddleware>();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -328,33 +326,35 @@ namespace Spiderly.Shared.Extensions
                         if (env.IsDevelopment())
                             exceptionString = ex.ToString();
 
+                        ILogger logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Spiderly.ExceptionHandler");
+
                         string message;
-                        LogEventLevel logLevel;
+                        LogLevel logLevel;
                         long? userId = Helper.GetCurrentUserIdOrDefault(context);
 
                         if (ex is BusinessException businessEx)
                         {
                             context.Response.StatusCode = businessEx.StatusCode;
                             message = businessEx.Message;
-                            logLevel = LogEventLevel.Warning;
+                            logLevel = LogLevel.Warning;
                         }
                         else if (ex is ExpiredVerificationException expiredVerificationEx)
                         {
                             context.Response.StatusCode = expiredVerificationEx.StatusCode;
                             message = expiredVerificationEx.Message;
-                            logLevel = LogEventLevel.Information;
+                            logLevel = LogLevel.Information;
                         }
                         else if (ex is UnauthorizedException unauthorizedEx)
                         {
                             context.Response.StatusCode = unauthorizedEx.StatusCode;
                             message = unauthorizedEx.Message;
-                            logLevel = LogEventLevel.Error;
+                            logLevel = LogLevel.Error;
                         }
                         else if (ex is SecurityTokenException securityTokenEx)
                         {
                             context.Response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
                             message = securityTokenEx.Message;
-                            logLevel = LogEventLevel.Information;
+                            logLevel = LogLevel.Information;
 
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AccessTokenKey, httpOnly: true);
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
@@ -364,12 +364,12 @@ namespace Spiderly.Shared.Extensions
                         {
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                             message = SharedTerms.GlobalError;
-                            logLevel = LogEventLevel.Error;
+                            logLevel = LogLevel.Error;
                             context.RequestServices.GetService<IExceptionNotificationDispatcher>()
                                 ?.DispatchUnhandledException(userId, !env.IsDevelopment(), ex);
                         }
 
-                        Log.Write(
+                        logger.Log(
                             logLevel,
                             ex,
                             "Currently authenticated user id: {userId});",

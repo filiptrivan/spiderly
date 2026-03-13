@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Serilog;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Interfaces;
 using System.Net.Http.Json;
@@ -48,7 +47,7 @@ namespace Spiderly.Shared.Emailing
             }
             catch (Exception ex)
             {
-                Log.Error(
+                _logger.LogError(
                     ex,
                     "We failed to send an email to the recipient: {recipient};",
                     recipient

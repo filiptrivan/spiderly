@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -11,12 +12,14 @@ namespace Spiderly.Shared.Services
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
         private readonly string _endpoint;
+        private readonly ILogger<S3PublicStorageService> _logger;
 
-        public S3PublicStorageService(IAmazonS3 s3Client)
+        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
             _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
             _endpoint = SettingsProvider.Current.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3PublicEndpoint));
+            _logger = logger;
         }
 
         /// <returns>Image URL</returns>
@@ -113,8 +116,7 @@ namespace Spiderly.Shared.Services
             }
             catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                // TODO: Add logging
-                Console.Error.WriteLine($"[S3PublicStorageService] S3 key not found: {key}");
+                _logger.LogWarning("S3 key not found: {S3Key}", key);
                 return null;
             }
         }

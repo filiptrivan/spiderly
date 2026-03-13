@@ -1,4 +1,4 @@
-﻿using Serilog;
+﻿using Microsoft.Extensions.Logging;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -10,10 +10,12 @@ namespace Spiderly.Shared.Emailing
     public class EmailingService : IEmailingService
     {
         private readonly SmtpClient _smtpClient;
+        private readonly ILogger<EmailingService> _logger;
 
-        public EmailingService()
+        public EmailingService(ILogger<EmailingService> logger)
         {
             _smtpClient = Helper.GetSmtpClient();
+            _logger = logger;
         }
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
@@ -78,7 +80,7 @@ namespace Spiderly.Shared.Emailing
                 catch (Exception ex)
                 {
                     // We need to log because exception will not get into api global error handler from the background job
-                    Log.Error(
+                    _logger.LogError(
                         ex,
                         "We failed to send an email to the recipient: {recipient};",
                         recipient
