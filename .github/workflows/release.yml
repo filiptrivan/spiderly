@@ -451,27 +451,19 @@ jobs:
           path: ./nupkg
           merge-multiple: true
 
-      - name: Create Git Tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          tag="v${{ needs.validate.outputs.new_version }}"
-          git tag "$tag"
-          git push origin "$tag"
-
       - name: Generate Release Notes
         id: notes
         run: |
           new_version="${{ needs.validate.outputs.new_version }}"
-          previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" --sort=-v:refname | grep -v -- "-" | head -n 1)
+          previous_tag=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | grep -v -- "-" | head -n 1)
 
           {
             echo "## What's Changed"
             echo ""
             if [ -n "$previous_tag" ]; then
-              git log "$previous_tag..HEAD" --pretty=format:"- %s (%h)" --no-merges
+              git log "$previous_tag..HEAD" --pretty=format:"- %s (%h)" --no-merges | grep -v "^- chore: bump version"
             else
-              git log --pretty=format:"- %s (%h)" --no-merges -n 20
+              git log --pretty=format:"- %s (%h)" --no-merges -n 20 | grep -v "^- chore: bump version"
             fi
             echo ""
             echo ""
@@ -496,6 +488,14 @@ jobs:
 
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...v$new_version" >> release_notes.md
 
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          tag="v${{ needs.validate.outputs.new_version }}"
+          git tag "$tag"
+          git push origin "$tag"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -505,7 +505,7 @@ jobs:
           draft: false
           prerelease: ${{ needs.validate.outputs.is_prerelease }}
           files: nupkg/*.nupkg
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -567,14 +567,14 @@ jobs:
         if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
         run: |
           current_branch=$(git branch --show-current)
-          echo "Rebasing stable release from $current_branch to main..."
+          echo "Fast-forwarding main to match $current_branch..."
 
           git fetch origin main
           git checkout main
-          git rebase "origin/$current_branch"
+          git merge --ff-only "origin/$current_branch"
           git push origin main
 
-          echo "Successfully rebased to main"
+          echo "Successfully fast-forwarded main"
 
   dry-run-summary:
     name: Dry Run Summary
