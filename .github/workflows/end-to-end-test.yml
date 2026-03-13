@@ -249,14 +249,6 @@ jobs:
           path: ${{ env.APP_FOLDER }}/Frontend/playwright-report/
           retention-days: 7
 
-      - name: Upload test videos
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-videos
-          path: ${{ env.APP_FOLDER }}/Frontend/test-results/
-          retention-days: 7
-
       - name: Test Summary
         if: success()
         run: |
