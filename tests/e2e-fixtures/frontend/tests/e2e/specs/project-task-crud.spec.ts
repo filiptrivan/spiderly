@@ -1,39 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
 test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   let accessToken: string;
-  let refreshToken: string;
   let projectId: number;
   let taskId: number;
 
   test.beforeAll(async ({ request }) => {
-    const sendCodeResponse = await request.post(
-      'http://localhost:5000/api/Security/SendLoginVerificationEmail',
-      { data: { email: 'test@e2e.com', browserId: 'e2e-browser' } }
-    );
-    expect(sendCodeResponse.ok()).toBeTruthy();
-    const sendCodeResult = await sendCodeResponse.json();
-    const verificationCode = sendCodeResult.verificationCode;
-    expect(verificationCode).toBeTruthy();
-
-    const loginResponse = await request.post(
-      'http://localhost:5000/api/Security/Login',
-      {
-        data: {
-          verificationCode,
-          email: 'test@e2e.com',
-          browserId: 'e2e-browser',
-        },
-      }
-    );
-    expect(loginResponse.ok()).toBeTruthy();
-    const loginResult = await loginResponse.json();
-    accessToken = loginResult.accessToken;
-    refreshToken = loginResult.refreshToken;
+    const tokens = await login(request);
+    accessToken = tokens.accessToken;
 
     // Create a project to hold tasks
     const projectResponse = await request.put(
-      'http://localhost:5000/api/Project/SaveProject',
+      `${API_BASE_URL}/api/Project/SaveProject`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -55,7 +34,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   test.afterAll(async ({ request }) => {
     if (projectId) {
       await request.delete(
-        `http://localhost:5000/api/Project/DeleteProject?id=${projectId}`,
+        `${API_BASE_URL}/api/Project/DeleteProject?id=${projectId}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
     }
@@ -63,7 +42,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
 
   test('should create a project task via API', async ({ request }) => {
     const response = await request.put(
-      'http://localhost:5000/api/ProjectTask/SaveProjectTask',
+      `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -90,7 +69,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
 
   test('should verify ExcludeFromDTO hides InternalNotes', async ({ request }) => {
     const response = await request.get(
-      `http://localhost:5000/api/ProjectTask/GetProjectTask?id=${taskId}`,
+      `${API_BASE_URL}/api/ProjectTask/GetProjectTask?id=${taskId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(response.ok()).toBeTruthy();
@@ -101,7 +80,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   test('should update project task via API', async ({ request }) => {
     if (!taskId) test.skip();
     const response = await request.put(
-      'http://localhost:5000/api/ProjectTask/SaveProjectTask',
+      `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -125,26 +104,16 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     expect(result.projectTaskDTO.taskCategoryId).toBe(2);
   });
 
-  test('should navigate to project and see tasks inline', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(([at, rt]: [string, string]) => {
-      localStorage.setItem('access_token', at);
-      localStorage.setItem('refresh_token', rt);
-      localStorage.setItem('browser_id', 'e2e-browser');
-    }, [accessToken, refreshToken]);
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
+  test('should navigate to project and see tasks inline', async ({ page, request }) => {
+    await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await page.waitForLoadState('networkidle');
-
     await expect(page.locator('index-card input').first()).toHaveValue('Updated E2E Task', { timeout: 10000 });
   });
 
   test('should delete project task via API', async ({ request }) => {
     if (!taskId) test.skip();
     const response = await request.delete(
-      `http://localhost:5000/api/ProjectTask/DeleteProjectTask?id=${taskId}`,
+      `${API_BASE_URL}/api/ProjectTask/DeleteProjectTask?id=${taskId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(response.ok()).toBeTruthy();

@@ -1,51 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
 test.describe('Project CRUD Operations', () => {
   let accessToken: string;
-  let refreshToken: string;
   let projectId: number;
 
   test.beforeAll(async ({ request }) => {
-    const sendCodeResponse = await request.post(
-      'http://localhost:5000/api/Security/SendLoginVerificationEmail',
-      { data: { email: 'test@e2e.com', browserId: 'e2e-browser' } }
-    );
-    expect(sendCodeResponse.ok()).toBeTruthy();
-    const sendCodeResult = await sendCodeResponse.json();
-    const verificationCode = sendCodeResult.verificationCode;
-    expect(verificationCode).toBeTruthy();
-
-    const loginResponse = await request.post(
-      'http://localhost:5000/api/Security/Login',
-      {
-        data: {
-          verificationCode,
-          email: 'test@e2e.com',
-          browserId: 'e2e-browser',
-        },
-      }
-    );
-    expect(loginResponse.ok()).toBeTruthy();
-    const loginResult = await loginResponse.json();
-    accessToken = loginResult.accessToken;
-    refreshToken = loginResult.refreshToken;
-    expect(accessToken).toBeTruthy();
+    const tokens = await login(request);
+    accessToken = tokens.accessToken;
   });
-
-  async function authenticateBrowser(page: any) {
-    await page.goto('/');
-    await page.evaluate(([at, rt]: [string, string]) => {
-      localStorage.setItem('access_token', at);
-      localStorage.setItem('refresh_token', rt);
-      localStorage.setItem('browser_id', 'e2e-browser');
-    }, [accessToken, refreshToken]);
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-  }
 
   test('should create a new project via API', async ({ request }) => {
     const response = await request.put(
-      'http://localhost:5000/api/Project/SaveProject',
+      `${API_BASE_URL}/api/Project/SaveProject`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -72,7 +39,7 @@ test.describe('Project CRUD Operations', () => {
 
   test('should retrieve project list via API', async ({ request }) => {
     const response = await request.get(
-      'http://localhost:5000/api/Project/GetProjectList',
+      `${API_BASE_URL}/api/Project/GetProjectList`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(response.ok()).toBeTruthy();
@@ -81,25 +48,24 @@ test.describe('Project CRUD Operations', () => {
     expect(projects.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('should navigate to project list page', async ({ page }) => {
-    await authenticateBrowser(page);
+  test('should navigate to project list page', async ({ page, request }) => {
+    await authenticateBrowser(page, request);
     const projectLink = page.locator('a[href="/project-list"]');
     await expect(projectLink).toBeVisible({ timeout: 10000 });
     await projectLink.click();
     await page.waitForURL('**/project-list**');
   });
 
-  test('should open project details page', async ({ page }) => {
-    await authenticateBrowser(page);
+  test('should open project details page', async ({ page, request }) => {
+    await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await page.waitForLoadState('networkidle');
     await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
   });
 
   test('should update project via API', async ({ request }) => {
     if (!projectId) test.skip();
     const response = await request.put(
-      'http://localhost:5000/api/Project/SaveProject',
+      `${API_BASE_URL}/api/Project/SaveProject`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -125,7 +91,7 @@ test.describe('Project CRUD Operations', () => {
   test('should delete project via API', async ({ request }) => {
     if (!projectId) test.skip();
     const response = await request.delete(
-      `http://localhost:5000/api/Project/DeleteProject?id=${projectId}`,
+      `${API_BASE_URL}/api/Project/DeleteProject?id=${projectId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(response.ok()).toBeTruthy();

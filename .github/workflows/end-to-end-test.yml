@@ -179,11 +179,9 @@ jobs:
           npm install -D @playwright/test
           npx playwright install chromium --with-deps
 
-      - name: Create E2E tests
+      - name: Create Playwright config
         run: |
           FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
-          E2E_FOLDER="$FRONTEND_PATH/e2e"
-          mkdir -p "$E2E_FOLDER"
 
           cat > "$FRONTEND_PATH/playwright.config.ts" <<'PLAYWRIGHTCONFIG'
           import { defineConfig, devices } from '@playwright/test';
@@ -194,7 +192,7 @@ jobs:
             forbidOnly: !!process.env.CI,
             retries: process.env.CI ? 2 : 0,
             workers: 1,
-            reporter: 'html',
+            reporter: [['list'], ['html', { open: 'never' }]],
             use: {
               baseURL: 'http://localhost:4200',
               trace: 'retain-on-failure',
@@ -228,140 +226,13 @@ jobs:
           });
           PLAYWRIGHTCONFIG
 
-          cat > "$E2E_FOLDER/product.spec.ts" <<'E2ETEST'
-          import { test, expect } from '@playwright/test';
-
-          test.describe('Product CRUD Operations', () => {
-            let accessToken: string;
-            let refreshToken: string;
-            let productId: number;
-
-            test.beforeAll(async ({ request }) => {
-              const sendCodeResponse = await request.post(
-                'http://localhost:5000/api/Security/SendLoginVerificationEmail',
-                { data: { email: 'test@e2e.com', browserId: 'e2e-browser' } }
-              );
-              expect(sendCodeResponse.ok()).toBeTruthy();
-              const sendCodeResult = await sendCodeResponse.json();
-              const verificationCode = sendCodeResult.verificationCode;
-              expect(verificationCode).toBeTruthy();
-
-              const loginResponse = await request.post(
-                'http://localhost:5000/api/Security/Login',
-                {
-                  data: {
-                    verificationCode,
-                    email: 'test@e2e.com',
-                    browserId: 'e2e-browser',
-                  },
-                }
-              );
-              expect(loginResponse.ok()).toBeTruthy();
-              const loginResult = await loginResponse.json();
-              accessToken = loginResult.accessToken;
-              refreshToken = loginResult.refreshToken;
-              expect(accessToken).toBeTruthy();
-            });
-
-            test('should create a new product via API', async ({ request }) => {
-              const response = await request.put(
-                'http://localhost:5000/api/Product/SaveProduct',
-                {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                  data: {
-                    productDTO: {
-                      name: 'E2E Test Product',
-                      description: 'Created by Playwright E2E test',
-                      price: 99.99,
-                      stock: 100,
-                      isActive: true,
-                    },
-                  },
-                }
-              );
-              expect(response.ok()).toBeTruthy();
-              const result = await response.json();
-              expect(result.productDTO.id).toBeDefined();
-              expect(result.productDTO.name).toBe('E2E Test Product');
-              productId = result.productDTO.id;
-            });
-
-            test('should retrieve product via API', async ({ request }) => {
-              const response = await request.get(
-                'http://localhost:5000/api/Product/GetProductList',
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              expect(response.ok()).toBeTruthy();
-              const products = await response.json();
-              expect(Array.isArray(products)).toBeTruthy();
-            });
-
-            async function authenticateBrowser(page: any) {
-              await page.goto('/');
-              await page.evaluate(([at, rt]: [string, string]) => {
-                localStorage.setItem('access_token', at);
-                localStorage.setItem('refresh_token', rt);
-                localStorage.setItem('browser_id', 'e2e-browser');
-              }, [accessToken, refreshToken]);
-              await page.reload();
-              await page.waitForLoadState('networkidle');
-            }
-
-            test('should load the application homepage', async ({ page }) => {
-              await authenticateBrowser(page);
-              await expect(page).toHaveTitle(/${{ env.TEST_APP_NAME }}/);
-              await expect(page).not.toHaveURL(/.*login.*/);
-            });
-
-            test('should navigate to product list page', async ({ page }) => {
-              await authenticateBrowser(page);
-              const productLink = page.locator('a[href="/product-list"]');
-              await expect(productLink).toBeVisible({ timeout: 10000 });
-              await productLink.click();
-              await page.waitForURL('**/product-list**');
-            });
-
-            test('should update product via API', async ({ request }) => {
-              if (!productId) test.skip();
-              const response = await request.put(
-                'http://localhost:5000/api/Product/SaveProduct',
-                {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                  data: {
-                    productDTO: {
-                      id: productId,
-                      name: 'Updated E2E Product',
-                      description: 'Updated by E2E test',
-                      price: 149.99,
-                      stock: 50,
-                      isActive: true,
-                    },
-                  },
-                }
-              );
-              expect(response.ok()).toBeTruthy();
-            });
-
-            test('should delete product via API', async ({ request }) => {
-              if (!productId) test.skip();
-              const response = await request.delete(
-                `http://localhost:5000/api/Product/DeleteProduct?id=${productId}`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              expect(response.ok()).toBeTruthy();
-            });
-          });
-          E2ETEST
-
-          echo "✓ Created Playwright E2E tests"
-
       - name: Run Playwright E2E tests
         run: |
           FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
           cd "$FRONTEND_PATH"
 
           echo "Running Playwright E2E tests..."
-          npx playwright test --reporter=list
+          npx playwright test
 
           if [ $? -ne 0 ]; then
             echo "✗ E2E tests failed"

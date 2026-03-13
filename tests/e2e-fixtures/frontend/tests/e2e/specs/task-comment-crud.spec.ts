@@ -1,40 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
 test.describe('TaskComment CRUD + Cascade Delete', () => {
   let accessToken: string;
-  let refreshToken: string;
   let projectId: number;
   let taskId: number;
   let commentId: number;
 
   test.beforeAll(async ({ request }) => {
-    const sendCodeResponse = await request.post(
-      'http://localhost:5000/api/Security/SendLoginVerificationEmail',
-      { data: { email: 'test@e2e.com', browserId: 'e2e-browser' } }
-    );
-    expect(sendCodeResponse.ok()).toBeTruthy();
-    const sendCodeResult = await sendCodeResponse.json();
-    const verificationCode = sendCodeResult.verificationCode;
-    expect(verificationCode).toBeTruthy();
-
-    const loginResponse = await request.post(
-      'http://localhost:5000/api/Security/Login',
-      {
-        data: {
-          verificationCode,
-          email: 'test@e2e.com',
-          browserId: 'e2e-browser',
-        },
-      }
-    );
-    expect(loginResponse.ok()).toBeTruthy();
-    const loginResult = await loginResponse.json();
-    accessToken = loginResult.accessToken;
-    refreshToken = loginResult.refreshToken;
+    const tokens = await login(request);
+    accessToken = tokens.accessToken;
 
     // Create project
     const projectResponse = await request.put(
-      'http://localhost:5000/api/Project/SaveProject',
+      `${API_BASE_URL}/api/Project/SaveProject`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -53,7 +32,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
     // Create task
     const taskResponse = await request.put(
-      'http://localhost:5000/api/ProjectTask/SaveProjectTask',
+      `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -73,7 +52,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
   test('should create a task comment via API', async ({ request }) => {
     const response = await request.put(
-      'http://localhost:5000/api/TaskComment/SaveTaskComment',
+      `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -93,7 +72,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
   test('should retrieve task comment list via API', async ({ request }) => {
     const response = await request.get(
-      'http://localhost:5000/api/TaskComment/GetTaskCommentList',
+      `${API_BASE_URL}/api/TaskComment/GetTaskCommentList`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(response.ok()).toBeTruthy();
@@ -102,16 +81,8 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
     expect(comments.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('should navigate to task comment list page', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(([at, rt]: [string, string]) => {
-      localStorage.setItem('access_token', at);
-      localStorage.setItem('refresh_token', rt);
-      localStorage.setItem('browser_id', 'e2e-browser');
-    }, [accessToken, refreshToken]);
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
+  test('should navigate to task comment list page', async ({ page, request }) => {
+    await authenticateBrowser(page, request);
     const commentLink = page.locator('text=Task Comment').first();
     await expect(commentLink).toBeVisible();
     await commentLink.click();
@@ -121,7 +92,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
   test('should update task comment via API', async ({ request }) => {
     if (!commentId) test.skip();
     const response = await request.put(
-      'http://localhost:5000/api/TaskComment/SaveTaskComment',
+      `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -141,7 +112,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
   test('should cascade delete comments when task is deleted', async ({ request }) => {
     // Create a second comment on the same task
     const createResponse = await request.put(
-      'http://localhost:5000/api/TaskComment/SaveTaskComment',
+      `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -157,21 +128,21 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
     // Delete the task — should cascade delete all comments
     const deleteTaskResponse = await request.delete(
-      `http://localhost:5000/api/ProjectTask/DeleteProjectTask?id=${taskId}`,
+      `${API_BASE_URL}/api/ProjectTask/DeleteProjectTask?id=${taskId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(deleteTaskResponse.ok()).toBeTruthy();
 
     // Verify comment is gone
     const getResponse = await request.get(
-      `http://localhost:5000/api/TaskComment/GetTaskComment?id=${cascadeCommentId}`,
+      `${API_BASE_URL}/api/TaskComment/GetTaskComment?id=${cascadeCommentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(getResponse.ok()).toBeFalsy();
 
     // Also verify original comment is gone
     const getOriginalResponse = await request.get(
-      `http://localhost:5000/api/TaskComment/GetTaskComment?id=${commentId}`,
+      `${API_BASE_URL}/api/TaskComment/GetTaskComment?id=${commentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(getOriginalResponse.ok()).toBeFalsy();
@@ -180,7 +151,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
   test('should cascade delete tasks when project is deleted', async ({ request }) => {
     // Create a new task for cascade test
     const taskResponse = await request.put(
-      'http://localhost:5000/api/ProjectTask/SaveProjectTask',
+      `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -199,7 +170,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
     // Create a comment on that task
     const commentResponse = await request.put(
-      'http://localhost:5000/api/TaskComment/SaveTaskComment',
+      `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: {
@@ -215,21 +186,21 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
 
     // Delete the project — should cascade tasks and their comments
     const deleteResponse = await request.delete(
-      `http://localhost:5000/api/Project/DeleteProject?id=${projectId}`,
+      `${API_BASE_URL}/api/Project/DeleteProject?id=${projectId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(deleteResponse.ok()).toBeTruthy();
 
     // Verify task is gone
     const getTaskResponse = await request.get(
-      `http://localhost:5000/api/ProjectTask/GetProjectTask?id=${cascadeTaskId}`,
+      `${API_BASE_URL}/api/ProjectTask/GetProjectTask?id=${cascadeTaskId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(getTaskResponse.ok()).toBeFalsy();
 
     // Verify comment is gone
     const getCommentResponse = await request.get(
-      `http://localhost:5000/api/TaskComment/GetTaskComment?id=${deepCommentId}`,
+      `${API_BASE_URL}/api/TaskComment/GetTaskComment?id=${deepCommentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     expect(getCommentResponse.ok()).toBeFalsy();
