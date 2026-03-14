@@ -365,8 +365,11 @@ namespace Spiderly.Shared.Extensions
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                             message = SharedTerms.GlobalError;
                             logLevel = LogLevel.Error;
-                            context.RequestServices.GetService<IExceptionNotificationDispatcher>()
-                                ?.DispatchUnhandledException(userId, !env.IsDevelopment(), ex);
+                            if (!env.IsDevelopment())
+                            {
+                                context.RequestServices.GetService<IExceptionNotificationDispatcher>()
+                                    ?.DispatchUnhandledException(userId, ex);
+                            }
                         }
 
                         logger.Log(

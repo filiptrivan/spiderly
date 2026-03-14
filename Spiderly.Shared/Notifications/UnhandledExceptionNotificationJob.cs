@@ -18,11 +18,8 @@ namespace Spiderly.Shared.Notifications
             _logger = logger;
         }
 
-        public async Task SendAsync(long? userId, bool isProduction, string exceptionString)
+        public async Task SendAsync(long? userId, string exceptionString)
         {
-            if (!isProduction)
-                return;
-
             if (SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0)
                 await SendUnhandledExceptionEmailAsync(userId, exceptionString);
 

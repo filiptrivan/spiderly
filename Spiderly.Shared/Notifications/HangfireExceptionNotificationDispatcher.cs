@@ -13,13 +13,13 @@ namespace Spiderly.Shared.Notifications
             _backgroundJobClient = backgroundJobClient;
         }
 
-        public void DispatchUnhandledException(long? userId, bool isProduction, Exception ex)
+        public void DispatchUnhandledException(long? userId, Exception ex)
         {
             if (!Helper.ShouldSendNotification(ex))
                 return;
 
             _backgroundJobClient.Enqueue<UnhandledExceptionNotificationJob>(
-                j => j.SendAsync(userId, isProduction, ex.ToString())
+                j => j.SendAsync(userId, ex.ToString())
             );
         }
     }
