@@ -360,6 +360,12 @@ namespace Spiderly.Shared.Extensions
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
                             CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
                         }
+                        else if (ex is DbUpdateConcurrencyException)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status409Conflict;
+                            message = SharedTerms.ConcurrencyException;
+                            logLevel = LogLevel.Warning;
+                        }
                         else
                         {
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
