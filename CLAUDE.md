@@ -90,3 +90,4 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 - Prefer shorthand `Class c = new();` — but only when the constructor has no parameters. With parameters, use object initializer syntax
 - `[StringLength(X)]` without `MinimumLength` generates an **exact length** validation. Use `[StringLength(X, MinimumLength = Y)]` for a range
 - All generated methods that end users can use (virtual hooks, overridable methods) must have XML `<summary>` documentation with `<example>` showing usage
+- **Database table names are singular** — matching the entity class name exactly (e.g., `Category` class → `"Category"` table, not `"Categories"`). This is because Spiderly registers entities via `modelBuilder.Entity()` without `DbSet<T>` properties, so EF Core uses the class name as-is
