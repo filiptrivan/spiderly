@@ -132,7 +132,7 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 | `[IncludeInDTO]` | Property | Force-include in DTO (e.g., collections) |
 | `[ExcludeServiceMethodsFromGeneration]` | Property | Skip generated service methods (implement custom logic) |
 | `[GreaterThanOrEqualTo(N)]` | Property | Numeric minimum validation |
-| `[CustomValidator("EmailAddress()")]` | Property/Class | Custom FluentValidation rule (property: rule chain; class: full `RuleFor(...)`) |
+| `[EmailAddress]` | Property | Email format validation |
 | `[ProjectToDTO(".Map(...)")]` | Class | Custom Mapster projection |
 | `[GenerateCommaSeparatedDisplayName]` | Property | Add comma-separated display names to DTO |
 | `[ComplexManyToManyList]` | Property | Editable list UI for complex M2M junction (small sets only) |

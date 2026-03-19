@@ -9,12 +9,8 @@ namespace Spiderly.SourceGenerators.Shared
     {
         public static List<SpiderValidationRule> GetValidationRules(List<SpiderlyProperty> DTOProperties, List<SpiderlyAttribute> DTOAttributes, SpiderlyClass entity)
         {
-            List<SpiderValidationRule> rulesOnDTO = new(); // priority - 1.
-            List<SpiderValidationRule> rulesOnDTOProperties = new(); // priority - 2.
-            List<SpiderValidationRule> rulesOnEntity = new(); // priority - 3.
-            List<SpiderValidationRule> rulesOnEntityProperties = new(); // priority - 4.
-
-            rulesOnDTO.AddRange(GetRulesForAttributes(DTOAttributes, DTOProperties));
+            List<SpiderValidationRule> rulesOnDTOProperties = new();
+            List<SpiderValidationRule> rulesOnEntityProperties = new();
 
             foreach (SpiderlyProperty DTOproperty in DTOProperties)
             {
@@ -24,10 +20,8 @@ namespace Spiderly.SourceGenerators.Shared
                     rulesOnDTOProperties.Add(rule);
             }
 
-            if (entity != null) // If it is null then we only made DTO, without entity class
+            if (entity != null)
             {
-                rulesOnEntity.AddRange(GetRulesForAttributes(entity.Attributes, DTOProperties));
-
                 foreach (SpiderlyProperty property in entity.Properties)
                 {
                     SpiderValidationRule rule = GetRuleForProperty(property, DTOProperties);
@@ -37,59 +31,9 @@ namespace Spiderly.SourceGenerators.Shared
                 }
             }
 
-            List<SpiderValidationRule> mergedValidationRules = GetMergedValidationRules(rulesOnDTO, rulesOnDTOProperties, rulesOnEntity, rulesOnEntityProperties, DTOProperties);
+            List<SpiderValidationRule> mergedValidationRules = GetMergedValidationRules(new(), rulesOnDTOProperties, new(), rulesOnEntityProperties, DTOProperties);
 
             return mergedValidationRules;
-        }
-
-        /// <summary>
-        /// Passing <paramref name="DTOProperties"/> because we are always validating only DTO with FluentValidation
-        /// </summary>
-        private static List<SpiderValidationRule> GetRulesForAttributes(List<SpiderlyAttribute> attributes, List<SpiderlyProperty> DTOProperties)
-        {
-            List<SpiderValidationRule> rules = new();
-
-            foreach (SpiderlyAttribute attribute in attributes)
-            {
-                if (attribute.Name == "CustomValidator")
-                {
-                    string rulePropertyName = ParsePropertyNameFromCustomClassValidator(attribute.Value);
-
-                    rules.Add(new SpiderValidationRule
-                    {
-                        Property = DTOProperties.Single(x => x.Name == rulePropertyName),
-                        ValidationRuleParts = GetValidationRulePartsForCustomClassValidator(attribute.Value),
-                    });
-                }
-            }
-
-            return rules;
-        }
-
-        /// <summary>
-        /// RuleFor(x => x.GetTransactionsEndpoint).Length(1, 1000).Unless(i => string.IsNullOrEmpty(i.GetTransactionsEndpoint)); -> GetTransactionsEndpoint
-        /// </summary>
-        private static string ParsePropertyNameFromCustomClassValidator(string rule)
-        {
-            int dotIndex = rule.IndexOf(".");
-            int parenIndex = rule.IndexOf(")", dotIndex);
-
-            return rule.Substring(dotIndex + 1, parenIndex - dotIndex - 1);
-        }
-
-        private static List<SpiderValidationRulePart> GetValidationRulePartsForCustomClassValidator(string rule)
-        {
-            List<string> rulePartsWithValues = rule.Split(").").Skip(1).SkipLast().ToList();
-            string lastRulePart = rule.Split(").").Last().Replace(");", "");
-            rulePartsWithValues.Add(lastRulePart);
-
-            return rulePartsWithValues
-                .Select(rulePart => new SpiderValidationRulePart
-                {
-                    Name = GetRulePartName(rulePart),
-                    MethodParametersBody = GetRulePartMethodParametersBody(rulePart),
-                })
-                .ToList();
         }
 
         private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties)
@@ -182,13 +126,6 @@ namespace Spiderly.SourceGenerators.Shared
                             MethodParametersBody = ""
                         });
                         break;
-                    case "CustomValidator":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = GetRulePartName(attribute.Value),
-                            MethodParametersBody = GetRulePartMethodParametersBody(attribute.Value)
-                        });
-                        break;
                     default:
                         break;
                 }
@@ -216,19 +153,6 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             return ruleParts;
-        }
-
-        private static string GetRulePartName(string rulePart)
-        {
-            return rulePart.Substring(0, rulePart.IndexOf("("));
-        }
-
-        private static string GetRulePartMethodParametersBody(string rulePartWithoutLastParen)
-        {
-            if (rulePartWithoutLastParen.Length > 0 && rulePartWithoutLastParen[rulePartWithoutLastParen.Length - 1] == ')')
-                rulePartWithoutLastParen = rulePartWithoutLastParen.Substring(0, rulePartWithoutLastParen.Length - 1);
-
-            return rulePartWithoutLastParen.Substring(rulePartWithoutLastParen.IndexOf("(") + 1);
         }
 
         /// <summary>

@@ -1,17 +1,14 @@
-﻿using Spiderly.Shared.Attributes;
-using Spiderly.Shared.DTO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Spiderly.Shared.DTO;
+using System.ComponentModel.DataAnnotations;
 
 namespace Spiderly.Security.DTO
 {
-    [CustomValidator("RuleFor(x => x.Email).NotEmpty().Length(5, 100).EmailAddress();")]
-    //[CustomValidator("RuleFor(x => x.BrowserId).NotEmpty();")] // FT: I think there is no need for any validation, the code will not brake, and we are not saving the data in the database
+    // FT: I think there is no need for any validation on BrowserId, the code will not brake, and we are not saving the data in the database
     public partial class LoginDTO
     {
+        [Required]
+        [StringLength(100, MinimumLength = 5)]
+        [Spiderly.Shared.Attributes.Entity.EmailAddress]
         public string Email { get; set; }
         public string BrowserId { get; set; }
     }

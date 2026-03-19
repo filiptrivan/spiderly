@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Spiderly.Security.Interfaces;
-using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.BaseEntities;
@@ -13,7 +12,7 @@ namespace __APP_NAME__.Business.Entities
     {
         [UIDoNotGenerate]
         [DisplayName]
-        [CustomValidator("EmailAddress()")]
+        [EmailAddress]
         [StringLength(70, MinimumLength = 5)]
         [Required]
         public string Email { get; set; }

@@ -170,11 +170,6 @@ export class NotificationDetailsComponent
 
 - Set this attribute to the numeric properties only.
 
-### CustomValidator
-
-- If you cannot achieve something with built in fluent validations, you can write custom on the class.
-- e.g. `[CustomValidator("RuleFor(x => x.Name).NotEmpty();")]`
-
 ### DisplayName
 
 - A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.

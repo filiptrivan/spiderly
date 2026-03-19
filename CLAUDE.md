@@ -57,7 +57,7 @@ Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
 
 - **Entity**: `M2M`, `M2MWithMany`, `WithMany`, `CascadeDelete`, `SetNull`, `DisplayName`, `DoNotAuthorize`, `Controller`
 - **UI**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
-- **Validation**: `GreaterThanOrEqual`, `CustomValidator`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
+- **Validation**: `GreaterThanOrEqual`, `EmailAddress`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
 - **Storage**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
 - **Translations**: JSON files in `{Shared}/Translations/` (auto-scaffolded by `TranslationsGenerator`)
 
