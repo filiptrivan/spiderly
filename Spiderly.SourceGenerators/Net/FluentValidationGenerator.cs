@@ -77,12 +77,10 @@ namespace {{basePartOfNamespace}}.ValidationRules
             foreach (IGrouping<string, SpiderlyClass> DTOClassGroup in currentProjectDTOClasses.GroupBy(x => x.Name)) // Grouping because UserDTO.generated and UserDTO
             {
                 List<SpiderlyProperty> DTOProperties = new();
-                List<SpiderlyAttribute> DTOAttributes = new();
 
                 foreach (SpiderlyClass DTOClass in DTOClassGroup)
                 {
                     DTOProperties.AddRange(DTOClass.Properties);
-                    DTOAttributes.AddRange(DTOClass.Attributes);
                 }
 
                 SpiderlyClass entity = currentProjectEntities.SingleOrDefault(x =>
@@ -90,7 +88,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
                     DTOClassGroup.Key.Replace("SaveBodyDTO", "") == x.Name
                 ); // If it is null then we only made DTO, without entity class
 
-                List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(DTOProperties, DTOAttributes, entity);
+                List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(DTOProperties, entity);
 
                 result.Add($$"""
     public partial class {{DTOClassGroup.Key}}ValidationRules : AbstractValidator<{{DTOClassGroup.Key}}>

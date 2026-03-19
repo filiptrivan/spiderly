@@ -7,7 +7,7 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class ValidationRuleBuilder
     {
-        public static List<SpiderValidationRule> GetValidationRules(List<SpiderlyProperty> DTOProperties, List<SpiderlyAttribute> DTOAttributes, SpiderlyClass entity)
+        public static List<SpiderValidationRule> GetValidationRules(List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
         {
             List<SpiderValidationRule> rulesOnDTOProperties = new();
             List<SpiderValidationRule> rulesOnEntityProperties = new();
@@ -31,7 +31,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
             }
 
-            List<SpiderValidationRule> mergedValidationRules = GetMergedValidationRules(new(), rulesOnDTOProperties, new(), rulesOnEntityProperties, DTOProperties);
+            List<SpiderValidationRule> mergedValidationRules = GetMergedValidationRules(rulesOnDTOProperties, rulesOnEntityProperties, DTOProperties);
 
             return mergedValidationRules;
         }
@@ -156,31 +156,25 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// Getting merged validation rules for the single object (DTO + Entity)
+        /// Getting merged validation rules for the single object (DTO + Entity).
+        /// DTO property rules take priority — duplicate rule parts from entity properties are removed.
         /// </summary>
-        /// <returns></returns>
         private static List<SpiderValidationRule> GetMergedValidationRules(
-            List<SpiderValidationRule> rulesOnDTO,
             List<SpiderValidationRule> rulesOnDTOProperties,
-            List<SpiderValidationRule> rulesOnEntity,
             List<SpiderValidationRule> rulesOnEntityProperties,
             List<SpiderlyProperty> DTOProperties
         )
         {
             List<SpiderValidationRule> mergedRules = new();
 
-            foreach (IGrouping<string, SpiderValidationRule> ruleGroup in rulesOnDTO.Concat(rulesOnDTOProperties).Concat(rulesOnEntity).Concat(rulesOnEntityProperties).GroupBy(x => x.Property.Name))
+            foreach (IGrouping<string, SpiderValidationRule> ruleGroup in rulesOnDTOProperties.Concat(rulesOnEntityProperties).GroupBy(x => x.Property.Name))
             {
-                List<SpiderValidationRulePart> rulePartsOnDTO = rulesOnDTO.Where(x => x.Property.Name == ruleGroup.Key).SelectMany(x => x.ValidationRuleParts).ToList();
                 List<SpiderValidationRulePart> rulePartsOnDTOProperties = rulesOnDTOProperties.Where(x => x.Property.Name == ruleGroup.Key).SelectMany(x => x.ValidationRuleParts).ToList();
-                List<SpiderValidationRulePart> rulePartsOnEntity = rulesOnEntity.Where(x => x.Property.Name == ruleGroup.Key).SelectMany(x => x.ValidationRuleParts).ToList();
                 List<SpiderValidationRulePart> rulePartsOnEntityProperties = rulesOnEntityProperties.Where(x => x.Property.Name == ruleGroup.Key).SelectMany(x => x.ValidationRuleParts).ToList();
 
-                RemoveDuplicateRuleParts([rulePartsOnDTOProperties, rulePartsOnEntity, rulePartsOnEntityProperties], rulePartsOnDTO);
-                RemoveDuplicateRuleParts([rulePartsOnEntity, rulePartsOnEntityProperties], rulePartsOnDTOProperties);
-                RemoveDuplicateRuleParts([rulePartsOnEntityProperties], rulePartsOnEntity);
+                RemoveDuplicateRuleParts([rulePartsOnEntityProperties], rulePartsOnDTOProperties);
 
-                List<SpiderValidationRulePart> mergedRuleParts = rulePartsOnDTO.Concat(rulePartsOnDTOProperties).Concat(rulePartsOnEntity).Concat(rulePartsOnEntityProperties).ToList();
+                List<SpiderValidationRulePart> mergedRuleParts = rulePartsOnDTOProperties.Concat(rulePartsOnEntityProperties).ToList();
 
                 mergedRules.Add(new SpiderValidationRule
                 {
