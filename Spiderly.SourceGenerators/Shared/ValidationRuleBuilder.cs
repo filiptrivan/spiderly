@@ -175,6 +175,13 @@ namespace Spiderly.SourceGenerators.Shared
                             MethodParametersBody = attribute.Value
                         });
                         break;
+                    case "EmailAddress":
+                        ruleParts.Add(new SpiderValidationRulePart
+                        {
+                            Name = "EmailAddress",
+                            MethodParametersBody = ""
+                        });
+                        break;
                     case "CustomValidator":
                         ruleParts.Add(new SpiderValidationRulePart
                         {
