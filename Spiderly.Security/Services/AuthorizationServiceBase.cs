@@ -23,7 +23,7 @@ namespace Spiderly.Security.Services
             _authenticationService = authenticationService;
         }
 
-        public async Task AuthorizeAndThrowAsync<TUser>(TUser user, string permissionCode) where TUser : class, IUser, new()
+        public virtual async Task AuthorizeAndThrowAsync<TUser>(TUser user, string permissionCode) where TUser : class, IUser, new()
         {
             if (user == null)
                 throw new ArgumentNullException("The user is not provided.");
@@ -42,7 +42,7 @@ namespace Spiderly.Security.Services
                 throw new UnauthorizedException();
         }
 
-        public async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
+        public virtual async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
         {
             if (permissionCode == null)
                 throw new ArgumentNullException("Permission code is not provided.");
@@ -63,7 +63,7 @@ namespace Spiderly.Security.Services
             return result;
         }
 
-        public async Task AuthorizeAndThrowAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
+        public virtual async Task AuthorizeAndThrowAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
         {
             if (permissionCode == null)
                 throw new ArgumentNullException("Permission code is not provided.");
@@ -85,7 +85,7 @@ namespace Spiderly.Security.Services
                 throw new UnauthorizedException();
         }
 
-        public async Task<List<string>> GetCurrentUserPermissionCodes<TUser, TRole>()
+        public virtual async Task<List<string>> GetCurrentUserPermissionCodes<TUser, TRole>()
             where TUser : class, IUser, new()
             where TRole : class, IRole, new()
         {
