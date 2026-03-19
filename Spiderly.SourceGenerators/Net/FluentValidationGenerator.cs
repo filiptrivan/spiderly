@@ -93,12 +93,15 @@ namespace {{basePartOfNamespace}}.ValidationRules
                 List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(DTOProperties, DTOAttributes, entity);
 
                 result.Add($$"""
-    public class {{DTOClassGroup.Key}}ValidationRules : AbstractValidator<{{DTOClassGroup.Key}}>
+    public partial class {{DTOClassGroup.Key}}ValidationRules : AbstractValidator<{{DTOClassGroup.Key}}>
     {
         public {{DTOClassGroup.Key}}ValidationRules()
         {
 {{GetDTOValidationRules(rules)}}
+            ConfigureCustomRules();
         }
+
+        partial void ConfigureCustomRules();
     }
 """);
             }
