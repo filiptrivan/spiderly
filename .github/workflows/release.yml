@@ -576,6 +576,37 @@ jobs:
 
           echo "Successfully fast-forwarded main"
 
+      - name: Merge spiderly-website develop into master
+        if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          REPO="filiptrivan/spiderly-website"
+          echo "Merging spiderly-website develop into master..."
+
+          if gh api "repos/$REPO/merges" \
+            -f base=master \
+            -f head=develop \
+            -f commit_message="chore: merge develop into master (automated)" \
+            --silent; then
+            echo "Successfully merged develop into master (or already up to date)"
+          else
+            echo "::warning::Merge failed. Creating a PR instead..."
+
+            EXISTING_PR=$(gh pr list --repo "$REPO" --head develop --base master --state open --json number --jq '.[0].number')
+
+            if [ -n "$EXISTING_PR" ]; then
+              echo "PR #$EXISTING_PR already exists: https://github.com/$REPO/pull/$EXISTING_PR"
+            else
+              gh pr create --repo "$REPO" \
+                --base master --head develop \
+                --title "chore: merge develop into master" \
+                --body "Automated PR created by the Spiderly release pipeline because the automatic merge failed (likely due to conflicts). Please resolve conflicts and merge manually."
+              echo "PR created. Resolve conflicts and merge manually."
+            fi
+          fi
+
   dry-run-summary:
     name: Dry Run Summary
     needs: [validate, build-dotnet, build-angular, test-dotnet]
