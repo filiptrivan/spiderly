@@ -119,7 +119,7 @@ namespace Spiderly.SourceGenerators.Shared
                             MethodParametersBody = attribute.Value
                         });
                         break;
-                    case "EmailAddress":
+                    case "Email":
                         ruleParts.Add(new SpiderValidationRulePart
                         {
                             Name = "EmailAddress",

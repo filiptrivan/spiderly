@@ -53,7 +53,7 @@ public class User : BusinessObject<long>, IUser
 {
     [Required]
     [StringLength(70, MinimumLength = 5)]
-    [EmailAddress]
+    [Email]
     public string Email { get; set; }
 
     public string FirstName { get; set; }

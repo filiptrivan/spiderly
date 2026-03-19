@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Spiderly.Shared.Attributes.Entity;
+using System.ComponentModel.DataAnnotations;
 
 namespace Spiderly.Security.DTO
 {
@@ -10,7 +11,7 @@ namespace Spiderly.Security.DTO
         public string BrowserId { get; set; }
         [Required]
         [StringLength(100, MinimumLength = 5)]
-        [Spiderly.Shared.Attributes.Entity.EmailAddress]
+        [Email]
         public string Email { get; set; }
     }
 }

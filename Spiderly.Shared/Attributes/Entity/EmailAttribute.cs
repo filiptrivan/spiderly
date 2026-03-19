@@ -15,13 +15,13 @@ namespace Spiderly.Shared.Attributes.Entity
     /// <code>
     /// public class User : BusinessObject&lt;long&gt;
     /// {
-    ///     [EmailAddress] // Must be a valid email address
+    ///     [Email] // Must be a valid email address
     ///     public string Email { get; set; }
     /// }
     /// </code>
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
-    public class EmailAddressAttribute : Attribute
+    public class EmailAttribute : Attribute
     {
     }
 }

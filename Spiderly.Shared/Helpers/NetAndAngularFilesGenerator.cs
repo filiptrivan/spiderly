@@ -2277,7 +2277,7 @@ namespace {{appName}}.Business.Entities
     {
         [UIDoNotGenerate]
         [DisplayName]
-        [EmailAddress]
+        [Email]
         [StringLength(70, MinimumLength = 5)]
         [Required]
         public string Email { get; set; }
