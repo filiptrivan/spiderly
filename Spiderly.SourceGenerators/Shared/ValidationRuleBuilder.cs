@@ -1,4 +1,5 @@
 using Spiderly.SourceGenerators.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -70,7 +71,7 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Name;
         }
 
-        private static List<SpiderValidationRulePart> GetRulePartsForProperty(SpiderlyProperty property, string rulePropertyName)
+        internal static List<SpiderValidationRulePart> GetRulePartsForProperty(SpiderlyProperty property, string rulePropertyName)
         {
             List<SpiderValidationRulePart> ruleParts = new();
 
@@ -79,72 +80,41 @@ namespace Spiderly.SourceGenerators.Shared
                 switch (attribute.Name)
                 {
                     case "Required":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "NotEmpty",
-                            MethodParametersBody = ""
-                        });
+                        ruleParts.Add(new NotEmptyRulePart());
                         break;
                     case "StringLength":
                         string minValue = FindMinValueForStringLength(attribute.Value);
                         string maxValue = FindMaxValueForStringLength(attribute.Value);
                         if (minValue == null)
                         {
-                            ruleParts.Add(new SpiderValidationRulePart
-                            {
-                                Name = "MaximumLength",
-                                MethodParametersBody = maxValue
-                            });
+                            ruleParts.Add(new MaximumLengthRulePart(int.Parse(maxValue)));
                         }
                         else if (minValue == maxValue)
                         {
-                            ruleParts.Add(new SpiderValidationRulePart
-                            {
-                                Name = "Length",
-                                MethodParametersBody = minValue
-                            });
+                            ruleParts.Add(new ExactLengthRulePart(int.Parse(minValue)));
                         }
                         else
                         {
-                            ruleParts.Add(new SpiderValidationRulePart
-                            {
-                                Name = "Length",
-                                MethodParametersBody = $"{minValue}, {maxValue}"
-                            });
+                            ruleParts.Add(new LengthRangePart(int.Parse(minValue), int.Parse(maxValue)));
                         }
                         break;
                     case "Precision":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "PrecisionScale",
-                            MethodParametersBody = $"{attribute.Value}, false" // Only here the attribute.Value should be two values eg. 6, 7
-                        });
+                        string[] precisionParts = attribute.Value.Split(',');
+                        ruleParts.Add(new PrecisionScaleRulePart(
+                            int.Parse(precisionParts[0].Trim()),
+                            int.Parse(precisionParts[1].Trim())
+                        ));
                         break;
                     case "Range":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = attribute.Value.Split(',')[0].Trim()
-                        });
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "LessThanOrEqualTo",
-                            MethodParametersBody = attribute.Value.Split(',')[1].Trim()
-                        });
+                        string[] rangeParts = attribute.Value.Split(',');
+                        ruleParts.Add(new GreaterThanOrEqualToRulePart(rangeParts[0].Trim()));
+                        ruleParts.Add(new LessThanOrEqualToRulePart(rangeParts[1].Trim()));
                         break;
                     case "GreaterThanOrEqualTo":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "GreaterThanOrEqualTo",
-                            MethodParametersBody = attribute.Value
-                        });
+                        ruleParts.Add(new GreaterThanOrEqualToRulePart(attribute.Value));
                         break;
                     case "Email":
-                        ruleParts.Add(new SpiderValidationRulePart
-                        {
-                            Name = "EmailAddress",
-                            MethodParametersBody = ""
-                        });
+                        ruleParts.Add(new EmailAddressRulePart());
                         break;
                     default:
                         break;
@@ -156,19 +126,11 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 if (property.Type == "string")
                 {
-                    ruleParts.Add(new SpiderValidationRulePart
-                    {
-                        Name = "Unless",
-                        MethodParametersBody = $"i => string.IsNullOrEmpty(i.{rulePropertyName})"
-                    });
+                    ruleParts.Add(new UnlessRulePart($"i => string.IsNullOrEmpty(i.{rulePropertyName})"));
                 }
                 else
                 {
-                    ruleParts.Add(new SpiderValidationRulePart
-                    {
-                        Name = "Unless",
-                        MethodParametersBody = $"i => i.{rulePropertyName} == null"
-                    });
+                    ruleParts.Add(new UnlessRulePart($"i => i.{rulePropertyName} == null"));
                 }
             }
 
@@ -208,10 +170,10 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static void RemoveDuplicateRuleParts(List<List<SpiderValidationRulePart>> rulePartsToRemove, List<SpiderValidationRulePart> priorRuleParts)
         {
-            List<string> priorRulePartNames = priorRuleParts.Select(x => x.Name).ToList();
+            List<Type> priorRulePartTypes = priorRuleParts.Select(x => x.GetType()).ToList();
 
             foreach (List<SpiderValidationRulePart> ruleParts in rulePartsToRemove)
-                ruleParts.RemoveAll(part => priorRulePartNames.Any(name => part.Name == name));
+                ruleParts.RemoveAll(part => priorRulePartTypes.Any(type => part.GetType() == type));
         }
 
         /// <summary>

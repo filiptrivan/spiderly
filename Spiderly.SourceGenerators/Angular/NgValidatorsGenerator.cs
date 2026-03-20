@@ -7,9 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Spiderly.SourceGenerators.Models;
-using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Enums;
 
 namespace Spiderly.SourceGenerators.Angular
@@ -216,25 +214,51 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
         private static void PopulateValidationParts(SpiderValidationRule rule, ValidationMethodParts parts)
         {
-            AddNotEmptyRule(rule, parts);
-            AddLengthRule(rule, parts);
-            AddMaximumLengthRule(rule, parts);
-            AddLessThanOrEqualToRule(rule, parts);
-            AddGreaterThanOrEqualToRule(rule, parts);
-            AddNotHaveWhiteSpaceRule(rule, parts);
-            AddEmailAddressRule(rule, parts);
-            AddPrecisionScaleRule(rule, parts);
+            foreach (SpiderValidationRulePart rulePart in rule.ValidationRuleParts)
+            {
+                switch (rulePart)
+                {
+                    case NotEmptyRulePart:
+                        AddNotEmptyRule(rule.Property, parts);
+                        break;
+                    case LengthRangePart p:
+                        AddLengthRangeRule(p, parts);
+                        break;
+                    case ExactLengthRulePart p:
+                        AddExactLengthRule(p, parts);
+                        break;
+                    case MaximumLengthRulePart p:
+                        AddMaximumLengthRule(p, parts);
+                        break;
+                    case LessThanOrEqualToRulePart p:
+                        AddLessThanOrEqualToRule(p, parts);
+                        break;
+                    case GreaterThanOrEqualToRulePart p:
+                        AddGreaterThanOrEqualToRule(p, parts);
+                        break;
+                    case NotHaveWhiteSpaceRulePart:
+                        AddNotHaveWhiteSpaceRule(parts);
+                        break;
+                    case EmailAddressRulePart:
+                        AddEmailAddressRule(parts);
+                        break;
+                    case PrecisionScaleRulePart p:
+                        AddPrecisionScaleRule(p, parts);
+                        break;
+                    case UnlessRulePart:
+                        break; // Angular doesn't use Unless
+                    default:
+                        throw new NotSupportedException($"Unknown validation rule part: {rulePart.GetType().Name}");
+                }
+            }
         }
 
-        private static void AddNotEmptyRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddNotEmptyRule(SpiderlyProperty property, ValidationMethodParts parts)
         {
-            if (rule.ValidationRuleParts.Any(x => x.Name == "NotEmpty") == false)
-                return;
-
             string ruleName = "notEmptyRule";
 
             parts.RuleStatements.Add($$"""
-            const {{ruleName}} = {{GetNotEmptyCheckExpression(rule.Property)}};
+            const {{ruleName}} = {{GetNotEmptyCheckExpression(property)}};
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslationTags.Add("NotEmpty");
@@ -252,53 +276,36 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             }
         }
 
-        private static void AddLengthRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddLengthRangeRule(LengthRangePart part, ValidationMethodParts parts)
         {
-            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "Length");
-            if (rulePart == null)
-                return;
-
-            Match lengthMatch = Regex.Match(rulePart.MethodParametersBody, @"(\d+),\s*(\d+)");
-            Match singleLengthMatch = Regex.Match(rulePart.MethodParametersBody, @"(\d+)");
-
-            if (lengthMatch.Success)
-            {
-                string ruleName = "stringLengthRule";
-                string min = lengthMatch.Groups[1].Value;
-                string max = lengthMatch.Groups[2].Value;
-                parts.RuleStatements.Add($$"""
-            const min = {{min}};
-            const max = {{max}};
+            string ruleName = "stringLengthRule";
+            parts.RuleStatements.Add($$"""
+            const min = {{part.Min}};
+            const max = {{part.Max}};
             const {{ruleName}} = (value?.length >= min && value?.length <= max) || (typeof value === 'undefined' || value === null || value === '');
 """);
-                parts.RuleNames.Add(ruleName);
-                parts.TranslocoVariables.AddRange(["min", "max"]);
-                parts.TranslationTags.Add("Length");
-            }
-            else if (singleLengthMatch.Success)
-            {
-                string ruleName = "stringSingleLengthRule";
-                string length = singleLengthMatch.Groups[1].Value;
-                parts.RuleStatements.Add($$"""
-            const length = {{length}};
-            const {{ruleName}} = (value?.length == length) || (typeof value === 'undefined' || value === null || value === '');
-""");
-                parts.RuleNames.Add(ruleName);
-                parts.TranslocoVariables.AddRange(["length"]);
-                parts.TranslationTags.Add("SingleLength");
-            }
+            parts.RuleNames.Add(ruleName);
+            parts.TranslocoVariables.AddRange(["min", "max"]);
+            parts.TranslationTags.Add("Length");
         }
 
-        private static void AddMaximumLengthRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddExactLengthRule(ExactLengthRulePart part, ValidationMethodParts parts)
         {
-            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "MaximumLength");
-            if (rulePart == null)
-                return;
-
-            string ruleName = "stringMaxLengthRule";
-            string max = rulePart.MethodParametersBody;
+            string ruleName = "stringSingleLengthRule";
             parts.RuleStatements.Add($$"""
-            const max = {{max}};
+            const length = {{part.Length}};
+            const {{ruleName}} = (value?.length == length) || (typeof value === 'undefined' || value === null || value === '');
+""");
+            parts.RuleNames.Add(ruleName);
+            parts.TranslocoVariables.AddRange(["length"]);
+            parts.TranslationTags.Add("SingleLength");
+        }
+
+        private static void AddMaximumLengthRule(MaximumLengthRulePart part, ValidationMethodParts parts)
+        {
+            string ruleName = "stringMaxLengthRule";
+            parts.RuleStatements.Add($$"""
+            const max = {{part.MaxLength}};
             const {{ruleName}} = (value?.length <= max) || (typeof value === 'undefined' || value === null || value === '');
 """);
             parts.RuleNames.Add(ruleName);
@@ -306,16 +313,11 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             parts.TranslationTags.Add("MaxLength");
         }
 
-        private static void AddLessThanOrEqualToRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddLessThanOrEqualToRule(LessThanOrEqualToRulePart part, ValidationMethodParts parts)
         {
-            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "LessThanOrEqualTo");
-            if (rulePart == null)
-                return;
-
             string ruleName = "numberMaxRangeRule";
-            string max = rulePart.MethodParametersBody;
             parts.RuleStatements.Add($$"""
-            const max = {{max}};
+            const max = {{part.Value}};
             const {{ruleName}} = (value <= max) || (typeof value === 'undefined' || value === null || value === '');
 """);
             parts.RuleNames.Add(ruleName);
@@ -323,16 +325,11 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             parts.TranslationTags.Add("NumberRangeMax");
         }
 
-        private static void AddGreaterThanOrEqualToRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddGreaterThanOrEqualToRule(GreaterThanOrEqualToRulePart part, ValidationMethodParts parts)
         {
-            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "GreaterThanOrEqualTo");
-            if (rulePart == null)
-                return;
-
             string ruleName = "numberMinRangeRule";
-            string min = rulePart.MethodParametersBody;
             parts.RuleStatements.Add($$"""
-            const min = {{min}};
+            const min = {{part.Value}};
             const {{ruleName}} = (value >= min) || (typeof value === 'undefined' || value === null || value === '');
 """);
             parts.RuleNames.Add(ruleName);
@@ -340,11 +337,8 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             parts.TranslationTags.Add("NumberRangeMin");
         }
 
-        private static void AddNotHaveWhiteSpaceRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddNotHaveWhiteSpaceRule(ValidationMethodParts parts)
         {
-            if (rule.ValidationRuleParts.Any(x => x.Name == "NotHaveWhiteSpace") == false)
-                return;
-
             string ruleName = "notHaveWhiteSpaceRule";
             parts.RuleStatements.Add($$"""
             const {{ruleName}} = !/\\s/.test(value);
@@ -353,11 +347,8 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             parts.TranslationTags.Add("NotHaveWhiteSpace");
         }
 
-        private static void AddEmailAddressRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddEmailAddressRule(ValidationMethodParts parts)
         {
-            if (rule.ValidationRuleParts.Any(x => x.Name == "EmailAddress") == false)
-                return;
-
             string ruleName = "emailAddressRule";
             parts.RuleStatements.Add($$"""
             const {{ruleName}} = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -366,25 +357,14 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             parts.TranslationTags.Add("EmailAddress");
         }
 
-        private static void AddPrecisionScaleRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        private static void AddPrecisionScaleRule(PrecisionScaleRulePart part, ValidationMethodParts parts)
         {
-            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "PrecisionScale");
-            if (rulePart == null)
-                return;
-
-            Match precisionScaleMatch = Regex.Match(rulePart.MethodParametersBody, @"(\d+),\s*(\d+),\s*(true|false)");
-            if (precisionScaleMatch.Success == false)
-                return;
-
             string ruleName = "precisionScaleRule";
-            string precision = precisionScaleMatch.Groups[1].Value;
-            string scale = precisionScaleMatch.Groups[2].Value;
-            string ignoreTrailingZeros = precisionScaleMatch.Groups[3].Value;
 
             parts.RuleStatements.Add($$"""
-            const precision = {{precision}};
-            const scale = {{scale}};
-            const ignoreTrailingZeros = {{ignoreTrailingZeros}};
+            const precision = {{part.Precision}};
+            const scale = {{part.Scale}};
+            const ignoreTrailingZeros = false;
             const {{ruleName}} = validatePrecisionScale(value, precision, scale, ignoreTrailingZeros) || (typeof value === 'undefined' || value === null || value === '');
 """);
             parts.RuleNames.Add(ruleName);

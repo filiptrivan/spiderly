@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -113,7 +114,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
 
             foreach (SpiderValidationRule rule in rules)
             {
-                string ruleChain = string.Join("", rule.ValidationRuleParts.Select(x => $".{x.Name}({FormatMethodParametersBody(x, rule.Property.Type)})"));
+                string ruleChain = string.Join("", rule.ValidationRuleParts.Select(x => ToFluentValidationCall(x, rule.Property.Type)));
                 result.Add($$"""
             RuleFor(x => x.{{rule.Property.Name}}){{ruleChain}};
 """);
@@ -122,13 +123,20 @@ namespace {{basePartOfNamespace}}.ValidationRules
             return string.Join("\n", result);
         }
 
-        private static string FormatMethodParametersBody(SpiderValidationRulePart rulePart, string propertyType)
+        private static string ToFluentValidationCall(SpiderValidationRulePart rulePart, string propertyType) => rulePart switch
         {
-            if (rulePart.Name == "GreaterThanOrEqualTo" || rulePart.Name == "LessThanOrEqualTo")
-                return GetNumericLiteralWithSuffix(rulePart.MethodParametersBody, propertyType);
-
-            return rulePart.MethodParametersBody;
-        }
+            NotEmptyRulePart => ".NotEmpty()",
+            MaximumLengthRulePart p => $".MaximumLength({p.MaxLength})",
+            LengthRangePart p => $".Length({p.Min}, {p.Max})",
+            ExactLengthRulePart p => $".Length({p.Length})",
+            PrecisionScaleRulePart p => $".PrecisionScale({p.Precision}, {p.Scale}, false)",
+            GreaterThanOrEqualToRulePart p => $".GreaterThanOrEqualTo({GetNumericLiteralWithSuffix(p.Value, propertyType)})",
+            LessThanOrEqualToRulePart p => $".LessThanOrEqualTo({GetNumericLiteralWithSuffix(p.Value, propertyType)})",
+            EmailAddressRulePart => ".EmailAddress()",
+            UnlessRulePart p => $".Unless({p.Condition})",
+            NotHaveWhiteSpaceRulePart => ".NotHaveWhiteSpace()",
+            _ => throw new NotSupportedException($"Unknown validation rule part: {rulePart.GetType().Name}")
+        };
 
         private static string GetNumericLiteralWithSuffix(string value, string propertyType)
         {

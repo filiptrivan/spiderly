@@ -1,3 +1,4 @@
+using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
 namespace Spiderly.SourceGenerators.Tests;
@@ -115,6 +116,142 @@ public class HelpersTests
     public void FindMaxValueForStringLength_OnlyMax_ReturnsMaxValue()
     {
         Assert.Equal("100", ValidationRuleBuilder.FindMaxValueForStringLength("100"));
+    }
+
+    #endregion
+
+    #region GetRulePartsForProperty
+
+    [Fact]
+    public void GetRulePartsForProperty_StringLength_ReturnsMaximumLengthRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Name",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "StringLength", Value = "70" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Name");
+
+        MaximumLengthRulePart maxLengthPart = Assert.Single(result.OfType<MaximumLengthRulePart>());
+        Assert.Equal(70, maxLengthPart.MaxLength);
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_StringLengthWithMin_ReturnsLengthRangePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Name",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "StringLength", Value = "70, MinimumLength = 5" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Name");
+
+        LengthRangePart lengthRangePart = Assert.Single(result.OfType<LengthRangePart>());
+        Assert.Equal(5, lengthRangePart.Min);
+        Assert.Equal(70, lengthRangePart.Max);
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_StringLengthMinEqualsMax_ReturnsExactLengthRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Code",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "StringLength", Value = "8, MinimumLength = 8" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Code");
+
+        ExactLengthRulePart exactLengthPart = Assert.Single(result.OfType<ExactLengthRulePart>());
+        Assert.Equal(8, exactLengthPart.Length);
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_Required_ReturnsNotEmptyRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Name",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Name");
+
+        Assert.Single(result.OfType<NotEmptyRulePart>());
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_Range_ReturnsGreaterAndLessThanParts()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Quantity",
+            Type = "int",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "Range", Value = "0, 100" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Quantity");
+
+        GreaterThanOrEqualToRulePart gtePart = Assert.Single(result.OfType<GreaterThanOrEqualToRulePart>());
+        Assert.Equal("0", gtePart.Value);
+
+        LessThanOrEqualToRulePart ltePart = Assert.Single(result.OfType<LessThanOrEqualToRulePart>());
+        Assert.Equal("100", ltePart.Value);
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_Precision_ReturnsPrecisionScaleRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Price",
+            Type = "decimal",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "Precision", Value = "18, 2" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Price");
+
+        PrecisionScaleRulePart precisionPart = Assert.Single(result.OfType<PrecisionScaleRulePart>());
+        Assert.Equal(18, precisionPart.Precision);
+        Assert.Equal(2, precisionPart.Scale);
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_Email_ReturnsEmailAddressRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Email",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "Required" }, new SpiderlyAttribute { Name = "Email" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Email");
+
+        Assert.Single(result.OfType<EmailAddressRulePart>());
+    }
+
+    [Fact]
+    public void GetRulePartsForProperty_OptionalStringLength_AddsUnlessRulePart()
+    {
+        SpiderlyProperty property = new()
+        {
+            Name = "Description",
+            Type = "string",
+            Attributes = [new SpiderlyAttribute { Name = "StringLength", Value = "500" }]
+        };
+
+        List<SpiderValidationRulePart> result = ValidationRuleBuilder.GetRulePartsForProperty(property, "Description");
+
+        Assert.Single(result.OfType<MaximumLengthRulePart>());
+        UnlessRulePart unlessPart = Assert.Single(result.OfType<UnlessRulePart>());
+        Assert.Equal("i => string.IsNullOrEmpty(i.Description)", unlessPart.Condition);
     }
 
     #endregion
