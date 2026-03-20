@@ -12,7 +12,7 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 
 ## Project structure
 
-- **Spiderly.Shared** — Core: attributes (44), base entities, DTOs, enums, interfaces, helpers
+- **Spiderly.Shared** — Core: attributes (39), base entities, DTOs, enums, interfaces, helpers
 - **Spiderly.SourceGenerators** — IIncrementalGenerator-based code generators (netstandard2.0). Subfolders: `Net/` (.NET generators), `Angular/` (Angular generators), `Shared/` (Helpers.cs, Extensions.cs), `Models/`, `Enums/`
 - **Spiderly.Infrastructure** — ApplicationDbContext<TUser>, M2M/M2O config, concurrency, audit tracking
 - **Spiderly.Security** — JWT auth, Google OAuth, token management, permission-based authorization
@@ -47,7 +47,7 @@ cd Angular && npm run lint
 
 ### Source generators
 
-All 15 generators implement `IIncrementalGenerator` (Roslyn incremental source generation). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
+15 standalone generators implement `IIncrementalGenerator` (Roslyn incremental source generation), supported by 9 sub-generators (static helper classes). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
 
 Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
 
@@ -57,7 +57,7 @@ Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
 
 - **Entity**: `M2M`, `M2MWithMany`, `WithMany`, `CascadeDelete`, `SetNull`, `DisplayName`, `DoNotAuthorize`, `Controller`
 - **UI**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
-- **Validation**: `GreaterThanOrEqual`, `Email`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
+- **Validation**: `GreaterThanOrEqualTo`, `Email`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
 - **Storage**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
 - **Translations**: JSON files in `{Shared}/Translations/` (auto-scaffolded by `TranslationsGenerator`)
 

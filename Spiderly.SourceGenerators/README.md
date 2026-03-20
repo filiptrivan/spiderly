@@ -15,7 +15,7 @@ namespace PlayertyLoyals.Business.Entities
 {
     public class UserExtended : BusinessObject<long>, IUser
     {
-        [UIControlWidth("col-12")] // On the UI this control will be displayed over the entire width of the screen for any device size (by default it is half, then from a certain number of pixels the whole screen)
+        [UIControlWidth("col-8")] // On the UI this control will be displayed over the entire width of the screen for any device size (by default it is col-8 md:col-4)
         [DisplayName] // A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the UserExtended list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
         [StringLength(70, MinimumLength = 5)] // This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend)
         [Required] // This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend)
@@ -155,83 +155,144 @@ export class NotificationDetailsComponent
 
 ## Entity Attributes
 
-### Required
+### Relationship
 
-- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
-- When it's used on the enumerable property (for now, only in combination with `UIOrderedOneToMany` attribute) will not allow saving an empty list.
-
-### StringLength
-
-- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
-- `[StringLength(100)]` without `MinimumLength` generates an **exact length** validation (string must be exactly 100 characters).
-- `[StringLength(100, MinimumLength = 1)]` generates a **range** validation (string must be between 1 and 100 characters).
-
-### GreaterThanOrEqualTo
-
-- Set this attribute to the numeric properties only.
-
-### DisplayName
-
-- A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
-- Don't use nameof, because source generator will take only "Email" if you pass nameof(User.Email)
-- Pass the parameter only if the display name is like this: User.Email
-
-### BlobName
-
-- Set this attribute to a property that serves as a pointer to the file identifier in azure storage.
-
-### Controller
-
-- Set this attribute to the entities for which you do not want the controller to be called {entityName}Controller, but to give it a custom name and possibly connect more entities to that controller.
-
-### ExcludeFromDTO
-
-- Set this attribute to the property you don't want generated in the DTO.
-
-### IncludeInDTO
-
-- Set this attribute to the property you want generated in the DTO.
-- It only makes sense for enumerable properties (because they are not generated in a DTO by default).
-- The generated property in DTO will not be included in the mapping library.
-
-### ExcludeServiceMethodsFromGeneration
-
-- All the logic that should be generated in the `BusinessServiceGenerated` class for this property will not be generated.
-
-### GenerateCommaSeparatedDisplayName
-
-- Set this attribute to the enumerable property for which you want the List<string> property to be generated in the DTO.
-- It will be filled with display names using mapper.
-- It is used to display comma separated display names ​​in a table on the UI.
-
-### WithMany
+#### WithMany
 
 - Set to the many to one property.
 - Pass enumerable parameter in order to know which enumerable property on the other side many to one property connects to.
 
-### CascadeDelete
+#### CascadeDelete
 
 - Set to the many to one property to perform a `cascade` delete.
 - When the referenced entity is deleted, all entities that reference it will automatically be deleted as well.
 - The child entity cannot exist without the parent entity which has this attribute.
 
-### SetNull
+#### SetNull
 
 - Set to the many to one property to perform a `set null` delete.
 
-### M2MWithMany
+#### M2M
+
+- Set on the entity class to indicate it represents a junction table for a many-to-many relationship.
+- e.g.
+
+```csharp
+[M2M]
+public class RolePermission
+{
+    [M2MWithMany(nameof(Role.Permissions))]
+    public virtual Role Role { get; set; }
+
+    [M2MWithMany(nameof(Permission.Roles))]
+    public virtual Permission Permission { get; set; }
+}
+```
+
+#### M2MWithMany
 
 - Set to a property in the M2M class that represents a reference to another entity.
 - As a parameter, you need to pass an enumerable property from the referenced entity.
 
-### SimpleManyToManyTableLazyLoad
+#### SimpleManyToManyTableLazyLoad
 
 - Set to the enumerable property which represents a navigation to other side of M2M relationship.
 - Will generate such a structure on the backend and frontend that the many-to-many relationship is maintained using a lazy loading table.
 
-### UI Attributes
+#### ComplexManyToManyList
 
-These attributes are used exclusively for the UI.
+- Generates an editable list UI for complex many-to-many relationships (junction tables with additional fields).
+- Shows ALL entities from the "other side" with editable junction fields. No add/remove/reorder controls.
+- **Warning:** Loads all "other side" entities into the form. Suitable for small sets (e.g., 3 warehouses), not for large sets.
+- e.g.
+
+```csharp
+// On ProductVariant entity:
+[ComplexManyToManyList]
+public virtual List<ProductVariantWarehouse> ProductVariantWarehouses { get; } = new();
+
+// ProductVariantWarehouse (junction entity with [M2M]):
+[M2MWithMany(nameof(ProductVariant.ProductVariantWarehouses))]
+public virtual ProductVariant ProductVariant { get; set; }
+[M2MWithMany(nameof(Warehouse.ProductVariantWarehouses))]
+public virtual Warehouse Warehouse { get; set; }
+[GreaterThanOrEqualTo(0)]
+public int Stock { get; set; }
+```
+
+#### ComplexManyToManyReadonlyTable
+
+- Displays a complex M2M relationship (junction table with additional fields) in a read-only table form.
+
+### Validation
+
+#### Required
+
+- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
+- When it's used on the enumerable property (for now, only in combination with `UIOrderedOneToMany` attribute) will not allow saving an empty list.
+
+#### StringLength
+
+- This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
+- `[StringLength(100)]` without `MinimumLength` generates an **exact length** validation (string must be exactly 100 characters).
+- `[StringLength(100, MinimumLength = 1)]` generates a **range** validation (string must be between 1 and 100 characters).
+
+#### GreaterThanOrEqualTo
+
+- Set this attribute to the numeric properties only.
+
+#### Email
+
+- Validates that a string property value is a valid email address.
+- Provides both server-side and client-side validation.
+
+### File & Storage
+
+#### BlobName
+
+- Set this attribute to a property that serves as a pointer to the file identifier in storage (Azure, S3, Cloudinary).
+
+#### AcceptedFileTypes
+
+- Specifies the accepted file types for a blob property.
+- Default: `image/*` (accepts images only).
+- Use alongside `BlobName` for non-image uploads (e.g., PDFs, Excel files).
+- e.g. `[AcceptedFileTypes("application/pdf", ".pdf")]`
+
+#### MaxFileSize
+
+- Specifies the maximum allowed file size (in bytes) for a blob property.
+- Default: 20 MB (20,000,000 bytes).
+- Use alongside `BlobName`.
+- e.g. `[MaxFileSize(5_000_000)]`
+
+#### ImageWidth
+
+- Validates exact image width (in pixels) for a blob property.
+- Provides both server-side and client-side validation.
+- Use alongside `BlobName`.
+- e.g. `[ImageWidth(100)]`
+
+#### ImageHeight
+
+- Validates exact image height (in pixels) for a blob property.
+- Provides both server-side and client-side validation.
+- Use alongside `BlobName`.
+- e.g. `[ImageHeight(100)]`
+
+#### S3Url
+
+- Marks a property as an S3 URL.
+
+#### S3PublicUrl
+
+- Marks a property as an S3 public URL.
+
+#### CloudinaryPublicId
+
+- Marks a property as a Cloudinary public ID.
+
+### UI
 
 #### UIControlType
 
@@ -247,10 +308,10 @@ public string PrimaryColor { get; set; }
 #### UIControlWidth
 
 - Set to the property whose default width you want to change.
-- e.g. `[UIControlWidth("col-12")]`, in the example, the width control will always be full screen.
+- e.g. `[UIControlWidth("col-8")]`, in the example, the width control will always take 8 columns.
 - Default values for different control types are:
-- - file, text-area, color-picker, multiselect, multiautocomplete, table, editor: `col-12`
-- - everything else: `col-12 md:col-6`
+  - File, TextArea, MultiSelect, MultiAutocomplete, Table, Editor: `col-8`
+  - everything else: `col-8 md:col-4`
 
 #### UIDoNotGenerate
 
@@ -296,6 +357,62 @@ public int OrderNumber { get; set; }
 [SimpleManyToManyTableLazyLoad]
 public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 ```
+
+#### UIAdditionalPermissionCodeForInsert
+
+- Specifies additional permission requirements for inserting entities in the UI.
+- The user must have ONE of the specified permissions to perform the insert operation.
+- Multiple instances can be applied to a single entity (class-level attribute).
+
+#### UIAdditionalPermissionCodeForUpdate
+
+- Specifies additional permission requirements for updating entities in the UI.
+- The user must have ONE of the specified permissions to perform the update operation.
+- Multiple instances can be applied to a single entity (class-level attribute).
+
+### Code Generation & Mapping
+
+#### DisplayName
+
+- A Property with this attribute will be used as a display name for the class it is in (e.g. when we display the `UserExtended` list in the dropdown, their emails will be used for display). If you don't put this property anywhere, the Id will be taken by default.
+- Don't use nameof, because source generator will take only "Email" if you pass nameof(User.Email)
+- Pass the parameter only if the display name is like this: User.Email
+
+#### Controller
+
+- Set this attribute to the entities for which you do not want the controller to be called {entityName}Controller, but to give it a custom name and possibly connect more entities to that controller.
+
+#### ExcludeFromDTO
+
+- Set this attribute to the property you don't want generated in the DTO.
+
+#### IncludeInDTO
+
+- Set this attribute to the property you want generated in the DTO.
+- It only makes sense for enumerable properties (because they are not generated in a DTO by default).
+- The generated property in DTO will not be included in the mapping library.
+
+#### ExcludeServiceMethodsFromGeneration
+
+- All the logic that should be generated in the `BusinessServiceGenerated` class for this property will not be generated.
+
+#### GenerateCommaSeparatedDisplayName
+
+- Set this attribute to the enumerable property for which you want the List<string> property to be generated in the DTO.
+- It will be filled with display names using mapper.
+- It is used to display comma separated display names ​​in a table on the UI.
+
+#### DoNotAuthorize
+
+- Disables authorization checks for CRUD operations on the decorated entity.
+- By default, all entities require authorization for CRUD operations.
+- **Warning:** Bypasses security checks. Primarily intended for testing; avoid in production.
+
+#### ProjectToDTO
+
+- Specifies custom Mapster mapping configuration when projecting an entity to its DTO.
+- Class-level attribute, supports multiple instances.
+- e.g. `[ProjectToDTO(".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)")]`
 
 ### Translations
 
