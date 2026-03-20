@@ -95,7 +95,7 @@ public class User
     [Required]
     public string Name { get; set; }
 
-    [UIControlWidth("col-12")]
+    [UIControlWidth("col-8")]
     public Gender Gender { get; set; }
 
     [UIControlType("File")]
@@ -157,13 +157,13 @@ claude plugin add filiptrivan/spiderly
 
 **What's included:**
 
-| Type | Name | Description |
-|------|------|-------------|
-| Skill | `entity-design` | Correct attributes, relationships, UI mappings |
-| Skill | `backend-hooks` | Lifecycle hook signatures, execution order, MARS pitfall |
-| Skill | `migration-workflow` | Spiderly CLI commands, what needs migrations |
-| Skill | `filtering-patterns` | FilterDTO, paginated list overrides, AdditionalFilterId |
-| Command | `/spiderly:add-entity` | Guided end-to-end entity scaffolding |
+| Type    | Name                   | Description                                              |
+| ------- | ---------------------- | -------------------------------------------------------- |
+| Skill   | `entity-design`        | Correct attributes, relationships, UI mappings           |
+| Skill   | `backend-hooks`        | Lifecycle hook signatures, execution order, MARS pitfall |
+| Skill   | `migration-workflow`   | Spiderly CLI commands, what needs migrations             |
+| Skill   | `filtering-patterns`   | FilterDTO, paginated list overrides, AdditionalFilterId  |
+| Command | `/spiderly:add-entity` | Guided end-to-end entity scaffolding                     |
 
 ## Contributing
 
