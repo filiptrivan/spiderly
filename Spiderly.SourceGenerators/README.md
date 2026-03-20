@@ -234,8 +234,9 @@ public int Stock { get; set; }
 #### StringLength
 
 - This attribute is already built in EF Core, but apart from that, we also use it to generate validations (Backend and Frontend).
-- `[StringLength(100)]` without `MinimumLength` generates an **exact length** validation (string must be exactly 100 characters).
+- `[StringLength(100)]` without `MinimumLength` generates a **max-length** validation (string must have at most 100 characters).
 - `[StringLength(100, MinimumLength = 1)]` generates a **range** validation (string must be between 1 and 100 characters).
+- `[StringLength(8, MinimumLength = 8)]` (min == max) generates an **exact-length** validation (string must be exactly 8 characters).
 
 #### GreaterThanOrEqualTo
 

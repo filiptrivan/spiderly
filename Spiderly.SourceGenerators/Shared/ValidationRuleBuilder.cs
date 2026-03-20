@@ -87,11 +87,31 @@ namespace Spiderly.SourceGenerators.Shared
                         break;
                     case "StringLength":
                         string minValue = FindMinValueForStringLength(attribute.Value);
-                        ruleParts.Add(new SpiderValidationRulePart
+                        string maxValue = FindMaxValueForStringLength(attribute.Value);
+                        if (minValue == null)
                         {
-                            Name = "Length",
-                            MethodParametersBody = minValue == null ? $"{FindMaxValueForStringLength(attribute.Value)}" : $"{minValue}, {FindMaxValueForStringLength(attribute.Value)}"
-                        });
+                            ruleParts.Add(new SpiderValidationRulePart
+                            {
+                                Name = "MaximumLength",
+                                MethodParametersBody = maxValue
+                            });
+                        }
+                        else if (minValue == maxValue)
+                        {
+                            ruleParts.Add(new SpiderValidationRulePart
+                            {
+                                Name = "Length",
+                                MethodParametersBody = minValue
+                            });
+                        }
+                        else
+                        {
+                            ruleParts.Add(new SpiderValidationRulePart
+                            {
+                                Name = "Length",
+                                MethodParametersBody = $"{minValue}, {maxValue}"
+                            });
+                        }
                         break;
                     case "Precision":
                         ruleParts.Add(new SpiderValidationRulePart

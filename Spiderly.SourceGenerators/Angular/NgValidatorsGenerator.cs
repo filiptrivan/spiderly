@@ -218,6 +218,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
         {
             AddNotEmptyRule(rule, parts);
             AddLengthRule(rule, parts);
+            AddMaximumLengthRule(rule, parts);
             AddLessThanOrEqualToRule(rule, parts);
             AddGreaterThanOrEqualToRule(rule, parts);
             AddNotHaveWhiteSpaceRule(rule, parts);
@@ -286,6 +287,23 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
                 parts.TranslocoVariables.AddRange(["length"]);
                 parts.TranslationTags.Add("SingleLength");
             }
+        }
+
+        private static void AddMaximumLengthRule(SpiderValidationRule rule, ValidationMethodParts parts)
+        {
+            SpiderValidationRulePart rulePart = rule.ValidationRuleParts.SingleOrDefault(x => x.Name == "MaximumLength");
+            if (rulePart == null)
+                return;
+
+            string ruleName = "stringMaxLengthRule";
+            string max = rulePart.MethodParametersBody;
+            parts.RuleStatements.Add($$"""
+            const max = {{max}};
+            const {{ruleName}} = (value?.length <= max) || (typeof value === 'undefined' || value === null || value === '');
+""");
+            parts.RuleNames.Add(ruleName);
+            parts.TranslocoVariables.AddRange(["max"]);
+            parts.TranslationTags.Add("MaxLength");
         }
 
         private static void AddLessThanOrEqualToRule(SpiderValidationRule rule, ValidationMethodParts parts)

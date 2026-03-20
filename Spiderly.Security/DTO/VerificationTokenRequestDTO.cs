@@ -6,7 +6,7 @@ namespace Spiderly.Security.DTO
     public class VerificationTokenRequestDTO
     {
         [Required]
-        [StringLength(6)]
+        [StringLength(6, MinimumLength = 6)]
         public string VerificationCode { get; set; }
         public string BrowserId { get; set; }
         [Required]
