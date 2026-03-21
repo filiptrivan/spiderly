@@ -407,6 +407,16 @@ namespace Spiderly.Shared.Helpers
                     },
                     new SpiderlyFolder
                     {
+                        Name = $"{appName}.Migrations",
+                        Files =
+                        {
+                            new SpiderlyFile { Name = $"{appName}.Migrations.csproj", Data = GetMigrationsCsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
+                            new SpiderlyFile { Name = "MigrationsDbContextFactory.cs", Data = GetMigrationsDbContextFactoryCsData(appName, dbProvider) },
+                            new SpiderlyFile { Name = "Program.cs", Data = GetMigrationsProgramCsData() },
+                        }
+                    },
+                    new SpiderlyFolder
+                    {
                         Name = $"{appName}.Shared",
                         ChildFolders =
                         {
@@ -2750,6 +2760,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "{{appName}}.Business", "{{a
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "{{appName}}.Shared", "{{appName}}.Shared\{{appName}}.Shared.csproj", "{2D65E133-33C4-4169-A175-D744800941D6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "{{appName}}.Migrations", "{{appName}}.Migrations\{{appName}}.Migrations.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -2772,6 +2784,10 @@ Global
 		{2D65E133-33C4-4169-A175-D744800941D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D65E133-33C4-4169-A175-D744800941D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D65E133-33C4-4169-A175-D744800941D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -3239,6 +3255,98 @@ namespace {{appName}}.Infrastructure
 	</ItemGroup>
 
 </Project>
+""";
+    }
+
+    private static string GetMigrationsCsProjData(string appName, string version, bool isRunningFromNuget, string userSecretsId, DbProviderCodes dbProvider)
+    {
+      return $$"""
+<!--
+	Lightweight startup project for EF Core design-time tools (migrations).
+	Using this instead of WebAPI as the startup project allows running
+	"spiderly add-migration" and "spiderly update-database" while the
+	backend is running — WebAPI's DLLs are locked by the running process,
+	but this project builds to its own output directory.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>{{userSecretsId}}</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+{{XmlCommented($$"""
+		<ProjectReference Include="..\..\..\spiderly\Spiderly.Infrastructure\Spiderly.Infrastructure.csproj" />
+""", isRunningFromNuget)}}
+		<ProjectReference Include="..\{{appName}}.Infrastructure\{{appName}}.Infrastructure.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
+		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.1" />
+{{XmlCommented($$"""
+		<PackageReference Include="Spiderly.Infrastructure" Version="{{version}}" />
+""", !isRunningFromNuget)}}
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\{{appName}}.WebAPI\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\{{appName}}.WebAPI\appsettings.*.json" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>
+""";
+    }
+
+    private static string GetMigrationsDbContextFactoryCsData(string appName, DbProviderCodes dbProvider)
+    {
+      return $$"""
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using {{appName}}.Infrastructure;
+
+namespace {{appName}}.Migrations
+{
+    public class MigrationsDbContextFactory : IDesignTimeDbContextFactory<{{appName}}ApplicationDbContext>
+    {
+        public {{appName}}ApplicationDbContext CreateDbContext(string[] args)
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development"}.json", optional: true)
+                .AddUserSecrets<MigrationsDbContextFactory>(optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            string connectionString = configuration["AppSettings:Spiderly.Shared:ConnectionString"];
+
+            DbContextOptionsBuilder<{{appName}}ApplicationDbContext> optionsBuilder = new();
+            optionsBuilder.UseLazyLoadingProxies();
+            {{(dbProvider == DbProviderCodes.SQLServer ? "optionsBuilder.UseSqlServer(connectionString);" : "optionsBuilder.UseNpgsql(connectionString);")}}
+
+            return new {{appName}}ApplicationDbContext(optionsBuilder.Options);
+        }
+    }
+}
+""";
+    }
+
+    private static string GetMigrationsProgramCsData()
+    {
+      return $$"""
+return;
 """;
     }
 

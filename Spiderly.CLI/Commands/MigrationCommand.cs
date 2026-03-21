@@ -40,9 +40,9 @@ namespace Spiderly.CLI.Commands
                 return 1;
             }
 
-            (string infrastructurePath, string webApiCsprojRelativePath) = FindProjectPaths(backendPath);
+            (string infrastructurePath, string startupCsprojRelativePath) = FindProjectPaths(backendPath);
 
-            if (infrastructurePath == null || webApiCsprojRelativePath == null)
+            if (infrastructurePath == null || startupCsprojRelativePath == null)
             {
                 return 1;
             }
@@ -50,7 +50,7 @@ namespace Spiderly.CLI.Commands
             string infrastructureCsprojPath = Directory.GetFiles(infrastructurePath, "*.Infrastructure.csproj").First();
             string infrastructureCsprojRelativePath = Path.Combine(".", Path.GetFileName(infrastructureCsprojPath));
 
-            string fullArgs = $"ef {efArgs} --project {infrastructureCsprojRelativePath} --startup-project {webApiCsprojRelativePath}";
+            string fullArgs = $"ef {efArgs} --project {infrastructureCsprojRelativePath} --startup-project {startupCsprojRelativePath}";
 
             ConsoleHelper.MarkupLineLoading($"{operationName}...");
             (bool success, _) = await ProcessRunner.RunCommand("dotnet", fullArgs, infrastructurePath);
@@ -58,13 +58,13 @@ namespace Spiderly.CLI.Commands
             if (!success)
             {
                 ConsoleHelper.MarkupLineLoading("Running dotnet build to show detailed errors...");
-                await ProcessRunner.RunCommand("dotnet", $"build {webApiCsprojRelativePath}", infrastructurePath);
+                await ProcessRunner.RunCommand("dotnet", $"build {startupCsprojRelativePath}", infrastructurePath);
             }
 
             return success ? 0 : 1;
         }
 
-        private static (string infrastructurePath, string webApiCsprojRelativePath) FindProjectPaths(string backendPath)
+        private static (string infrastructurePath, string startupCsprojRelativePath) FindProjectPaths(string backendPath)
         {
             string infrastructurePath = Directory.GetDirectories(backendPath, "*.Infrastructure").FirstOrDefault();
             if (infrastructurePath == null)
@@ -73,10 +73,23 @@ namespace Spiderly.CLI.Commands
                 return (null, null);
             }
 
+            // Prefer *.Migrations project as startup (avoids DLL lock when WebAPI is running)
+            string migrationsPath = Directory.GetDirectories(backendPath, "*.Migrations").FirstOrDefault();
+            if (migrationsPath != null)
+            {
+                string migrationsCsprojPath = Directory.GetFiles(migrationsPath, "*.Migrations.csproj").FirstOrDefault();
+                if (migrationsCsprojPath != null)
+                {
+                    string migrationsCsprojRelativePath = Path.GetRelativePath(infrastructurePath, migrationsCsprojPath);
+                    return (infrastructurePath, migrationsCsprojRelativePath);
+                }
+            }
+
+            // Fall back to *.WebAPI
             string webApiPath = Directory.GetDirectories(backendPath, "*.WebAPI").FirstOrDefault();
             if (webApiPath == null)
             {
-                ConsoleHelper.MarkupLineERROR("Could not find *.WebAPI folder in Backend. Please run this command from within your Spiderly project directory.");
+                ConsoleHelper.MarkupLineERROR("Could not find *.WebAPI or *.Migrations folder in Backend. Please run this command from within your Spiderly project directory.");
                 return (null, null);
             }
 
@@ -87,9 +100,9 @@ namespace Spiderly.CLI.Commands
                 return (null, null);
             }
 
-            string webApiCsprojRelativePath = Path.GetRelativePath(infrastructurePath, webApiCsprojPath);
+            string startupCsprojRelativePath = Path.GetRelativePath(infrastructurePath, webApiCsprojPath);
 
-            return (infrastructurePath, webApiCsprojRelativePath);
+            return (infrastructurePath, startupCsprojRelativePath);
         }
 
         private static string FindBackendPath()

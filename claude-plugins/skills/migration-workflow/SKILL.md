@@ -16,7 +16,7 @@ description: Create and manage EF Core migrations using the Spiderly CLI. Use wh
 | `spiderly remove-migration` | Remove the last unapplied migration |
 | `spiderly list-migrations` | List all migrations |
 
-Run from anywhere inside the project (CLI auto-locates `*.Infrastructure.csproj` and `*.WebAPI.csproj`).
+Run from anywhere inside the project (CLI auto-locates `*.Infrastructure.csproj` and `*.Migrations.csproj`, falling back to `*.WebAPI.csproj`).
 
 ## What Needs a Migration?
 
