@@ -2864,9 +2864,32 @@ public class Startup
                 .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
         });
 
+        app.UseMiddleware<RequestIdMiddleware>();
+
         app.UseSerilogRequestLogging();
 
-        app.UseSpiderly();
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+            app.SpiderlyConfigureSwagger();
+        }
+
+        if (env.IsProduction())
+        {
+            app.UseHttpsRedirection();
+        }
+
+        app.SpiderlyConfigureLocalization();
+
+        app.SpiderlyConfigureExceptionHandling();
+
+        app.UseRouting();
+
+        app.UseAuthentication();
+
+        app.UseAuthorization();
+
+        app.UseRateLimiter();
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {

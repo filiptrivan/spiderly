@@ -115,14 +115,6 @@ namespace Spiderly.Shared.Extensions
                 services.SpiderlyAddRateLimiters();
             }
 
-            // Store options for UseSpiderly middleware
-            services.AddSingleton(new SpiderlyOptions
-            {
-                AuthenticationEnabled = builder.AuthenticationEnabled,
-                SwaggerEnabled = builder.SwaggerEnabled,
-                RateLimitingEnabled = builder.RateLimitingEnabled,
-            });
-
             return builder;
         }
 
@@ -301,51 +293,6 @@ namespace Spiderly.Shared.Extensions
         #endregion
 
         #region Configure
-
-        /// <summary>
-        /// Configures Spiderly middleware. Conditionally activates authentication, Swagger,
-        /// and rate limiting based on what was registered via <see cref="AddSpiderly{TDbContext}"/>.
-        /// </summary>
-        public static void UseSpiderly(this IApplicationBuilder app)
-        {
-            SpiderlyOptions options = app.ApplicationServices.GetRequiredService<SpiderlyOptions>();
-            IWebHostEnvironment env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
-
-            app.UseMiddleware<RequestIdMiddleware>();
-
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.SpiderlyConfigureLocalization();
-
-            if (options.SwaggerEnabled && env.IsDevelopment())
-            {
-                app.SpiderlyConfigureSwagger();
-            }
-
-            if (env.IsProduction())
-            {
-                app.UseHttpsRedirection();
-            }
-
-            app.SpiderlyConfigureExceptionHandling();
-
-            app.UseRouting();
-
-            if (options.AuthenticationEnabled)
-            {
-                app.UseAuthentication();
-
-                app.UseAuthorization();
-            }
-
-            if (options.RateLimitingEnabled)
-            {
-                app.UseRateLimiter();
-            }
-        }
 
         public static void SpiderlyConfigureLocalization(this IApplicationBuilder app)
         {
