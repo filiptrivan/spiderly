@@ -2866,7 +2866,7 @@ public class Startup
 
         app.UseSerilogRequestLogging();
 
-        app.UseSpiderly(env);
+        app.UseSpiderly();
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {

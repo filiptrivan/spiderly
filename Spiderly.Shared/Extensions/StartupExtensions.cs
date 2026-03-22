@@ -306,9 +306,10 @@ namespace Spiderly.Shared.Extensions
         /// Configures Spiderly middleware. Conditionally activates authentication, Swagger,
         /// and rate limiting based on what was registered via <see cref="AddSpiderly{TDbContext}"/>.
         /// </summary>
-        public static void UseSpiderly(this IApplicationBuilder app, IWebHostEnvironment env)
+        public static void UseSpiderly(this IApplicationBuilder app)
         {
             SpiderlyOptions options = app.ApplicationServices.GetRequiredService<SpiderlyOptions>();
+            IWebHostEnvironment env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
             app.UseMiddleware<RequestIdMiddleware>();
 
@@ -329,7 +330,7 @@ namespace Spiderly.Shared.Extensions
                 app.UseHttpsRedirection();
             }
 
-            app.SpiderlyConfigureExceptionHandling(env);
+            app.SpiderlyConfigureExceptionHandling();
 
             app.UseRouting();
 
@@ -363,8 +364,10 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app, IWebHostEnvironment env)
+        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app)
         {
+            IWebHostEnvironment env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+
             app.UseExceptionHandler(appError =>
             {
                 appError.Run(async context =>
