@@ -307,13 +307,13 @@ namespace Spiderly.Shared.Extensions
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Your API V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "API V1");
             });
         }
 
-        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app)
+        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app, IWebHostEnvironment env)
         {
-            IWebHostEnvironment env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+            ILogger logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("Spiderly.ExceptionHandler");
 
             app.UseExceptionHandler(appError =>
             {
@@ -331,8 +331,6 @@ namespace Spiderly.Shared.Extensions
 
                         if (env.IsDevelopment())
                             exceptionString = ex.ToString();
-
-                        ILogger logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Spiderly.ExceptionHandler");
 
                         string message;
                         LogLevel logLevel;
@@ -387,7 +385,7 @@ namespace Spiderly.Shared.Extensions
                         logger.Log(
                             logLevel,
                             ex,
-                            "Currently authenticated user id: {userId});",
+                            "Currently authenticated user id: {UserId}",
                             userId
                         );
 
