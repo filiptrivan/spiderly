@@ -238,27 +238,29 @@ if (paymentMethod == null)
 
 ## DI Registration
 
-Register custom services in `CompositionRoot.cs` (LightInject):
+Register custom services in `Extensions/AppServiceExtensions.cs`:
 
 ```csharp
-public class CompositionRoot : ICompositionRoot
+public static class AppServiceExtensions
 {
-    public virtual void Compose(IServiceRegistry registry)
+    public static IServiceCollection AddAppServices(this IServiceCollection services)
     {
         // Framework services
-        registry.Register<BusinessService>();
-        registry.Register<BusinessServiceGenerated>();
-        registry.Register<AuthorizationService>();
-        registry.Register<AuthorizationServiceGenerated>();
+        services.AddTransient<BusinessService>();
+        services.AddTransient<BusinessServiceGenerated>();
+        services.AddTransient<AuthorizationService>();
+        services.AddTransient<AuthorizationServiceGenerated>();
 
         // Custom services
-        registry.Register<MeilisearchService>();
-        registry.Register<IPaymentGateway, RaiAcceptPaymentGateway>();
+        services.AddTransient<MeilisearchService>();
+        services.AddTransient<IPaymentGateway, RaiAcceptPaymentGateway>();
+
+        return services;
     }
 }
 ```
 
-Inject into controllers via constructor. LightInject resolves all dependencies automatically.
+Then call `services.AddAppServices()` in `Startup.ConfigureServices()`. Inject into controllers via constructor — the DI container resolves all dependencies automatically.
 
 ## Custom DTOs
 

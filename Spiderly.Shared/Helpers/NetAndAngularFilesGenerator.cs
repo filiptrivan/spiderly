@@ -478,10 +478,10 @@ namespace Spiderly.Shared.Helpers
                             },
                             new SpiderlyFolder
                             {
-                                Name = "DI",
+                                Name = "Extensions",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "CompositionRoot.cs", Data = GetCompositionRootCsData(appName) },
+                                    new SpiderlyFile { Name = "AppServiceExtensions.cs", Data = GetAppServiceExtensionsCsData(appName) },
                                 }
                             },
                         },
@@ -2805,14 +2805,14 @@ EndGlobal
       return $$"""
 using Hangfire;
 using Hangfire.Dashboard;
-using LightInject;
 using Serilog;
-using Spiderly.Shared.Enums;
+using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
-using {{appName}}.WebAPI.DI;
+using Spiderly.Shared.Services;
+using {{appName}}.WebAPI.Extensions;
 using {{appName}}.Infrastructure;
 
 public class Startup
@@ -2838,14 +2838,18 @@ public class Startup
         services.AddHangfireServer();
         services.AddSingleton<IExceptionNotificationDispatcher, HangfireExceptionNotificationDispatcher>();
 
-        services.SpiderlyConfigureServices<{{appName}}ApplicationDbContext>(dbProvider: DbProviderCodes.{{dbProvider}});
-    }
+        services.AddSpiderly<{{appName}}ApplicationDbContext>(spiderly =>
+        {
+            spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
+            spiderly.UseAuthentication();
+            spiderly.UseExcel();
+            spiderly.UseEmailing<EmailingService>();
+            spiderly.UseFileStorage<DiskStorageService>();
+            spiderly.UseSwagger();
+            spiderly.UseRateLimiting();
+        });
 
-    public void ConfigureContainer(IServiceContainer container)
-    {
-        container.RegisterInstance(container);
-
-        container.RegisterFrom<CompositionRoot>();
+        services.AddAppServices();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -2862,7 +2866,7 @@ public class Startup
 
         app.UseSerilogRequestLogging();
 
-        app.SpiderlyConfigure(env);
+        app.UseSpiderly(env);
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
@@ -2921,7 +2925,6 @@ namespace {{appName}}.WebAPI
                 {
                     configuration.ReadFrom.Configuration(context.Configuration);
                 })
-                .UseLightInject()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
@@ -2945,7 +2948,6 @@ namespace {{appName}}.WebAPI
 	<ItemGroup>
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.22.2" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.1" />
-		<PackageReference Include="LightInject.Microsoft.Hosting" Version="1.6.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
 			<PrivateAssets>all</PrivateAssets>
@@ -3088,53 +3090,48 @@ namespace {{appName}}.WebAPI
 """;
     }
 
-    private static string GetCompositionRootCsData(string appName)
+    private static string GetAppServiceExtensionsCsData(string appName)
     {
       return $$"""
-using LightInject;
-using Spiderly.Security.Interfaces;
-using Spiderly.Shared.Excel;
-using Spiderly.Security.Services;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
-using Spiderly.Shared.Emailing;
-using {{appName}}.Business.Services;
-using {{appName}}.Business.Entities;
-using {{appName}}.Shared.FluentValidation;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Spiderly.Security.DTO;
+using Spiderly.Security.Interfaces;
+using Spiderly.Security.Services;
+using {{appName}}.Business.Entities;
+using {{appName}}.Business.Services;
+using {{appName}}.Shared.FluentValidation;
 
-namespace {{appName}}.WebAPI.DI
+namespace {{appName}}.WebAPI.Extensions
 {
-    public class CompositionRoot : ICompositionRoot
+    public static class AppServiceExtensions
     {
-        public virtual void Compose(IServiceRegistry registry)
+        public static IServiceCollection AddAppServices(this IServiceCollection services)
         {
             #region Spiderly
 
-            registry.Register<AuthenticationService>();
-            registry.Register<AuthorizationServiceBase>();
-            registry.Register<SecurityServiceBase<User>>();
-            registry.Register<ExcelService>();
-            registry.Register<IEmailingService, EmailingService>();
-            registry.Register<IFileManager, DiskStorageService>();
-            registry.RegisterSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
-            registry.RegisterSingleton<IJwtAuthManager, JwtAuthManagerService>();
-            registry.RegisterSingleton<ITokenStorage<RefreshTokenDTO>, InMemoryTokenStorage<RefreshTokenDTO>>();
-            registry.RegisterSingleton<ITokenStorage<LoginVerificationTokenDTO>, InMemoryTokenStorage<LoginVerificationTokenDTO>>();
+            services.AddTransient<AuthenticationService>();
+            services.AddTransient<AuthorizationServiceBase>();
+            services.AddTransient<SecurityServiceBase<User>>();
+            services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
+            services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
+            services.AddSingleton<ITokenStorage<RefreshTokenDTO>, InMemoryTokenStorage<RefreshTokenDTO>>();
+            services.AddSingleton<ITokenStorage<LoginVerificationTokenDTO>, InMemoryTokenStorage<LoginVerificationTokenDTO>>();
 
             #endregion
 
             #region Business
 
-            registry.Register<SecurityService<User>>();
-            registry.Register<{{appName}}.Business.Services.BusinessService>();
-            registry.Register<{{appName}}.Business.Services.BusinessServiceGenerated>();
-            registry.Register<{{appName}}.Business.Services.AuthorizationService>();
-            registry.Register<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
+            services.AddTransient<SecurityService<User>>();
+            services.AddTransient<{{appName}}.Business.Services.BusinessService>();
+            services.AddTransient<{{appName}}.Business.Services.BusinessServiceGenerated>();
+            services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
+            services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
 
             #endregion
+
+            return services;
         }
     }
 }

@@ -69,25 +69,22 @@ public string ProfilePicture { get; set; }
 
 ## DI Registration
 
-### CompositionRoot.cs (LightInject)
+### AddSpiderly builder (Startup.cs)
 
 ```csharp
-// Disk (default for local dev)
-registry.Register<IFileManager, DiskStorageService>();
+// Choose ONE file storage provider in the builder:
+spiderly.UseFileStorage<DiskStorageService>();       // Disk (default for local dev)
+spiderly.UseFileStorage<S3PublicStorageService>();    // S3 Public
+spiderly.UseFileStorage<S3StorageService>();          // S3 Private
+spiderly.UseFileStorage<BlobStorageService>();        // Azure Blob
+spiderly.UseFileStorage<CloudinaryStorageService>();  // Cloudinary
+```
 
-// S3 Public — register BOTH IFileManager + named service
-registry.Register<IFileManager, S3PublicStorageService>();
-registry.Register<S3PublicStorageService>();
+If you need a named service in addition to `IFileManager` (e.g., `S3PublicStorageService` directly), register it in `AppServiceExtensions.cs`:
 
-// S3 Private
-registry.Register<IFileManager, S3StorageService>();
-
-// Azure Blob
-registry.Register<IFileManager, BlobStorageService>();
-
-// Cloudinary
-registry.Register<IFileManager, CloudinaryStorageService>();
-registry.Register<CloudinaryStorageService>();
+```csharp
+services.AddTransient<S3PublicStorageService>();
+services.AddTransient<CloudinaryStorageService>();
 ```
 
 ### S3 Client Registration (Startup.cs)

@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Logging;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Enums;
+using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -30,51 +31,99 @@ namespace Spiderly.Shared.Extensions
         #region ConfigureServices
 
         /// <summary>
-        /// The SpiderlyConfigureServices method is an extension method for IServiceCollection that centralizes the registration of various services in a .NET application. It performs the following tasks in sequence: <br/>
-        /// 1. Adds memory caching. <br/>
-        /// 2. Configures JWT-based authentication. <br/>
-        /// 3. Adds authorization support. <br/>
-        /// 4. Registers HttpContextAccessor and HTTP client services. <br/>
-        /// 5. Configures CORS policies. <br/>
-        /// 6. Sets up request localization for a specified culture. <br/>
-        /// 7. Adds controllers with JSON options. <br/>
-        /// 8. Registers Azure Blob Storage clients. <br/>
-        /// 9. Configures the application's database context. <br/>
-        /// 10.	Adds Swagger for API documentation. <br/>
-        /// 11.	Configures rate limiting for requests. <br/>
-        /// <br/>
-        /// This method simplifies service configuration by consolidating related setup logic into one reusable method. <br/>
+        /// Registers Spiderly framework services using a modular builder pattern.
+        /// Only the features you opt in to via the builder are registered.
+        /// <example>
+        /// <code>
+        /// services.AddSpiderly&lt;MyDbContext&gt;(spiderly =&gt;
+        /// {
+        ///     spiderly.UsePostgreSQL();
+        ///     spiderly.UseCulture("sr-Latn-RS");
+        ///     spiderly.UseAuthentication();
+        ///     spiderly.UseExcel();
+        ///     spiderly.UseBrevoEmailing();
+        ///     spiderly.UseFileStorage&lt;DiskStorageService&gt;();
+        ///     spiderly.UseSwagger();
+        ///     spiderly.UseRateLimiting();
+        /// });
+        /// </code>
+        /// </example>
         /// </summary>
-        public static void SpiderlyConfigureServices<TDbContext>(
+        public static SpiderlyBuilder AddSpiderly<TDbContext>(
             this IServiceCollection services,
-            string cultureCode = "en",
-            DbProviderCodes dbProvider = DbProviderCodes.SQLServer
+            Action<SpiderlyBuilder> configure
         )
             where TDbContext : DbContext, IApplicationDbContext
         {
+            SpiderlyBuilder builder = new(services);
+            configure(builder);
+
+            if (!builder.DbProviderSet)
+            {
+                throw new InvalidOperationException(
+                    "A database provider must be configured. Call UsePostgreSQL() or UseSQLServer() inside the AddSpiderly configuration.");
+            }
+
+            // Core (always registered)
             services.AddMemoryCache();
-
-            services.SpiderlyAddAuthentication();
-
-            services.AddAuthorization();
-
             services.AddHttpContextAccessor();
-
             services.AddHttpClient();
-
             services.AddCors();
-
-            services.SpiderlyConfigureCulture(cultureCode); // It's mandatory to be before AddControllers
-
+            services.SpiderlyConfigureCulture(builder.CultureCode); // Must be before AddControllers
             services.SpiderlyAddControllers();
+            services.SpiderlyAddDbContext<TDbContext>(builder.DbProvider);
 
-            services.SpiderlyAddAzureClients();
+            // Optional modules
+            if (builder.AuthenticationEnabled)
+            {
+                services.SpiderlyAddAuthentication();
+                services.AddAuthorization();
+            }
 
-            services.SpiderlyAddDbContext<TDbContext>(dbProvider); // https://youtu.be/bN57EDYD6M0?si=CVztRqlj0hBSrFXb
+            if (builder.ExcelEnabled)
+            {
+                services.AddTransient<ExcelService>();
+            }
 
-            services.SpiderlyAddSwaggerGen();
+            if (builder.EmailingEnabled)
+            {
+                services.AddTransient(typeof(IEmailingService), builder.EmailingServiceType);
 
-            services.AddRateLimiters();
+                if (builder.BrevoHttpClientEnabled)
+                {
+                    services.SpiderlyAddBrevoHttpClient();
+                }
+            }
+
+            if (builder.FileStorageEnabled)
+            {
+                services.AddTransient(typeof(IFileManager), builder.FileStorageServiceType);
+            }
+
+            if (builder.AzureBlobEnabled)
+            {
+                services.SpiderlyAddAzureClients();
+            }
+
+            if (builder.SwaggerEnabled)
+            {
+                services.SpiderlyAddSwaggerGen();
+            }
+
+            if (builder.RateLimitingEnabled)
+            {
+                services.SpiderlyAddRateLimiters();
+            }
+
+            // Store options for UseSpiderly middleware
+            services.AddSingleton(new SpiderlyOptions
+            {
+                AuthenticationEnabled = builder.AuthenticationEnabled,
+                SwaggerEnabled = builder.SwaggerEnabled,
+                RateLimitingEnabled = builder.RateLimitingEnabled,
+            });
+
+            return builder;
         }
 
         public static void SpiderlyAddAuthentication(this IServiceCollection services)
@@ -214,7 +263,7 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void AddRateLimiters(this IServiceCollection services)
+        public static void SpiderlyAddRateLimiters(this IServiceCollection services)
         {
             services.AddRateLimiter(options =>
             {
@@ -238,11 +287,9 @@ namespace Spiderly.Shared.Extensions
 
         /// <summary>
         /// Registers a named <c>"Brevo"</c> HttpClient pre-configured with the Brevo API base address
-        /// and the API key from <see cref="SettingsProvider.Current"/>.<br/>
-        /// Call this in addition to (not instead of) <see cref="SpiderlyConfigureServices{TDbContext}"/>
-        /// when using <see cref="Emailing.BrevoEmailingService"/>.
+        /// and the API key from <see cref="SettingsProvider.Current"/>.
         /// </summary>
-        public static void SpiderlyAddBrevoEmailingService(this IServiceCollection services)
+        public static void SpiderlyAddBrevoHttpClient(this IServiceCollection services)
         {
             services.AddHttpClient("Brevo", client =>
             {
@@ -256,10 +303,13 @@ namespace Spiderly.Shared.Extensions
         #region Configure
 
         /// <summary>
-        /// Configuring app midlewares
+        /// Configures Spiderly middleware. Conditionally activates authentication, Swagger,
+        /// and rate limiting based on what was registered via <see cref="AddSpiderly{TDbContext}"/>.
         /// </summary>
-        public static void SpiderlyConfigure(this IApplicationBuilder app, IWebHostEnvironment env)
+        public static void UseSpiderly(this IApplicationBuilder app, IWebHostEnvironment env)
         {
+            SpiderlyOptions options = app.ApplicationServices.GetRequiredService<SpiderlyOptions>();
+
             app.UseMiddleware<RequestIdMiddleware>();
 
             if (env.IsDevelopment())
@@ -269,7 +319,7 @@ namespace Spiderly.Shared.Extensions
 
             app.SpiderlyConfigureLocalization();
 
-            if (env.IsDevelopment())
+            if (options.SwaggerEnabled && env.IsDevelopment())
             {
                 app.SpiderlyConfigureSwagger();
             }
@@ -283,11 +333,17 @@ namespace Spiderly.Shared.Extensions
 
             app.UseRouting();
 
-            app.UseAuthentication();
+            if (options.AuthenticationEnabled)
+            {
+                app.UseAuthentication();
 
-            app.UseAuthorization();
+                app.UseAuthorization();
+            }
 
-            app.SpiderlyConfigureEndpoints();
+            if (options.RateLimitingEnabled)
+            {
+                app.UseRateLimiter();
+            }
         }
 
         public static void SpiderlyConfigureLocalization(this IApplicationBuilder app)
@@ -394,11 +450,6 @@ namespace Spiderly.Shared.Extensions
                     }
                 });
             });
-        }
-
-        public static void SpiderlyConfigureEndpoints(this IApplicationBuilder app)
-        {
-            app.UseRateLimiter();
         }
 
         #endregion

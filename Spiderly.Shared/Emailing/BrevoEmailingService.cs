@@ -8,7 +8,7 @@ namespace Spiderly.Shared.Emailing
     /// <summary>
     /// Sends transactional emails via the Brevo (formerly Sendinblue) REST API.
     /// Requires a named <c>"Brevo"</c> HttpClient registered through
-    /// <see cref="Extensions.StartupExtensions.SpiderlyAddBrevoEmailingService"/>.
+    /// <see cref="Extensions.StartupExtensions.SpiderlyAddBrevoHttpClient"/>.
     /// </summary>
     public class BrevoEmailingService : IEmailingService
     {
