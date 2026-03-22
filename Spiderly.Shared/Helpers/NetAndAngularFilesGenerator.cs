@@ -410,7 +410,7 @@ namespace Spiderly.Shared.Helpers
                         Name = $"{appName}.Migrations",
                         Files =
                         {
-                            new SpiderlyFile { Name = $"{appName}.Migrations.csproj", Data = GetMigrationsCsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
+                            new SpiderlyFile { Name = $"{appName}.Migrations.csproj", Data = GetMigrationsCsProjData(appName, userSecretsId, dbProvider) },
                             new SpiderlyFile { Name = "MigrationsDbContextFactory.cs", Data = GetMigrationsDbContextFactoryCsData(appName, dbProvider) },
                             new SpiderlyFile { Name = "Program.cs", Data = GetMigrationsProgramCsData() },
                         }
@@ -3258,7 +3258,7 @@ namespace {{appName}}.Infrastructure
 """;
     }
 
-    private static string GetMigrationsCsProjData(string appName, string version, bool isRunningFromNuget, string userSecretsId, DbProviderCodes dbProvider)
+    private static string GetMigrationsCsProjData(string appName, string userSecretsId, DbProviderCodes dbProvider)
     {
       return $$"""
 <!--
@@ -3278,9 +3278,6 @@ namespace {{appName}}.Infrastructure
 	</PropertyGroup>
 
 	<ItemGroup>
-{{XmlCommented($$"""
-		<ProjectReference Include="..\..\..\spiderly\Spiderly.Infrastructure\Spiderly.Infrastructure.csproj" />
-""", isRunningFromNuget)}}
 		<ProjectReference Include="..\{{appName}}.Infrastructure\{{appName}}.Infrastructure.csproj" />
 	</ItemGroup>
 
@@ -3294,9 +3291,6 @@ namespace {{appName}}.Infrastructure
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.1" />
-{{XmlCommented($$"""
-		<PackageReference Include="Spiderly.Infrastructure" Version="{{version}}" />
-""", !isRunningFromNuget)}}
 	</ItemGroup>
 
 	<ItemGroup>
