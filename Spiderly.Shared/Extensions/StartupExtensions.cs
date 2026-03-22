@@ -39,12 +39,12 @@ namespace Spiderly.Shared.Extensions
         /// {
         ///     spiderly.UsePostgreSQL();
         ///     spiderly.UseCulture("sr-Latn-RS");
-        ///     spiderly.UseAuthentication();
-        ///     spiderly.UseExcel();
-        ///     spiderly.UseBrevoEmailing();
-        ///     spiderly.UseFileStorage&lt;DiskStorageService&gt;();
-        ///     spiderly.UseSwagger();
-        ///     spiderly.UseRateLimiting();
+        ///     spiderly.AddAuthentication();
+        ///     spiderly.AddExcel();
+        ///     spiderly.AddBrevoEmailing();
+        ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();
+        ///     spiderly.AddSwagger();
+        ///     spiderly.AddRateLimiting();
         /// });
         /// </code>
         /// </example>

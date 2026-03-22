@@ -73,11 +73,11 @@ public string ProfilePicture { get; set; }
 
 ```csharp
 // Choose ONE file storage provider in the builder:
-spiderly.UseFileStorage<DiskStorageService>();       // Disk (default for local dev)
-spiderly.UseFileStorage<S3PublicStorageService>();    // S3 Public
-spiderly.UseFileStorage<S3StorageService>();          // S3 Private
-spiderly.UseFileStorage<BlobStorageService>();        // Azure Blob
-spiderly.UseFileStorage<CloudinaryStorageService>();  // Cloudinary
+spiderly.AddFileStorage<DiskStorageService>();       // Disk (default for local dev)
+spiderly.AddFileStorage<S3PublicStorageService>();    // S3 Public
+spiderly.AddFileStorage<S3StorageService>();          // S3 Private
+spiderly.AddFileStorage<BlobStorageService>();        // Azure Blob
+spiderly.AddFileStorage<CloudinaryStorageService>();  // Cloudinary
 ```
 
 If you need a named service in addition to `IFileManager` (e.g., `S3PublicStorageService` directly), register it in `AppServiceExtensions.cs`:

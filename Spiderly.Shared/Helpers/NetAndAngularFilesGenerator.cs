@@ -2841,12 +2841,12 @@ public class Startup
         services.AddSpiderly<{{appName}}ApplicationDbContext>(spiderly =>
         {
             spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
-            spiderly.UseAuthentication();
-            spiderly.UseExcel();
-            spiderly.UseEmailing<EmailingService>();
-            spiderly.UseFileStorage<DiskStorageService>();
-            spiderly.UseSwagger();
-            spiderly.UseRateLimiting();
+            spiderly.AddAuthentication();
+            spiderly.AddExcel();
+            spiderly.AddEmailing<EmailingService>();
+            spiderly.AddFileStorage<DiskStorageService>();
+            spiderly.AddSwagger();
+            spiderly.AddRateLimiting();
         });
 
         services.AddAppServices();

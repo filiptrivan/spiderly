@@ -7,19 +7,21 @@ using Spiderly.Shared.Interfaces;
 namespace Spiderly.Shared.Extensions
 {
     /// <summary>
-    /// Configures which Spiderly features to enable. Each <c>Use*</c> method opts in to a specific feature.
+    /// Configures which Spiderly features to enable.
+    /// Use <c>Use*</c> for infrastructure choices (database provider, culture)
+    /// and <c>Add*</c> for feature registration (auth, emailing, file storage, etc.).
     /// <example>
     /// <code>
     /// services.AddSpiderly&lt;MyDbContext&gt;(spiderly =&gt;
     /// {
     ///     spiderly.UsePostgreSQL();
     ///     spiderly.UseCulture("sr-Latn-RS");
-    ///     spiderly.UseAuthentication();
-    ///     spiderly.UseExcel();
-    ///     spiderly.UseBrevoEmailing();
-    ///     spiderly.UseFileStorage&lt;DiskStorageService&gt;();
-    ///     spiderly.UseSwagger();
-    ///     spiderly.UseRateLimiting();
+    ///     spiderly.AddAuthentication();
+    ///     spiderly.AddExcel();
+    ///     spiderly.AddBrevoEmailing();
+    ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();
+    ///     spiderly.AddSwagger();
+    ///     spiderly.AddRateLimiting();
     /// });
     /// </code>
     /// </example>
@@ -74,13 +76,13 @@ namespace Spiderly.Shared.Extensions
         /// You still need to register your security services (AuthenticationService, AuthorizationServiceBase,
         /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager, ITokenStorage) in your app's service registration.
         /// </summary>
-        public SpiderlyBuilder UseAuthentication()
+        public SpiderlyBuilder AddAuthentication()
         {
             AuthenticationEnabled = true;
             return this;
         }
 
-        public SpiderlyBuilder UseExcel()
+        public SpiderlyBuilder AddExcel()
         {
             ExcelEnabled = true;
             return this;
@@ -89,7 +91,7 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Registers the specified type as the <see cref="IEmailingService"/> implementation.
         /// </summary>
-        public SpiderlyBuilder UseEmailing<TEmailingService>()
+        public SpiderlyBuilder AddEmailing<TEmailingService>()
             where TEmailingService : class, IEmailingService
         {
             EmailingEnabled = true;
@@ -102,7 +104,7 @@ namespace Spiderly.Shared.Extensions
         /// Registers <see cref="BrevoEmailingService"/> as <see cref="IEmailingService"/>
         /// and configures the named "Brevo" HttpClient with the API key from settings.
         /// </summary>
-        public SpiderlyBuilder UseBrevoEmailing()
+        public SpiderlyBuilder AddBrevoEmailing()
         {
             EmailingEnabled = true;
             EmailingServiceType = typeof(BrevoEmailingService);
@@ -113,7 +115,7 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Registers the specified type as the <see cref="IFileManager"/> implementation.
         /// </summary>
-        public SpiderlyBuilder UseFileStorage<TFileManager>()
+        public SpiderlyBuilder AddFileStorage<TFileManager>()
             where TFileManager : class, IFileManager
         {
             FileStorageEnabled = true;
@@ -125,19 +127,19 @@ namespace Spiderly.Shared.Extensions
         /// Registers Azure Blob Storage clients (BlobServiceClient, BlobContainerClient).
         /// Only needed when using Azure Blob Storage for file management.
         /// </summary>
-        public SpiderlyBuilder UseAzureBlobStorage()
+        public SpiderlyBuilder AddAzureBlobStorage()
         {
             AzureBlobEnabled = true;
             return this;
         }
 
-        public SpiderlyBuilder UseSwagger()
+        public SpiderlyBuilder AddSwagger()
         {
             SwaggerEnabled = true;
             return this;
         }
 
-        public SpiderlyBuilder UseRateLimiting()
+        public SpiderlyBuilder AddRateLimiting()
         {
             RateLimitingEnabled = true;
             return this;
