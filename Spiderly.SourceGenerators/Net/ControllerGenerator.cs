@@ -151,6 +151,9 @@ namespace {{basePartOfNamespace}}.Controllers
 
         #region Read
 
+        /// <summary>
+        /// Returns a paginated list of {{controllerEntity.Name}} records.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<PaginatedResultDTO<{{controllerEntity.Name}}DTO>> GetPaginated{{controllerEntity.Name}}List(FilterDTO filterDTO)
@@ -158,6 +161,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return await _businessService.GetPaginated{{controllerEntity.Name}}List(filterDTO, _context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
 
+        /// <summary>
+        /// Exports {{controllerEntity.Name}} records to an Excel file.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<IActionResult> Export{{controllerEntity.Name}}ListToExcel(FilterDTO filterDTO)
@@ -170,6 +176,9 @@ namespace {{basePartOfNamespace}}.Controllers
             );
         }
 
+        /// <summary>
+        /// Returns all {{controllerEntity.Name}} records (non-paginated).
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<{{controllerEntity.Name}}DTO>> Get{{controllerEntity.Name}}List()
@@ -177,6 +186,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return await _businessService.Get{{controllerEntity.Name}}DTOList(_context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
 
+        /// <summary>
+        /// Returns the full form data for a single {{controllerEntity.Name}}, including related entities.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<{{controllerEntity.Name}}MainUIFormDTO> Get{{controllerEntity.Name}}MainUIFormDTO({{referencedProjectEntityClassIdType}} id)
@@ -184,6 +196,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return await _businessService.Get{{controllerEntity.Name}}MainUIFormDTO(id, {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
 
+        /// <summary>
+        /// Returns a single {{controllerEntity.Name}} by ID.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<{{controllerEntity.Name}}DTO> Get{{controllerEntity.Name}}({{referencedProjectEntityClassIdType}} id)
@@ -263,6 +278,9 @@ namespace {{basePartOfNamespace}}.Controllers
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
+        /// <summary>
+        /// Returns autocomplete options for {{property.Name}} on {{entity.Name}}.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter, {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
@@ -289,12 +307,15 @@ namespace {{basePartOfNamespace}}.Controllers
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
+        /// <summary>
+        /// Returns dropdown options for {{property.Name}} on {{entity.Name}}.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}({{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
         {
             return await _businessService.Get{{property.Name}}DropdownListFor{{entity.Name}}(
-                _context.DbSet<{{manyToOneEntity.Name}}>(), 
+                _context.DbSet<{{manyToOneEntity.Name}}>(),
                 {{Helpers.GetShouldAuthorizeEntityString(entity)}},
                 {{entity.Name.FirstCharToLower()}}Id
             );
@@ -336,6 +357,9 @@ namespace {{basePartOfNamespace}}.Controllers
             string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
             return $$"""
+        /// <summary>
+        /// Returns a paginated list of {{property.Name}} for {{entity.Name}}.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
@@ -343,6 +367,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return await _businessService.GetPaginated{{extractedEntity.Name}}List(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), false);
         }
 
+        /// <summary>
+        /// Exports {{property.Name}} for {{entity.Name}} to an Excel file.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
@@ -355,6 +382,9 @@ namespace {{basePartOfNamespace}}.Controllers
             );
         }
 
+        /// <summary>
+        /// Returns selected {{property.Name}} IDs for {{entity.Name}} with lazy loading support.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<LazyLoadSelectedIdsResultDTO<{{extractedEntityIdType}}>> LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO)
@@ -369,6 +399,9 @@ namespace {{basePartOfNamespace}}.Controllers
             SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
             return $$"""
+        /// <summary>
+        /// Returns a paginated list of {{property.Name}} for {{entity.Name}}.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
@@ -376,6 +409,9 @@ namespace {{basePartOfNamespace}}.Controllers
             return await _businessService.GetPaginated{{property.Name}}ListFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 
+        /// <summary>
+        /// Exports {{property.Name}} for {{entity.Name}} to an Excel file.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
@@ -395,6 +431,9 @@ namespace {{basePartOfNamespace}}.Controllers
             SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
             return $$"""
+        /// <summary>
+        /// Returns selected {{property.Name}} for {{entity.Name}}.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{extractedEntity.GetIdType(entities)}}>>> Get{{property.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id)
@@ -417,6 +456,9 @@ namespace {{basePartOfNamespace}}.Controllers
             foreach (SpiderlyProperty property in uiOrderedOneToManyProperties)
             {
                 result.Add($$"""
+        /// <summary>
+        /// Returns ordered {{property.Name}} for {{entity.Name}}.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
@@ -442,6 +484,9 @@ namespace {{basePartOfNamespace}}.Controllers
                 SpiderlyClass junctionEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
 
                 result.Add($$"""
+        /// <summary>
+        /// Returns default {{property.Name}} for {{entity.Name}}.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<List<{{junctionEntity.Name}}DTO>> GetDefault{{property.Name}}For{{entity.Name}}()
@@ -464,6 +509,9 @@ namespace {{basePartOfNamespace}}.Controllers
                 return null;
 
             return $$"""
+        /// <summary>
+        /// Deletes a {{entity.Name}} by ID.
+        /// </summary>
         [HttpDelete]
         [AuthGuard]
         public virtual async Task Delete{{entity.Name}}({{entity.GetIdType(entities)}} id)
@@ -483,6 +531,9 @@ namespace {{basePartOfNamespace}}.Controllers
                 return null;
 
             return $$"""
+        /// <summary>
+        /// Creates or updates a {{entity.Name}}.
+        /// </summary>
         [HttpPut]
         [AuthGuard]
         public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}({{entity.Name}}SaveBodyDTO saveBodyDTO)
@@ -502,6 +553,9 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 result.Add($$"""
         // FT: You can't upload and delete on every request because you can delete the old image for the user when he refreshes the page
+        /// <summary>
+        /// Uploads a {{property.Name}} file for {{entity.Name}}.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}([FromForm] IFormFile file) // FT: It doesn't work without interface
@@ -524,6 +578,9 @@ namespace {{basePartOfNamespace}}.Controllers
             foreach (SpiderlyProperty property in editorProperties)
             {
                 result.Add($$"""
+        /// <summary>
+        /// Uploads a {{property.Name}} image for {{entity.Name}}.
+        /// </summary>
         [HttpPost]
         [AuthGuard]
         public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)

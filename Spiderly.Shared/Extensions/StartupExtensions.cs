@@ -21,6 +21,7 @@ using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Resources;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -252,6 +253,13 @@ namespace Spiderly.Shared.Extensions
                 });
 
                 options.DocumentFilter<ErrorResponseFilter>();
+
+                string basePath = AppContext.BaseDirectory;
+                foreach (string xmlFile in Directory.GetFiles(basePath, "*.xml"))
+                {
+                    try { options.IncludeXmlComments(xmlFile); }
+                    catch (InvalidOperationException) { }
+                }
             });
         }
 

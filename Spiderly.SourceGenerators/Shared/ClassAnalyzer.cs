@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
@@ -8,6 +10,9 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class ClassAnalyzer
     {
+        private static readonly Regex XmlDocPrefixRegex = new Regex(@"///\s?", RegexOptions.Compiled);
+        private static readonly Regex WhitespaceCollapseRegex = new Regex(@"\s+", RegexOptions.Compiled);
+
         /// <summary>
         /// Getting all properties of the single class <paramref name="c"/>, including inherited ones.
         /// The inherited properties doesn't have any attributes
@@ -121,6 +126,7 @@ namespace Spiderly.SourceGenerators.Shared
                     Name = prop.Identifier.Text,
                     StringValue = prop.Initializer?.Value?.ToString()?.Trim('"'), // Trimming because: "\"John\"" --> "John"
                     EntityName = c.Identifier.Text,
+                    Description = GetXmlDocSummary(prop),
                     Attributes = prop.AttributeLists
                         .SelectMany(x => x.Attributes)
                         .Select(x =>
@@ -209,6 +215,7 @@ namespace Spiderly.SourceGenerators.Shared
                 Type = prop.Type.ToString(),
                 Name = prop.Identifier.Text,
                 EntityName = baseClass.Identifier.Text,
+                Description = GetXmlDocSummary(prop),
                 Attributes = attributes,
             };
 
@@ -229,6 +236,32 @@ namespace Spiderly.SourceGenerators.Shared
                 .Select(GetSpiderAttribute)
                 .ToList();
             return attributes;
+        }
+
+        internal static string GetXmlDocSummary(SyntaxNode node)
+        {
+            SyntaxTrivia docTrivia = node.GetLeadingTrivia()
+                .FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia));
+
+            if (!docTrivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia))
+                return null;
+
+            DocumentationCommentTriviaSyntax docComment = docTrivia.GetStructure() as DocumentationCommentTriviaSyntax;
+            if (docComment == null)
+                return null;
+
+            XmlElementSyntax summaryElement = docComment.ChildNodes()
+                .OfType<XmlElementSyntax>()
+                .FirstOrDefault(e => e.StartTag.Name.ToString() == "summary");
+
+            if (summaryElement == null)
+                return null;
+
+            string text = summaryElement.Content.ToString();
+            text = XmlDocPrefixRegex.Replace(text, "");
+            text = WhitespaceCollapseRegex.Replace(text, " ").Trim();
+
+            return string.IsNullOrEmpty(text) ? null : text;
         }
 
         private static List<SpiderlyProperty> GetPropertiesForBaseClasses(string typeName, string idType)

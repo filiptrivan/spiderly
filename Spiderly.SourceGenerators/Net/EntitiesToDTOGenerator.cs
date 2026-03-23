@@ -76,12 +76,27 @@ namespace {{basePartOfNamespace}}.DTO
 
             foreach (SpiderlyClass currentProjectDTOClass in currentProjectDTOClasses)
             {
-                result.Add($$"""
+                if (currentProjectDTOClass.Description != null)
+                {
+                    result.Add($$"""
+    /// <summary>
+    /// {{currentProjectDTOClass.Description}}
+    /// </summary>
     public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
     {
 {{GetDTOProperties(currentProjectDTOClass)}}
     }
 """);
+                }
+                else
+                {
+                    result.Add($$"""
+    public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
+    {
+{{GetDTOProperties(currentProjectDTOClass)}}
+    }
+""");
+                }
             }
 
             return string.Join("\n\n", result);
@@ -101,9 +116,21 @@ namespace {{basePartOfNamespace}}.DTO
 
                 string listInitializer = property.Type.IsEnumerable() ? " = new();" : "";
 
-                result.Add($$"""
+                if (property.Description != null)
+                {
+                    result.Add($$"""
+        /// <summary>
+        /// {{property.Description}}
+        /// </summary>
         public {{property.Type}} {{property.Name}} { get; set; }{{listInitializer}}
 """);
+                }
+                else
+                {
+                    result.Add($$"""
+        public {{property.Type}} {{property.Name}} { get; set; }{{listInitializer}}
+""");
+                }
             }
 
             return string.Join("\n", result);

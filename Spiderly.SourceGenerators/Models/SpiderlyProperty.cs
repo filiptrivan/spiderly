@@ -16,6 +16,8 @@ namespace Spiderly.SourceGenerators.Models
         public string EntityName { get; set; } // TODO FT: Add to every case, you didn't finished this, but it works for now.
         public bool IsSaveBodyMainDTO { get; set; }
 
+        public string Description { get; set; }
+
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
     }
 }

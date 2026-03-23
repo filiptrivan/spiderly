@@ -25,6 +25,8 @@ namespace Spiderly.SourceGenerators.Models
         /// </summary>
         public bool IsGenerated { get; set; }
 
+        public string Description { get; set; }
+
         public List<SpiderlyProperty> Properties { get; set; } = new();
 
         public List<SpiderlyAttribute> Attributes { get; set; } = new();

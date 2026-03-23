@@ -25,6 +25,7 @@ namespace Spiderly.SourceGenerators.Shared
                             .FirstOrDefault()?.Name.ToString(),
                         BaseType = x.GetBaseType(),
                         IsAbstract = x.IsAbstract(),
+                        Description = ClassAnalyzer.GetXmlDocSummary(x),
                         Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
                         Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
                         Methods = ClassAnalyzer.GetMethodsOfCurrentClass(x),
@@ -64,6 +65,7 @@ namespace Spiderly.SourceGenerators.Shared
                     {
                         Name = $"{x.Name}DTO",
                         BaseType = x.GetDTOBaseType(),
+                        Description = x.Description,
                         Properties = GetSpiderlyDTOProperties(x, allClasses),
                         Namespace = x.Namespace.Replace(".Entities", ".DTO"),
                         IsGenerated = true
@@ -216,7 +218,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else
                 {
-                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO" });
+                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO", Description = property.Description });
                 }
             }
 
