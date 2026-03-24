@@ -68,6 +68,7 @@ using Microsoft.EntityFrameworkCore;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Classes;
 using Spiderly.Shared.Enums;
+using Spiderly.Shared.Extensions;
 using System.Text.Json;
 using {{basePartOfNamespace}}.Entities;
 
@@ -98,70 +99,51 @@ namespace {{basePartOfNamespace}}.Filtering
                 List<SpiderlyClass> pairDTOClasses = currentProjectDTOClasses.Where(x => x.Name == $"{entity.Name}DTO").ToList(); // Getting the pair DTO classes of entity class
                 List<SpiderlyProperty> efClassProps = entity.Properties;
 
-                foreach (SpiderlyClass pairDTOClass in pairDTOClasses)
+                List<(string DTOPropName, string EntityDotNotation, string ResolvedType, bool IsCommaSeparated)> resolvedProps =
+                    ResolveDTOProperties(pairDTOClasses, efClassProps, entity, allEntities);
+
+                foreach (var prop in resolvedProps)
                 {
-                    foreach (SpiderlyProperty DTOprop in pairDTOClass.Properties)
+                    if (prop.IsCommaSeparated)
                     {
-                        string entityDotNotation = DTOprop.Name; // RoleDisplayName
-                        string DTOpropType = DTOprop.Type;
+                        string entityPropName = prop.DTOPropName.Replace("CommaSeparated", ""); // "SegmentationItems"
+                        sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, entity.GetIdType(currentProjectEntities)));
+                        continue;
+                    }
 
-                        if (efClassProps.Any(x => x.Name == DTOprop.Name) == false) // If a property in the DTO doesn't exist in the EF class (e.g., RoleDisplayName doesn't exist).
-                        {
-                            if (entityDotNotation.EndsWith("CommaSeparated") && pairDTOClass.IsGenerated == true)
-                            {
-                                string entityPropName = entityDotNotation.Replace("CommaSeparated", ""); // "SegmentationItems"
-
-                                sb.AppendLine(GetCaseForEnumerable(DTOprop.Name, entityPropName, entity.GetIdType(currentProjectEntities)));
-
-                                continue;
-                            }
-                            else
-                            {
-                                entityDotNotation = GetDotNotatioOfEntityFromMappers(allEntities, entity, pairDTOClass, entityDotNotation); // "Role.Id"
-
-                                if (entityDotNotation == null)
-                                    continue;
-
-                                DTOpropType = GetPropTypeOfEntityDotNotationProperty(entityDotNotation, entity, allEntities);
-                            }
-                        }
-
-                        switch (DTOpropType)
-                        {
-                            case "string":
-                                sb.AppendLine(GetCaseForString(DTOprop.Name, entityDotNotation));
-                                break;
-                            case "bool":
-                            case "bool?":
-                                sb.AppendLine(GetCaseForBool(DTOprop.Name, entityDotNotation));
-                                break;
-                            case "DateTime":
-                            case "DateTime?":
-                                sb.AppendLine(GetCaseForDateTime(DTOprop.Name, entityDotNotation));
-                                break;
-                            case "long":
-                            case "long?":
-                            case "int":
-                            case "int?":
-                            case "decimal":
-                            case "decimal?":
-                            case "float":
-                            case "float?":
-                            case "double":
-                            case "double?":
-                            case "byte":
-                            case "byte?":
-                                sb.AppendLine(GetCaseForNumber(DTOprop.Name, entityDotNotation, DTOpropType));
-                                break;
-                            default:
-                                //sb.AppendLine(GetCaseForManyToOneFromMapping(prop, c, classes)); // FT: it's already done in other cases
-                                break;
-                        }
-
-
-
+                    switch (prop.ResolvedType)
+                    {
+                        case "string":
+                            sb.AppendLine(GetCaseForString(prop.DTOPropName, prop.EntityDotNotation));
+                            break;
+                        case "bool":
+                        case "bool?":
+                            sb.AppendLine(GetCaseForBool(prop.DTOPropName, prop.EntityDotNotation));
+                            break;
+                        case "DateTime":
+                        case "DateTime?":
+                            sb.AppendLine(GetCaseForDateTime(prop.DTOPropName, prop.EntityDotNotation));
+                            break;
+                        case "long":
+                        case "long?":
+                        case "int":
+                        case "int?":
+                        case "decimal":
+                        case "decimal?":
+                        case "float":
+                        case "float?":
+                        case "double":
+                        case "double?":
+                        case "byte":
+                        case "byte?":
+                            sb.AppendLine(GetCaseForNumber(prop.DTOPropName, prop.EntityDotNotation, prop.ResolvedType));
+                            break;
+                        default:
+                            //sb.AppendLine(GetCaseForManyToOneFromMapping(prop, c, classes)); // FT: it's already done in other cases
+                            break;
                     }
                 }
+
                 sb.AppendLine($$"""
                             default:
                                 break;
@@ -172,6 +154,40 @@ namespace {{basePartOfNamespace}}.Filtering
 
             query = query.Where(predicate);
 
+""");
+                // Generate sorting
+                StringBuilder sbSort = new();
+
+                foreach (var prop in resolvedProps)
+                {
+                    // Collections (CommaSeparated) are not sortable
+                    if (prop.IsCommaSeparated)
+                        continue;
+
+                    if (prop.ResolvedType.IsBaseDataType())
+                        sbSort.AppendLine(GetSortCase(prop.DTOPropName, prop.EntityDotNotation));
+                }
+
+                if (sbSort.Length > 0)
+                {
+                    sb.AppendLine($$"""
+            if (filterDTO.MultiSortMeta?.Count > 0)
+            {
+                for (int i = 0; i < filterDTO.MultiSortMeta.Count; i++)
+                {
+                    bool ascending = filterDTO.MultiSortMeta[i].Order == 1;
+                    switch (filterDTO.MultiSortMeta[i].Field)
+                    {
+{{sbSort}}                        default:
+                            break;
+                    }
+                }
+            }
+
+""");
+                }
+
+                sb.AppendLine($$"""
             return new PaginatedResult<{{entity.Name}}>()
             {
                 TotalRecords = await query.CountAsync(),
@@ -197,6 +213,67 @@ using {{item}};
         }
 
 
+
+        /// <summary>
+        /// Resolves DTO properties to their entity dot-notation paths and types.
+        /// Handles direct properties, CommaSeparated (M2M), and navigation properties via mapper lookup.
+        /// </summary>
+        private static List<(string DTOPropName, string EntityDotNotation, string ResolvedType, bool IsCommaSeparated)> ResolveDTOProperties(
+            List<SpiderlyClass> pairDTOClasses,
+            List<SpiderlyProperty> efClassProps,
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntities)
+        {
+            List<(string, string, string, bool)> result = new();
+
+            foreach (SpiderlyClass pairDTOClass in pairDTOClasses)
+            {
+                foreach (SpiderlyProperty DTOprop in pairDTOClass.Properties)
+                {
+                    string entityDotNotation = DTOprop.Name;
+                    string DTOpropType = DTOprop.Type;
+
+                    if (efClassProps.Any(x => x.Name == DTOprop.Name) == false)
+                    {
+                        if (entityDotNotation.EndsWith("CommaSeparated") && pairDTOClass.IsGenerated == true)
+                        {
+                            result.Add((DTOprop.Name, entityDotNotation, DTOpropType, true));
+                            continue;
+                        }
+
+                        entityDotNotation = GetDotNotatioOfEntityFromMappers(allEntities, entity, pairDTOClass, entityDotNotation);
+
+                        if (entityDotNotation == null)
+                            continue;
+
+                        DTOpropType = GetPropTypeOfEntityDotNotationProperty(entityDotNotation, entity, allEntities);
+                    }
+
+                    result.Add((DTOprop.Name, entityDotNotation, DTOpropType, false));
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Generates a sort <c>case</c> for the given DTO property, mapping it to its entity dot-notation path.
+        /// <example>
+        /// <code>
+        /// case "roleDisplayName":
+        ///     query = query.ApplySort(x => x.Role.Name, ascending, i == 0);
+        ///     break;
+        /// </code>
+        /// </example>
+        /// </summary>
+        private static string GetSortCase(string DTOIdentifier, string entityDotNotation)
+        {
+            return $$"""
+                            case "{{DTOIdentifier.FirstCharToLower()}}":
+                                query = query.ApplySort(x => x.{{entityDotNotation}}, ascending, i == 0);
+                                break;
+""";
+        }
 
         private static string GetCaseForString(string DTOIdentifier, string entityDotNotation)
         {

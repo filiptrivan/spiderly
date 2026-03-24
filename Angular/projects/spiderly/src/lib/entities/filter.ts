@@ -6,8 +6,6 @@ export class Filter<T extends BaseEntity = any> extends BaseEntity {
   filters?: { [K in keyof T]?: FilterRule[] };
   first?: number;
   rows?: number;
-  sortField?: string;
-  sortOrder?: number;
   multiSortMeta?: FilterSortMeta[];
   additionalFilterIdInt?: number;
   additionalFilterIdLong?: number;
@@ -16,8 +14,6 @@ export class Filter<T extends BaseEntity = any> extends BaseEntity {
     filters,
     first,
     rows,
-    sortField,
-    sortOrder,
     multiSortMeta,
     additionalFilterIdInt,
     additionalFilterIdLong,
@@ -25,8 +21,6 @@ export class Filter<T extends BaseEntity = any> extends BaseEntity {
     filters?: { [K in keyof T]?: FilterRule[] };
     first?: number;
     rows?: number;
-    sortField?: string;
-    sortOrder?: number;
     multiSortMeta?: FilterSortMeta[];
     additionalFilterIdInt?: number;
     additionalFilterIdLong?: number;
@@ -36,8 +30,6 @@ export class Filter<T extends BaseEntity = any> extends BaseEntity {
     this.filters = filters;
     this.first = first;
     this.rows = rows;
-    this.sortField = sortField;
-    this.sortOrder = sortOrder;
     this.multiSortMeta = multiSortMeta;
     this.additionalFilterIdInt = additionalFilterIdInt;
     this.additionalFilterIdLong = additionalFilterIdLong;
@@ -53,12 +45,6 @@ export class Filter<T extends BaseEntity = any> extends BaseEntity {
       type: 'number',
     },
     rows: {
-      type: 'number',
-    },
-    sortField: {
-      type: 'string',
-    },
-    sortOrder: {
       type: 'number',
     },
     multiSortMeta: {

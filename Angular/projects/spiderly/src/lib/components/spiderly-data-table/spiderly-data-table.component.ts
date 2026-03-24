@@ -742,6 +742,7 @@ export class Column<T = any> {
   editable?: boolean;
   showTime?: boolean;
   decimalPlaces?: number;
+  sortable?: boolean;
 
   constructor({
     name,
@@ -756,11 +757,12 @@ export class Column<T = any> {
     editable,
     showTime,
     decimalPlaces,
+    sortable,
   }: {
     name?: string;
     field?: string & keyof T;
     filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future;
-    filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric';
+    filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
     filterPlaceholder?: string;
     showMatchModes?: boolean;
     showAddButton?: boolean;
@@ -769,6 +771,7 @@ export class Column<T = any> {
     editable?: boolean;
     showTime?: boolean;
     decimalPlaces?: number;
+    sortable?: boolean;
   } = {}) {
     this.name = name;
     this.field = field;
@@ -782,6 +785,7 @@ export class Column<T = any> {
     this.editable = editable;
     this.showTime = showTime;
     this.decimalPlaces = decimalPlaces;
+    this.sortable = sortable;
   }
 }
 
