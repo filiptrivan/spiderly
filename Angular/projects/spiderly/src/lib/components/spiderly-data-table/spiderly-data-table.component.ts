@@ -81,6 +81,9 @@ export class SpiderlyDataTableComponent implements OnInit {
   @Input() deleteItemFromTableObservableMethod: (
     rowId: number,
   ) => Observable<any>;
+  @Input() deleteListFromTableObservableMethod: (
+    ids: number[],
+  ) => Observable<any>;
 
   lastLazyLoadEvent: TableLazyLoadEvent;
   loading: boolean = true;
@@ -152,6 +155,10 @@ export class SpiderlyDataTableComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
+
+    if (this.deleteListFromTableObservableMethod && !this.selectionMode) {
+      this.selectionMode = 'multiple';
+    }
 
     this.matchModeDateOptions = [
       {
@@ -237,6 +244,12 @@ export class SpiderlyDataTableComponent implements OnInit {
             );
             this.fakeSelectedItems = [...idsToInsert];
           }
+        }
+
+        if (this.selectedLazyLoadObservableMethod == null && this.deleteListFromTableObservableMethod) {
+          this.fakeSelectedItems = this.items
+            .map((x) => x[this.idField])
+            .filter((id) => this.newlySelectedItems.includes(id));
         }
 
         this.loading = false;
@@ -374,27 +387,71 @@ export class SpiderlyDataTableComponent implements OnInit {
   }
 
   deleteObject(rowId: number) {
+    this.openDeleteConfirmation(
+      {
+        deleteItemFromTableObservableMethod:
+          this.deleteItemFromTableObservableMethod,
+        id: rowId,
+      },
+      'SuccessfullyDeletedMessage',
+    );
+  }
+
+  deleteSelectedObjects() {
+    const selectedIds = [...this.newlySelectedItems];
+
+    if (selectedIds.length === 0) return;
+
+    this.openDeleteConfirmation(
+      {
+        deleteListFromTableObservableMethod:
+          this.deleteListFromTableObservableMethod,
+        ids: selectedIds,
+      },
+      'SuccessfullyDeletedListMessage',
+      () => this.resetSelection(),
+    );
+  }
+
+  private openDeleteConfirmation(
+    data: Record<string, unknown>,
+    successMessageKey: string,
+    onSuccess?: () => void,
+  ) {
     this.deleteRef = this.dialogService.open(
       SpiderlyDeleteConfirmationComponent,
       {
         header: this.translocoService.translate('AreYouSure'),
         width: '400px',
-        data: {
-          deleteItemFromTableObservableMethod:
-            this.deleteItemFromTableObservableMethod,
-          id: rowId,
-        },
+        data,
       },
     );
 
     this.deleteRef.onClose.subscribe((deletedSuccessfully: boolean) => {
       if (deletedSuccessfully === true) {
         this.messageService.successMessage(
-          this.translocoService.translate('SuccessfullyDeletedMessage'),
+          this.translocoService.translate(successMessageKey),
         );
+        onSuccess?.();
         this.reload();
       }
     });
+  }
+
+  get showSelectAllCheckbox(): boolean {
+    return (
+      this.selectionMode === 'multiple' &&
+      this.selectedLazyLoadObservableMethod != null
+    );
+  }
+
+  private resetSelection() {
+    this.newlySelectedItems.length = 0;
+    this.unselectedItems.length = 0;
+    this.fakeSelectedItems = [];
+    this.rowsSelectedNumber = 0;
+    this.isAllSelected = null;
+    this.fakeIsAllSelected = false;
   }
 
   reload() {

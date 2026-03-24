@@ -264,6 +264,8 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
 {{GetBaseDeleteAngularControllerMethods(entity, alreadyAddedMethods)}}
 
+{{GetBaseDeleteListAngularControllerMethods(entity, alreadyAddedMethods)}}
+
 """;
         }
 
@@ -479,6 +481,21 @@ import { {{ngType}} } from '../../entities/entities.generated';
             Dictionary<string, string> getAndDeleteParameters = new Dictionary<string, string> { { "id", "number" } };
 
             return GetAngularControllerMethod(methodName, getAndDeleteParameters, "any", HttpTypeCodes.Delete, entity.ControllerName, Settings.HttpOptionsBase);
+        }
+
+        private static string GetBaseDeleteListAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        {
+            if (entity.IsReadonlyObject())
+                return null;
+
+            string methodName = $"Delete{entity.Name}List";
+
+            if (alreadyAddedMethods.Contains(methodName))
+                return null;
+
+            Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "ids", "number[]" } };
+
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBase);
         }
 
         private static List<string> GetBaseUploadBlobAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)

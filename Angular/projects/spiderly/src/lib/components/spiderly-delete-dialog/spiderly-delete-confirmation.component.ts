@@ -19,16 +19,22 @@ export class SpiderlyDeleteConfirmationComponent {
   ) {}
 
   accept() {
-    this.config.data
-      .deleteItemFromTableObservableMethod(this.config.data.id)
-      .subscribe({
-        next: () => {
-          this.ref.close(true); // deleted succesfully
-        },
-        error: () => {
-          this.ref.close(false); // not deleted succesfully
-        },
-      });
+    const observable = this.config.data.deleteListFromTableObservableMethod
+      ? this.config.data.deleteListFromTableObservableMethod(
+          this.config.data.ids,
+        )
+      : this.config.data.deleteItemFromTableObservableMethod(
+          this.config.data.id,
+        );
+
+    observable.subscribe({
+      next: () => {
+        this.ref.close(true); // deleted succesfully
+      },
+      error: () => {
+        this.ref.close(false); // not deleted succesfully
+      },
+    });
   }
 
   reject() {

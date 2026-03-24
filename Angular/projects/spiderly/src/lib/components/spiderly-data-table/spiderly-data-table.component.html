@@ -53,6 +53,15 @@
               icon="pi pi-refresh"
               (click)="reload()"
             ></button>
+            <button
+              pButton
+              *ngIf="deleteListFromTableObservableMethod && rowsSelectedNumber > 0"
+              [label]="t('DeleteSelected') + ' (' + rowsSelectedNumber + ')'"
+              class="p-button-danger"
+              style="flex: none"
+              icon="pi pi-trash"
+              (click)="deleteSelectedObjects()"
+            ></button>
           </div>
         </div>
       </ng-template>
@@ -61,6 +70,7 @@
           <th style="width: 0rem" *ngIf="selectionMode == 'multiple'">
             <div style="display: flex; gap: 8px">
               <p-checkbox
+                *ngIf="showSelectAllCheckbox"
                 [disabled]="readonly"
                 (onChange)="selectAll($event.checked)"
                 [(ngModel)]="fakeIsAllSelected"

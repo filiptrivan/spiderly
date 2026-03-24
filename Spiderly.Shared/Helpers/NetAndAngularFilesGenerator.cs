@@ -644,6 +644,7 @@ export class {{entityName}}ListComponent implements OnInit {
     getPaginated{{entityName}}ListObservableMethod = this.apiService.getPaginated{{entityName}}List;
     export{{entityName}}ListToExcelObservableMethod = this.apiService.export{{entityName}}ListToExcel;
     delete{{entityName}}ObservableMethod = this.apiService.delete{{entityName}};
+    delete{{entityName}}ListObservableMethod = this.apiService.delete{{entityName}}List;
 
     constructor(
         private apiService: ApiService,
@@ -673,6 +674,7 @@ export class {{entityName}}ListComponent implements OnInit {
     [getPaginatedListObservableMethod]="getPaginated{{entityName}}ListObservableMethod" 
     [exportListToExcelObservableMethod]="export{{entityName}}ListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="delete{{entityName}}ObservableMethod"
+    [deleteListFromTableObservableMethod]="delete{{entityName}}ListObservableMethod"
     [showAddButton]="true"
     ></spiderly-data-table>
 
@@ -4519,6 +4521,8 @@ export const ThemePreset = definePreset(Aura, {
     "LessThan": "Manje od",
     "AreYouSureToDelete": "Da li ste sigurni?",
     "SuccessfullyDeletedMessage": "Uspešno brisanje.",
+    "SuccessfullyDeletedListMessage": "Uspešno brisanje odabranih zapisa.",
+    "DeleteSelected": "Obrišite odabrane",
     "Yes": "Da",
     "No": "Ne",
     "SuccessfulSaveToastDescription": "Uspešno sačuvano.",
@@ -4800,6 +4804,8 @@ export const ThemePreset = definePreset(Aura, {
   "LessThan": "Less than",
   "AreYouSure": "Are you sure?",
   "SuccessfullyDeletedMessage": "Successfully deleted.",
+  "SuccessfullyDeletedListMessage": "Successfully deleted selected records.",
+  "DeleteSelected": "Delete selected",
   "Yes": "Yes",
   "No": "No",
   "SuccessfulSaveToastDescription": "Successfully saved.",

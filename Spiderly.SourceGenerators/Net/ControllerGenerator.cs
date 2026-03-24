@@ -508,15 +508,27 @@ namespace {{basePartOfNamespace}}.Controllers
             if (entity.IsReadonlyObject())
                 return null;
 
+            string entityIdType = entity.GetIdType(entities);
+
             return $$"""
         /// <summary>
         /// Deletes a {{entity.Name}} by ID.
         /// </summary>
         [HttpDelete]
         [AuthGuard]
-        public virtual async Task Delete{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public virtual async Task Delete{{entity.Name}}({{entityIdType}} id)
         {
             await _businessService.Delete{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+        }
+
+        /// <summary>
+        /// Deletes multiple {{entity.Name}} entities by their IDs.
+        /// </summary>
+        [HttpPost]
+        [AuthGuard]
+        public virtual async Task Delete{{entity.Name}}List([FromBody] List<{{entityIdType}}> ids)
+        {
+            await _businessService.Delete{{entity.Name}}List(ids, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """;
         }
