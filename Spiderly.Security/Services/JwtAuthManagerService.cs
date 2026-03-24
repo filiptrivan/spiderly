@@ -49,11 +49,15 @@ namespace Spiderly.Security.Services
         /// 3. Stole access but no refresh
         /// 4. Stole both - we can't do anything to him, we only try to stop him if he's on a different ip address
         /// </summary>
-        public async Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long userIdFromAccessToken)
+        /// <param name="userIdFromAccessToken">
+        /// User ID extracted from the (possibly expired) access token. Null when the access token cookie
+        /// has expired and been deleted by the browser — in that case the user ID is derived from the
+        /// refresh token storage instead.
+        /// </param>
+        /// <param name="request">The refresh token request containing the refresh token string and browser ID.</param>
+        public async Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken)
         {
             await RemoveExpiredRefreshTokensAsync();
-            // We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
-            await RemoveTokensForMoreThenAllowedBrowsersAsync(userIdFromAccessToken);
 
             // Sometimes in development mode, when the multiple tabs are open, on the save of the angular app we refresh the tabs in the same time, so we don't even manage to change the value of the refresh token in the local storage,
             // and we send another request with the same refresh token as the previous one, and since we deleted it, it doesn't exist
@@ -62,13 +66,19 @@ namespace Spiderly.Security.Services
             {
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException);
             }
+
+            long userId = userIdFromAccessToken ?? existingRefreshToken.UserId;
+
+            // We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
+            await RemoveTokensForMoreThenAllowedBrowsersAsync(userId);
+
             // Unauthenticating both user, this could happen if someone stoled access token (aleksa.trivan), and has own valid refresh token (filip.trivan), he could indefinedly generate access tokens for the (aleksa.trivan) then
             // This is not solving this problem (hacker can not change claims in the jwt token): https://stackoverflow.com/questions/27301557/if-you-can-decode-jwt-how-are-they-secure we are doing that with Decoding JWT token.
             // It is not posible for the user to change the email of the refresh token, even if it is, if the user change the email in the refresh token, it doesn't matter, we will find based on the refresh token code not email
-            if (existingRefreshToken.UserId != userIdFromAccessToken) // Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
+            if (userIdFromAccessToken.HasValue && existingRefreshToken.UserId != userIdFromAccessToken.Value) // Could happen if someone gives me access and refresh for different users, i don't know which of these he stole so i unauthenticate both
             {
                 await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId);
-                await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken);
+                await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken.Value);
                 throw new HackerException("The user id can't be different in refresh and access token.");
             }
             if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
@@ -79,7 +89,7 @@ namespace Spiderly.Security.Services
                 throw new SecurityTokenException(SharedTerms.TwoDifferentIpAddressesRefreshException);
             }
 
-            return await GenerateAccessAndRefreshTokensAsync(userIdFromAccessToken, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
+            return await GenerateAccessAndRefreshTokensAsync(userId, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
         }
 
         private readonly SemaphoreSlim _generateAccessAndRefreshTokensLock = new(1, 1);

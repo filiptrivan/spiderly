@@ -14,7 +14,7 @@ namespace Spiderly.Security.Interfaces
 
         Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId);
         List<Claim> GenerateClaims(long userId);
-        Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long dbUserId);
+        Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken);
         Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken);
         Task RemoveExpiredRefreshTokensAsync();
         Task RemoveRefreshTokenByUserIdAsync(long userId);

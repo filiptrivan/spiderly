@@ -259,13 +259,18 @@ namespace Spiderly.Security.Services
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
-            List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
+            long? userIdFromAccessToken = null;
 
-            long accesTokenUserId = long.Parse(claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid)?.Value);
+            if (!string.IsNullOrWhiteSpace(accessToken))
+            {
+                List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
+                userIdFromAccessToken = long.Parse(claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid)?.Value);
+            }
 
-            string emailFromTheDb = await GetUserEmailByIdAsync(accesTokenUserId);
+            // When access token cookie expired (browser deleted it), RefreshAsync derives user ID from refresh token storage.
+            JwtAuthResultDTO jwtResult = await _jwtAuthManagerService.RefreshAsync(refreshTokenRequestDTO, userIdFromAccessToken);
 
-            JwtAuthResultDTO jwtResult = await _jwtAuthManagerService.RefreshAsync(refreshTokenRequestDTO, accesTokenUserId);
+            string emailFromTheDb = await GetUserEmailByIdAsync(jwtResult.UserId);
 
             return new AuthResultDTO
             {
