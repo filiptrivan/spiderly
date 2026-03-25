@@ -13,7 +13,6 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.Mail;
-using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -455,59 +454,7 @@ User ID: {{{userId}}}
 
         public static string GetIPAddress(HttpContext httpContext)
         {
-            string ipAddress = GetRemoteHostIpAddressUsingXForwardedFor(httpContext)?.ToString();
-
-            if (string.IsNullOrEmpty(ipAddress))
-                ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
-
-            if (string.IsNullOrEmpty(ipAddress))
-                ipAddress = GetRemoteHostIpAddressUsingXRealIp(httpContext)?.ToString();
-
-            return ipAddress;
-        }
-
-        private static IPAddress GetRemoteHostIpAddressUsingXForwardedFor(HttpContext httpContext)
-        {
-            IPAddress remoteIpAddress = null;
-            string forwardedFor = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-
-            if (string.IsNullOrEmpty(forwardedFor) == false)
-            {
-                List<string> ipList = forwardedFor
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => s.Trim())
-                    .ToList();
-
-                foreach (string ip in ipList)
-                {
-                    if (IPAddress.TryParse(ip, out var address) &&
-                       (address.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6))
-                    {
-                        remoteIpAddress = address;
-                        break;
-                    }
-                }
-            }
-
-            return remoteIpAddress;
-        }
-
-        private static IPAddress GetRemoteHostIpAddressUsingXRealIp(HttpContext httpContext)
-        {
-            bool xRealIpExists = httpContext.Request.Headers.TryGetValue("X-Real-IP", out var xRealIp);
-
-            if (xRealIpExists)
-            {
-                if (!IPAddress.TryParse(xRealIp, out IPAddress address))
-                    return null;
-
-                bool isValidIP = address.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6;
-
-                if (isValidIP)
-                    return address;
-            }
-
-            return null;
+            return httpContext.Connection.RemoteIpAddress?.ToString();
         }
 
         #endregion

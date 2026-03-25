@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
@@ -21,6 +23,7 @@ using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Resources;
 using System.Globalization;
+using System.Net;
 using System.IO;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -114,6 +117,11 @@ namespace Spiderly.Shared.Extensions
             if (builder.RateLimitingEnabled)
             {
                 services.SpiderlyAddRateLimiters();
+            }
+
+            if (builder.ForwardedHeadersEnabled)
+            {
+                services.SpiderlyAddForwardedHeaders();
             }
 
             return builder;
@@ -286,6 +294,47 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
+        public static void SpiderlyAddForwardedHeaders(this IServiceCollection services)
+        {
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.ForwardLimit = SettingsProvider.Current.ForwardLimit;
+
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+
+                List<string> configuredNetworks = SettingsProvider.Current.TrustedProxyNetworks;
+
+                if (configuredNetworks.Count == 0)
+                {
+                    // Default: trust RFC 1918 private networks (covers Docker, k8s, most cloud LBs)
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Loopback, 8));
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.IPv6Loopback, 128));
+                }
+                else
+                {
+                    foreach (string network in configuredNetworks)
+                    {
+                        string[] parts = network.Split('/');
+
+                        if (parts.Length != 2
+                            || !IPAddress.TryParse(parts[0], out IPAddress address)
+                            || !int.TryParse(parts[1], out int prefixLength))
+                        {
+                            throw new InvalidOperationException(
+                                $"Invalid CIDR notation in TrustedProxyNetworks: '{network}'. Expected format: 'ip/prefix' (e.g. '10.0.0.0/8').");
+                        }
+
+                        options.KnownNetworks.Add(new IPNetwork(address, prefixLength));
+                    }
+                }
+            });
+        }
+
         /// <summary>
         /// Registers a named <c>"Brevo"</c> HttpClient pre-configured with the Brevo API base address
         /// and the API key from <see cref="SettingsProvider.Current"/>.
@@ -302,6 +351,15 @@ namespace Spiderly.Shared.Extensions
         #endregion
 
         #region Configure
+
+        /// <summary>
+        /// Adds ForwardedHeaders middleware to process X-Forwarded-For and X-Forwarded-Proto headers from trusted proxies.
+        /// Must be called early in the pipeline — before CORS, authentication, rate limiting, and exception handling.
+        /// </summary>
+        public static void SpiderlyConfigureForwardedHeaders(this IApplicationBuilder app)
+        {
+            app.UseForwardedHeaders();
+        }
 
         public static void SpiderlyConfigureLocalization(this IApplicationBuilder app)
         {

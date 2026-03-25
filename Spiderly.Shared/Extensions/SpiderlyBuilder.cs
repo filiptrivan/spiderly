@@ -37,6 +37,7 @@ namespace Spiderly.Shared.Extensions
         internal bool ExcelEnabled { get; private set; }
         internal bool SwaggerEnabled { get; private set; }
         internal bool RateLimitingEnabled { get; private set; }
+        internal bool ForwardedHeadersEnabled { get; private set; }
         internal bool AzureBlobEnabled { get; private set; }
 
         internal bool EmailingEnabled { get; private set; }
@@ -142,6 +143,24 @@ namespace Spiderly.Shared.Extensions
         public SpiderlyBuilder AddRateLimiting()
         {
             RateLimitingEnabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables ForwardedHeaders middleware for correct client IP detection behind reverse proxies.
+        /// Trusted proxy networks default to RFC 1918 private ranges; override via <c>TrustedProxyNetworks</c> in settings.
+        /// <example>
+        /// <code>
+        /// services.AddSpiderly&lt;MyDbContext&gt;(spiderly =&gt;
+        /// {
+        ///     spiderly.AddForwardedHeaders();
+        /// });
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder AddForwardedHeaders()
+        {
+            ForwardedHeadersEnabled = true;
             return this;
         }
     }
