@@ -20,10 +20,19 @@ namespace Spiderly.Shared.Notifications
 
         public async Task SendAsync(long? userId, string exceptionString)
         {
-            if (SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0)
+            bool hasEmailRecipients = SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0;
+            bool hasTelegram = Helper.IsTelegramConfigured();
+
+            if (!hasEmailRecipients && !hasTelegram)
+            {
+                _logger.LogWarning("Unhandled exception notification not sent — no notification channels configured; User ID: {UserId}", userId);
+                return;
+            }
+
+            if (hasEmailRecipients)
                 await SendUnhandledExceptionEmailAsync(userId, exceptionString);
 
-            if (Helper.IsTelegramConfigured())
+            if (hasTelegram)
                 await Helper.SendTelegramNotificationAsync(userId, exceptionString, _logger);
         }
 

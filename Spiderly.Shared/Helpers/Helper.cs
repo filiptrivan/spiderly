@@ -288,47 +288,56 @@ namespace Spiderly.Shared.Helpers
         private static readonly HttpClient _telegramHttpClient = new();
         private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
 
-        public static async Task SendTelegramNotificationAsync(long? userId, string exceptionString, ILogger logger)
+        public static async Task SendTelegramNotificationAsync(string text, ILogger logger)
         {
             try
             {
                 Settings settings = SettingsProvider.Current;
-                string truncated = exceptionString.Length > 2000 ? exceptionString[..2000] : exceptionString;
-                string text = $$$"""
-[{{{settings.ApplicationName}}}] Unhandled Exception
-User ID: {{{userId}}}
-{{{truncated}}}
-""";
+                string truncated = text.Length > 2000 ? text[..2000] : text;
 
                 string url = $"https://api.telegram.org/bot{settings.TelegramBotToken}/sendMessage";
-                await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text });
+                await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text = truncated });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unhandled Exception Telegram notification is not sent; Currently authenticated user id: {userId});", userId);
+                logger.LogError(ex, "Telegram notification not sent");
             }
         }
 
-        public static bool ShouldSendNotification(Exception ex)
+        public static async Task SendTelegramNotificationAsync(long? userId, string exceptionString, ILogger logger)
+        {
+            string text = $$$"""
+[{{{SettingsProvider.Current.ApplicationName}}}] Unhandled Exception
+User ID: {{{userId}}}
+{{{exceptionString}}}
+""";
+            await SendTelegramNotificationAsync(text, logger);
+        }
+
+        public static bool ShouldSendNotification(string eventKey)
         {
             if (SettingsProvider.Current.NotificationRateLimitMinutes <= 0)
                 return true;
 
-            string key = $"{ex.GetType().FullName}:{ex.Message.GetHashCode()}";
             DateTimeOffset now = DateTimeOffset.UtcNow;
             DateTimeOffset threshold = now.AddMinutes(-SettingsProvider.Current.NotificationRateLimitMinutes);
 
-            foreach (string staleKey in _rateLimitCache.Keys)
-            {
-                if (_rateLimitCache.TryGetValue(staleKey, out DateTimeOffset ts) && ts < threshold)
-                    _rateLimitCache.TryRemove(staleKey, out _);
-            }
+            bool shouldSend = false;
+            _rateLimitCache.AddOrUpdate(
+                eventKey,
+                addValueFactory: _ => { shouldSend = true; return now; },
+                updateValueFactory: (_, existing) =>
+                {
+                    if (existing < threshold) { shouldSend = true; return now; }
+                    return existing;
+                });
+            return shouldSend;
+        }
 
-            if (_rateLimitCache.TryGetValue(key, out DateTimeOffset lastSent) && lastSent >= threshold)
-                return false;
-
-            _rateLimitCache[key] = now;
-            return true;
+        public static bool ShouldSendNotification(Exception ex)
+        {
+            string key = $"{ex.GetType().FullName}:{ex.Message.GetHashCode()}";
+            return ShouldSendNotification(key);
         }
 
         public static async Task SendEmailAsync(string recipient, string subject, string body)

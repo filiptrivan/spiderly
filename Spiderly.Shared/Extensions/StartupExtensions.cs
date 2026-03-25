@@ -27,6 +27,7 @@ using System.Net;
 using System.IO;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Spiderly.Shared.Extensions
 {
@@ -291,6 +292,37 @@ namespace Spiderly.Shared.Extensions
                         }
                     );
                 });
+
+                options.OnRejected = (context, cancellationToken) =>
+                {
+                    HttpContext httpContext = context.HttpContext;
+                    string ip = Helper.GetIPAddress(httpContext) ?? "unknown";
+                    string path = httpContext.Request.Path;
+                    string method = httpContext.Request.Method;
+
+                    string policyName = "Global";
+                    EnableRateLimitingAttribute rateLimitAttr = httpContext.GetEndpoint()
+                        ?.Metadata.GetMetadata<EnableRateLimitingAttribute>();
+                    if (rateLimitAttr != null)
+                    {
+                        policyName = rateLimitAttr.PolicyName;
+                    }
+
+                    ILogger logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("Spiderly.RateLimiting");
+                    logger.LogWarning(
+                        "Rate limit rejected: Policy={Policy}, IP={IP}, Method={Method}, Path={Path}",
+                        policyName, ip, method, path);
+
+                    INotificationDispatcher dispatcher = httpContext.RequestServices
+                        .GetService<INotificationDispatcher>();
+                    dispatcher?.DispatchSecurityEvent(
+                        "Rate Limit Rejection",
+                        $"ratelimit:{policyName}",
+                        $"Policy: {policyName}\nIP: {ip}\nMethod: {method}\nPath: {path}\nTime: {DateTimeOffset.UtcNow:O}");
+
+                    return ValueTask.CompletedTask;
+                };
             });
         }
 
@@ -438,7 +470,7 @@ namespace Spiderly.Shared.Extensions
                             logLevel = LogLevel.Error;
                             if (!env.IsDevelopment())
                             {
-                                context.RequestServices.GetService<IExceptionNotificationDispatcher>()
+                                context.RequestServices.GetService<INotificationDispatcher>()
                                     ?.DispatchUnhandledException(userId, ex);
                             }
                         }

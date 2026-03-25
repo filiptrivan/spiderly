@@ -4,11 +4,11 @@ using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
 {
-    public class HangfireExceptionNotificationDispatcher : IExceptionNotificationDispatcher
+    public class HangfireNotificationDispatcher : INotificationDispatcher
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
 
-        public HangfireExceptionNotificationDispatcher(IBackgroundJobClient backgroundJobClient)
+        public HangfireNotificationDispatcher(IBackgroundJobClient backgroundJobClient)
         {
             _backgroundJobClient = backgroundJobClient;
         }
@@ -20,6 +20,16 @@ namespace Spiderly.Shared.Notifications
 
             _backgroundJobClient.Enqueue<UnhandledExceptionNotificationJob>(
                 j => j.SendAsync(userId, ex.ToString())
+            );
+        }
+
+        public void DispatchSecurityEvent(string eventType, string debounceKey, string message)
+        {
+            if (!Helper.ShouldSendNotification(debounceKey))
+                return;
+
+            _backgroundJobClient.Enqueue<SecurityEventNotificationJob>(
+                j => j.SendAsync(eventType, message)
             );
         }
     }

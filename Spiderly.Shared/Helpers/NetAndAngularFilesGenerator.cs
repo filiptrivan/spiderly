@@ -2838,7 +2838,7 @@ public class Startup
             config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)" : "UseHangfirePostgreSqlStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)")}}
         );
         services.AddHangfireServer();
-        services.AddSingleton<IExceptionNotificationDispatcher, HangfireExceptionNotificationDispatcher>();
+        services.AddSingleton<INotificationDispatcher, HangfireNotificationDispatcher>();
 
         services.AddSpiderly<{{appName}}ApplicationDbContext>(spiderly =>
         {
