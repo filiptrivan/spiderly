@@ -304,33 +304,27 @@ namespace Spiderly.Shared.Extensions
                 options.KnownNetworks.Clear();
                 options.KnownProxies.Clear();
 
-                List<string> configuredNetworks = SettingsProvider.Current.TrustedProxyNetworks;
+                // Always trust RFC 1918 private networks + loopback (covers Docker, k8s, local reverse proxies)
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Loopback, 8));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.IPv6Loopback, 128));
 
-                if (configuredNetworks.Count == 0)
+                // Add any additional trusted proxy networks (e.g. Cloudflare, AWS CloudFront, etc.)
+                foreach (string network in SettingsProvider.Current.TrustedProxyNetworks)
                 {
-                    // Default: trust RFC 1918 private networks (covers Docker, k8s, most cloud LBs)
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Loopback, 8));
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.IPv6Loopback, 128));
-                }
-                else
-                {
-                    foreach (string network in configuredNetworks)
+                    string[] parts = network.Split('/');
+
+                    if (parts.Length != 2
+                        || !IPAddress.TryParse(parts[0], out IPAddress address)
+                        || !int.TryParse(parts[1], out int prefixLength))
                     {
-                        string[] parts = network.Split('/');
-
-                        if (parts.Length != 2
-                            || !IPAddress.TryParse(parts[0], out IPAddress address)
-                            || !int.TryParse(parts[1], out int prefixLength))
-                        {
-                            throw new InvalidOperationException(
-                                $"Invalid CIDR notation in TrustedProxyNetworks: '{network}'. Expected format: 'ip/prefix' (e.g. '10.0.0.0/8').");
-                        }
-
-                        options.KnownNetworks.Add(new IPNetwork(address, prefixLength));
+                        throw new InvalidOperationException(
+                            $"Invalid CIDR notation in TrustedProxyNetworks: '{network}'. Expected format: 'ip/prefix' (e.g. '10.0.0.0/8').");
                     }
+
+                    options.KnownNetworks.Add(new IPNetwork(address, prefixLength));
                 }
             });
         }

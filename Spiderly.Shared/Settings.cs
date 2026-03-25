@@ -51,8 +51,9 @@
         public int ExcelExportMaxRows { get; set; } = 100_000;
 
         /// <summary>
-        /// CIDR ranges of trusted proxies allowed to set X-Forwarded-For headers (e.g. <c>["10.0.0.0/8"]</c>).
-        /// When empty, defaults to RFC 1918 private networks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and loopback.
+        /// Additional CIDR ranges of trusted proxies allowed to set X-Forwarded-For headers
+        /// (e.g. <c>["173.245.48.0/20"]</c> for Cloudflare).
+        /// RFC 1918 private networks and loopback are always trusted.
         /// </summary>
         public List<string> TrustedProxyNetworks { get; set; } = new();
 
