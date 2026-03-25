@@ -273,12 +273,13 @@ namespace Spiderly.Shared.Extensions
                 {
                     string ipAddress = Helper.GetIPAddress(httpContext);
 
-                    return RateLimitPartition.GetFixedWindowLimiter(
+                    return RateLimitPartition.GetSlidingWindowLimiter(
                         partitionKey: ipAddress,
-                        factory: _ => new FixedWindowRateLimiterOptions
+                        factory: _ => new SlidingWindowRateLimiterOptions
                         {
                             PermitLimit = SettingsProvider.Current.RequestsLimitNumber,
                             Window = TimeSpan.FromSeconds(SettingsProvider.Current.RequestsLimitWindow),
+                            SegmentsPerWindow = 6,
                         }
                     );
                 });

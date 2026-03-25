@@ -37,7 +37,6 @@
 
         public int RequestsLimitNumber { get; set; } = 240;
         public int RequestsLimitWindow { get; set; } = 60;
-        public string RateLimitingFixedByIpPolicy { get; } = "fixed-by-ip";
 
         public string CloudinaryCloudName { get; set; }
         public string CloudinaryApiKey { get; set; }

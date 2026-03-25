@@ -29,13 +29,13 @@ namespace Spiderly.Security.Services
             _usersLoginVerificationTokens = loginVerificationTokenStorage;
         }
 
-        public async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
+        public virtual async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
         {
             IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetAllAsync();
             return tokens.ToImmutableDictionary();
         }
 
-        public async Task<IImmutableDictionary<string, LoginVerificationTokenDTO>> GetUsersLoginVerificationTokensReadOnlyDictionaryAsync()
+        public virtual async Task<IImmutableDictionary<string, LoginVerificationTokenDTO>> GetUsersLoginVerificationTokensReadOnlyDictionaryAsync()
         {
             IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> tokens = await _usersLoginVerificationTokens.GetAllAsync();
             return tokens.ToImmutableDictionary();
@@ -55,7 +55,7 @@ namespace Spiderly.Security.Services
         /// refresh token storage instead.
         /// </param>
         /// <param name="request">The refresh token request containing the refresh token string and browser ID.</param>
-        public async Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken)
+        public virtual async Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken)
         {
             await RemoveExpiredRefreshTokensAsync();
 
@@ -92,12 +92,12 @@ namespace Spiderly.Security.Services
             return await GenerateAccessAndRefreshTokensAsync(userId, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
         }
 
-        private readonly SemaphoreSlim _generateAccessAndRefreshTokensLock = new(1, 1);
+        protected readonly SemaphoreSlim _generateAccessAndRefreshTokensLock = new(1, 1);
 
         /// <summary>
         /// Password and verificationExpiration (minutes) are only needed if we are registering the account, for email verification
         /// </summary>
-        public async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId)
+        public virtual async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId)
         {
             List<Claim> claims = GenerateClaims(userId);
 
@@ -135,7 +135,7 @@ namespace Spiderly.Security.Services
             };
         }
 
-        public List<Claim> GenerateClaims(long userId)
+        public virtual List<Claim> GenerateClaims(long userId)
         {
             return new List<Claim>
             {
@@ -168,7 +168,7 @@ namespace Spiderly.Security.Services
             };
         }
 
-        public async Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken)
+        public virtual async Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken)
         {
             List<Claim> principalClaims;
 
@@ -219,7 +219,7 @@ namespace Spiderly.Security.Services
         /// <summary>
         /// If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
         /// </summary>
-        public async Task LogoutAsync(string browserId, long userId)
+        public virtual async Task LogoutAsync(string browserId, long userId)
         {
             bool foundTheUser = await RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(browserId, userId);
 
@@ -233,7 +233,7 @@ namespace Spiderly.Security.Services
         /// If we found the user => true
         /// If we didn't find the user => false
         /// </summary>
-        public async Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string browserId, long userId)
+        public virtual async Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string browserId, long userId)
         {
             // TODO Log if the email or browser id is null
 
@@ -254,14 +254,14 @@ namespace Spiderly.Security.Services
             }
         }
 
-        public async Task RemoveExpiredRefreshTokensAsync()
+        public virtual async Task RemoveExpiredRefreshTokensAsync()
         {
             IEnumerable<KeyValuePair<string, RefreshTokenDTO>> expiredTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.ExpiresAt < DateTime.UtcNow);
             foreach (var expiredToken in expiredTokens)
                 await _usersRefreshTokens.TryRemoveAsync(expiredToken.Key);
         }
 
-        public async Task RemoveRefreshTokenByUserIdAsync(long userId)
+        public virtual async Task RemoveRefreshTokenByUserIdAsync(long userId)
         {
             IEnumerable<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
             foreach (var refreshToken in refreshTokens)
@@ -307,7 +307,7 @@ namespace Spiderly.Security.Services
 
         #region Login
 
-        public async Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationTokenKey, string browserId, string email)
+        public virtual async Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationTokenKey, string browserId, string email)
         {
             await RemoveExpiredLoginVerificationTokensAsync();
 
@@ -330,7 +330,7 @@ namespace Spiderly.Security.Services
             return loginVerificationTokenDTO;
         }
 
-        public async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId)
+        public virtual async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId)
         {
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {
@@ -354,7 +354,7 @@ namespace Spiderly.Security.Services
             return code.ToString("D6");
         }
 
-        public async Task RemoveLoginVerificationTokensByEmailAsync(string email)
+        public virtual async Task RemoveLoginVerificationTokensByEmailAsync(string email)
         {
             IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> verificationTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.Email == email);
             foreach (var verificationToken in verificationTokens)

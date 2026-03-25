@@ -29,17 +29,17 @@ namespace Spiderly.Security.Services
             _context = context;
         }
 
-        public long GetCurrentUserId()
+        public virtual long GetCurrentUserId()
         {
             return Helper.GetCurrentUserId(_httpContextAccessor.HttpContext);
         }
 
-        public long? GetCurrentUserIdOrDefault()
+        public virtual long? GetCurrentUserIdOrDefault()
         {
             return Helper.GetCurrentUserIdOrDefault(_httpContextAccessor.HttpContext);
         }
 
-        public async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()
+        public virtual async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()
         {
             long currentUserId = GetCurrentUserId();
 
@@ -49,7 +49,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public async Task<TUser> GetCurrentUser<TUser>() where TUser : class, IUser, new()
+        public virtual async Task<TUser> GetCurrentUser<TUser>() where TUser : class, IUser, new()
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -57,7 +57,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public async Task<UserBaseDTO> GetCurrentUserBaseDTO<TUser>() where TUser : class, IUser, new()
+        public virtual async Task<UserBaseDTO> GetCurrentUserBaseDTO<TUser>() where TUser : class, IUser, new()
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -72,53 +72,53 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public string GetAccessTokenFromHeader()
+        public virtual string GetAccessTokenFromHeader()
         {
             return Helper.GetAccessTokenFromHeader(_httpContextAccessor.HttpContext);
         }
 
-        public string GetAccessTokenFromCookie()
+        public virtual string GetAccessTokenFromCookie()
         {
             return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext);
         }
 
-        public string GetIPAddress()
+        public virtual string GetIPAddress()
         {
             return Helper.GetIPAddress(_httpContextAccessor.HttpContext);
         }
 
-        public string GetRefreshTokenFromCookie()
+        public virtual string GetRefreshTokenFromCookie()
         {
             return _httpContextAccessor.HttpContext?.Request.Cookies[SettingsProvider.Current.RefreshTokenKey];
         }
 
-        public void SetRefreshTokenCookie(string refreshToken)
+        public virtual void SetRefreshTokenCookie(string refreshToken)
         {
             SetCookie(SettingsProvider.Current.RefreshTokenKey, refreshToken, SettingsProvider.Current.RefreshTokenExpiration, httpOnly: true);
         }
 
-        public void ClearRefreshTokenCookie()
+        public virtual void ClearRefreshTokenCookie()
         {
             ClearCookie(SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
         }
 
-        public void SetAccessTokenCookie(string accessToken)
+        public virtual void SetAccessTokenCookie(string accessToken)
         {
             SetCookie(SettingsProvider.Current.AccessTokenKey, accessToken, SettingsProvider.Current.AccessTokenExpiration, httpOnly: true);
         }
 
-        public void ClearAccessTokenCookie()
+        public virtual void ClearAccessTokenCookie()
         {
             ClearCookie(SettingsProvider.Current.AccessTokenKey, httpOnly: true);
         }
 
-        public void SetAuthResultCookie(AuthResultWithCookiesDTO authResult)
+        public virtual void SetAuthResultCookie(AuthResultWithCookiesDTO authResult)
         {
             string json = JsonSerializer.Serialize(authResult);
             SetCookie(SettingsProvider.Current.AuthResultKey, json, SettingsProvider.Current.RefreshTokenExpiration, httpOnly: false);
         }
 
-        public void ClearAuthResultCookie()
+        public virtual void ClearAuthResultCookie()
         {
             ClearCookie(SettingsProvider.Current.AuthResultKey, httpOnly: false);
         }

@@ -51,7 +51,7 @@ namespace Spiderly.Security.Services
 
         #region Login
 
-        public async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
+        public virtual async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
         {
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
@@ -110,7 +110,7 @@ namespace Spiderly.Security.Services
             };
         }
 
-        public async Task<AuthResultDTO> Login(VerificationTokenRequestDTO verificationRequestDTO)
+        public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
 
@@ -160,7 +160,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
             string googleClientId = SettingsProvider.Current.GoogleClientId;
 
@@ -214,7 +214,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task OnAfterLogin(AuthResultDTO authResultDTO) { }
 
-        public async Task<AuthResultWithCookiesDTO> LoginWithCookies(VerificationTokenRequestDTO verificationRequestDTO)
+        public virtual async Task<AuthResultWithCookiesDTO> LoginWithCookies(VerificationTokenRequestDTO verificationRequestDTO)
         {
             AuthResultDTO authResultDTO = await Login(verificationRequestDTO);
 
@@ -232,7 +232,7 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
+        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
         {
             AuthResultDTO authResultDTO = await LoginExternal(externalProviderDTO);
 
@@ -254,7 +254,7 @@ namespace Spiderly.Security.Services
 
         #region Helpers
 
-        public async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string accessToken)
+        public virtual async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string accessToken)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
                 throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
@@ -282,13 +282,13 @@ namespace Spiderly.Security.Services
             };
         }
 
-        public async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO refreshTokenRequestDTO)
+        public virtual async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO refreshTokenRequestDTO)
         {
             string accessToken = _authenticationService.GetAccessTokenFromHeader();
             return await RefreshToken(refreshTokenRequestDTO, accessToken);
         }
 
-        public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
         {
             string refreshToken = _authenticationService.GetRefreshTokenFromCookie();
             string accessToken = _authenticationService.GetAccessTokenFromCookie();
@@ -315,7 +315,7 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public async Task<string> GetUserEmailByIdAsync(long id)
+        public virtual async Task<string> GetUserEmailByIdAsync(long id)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -323,7 +323,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public async Task<TUser> GetUserByEmailAsync(string email)
+        public virtual async Task<TUser> GetUserByEmailAsync(string email)
         {
             return await _context.WithTransactionAsync(async () =>
             {

@@ -20,7 +20,7 @@ namespace Spiderly.Shared.Services
             _context = context;
         }
 
-        public async Task<T> GetInstanceAsync<T, ID>(ID id, int? version) 
+        public virtual async Task<T> GetInstanceAsync<T, ID>(ID id, int? version)
             where T : class, IBusinessObject<ID>
             where ID : struct
         {
@@ -38,7 +38,7 @@ namespace Spiderly.Shared.Services
             });
         }
 
-        public async Task<T> GetInstanceAsync<T, ID>(ID id) 
+        public virtual async Task<T> GetInstanceAsync<T, ID>(ID id)
             where T : class, IReadonlyObject<ID>
             where ID : struct
         {
@@ -53,8 +53,8 @@ namespace Spiderly.Shared.Services
             });
         }
 
-        protected internal async Task CheckVersionAsync<T, ID>(ID id, int version) 
-            where T : class, IBusinessObject<ID> 
+        protected internal virtual async Task CheckVersionAsync<T, ID>(ID id, int version)
+            where T : class, IBusinessObject<ID>
             where ID : struct
         {
             await _context.WithTransactionAsync(async () =>
@@ -66,7 +66,7 @@ namespace Spiderly.Shared.Services
             });
         }
 
-        public async Task DeleteEntityAsync<T, ID>(ID id) where T : class, IBusinessObject<ID> where ID : struct // https://www.c-sharpcorner.com/article/equality-operator-with-inheritance-and-generics-in-c-sharp/
+        public virtual async Task DeleteEntityAsync<T, ID>(ID id) where T : class, IBusinessObject<ID> where ID : struct // https://www.c-sharpcorner.com/article/equality-operator-with-inheritance-and-generics-in-c-sharp/
         {
             await _context.WithTransactionAsync(async () =>
             {
@@ -76,7 +76,7 @@ namespace Spiderly.Shared.Services
             });
         }
 
-        public async Task DeleteEntitiesAsync<T, ID>(List<ID> ids) where T : class, IBusinessObject<ID> where ID : struct
+        public virtual async Task DeleteEntitiesAsync<T, ID>(List<ID> ids) where T : class, IBusinessObject<ID> where ID : struct
         {
             if (ids == null)
                 throw new ArgumentNullException("You need to pass a list of ids to delete.");
