@@ -43,7 +43,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         #region Authentication
 
         [HttpPost]
-        public async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
+        public virtual async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
         {
             return await _securityServiceBase.SendLoginVerificationEmail(loginDTO);
         }
@@ -76,7 +76,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpGet]
         [AuthGuard]
-        public async Task<ActionResult> Logout(string browserId)
+        public virtual async Task<ActionResult> Logout(string browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
             await _jwtAuthManagerService.LogoutAsync(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
@@ -86,7 +86,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpGet]
         [AuthGuard]
-        public async Task<ActionResult> LogoutWithCookies(string browserId)
+        public virtual async Task<ActionResult> LogoutWithCookies(string browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
             await _jwtAuthManagerService.LogoutAsync(browserId, userId);
@@ -102,7 +102,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// Here we would put [Authorize] attribute, because we don't validate life time of the access token, but we are not because deeper in the method we are validating it without life time also.
         /// </summary>
         [HttpPost]
-        public async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO request)
+        public virtual async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO request)
         {
             return await _securityServiceBase.RefreshTokenWithHeaders(request);
         }
@@ -111,7 +111,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// Refreshes the access token using the refresh token stored in an HttpOnly cookie.
         /// </summary>
         [HttpGet]
-        public async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
         {
             return await _securityServiceBase.RefreshTokenWithCookies(browserId);
         }
@@ -123,7 +123,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [HttpGet]
         [AuthGuard]
         [SkipSpinner]
-        public async Task<UserBaseDTO> GetCurrentUserBase()
+        public virtual async Task<UserBaseDTO> GetCurrentUserBase()
         {
             return await _authenticationService.GetCurrentUserBaseDTO<TUser>();
         }
