@@ -2987,14 +2987,14 @@ namespace {{appName}}.WebAPI
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Hangfire.SqlServer\" Version=\"1.8.*\" />" : "<PackageReference Include=\"Hangfire.PostgreSql\" Version=\"1.20.*\" />")}}
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
-		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.7.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
         <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
         <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.3.1" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
