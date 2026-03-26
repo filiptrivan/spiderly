@@ -1,6 +1,6 @@
 namespace Spiderly.Security.Interfaces
 {
-    public interface ITokenStorage<T> where T : class
+    public interface ITokenStorage<T> where T : class, IExpirableToken
     {
         Task AddOrUpdateAsync(string key, T token);
         Task<T> TryGetValueAsync(string key);

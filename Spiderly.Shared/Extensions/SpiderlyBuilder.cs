@@ -75,7 +75,7 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Enables JWT-based authentication and authorization middleware.
         /// You still need to register your security services (AuthenticationService, AuthorizationServiceBase,
-        /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager, ITokenStorage) in your app's service registration.
+        /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager) and call <c>services.AddTokenStorage()</c> in your app's service registration.
         /// </summary>
         public SpiderlyBuilder AddAuthentication()
         {

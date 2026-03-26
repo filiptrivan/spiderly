@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Spiderly.Security.Services
 {
-    public class InMemoryTokenStorage<T> : ITokenStorage<T> where T : class
+    public class InMemoryTokenStorage<T> : ITokenStorage<T> where T : class, IExpirableToken
     {
         // Making ConcurrentDictionary if two users are searching for the refresh token in the same time
         // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
