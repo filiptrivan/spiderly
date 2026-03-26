@@ -4,6 +4,8 @@ namespace Spiderly.Security.DTO
 {
     public class LoginVerificationTokenDTO : IExpirableToken
     {
+        public const string EmailIndex = nameof(Email);
+
         public string Email { get; set; }
         public string BrowserId { get; set; }
         public DateTime ExpiresAt { get; set; }

@@ -45,6 +45,7 @@ namespace Spiderly.Shared.Extensions
         ///     spiderly.UsePostgreSQL();
         ///     spiderly.UseCulture("sr-Latn-RS");
         ///     spiderly.AddAuthentication();
+        ///     spiderly.AddTokenStorage();
         ///     spiderly.AddExcel();
         ///     spiderly.AddBrevoEmailing();
         ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();

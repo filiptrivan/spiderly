@@ -17,6 +17,7 @@ namespace Spiderly.Shared.Extensions
     ///     spiderly.UsePostgreSQL();
     ///     spiderly.UseCulture("sr-Latn-RS");
     ///     spiderly.AddAuthentication();
+    ///     spiderly.AddTokenStorage();
     ///     spiderly.AddExcel();
     ///     spiderly.AddBrevoEmailing();
     ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();
@@ -28,7 +29,7 @@ namespace Spiderly.Shared.Extensions
     /// </summary>
     public class SpiderlyBuilder
     {
-        internal IServiceCollection Services { get; }
+        public IServiceCollection Services { get; }
         internal DbProviderCodes DbProvider { get; private set; }
         internal bool DbProviderSet { get; private set; }
         internal string CultureCode { get; private set; } = "en";
@@ -75,7 +76,7 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Enables JWT-based authentication and authorization middleware.
         /// You still need to register your security services (AuthenticationService, AuthorizationServiceBase,
-        /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager) and call <c>services.AddTokenStorage()</c> in your app's service registration.
+        /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager) and call <c>spiderly.AddTokenStorage()</c> inside the builder configuration.
         /// </summary>
         public SpiderlyBuilder AddAuthentication()
         {

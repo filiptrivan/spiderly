@@ -24,13 +24,12 @@ namespace Spiderly.Security.Services
             string redisKey = _keyPrefix + key;
             TimeSpan? expiration = token.ExpiresAt > DateTime.UtcNow ? token.ExpiresAt - DateTime.UtcNow : null;
 
-            // Remove old index entries if updating an existing token
+            // Old index entries must be removed before writing, otherwise stale set references accumulate if the indexed property changed
             if (_indexExtractors.Count > 0)
             {
-                RedisValue existingValue = await _database.StringGetAsync(redisKey);
-                if (!existingValue.IsNullOrEmpty)
+                T existingToken = await TryGetValueAsync(key);
+                if (existingToken != null)
                 {
-                    T existingToken = JsonSerializer.Deserialize<T>(existingValue);
                     await RemoveFromIndexesAsync(key, existingToken);
                 }
             }
@@ -56,7 +55,7 @@ namespace Spiderly.Security.Services
 
         public async Task<bool> TryRemoveAsync(string key)
         {
-            // Read token before deleting to extract index values for cleanup
+            // Must read before delete — once the key is gone, we can no longer derive which index sets to clean up
             if (_indexExtractors.Count > 0)
             {
                 T token = await TryGetValueAsync(key);

@@ -8,6 +8,12 @@ namespace Spiderly.Security.Services
         // Making ConcurrentDictionary if two users are searching for the refresh token in the same time
         // The maximum number of the refresh tokens inside dictionary is SettingsProvider.Current.AllowedBrowsersForTheSingleUser
         private readonly ConcurrentDictionary<string, T> _storage = new();
+        private readonly Dictionary<string, Func<T, string>> _indexExtractors;
+
+        public InMemoryTokenStorage(Dictionary<string, Func<T, string>> indexExtractors = null)
+        {
+            _indexExtractors = indexExtractors ?? new Dictionary<string, Func<T, string>>();
+        }
 
         public Task AddOrUpdateAsync(string key, T token)
         {
@@ -36,6 +42,18 @@ namespace Spiderly.Security.Services
         public Task<IEnumerable<KeyValuePair<string, T>>> WhereAsync(Func<KeyValuePair<string, T>, bool> predicate)
         {
             IEnumerable<KeyValuePair<string, T>> result = _storage.Where(predicate).ToList();
+            return Task.FromResult(result);
+        }
+
+        public Task<IEnumerable<KeyValuePair<string, T>>> GetByIndexAsync(string indexName, string indexValue)
+        {
+            if (!_indexExtractors.TryGetValue(indexName, out Func<T, string> extractor))
+                throw new ArgumentException($"Index '{indexName}' is not configured for this token storage.", nameof(indexName));
+
+            IEnumerable<KeyValuePair<string, T>> result = _storage
+                .Where(kvp => extractor(kvp.Value) == indexValue)
+                .ToList();
+
             return Task.FromResult(result);
         }
     }

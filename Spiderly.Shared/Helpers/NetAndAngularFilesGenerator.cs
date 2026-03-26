@@ -2809,6 +2809,7 @@ using Hangfire;
 using Hangfire.Dashboard;
 using Serilog;
 using Spiderly.Shared.Emailing;
+using Spiderly.Security.Extensions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -2844,6 +2845,7 @@ public class Startup
         {
             spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
             spiderly.AddAuthentication();
+            spiderly.AddTokenStorage();
             spiderly.AddExcel();
             spiderly.AddEmailing<EmailingService>();
             spiderly.AddFileStorage<DiskStorageService>();
@@ -3123,7 +3125,7 @@ namespace {{appName}}.WebAPI
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Spiderly.Security.Extensions;
+using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Services;
@@ -3142,7 +3144,6 @@ namespace {{appName}}.WebAPI.Extensions
             services.AddTransient<SecurityServiceBase<User>>();
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
-            services.AddTokenStorage();
 
             #endregion
 

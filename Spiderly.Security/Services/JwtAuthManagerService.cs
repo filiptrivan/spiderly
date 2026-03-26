@@ -238,7 +238,9 @@ namespace Spiderly.Security.Services
             // TODO Log if the email or browser id is null
 
             // ToList() because it somehow happened that the same user clicks fast two times and send two requests with
-            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.BrowserId == browserId && x.Value.UserId == userId);
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = (await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString()))
+                .Where(x => x.Value.BrowserId == browserId)
+                .ToList();
             KeyValuePair<string, RefreshTokenDTO> refreshToken = tokens.SingleOrDefault();
 
             if (string.IsNullOrEmpty(refreshToken.Key))
@@ -263,7 +265,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task RemoveRefreshTokenByUserIdAsync(long userId)
         {
-            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString());
             foreach (var refreshToken in refreshTokens)
                 await _usersRefreshTokens.TryRemoveAsync(refreshToken.Key);
         }
@@ -278,7 +280,7 @@ namespace Spiderly.Security.Services
 
         private async Task<bool> IsRefreshTokenWithNewIpAddressAsync(long userId, string ipAddress)
         {
-            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString());
             if (tokens.OrderByDescending(x => x.Value.ExpiresAt).FirstOrDefault().Value?.IpAddress != ipAddress)
                 return true;
             else
@@ -287,7 +289,7 @@ namespace Spiderly.Security.Services
 
         private async Task RemoveTokensForMoreThenAllowedBrowsersAsync(long userId)
         {
-            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.WhereAsync(x => x.Value.UserId == userId);
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString());
             List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = tokens.ToList();
             if (refreshTokens.Count > SettingsProvider.Current.AllowedBrowsersForTheSingleUser)
             {
@@ -312,13 +314,14 @@ namespace Spiderly.Security.Services
             await RemoveExpiredLoginVerificationTokensAsync();
 
             // Doing this because there is a chance of generating two same codes.
-            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> tokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Key == verificationTokenKey && x.Value.Email == email && x.Value.BrowserId == browserId);
-            LoginVerificationTokenDTO loginVerificationTokenDTO = tokens.SingleOrDefault().Value;
+            LoginVerificationTokenDTO loginVerificationTokenDTO = await _usersLoginVerificationTokens.TryGetValueAsync(verificationTokenKey);
+            if (loginVerificationTokenDTO != null && (loginVerificationTokenDTO.Email != email || loginVerificationTokenDTO.BrowserId != browserId))
+                loginVerificationTokenDTO = null;
 
             if (loginVerificationTokenDTO == null)
                 throw new ExpiredVerificationException(); // We can not allow user to "send again" from here, because it is deleted
 
-            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> emailTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.Email == loginVerificationTokenDTO.Email);
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> emailTokens = await _usersLoginVerificationTokens.GetByIndexAsync(LoginVerificationTokenDTO.EmailIndex, loginVerificationTokenDTO.Email);
             KeyValuePair<string, LoginVerificationTokenDTO> lastVerificationToken = emailTokens
                 .OrderByDescending(x => x.Value.ExpiresAt)
                 .FirstOrDefault();
@@ -356,7 +359,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task RemoveLoginVerificationTokensByEmailAsync(string email)
         {
-            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> verificationTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.Email == email);
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> verificationTokens = await _usersLoginVerificationTokens.GetByIndexAsync(LoginVerificationTokenDTO.EmailIndex, email);
             foreach (var verificationToken in verificationTokens)
             {
                 await _usersLoginVerificationTokens.TryRemoveAsync(verificationToken.Key);

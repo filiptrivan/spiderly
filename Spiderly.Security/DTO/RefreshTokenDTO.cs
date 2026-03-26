@@ -10,6 +10,8 @@ namespace Spiderly.Security.DTO
     /// </summary>
     public class RefreshTokenDTO : IExpirableToken
     {
+        public const string UserIdIndex = nameof(UserId);
+
         public long UserId { get; set; }
         public string IpAddress { get; set; }
         public string BrowserId { get; set; }
