@@ -97,7 +97,23 @@ export class ApiGeneratedService extends ApiSecurityService {
         private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs)
         {
             List<string> result = new();
-            HashSet<string> alreadyAddedMethods = new();
+            // Methods already defined in ApiSecurityService (Angular). Keep this list in sync
+            // with ApiSecurityService whenever methods are added to or removed from SecurityBaseController.
+            HashSet<string> alreadyAddedMethods = new()
+            {
+                "SendLoginVerificationEmail",
+                "Login",
+                "LoginExternal",
+                "LoginWithCookies",
+                "LoginExternalWithCookies",
+                "Logout",
+                "LogoutWithCookies",
+                "RefreshTokenWithHeaders",
+                "RefreshTokenWithCookies",
+                "GetCurrentUserBase",
+                "GetCurrentUserPermissionCodes",
+                "GetUnreadNotificationsCountForCurrentUser",
+            };
 
             foreach (SpiderlyClass controllerClass in controllerClasses)
             {
@@ -111,7 +127,8 @@ export class ApiGeneratedService extends ApiSecurityService {
                     if (controllerMethod.HasUIDoNotGenerateAttribute())
                         continue;
 
-                    alreadyAddedMethods.Add(controllerMethod.Name);
+                    if (!alreadyAddedMethods.Add(controllerMethod.Name))
+                        continue;
 
                     if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type == "IFormFile") == false)
                     {
@@ -140,7 +157,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiSecurityService, Filter, PaginatedResult, Namebook, Codebook, LazyLoadSelectedIdsResult, VerificationTokenRequest, AuthResult, ExternalProvider } from 'spiderly';
+import { ApiSecurityService, Filter, PaginatedResult, Namebook, Codebook, LazyLoadSelectedIdsResult, VerificationTokenRequest, AuthResult, AuthResultWithCookies, ExternalProvider, Login, SendLoginVerificationEmailResult } from 'spiderly';
 import { ConfigService } from '../config.service';
 """);
 

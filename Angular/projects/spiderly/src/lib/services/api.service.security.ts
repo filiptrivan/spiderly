@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   AuthResult,
+  AuthResultWithCookies,
   ExternalProvider,
   Login,
   RefreshTokenRequest,
@@ -51,9 +52,35 @@ export class ApiSecurityService {
     );
   };
 
+  loginWithCookies = (
+    request: VerificationTokenRequest,
+  ): Observable<AuthResultWithCookies> => {
+    return this.http.post<AuthResultWithCookies>(
+      `${this.config.apiUrl}/Security/LoginWithCookies`,
+      request,
+      this.config.httpOptions,
+    );
+  };
+
+  loginExternalWithCookies = (
+    externalProviderDTO: ExternalProvider,
+  ): Observable<AuthResultWithCookies> => {
+    return this.http.post<AuthResultWithCookies>(
+      `${this.config.apiUrl}/Security/LoginExternalWithCookies`,
+      externalProviderDTO,
+      this.config.httpOptions,
+    );
+  };
+
   logout = (browserId: string): Observable<any> => {
     return this.http.get<any>(
       `${this.config.apiUrl}/Security/Logout?browserId=${browserId}`,
+    );
+  };
+
+  logoutWithCookies = (browserId: string): Observable<any> => {
+    return this.http.get<any>(
+      `${this.config.apiUrl}/Security/LogoutWithCookies?browserId=${browserId}`,
     );
   };
 
@@ -62,6 +89,12 @@ export class ApiSecurityService {
       `${this.config.apiUrl}/Security/RefreshTokenWithHeaders`,
       request,
       this.config.httpOptions,
+    );
+  };
+
+  refreshTokenWithCookies = (browserId: string): Observable<AuthResultWithCookies> => {
+    return this.http.get<AuthResultWithCookies>(
+      `${this.config.apiUrl}/Security/RefreshTokenWithCookies?browserId=${browserId}`,
     );
   };
 

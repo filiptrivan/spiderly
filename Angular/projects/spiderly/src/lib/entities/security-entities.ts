@@ -267,6 +267,42 @@ export class RefreshTokenRequest extends BaseEntity {
   } as const;
 }
 
+export class AuthResultWithCookies extends BaseEntity {
+  static readonly typeName = 'AuthResultWithCookies' as const;
+
+  userId?: number;
+  email?: string;
+  accessTokenExpiresAt?: Date;
+
+  constructor({
+    userId,
+    email,
+    accessTokenExpiresAt,
+  }: {
+    userId?: number;
+    email?: string;
+    accessTokenExpiresAt?: Date;
+  } = {}) {
+    super();
+
+    this.userId = userId;
+    this.email = email;
+    this.accessTokenExpiresAt = accessTokenExpiresAt;
+  }
+
+  static readonly schema = {
+    userId: {
+      type: 'number',
+    },
+    email: {
+      type: 'string',
+    },
+    accessTokenExpiresAt: {
+      type: 'Date',
+    },
+  } as const;
+}
+
 export class SendLoginVerificationEmailResult extends BaseEntity {
   static readonly typeName = 'SendLoginVerificationEmailResult' as const;
 
