@@ -1,4 +1,6 @@
-﻿namespace Spiderly.Shared
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Spiderly.Shared
 {
     public static class SettingsProvider
     {
@@ -44,6 +46,9 @@
 
         public string S3BucketName { get; set; }
         public string S3PublicEndpoint { get; set; }
+
+        public string CookieDomain { get; set; }
+        public SameSiteMode CookieSameSite { get; set; } = SameSiteMode.None;
 
         public string FrontendUrl { get; set; } = "http://localhost:4200";
         public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
