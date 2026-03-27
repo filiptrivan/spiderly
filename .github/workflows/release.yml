@@ -338,7 +338,7 @@ jobs:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           published=()
-          skipped=()
+          already_existed=()
           failed=()
 
           for package in nupkg/*.nupkg; do
@@ -358,8 +358,8 @@ jobs:
               published+=("$package_name")
               echo "Successfully published $package_name"
             elif echo "$push_output" | grep -qi "already exists"; then
-              skipped+=("$package_name")
-              echo "::warning::Skipped $package_name (already exists on NuGet.org)"
+              already_existed+=("$package_name")
+              echo "::warning::$package_name already exists on NuGet.org (treating as success for retry safety)"
             else
               failed+=("$(basename "$package")")
               echo "::warning::Failed to publish $package"
@@ -370,7 +370,7 @@ jobs:
           echo ""
           echo "--- Publish Summary ---"
           echo "Published: ${published[*]:-none}"
-          echo "Skipped (already existed): ${skipped[*]:-none}"
+          echo "Already existed: ${already_existed[*]:-none}"
           echo "Failed: ${failed[*]:-none}"
           echo "---"
 
@@ -379,18 +379,26 @@ jobs:
             exit 1
           fi
 
-          if [ ${#published[@]} -eq 0 ]; then
-            echo "::error::No packages were newly published. All packages already exist on NuGet.org. Did you forget to bump the version?"
-            exit 1
+          if [ ${#published[@]} -eq 0 ] && [ ${#already_existed[@]} -gt 0 ]; then
+            echo "::warning::All packages already exist on NuGet.org. This is expected for retries, but check the version if this is a fresh release."
           fi
 
-          published_json=$(printf '%s\n' "${published[@]}" | jq -R . | jq -sc . 2>/dev/null || echo "[]")
+          all_succeeded=("${published[@]}" "${already_existed[@]}")
+          published_json=$(printf '%s\n' "${all_succeeded[@]}" | jq -R . | jq -sc . 2>/dev/null || echo "[]")
           echo "published_packages=$published_json" >> $GITHUB_OUTPUT
 
+  # npm publishes after NuGet so that a NuGet failure stops the pipeline before
+  # any npm package is pushed — keeping registries in sync and avoiding partial releases.
   publish-npm:
     name: Publish to npm
-    needs: [validate, build-angular]
-    if: inputs.dry_run != true && needs.validate.outputs.publish_angular == 'true'
+    needs: [validate, build-angular, publish-nuget]
+    if: |
+      always() &&
+      inputs.dry_run != true &&
+      needs.validate.result == 'success' &&
+      needs.validate.outputs.publish_angular == 'true' &&
+      needs.build-angular.result == 'success' &&
+      (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped')
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.success }}
@@ -432,6 +440,8 @@ jobs:
       always() &&
       inputs.dry_run != true &&
       needs.validate.outputs.is_prerelease == 'false' &&
+      (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
+      (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success')
     runs-on: ubuntu-latest
     permissions:
@@ -515,10 +525,10 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
-      (
-        needs.create-release.result == 'success' ||
-        (needs.validate.outputs.is_prerelease == 'true' && (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success'))
-      )
+      (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
+      (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
+      (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success') &&
+      (needs.create-release.result == 'success' || needs.validate.outputs.is_prerelease == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: write
