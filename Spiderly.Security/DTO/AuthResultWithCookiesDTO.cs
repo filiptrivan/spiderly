@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Spiderly.Security.DTO
 {
     /// <summary>
@@ -5,8 +7,11 @@ namespace Spiderly.Security.DTO
     /// </summary>
     public class AuthResultWithCookiesDTO
     {
+        [Required]
         public long userId { get; set; }
+        [Required]
         public string email { get; set; }
+        [Required]
         public DateTime accessTokenExpiresAt { get; set; }
     }
 }
