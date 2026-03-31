@@ -26,11 +26,17 @@ namespace Spiderly.CLI.Commands
                             Name = "--db",
                             Description = "Database provider: sqlserver or postgresql (you can change it later)."
                         },
+                        new OptionInfo
+                        {
+                            Name = "--db-connection-string",
+                            Description = "Full EF Core connection string. Bypasses auto-discovery and Docker."
+                        },
                     },
                     Examples = new List<string>
                     {
                         "spiderly init",
-                        "spiderly init --name MyApp --db postgresql"
+                        "spiderly init --name MyApp --db postgresql",
+                        "spiderly init --name MyApp --db postgresql --db-connection-string \"Host=localhost;Port=5432;Database=myapp;Username=postgres;Password=secret\""
                     }
                 },
                 new CommandInfo
@@ -41,6 +47,11 @@ namespace Spiderly.CLI.Commands
                     {
                         new OptionInfo
                         {
+                            Name = "--name",
+                            Description = "Entity name in PascalCase (e.g., Product). Required in non-interactive mode."
+                        },
+                        new OptionInfo
+                        {
                             Name = "--data-view",
                             Description = "Generate DataView template instead of Table template."
                         }
@@ -48,7 +59,8 @@ namespace Spiderly.CLI.Commands
                     Examples = new List<string>
                     {
                         "spiderly add-new-entity",
-                        "spiderly add-new-entity --data-view"
+                        "spiderly add-new-entity --name Product",
+                        "spiderly add-new-entity --name Product --data-view"
                     }
                 },
                 new CommandInfo

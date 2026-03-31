@@ -30,16 +30,16 @@ namespace Spiderly.CLI
                 bool isRunningFromNuget = !args.HasArg("--dev");
                 string appName = args.GetArgValue("--name");
                 string dbProvider = args.GetArgValue("--db");
+                string dbConnectionString = args.GetArgValue("--db-connection-string");
 
-                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider);
+                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider, dbConnectionString);
             }
             else if (args.HasArg("add-new-entity"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
                 string entityName = args.GetArgValue("--name");
 
-                await AddNewEntityCommand.Execute(shouldGenerateDataView, entityName);
-                return 0;
+                return await AddNewEntityCommand.Execute(shouldGenerateDataView, entityName);
             }
             else if (args.HasArg("add-migration"))
             {

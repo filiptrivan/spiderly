@@ -5,13 +5,12 @@ using Spiderly.CLI.Services.Database.DbConnectionStringBuilder;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
-using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
-        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null)
+        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null, string dbConnectionString = null)
         {
             appName = GetAppName(appName);
             if (appName == null)
@@ -27,6 +26,17 @@ namespace Spiderly.CLI.Commands
 
             DbProviderCodes dbProvider = dbProviderResult.Value.provider;
             bool skipDatabaseSetup = dbProviderResult.Value.skipped;
+
+            if (!await PrerequisiteChecker.ValidatePrerequisites())
+            {
+                return 1;
+            }
+
+            if (skipDatabaseSetup && !string.IsNullOrWhiteSpace(dbConnectionString))
+            {
+                ConsoleHelper.MarkupLineWARNING("Both --db skip and --db-connection-string were provided. --db-connection-string takes priority.");
+                skipDatabaseSetup = false;
+            }
 
             if (skipDatabaseSetup)
             {
@@ -46,13 +56,21 @@ namespace Spiderly.CLI.Commands
 
             if (!skipDatabaseSetup)
             {
-                BaseDbConnectionStringBuilder dbConnectionStringBuilder = GetDatabaseConnectionStringBuilder(dbProvider);
-                connectionString = await dbConnectionStringBuilder.CreateConnectionString(appName);
-
-                if (connectionString == null)
+                if (!string.IsNullOrWhiteSpace(dbConnectionString))
                 {
-                    ConsoleHelper.MarkupLineERROR("Failed to connect to the database.");
-                    return 1;
+                    connectionString = dbConnectionString;
+                    ConsoleHelper.MarkupLineOK("Using provided connection string");
+                }
+                else
+                {
+                    BaseDbConnectionStringBuilder dbConnectionStringBuilder = GetDatabaseConnectionStringBuilder(dbProvider);
+                    connectionString = await dbConnectionStringBuilder.CreateConnectionString(appName);
+
+                    if (connectionString == null)
+                    {
+                        ConsoleHelper.MarkupLineERROR("Failed to connect to the database.");
+                        return 1;
+                    }
                 }
 
                 ConsoleHelper.MarkupLineOK($"Connected to database using connection string: [green]{connectionString}[/]");
@@ -132,11 +150,8 @@ namespace Spiderly.CLI.Commands
                 }
             }
 
-            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            string npmCmd = isWin ? "cmd.exe" : "/bin/bash";
-            string npmArgs = isWin ? "/c npm install" : "-c \"npm install\"";
             ConsoleHelper.MarkupLineLoading("Installing frontend packages...");
-            (bool npmSuccess, string _) = await ProcessRunner.RunCommand(npmCmd, npmArgs, frontendPath);
+            (bool npmSuccess, string _) = await ProcessRunner.RunShellCommand("npm install", frontendPath);
             if (npmSuccess)
             {
                 ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");

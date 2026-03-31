@@ -1,5 +1,4 @@
 using Spectre.Console;
-using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 {
@@ -41,7 +40,18 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
             }
             else if (isDockerAvailable)
             {
-                ConsoleHelper.MarkupLineERROR($"No running {DbProviderName} found. In non-interactive mode, start the database manually or run: docker {DockerRunArguments}");
+                ConsoleHelper.MarkupLineLoading($"No running {DbProviderName} found. Starting via Docker (non-interactive mode)...");
+
+                if (await StartDockerContainer())
+                {
+                    connectionString = await TryCreateDatabaseConnectionString(appName);
+                    if (connectionString != null)
+                    {
+                        return connectionString;
+                    }
+                }
+
+                ConsoleHelper.MarkupLineERROR($"Failed to start {DbProviderName} via Docker. Use --db-connection-string to provide a connection string, or --db skip to skip database setup.");
                 return null;
             }
 
@@ -55,22 +65,15 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
         private async Task<bool> IsDockerAvailable()
         {
-            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            string shell = isWin ? "cmd.exe" : "/bin/bash";
-            string args = isWin ? "/c docker version" : "-c \"docker version\"";
-
-            return await ProcessRunner.IsCommandAvailable(shell, args);
+            (bool success, string _) = await ProcessRunner.RunShellCommand("docker version");
+            return success;
         }
 
         private async Task<bool> StartDockerContainer()
         {
             ConsoleHelper.MarkupLineLoading($"Starting {DbProviderName} via Docker...");
 
-            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            string shell = isWin ? "cmd.exe" : "/bin/bash";
-            string args = isWin ? $"/c docker {DockerRunArguments}" : $"-c \"docker {DockerRunArguments}\"";
-
-            (bool success, string _) = await ProcessRunner.RunCommand(shell, args);
+            (bool success, string _) = await ProcessRunner.RunShellCommand($"docker {DockerRunArguments}");
 
             if (success)
             {

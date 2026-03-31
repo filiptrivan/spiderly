@@ -9,10 +9,16 @@ namespace Spiderly.CLI.Commands
 {
     internal static class AddNewEntityCommand
     {
-        public static async Task Execute(bool shouldGenerateDataView, string entityName = null)
+        public static async Task<int> Execute(bool shouldGenerateDataView, string entityName = null)
         {
             if (string.IsNullOrWhiteSpace(entityName))
             {
+                if (!ConsoleHelper.IsInteractive())
+                {
+                    ConsoleHelper.MarkupLineERROR("Entity name is required in non-interactive mode. Use: spiderly add-new-entity --name YourEntityName");
+                    return 1;
+                }
+
                 entityName = AnsiConsole.Prompt(
                     new TextPrompt<string>("Entity name without spaces (e.g., YourEntityName):")
                         .PromptStyle("blue")
@@ -32,16 +38,29 @@ namespace Spiderly.CLI.Commands
                         }));
             }
 
+            bool hasErrors = false;
+
             ConsoleHelper.MarkupLineLoading("Generating files for the entity...");
 
             string kebabEntityName = entityName.ToKebabCase();
 
             await GenerateEntityFile(entityName);
             await GenerateAngularPages(entityName, kebabEntityName, shouldGenerateDataView);
-            await AddRoutes(entityName, kebabEntityName);
-            await AddMenuItem(entityName, kebabEntityName);
+
+            if (!await AddRoutes(entityName, kebabEntityName))
+                hasErrors = true;
+
+            if (!await AddMenuItem(entityName, kebabEntityName))
+                hasErrors = true;
+
+            if (hasErrors)
+            {
+                ConsoleHelper.MarkupLineERROR("Command completed with errors. Some file injections failed.");
+                return 1;
+            }
 
             ConsoleHelper.MarkupLineOK("Command execution completed! Customize the generated entity to continue.");
+            return 0;
         }
 
         private static async Task GenerateEntityFile(string entityName)
@@ -114,11 +133,11 @@ namespace Spiderly.CLI.Commands
             ConsoleHelper.MarkupLineOK($"Details .html file generated: [dim]{detailsHtmlPath}[/]");
         }
 
-        private static async Task AddRoutes(string entityName, string kebabEntityName)
+        private static async Task<bool> AddRoutes(string entityName, string kebabEntityName)
         {
             string routesFilePath = GetAppRoutesFilePath();
             if (routesFilePath == null)
-                return;
+                return ConsoleHelper.IsInteractive(); // Interactive: user can fix manually (success). Non-interactive: unrecoverable (failure).
 
             string routesContent = await File.ReadAllTextAsync(routesFilePath, Encoding.UTF8);
 
@@ -126,7 +145,7 @@ namespace Spiderly.CLI.Commands
             if (routesContent.Contains(listRoutePath))
             {
                 ConsoleHelper.MarkupLineWARNING($"Routes already exist for: {kebabEntityName}-list");
-                return;
+                return true;
             }
 
             string routesToAdd = $$"""
@@ -151,18 +170,24 @@ namespace Spiderly.CLI.Commands
                 string newContent = routesContent.Insert(insertPosition, "\n" + routesToAdd);
                 await File.WriteAllTextAsync(routesFilePath, newContent, Encoding.UTF8);
                 ConsoleHelper.MarkupLineOK($"Routes added for: {kebabEntityName}-list");
+                return true;
             }
-            else
+
+            if (!ConsoleHelper.IsInteractive())
             {
-                ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert routes. Please add them manually.");
+                ConsoleHelper.MarkupLineERROR("Could not find the appropriate location to insert routes. Route injection failed.");
+                return false;
             }
+
+            ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert routes. Please add them manually.");
+            return true;
         }
 
-        private static async Task AddMenuItem(string entityName, string kebabEntityName)
+        private static async Task<bool> AddMenuItem(string entityName, string kebabEntityName)
         {
             string layoutFilePath = GetLayoutComponentFilePath();
             if (layoutFilePath == null)
-                return;
+                return ConsoleHelper.IsInteractive(); // Interactive: user can fix manually (success). Non-interactive: unrecoverable (failure).
 
             string layoutContent = await File.ReadAllTextAsync(layoutFilePath, Encoding.UTF8);
 
@@ -170,7 +195,7 @@ namespace Spiderly.CLI.Commands
             if (Regex.IsMatch(layoutContent, routerLinkPattern))
             {
                 ConsoleHelper.MarkupLineWARNING($"Menu item already exists for: {kebabEntityName}-list");
-                return;
+                return true;
             }
 
             string menuItemToAdd = $$"""
@@ -203,11 +228,18 @@ namespace Spiderly.CLI.Commands
                     await File.WriteAllTextAsync(layoutFilePath, newContent, Encoding.UTF8);
                     ConsoleHelper.MarkupLineOK($"Menu item added for: {entityName}List");
                 }
+
+                return true;
             }
-            else
+
+            if (!ConsoleHelper.IsInteractive())
             {
-                ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert menu item. Please add it manually.");
+                ConsoleHelper.MarkupLineERROR("Could not find the appropriate location to insert menu item. Menu injection failed.");
+                return false;
             }
+
+            ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert menu item. Please add it manually.");
+            return true;
         }
 
         private static string GetEntityTemplate(string appName, string entityName)

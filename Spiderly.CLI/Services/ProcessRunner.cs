@@ -1,9 +1,19 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Spiderly.CLI.Services
 {
     internal static class ProcessRunner
     {
+        public static async Task<(bool success, string output)> RunShellCommand(string command, string workingDirectory = null)
+        {
+            bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            string shell = isWin ? "cmd.exe" : "/bin/bash";
+            string args = isWin ? $"/c {command}" : $"-c \"{command}\"";
+
+            return await RunCommand(shell, args, workingDirectory);
+        }
+
         public static async Task<bool> IsCommandAvailable(string shellFileName, string whichCommand)
         {
             try
