@@ -296,7 +296,12 @@ namespace Spiderly.Shared.Helpers
                 string truncated = text.Length > 2000 ? text[..2000] : text;
 
                 string url = $"https://api.telegram.org/bot{settings.TelegramBotToken}/sendMessage";
-                await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text = truncated });
+                using HttpResponseMessage response = await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text = truncated });
+                if (!response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    logger.LogError("Telegram notification failed: {StatusCode} — {Body}", response.StatusCode, responseBody);
+                }
             }
             catch (Exception ex)
             {
