@@ -1,12 +1,12 @@
+using Microsoft.Extensions.Localization;
 using MiniExcelLibs;
 using MiniExcelLibs.Attributes;
 using MiniExcelLibs.OpenXml;
+using Spiderly.Shared.Localization;
 using System.ComponentModel.DataAnnotations;
 using System.IO.Compression;
 using System.Reflection;
 using System.Xml.Linq;
-using Spiderly.Shared.Resources;
-using Spiderly.Shared.Extensions;
 
 namespace Spiderly.Shared.Excel
 {
@@ -15,13 +15,13 @@ namespace Spiderly.Shared.Excel
         public async Task<byte[]> FillReportTemplateAsync<T>(
             IAsyncEnumerable<T> data,
             string[] excelPropertiesToExclude,
-            Func<string, string> getTranslation,
+            IStringLocalizer localizer,
             CancellationToken cancellationToken = default)
             where T : class
         {
             Type type = typeof(T);
             PropertyInfo[] allProperties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            DynamicExcelColumn[] columns = BuildColumnConfig(allProperties, excelPropertiesToExclude, getTranslation);
+            DynamicExcelColumn[] columns = BuildColumnConfig(allProperties, excelPropertiesToExclude, localizer);
 
             OpenXmlConfiguration config = new()
             {
@@ -39,22 +39,23 @@ namespace Spiderly.Shared.Excel
         private static DynamicExcelColumn[] BuildColumnConfig(
             PropertyInfo[] allProperties,
             string[] excelPropertiesToExclude,
-            Func<string, string> getTranslation)
+            IStringLocalizer localizer)
         {
+            HashSet<string> excludedSet = new(excelPropertiesToExclude, StringComparer.Ordinal);
             DynamicExcelColumn[] columns = new DynamicExcelColumn[allProperties.Length];
             int visibleIndex = 0;
 
             for (int i = 0; i < allProperties.Length; i++)
             {
                 PropertyInfo prop = allProperties[i];
-                bool excluded = excelPropertiesToExclude.Contains(prop.Name);
+                bool excluded = excludedSet.Contains(prop.Name);
 
                 DynamicExcelColumn col = new(prop.Name) { Ignore = excluded };
 
                 if (!excluded)
                 {
                     col.Index = visibleIndex++;
-                    col.Name = GetHeaderTranslation(getTranslation, prop.Name);
+                    col.Name = localizer.Translate(prop.Name);
                     col.Width = GetColumnWidth(prop);
                 }
 
@@ -82,14 +83,6 @@ namespace Spiderly.Shared.Excel
             }
 
             return 22;
-        }
-
-        private static string GetHeaderTranslation(Func<string, string> getTranslation, string propertyName)
-        {
-            return
-               getTranslation(propertyName) ??
-               SharedTerms.ResourceManager.GetTranslation(propertyName) ??
-               propertyName;
         }
     }
 }

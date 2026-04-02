@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Enums;
@@ -75,7 +76,7 @@ namespace Spiderly.Shared.Extensions
             services.AddHttpContextAccessor();
             services.AddHttpClient();
             services.AddCors();
-            services.SpiderlyConfigureCulture(builder.CultureCode); // Must be before AddControllers
+            services.SpiderlyConfigureCulture(builder); // Must be before AddControllers
             services.SpiderlyAddControllers();
             services.SpiderlyAddDbContext<TDbContext>(builder.DbProvider);
 
@@ -126,6 +127,19 @@ namespace Spiderly.Shared.Extensions
                 services.SpiderlyAddForwardedHeaders();
             }
 
+            if (builder.LocalizerType != null)
+            {
+                services.AddSingleton(typeof(IStringLocalizer), builder.LocalizerType);
+            }
+            else if (builder.TranslationsEnabled)
+            {
+                services.AddSingleton<IStringLocalizer, Localization.JsonStringLocalizer>();
+            }
+            else
+            {
+                services.AddSingleton<IStringLocalizer, Localization.PassthroughStringLocalizer>();
+            }
+
             return builder;
         }
 
@@ -142,7 +156,7 @@ namespace Spiderly.Shared.Extensions
 
                         string accessTokenKey = SettingsProvider.Current.AccessTokenKey;
 
-                        // SignalR: allow token in query string for hubs only
+                        // SignalR clients can't set HTTP headers, so hubs accept the token via query string
                         if (path.StartsWithSegments("/api/hubs"))
                         {
                             string accessToken = context.Request.Query[accessTokenKey];
@@ -154,10 +168,7 @@ namespace Spiderly.Shared.Extensions
                             }
                         }
 
-                        // Cookie auth:
-                        // JwtBearer will be used by default,
-                        // this is used only when Authorization header doesn't exist
-                        // E.g. we can use this for Next.js SSR
+                        // SSR frameworks (e.g. Next.js) can't set Authorization headers on server-side requests, so fall back to cookie
                         if (string.IsNullOrEmpty(context.Token))
                         {
                             if (context.Request.Cookies.TryGetValue(accessTokenKey, out string cookieToken) &&
@@ -186,16 +197,15 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyConfigureCulture(this IServiceCollection services, string cultureCode)
+        public static void SpiderlyConfigureCulture(this IServiceCollection services, SpiderlyBuilder builder)
         {
+            CultureInfo[] supportedCultures = builder.SupportedCultures
+                .Select(c => new CultureInfo(c))
+                .ToArray();
+
             services.Configure<RequestLocalizationOptions>(options =>
             {
-                CultureInfo[] supportedCultures = new[]
-                {
-                    new CultureInfo(cultureCode)
-                };
-
-                options.DefaultRequestCulture = new RequestCulture(cultureCode);
+                options.DefaultRequestCulture = new RequestCulture(builder.CultureCode);
                 options.SupportedCultures = supportedCultures;
                 options.SupportedUICultures = supportedCultures;
             });

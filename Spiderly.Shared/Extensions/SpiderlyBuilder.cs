@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
@@ -33,6 +34,9 @@ namespace Spiderly.Shared.Extensions
         internal DbProviderCodes DbProvider { get; private set; }
         internal bool DbProviderSet { get; private set; }
         internal string CultureCode { get; private set; } = "en";
+        internal List<string> SupportedCultures { get; private set; } = new() { "en" };
+        internal bool TranslationsEnabled { get; private set; }
+        internal Type LocalizerType { get; private set; }
 
         internal bool AuthenticationEnabled { get; private set; }
         internal bool ExcelEnabled { get; private set; }
@@ -53,6 +57,9 @@ namespace Spiderly.Shared.Extensions
             Services = services;
         }
 
+        /// <summary>
+        /// Configures the application to use PostgreSQL as the database provider.
+        /// </summary>
         public SpiderlyBuilder UsePostgreSQL()
         {
             DbProvider = DbProviderCodes.PostgreSQL;
@@ -60,6 +67,9 @@ namespace Spiderly.Shared.Extensions
             return this;
         }
 
+        /// <summary>
+        /// Configures the application to use SQL Server as the database provider.
+        /// </summary>
         public SpiderlyBuilder UseSQLServer()
         {
             DbProvider = DbProviderCodes.SQLServer;
@@ -67,9 +77,56 @@ namespace Spiderly.Shared.Extensions
             return this;
         }
 
-        public SpiderlyBuilder UseCulture(string cultureCode)
+        /// <summary>
+        /// Sets the default culture and optionally additional supported cultures.
+        /// When multiple cultures are provided, per-request culture resolution is enabled
+        /// via Accept-Language header, query string (?culture=X), or cookie.
+        /// <example>
+        /// <code>
+        /// // Single language:
+        /// spiderly.UseCulture("sr-Latn-RS");
+        ///
+        /// // Multi-language:
+        /// spiderly.UseCulture("sr-Latn-RS", "en");
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder UseCulture(string defaultCulture, params string[] additionalCultures)
         {
-            CultureCode = cultureCode;
+            CultureCode = defaultCulture;
+            SupportedCultures = new List<string> { defaultCulture };
+            SupportedCultures.AddRange(additionalCultures);
+            return this;
+        }
+
+        /// <summary>
+        /// Registers a custom <see cref="IStringLocalizer"/> implementation.
+        /// The DI container resolves constructor dependencies automatically.
+        /// <example>
+        /// <code>
+        /// spiderly.UseTranslations&lt;MyDatabaseLocalizer&gt;();
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder UseTranslations<TLocalizer>()
+            where TLocalizer : class, IStringLocalizer
+        {
+            LocalizerType = typeof(TLocalizer);
+            return this;
+        }
+
+        /// <summary>
+        /// Registers the built-in JSON file-based localizer.
+        /// Loads all {culture}.json files from the <c>Translations</c> directory under <see cref="AppContext.BaseDirectory"/>.
+        /// <example>
+        /// <code>
+        /// spiderly.UseTranslations();
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder UseTranslations()
+        {
+            TranslationsEnabled = true;
             return this;
         }
 
@@ -84,6 +141,9 @@ namespace Spiderly.Shared.Extensions
             return this;
         }
 
+        /// <summary>
+        /// Enables Excel export functionality via <see cref="ExcelService"/>.
+        /// </summary>
         public SpiderlyBuilder AddExcel()
         {
             ExcelEnabled = true;
@@ -135,12 +195,18 @@ namespace Spiderly.Shared.Extensions
             return this;
         }
 
+        /// <summary>
+        /// Enables Swagger/OpenAPI documentation generation.
+        /// </summary>
         public SpiderlyBuilder AddSwagger()
         {
             SwaggerEnabled = true;
             return this;
         }
 
+        /// <summary>
+        /// Enables rate limiting middleware with a default sliding window limiter.
+        /// </summary>
         public SpiderlyBuilder AddRateLimiting()
         {
             RateLimitingEnabled = true;

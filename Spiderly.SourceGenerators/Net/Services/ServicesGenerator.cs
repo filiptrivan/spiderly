@@ -63,6 +63,7 @@ namespace {{basePartOfNamespace}}.Services
         private readonly ExcelService _excelService;
         private readonly AuthorizationService _authorizationService;
         private readonly IFileManager _fileManager;
+        private readonly IStringLocalizer _localizer;
         {{(shouldGenerateCloudinaryStorageService ? "private readonly CloudinaryStorageService _cloudinaryStorageService;" : "")}}
         {{(shouldGenerateS3PublicStorageService ? "private readonly S3PublicStorageService _s3PublicStorageService;" : "")}}
 
@@ -70,7 +71,8 @@ namespace {{basePartOfNamespace}}.Services
             IApplicationDbContext context,
             ExcelService excelService,
             AuthorizationService authorizationService,
-            IFileManager fileManager
+            IFileManager fileManager,
+            IStringLocalizer localizer
             {{(shouldGenerateCloudinaryStorageService ? ", CloudinaryStorageService cloudinaryStorageService" : "")}}
             {{(shouldGenerateS3PublicStorageService ? ", S3PublicStorageService s3PublicStorageService" : "")}}
         )
@@ -80,6 +82,7 @@ namespace {{basePartOfNamespace}}.Services
             _excelService = excelService;
             _authorizationService = authorizationService;
             _fileManager = fileManager;
+            _localizer = localizer;
             {{(shouldGenerateCloudinaryStorageService ? "_cloudinaryStorageService = cloudinaryStorageService;" : "")}}
             {{(shouldGenerateS3PublicStorageService ? "_s3PublicStorageService = s3PublicStorageService;" : "")}}
         }
@@ -162,8 +165,8 @@ using {{basePartOfTheNamespace}}.Entities;
 using {{basePartOfTheNamespace}}.Enums;
 using {{basePartOfTheNamespace}}.ExcelProperties;
 using {{basePartOfTheNamespace}}.Filtering;
-using {{basePartOfTheNamespace.ReplaceEverythingAfterLast(".", ".Shared")}}.Resources;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using System.Data;
 using FluentValidation;
 using Spiderly.Security.Services;

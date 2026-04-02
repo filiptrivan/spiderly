@@ -70,6 +70,7 @@ namespace Spiderly.SourceGenerators.Net
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Azure.Storage.Blobs;
 using System.Data;
 using Spiderly.Infrastructure;
@@ -77,8 +78,8 @@ using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Localization;
 using Spiderly.Shared.DTO;
-using {{appName}}.Shared.Resources;
 using {{appName}}.Business.Services;
 {{string.Join("\n", ReferencedAssemblyAnalyzer.GetEntityClassesUsings(allEntities))}}
 {{string.Join("\n", ReferencedAssemblyAnalyzer.GetDTOClassesUsings(allEntities))}}
@@ -105,14 +106,17 @@ namespace {{basePartOfNamespace}}.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly BusinessService _businessService;
+        private readonly IStringLocalizer _localizer;
 
         public {{groupedControllerEntities.Key}}BaseController(
-            IApplicationDbContext context, 
-            BusinessService businessService
+            IApplicationDbContext context,
+            BusinessService businessService,
+            IStringLocalizer localizer
         )
         {
             _context = context;
             _businessService = businessService;
+            _localizer = localizer;
         }
 
 {{string.Join("\n\n", GetControllerMethods(groupedControllerEntities.ToList(), allEntities))}}
@@ -172,7 +176,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
-                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
             );
         }
 
@@ -378,7 +382,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
-                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }
 
@@ -420,7 +424,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return File(
                 fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
-                Uri.EscapeDataString($"{TermsGenerated.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
+                Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }
 """;

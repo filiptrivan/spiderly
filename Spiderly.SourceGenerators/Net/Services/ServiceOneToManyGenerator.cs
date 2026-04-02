@@ -351,7 +351,7 @@ namespace Spiderly.SourceGenerators.Net
             return await _excelService.FillReportTemplateAsync(
                 exportQuery.AsAsyncEnumerable(),
                 excelPropertiesToExclude,
-                TermsGenerated.GetTranslation,
+                _localizer,
                 cancellationToken);
         }
 """;
