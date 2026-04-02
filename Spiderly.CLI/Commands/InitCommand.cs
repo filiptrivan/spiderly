@@ -119,6 +119,9 @@ namespace Spiderly.CLI.Commands
 
             string rootPath = Path.Combine(currentPath, appName.ToKebabCase());
 
+            // Parallelization opportunity: the steps below (user secrets, NuGet restore, EF pipeline, npm install)
+            // are independent and could run in parallel (~30-45s savings). We intentionally keep them sequential
+            // to preserve clean, non-interleaved process output — AI agents rely on verbose CLI output for observability.
             if (!hasNetAndAngularInitErrors)
             {
                 ConsoleHelper.MarkupLineLoading("Setting up user secrets...");
