@@ -10,8 +10,14 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.PostgreSQL, PackageManagerCodes packageManager = PackageManagerCodes.Npm)
+    public static void Generate(string outputPath, ProjectGenerationOptions options)
     {
+      string appName = options.AppName;
+      string spiderlyVersion = options.SpiderlyVersion;
+      bool isRunningFromNuget = options.IsRunningFromNuget;
+      DbProviderCodes dbProvider = options.DbProvider;
+      PackageManagerCodes packageManager = options.PackageManager;
+
       string userSecretsId = Guid.NewGuid().ToString();
 
       SpiderlyFolder appStructure = new SpiderlyFolder
@@ -113,7 +119,7 @@ namespace Spiderly.Shared.Helpers
                                                 Name = "layout",
                                                 Files =
                                                 {
-                                                    new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode(hasTopMenu) },
+                                                    new SpiderlyFile { Name = "layout.component.html", Data = GetLayoutComponentHtmlCode() },
                                                     new SpiderlyFile { Name = "layout.component.ts", Data = GetLayoutComponentTsCode() },
                                                 }
                                             },
@@ -487,14 +493,7 @@ namespace Spiderly.Shared.Helpers
                         },
                         Files =
                         {
-                            new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(
-                                appName,
-                                emailSender: null,
-                                emailSenderPassword: null,
-                                jwtKey: jwtKey,
-                                blobStorageConnectionString: null,
-                                blobStorageUrl: null
-                            )},
+                            new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName) },
                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                             new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
@@ -3034,14 +3033,7 @@ namespace {{appName}}.WebAPI
 """;
     }
 
-    private static string GetAppSettingsJsonData(
-        string appName,
-        string emailSender,
-        string emailSenderPassword,
-        string jwtKey,
-        string blobStorageConnectionString,
-        string blobStorageUrl
-    )
+    private static string GetAppSettingsJsonData(string appName)
     {
       return $$"""
 {
@@ -3074,9 +3066,9 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "{{emailSender ?? "youremail@gmail.com"}}",
+      "EmailSender": "youremail@gmail.com",
       "UnhandledExceptionRecipients": [
-        "{{emailSender ?? "youremail@gmail.com"}}"
+        "youremail@gmail.com"
       ]
     },
     "Spiderly.Security": {
@@ -5165,10 +5157,10 @@ export class LayoutService extends LayoutServiceBase implements OnDestroy {
 """;
     }
 
-    private static string GetLayoutComponentHtmlCode(bool hasTopMenu)
+    private static string GetLayoutComponentHtmlCode()
     {
-      return $$"""
-<spiderly-layout [menu]="menu" {{(hasTopMenu ? "[isSideMenuLayout]=\"false\"" : "")}}></spiderly-layout>
+      return """
+<spiderly-layout [menu]="menu"></spiderly-layout>
 """;
     }
 

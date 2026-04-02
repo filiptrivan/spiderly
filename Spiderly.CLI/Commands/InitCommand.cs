@@ -2,6 +2,7 @@ using CaseConverter;
 using Spectre.Console;
 using Spiderly.CLI.Services;
 using Spiderly.CLI.Services.Database.DbConnectionStringBuilder;
+using Spiderly.Shared.Classes;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
@@ -10,6 +11,13 @@ namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
+        private enum DbProviderChoiceCodes
+        {
+            PostgreSQL,
+            SQLServer,
+            Skip
+        }
+
         public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null, string dbConnectionString = null, string packageManagerArg = null)
         {
             appName = GetAppName(appName);
@@ -87,7 +95,16 @@ namespace Spiderly.CLI.Commands
             try
             {
                 ConsoleHelper.MarkupLineLoading("Generating files for the app...");
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider, packageManager);
+                ProjectGenerationOptions options = new()
+                {
+                    AppName = appName,
+                    SpiderlyVersion = version,
+                    IsRunningFromNuget = isRunningFromNuget,
+                    DbProvider = dbProvider,
+                    PackageManager = packageManager,
+                };
+
+                NetAndAngularFilesGenerator.Generate(currentPath, options);
                 ConsoleHelper.MarkupLineOK("Files generated successfully");
             }
             catch (Exception ex)
@@ -328,18 +345,24 @@ namespace Spiderly.CLI.Commands
             }
 
             AnsiConsole.WriteLine();
-            string choice = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
+            DbProviderChoiceCodes choice = AnsiConsole.Prompt(
+                new SelectionPrompt<DbProviderChoiceCodes>()
                     .Title("Select database provider:")
-                    .AddChoices("PostgreSQL (recommended in most cases)", "SQL Server", "Skip database setup")
-                    .UseConverter(c => c));
+                    .AddChoices(DbProviderChoiceCodes.PostgreSQL, DbProviderChoiceCodes.SQLServer, DbProviderChoiceCodes.Skip)
+                    .UseConverter(c => c switch
+                    {
+                        DbProviderChoiceCodes.PostgreSQL => "PostgreSQL (recommended in most cases)",
+                        DbProviderChoiceCodes.SQLServer => "SQL Server",
+                        DbProviderChoiceCodes.Skip => "Skip database setup",
+                        _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+                    }));
 
             return choice switch
             {
-                "PostgreSQL (recommended in most cases)" => (DbProviderCodes.PostgreSQL, false),
-                "SQL Server" => (DbProviderCodes.SQLServer, false),
-                "Skip database setup" => (DbProviderCodes.PostgreSQL, true),
-                _ => null
+                DbProviderChoiceCodes.PostgreSQL => (DbProviderCodes.PostgreSQL, false),
+                DbProviderChoiceCodes.SQLServer => (DbProviderCodes.SQLServer, false),
+                DbProviderChoiceCodes.Skip => (DbProviderCodes.PostgreSQL, true),
+                _ => throw new ArgumentOutOfRangeException(nameof(choice), choice, null)
             };
         }
 
@@ -369,18 +392,17 @@ namespace Spiderly.CLI.Commands
             }
 
             AnsiConsole.WriteLine();
-            string choice = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
+            PackageManagerCodes choice = AnsiConsole.Prompt(
+                new SelectionPrompt<PackageManagerCodes>()
                     .Title("Select package manager:")
-                    .AddChoices("npm (default)", "pnpm", "yarn", "bun"));
+                    .AddChoices(PackageManagerCodes.Npm, PackageManagerCodes.Pnpm, PackageManagerCodes.Yarn, PackageManagerCodes.Bun)
+                    .UseConverter(c => c switch
+                    {
+                        PackageManagerCodes.Npm => "npm (default)",
+                        _ => c.GetCommandName()
+                    }));
 
-            return choice switch
-            {
-                "pnpm" => PackageManagerCodes.Pnpm,
-                "yarn" => PackageManagerCodes.Yarn,
-                "bun" => PackageManagerCodes.Bun,
-                _ => PackageManagerCodes.Npm
-            };
+            return choice;
         }
 
         private static string GetInstallCommand(PackageManagerCodes packageManager)
