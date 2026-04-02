@@ -1,5 +1,6 @@
 import { CommonModule, formatDate, formatNumber } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
   EventEmitter,
   Inject,
@@ -58,7 +59,7 @@ import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-cont
     TooltipModule,
   ],
 })
-export class SpiderlyDataTableComponent implements OnInit {
+export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
   @ViewChild('dt') table: Table;
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
@@ -152,6 +153,48 @@ export class SpiderlyDataTableComponent implements OnInit {
     private configService: ConfigServiceBase,
     @Inject(LOCALE_ID) private locale: string,
   ) {}
+
+  ngAfterViewInit(): void {
+    this.setupRemovableSort();
+  }
+
+  // PrimeNG v19 removed the removableSort property. This overrides the table's
+  // sort() method to add tri-state cycling: ascending → descending → unsorted.
+  private setupRemovableSort(): void {
+    const originalSort = this.table.sort.bind(this.table);
+
+    this.table.sort = (event: { originalEvent: Event; field: string }) => {
+      const sortMeta = this.table.getSortMeta(event.field);
+
+      if (sortMeta && sortMeta.order === -1) {
+        const mouseEvent = event.originalEvent as MouseEvent;
+        const isMultiSortClick = mouseEvent.metaKey || mouseEvent.ctrlKey;
+
+        if (isMultiSortClick) {
+          this.table._multiSortMeta = this.table._multiSortMeta.filter(
+            (m) => m.field !== event.field,
+          );
+        } else {
+          this.table._multiSortMeta = [];
+          if (this.table.resetPageOnSort) {
+            this.table._first = 0;
+            this.table.firstChange.emit(0);
+          }
+        }
+
+        this.table.sortMultiple();
+
+        if (this.table.isStateful()) {
+          this.table.saveState();
+        }
+
+        this.table.anchorRowIndex = null;
+        return;
+      }
+
+      originalSort(event);
+    };
+  }
 
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;

@@ -93,11 +93,13 @@
                   align-items: center;
                 "
               >
-                {{ col.name }}
-                <p-sortIcon
-                  *ngIf="col.sortable !== false && col.field"
-                  [field]="col.field!"
-                ></p-sortIcon>
+                <span style="display: flex; align-items: center">
+                  {{ col.name }}
+                  <p-sortIcon
+                    *ngIf="col.sortable !== false && col.field"
+                    [field]="col.field!"
+                  ></p-sortIcon>
+                </span>
                 <p-columnFilter
                   *ngIf="col.filterType != null && col.filterType !== 'blob'"
                   [type]="col.filterType"
