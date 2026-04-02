@@ -31,8 +31,9 @@ namespace Spiderly.CLI
                 string appName = args.GetArgValue("--name");
                 string dbProvider = args.GetArgValue("--db");
                 string dbConnectionString = args.GetArgValue("--db-connection-string");
+                string packageManager = args.GetArgValue("--pm");
 
-                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider, dbConnectionString);
+                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider, dbConnectionString, packageManager);
             }
             else if (args.HasArg("add-new-entity"))
             {

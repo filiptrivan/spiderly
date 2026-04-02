@@ -31,11 +31,17 @@ namespace Spiderly.CLI.Commands
                             Name = "--db-connection-string",
                             Description = "Full EF Core connection string. Bypasses auto-discovery and Docker."
                         },
+                        new OptionInfo
+                        {
+                            Name = "--pm",
+                            Description = "Package manager: npm (default), pnpm, yarn, or bun."
+                        },
                     },
                     Examples = new List<string>
                     {
                         "spiderly init",
                         "spiderly init --name MyApp --db postgresql",
+                        "spiderly init --name MyApp --db postgresql --pm pnpm",
                         "spiderly init --name MyApp --db postgresql --db-connection-string \"Host=localhost;Port=5432;Database=myapp;Username=postgres;Password=secret\""
                     }
                 },

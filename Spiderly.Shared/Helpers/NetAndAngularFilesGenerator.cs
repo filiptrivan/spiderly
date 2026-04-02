@@ -10,7 +10,7 @@ namespace Spiderly.Shared.Helpers
     /// <summary>
     /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
     /// </summary>
-    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.PostgreSQL)
+    public static void Generate(string outputPath, string appName, string spiderlyVersion, bool isRunningFromNuget, string primaryColor, bool hasTopMenu, string jwtKey, DbProviderCodes dbProvider = DbProviderCodes.PostgreSQL, PackageManagerCodes packageManager = PackageManagerCodes.Npm)
     {
       string userSecretsId = Guid.NewGuid().ToString();
 
@@ -33,7 +33,7 @@ namespace Spiderly.Shared.Helpers
                 Files =
                 {
                     new SpiderlyFile { Name = "extensions.json", Data = GetExtensionsJsonData(dbProvider) },
-                    new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName) },
+                    new SpiderlyFile { Name = "launch.json", Data = GetLaunchJsonData(appName, packageManager) },
                     new SpiderlyFile { Name = "settings.json", Data = GetSettingsJsonData() },
                     new SpiderlyFile { Name = "tasks.json", Data = GetTasksJsonData(appName) },
                 }
@@ -318,7 +318,7 @@ namespace Spiderly.Shared.Helpers
                     new SpiderlyFile { Name = ".prettierrc", Data = GetPrettierRcData() },
                     new SpiderlyFile { Name = "angular.json", Data = GetAngularJsonData(appName) },
                     new SpiderlyFile { Name = "package.json", Data = GetPackageJsonData(appName, spiderlyVersion, isRunningFromNuget) },
-                    new SpiderlyFile { Name = "playwright.config.ts", Data = GetPlaywrightConfigData() },
+                    new SpiderlyFile { Name = "playwright.config.ts", Data = GetPlaywrightConfigData(packageManager) },
                     new SpiderlyFile { Name = "README.md", Data = GetFrontendREADMEData(appName, spiderlyVersion) },
                     new SpiderlyFile { Name = "tsconfig.app.json", Data = GetTsConfigAppJsonData() },
                     new SpiderlyFile { Name = "tsconfig.json", Data = GetTsConfigJsonData(isRunningFromNuget) },
@@ -3786,8 +3786,10 @@ namespace {{appName}}.Business.DataMappers
     }
 
 
-    private static string GetLaunchJsonData(string appName)
+    private static string GetLaunchJsonData(string appName, PackageManagerCodes packageManager)
     {
+      string pmCommand = packageManager.GetCommandName();
+
       return $$"""
 {
   "version": "0.2.0",
@@ -3818,7 +3820,7 @@ namespace {{appName}}.Business.DataMappers
       "name": "Launch Frontend (Angular)",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "{{pmCommand}}",
       "runtimeArgs": ["start"],
       "cwd": "${workspaceFolder}/Frontend"
     }
@@ -5291,6 +5293,8 @@ export class LayoutComponent {
 **/node_modules/
 **/npm-debug.log
 **/yarn-error.log
+**/pnpm-debug.log
+**/.pnpm-debug.log
 **/*.env
 **/*.env.local
 
@@ -5391,9 +5395,11 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
       return input;
     }
 
-    private static string GetPlaywrightConfigData()
+    private static string GetPlaywrightConfigData(PackageManagerCodes packageManager)
     {
-      return """
+      string pmCommand = packageManager.GetCommandName();
+
+      return $$"""
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -5423,7 +5429,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm start',
+    command: '{{pmCommand}} start',
     url: 'http://localhost:4200',
     reuseExistingServer: !process.env.CI,
   },

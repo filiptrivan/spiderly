@@ -10,7 +10,7 @@ namespace Spiderly.CLI.Commands
 {
     internal static class InitCommand
     {
-        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null, string dbConnectionString = null)
+        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null, string dbConnectionString = null, string packageManagerArg = null)
         {
             appName = GetAppName(appName);
             if (appName == null)
@@ -27,7 +27,15 @@ namespace Spiderly.CLI.Commands
             DbProviderCodes dbProvider = dbProviderResult.Value.provider;
             bool skipDatabaseSetup = dbProviderResult.Value.skipped;
 
-            if (!await PrerequisiteChecker.ValidatePrerequisites())
+            PackageManagerCodes? packageManagerResult = GetPackageManager(packageManagerArg);
+            if (packageManagerResult == null)
+            {
+                return 1;
+            }
+
+            PackageManagerCodes packageManager = packageManagerResult.Value;
+
+            if (!await PrerequisiteChecker.ValidatePrerequisites(packageManager))
             {
                 return 1;
             }
@@ -48,7 +56,7 @@ namespace Spiderly.CLI.Commands
             bool hasNetAndAngularInitErrors = false;
             bool hasEfMigrationErrors = false;
             bool hasDatabaseUpdateErrors = false;
-            bool hasNpmInstallErrors = false;
+            bool hasPmInstallErrors = false;
             bool hasUserSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
@@ -79,7 +87,7 @@ namespace Spiderly.CLI.Commands
             try
             {
                 ConsoleHelper.MarkupLineLoading("Generating files for the app...");
-                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider);
+                NetAndAngularFilesGenerator.Generate(currentPath, appName, version, isRunningFromNuget, primaryColor: null, hasTopMenu: false, jwtKey, dbProvider, packageManager);
                 ConsoleHelper.MarkupLineOK("Files generated successfully");
             }
             catch (Exception ex)
@@ -150,19 +158,20 @@ namespace Spiderly.CLI.Commands
                 }
             }
 
+            string installCommand = GetInstallCommand(packageManager);
             ConsoleHelper.MarkupLineLoading("Installing frontend packages...");
-            (bool npmSuccess, string _) = await ProcessRunner.RunShellCommand("npm install", frontendPath);
-            if (npmSuccess)
+            (bool pmSuccess, string _) = await ProcessRunner.RunShellCommand(installCommand, frontendPath);
+            if (pmSuccess)
             {
                 ConsoleHelper.MarkupLineOK("Frontend packages installed successfully");
             }
             else
             {
                 ConsoleHelper.MarkupLineERROR("Failed to install frontend packages");
-                hasNpmInstallErrors = true;
+                hasPmInstallErrors = true;
             }
 
-            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasNpmInstallErrors)
+            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
@@ -184,7 +193,7 @@ namespace Spiderly.CLI.Commands
                 {
                     ConsoleHelper.MarkupLineERROR("Error occurred while initializing the database.");
                 }
-                else if (hasNpmInstallErrors)
+                else if (hasPmInstallErrors)
                 {
                     ConsoleHelper.MarkupLineERROR("Error occurred while installing frontend packages.");
                 }
@@ -332,6 +341,51 @@ namespace Spiderly.CLI.Commands
                 "Skip database setup" => (DbProviderCodes.PostgreSQL, true),
                 _ => null
             };
+        }
+
+        private static PackageManagerCodes? GetPackageManager(string packageManagerArg)
+        {
+            if (!string.IsNullOrWhiteSpace(packageManagerArg))
+            {
+                if (packageManagerArg.Equals("npm", StringComparison.OrdinalIgnoreCase))
+                    return PackageManagerCodes.Npm;
+
+                if (packageManagerArg.Equals("pnpm", StringComparison.OrdinalIgnoreCase))
+                    return PackageManagerCodes.Pnpm;
+
+                if (packageManagerArg.Equals("yarn", StringComparison.OrdinalIgnoreCase))
+                    return PackageManagerCodes.Yarn;
+
+                if (packageManagerArg.Equals("bun", StringComparison.OrdinalIgnoreCase))
+                    return PackageManagerCodes.Bun;
+
+                ConsoleHelper.MarkupLineERROR("Invalid package manager. Use 'npm', 'pnpm', 'yarn', or 'bun'");
+                return null;
+            }
+
+            if (!ConsoleHelper.IsInteractive())
+            {
+                return PackageManagerCodes.Npm;
+            }
+
+            AnsiConsole.WriteLine();
+            string choice = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("Select package manager:")
+                    .AddChoices("npm (default)", "pnpm", "yarn", "bun"));
+
+            return choice switch
+            {
+                "pnpm" => PackageManagerCodes.Pnpm,
+                "yarn" => PackageManagerCodes.Yarn,
+                "bun" => PackageManagerCodes.Bun,
+                _ => PackageManagerCodes.Npm
+            };
+        }
+
+        private static string GetInstallCommand(PackageManagerCodes packageManager)
+        {
+            return $"{packageManager.GetCommandName()} install";
         }
 
         private static BaseDbConnectionStringBuilder GetDatabaseConnectionStringBuilder(DbProviderCodes dbProvider)
