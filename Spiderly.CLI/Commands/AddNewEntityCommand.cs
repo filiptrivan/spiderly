@@ -5,6 +5,7 @@ using Spiderly.Shared.Helpers;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Spiderly.CLI.Commands
@@ -278,22 +279,24 @@ namespace Spiderly.CLI.Commands
             foreach (string jsonFile in jsonFiles)
             {
                 string json = await File.ReadAllTextAsync(jsonFile, Encoding.UTF8);
-                Dictionary<string, string> translations = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
+                JsonObject root = JsonNode.Parse(json)?.AsObject();
+                if (root == null)
+                    continue;
 
                 bool changed = false;
                 foreach (KeyValuePair<string, string> kvp in keysToAdd)
                 {
-                    if (!translations.TryGetValue(kvp.Key, out string existingValue) || string.IsNullOrEmpty(existingValue))
+                    JsonNode existing = root[kvp.Key];
+                    if (existing == null || (existing is JsonValue val && string.IsNullOrEmpty(val.ToString())))
                     {
-                        translations[kvp.Key] = kvp.Value;
+                        root[kvp.Key] = kvp.Value;
                         changed = true;
                     }
                 }
 
                 if (changed)
                 {
-                    Dictionary<string, string> sorted = translations.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
-                    string updatedJson = JsonSerializer.Serialize(sorted, options);
+                    string updatedJson = root.ToJsonString(options);
                     await File.WriteAllTextAsync(jsonFile, updatedJson, Encoding.UTF8);
                 }
             }
