@@ -257,39 +257,14 @@ namespace Spiderly.CLI.Commands
                 { $"{entityName}List", $"{splitName} List" },
             };
 
-            bool angularOk = await RunTranslocoExtract();
-            bool backendOk = await AddBackendTranslationKeys(keysToAdd);
+            bool angularOk = await AddTranslationKeysToFolder(GetAngularI18nFolderPath(), keysToAdd, "Angular i18n");
+            bool backendOk = await AddTranslationKeysToFolder(GetBackendTranslationsFolderPath(), keysToAdd, "Backend translations");
 
             return angularOk && backendOk;
         }
 
-        private static async Task<bool> RunTranslocoExtract()
+        private static async Task<bool> AddTranslationKeysToFolder(string folderPath, Dictionary<string, string> keysToAdd, string label)
         {
-            string frontendPath = GetFrontendPath();
-            if (frontendPath == null)
-                return false;
-
-            ConsoleHelper.MarkupLineLoading("Extracting Angular translation keys...");
-            (bool success, string _) = await ProcessRunner.RunShellCommand("npm run i18n:extract", frontendPath);
-            if (success)
-            {
-                ConsoleHelper.MarkupLineOK("Angular translation keys extracted");
-                return true;
-            }
-
-            if (!ConsoleHelper.IsInteractive())
-            {
-                ConsoleHelper.MarkupLineERROR("Failed to extract Angular translation keys. Ensure frontend packages are installed.");
-                return false;
-            }
-
-            ConsoleHelper.MarkupLineWARNING("Could not extract Angular translation keys. Run 'npm run i18n:extract' manually from the Frontend directory.");
-            return true;
-        }
-
-        private static async Task<bool> AddBackendTranslationKeys(Dictionary<string, string> keysToAdd)
-        {
-            string folderPath = GetBackendTranslationsFolderPath();
             if (folderPath == null)
                 return false;
 
@@ -308,7 +283,7 @@ namespace Spiderly.CLI.Commands
                 bool changed = false;
                 foreach (KeyValuePair<string, string> kvp in keysToAdd)
                 {
-                    if (!translations.ContainsKey(kvp.Key))
+                    if (!translations.TryGetValue(kvp.Key, out string existingValue) || string.IsNullOrEmpty(existingValue))
                     {
                         translations[kvp.Key] = kvp.Value;
                         changed = true;
@@ -323,28 +298,28 @@ namespace Spiderly.CLI.Commands
                 }
             }
 
-            ConsoleHelper.MarkupLineOK("Backend translation keys added");
+            ConsoleHelper.MarkupLineOK($"{label} translation keys added");
             return true;
         }
 
-        private static string GetFrontendPath()
+        private static string GetAngularI18nFolderPath()
         {
             string currentPath = Directory.GetCurrentDirectory();
 
             List<string> candidatePaths = new List<string>
             {
-                Path.Combine(currentPath, "Frontend"),
-                Path.Combine(currentPath, "..", "Frontend"),
-                currentPath,
+                Path.Combine(currentPath, "Frontend", "src", "assets", "i18n"),
+                Path.Combine(currentPath, "..", "Frontend", "src", "assets", "i18n"),
+                Path.Combine(currentPath, "src", "assets", "i18n"),
             }
             .Select(Path.GetFullPath)
             .ToList();
 
-            string existingPath = candidatePaths.FirstOrDefault(p => File.Exists(Path.Combine(p, "package.json")));
+            string existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
             if (existingPath != null)
                 return existingPath;
 
-            ConsoleHelper.MarkupLineWARNING("Could not find Frontend directory for translation extraction.");
+            ConsoleHelper.MarkupLineWARNING("Could not find Angular i18n folder for translation injection.");
             return null;
         }
 
