@@ -2116,11 +2116,11 @@ namespace {{appName}}.Business.Entities
     {
       return $$"""
 using Microsoft.AspNetCore.Mvc;
-using Azure.Storage.Blobs;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity.UI;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.DTO;
+using Microsoft.Extensions.Localization;
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Services;
 
@@ -2130,16 +2130,15 @@ namespace {{appName}}.WebAPI.Controllers
     [Route("/api/[controller]/[action]")]
     public class NotificationController : NotificationBaseController
     {
-        private readonly IApplicationDbContext _context;
         private readonly BusinessService _businessService;
 
         public NotificationController(
-            IApplicationDbContext context, 
-            BusinessService businessService
+            IApplicationDbContext context,
+            BusinessService businessService,
+            IStringLocalizer localizer
         )
-            : base(context, businessService)
+            : base(context, businessService, localizer)
         {
-            _context = context;
             _businessService = businessService;
         }
 
@@ -2244,10 +2243,10 @@ namespace {{appName}}.WebAPI.Controllers
 using Microsoft.AspNetCore.Mvc;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
-using Azure.Storage.Blobs;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Resources;
 using Spiderly.Security.Services;
+using Microsoft.Extensions.Localization;
 using {{appName}}.Business.Services;
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
@@ -2258,18 +2257,17 @@ namespace {{appName}}.WebAPI.Controllers
     [Route("/api/[controller]/[action]")]
     public class UserController : UserBaseController
     {
-        private readonly IApplicationDbContext _context;
         private readonly BusinessService _businessService;
         private readonly AuthenticationService _authenticationService;
 
         public UserController(
-            IApplicationDbContext context, 
-            BusinessService businessService, 
-            AuthenticationService authenticationService
+            IApplicationDbContext context,
+            BusinessService businessService,
+            AuthenticationService authenticationService,
+            IStringLocalizer localizer
         )
-            : base(context, businessService)
+            : base(context, businessService, localizer)
         {
-            _context = context;
             _businessService = businessService;
             _authenticationService = authenticationService;
         }
