@@ -3,6 +3,8 @@ using Spectre.Console;
 using Spiderly.CLI.Services;
 using Spiderly.Shared.Helpers;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Spiderly.CLI.Commands
@@ -51,6 +53,9 @@ namespace Spiderly.CLI.Commands
                 hasErrors = true;
 
             if (!await AddMenuItem(entityName, kebabEntityName))
+                hasErrors = true;
+
+            if (!await AddTranslations(entityName))
                 hasErrors = true;
 
             if (hasErrors)
@@ -240,6 +245,125 @@ namespace Spiderly.CLI.Commands
 
             ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert menu item. Please add it manually.");
             return true;
+        }
+
+        private static async Task<bool> AddTranslations(string entityName)
+        {
+            string splitName = Regex.Replace(entityName, @"(\B[A-Z])", " $1");
+
+            Dictionary<string, string> keysToAdd = new()
+            {
+                { entityName, splitName },
+                { $"{entityName}List", $"{splitName} List" },
+            };
+
+            bool angularOk = await RunTranslocoExtract();
+            bool backendOk = await AddBackendTranslationKeys(keysToAdd);
+
+            return angularOk && backendOk;
+        }
+
+        private static async Task<bool> RunTranslocoExtract()
+        {
+            string frontendPath = GetFrontendPath();
+            if (frontendPath == null)
+                return false;
+
+            ConsoleHelper.MarkupLineLoading("Extracting Angular translation keys...");
+            (bool success, string _) = await ProcessRunner.RunShellCommand("npm run i18n:extract", frontendPath);
+            if (success)
+            {
+                ConsoleHelper.MarkupLineOK("Angular translation keys extracted");
+                return true;
+            }
+
+            if (!ConsoleHelper.IsInteractive())
+            {
+                ConsoleHelper.MarkupLineERROR("Failed to extract Angular translation keys. Ensure frontend packages are installed.");
+                return false;
+            }
+
+            ConsoleHelper.MarkupLineWARNING("Could not extract Angular translation keys. Run 'npm run i18n:extract' manually from the Frontend directory.");
+            return true;
+        }
+
+        private static async Task<bool> AddBackendTranslationKeys(Dictionary<string, string> keysToAdd)
+        {
+            string folderPath = GetBackendTranslationsFolderPath();
+            if (folderPath == null)
+                return false;
+
+            string[] jsonFiles = Directory.GetFiles(folderPath, "*.json");
+            JsonSerializerOptions options = new()
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            };
+
+            foreach (string jsonFile in jsonFiles)
+            {
+                string json = await File.ReadAllTextAsync(jsonFile, Encoding.UTF8);
+                Dictionary<string, string> translations = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
+
+                bool changed = false;
+                foreach (KeyValuePair<string, string> kvp in keysToAdd)
+                {
+                    if (!translations.ContainsKey(kvp.Key))
+                    {
+                        translations[kvp.Key] = kvp.Value;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    Dictionary<string, string> sorted = translations.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+                    string updatedJson = JsonSerializer.Serialize(sorted, options);
+                    await File.WriteAllTextAsync(jsonFile, updatedJson, Encoding.UTF8);
+                }
+            }
+
+            ConsoleHelper.MarkupLineOK("Backend translation keys added");
+            return true;
+        }
+
+        private static string GetFrontendPath()
+        {
+            string currentPath = Directory.GetCurrentDirectory();
+
+            List<string> candidatePaths = new List<string>
+            {
+                Path.Combine(currentPath, "Frontend"),
+                Path.Combine(currentPath, "..", "Frontend"),
+                currentPath,
+            }
+            .Select(Path.GetFullPath)
+            .ToList();
+
+            string existingPath = candidatePaths.FirstOrDefault(p => File.Exists(Path.Combine(p, "package.json")));
+            if (existingPath != null)
+                return existingPath;
+
+            ConsoleHelper.MarkupLineWARNING("Could not find Frontend directory for translation extraction.");
+            return null;
+        }
+
+        private static string GetBackendTranslationsFolderPath()
+        {
+            string backendPath = FindBackendPath();
+            if (backendPath != null)
+            {
+                string sharedFolder = Directory.GetDirectories(backendPath, "*.Shared").FirstOrDefault();
+                if (sharedFolder != null)
+                {
+                    string translationsPath = Path.Combine(sharedFolder, "Translations");
+                    if (Directory.Exists(translationsPath))
+                        return translationsPath;
+                }
+            }
+
+            ConsoleHelper.MarkupLineWARNING("Could not find Backend Translations folder for translation injection.");
+            return null;
         }
 
         private static string GetEntityTemplate(string appName, string entityName)
