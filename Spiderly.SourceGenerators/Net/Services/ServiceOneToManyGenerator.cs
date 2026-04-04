@@ -71,14 +71,14 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.{{extractedEntityManyToManyProperty.Name}}.Any(x => x.Id == id))
                     .Select(x => new NamebookDTO<{{extractedPropertyEntityIdType}}>
@@ -98,14 +98,14 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of entity IDs</returns>
         public async virtual Task<List<{{extractedPropertyEntityIdType}}>> Get{{oneToManyProperty.Name}}IdsFor{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.{{extractedEntityManyToManyProperty.Name}}.Any(x => x.Id == id))
                     .Select(x => x.Id)
@@ -120,9 +120,9 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{extractedPropertyEntity.Name}} entities</returns>
         public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
-                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .Where(x => x.{{extractedEntityManyToManyProperty.Name}}.Any(x => x.Id == id))
                     .ToListAsync();
             });
@@ -141,7 +141,7 @@ namespace Spiderly.SourceGenerators.Net
 
             List<{{extractedPropertyEntityIdType}}> selectedIdsHelper = selectedIds.ToList();
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 // FT: Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
 
@@ -158,10 +158,10 @@ namespace Spiderly.SourceGenerators.Net
                         entity.{{oneToManyProperty.Name}}.Remove(item);
                 }
 
-                var listToInsert = await _context.DbSet<{{extractedPropertyEntity.Name}}>().Where(x => selectedIdsHelper.Contains(x.Id)).ToListAsync();
+                var listToInsert = await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>().Where(x => selectedIdsHelper.Contains(x.Id)).ToListAsync();
 
                 entity.{{oneToManyProperty.Name}}.AddRange(listToInsert);
-                await _context.SaveChangesAsync();
+                await _deps.Context.SaveChangesAsync();
             });
         }
 
@@ -183,20 +183,21 @@ namespace Spiderly.SourceGenerators.Net
                 .Where(x => x.{{extractedEntityManyToManyProperty.Name}}
                     .Any(x => x.Id == filterDTO.{{entityIdType.GetTableFilterAdditionalFilterPropertyName()}}));
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"({entityIdType})filterDTO.{entityIdType.GetTableFilterAdditionalFilterPropertyName()}")}}
                 }
 
-                var paginationResult = await GetPaginated{{extractedPropertyEntity.Name}}List(filterDTO, query);
+                var {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}EntityServiceGenerated>();
+                var paginationResult = await {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService.GetPaginated{{extractedPropertyEntity.Name}}List(filterDTO, query);
 
                 lazyLoadSelectedIdsResultDTO.SelectedIds = await paginationResult.Query
                     .Select(x => x.Id)
                     .ToListAsync();
 
-                int count = await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                int count = await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .Where(x => x.{{extractedEntityManyToManyProperty.Name}}
                         .Any(x => x.Id == filterDTO.{{entityIdType.GetTableFilterAdditionalFilterPropertyName()}}))
                     .CountAsync();
@@ -230,9 +231,9 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{extractedPropertyEntity.Name}} entities</returns>
         public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
-                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
                     .ToListAsync();
             });
@@ -253,14 +254,14 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                return await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
                     .Select(x => new NamebookDTO<{{extractedPropertyEntityIdType}}>
@@ -287,7 +288,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>PaginatedResult containing the query and total record count</returns>
         public async virtual Task<PaginatedResult<{{listEntitty.Name}}>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
             });
@@ -305,7 +306,7 @@ namespace Spiderly.SourceGenerators.Net
             PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
             List<{{listEntitty.Name}}DTO> dtoList = null;
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
 
@@ -338,7 +339,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             IQueryable<{{listEntitty.Name}}DTO> exportQuery = null;
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 PaginatedResult<{{listEntitty.Name}}> paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
                 int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
@@ -348,10 +349,10 @@ namespace Spiderly.SourceGenerators.Net
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{listEntitty.Name}}DTO());
-            return await _excelService.FillReportTemplateAsync(
+            return await _deps.ExcelService.FillReportTemplateAsync(
                 exportQuery.AsAsyncEnumerable(),
                 excelPropertiesToExclude,
-                _localizer,
+                _deps.Localizer,
                 cancellationToken);
         }
 """;
@@ -400,20 +401,20 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{junctionEntity.Name}}DTO for all {{otherSideEntity.Name}} entities</returns>
         public async virtual Task<List<{{junctionEntity.Name}}DTO>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                var allOtherSideEntries = await _context.DbSet<{{otherSideEntity.Name}}>()
+                var allOtherSideEntries = await _deps.Context.DbSet<{{otherSideEntity.Name}}>()
                     .AsNoTracking()
                     .OrderBy(x => x.Id)
                     .Select(x => new { x.Id, DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(otherSideEntity)}} })
                     .ToListAsync();
 
-                var existingRecords = await _context.DbSet<{{junctionEntity.Name}}>()
+                var existingRecords = await _deps.Context.DbSet<{{junctionEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
                     .ProjectToType<{{junctionEntity.Name}}DTO>(Mapper.{{junctionEntity.Name}}ProjectToConfig())
@@ -438,9 +439,9 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="dtos">List of {{junctionEntity.Name}}DTO to save</param>
         public async virtual Task Update{{oneToManyProperty.Name}}For{{entity.Name}}({{entityIdType}} id, List<{{junctionEntity.Name}}DTO> dtos)
         {
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
-                await _context.DbSet<{{junctionEntity.Name}}>()
+                await _deps.Context.DbSet<{{junctionEntity.Name}}>()
                     .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
                     .ExecuteDeleteAsync();
 
@@ -450,7 +451,7 @@ namespace Spiderly.SourceGenerators.Net
 
                     var poco = new {{junctionEntity.Name}}();
 {{additionalFieldMappings}}
-                    var entry = await _context.DbSet<{{junctionEntity.Name}}>().AddAsync(poco);
+                    var entry = await _deps.Context.DbSet<{{junctionEntity.Name}}>().AddAsync(poco);
 
                     entry.Property("{{currentSideFKName}}").CurrentValue = id;
                     entry.Property("{{otherSideFKName}}").CurrentValue = dto.{{otherSideFKName}};
@@ -465,9 +466,9 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{junctionEntity.Name}}DTO with {{otherSideM2MProperty.Name}}Id and {{otherSideM2MProperty.Name}}DisplayName populated</returns>
         public async virtual Task<List<{{junctionEntity.Name}}DTO>> GetDefault{{oneToManyProperty.Name}}For{{entity.Name}}()
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
-                return await _context.DbSet<{{otherSideEntity.Name}}>()
+                return await _deps.Context.DbSet<{{otherSideEntity.Name}}>()
                     .AsNoTracking()
                     .OrderBy(x => x.Id)
                     .Select(x => new {{junctionEntity.Name}}DTO
@@ -501,7 +502,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="saveBodyDTO">The SaveBodyDTO containing selection state</param>
         public async virtual Task Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}(IQueryable<{{extractedPropertyEntity.Name}}> query, {{entityIdType}} id, {{entity.Name}}SaveBodyDTO saveBodyDTO)
         {
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 List<{{extractedPropertyEntityIdType}}> listToInsert = null;
 
@@ -552,7 +553,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{extractedPropertyEntity.Name}}MainUIFormDTO ordered by OrderNumber</returns>
         public async virtual Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
@@ -561,15 +562,16 @@ namespace Spiderly.SourceGenerators.Net
 
                 List<{{extractedPropertyEntity.Name}}MainUIFormDTO> mainUIFormDTOList = new();
 
-                var ids = await _context.DbSet<{{extractedPropertyEntity.Name}}>()
+                var ids = await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
                     .OrderBy(x => x.OrderNumber)
                     .Select(x => x.Id)
                     .ToListAsync();
 
+                var {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}EntityServiceGenerated>();
                 foreach (var id in ids)
-                    mainUIFormDTOList.Add(await Get{{extractedPropertyEntity.Name}}MainUIFormDTO(id, authorize));
+                    mainUIFormDTOList.Add(await {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService.Get{{extractedPropertyEntity.Name}}MainUIFormDTO(id, authorize));
 
                 return mainUIFormDTOList;
             });

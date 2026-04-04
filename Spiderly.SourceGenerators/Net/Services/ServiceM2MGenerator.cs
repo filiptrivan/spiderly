@@ -66,11 +66,11 @@ namespace Spiderly.SourceGenerators.Net
 
             List<{{entity.Name}}DTO> selectedDTOListHelper = selected{{entity.Name}}DTOList.ToList();
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
 
-                var dbSet = _context.DbSet<{{entity.Name}}>();
+                var dbSet = _deps.Context.DbSet<{{entity.Name}}>();
                 var {{entity.Name.FirstCharToLower()}}List = await dbSet.Where(x => x.{{m2mWithManyProperty_2.Name}}.Id == {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id).ToListAsync();
 
                 foreach ({{entity.Name}}DTO selected{{entity.Name}}DTO in selectedDTOListHelper)
@@ -98,7 +98,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 dbSet.RemoveRange({{entity.Name.FirstCharToLower()}}List);
 
-                await _context.SaveChangesAsync();
+                await _deps.Context.SaveChangesAsync();
             });
         }
 """;

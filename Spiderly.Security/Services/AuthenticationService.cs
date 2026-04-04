@@ -14,7 +14,7 @@ namespace Spiderly.Security.Services
     /// Provides services for accessing authentication-related information from the current HTTP context,
     /// such as the current user's ID, email, access token, and IP address.
     /// </summary>
-    public class AuthenticationService : BusinessServiceBase
+    public class AuthenticationService : ServiceBase
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IApplicationDbContext _context;

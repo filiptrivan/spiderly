@@ -11,11 +11,9 @@ using System.Text;
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// Generates the `BusinessServiceGenerated` class (`BusinessService.generated.cs`)
-    /// within the `{YourBaseNamespace}.Services` namespace. This class provides the
-    /// core business logic for your entities, including CRUD operations, data retrieval,
-    /// Excel export, and basic authorization checks. It serves as a base class for
-    /// your custom business services.
+    /// Generates per-entity service classes (`{Entity}EntityService.generated.cs`),
+    /// the `EntityServiceDependencies` class, and the `EntityServiceRegistration` class
+    /// within the `{YourBaseNamespace}.Services` namespace.
     /// </summary>
     [Generator]
     public class ServicesGenerator : IIncrementalGenerator
@@ -24,7 +22,7 @@ namespace Spiderly.SourceGenerators.Net
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
+                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.Services },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
             context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
@@ -46,116 +44,245 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
+            List<SpiderlyClass> userEntityServices = currentProjectClasses
+                .Where(x => x.Namespace.EndsWith(".Services"))
+                .Where(x => x.BaseType != null && x.BaseType.EndsWith("EntityServiceGenerated"))
+                .ToList();
+
+            if (currentProjectEntities.Count == 0)
+                return;
+
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
-            bool shouldGenerateCloudinaryStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasCloudinaryPublicIdAttribute()));
-            bool shouldGenerateS3PublicStorageService = currentProjectEntities.Any(x => x.Properties.Any(x => x.HasS3PublicUrlAttribute()));
+            // Generate EntityServiceDependencies
+            context.AddSource("EntityServiceDependencies.generated", SourceText.From(
+                GetEntityServiceDependencies(basePartOfNamespace), Encoding.UTF8));
 
-            string result = $$"""
-{{GetUsings(basePartOfNamespace)}}
+            // Generate one service file per entity
+            foreach (SpiderlyClass entity in currentProjectEntities)
+            {
+                string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace);
+                context.AddSource($"{entity.Name}EntityService.generated", SourceText.From(entityServiceCode, Encoding.UTF8));
+            }
+
+            // Generate DI registration
+            context.AddSource("EntityServiceRegistration.generated", SourceText.From(
+                GetEntityServiceRegistration(currentProjectEntities, userEntityServices, basePartOfNamespace), Encoding.UTF8));
+        }
+
+        #region EntityServiceDependencies
+
+        private static string GetEntityServiceDependencies(string basePartOfNamespace)
+        {
+            return $$"""
+using Microsoft.Extensions.Localization;
+using Spiderly.Security.Services;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using {{basePartOfNamespace}}.Services;
 
 namespace {{basePartOfNamespace}}.Services
 {
-    public class BusinessServiceGenerated : BusinessServiceBase
+    /// <summary>
+    /// Bundles framework-level dependencies shared by all entity services.
+    /// Add custom dependencies to your entity service constructor instead of modifying this class.
+    /// </summary>
+    public class EntityServiceDependencies
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ExcelService _excelService;
-        private readonly AuthorizationService _authorizationService;
-        private readonly IFileManager _fileManager;
-        private readonly IStringLocalizer _localizer;
-        {{(shouldGenerateCloudinaryStorageService ? "private readonly CloudinaryStorageService _cloudinaryStorageService;" : "")}}
-        {{(shouldGenerateS3PublicStorageService ? "private readonly S3PublicStorageService _s3PublicStorageService;" : "")}}
+        public IApplicationDbContext Context { get; }
+        public ExcelService ExcelService { get; }
+        public AuthorizationService AuthorizationService { get; }
+        public IFileManager FileManager { get; }
+        public IStringLocalizer Localizer { get; }
+        public IServiceProvider ServiceProvider { get; }
 
-        public BusinessServiceGenerated(
+        public EntityServiceDependencies(
             IApplicationDbContext context,
             ExcelService excelService,
             AuthorizationService authorizationService,
             IFileManager fileManager,
-            IStringLocalizer localizer
-            {{(shouldGenerateCloudinaryStorageService ? ", CloudinaryStorageService cloudinaryStorageService" : "")}}
-            {{(shouldGenerateS3PublicStorageService ? ", S3PublicStorageService s3PublicStorageService" : "")}}
-        )
-            : base(context)
+            IStringLocalizer localizer,
+            IServiceProvider serviceProvider)
         {
-            _context = context;
-            _excelService = excelService;
-            _authorizationService = authorizationService;
-            _fileManager = fileManager;
-            _localizer = localizer;
-            {{(shouldGenerateCloudinaryStorageService ? "_cloudinaryStorageService = cloudinaryStorageService;" : "")}}
-            {{(shouldGenerateS3PublicStorageService ? "_s3PublicStorageService = s3PublicStorageService;" : "")}}
+            Context = context;
+            ExcelService = excelService;
+            AuthorizationService = authorizationService;
+            FileManager = fileManager;
+            Localizer = localizer;
+            ServiceProvider = serviceProvider;
+        }
+    }
+}
+""";
         }
 
-{{string.Join("\n\n", GetBusinessServiceMethods(currentProjectEntities, allEntities))}}
+        #endregion
+
+        #region Per-Entity Service
+
+        private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace)
+        {
+            bool entityNeedsCloudinary = entity.Properties.Any(x => x.HasCloudinaryPublicIdAttribute());
+            bool entityNeedsS3Public = entity.Properties.Any(x => x.HasS3PublicUrlAttribute());
+
+            string storageFields = GetStorageFields(entityNeedsCloudinary, entityNeedsS3Public);
+            string storageInit = GetStorageInit(entityNeedsCloudinary, entityNeedsS3Public);
+
+            string methods = GetEntityServiceMethods(entity, allEntities);
+
+            return $$"""
+{{GetUsings(basePartOfNamespace)}}
+
+namespace {{basePartOfNamespace}}.Services
+{
+    /// <summary>
+    /// Generated service for the {{entity.Name}} entity. Override lifecycle hooks
+    /// by creating a <c>{{entity.Name}}EntityService</c> class that inherits from this class.
+    /// </summary>
+    public class {{entity.Name}}EntityServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+{{storageFields}}
+
+        public {{entity.Name}}EntityServiceGenerated(EntityServiceDependencies deps) : base(deps.Context)
+        {
+            _deps = deps;
+{{storageInit}}
+        }
+
+{{methods}}
 
     }
 }
 """;
-
-            context.AddSource($"BusinessService.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        private static List<string> GetBusinessServiceMethods(List<SpiderlyClass> entityClasses, List<SpiderlyClass> allEntityClasses)
+        private static string GetStorageFields(bool needsCloudinary, bool needsS3Public)
         {
-            List<string> result = new();
+            StringBuilder sb = new();
+            if (needsCloudinary)
+                sb.AppendLine("        private readonly CloudinaryStorageService _cloudinaryStorageService;");
+            if (needsS3Public)
+                sb.AppendLine("        private readonly S3PublicStorageService _s3PublicStorageService;");
+            return sb.ToString();
+        }
 
-            foreach (SpiderlyClass entity in entityClasses)
+        private static string GetStorageInit(bool needsCloudinary, bool needsS3Public)
+        {
+            StringBuilder sb = new();
+            if (needsCloudinary)
+                sb.AppendLine("            _cloudinaryStorageService = deps.ServiceProvider.GetRequiredService<CloudinaryStorageService>();");
+            if (needsS3Public)
+                sb.AppendLine("            _s3PublicStorageService = deps.ServiceProvider.GetRequiredService<S3PublicStorageService>();");
+            return sb.ToString();
+        }
+
+        private static string GetEntityServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        {
+            if (entity.IsManyToMany())
             {
-                if (entity.IsManyToMany())
-                {
-                    result.Add($$"""
-        #region {{entity.Name}} - M2M
+                string m2mData = ServiceM2MGenerator.GetManyToManyData(entity, allEntities);
+                if (m2mData == null)
+                    return "";
 
-{{ServiceM2MGenerator.GetManyToManyData(entity, allEntityClasses)}}
+                return $$"""
+        #region M2M
+
+{{m2mData}}
 
         #endregion
-""");
-                }
-                else
-                {
-                    result.Add($$"""
-        #region {{entity.Name}}
+""";
+            }
 
+            return $$"""
         #region Read
 
-{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntityClasses)}}
+{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntities)}}
 
         #endregion
 
         #region Save
 
-{{ServiceSaveGenerator.GetSavingData(entity, allEntityClasses)}}
+{{ServiceSaveGenerator.GetSavingData(entity, allEntities)}}
 
-{{string.Join("\n\n", ServiceSaveGenerator.GetUploadBlobMethods(entity, allEntityClasses))}}
+{{string.Join("\n\n", ServiceSaveGenerator.GetUploadBlobMethods(entity, allEntities))}}
 
-{{string.Join("\n\n", ServiceSaveGenerator.GetUploadEditorImageMethods(entity, allEntityClasses))}}
+{{string.Join("\n\n", ServiceSaveGenerator.GetUploadEditorImageMethods(entity, allEntities))}}
 
         #endregion
 
         #region Delete
 
-{{string.Join("\n\n", ServiceDeleteGenerator.GetDeletingData(entity, allEntityClasses))}}
+{{string.Join("\n\n", ServiceDeleteGenerator.GetDeletingData(entity, allEntities))}}
 
         #endregion
 
         #region One To Many
 
-{{string.Join("\n\n", ServiceOneToManyGenerator.GetOneToManyMethods(entity, allEntityClasses))}}
+{{string.Join("\n\n", ServiceOneToManyGenerator.GetOneToManyMethods(entity, allEntities))}}
+
+        #endregion
+""";
+        }
 
         #endregion
 
-        #endregion
-""");
+        #region DI Registration
+
+        private static string GetEntityServiceRegistration(List<SpiderlyClass> entities, List<SpiderlyClass> userEntityServices, string basePartOfNamespace)
+        {
+            StringBuilder registrations = new();
+
+            registrations.AppendLine("            services.AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));");
+            registrations.AppendLine("            services.AddTransient<EntityServiceDependencies>();");
+            registrations.AppendLine();
+
+            foreach (SpiderlyClass entity in entities)
+            {
+                string generatedTypeName = $"{entity.Name}EntityServiceGenerated";
+                string userTypeName = $"{entity.Name}EntityService";
+
+                bool hasUserOverride = userEntityServices.Any(x => x.Name == userTypeName);
+
+                if (hasUserOverride)
+                {
+                    registrations.AppendLine($"            services.AddTransient<{userTypeName}>();");
+                    registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>(sp => sp.GetRequiredService<{userTypeName}>());");
+                }
+                else
+                {
+                    registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>();");
                 }
             }
 
-            return result;
+            return $$"""
+using Microsoft.Extensions.DependencyInjection;
+using Spiderly.Shared.Services;
+
+namespace {{basePartOfNamespace}}.Services
+{
+    /// <summary>
+    /// Registers all entity services in the DI container.
+    /// Call <c>services.AddEntityServices()</c> in your startup configuration.
+    /// </summary>
+    public static class EntityServiceRegistration
+    {
+        public static IServiceCollection AddEntityServices(this IServiceCollection services)
+        {
+{{registrations}}
+            return services;
         }
+    }
+}
+""";
+        }
+
+        #endregion
 
         #region Helpers
 
-        private static string GetUsings(string basePartOfTheNamespace)
+        internal static string GetUsings(string basePartOfTheNamespace)
         {
             return $$"""
 using {{basePartOfTheNamespace}}.ValidationRules;
@@ -166,6 +293,7 @@ using {{basePartOfTheNamespace}}.Enums;
 using {{basePartOfTheNamespace}}.ExcelProperties;
 using {{basePartOfTheNamespace}}.Filtering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using System.Data;
 using FluentValidation;
@@ -190,7 +318,7 @@ using Microsoft.AspNetCore.Http;
         internal static string GetAuthorizeEntityMethodCall(string entityName, CrudCodes crudCode, string parametersBody)
         {
             string methodName = Helpers.GetAuthorizeEntityMethodName(entityName, crudCode);
-            return $"await _authorizationService.{methodName}({parametersBody});";
+            return $"await _deps.AuthorizationService.{methodName}({parametersBody});";
         }
 
         internal static string GetFileManagerServiceField(SpiderlyProperty property)
@@ -201,7 +329,7 @@ using Microsoft.AspNetCore.Http;
             if (property.HasS3PublicUrlAttribute())
                 return "_s3PublicStorageService";
 
-            return "_fileManager";
+            return "_deps.FileManager";
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Resources;
@@ -11,11 +11,11 @@ using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Services
 {
-    public class BusinessServiceBase
+    public class ServiceBase
     {
         private readonly IApplicationDbContext _context;
 
-        public BusinessServiceBase(IApplicationDbContext context)
+        public ServiceBase(IApplicationDbContext context)
         {
             _context = context;
         }

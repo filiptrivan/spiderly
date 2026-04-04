@@ -11,7 +11,7 @@ namespace Spiderly.Security.Services
     /// Provides authorization services, allowing to check if a user has specific permissions
     /// based on their roles and the permissions associated with those roles.
     /// </summary>
-    public class AuthorizationServiceBase : BusinessServiceBase
+    public class AuthorizationServiceBase : ServiceBase
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;

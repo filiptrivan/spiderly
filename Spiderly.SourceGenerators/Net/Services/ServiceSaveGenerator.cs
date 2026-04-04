@@ -28,7 +28,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>Saved {{entity.Name}}DTO with blob properties populated</returns>
         public async virtual Task<{{entity.Name}}DTO> Save{{entity.Name}}AndReturnDTO({{entity.Name}}DTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var poco = await Save{{entity.Name}}(saveDTO, authorizeUpdate, authorizeInsert);
 
@@ -54,10 +54,10 @@ namespace Spiderly.SourceGenerators.Net
             validationRules.ValidateAndThrow(dto);
 
             {{entity.Name}} poco = null;
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}IsMapped(dto);
-                DbSet<{{entity.Name}}> dbSet = _context.DbSet<{{entity.Name}}>();
+                DbSet<{{entity.Name}}> dbSet = _deps.Context.DbSet<{{entity.Name}}>();
 
                 if (dto.Id > 0)
                 {
@@ -85,7 +85,7 @@ namespace Spiderly.SourceGenerators.Net
 
 {{string.Join("\n", GetManyToOneInstancesForSave(entity, entities))}}
 
-                await _context.SaveChangesAsync();
+                await _deps.Context.SaveChangesAsync();
 
 {{string.Join("\n", GetNonActiveDeleteBlobMethods(entity))}}
 
@@ -138,7 +138,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             new {{entity.Name}}SaveBodyDTOValidationRules().ValidateAndThrow(saveBodyDTO);
 
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO);
 
@@ -187,7 +187,7 @@ namespace Spiderly.SourceGenerators.Net
 
         #region Ordered One To Many
 
-        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity, List<SpiderlyClass> entities, string servicePrefix = "")
         {
             List<string> result = new();
 
@@ -196,7 +196,7 @@ namespace Spiderly.SourceGenerators.Net
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
-                var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
+                var savedOrdered{{property.Name}}MainUIFormDTO = await {{servicePrefix}}UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
 """);
             }
 
@@ -241,10 +241,11 @@ namespace Spiderly.SourceGenerators.Net
 
 {{GetOrderedOneToManyRequiredValidation(property, entity)}}
 
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
-                await _context.DbSet<{{extractedEntity.Name}}>().Where(x => x.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}.Id == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
+                await _deps.Context.DbSet<{{extractedEntity.Name}}>().Where(x => x.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}.Id == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
 
+                var childEntityService = _deps.ServiceProvider.GetRequiredService<{{extractedEntity.Name}}EntityServiceGenerated>();
                 var savedOrderedItemsDTO = new List<{{extractedEntity.Name}}MainUIFormDTO>();
 
                 for (int i = 0; i < orderedItemsDTO.Count; i++)
@@ -255,16 +256,16 @@ namespace Spiderly.SourceGenerators.Net
                     DTO.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
                     DTO.OrderNumber = i + 1;
 
-                    var savedDTO = await Save{{extractedEntity.Name}}AndReturnDTO(DTO, false, false);
+                    var savedDTO = await childEntityService.Save{{extractedEntity.Name}}AndReturnDTO(DTO, false, false);
 
-{{string.Join("\n", GetOrderedOneToManyUpdateVariables(extractedEntity, allEntities))}}
-{{string.Join("\n", GetComplexManyToManyListUpdateCalls(extractedEntity, "saveBodyDTO"))}}
+{{string.Join("\n", GetOrderedOneToManyUpdateVariables(extractedEntity, allEntities, "childEntityService."))}}
+{{string.Join("\n", GetComplexManyToManyListUpdateCalls(extractedEntity, "saveBodyDTO", "childEntityService."))}}
 
                     savedOrderedItemsDTO.Add(new {{extractedEntity.Name}}MainUIFormDTO
                     {
                         {{extractedEntity.Name}}DTO = savedDTO,
 {{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
-{{string.Join("\n", GetComplexManyToManyListResultProperties(extractedEntity))}}
+{{string.Join("\n", GetComplexManyToManyListResultProperties(extractedEntity, "childEntityService."))}}
                     });
                 }
 
@@ -331,8 +332,9 @@ namespace Spiderly.SourceGenerators.Net
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
-                var all{{property.Name}}Query = await GetAll{{property.Name}}QueryFor{{entity.Name}}(_context.DbSet<{{extractedEntity.Name}}>());
-                var {{property.Name.FirstCharToLower()}}PaginatedResult = await GetPaginated{{extractedEntity.Name}}List(saveBodyDTO.{{property.Name}}TableFilter, all{{property.Name}}Query);
+                var all{{property.Name}}Query = await GetAll{{property.Name}}QueryFor{{entity.Name}}(_deps.Context.DbSet<{{extractedEntity.Name}}>());
+                var {{property.Name.FirstCharToLower()}}EntityService = _deps.ServiceProvider.GetRequiredService<{{extractedEntity.Name}}EntityServiceGenerated>();
+                var {{property.Name.FirstCharToLower()}}PaginatedResult = await {{property.Name.FirstCharToLower()}}EntityService.GetPaginated{{extractedEntity.Name}}List(saveBodyDTO.{{property.Name}}TableFilter, all{{property.Name}}Query);
                 await Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}({{property.Name.FirstCharToLower()}}PaginatedResult.Query, savedDTO.Id, saveBodyDTO);
 """);
 
@@ -368,7 +370,7 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string saveBodyDTOVariable = null)
+        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string saveBodyDTOVariable = null, string servicePrefix = "")
         {
             List<string> result = new();
 
@@ -377,21 +379,21 @@ namespace Spiderly.SourceGenerators.Net
                 string saveBodyAccess = saveBodyDTOVariable ?? "saveBodyDTO";
 
                 result.Add($$"""
-                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, {{saveBodyAccess}}.{{property.Name}});
+                await {{servicePrefix}}Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, {{saveBodyAccess}}.{{property.Name}});
 """);
             }
 
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListResultProperties(SpiderlyClass entity)
+        private static List<string> GetComplexManyToManyListResultProperties(SpiderlyClass entity, string servicePrefix = "")
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
                 result.Add($$"""
-                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(savedDTO.Id, false),
+                    {{property.Name}} = await {{servicePrefix}}Get{{property.Name}}For{{entity.Name}}(savedDTO.Id, false),
 """);
             }
 

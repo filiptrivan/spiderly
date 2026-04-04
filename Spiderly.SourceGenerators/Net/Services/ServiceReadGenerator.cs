@@ -22,7 +22,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>{{entity.Name}}MainUIFormDTO containing the entity DTO and related data</returns>
         public async virtual Task<{{entity.Name}}MainUIFormDTO> Get{{entity.Name}}MainUIFormDTO({{entityIdType}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
@@ -48,7 +48,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <example>
         /// protected override async Task OnAfterGet{{entity.Name}}MainUIFormDTO({{entity.Name}}MainUIFormDTO mainUIFormDTO)
         /// {
-        ///     mainUIFormDTO.CustomProperty = await _context.DbSet&lt;OtherEntity&gt;().Where(x => x.{{entity.Name}}Id == mainUIFormDTO.{{entity.Name}}DTO.Id).CountAsync();
+        ///     mainUIFormDTO.CustomProperty = await _deps.Context.DbSet&lt;OtherEntity&gt;().Where(x => x.{{entity.Name}}Id == mainUIFormDTO.{{entity.Name}}DTO.Id).CountAsync();
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
@@ -62,14 +62,14 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>{{entity.Name}}DTO with all blob properties populated</returns>
         public async virtual Task<{{entity.Name}}DTO> Get{{entity.Name}}DTO({{entityIdType}} id, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
                 }
 
-                var dto = await _context.DbSet<{{entity.Name}}>()
+                var dto = await _deps.Context.DbSet<{{entity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ProjectToConfig())
                     .SingleOrDefaultAsync();
@@ -91,7 +91,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>PaginatedResult containing the query and total record count</returns>
         public async virtual Task<PaginatedResult<{{entity.Name}}>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
             });
@@ -109,7 +109,7 @@ namespace Spiderly.SourceGenerators.Net
             PaginatedResult<{{entity.Name}}> paginationResult = new();
             List<{{entity.Name}}DTO> dtoList = null;
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
 
@@ -142,7 +142,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             IQueryable<{{entity.Name}}DTO> exportQuery = null;
 
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 PaginatedResult<{{entity.Name}}> paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
                 int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
@@ -153,10 +153,10 @@ namespace Spiderly.SourceGenerators.Net
             });
 
             string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new {{entity.Name}}DTO());
-            return await _excelService.FillReportTemplateAsync(
+            return await _deps.ExcelService.FillReportTemplateAsync(
                 exportQuery.AsAsyncEnumerable(),
                 excelPropertiesToExclude,
-                _localizer,
+                _deps.Localizer,
                 cancellationToken);
         }
 
@@ -168,7 +168,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{entity.Name}} entities</returns>
         public async virtual Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
@@ -190,7 +190,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of {{entity.Name}}DTO with blob properties populated</returns>
         public async virtual Task<List<{{entity.Name}}DTO>> Get{{entity.Name}}DTOList(IQueryable<{{entity.Name}}> query, bool authorize)
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var dtoList = await query
                     .AsNoTracking()
@@ -395,7 +395,7 @@ namespace Spiderly.SourceGenerators.Net
             {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id = null
         )
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {
@@ -441,7 +441,7 @@ namespace Spiderly.SourceGenerators.Net
             {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id = null
         )
         {
-            return await _context.WithTransactionAsync(async () =>
+            return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (authorize)
                 {

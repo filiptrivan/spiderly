@@ -42,7 +42,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
         public async virtual Task Delete{{entity.Name}}({{entityIdType}} id, bool authorize)
         {
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}Delete(id);
 
@@ -81,7 +81,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
         public async virtual Task Delete{{entity.Name}}List(List<{{entityIdType}}> listForDelete_{{deleteIterator}}, bool authorize)
         {
-            await _context.WithTransactionAsync(async () =>
+            await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}ListDelete(listForDelete_{{deleteIterator}});
 
@@ -114,7 +114,7 @@ namespace Spiderly.SourceGenerators.Net
                 if (parentEntity.IsManyToMany())
                 {
                     result.Add($$"""
-                await _context.DbSet<{{parentEntity.Name}}>()
+                await _deps.Context.DbSet<{{parentEntity.Name}}>()
                     .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains(x.{{property.Name}}.Id))
                     .ExecuteDeleteAsync();
 """);
@@ -124,7 +124,7 @@ namespace Spiderly.SourceGenerators.Net
                 else
                 {
                     result.Add($$"""
-                var {{parentEntity.Name.FirstCharToLower()}}ListForDeleteBecause{{property.Name}}_{{deleteIterator + 1}} = await _context.DbSet<{{parentEntity.Name}}>()
+                var {{parentEntity.Name.FirstCharToLower()}}ListForDeleteBecause{{property.Name}}_{{deleteIterator + 1}} = await _deps.Context.DbSet<{{parentEntity.Name}}>()
                     .AsNoTracking()
                     .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains(x.{{property.Name}}.Id))
                     .Select(x => x.Id)
@@ -136,7 +136,7 @@ namespace Spiderly.SourceGenerators.Net
                 result.AddRange(GetManyToOneDeleteQueries(parentEntity, allEntities, $"{parentEntity.Name.FirstCharToLower()}ListForDeleteBecause{property.Name}", deleteIterator + 1));
 
                 result.Add($$"""
-                await _context.DbSet<{{parentEntity.Name}}>()
+                await _deps.Context.DbSet<{{parentEntity.Name}}>()
                     .Where(x => {{parentEntity.Name.FirstCharToLower()}}ListForDeleteBecause{{property.Name}}_{{deleteIterator + 1}}.Contains(x.Id))
                     .ExecuteDeleteAsync();
 """);
