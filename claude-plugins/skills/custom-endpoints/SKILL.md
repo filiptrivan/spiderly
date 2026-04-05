@@ -32,8 +32,8 @@ public class OrderController : OrderBaseController
     [AuthGuard]
     public async Task UpdateOrderStatus(long orderId, byte newStatusId)
     {
-        OrderEntityServiceGenerated orderService =
-            _serviceProvider.GetRequiredService<OrderEntityServiceGenerated>();
+        OrderServiceGenerated orderService =
+            _serviceProvider.GetRequiredService<OrderServiceGenerated>();
         await orderService.UpdateOrderStatus(orderId, newStatusId);
     }
 }
@@ -118,12 +118,12 @@ public class StorefrontCatalogService
 }
 ```
 
-To add custom methods to a generated entity service, create an `{Entity}EntityService` class:
+To add custom methods to a generated entity service, create an `{Entity}Service` class:
 
 ```csharp
-public class OrderEntityService : OrderEntityServiceGenerated
+public class OrderService : OrderServiceGenerated
 {
-    public OrderEntityService(EntityServiceDependencies deps) : base(deps) { }
+    public OrderService(EntityServiceDependencies deps) : base(deps) { }
 
     public async Task UpdateOrderStatus(long orderId, byte newStatusId)
     {
@@ -198,13 +198,13 @@ UserWishlist wishlist = await _context.DbSet<UserWishlist>()
 Within an entity service, call inherited methods directly. From other services, resolve the entity service via DI:
 
 ```csharp
-// Within ProductEntityService — call inherited generated methods directly
+// Within ProductService — call inherited generated methods directly
 PaginatedResultDTO<ProductDTO> products = await GetPaginatedProductList(
     filterDTO, _deps.Context.DbSet<Product>(), authorize: false);
 
 // From a different service — resolve the entity service via DI
-ProductEntityServiceGenerated productService =
-    _deps.ServiceProvider.GetRequiredService<ProductEntityServiceGenerated>();
+ProductServiceGenerated productService =
+    _deps.ServiceProvider.GetRequiredService<ProductServiceGenerated>();
 PaginatedResultDTO<ProductDTO> products = await productService.GetPaginatedProductList(
     filterDTO, _deps.Context.DbSet<Product>(), authorize: false);
 
@@ -276,7 +276,7 @@ public static class AppServiceExtensions
 {
     public static IServiceCollection AddAppServices(this IServiceCollection services)
     {
-        // Entity services (auto-generated — registers all {Entity}EntityServiceGenerated + user overrides)
+        // Entity services (auto-generated — registers all {Entity}ServiceGenerated + user overrides)
         services.AddEntityServices();
 
         // Custom services
@@ -291,7 +291,7 @@ public static class AppServiceExtensions
 
 Then call `services.AddAppServices()` in `Startup.ConfigureServices()`. Inject into controllers via constructor — the DI container resolves all dependencies automatically.
 
-If you create an `{Entity}EntityService` that extends `{Entity}EntityServiceGenerated`, the auto-generated registration detects it and registers both the concrete type and the generated base type to resolve to your override.
+If you create an `{Entity}Service` that extends `{Entity}ServiceGenerated`, the auto-generated registration detects it and registers both the concrete type and the generated base type to resolve to your override.
 
 ## Custom DTOs
 

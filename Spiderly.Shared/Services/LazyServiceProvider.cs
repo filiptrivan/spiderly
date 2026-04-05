@@ -9,7 +9,7 @@ namespace Spiderly.Shared.Services
     /// <example>
     /// Register once in DI:
     /// <code>services.AddTransient(typeof(Lazy&lt;&gt;), typeof(LazyServiceProvider&lt;&gt;));</code>
-    /// Then inject <c>Lazy&lt;ProductEntityServiceGenerated&gt;</c> in any service constructor.
+    /// Then inject <c>Lazy&lt;ProductServiceGenerated&gt;</c> in any service constructor.
     /// </example>
     /// </summary>
     public class LazyServiceProvider<T> : Lazy<T> where T : class

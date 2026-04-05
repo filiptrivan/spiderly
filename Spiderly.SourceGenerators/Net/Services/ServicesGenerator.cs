@@ -73,11 +73,10 @@ namespace Spiderly.SourceGenerators.Net
 
         #region EntityServiceDependencies
 
-        // NOTE: We intentionally use IServiceProvider here (service locator pattern).
-        // The generator knows all dependencies at compile time, so this isn't hiding anything.
-        // It keeps EntityServiceDependencies universal across all entities, avoids per-entity deps classes,
-        // and sidesteps circular dependency issues without Lazy<T> wrappers.
-        // We can introduce breaking changes freely, so we can always refactor later if needed.
+        // NOTE: EntityServiceDependencies must be source-generated (not in Spiderly.Shared) because it
+        // references AuthorizationServiceGenerated, which is generated per project with entity-specific methods.
+        // We intentionally use IServiceProvider here (service locator) — it keeps this class universal across
+        // all entities, avoids per-entity deps classes, and sidesteps circular dependency issues without Lazy<T>.
         private static string GetEntityServiceDependencies(string basePartOfNamespace)
         {
             return $$"""

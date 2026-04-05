@@ -47,7 +47,7 @@ cd Angular && npm run lint
 
 ### Source generators
 
-14 standalone generators implement `IIncrementalGenerator` (Roslyn incremental source generation), supported by sub-generators (static helper classes). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project. `ServicesGenerator` produces per-entity service classes (`{Entity}EntityService.generated.cs`), `EntityServiceDependencies`, and `EntityServiceRegistration`.
+14 standalone generators implement `IIncrementalGenerator` (Roslyn incremental source generation), supported by sub-generators (static helper classes). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project. `ServicesGenerator` produces per-entity service classes (`{Entity}Service.generated.cs`), `EntityServiceDependencies`, and `EntityServiceRegistration`.
 
 Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
 

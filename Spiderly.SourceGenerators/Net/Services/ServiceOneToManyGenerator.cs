@@ -190,8 +190,8 @@ namespace Spiderly.SourceGenerators.Net
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"({entityIdType})filterDTO.{entityIdType.GetTableFilterAdditionalFilterPropertyName()}")}}
                 }
 
-                var {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}EntityServiceGenerated>();
-                var paginationResult = await {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService.GetPaginated{{extractedPropertyEntity.Name}}List(filterDTO, query);
+                var {{extractedPropertyEntity.Name.FirstCharToLower()}}Service = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}ServiceGenerated>();
+                var paginationResult = await {{extractedPropertyEntity.Name.FirstCharToLower()}}Service.GetPaginated{{extractedPropertyEntity.Name}}List(filterDTO, query);
 
                 lazyLoadSelectedIdsResultDTO.SelectedIds = await paginationResult.Query
                     .Select(x => x.Id)
@@ -569,9 +569,9 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => x.Id)
                     .ToListAsync();
 
-                var {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}EntityServiceGenerated>();
+                var {{extractedPropertyEntity.Name.FirstCharToLower()}}Service = _deps.ServiceProvider.GetRequiredService<{{extractedPropertyEntity.Name}}ServiceGenerated>();
                 foreach (var id in ids)
-                    mainUIFormDTOList.Add(await {{extractedPropertyEntity.Name.FirstCharToLower()}}EntityService.Get{{extractedPropertyEntity.Name}}MainUIFormDTO(id, authorize));
+                    mainUIFormDTOList.Add(await {{extractedPropertyEntity.Name.FirstCharToLower()}}Service.Get{{extractedPropertyEntity.Name}}MainUIFormDTO(id, authorize));
 
                 return mainUIFormDTOList;
             });

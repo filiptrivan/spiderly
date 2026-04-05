@@ -94,6 +94,12 @@ namespace {{basePartOfNamespace}}.Controllers
             context.AddSource($"BaseControllers.generated", SourceText.From(result, Encoding.UTF8));
         }
 
+        // NOTE: We intentionally use IServiceProvider here (service locator pattern).
+        // Each controller resolves its entity services via GetRequiredService<T>() at runtime.
+        // This keeps every generated base controller with the same simple constructor signature,
+        // avoids computing per-controller service dependency graphs in the generator,
+        // and means user-written controllers don't break when entity relationships change.
+        // We can introduce breaking changes freely, so we can always refactor later if needed.
         public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config)
         {
             string routePrefix = config.Api.RoutePrefix;
@@ -150,7 +156,7 @@ namespace {{basePartOfNamespace}}.Controllers
                     continue;
 
                 string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
-                string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}EntityServiceGenerated>()";
+                string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
 
                 result.Add($$"""
         #region {{controllerEntity.Name}}
@@ -291,7 +297,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter, {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
                 limit,
                 filter,
                 _context.DbSet<{{manyToOneEntity.Name}}>(),
@@ -320,7 +326,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}({{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Get{{property.Name}}DropdownListFor{{entity.Name}}(
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}DropdownListFor{{entity.Name}}(
                 _context.DbSet<{{manyToOneEntity.Name}}>(),
                 {{Helpers.GetShouldAuthorizeEntityString(entity)}},
                 {{entity.Name.FirstCharToLower()}}Id
@@ -370,7 +376,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
         {
-            return await _serviceProvider.GetRequiredService<{{extractedEntity.Name}}EntityServiceGenerated>().GetPaginated{{extractedEntity.Name}}List(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), false);
+            return await _serviceProvider.GetRequiredService<{{extractedEntity.Name}}ServiceGenerated>().GetPaginated{{extractedEntity.Name}}List(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), false);
         }
 
         /// <summary>
@@ -380,7 +386,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
         {
-            byte[] fileContent = await _serviceProvider.GetRequiredService<{{extractedEntity.Name}}EntityServiceGenerated>().Export{{extractedEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), false);
+            byte[] fileContent = await _serviceProvider.GetRequiredService<{{extractedEntity.Name}}ServiceGenerated>().Export{{extractedEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), false);
             return File(
                 fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
@@ -395,7 +401,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<LazyLoadSelectedIdsResultDTO<{{extractedEntityIdType}}>> LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """;
         }
@@ -412,7 +418,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().GetPaginated{{property.Name}}ListFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetPaginated{{property.Name}}ListFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 
         /// <summary>
@@ -422,7 +428,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
         {
-            byte[] fileContent = await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            byte[] fileContent = await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
             return File(
                 fileContent,
                 Spiderly.Shared.SettingsProvider.Current.ExcelContentType,
@@ -444,7 +450,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<List<NamebookDTO<{{extractedEntity.GetIdType(entities)}}>>> Get{{property.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false);
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false);
         }
 """;
         }
@@ -469,7 +475,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().GetOrdered{{property.Name}}For{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetOrdered{{property.Name}}For{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """);
             }
@@ -497,7 +503,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<List<{{junctionEntity.Name}}DTO>> GetDefault{{property.Name}}For{{entity.Name}}()
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().GetDefault{{property.Name}}For{{entity.Name}}();
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetDefault{{property.Name}}For{{entity.Name}}();
         }
 """);
             }
@@ -524,7 +530,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task Delete{{entity.Name}}({{entityIdType}} id)
         {
-            await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Delete{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 
         /// <summary>
@@ -534,7 +540,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task Delete{{entity.Name}}List([FromBody] List<{{entityIdType}}> ids)
         {
-            await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Delete{{entity.Name}}List(ids, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}List(ids, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """;
         }
@@ -556,7 +562,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<{{entity.Name}}MainUIFormDTO> Save{{entity.Name}}({{entity.Name}}SaveBodyDTO saveBodyDTO)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Save{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Save{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """;
         }
@@ -578,7 +584,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}([FromForm] IFormFile file) // FT: It doesn't work without interface
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Upload{{property.Name}}For{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}}); // TODO: Make authorization in business service with override
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}For{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}}); // TODO: Make authorization in business service with override
         }
 """
 );
@@ -603,7 +609,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [AuthGuard]
         public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
         {
-            return await _serviceProvider.GetRequiredService<{{entity.Name}}EntityServiceGenerated>().Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
+            return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
 """);
             }

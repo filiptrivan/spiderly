@@ -10,12 +10,12 @@ description: Override Spiderly lifecycle hooks to customize generated CRUD behav
 ```
 ServiceBase (Spiderly.Shared — concrete base class)
         ↓
-{Entity}EntityServiceGenerated (generated — per-entity virtual hooks)
+{Entity}ServiceGenerated (generated — per-entity virtual hooks)
         ↓
-{Entity}EntityService (your code — override hooks here)
+{Entity}Service (your code — override hooks here)
 ```
 
-Each entity gets its own generated service class. All generated methods are `public virtual` or `protected virtual`. Override them by creating an `{Entity}EntityService` class that inherits from `{Entity}EntityServiceGenerated`. DI registration is fully auto-generated — the source generator detects your override class and registers it automatically.
+Each entity gets its own generated service class. All generated methods are `public virtual` or `protected virtual`. Override them by creating an `{Entity}Service` class that inherits from `{Entity}ServiceGenerated`. DI registration is fully auto-generated — the source generator detects your override class and registers it automatically.
 
 The generated service receives `EntityServiceDependencies` (bundles `IApplicationDbContext`, `ExcelService`, `AuthorizationService`, `IFileManager`, `IStringLocalizer`, `IServiceProvider`). Access them via `_deps`.
 
@@ -78,7 +78,7 @@ protected virtual async Task OnAfterGet{Entity}MainUIFormDTO(
 
 ### Paginated List (override the whole method)
 
-Override in your `{Entity}EntityService`:
+Override in your `{Entity}Service`:
 
 ```csharp
 public override async Task<PaginatedResultDTO<{Entity}DTO>> GetPaginated{Entity}List(
@@ -172,12 +172,12 @@ var products = await _context.DbSet<Product>()
 ## Real-World Example
 
 ```csharp
-public class ProductEntityService : ProductEntityServiceGenerated
+public class ProductService : ProductServiceGenerated
 {
     private readonly MeilisearchService _meilisearchService;
     private readonly StorefrontRevalidationService _storefrontRevalidationService;
 
-    public ProductEntityService(
+    public ProductService(
         EntityServiceDependencies deps,
         MeilisearchService meilisearchService,
         StorefrontRevalidationService storefrontRevalidationService
@@ -209,8 +209,8 @@ public class ProductEntityService : ProductEntityServiceGenerated
         ProductMainUIFormDTO mainUIFormDTO)
     {
         // Cross-entity service call
-        ProductVariantEntityServiceGenerated variantEntityService =
-            _deps.ServiceProvider.GetRequiredService<ProductVariantEntityServiceGenerated>();
+        ProductVariantServiceGenerated variantService =
+            _deps.ServiceProvider.GetRequiredService<ProductVariantServiceGenerated>();
 
         // Side effects: indexing, cache invalidation
         await _meilisearchService.IndexProduct(mainUIFormDTO.ProductDTO.Id);
