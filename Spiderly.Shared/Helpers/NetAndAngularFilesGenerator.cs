@@ -393,7 +393,7 @@ namespace Spiderly.Shared.Helpers
                                 {
                                     new SpiderlyFile { Name = $"AuthorizationService.cs", Data = GetAuthorizationServiceCsData(appName) },
                                     new SpiderlyFile { Name = $"SecurityService.cs", Data = GetSecurityServiceCsData(appName) },
-                                    new SpiderlyFile { Name = $"BusinessService.cs", Data = GetBusinessServiceCsData(appName) },
+                                    new SpiderlyFile { Name = $"NotificationService.cs", Data = GetNotificationServiceCsData(appName) },
                                 }
                             },
                         },
@@ -2130,37 +2130,38 @@ namespace {{appName}}.WebAPI.Controllers
     [Route("/api/[controller]/[action]")]
     public class NotificationController : NotificationBaseController
     {
-        private readonly BusinessService _businessService;
+        private readonly NotificationService _notificationService;
 
         public NotificationController(
             IApplicationDbContext context,
-            BusinessService businessService,
+            IServiceProvider serviceProvider,
+            NotificationService notificationService,
             IStringLocalizer localizer
         )
-            : base(context, businessService, localizer)
+            : base(context, serviceProvider, localizer)
         {
-            _businessService = businessService;
+            _notificationService = notificationService;
         }
 
         [HttpDelete]
         [AuthGuard]
         public async Task DeleteNotificationForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _businessService.DeleteNotificationForCurrentUser(notificationId, notificationVersion);
+            await _notificationService.DeleteNotificationForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
         [AuthGuard]
         public async Task MarkNotificationAsReadForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _businessService.MarkNotificationAsReadForCurrentUser(notificationId, notificationVersion);
+            await _notificationService.MarkNotificationAsReadForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
         [AuthGuard]
         public async Task MarkNotificationAsUnreadForCurrentUser(long notificationId, int notificationVersion)
         {
-            await _businessService.MarkNotificationAsUnreadForCurrentUser(notificationId, notificationVersion);
+            await _notificationService.MarkNotificationAsUnreadForCurrentUser(notificationId, notificationVersion);
         }
 
         [HttpGet]
@@ -2169,14 +2170,14 @@ namespace {{appName}}.WebAPI.Controllers
         [UIDoNotGenerate]
         public async Task<int> GetUnreadNotificationsCountForCurrentUser()
         {
-            return await _businessService.GetUnreadNotificationsCountForCurrentUser();
+            return await _notificationService.GetUnreadNotificationsCountForCurrentUser();
         }
 
         [HttpPost]
         [AuthGuard]
         public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
         {
-            return await _businessService.GetNotificationsForCurrentUser(filterDTO);
+            return await _notificationService.GetNotificationsForCurrentUser(filterDTO);
         }
 
     }
@@ -2212,7 +2213,6 @@ namespace {{appName}}.WebAPI.Controllers
         private readonly ILogger<SecurityController> _logger;
         private readonly SecurityService<User> _securityService;
         private readonly IApplicationDbContext _context;
-        private readonly BusinessService _businessService;
 
         public SecurityController(
             ILogger<SecurityController> logger,
@@ -2220,15 +2220,13 @@ namespace {{appName}}.WebAPI.Controllers
             IJwtAuthManager jwtAuthManagerService,
             IApplicationDbContext context,
             AuthenticationService authenticationService,
-            AuthorizationService authorizationService,
-            BusinessService businessService
+            AuthorizationService authorizationService
         )
             : base(securityService, jwtAuthManagerService, context, authenticationService, authorizationService)
         {
             _logger = logger;
             _securityService = securityService;
             _context = context;
-            _businessService = businessService;
         }
 
     }
@@ -2257,18 +2255,19 @@ namespace {{appName}}.WebAPI.Controllers
     [Route("/api/[controller]/[action]")]
     public class UserController : UserBaseController
     {
-        private readonly BusinessService _businessService;
+        private readonly UserEntityServiceGenerated _userEntityService;
         private readonly AuthenticationService _authenticationService;
 
         public UserController(
             IApplicationDbContext context,
-            BusinessService businessService,
+            IServiceProvider serviceProvider,
+            UserEntityServiceGenerated userEntityService,
             AuthenticationService authenticationService,
             IStringLocalizer localizer
         )
-            : base(context, businessService, localizer)
+            : base(context, serviceProvider, localizer)
         {
-            _businessService = businessService;
+            _userEntityService = userEntityService;
             _authenticationService = authenticationService;
         }
 
@@ -2278,7 +2277,7 @@ namespace {{appName}}.WebAPI.Controllers
         public async Task<UserDTO> GetCurrentUser()
         {
             long userId = _authenticationService.GetCurrentUserId();
-            return await _businessService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
+            return await _userEntityService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
         }
 
     }
@@ -2836,8 +2835,8 @@ namespace {{appName}}.WebAPI.Extensions
             #region Business
 
             services.AddTransient<SecurityService<User>>();
-            services.AddTransient<{{appName}}.Business.Services.BusinessService>();
-            services.AddTransient<{{appName}}.Business.Services.BusinessServiceGenerated>();
+            services.AddEntityServices();
+            services.AddTransient<NotificationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
 
@@ -3200,43 +3199,31 @@ namespace {{appName}}.Business.Services
 """;
     }
 
-    private static string GetBusinessServiceCsData(string appName)
+    private static string GetNotificationServiceCsData(string appName)
     {
       return $$"""
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
-using {{appName}}.Business.Enums;
-using Microsoft.Extensions.Localization;
 using Spiderly.Security.Services;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Excel;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
 
 namespace {{appName}}.Business.Services
 {
-    public class BusinessService : {{appName}}.Business.Services.BusinessServiceGenerated
+    public class NotificationService : ServiceBase
     {
         private readonly IApplicationDbContext _context;
-        private readonly {{appName}}.Business.Services.AuthorizationService _authorizationService;
         private readonly AuthenticationService _authenticationService;
-        private readonly SecurityService<User> _securityService;
-        public BusinessService(
+
+        public NotificationService(
             IApplicationDbContext context,
-            ExcelService excelService,
-            {{appName}}.Business.Services.AuthorizationService authorizationService,
-            SecurityService<User> securityService,
-            AuthenticationService authenticationService,
-            IFileManager fileManager,
-            IStringLocalizer localizer
-        )
-            : base(context, excelService, authorizationService, fileManager, localizer)
+            AuthenticationService authenticationService)
+            : base(context)
         {
             _context = context;
-            _authorizationService = authorizationService;
-            _securityService = securityService;
             _authenticationService = authenticationService;
         }
 
@@ -3297,66 +3284,40 @@ namespace {{appName}}.Business.Services
         {
             long currentUserId = _authenticationService.GetCurrentUserId();
 
-            return await _context.WithTransactionAsync(async () =>
-            {
-                var notificationUsersQuery = _context.DbSet<UserNotification>()
-                    .Where(x => x.User.Id == currentUserId && x.IsMarkedAsRead == false);
-
-                int count = await notificationUsersQuery.CountAsync();
-
-                return count;
-            });
+            return await _context.DbSet<UserNotification>()
+                .Where(x => x.User.Id == currentUserId && x.IsMarkedAsRead == false)
+                .CountAsync();
         }
 
         public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
         {
-            PaginatedResultDTO<NotificationDTO> result = new();
-            long currentUserId = _authenticationService.GetCurrentUserId(); // Not doing user.Notifications, because we could have a lot of them.
+            long currentUserId = _authenticationService.GetCurrentUserId();
 
-            await _context.WithTransactionAsync(async () =>
-            {
-                var notificationUsersQuery = _context.DbSet<UserNotification>()
-                    .Where(x => x.User.Id == currentUserId)
-                    .Select(x => new
-                    {
-                        UserId = x.User.Id,
-                        NotificationId = x.Notification.Id,
-                        IsMarkedAsRead = x.IsMarkedAsRead,
-                    });
+            IQueryable<UserNotification> baseQuery = _context.DbSet<UserNotification>()
+                .Where(x => x.User.Id == currentUserId);
 
-                int count = await notificationUsersQuery.CountAsync();
+            int count = await baseQuery.CountAsync();
 
-                var notificationUsers = await notificationUsersQuery
-                    .OrderBy(x => x.NotificationId)
-                    .Skip(filterDTO.First)
-                    .Take(filterDTO.Rows)
-                    .ToListAsync();
-
-                List<NotificationDTO> notificationsDTO = new();
-
-                foreach (var item in notificationUsers)
+            List<NotificationDTO> notificationsDTO = await baseQuery
+                .OrderByDescending(x => x.Notification.CreatedAt)
+                .Skip(filterDTO.First)
+                .Take(filterDTO.Rows)
+                .Select(x => new NotificationDTO
                 {
-                    NotificationDTO notificationDTO = new();
+                    Id = x.Notification.Id,
+                    Version = x.Notification.Version,
+                    Title = x.Notification.Title,
+                    Description = x.Notification.Description,
+                    CreatedAt = x.Notification.CreatedAt,
+                    IsMarkedAsRead = x.IsMarkedAsRead,
+                })
+                .ToListAsync();
 
-                    Notification notification = await GetInstanceAsync<Notification, long>(item.NotificationId, null);
-                    notificationDTO.Id = notification.Id;
-                    notificationDTO.Version = notification.Version;
-                    notificationDTO.Title = notification.Title;
-                    notificationDTO.Description = notification.Description;
-                    notificationDTO.CreatedAt = notification.CreatedAt;
-
-                    notificationDTO.IsMarkedAsRead = item.IsMarkedAsRead;
-
-                    notificationsDTO.Add(notificationDTO);
-                }
-
-                notificationsDTO = notificationsDTO.OrderByDescending(x => x.CreatedAt).ToList();
-
-                result.Data = notificationsDTO;
-                result.TotalRecords = count;
-            });
-
-            return result;
+            return new PaginatedResultDTO<NotificationDTO>
+            {
+                Data = notificationsDTO,
+                TotalRecords = count,
+            };
         }
 
         #endregion
