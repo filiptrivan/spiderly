@@ -1,10 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Spiderly.Shared.Resources;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Exceptions
 {
@@ -12,10 +6,8 @@ namespace Spiderly.Shared.Exceptions
     {
         public int StatusCode { get; set; } = StatusCodes.Status400BadRequest;
 
-        // Constructor
-        public ExpiredVerificationException() : base(SharedTerms.ExpiredVerificationCodeException) { }
+        public ExpiredVerificationException() : base("Your verification code has expired. Please request a new code to continue.") { }
 
-        // Constructor with message
         public ExpiredVerificationException(string message) : base(message) { }
     }
 }

@@ -75,7 +75,7 @@ namespace Spiderly.SourceGenerators.Net
                     .SingleOrDefaultAsync();
 
                 if (dto == null)
-                    throw new BusinessException(SharedTerms.EntityDoesNotExistInDatabase);
+                    throw new BusinessException(_deps.Localizer["EntityDoesNotExistInDatabase"]);
 
 {{GetPopulateDTOWithBlobPartsForDTO(entity.Properties)}}
 

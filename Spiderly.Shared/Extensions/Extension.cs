@@ -1,11 +1,10 @@
-﻿using Spiderly.Shared.Resources;
+using Microsoft.Extensions.Localization;
+using Spiderly.Shared.Localization;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Resources;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -32,12 +31,15 @@ namespace Spiderly.Shared.Extensions
                 _ => string.Concat(input[0].ToString().ToLower(), input.AsSpan(1))
             };
 
-        public static string ToCommaSeparatedString<T>(this List<T> input)
+        public static string ToCommaSeparatedString<T>(this List<T> input, IStringLocalizer localizer = null)
         {
             List<string> stringList = input.Select(item => item?.ToString() ?? string.Empty).ToList();
 
             if (stringList.Count > 1)
-                return $"{string.Join(", ", stringList.Take(stringList.Count - 1))} {SharedTerms.And.FirstCharToLower()} {stringList.Last()}"; // TODO FT: Add to the resources
+            {
+                string andWord = localizer != null ? localizer.Translate("And").FirstCharToLower() : "and";
+                return $"{string.Join(", ", stringList.Take(stringList.Count - 1))} {andWord} {stringList.Last()}";
+            }
             else
                 return stringList.FirstOrDefault();
         }
@@ -76,16 +78,6 @@ namespace Spiderly.Shared.Extensions
                !type.Namespace.StartsWith("System") &&
                !type.Name.StartsWith("Dictionary") &&
                !type.Name.StartsWith("List");
-        }
-
-        #endregion
-
-        #region ResourceManager
-
-        public static string GetTranslation(this ResourceManager manager, string key)
-        {
-            string result = manager.GetString(key, CultureInfo.CurrentCulture);
-            return string.IsNullOrEmpty(result) ? null : result;
         }
 
         #endregion

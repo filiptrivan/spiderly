@@ -11,7 +11,7 @@ using System.Text;
 namespace Spiderly.SourceGenerators.Net
 {
     /// <summary>
-    /// Generates per-entity service classes (`{Entity}EntityService.generated.cs`),
+    /// Generates per-entity service classes (`{Entity}Service.generated.cs`),
     /// the `EntityServiceDependencies` class, and the `EntityServiceRegistration` class
     /// within the `{YourBaseNamespace}.Services` namespace.
     /// </summary>
@@ -46,7 +46,7 @@ namespace Spiderly.SourceGenerators.Net
 
             List<SpiderlyClass> userEntityServices = currentProjectClasses
                 .Where(x => x.Namespace.EndsWith(".Services"))
-                .Where(x => x.BaseType != null && x.BaseType.EndsWith("EntityServiceGenerated"))
+                .Where(x => x.BaseType != null && x.BaseType.EndsWith("ServiceGenerated"))
                 .ToList();
 
             if (currentProjectEntities.Count == 0)
@@ -63,7 +63,7 @@ namespace Spiderly.SourceGenerators.Net
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
                 string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace);
-                context.AddSource($"{entity.Name}EntityService.generated", SourceText.From(entityServiceCode, Encoding.UTF8));
+                context.AddSource($"{entity.Name}Service.generated", SourceText.From(entityServiceCode, Encoding.UTF8));
             }
 
             // Generate DI registration
@@ -73,6 +73,11 @@ namespace Spiderly.SourceGenerators.Net
 
         #region EntityServiceDependencies
 
+        // NOTE: We intentionally use IServiceProvider here (service locator pattern).
+        // The generator knows all dependencies at compile time, so this isn't hiding anything.
+        // It keeps EntityServiceDependencies universal across all entities, avoids per-entity deps classes,
+        // and sidesteps circular dependency issues without Lazy<T> wrappers.
+        // We can introduce breaking changes freely, so we can always refactor later if needed.
         private static string GetEntityServiceDependencies(string basePartOfNamespace)
         {
             return $$"""
@@ -92,7 +97,7 @@ namespace {{basePartOfNamespace}}.Services
     {
         public IApplicationDbContext Context { get; }
         public ExcelService ExcelService { get; }
-        public AuthorizationService AuthorizationService { get; }
+        public AuthorizationServiceGenerated AuthorizationService { get; }
         public IFileManager FileManager { get; }
         public IStringLocalizer Localizer { get; }
         public IServiceProvider ServiceProvider { get; }
@@ -100,7 +105,7 @@ namespace {{basePartOfNamespace}}.Services
         public EntityServiceDependencies(
             IApplicationDbContext context,
             ExcelService excelService,
-            AuthorizationService authorizationService,
+            AuthorizationServiceGenerated authorizationService,
             IFileManager fileManager,
             IStringLocalizer localizer,
             IServiceProvider serviceProvider)
@@ -138,14 +143,14 @@ namespace {{basePartOfNamespace}}.Services
 {
     /// <summary>
     /// Generated service for the {{entity.Name}} entity. Override lifecycle hooks
-    /// by creating a <c>{{entity.Name}}EntityService</c> class that inherits from this class.
+    /// by creating a <c>{{entity.Name}}Service</c> class that inherits from this class.
     /// </summary>
-    public class {{entity.Name}}EntityServiceGenerated : ServiceBase
+    public class {{entity.Name}}ServiceGenerated : ServiceBase
     {
         protected readonly EntityServiceDependencies _deps;
 {{storageFields}}
 
-        public {{entity.Name}}EntityServiceGenerated(EntityServiceDependencies deps) : base(deps.Context)
+        public {{entity.Name}}ServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
         {
             _deps = deps;
 {{storageInit}}
@@ -240,8 +245,8 @@ namespace {{basePartOfNamespace}}.Services
 
             foreach (SpiderlyClass entity in entities)
             {
-                string generatedTypeName = $"{entity.Name}EntityServiceGenerated";
-                string userTypeName = $"{entity.Name}EntityService";
+                string generatedTypeName = $"{entity.Name}ServiceGenerated";
+                string userTypeName = $"{entity.Name}Service";
 
                 bool hasUserOverride = userEntityServices.Any(x => x.Name == userTypeName);
 
@@ -306,7 +311,6 @@ using Spiderly.Shared.Classes;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Resources;
 using Spiderly.Shared.Helpers;
 using Mapster;
 using Azure.Storage.Blobs;

@@ -22,7 +22,6 @@ using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Resources;
 using System.Globalization;
 using System.Net;
 using System.IO;
@@ -430,6 +429,7 @@ namespace Spiderly.Shared.Extensions
                         context.Response.ContentType = "application/json";
 
                         Exception ex = contextFeature.Error;
+                        IStringLocalizer localizer = context.RequestServices.GetRequiredService<IStringLocalizer>();
 
                         string exceptionString = "";
 
@@ -471,13 +471,13 @@ namespace Spiderly.Shared.Extensions
                         else if (ex is DbUpdateConcurrencyException)
                         {
                             context.Response.StatusCode = StatusCodes.Status409Conflict;
-                            message = SharedTerms.ConcurrencyException;
+                            message = localizer["ConcurrencyException"];
                             logLevel = LogLevel.Warning;
                         }
                         else
                         {
                             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                            message = SharedTerms.GlobalError;
+                            message = localizer["GlobalError"];
                             logLevel = LogLevel.Error;
                             if (!env.IsDevelopment())
                             {

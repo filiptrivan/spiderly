@@ -1,8 +1,8 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Localization;
+using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Resources;
 using System.Collections.Immutable;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -20,13 +20,15 @@ namespace Spiderly.Security.Services
     {
         private readonly ITokenStorage<RefreshTokenDTO> _usersRefreshTokens;
         private readonly ITokenStorage<LoginVerificationTokenDTO> _usersLoginVerificationTokens;
+        private readonly IStringLocalizer _localizer;
 
         private static readonly Random Random = new();
 
-        public JwtAuthManagerService(ITokenStorage<RefreshTokenDTO> refreshTokenStorage, ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage)
+        public JwtAuthManagerService(ITokenStorage<RefreshTokenDTO> refreshTokenStorage, ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage, IStringLocalizer localizer)
         {
             _usersRefreshTokens = refreshTokenStorage;
             _usersLoginVerificationTokens = loginVerificationTokenStorage;
+            _localizer = localizer;
         }
 
         public virtual async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
@@ -64,7 +66,7 @@ namespace Spiderly.Security.Services
             RefreshTokenDTO existingRefreshToken = await _usersRefreshTokens.TryGetValueAsync(request.RefreshToken);
             if (existingRefreshToken == null)
             {
-                throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException);
+                throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
             }
 
             long userId = userIdFromAccessToken ?? existingRefreshToken.UserId;
@@ -86,7 +88,7 @@ namespace Spiderly.Security.Services
                 // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
                 // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
                 await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
-                throw new SecurityTokenException(SharedTerms.TwoDifferentIpAddressesRefreshException);
+                throw new SecurityTokenException(_localizer["TwoDifferentIpAddressesRefreshException"]);
             }
 
             return await GenerateAccessAndRefreshTokensAsync(userId, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
@@ -189,7 +191,7 @@ namespace Spiderly.Security.Services
         private JwtSecurityToken ValidateJwtToken(string accessToken)
         {
             if (string.IsNullOrWhiteSpace(accessToken))
-                throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
+                throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
             byte[] secretKey = Encoding.UTF8.GetBytes(Spiderly.Shared.SettingsProvider.Current.JwtKey);
 
@@ -319,7 +321,7 @@ namespace Spiderly.Security.Services
                 loginVerificationTokenDTO = null;
 
             if (loginVerificationTokenDTO == null)
-                throw new ExpiredVerificationException(); // We can not allow user to "send again" from here, because it is deleted
+                throw new ExpiredVerificationException(_localizer["ExpiredVerificationCodeException"]); // We can not allow user to "send again" from here, because it is deleted
 
             IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> emailTokens = await _usersLoginVerificationTokens.GetByIndexAsync(LoginVerificationTokenDTO.EmailIndex, loginVerificationTokenDTO.Email);
             KeyValuePair<string, LoginVerificationTokenDTO> lastVerificationToken = emailTokens
@@ -328,7 +330,7 @@ namespace Spiderly.Security.Services
 
             // TODO: Append additional info in the Log
             if (verificationTokenKey != lastVerificationToken.Key)
-                throw new ExpiredVerificationException(SharedTerms.LatestVerificationCodeException);
+                throw new ExpiredVerificationException(_localizer["LatestVerificationCodeException"]);
 
             return loginVerificationTokenDTO;
         }

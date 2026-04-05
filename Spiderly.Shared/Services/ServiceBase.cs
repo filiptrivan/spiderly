@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Resources;
 using Spiderly.Shared.Extensions;
 using Azure;
 using System.ComponentModel;
@@ -14,10 +14,12 @@ namespace Spiderly.Shared.Services
     public class ServiceBase
     {
         private readonly IApplicationDbContext _context;
+        protected readonly IStringLocalizer _localizer;
 
-        public ServiceBase(IApplicationDbContext context)
+        public ServiceBase(IApplicationDbContext context, IStringLocalizer localizer)
         {
             _context = context;
+            _localizer = localizer;
         }
 
         public virtual async Task<T> GetInstanceAsync<T, ID>(ID id, int? version)
@@ -29,10 +31,10 @@ namespace Spiderly.Shared.Services
                 T poco = await _context.DbSet<T>().FindAsync(id);
 
                 if (poco == null)
-                    throw new BusinessException(SharedTerms.EntityDoesNotExistInDatabase);
+                    throw new BusinessException(_localizer["EntityDoesNotExistInDatabase"]);
 
                 if (version.HasValue && poco.Version != version)
-                    throw new BusinessException(SharedTerms.ConcurrencyException);
+                    throw new BusinessException(_localizer["ConcurrencyException"]);
 
                 return poco;
             });
@@ -47,7 +49,7 @@ namespace Spiderly.Shared.Services
                 T poco = await _context.DbSet<T>().FindAsync(id);
 
                 if (poco == null)
-                    throw new BusinessException(SharedTerms.EntityDoesNotExistInDatabase);
+                    throw new BusinessException(_localizer["EntityDoesNotExistInDatabase"]);
 
                 return poco;
             });
@@ -62,7 +64,7 @@ namespace Spiderly.Shared.Services
                 int dbVersion = await _context.DbSet<T>().Where(x => x.Id.Equals(id)).Select(x => x.Version).SingleOrDefaultAsync();
 
                 if (dbVersion != version)
-                    throw new BusinessException(SharedTerms.ConcurrencyException);
+                    throw new BusinessException(_localizer["ConcurrencyException"]);
             });
         }
 
@@ -72,7 +74,7 @@ namespace Spiderly.Shared.Services
             {
                 int deletedRow = await _context.DbSet<T>().Where(x => x.Id.Equals(id)).ExecuteDeleteAsync();
                 if (deletedRow == 0)
-                    throw new BusinessException(SharedTerms.EntityDoesNotExistInDatabaseForDeleteRequest);
+                    throw new BusinessException(_localizer["EntityDoesNotExistInDatabaseForDeleteRequest"]);
             });
         }
 

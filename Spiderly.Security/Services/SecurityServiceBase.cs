@@ -3,6 +3,7 @@ using Google.Apis.Auth;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Localization;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
@@ -11,7 +12,6 @@ using Spiderly.Shared.DTO;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Resources;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -31,13 +31,15 @@ namespace Spiderly.Security.Services
         private readonly AuthenticationService _authenticationService;
         private readonly IEmailingService _emailingService;
         private readonly IWebHostEnvironment _environment;
+        private readonly IStringLocalizer _localizer;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
             IJwtAuthManager jwtAuthManagerService,
             IEmailingService emailingService,
             AuthenticationService authenticationService,
-            IWebHostEnvironment environment
+            IWebHostEnvironment environment,
+            IStringLocalizer localizer
         )
         {
             _context = context;
@@ -45,6 +47,7 @@ namespace Spiderly.Security.Services
             _emailingService = emailingService;
             _authenticationService = authenticationService;
             _environment = environment;
+            _localizer = localizer;
         }
 
         #region Authentication
@@ -62,7 +65,7 @@ namespace Spiderly.Security.Services
             if (user == null)
             {
                 if (SettingsProvider.Current.OnlyAdminCanAddUsers)
-                    throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+                    throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                 userEmail = loginDTO.Email;
             }
@@ -77,7 +80,7 @@ namespace Spiderly.Security.Services
             {
                 return new SendLoginVerificationEmailResultDTO
                 {
-                    Message = string.Format(SharedTerms.VerificationCodeDevelopmentMode, verificationCode),
+                    Message = _localizer["VerificationCodeDevelopmentMode", verificationCode],
                     VerificationCode = verificationCode
                 };
             }
@@ -105,7 +108,7 @@ namespace Spiderly.Security.Services
         {
             return new EmailVerifyUIDTO
             {
-                Subject = SharedTerms.EmailAccountVerificationTitle,
+                Subject = _localizer["EmailAccountVerificationTitle"],
                 Body = verificationCode
             };
         }
@@ -127,7 +130,7 @@ namespace Spiderly.Security.Services
                 if (user == null)
                 {
                     if (SettingsProvider.Current.OnlyAdminCanAddUsers)
-                        throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+                        throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                     user = new TUser
                     {
@@ -140,7 +143,7 @@ namespace Spiderly.Security.Services
                 else
                 {
                     if (user.IsDisabled == true)
-                        throw new BusinessException(SharedTerms.DisabledAccountException);
+                        throw new BusinessException(_localizer["DisabledAccountException"]);
                 }
 
                 JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, loginVerificationTokenDTO.BrowserId);
@@ -175,7 +178,7 @@ namespace Spiderly.Security.Services
                 if (user == null)
                 {
                     if (SettingsProvider.Current.OnlyAdminCanAddUsers)
-                        throw new BusinessException(SharedTerms.AuthenticationEmailDoesNotExistException);
+                        throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                     user = new TUser
                     {
@@ -189,7 +192,7 @@ namespace Spiderly.Security.Services
                 else
                 {
                     if (user.IsDisabled == true)
-                        throw new BusinessException(SharedTerms.DisabledAccountException);
+                        throw new BusinessException(_localizer["DisabledAccountException"]);
 
                     if (user.HasLoggedInWithGoogleAsExternalProvider != true)
                         await userDbSet.ExecuteUpdateAsync(x => x.SetProperty(x => x.HasLoggedInWithGoogleAsExternalProvider, true)); // There is no need for SaveChangesAsync because we don't need to update the version of the user
@@ -257,7 +260,7 @@ namespace Spiderly.Security.Services
         public virtual async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string accessToken)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
-                throw new SecurityTokenException(SharedTerms.ExpiredRefreshTokenException); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
+                throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
             long? userIdFromAccessToken = null;
 
@@ -352,7 +355,7 @@ namespace Spiderly.Security.Services
                     return null;
 
                 if (currentUser.IsDisabled == true)
-                    throw new BusinessException(SharedTerms.DisabledAccountException);
+                    throw new BusinessException(_localizer["DisabledAccountException"]);
 
                 return currentUser;
             });

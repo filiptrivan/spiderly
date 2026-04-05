@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Extensions;
@@ -21,9 +22,10 @@ namespace Spiderly.Security.Services
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor,
-            IApplicationDbContext context
+            IApplicationDbContext context,
+            IStringLocalizer localizer
         )
-            : base(context)
+            : base(context, localizer)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;

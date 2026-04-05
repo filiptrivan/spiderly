@@ -50,20 +50,4 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Update="Resources\SharedTerms.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>SharedTerms.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\SharedTerms.sr-Latn-RS.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Resources\SharedTerms.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>SharedTerms.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
 </Project>

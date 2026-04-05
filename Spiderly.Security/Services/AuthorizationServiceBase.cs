@@ -1,9 +1,10 @@
-﻿using Spiderly.Shared.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Services;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Security.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace Spiderly.Security.Services
 {
@@ -16,8 +17,8 @@ namespace Spiderly.Security.Services
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
 
-        public AuthorizationServiceBase(IApplicationDbContext context, AuthenticationService authenticationService)
-            : base(context)
+        public AuthorizationServiceBase(IApplicationDbContext context, AuthenticationService authenticationService, IStringLocalizer localizer)
+            : base(context, localizer)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -39,7 +40,7 @@ namespace Spiderly.Security.Services
             });
 
             if (result == false)
-                throw new UnauthorizedException();
+                throw new UnauthorizedException(_localizer["UnauthorizedAccessExceptionMessage"]);
         }
 
         public virtual async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
@@ -82,7 +83,7 @@ namespace Spiderly.Security.Services
             });
 
             if (result == false)
-                throw new UnauthorizedException();
+                throw new UnauthorizedException(_localizer["UnauthorizedAccessExceptionMessage"]);
         }
 
         public virtual async Task<List<string>> GetCurrentUserPermissionCodes<TUser, TRole>()

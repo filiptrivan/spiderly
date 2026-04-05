@@ -1892,18 +1892,34 @@ namespace {{appName}}.Shared.FluentValidation
       return """
 {
   "And": "And",
+  "AuthenticationEmailDoesNotExistException": "An account with the entered email address does not exist. Please check the email address or create a new account.",
+  "AuthenticationIncorectPasswordException": "Incorrect password. Please try again or reset your password if you've forgotten it.",
   "BirthDate": "Birth Date",
   "Code": "Code",
+  "ConcurrencyException": "This record has been modified or deleted by another user.",
   "CreatedAt": "Created At",
   "Description": "Description",
+  "DisabledAccountException": "Your account is disabled, please contact the administrator.",
   "Discount": "Discount",
+  "EmailAccountVerificationTitle": "Account verification",
   "EmailBody": "Email Body",
+  "EmailSendError": "An error occurred while sending the email, our team has been informed and will fix it as soon as possible. Thank you for your patience.",
+  "EntityDoesNotExistInDatabase": "The record you're looking for doesn't exist in database.",
+  "EntityDoesNotExistInDatabaseForDeleteRequest": "Your deletion request couldn't be completed as the entity doesn't exist in our database. Maybe it's already deleted.",
+  "ExpiredRefreshTokenException": "Your session has expired, please login again.",
+  "ExpiredVerificationCodeException": "Your verification code has expired. Please request a new code to continue.",
+  "FileSizeExceeded": "File size must not exceed {0} MB.",
+  "GlobalError": "An error occurred in the system, our team has been informed and will fix it as soon as possible. Thank you for your patience.",
   "Id": "Id",
+  "ImageHeightMustBeExact": "Image height must be exactly {0}px (current: {1}px).",
+  "ImageWidthMustBeExact": "Image width must be exactly {0}px (current: {1}px).",
   "IsDisabled": "Is Disabled",
+  "LatestVerificationCodeException": "Please use the most recent verification code, as multiple codes were sent.",
   "LogoImage": "Logo Image",
   "ModifiedAt": "Modified At",
   "Name": "Name",
   "NotificationList": "Notifications",
+  "OnlyThirdPartyAccountButTriedToRegisterOrLoginException": "Your account already exists with third-party (eg. Google) authentication. If you want to set up a password as well, please use the 'Forgot password?' option to reset it or log in to your profile and add a password.",
   "OrderNumber": "Order Number",
   "PartnerDisplayName": "Partner",
   "PartnerId": "Partner",
@@ -1911,14 +1927,19 @@ namespace {{appName}}.Shared.FluentValidation
   "Password": "Password",
   "Points": "Points",
   "PrimaryColor": "Primary Color",
+  "ResetPasswordEmailDoesNotExistException": "An account with the entered email address does not exist. Please check the email address or create a new account.",
   "RoleList": "Roles",
+  "SameEmailAlreadyExistsException": "An account with this email address already exists.",
   "Slug": "Slug",
   "Title": "Title",
+  "TwoDifferentIpAddressesRefreshException": "You can't use the application with two different IP addresses at the same time, please login again.",
+  "UnauthorizedAccessExceptionMessage": "You don't have the necessary rights to perform the operation.",
   "UserDisplayName": "User",
   "UserId": "User",
   "UserList": "Users",
   "ValidFrom": "Valid From",
   "ValidTo": "Valid To",
+  "VerificationCodeDevelopmentMode": "Your verification code: {0}\n\n(Shown here because you're in development environment without emailing set up)",
   "Version": "Version"
 }
 """;
@@ -2197,7 +2218,6 @@ using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.DTO;
 using Microsoft.EntityFrameworkCore;
-using Spiderly.Shared.Resources;
 using Spiderly.Security.DTO;
 using Spiderly.Shared.Extensions;
 using {{appName}}.Business.Entities;
@@ -2242,7 +2262,6 @@ using Microsoft.AspNetCore.Mvc;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Resources;
 using Spiderly.Security.Services;
 using Microsoft.Extensions.Localization;
 using {{appName}}.Business.Services;
@@ -2255,19 +2274,19 @@ namespace {{appName}}.WebAPI.Controllers
     [Route("/api/[controller]/[action]")]
     public class UserController : UserBaseController
     {
-        private readonly UserEntityServiceGenerated _userEntityService;
+        private readonly UserServiceGenerated _userService;
         private readonly AuthenticationService _authenticationService;
 
         public UserController(
             IApplicationDbContext context,
             IServiceProvider serviceProvider,
-            UserEntityServiceGenerated userEntityService,
+            UserServiceGenerated userService,
             AuthenticationService authenticationService,
             IStringLocalizer localizer
         )
             : base(context, serviceProvider, localizer)
         {
-            _userEntityService = userEntityService;
+            _userService = userService;
             _authenticationService = authenticationService;
         }
 
@@ -2277,7 +2296,7 @@ namespace {{appName}}.WebAPI.Controllers
         public async Task<UserDTO> GetCurrentUser()
         {
             long userId = _authenticationService.GetCurrentUserId();
-            return await _userEntityService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
+            return await _userService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
         }
 
     }
@@ -2838,7 +2857,7 @@ namespace {{appName}}.WebAPI.Extensions
             services.AddEntityServices();
             services.AddTransient<NotificationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
-            services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
+            services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationService>());
 
             #endregion
 
@@ -3109,6 +3128,7 @@ namespace {{appName}}.Business
     private static string GetAuthorizationServiceCsData(string appName)
     {
       return $$"""
+using Microsoft.Extensions.Localization;
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
@@ -3116,7 +3136,6 @@ using Spiderly.Security.Services;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Resources;
 
 namespace {{appName}}.Business.Services
 {
@@ -3127,11 +3146,12 @@ namespace {{appName}}.Business.Services
         private readonly SecurityService<User> _securityService;
 
         public AuthorizationService(
-            IApplicationDbContext context, 
+            IApplicationDbContext context,
             AuthenticationService authenticationService,
-            SecurityService<User> securityService
+            SecurityService<User> securityService,
+            IStringLocalizer localizer
         )
-            : base(context, authenticationService)
+            : base(context, authenticationService, localizer)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -3203,6 +3223,7 @@ namespace {{appName}}.Business.Services
     {
       return $$"""
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
 using Spiderly.Security.Services;
@@ -3220,8 +3241,9 @@ namespace {{appName}}.Business.Services
 
         public NotificationService(
             IApplicationDbContext context,
-            AuthenticationService authenticationService)
-            : base(context)
+            AuthenticationService authenticationService,
+            IStringLocalizer localizer)
+            : base(context, localizer)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -3334,6 +3356,7 @@ namespace {{appName}}.Business.Services
 using {{appName}}.Business.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -3350,9 +3373,10 @@ namespace {{appName}}.Business.Services
             IJwtAuthManager jwtAuthManagerService,
             IEmailingService emailingService,
             AuthenticationService authenticationService,
-            IWebHostEnvironment environment
+            IWebHostEnvironment environment,
+            IStringLocalizer localizer
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer)
         {
             _context = context;
         }

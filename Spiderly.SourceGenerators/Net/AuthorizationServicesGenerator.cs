@@ -64,10 +64,11 @@ namespace {{basePartOfNamespace}}.Services
         private readonly AuthenticationService _authenticationService;
 
         public AuthorizationServiceGenerated(
-            IApplicationDbContext context, 
-            AuthenticationService authenticationService
+            IApplicationDbContext context,
+            AuthenticationService authenticationService,
+            IStringLocalizer localizer
         )
-            : base(context, authenticationService)
+            : base(context, authenticationService, localizer)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -185,6 +186,7 @@ using {{basePartOfTheNamespace}}.Entities;
 using {{basePartOfTheNamespace}}.Enums;
 using {{basePartOfTheNamespace}}.DTO;
 using Azure.Storage.Blobs;
+using Microsoft.Extensions.Localization;
 using Spiderly.Security.Services;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Extensions;

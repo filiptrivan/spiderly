@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
-using Spiderly.Shared.Resources;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Net;
@@ -522,7 +522,8 @@ User ID: {{{userId}}}
         public static async Task ValidateImageDimensions(
             Stream imageStream,
             int width = 0,
-            int height = 0
+            int height = 0,
+            IStringLocalizer localizer = null
         )
         {
             ImageInfo imageInfo = await Image.IdentifyAsync(imageStream);
@@ -530,16 +531,19 @@ User ID: {{{userId}}}
             int actualHeight = imageInfo.Height;
 
             if (width > 0 && actualWidth != width)
-                throw new HackerException(string.Format(SharedTerms.ImageWidthMustBeExact, width, actualWidth));
+                throw new HackerException(localizer?["ImageWidthMustBeExact", width, actualWidth]
+                    ?? $"Image width must be exactly {width}px (current: {actualWidth}px).");
 
             if (height > 0 && actualHeight != height)
-                throw new HackerException(string.Format(SharedTerms.ImageHeightMustBeExact, height, actualHeight));
+                throw new HackerException(localizer?["ImageHeightMustBeExact", height, actualHeight]
+                    ?? $"Image height must be exactly {height}px (current: {actualHeight}px).");
         }
 
-        public static void ValidateFileSize(long fileSize, int maxFileSize)
+        public static void ValidateFileSize(long fileSize, int maxFileSize, IStringLocalizer localizer = null)
         {
             if (maxFileSize > 0 && fileSize > maxFileSize)
-                throw new HackerException(string.Format(SharedTerms.FileSizeExceeded, maxFileSize / 1_000_000));
+                throw new HackerException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
+                    ?? $"File size must not exceed {maxFileSize / 1_000_000} MB.");
         }
 
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)

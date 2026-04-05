@@ -1,10 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Spiderly.Shared.Resources;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Exceptions
 {
@@ -12,10 +6,8 @@ namespace Spiderly.Shared.Exceptions
     {
         public int StatusCode { get; set; } = StatusCodes.Status401Unauthorized;
 
-        // Constructor
-        public UnauthorizedException() : base(SharedTerms.UnauthorizedAccessExceptionMessage) { }
+        public UnauthorizedException() : base("You don't have the necessary rights to perform the operation.") { }
 
-        // Constructor with message
         public UnauthorizedException(string message) : base(message) { }
     }
 }
