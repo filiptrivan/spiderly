@@ -163,7 +163,7 @@ On entity save (Update/Insert):
 
 ## Upload Hooks
 
-Override in `BusinessService`:
+Override in your entity service class:
 
 ```csharp
 // Authorization hook — run before upload

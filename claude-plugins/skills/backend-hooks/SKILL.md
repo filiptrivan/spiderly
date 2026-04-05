@@ -8,48 +8,54 @@ description: Override Spiderly lifecycle hooks to customize generated CRUD behav
 ## Inheritance Chain
 
 ```
-BusinessServiceBase (Spiderly.Shared — concrete base class)
+ServiceBase (Spiderly.Shared — concrete base class)
         ↓
-BusinessServiceGenerated (generated — all virtual hooks live here)
+{Entity}EntityServiceGenerated (generated — per-entity virtual hooks)
         ↓
-BusinessService (your code — override hooks here)
+{Entity}EntityService (your code — override hooks here)
 ```
 
-All generated methods are `public virtual` or `protected virtual`. Override them in your `BusinessService` (partial class).
+Each entity gets its own generated service class. All generated methods are `public virtual` or `protected virtual`. Override them by creating an `{Entity}EntityService` class that inherits from `{Entity}EntityServiceGenerated`. DI registration is fully auto-generated — the source generator detects your override class and registers it automatically.
+
+The generated service receives `EntityServiceDependencies` (bundles `IApplicationDbContext`, `ExcelService`, `AuthorizationService`, `IFileManager`, `IStringLocalizer`, `IServiceProvider`). Access them via `_deps`.
 
 ## Hook Signatures by Phase
 
 ### Save Flow (execution order)
 
 ```
-1. OnBeforeSave{Entity}AndReturnMainUIFormDTO(SaveBodyDTO)
-2. OnBefore{Entity}IsMapped(DTO)
-3. OnBefore{Entity}Insert(entity, DTO)  — or —  OnBefore{Entity}Update(entity, DTO)
-4. SaveChangesAsync
-5. Update M2M + ordered O2M collections
-6. OnAfterSave{Entity}AndReturnMainUIFormDTO(SaveBodyDTO, MainUIFormDTO)
+1. SaveBody validation (SaveBodyDTOValidationRules — usually empty)
+2. OnBeforeSave{Entity}AndReturnMainUIFormDTO(SaveBodyDTO)
+3. DTO validation ({Entity}DTOValidationRules — NotEmpty, Length, etc.)
+4. OnBefore{Entity}IsMapped(DTO)
+5. OnBefore{Entity}Insert(entity, DTO)  — or —  OnBefore{Entity}Update(entity, DTO)
+6. SaveChangesAsync
+7. Update M2M + ordered O2M collections
+8. OnAfterSave{Entity}AndReturnMainUIFormDTO(SaveBodyDTO, MainUIFormDTO)
 ```
+
+Step 2 runs **before** step 3 — this means `OnBeforeSave` can set server-generated fields (e.g., `[UIDoNotGenerate]` + `[Required]` properties like hashes or computed values) before DTO validation runs.
 
 **Signatures:**
 
 ```csharp
-// Step 1 — modify DTO before anything else
+// Step 2 — modify DTO before DTO validation
 protected virtual async Task OnBeforeSave{Entity}AndReturnMainUIFormDTO(
     {Entity}SaveBodyDTO saveBodyDTO) { }
 
-// Step 2 — just before DTO→Entity mapping
+// Step 4 — just before DTO→Entity mapping
 protected virtual async Task OnBefore{Entity}IsMapped(
     {Entity}DTO dto) { }
 
-// Step 3a — after mapping, before insert
+// Step 5a — after mapping, before insert
 protected virtual async Task OnBefore{Entity}Insert(
     {Entity} entity, {Entity}DTO dto) { }
 
-// Step 3b — after loading from DB, before update
+// Step 5b — after loading from DB, before update
 protected virtual async Task OnBefore{Entity}Update(
     {Entity} entity, {Entity}DTO dto) { }
 
-// Step 6 — after everything is saved
+// Step 8 — after everything is saved
 protected virtual async Task OnAfterSave{Entity}AndReturnMainUIFormDTO(
     {Entity}SaveBodyDTO saveBodyDTO,
     {Entity}MainUIFormDTO mainUIFormDTO) { }
@@ -71,6 +77,8 @@ protected virtual async Task OnAfterGet{Entity}MainUIFormDTO(
 ```
 
 ### Paginated List (override the whole method)
+
+Override in your `{Entity}EntityService`:
 
 ```csharp
 public override async Task<PaginatedResultDTO<{Entity}DTO>> GetPaginated{Entity}List(
@@ -164,29 +172,49 @@ var products = await _context.DbSet<Product>()
 ## Real-World Example
 
 ```csharp
-protected override async Task OnBeforeSaveProductAndReturnMainUIFormDTO(
-    ProductSaveBodyDTO saveBodyDTO)
+public class ProductEntityService : ProductEntityServiceGenerated
 {
-    // Validate variant prices
-    foreach (ProductVariantSaveBodyDTO v in saveBodyDTO.OrderedProductVariantsSaveBodyDTO)
+    private readonly MeilisearchService _meilisearchService;
+    private readonly StorefrontRevalidationService _storefrontRevalidationService;
+
+    public ProductEntityService(
+        EntityServiceDependencies deps,
+        MeilisearchService meilisearchService,
+        StorefrontRevalidationService storefrontRevalidationService
+    ) : base(deps)
     {
-        if (v.ProductVariantDTO.SalePrice >= v.ProductVariantDTO.Price)
-            throw new BusinessException("Sale price must be less than regular price.");
+        _meilisearchService = meilisearchService;
+        _storefrontRevalidationService = storefrontRevalidationService;
     }
 
-    // Compute aggregate fields
-    saveBodyDTO.ProductDTO.Price = saveBodyDTO.OrderedProductVariantsSaveBodyDTO[0]
-        .ProductVariantDTO.Price;
-    saveBodyDTO.ProductDTO.Stock = saveBodyDTO.OrderedProductVariantsSaveBodyDTO
-        .Sum(v => v.ProductVariantDTO.Stock ?? 0);
-}
+    protected override async Task OnBeforeSaveProductAndReturnMainUIFormDTO(
+        ProductSaveBodyDTO saveBodyDTO)
+    {
+        // Validate variant prices
+        foreach (ProductVariantSaveBodyDTO v in saveBodyDTO.OrderedProductVariantsSaveBodyDTO)
+        {
+            if (v.ProductVariantDTO.SalePrice >= v.ProductVariantDTO.Price)
+                throw new BusinessException("Sale price must be less than regular price.");
+        }
 
-protected override async Task OnAfterSaveProductAndReturnMainUIFormDTO(
-    ProductSaveBodyDTO saveBodyDTO,
-    ProductMainUIFormDTO mainUIFormDTO)
-{
-    // Side effects: indexing, cache invalidation
-    await _meilisearchService.IndexProduct(mainUIFormDTO.ProductDTO.Id);
-    _storefrontRevalidationService.RevalidateTag("products");
+        // Compute aggregate fields
+        saveBodyDTO.ProductDTO.Price = saveBodyDTO.OrderedProductVariantsSaveBodyDTO[0]
+            .ProductVariantDTO.Price;
+        saveBodyDTO.ProductDTO.Stock = saveBodyDTO.OrderedProductVariantsSaveBodyDTO
+            .Sum(v => v.ProductVariantDTO.Stock ?? 0);
+    }
+
+    protected override async Task OnAfterSaveProductAndReturnMainUIFormDTO(
+        ProductSaveBodyDTO saveBodyDTO,
+        ProductMainUIFormDTO mainUIFormDTO)
+    {
+        // Cross-entity service call
+        ProductVariantEntityServiceGenerated variantEntityService =
+            _deps.ServiceProvider.GetRequiredService<ProductVariantEntityServiceGenerated>();
+
+        // Side effects: indexing, cache invalidation
+        await _meilisearchService.IndexProduct(mainUIFormDTO.ProductDTO.Id);
+        _storefrontRevalidationService.RevalidateProducts(mainUIFormDTO.ProductDTO.Slug);
+    }
 }
 ```

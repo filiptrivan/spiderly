@@ -16,23 +16,25 @@ Add custom methods alongside generated CRUD endpoints:
 [Route("/api/[controller]/[action]")]
 public class OrderController : OrderBaseController
 {
-    private readonly BusinessService _businessService;
+    private readonly IServiceProvider _serviceProvider;
 
     public OrderController(
         IApplicationDbContext context,
-        BusinessService businessService,
-        IPaymentGateway paymentGateway
+        IServiceProvider serviceProvider,
+        IStringLocalizer localizer
     )
-        : base(context, businessService)
+        : base(context, serviceProvider, localizer)
     {
-        _businessService = businessService;
+        _serviceProvider = serviceProvider;
     }
 
     [HttpGet]
     [AuthGuard]
     public async Task UpdateOrderStatus(long orderId, byte newStatusId)
     {
-        await _businessService.UpdateOrderStatus(orderId, newStatusId);
+        OrderEntityServiceGenerated orderService =
+            _serviceProvider.GetRequiredService<OrderEntityServiceGenerated>();
+        await orderService.UpdateOrderStatus(orderId, newStatusId);
     }
 }
 ```
@@ -41,33 +43,32 @@ The generated `OrderBaseController` already provides `GetPaginatedOrderList`, `S
 
 ### Pattern 2: Fully Custom Controller
 
-For endpoints with no generated entity CRUD (storefronts, webhooks):
+For endpoints with no generated entity CRUD (storefronts, webhooks), inject domain services directly:
 
 ```csharp
 [ApiController]
 [Route("/api/[controller]/[action]")]
 public class StorefrontController : ControllerBase
 {
-    private readonly BusinessService _businessService;
+    private readonly StorefrontCatalogService _catalogService;
 
     public StorefrontController(
-        IApplicationDbContext context,
-        BusinessService businessService
+        StorefrontCatalogService catalogService
     )
     {
-        _businessService = businessService;
+        _catalogService = catalogService;
     }
 
     [HttpGet]
     public async Task<List<StorefrontCategoryDTO>> Categories()
     {
-        return await _businessService.GetCategoriesForDisplay();
+        return await _catalogService.GetCategoriesForDisplay();
     }
 
     [HttpGet]
     public async Task<ActionResult<StorefrontBrandDTO>> BrandBySlug(string slug)
     {
-        StorefrontBrandDTO result = await _businessService.GetBrandBySlug(slug);
+        StorefrontBrandDTO result = await _catalogService.GetBrandBySlug(slug);
         if (result == null) return NotFound();
         return result;
     }
@@ -90,12 +91,18 @@ Generates a single `SecurityBaseController` with CRUD for both entities.
 
 ## Custom Service Methods
 
-Add partial methods to `BusinessService`:
+Create standalone service classes for custom logic. Inject `IApplicationDbContext` or `EntityServiceDependencies` as needed:
 
 ```csharp
-// BusinessService.Storefront.cs
-public partial class BusinessService
+public class StorefrontCatalogService
 {
+    private readonly IApplicationDbContext _context;
+
+    public StorefrontCatalogService(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
     public async Task<List<StorefrontCategoryDTO>> GetCategoriesForDisplay()
     {
         return await _context.DbSet<Category>()
@@ -107,6 +114,22 @@ public partial class BusinessService
                 Slug = x.Slug,
             })
             .ToListAsync();
+    }
+}
+```
+
+To add custom methods to a generated entity service, create an `{Entity}EntityService` class:
+
+```csharp
+public class OrderEntityService : OrderEntityServiceGenerated
+{
+    public OrderEntityService(EntityServiceDependencies deps) : base(deps) { }
+
+    public async Task UpdateOrderStatus(long orderId, byte newStatusId)
+    {
+        await _deps.Context.DbSet<Order>()
+            .Where(x => x.Id == orderId)
+            .ExecuteUpdateAsync(x => x.SetProperty(o => o.OrderStatusId, newStatusId));
     }
 }
 ```
@@ -172,10 +195,18 @@ UserWishlist wishlist = await _context.DbSet<UserWishlist>()
 
 ### Calling Generated Service Methods
 
+Within an entity service, call inherited methods directly. From other services, resolve the entity service via DI:
+
 ```csharp
-// Use the generated paginated list from custom code
+// Within ProductEntityService — call inherited generated methods directly
 PaginatedResultDTO<ProductDTO> products = await GetPaginatedProductList(
-    filterDTO, _context.DbSet<Product>(), authorize: false);
+    filterDTO, _deps.Context.DbSet<Product>(), authorize: false);
+
+// From a different service — resolve the entity service via DI
+ProductEntityServiceGenerated productService =
+    _deps.ServiceProvider.GetRequiredService<ProductEntityServiceGenerated>();
+PaginatedResultDTO<ProductDTO> products = await productService.GetPaginatedProductList(
+    filterDTO, _deps.Context.DbSet<Product>(), authorize: false);
 
 // Use the internal overload for custom projection
 PaginatedResult<Product> result = await GetPaginatedProductList(filterDTO, query);
@@ -202,7 +233,7 @@ List<CustomDTO> dtos = await result.Query
 return File(bytes, SettingsProvider.Current.ExcelContentType, "export.xlsx");
 
 // Conditional 404
-StorefrontBrandDTO result = await _businessService.GetBrandBySlug(slug);
+StorefrontBrandDTO result = await _catalogService.GetBrandBySlug(slug);
 if (result == null) return NotFound();
 return result;
 
@@ -238,20 +269,18 @@ if (paymentMethod == null)
 
 ## DI Registration
 
-Register custom services in `Extensions/AppServiceExtensions.cs`:
+Entity services are auto-registered by the generated `EntityServiceRegistration` class. Register custom services in `Extensions/AppServiceExtensions.cs`:
 
 ```csharp
 public static class AppServiceExtensions
 {
     public static IServiceCollection AddAppServices(this IServiceCollection services)
     {
-        // Framework services
-        services.AddTransient<BusinessService>();
-        services.AddTransient<BusinessServiceGenerated>();
-        services.AddTransient<AuthorizationService>();
-        services.AddTransient<AuthorizationServiceGenerated>();
+        // Entity services (auto-generated — registers all {Entity}EntityServiceGenerated + user overrides)
+        services.AddEntityServices();
 
         // Custom services
+        services.AddTransient<StorefrontCatalogService>();
         services.AddTransient<MeilisearchService>();
         services.AddTransient<IPaymentGateway, RaiAcceptPaymentGateway>();
 
@@ -261,6 +290,8 @@ public static class AppServiceExtensions
 ```
 
 Then call `services.AddAppServices()` in `Startup.ConfigureServices()`. Inject into controllers via constructor — the DI container resolves all dependencies automatically.
+
+If you create an `{Entity}EntityService` that extends `{Entity}EntityServiceGenerated`, the auto-generated registration detects it and registers both the concrete type and the generated base type to resolve to your override.
 
 ## Custom DTOs
 

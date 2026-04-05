@@ -232,7 +232,7 @@ public virtual async Task AuthorizeProductDeleteAndThrow(long id)
 ## Checking Permissions in Custom Code
 
 ```csharp
-// In BusinessService or custom service:
+// In an entity service or custom service:
 await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.ExportReports);
 
 // Check without throwing

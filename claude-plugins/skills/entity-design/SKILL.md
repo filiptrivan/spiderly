@@ -114,7 +114,7 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 |---|---|---|
 | `[DisplayName]` | Property | Marks the property shown in dropdowns/autocompletes |
 | `[DisplayName("Entity.Prop")]` | Class | Display name from a related entity (e.g., `"User.Email"` — use plain string, **not** `nameof()`) |
-| `[UIDoNotGenerate]` | Property/Class | Exclude from generated UI |
+| `[UIDoNotGenerate]` | Property/Class | Exclude from generated UI (template, frontend validators). Backend DTO + validation still generated. |
 | `[UIControlWidth("col-X")]` | Property | Set form field width |
 | `[UIOrderedOneToMany]` | Property | Enable drag-and-drop ordered child list |
 | `[UIPropertyBlockOrder("N")]` | Property | Control field display order |

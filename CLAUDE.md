@@ -47,7 +47,7 @@ cd Angular && npm run lint
 
 ### Source generators
 
-15 standalone generators implement `IIncrementalGenerator` (Roslyn incremental source generation), supported by 9 sub-generators (static helper classes). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project.
+14 standalone generators implement `IIncrementalGenerator` (Roslyn incremental source generation), supported by sub-generators (static helper classes). They discover entity classes in the `*.Entities` namespace inheriting `BusinessObject<T>`, `ReadonlyObject<T>` or having [M2M] attribute, read attributes via Roslyn syntax analysis, and generate `*.generated.cs`/`*.generated.ts` files using CodegenCS. Generated files are written to the consumer's project. `ServicesGenerator` produces per-entity service classes (`{Entity}EntityService.generated.cs`), `EntityServiceDependencies`, and `EntityServiceRegistration`.
 
 Key shared logic: `Spiderly.SourceGenerators/Shared/Helpers.cs` — entity discovery, property analysis, base class resolution, attribute extraction. The project targets **netstandard2.0** (Roslyn requirement).
 
@@ -59,7 +59,7 @@ Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
 - **UI**: `UIControlType`, `UIControlWidth`, `UIDoNotGenerate`, `UIPanel`, `UIPropertyBlockOrder`, `UIOrderedOneToMany`, `UITableColumn`
 - **Validation**: `GreaterThanOrEqualTo`, `Email`, `AcceptedFileTypes`, `MaxFileSize`, `ImageWidth`, `ImageHeight`
 - **Storage**: `BlobName`, `S3Url`, `S3PublicUrl`, `CloudinaryPublicId`
-- **Translations**: JSON files in `{Shared}/Translations/` (auto-scaffolded by `TranslationsGenerator`)
+- **Translations**: JSON files in `{Shared}/Translations/` loaded at runtime by `IStringLocalizer`
 
 ### Base entities
 
