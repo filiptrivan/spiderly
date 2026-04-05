@@ -31,7 +31,7 @@ namespace PlayertyLoyals.Business.Entities
         [WithMany(nameof(Gender.Users))] // Connected one to many property
         public virtual Gender Gender { get; set; }
 
-        [ExcludeServiceMethodsFromGeneration] // Frontend structure and controller method will be generated, but method inside BusinessServiceGenerated will not
+        [ExcludeServiceMethodsFromGeneration] // Frontend structure and controller method will be generated, but method inside {Entity}ServiceGenerated will not
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))] // This many to many property will be handled with multiselect on the UI (the necessary structure will be generated on the Backend to support it too)
         public virtual List<Role> Roles { get; } = new(); // M2M
     }
@@ -395,7 +395,7 @@ public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 
 #### ExcludeServiceMethodsFromGeneration
 
-- All the logic that should be generated in the `BusinessServiceGenerated` class for this property will not be generated.
+- All the logic that should be generated in the `{Entity}ServiceGenerated` class for this property will not be generated.
 
 #### GenerateCommaSeparatedDisplayName
 

@@ -122,7 +122,7 @@ From `Frontend/`. Fix any build errors.
 
 ## Step 8 — Add backend hooks (if needed)
 
-If the entity requires custom business logic (validation, computed fields, side effects), override hooks in `BusinessService`:
+If the entity requires custom business logic (validation, computed fields, side effects), override hooks in `{Entity}Service` (which extends `{Entity}ServiceGenerated`):
 
 ```csharp
 protected override async Task OnBeforeSave{Entity}AndReturnMainUIFormDTO(
