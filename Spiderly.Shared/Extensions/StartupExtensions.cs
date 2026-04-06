@@ -458,6 +458,17 @@ namespace Spiderly.Shared.Extensions
                             message = unauthorizedEx.Message;
                             logLevel = LogLevel.Error;
                         }
+                        else if (ex is HackerException hackerEx)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            message = localizer["GlobalError"];
+                            logLevel = LogLevel.Error;
+                            if (!env.IsDevelopment())
+                            {
+                                context.RequestServices.GetService<INotificationDispatcher>()
+                                    ?.DispatchSecurityEvent("HackerException", hackerEx.Message, $"User {userId}: {hackerEx.Message}");
+                            }
+                        }
                         else if (ex is SecurityTokenException securityTokenEx)
                         {
                             context.Response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
