@@ -287,13 +287,26 @@ namespace Spiderly.Shared.Helpers
 
         private static readonly HttpClient _telegramHttpClient = new();
         private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
+        private static DateTimeOffset _lastCacheCleanup = DateTimeOffset.UtcNow;
+        private const int TelegramMaxLength = 4096;
+        private const string TruncationMarker = "\n...[truncated]...\n";
+
+        private static string TruncateForTelegram(string text)
+        {
+            if (text.Length <= TelegramMaxLength)
+                return text;
+
+            const int headBudget = 500;
+            int tailBudget = TelegramMaxLength - headBudget - TruncationMarker.Length;
+            return text[..headBudget] + TruncationMarker + text[^tailBudget..];
+        }
 
         public static async Task SendTelegramNotificationAsync(string text, ILogger logger)
         {
             try
             {
                 Settings settings = SettingsProvider.Current;
-                string truncated = text.Length > 2000 ? text[..2000] : text;
+                string truncated = TruncateForTelegram(text);
 
                 string url = $"https://api.telegram.org/bot{settings.TelegramBotToken}/sendMessage";
                 using HttpResponseMessage response = await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text = truncated });
@@ -325,7 +338,20 @@ User ID: {{{userId}}}
                 return true;
 
             DateTimeOffset now = DateTimeOffset.UtcNow;
-            DateTimeOffset threshold = now.AddMinutes(-SettingsProvider.Current.NotificationRateLimitMinutes);
+            int rateLimitMinutes = SettingsProvider.Current.NotificationRateLimitMinutes;
+            DateTimeOffset threshold = now.AddMinutes(-rateLimitMinutes);
+
+            // Lazy cleanup: prune stale entries periodically
+            DateTimeOffset cleanupThreshold = now.AddMinutes(-rateLimitMinutes * 2);
+            if (_lastCacheCleanup < cleanupThreshold)
+            {
+                _lastCacheCleanup = now;
+                foreach (var kvp in _rateLimitCache)
+                {
+                    if (kvp.Value < cleanupThreshold)
+                        _rateLimitCache.TryRemove(kvp.Key, out _);
+                }
+            }
 
             bool shouldSend = false;
             _rateLimitCache.AddOrUpdate(
