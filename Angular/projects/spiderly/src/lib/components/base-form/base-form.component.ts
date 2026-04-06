@@ -189,12 +189,12 @@ export class BaseFormComponent<
    * @example
    * ```ts
    * // Override to navigate to a custom route after save
-   * rerouteToSavedObject = (rerouteId: number | string): void => {
+   * override rerouteToSavedObject(rerouteId: number | string): void {
    *   this.router.navigateByUrl(`/products/${rerouteId}/details`);
-   * };
+   * }
    * ```
    */
-  rerouteToSavedObject = (rerouteId: number | string): void => {
+  rerouteToSavedObject(rerouteId: number | string): void {
     if (rerouteId == null) {
       const currentUrl = this.router.url;
       const parentUrl: string = getParentUrl(currentUrl);
@@ -207,7 +207,7 @@ export class BaseFormComponent<
 
     const newUrl = segments.join('/');
     this.router.navigateByUrl(newUrl);
-  };
+  }
 
   /**
    * Hook that runs **before** form validation and the save request.
