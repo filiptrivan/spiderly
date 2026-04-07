@@ -1,0 +1,25 @@
+{
+  "name": "spiderly-cli",
+  "version": "19.7.1",
+  "description": "Reserved npm package for the future Spiderly CLI. This placeholder package does not yet provide a working executable.",
+  "keywords": [
+    "spiderly",
+    "spiderly-cli",
+    "dotnet",
+    "angular",
+    "code-generator",
+    "crud-generator"
+  ],
+  "homepage": "https://www.spiderly.dev",
+  "bugs": {
+    "url": "https://github.com/filiptrivan/spiderly/issues",
+    "email": "filiptrivan5@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/filiptrivan/spiderly.git"
+  },
+  "license": "MIT",
+  "author": "Filip Trivan",
+  "private": false
+}

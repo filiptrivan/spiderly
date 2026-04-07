@@ -6,6 +6,8 @@
 
 Spiderly Angular is a library designed to work with Spiderly, but it can also be used independently. It utilizes the PrimeNG UI library.
 
+This npm package is the Angular library distribution. It is not the CLI package. The future npm CLI package is `spiderly-cli`, while the currently supported CLI remains the `Spiderly.CLI` NuGet tool.
+
 ## Sakai PrimeNG Theme
 
 Currently, Spiderly Angular uses and provides the layout of the free Sakai PrimeNG theme.

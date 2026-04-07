@@ -18,6 +18,7 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 - **Spiderly.Security** — JWT auth, Google OAuth, token management, permission-based authorization
 - **Spiderly.CLI** — `spiderly` CLI tool (init, add-new-entity, migrations)
 - **Angular/** — Angular library (npm: "spiderly"). UI controls, layout, data table, auth, forms, interceptors
+- **spiderly-cli/** — Placeholder npm package reserved for a future Node-distributed CLI. No executable yet.
 
 ## Build commands
 
@@ -68,7 +69,7 @@ Entities are decorated with attributes from `Spiderly.Shared/Attributes/`:
 
 ### Versioning
 
-`X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag and `Angular/projects/spiderly/package.json`.
+`X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag, `Angular/projects/spiderly/package.json`, and `spiderly-cli/package.json`.
 
 ## Documentation updates
 

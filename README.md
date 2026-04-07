@@ -52,6 +52,8 @@ Run the Spiderly CLI installation command from any terminal location:
 dotnet tool install -g Spiderly.CLI
 ```
 
+The `spiderly-cli` npm package is currently reserved as a future distribution channel for the CLI, but it is only a placeholder right now and does not yet provide a working executable.
+
 ### Initialize the App
 
 Open a terminal in the folder **where you want your app to be created** and run:
@@ -128,6 +130,10 @@ For detailed documentation, please visit the [official documentation page](https
 ### Spiderly.CLI
 
 By using the [Spiderly.CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI), you properly initialize the app, allowing all other Spiderly libraries to function.
+
+### spiderly-cli (npm placeholder)
+
+The [`spiderly-cli`](https://www.npmjs.com/package/spiderly-cli) npm package is reserved for a future Node-distributed Spiderly CLI. It is currently a placeholder package and does not replace the existing NuGet tool.
 
 ### Spiderly.SourceGenerators
 
