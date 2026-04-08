@@ -35,6 +35,7 @@ spiderly add-new-entity --data-view
 ```
 
 This creates:
+
 - `Backend/{App}.Business/Entities/{Entity}.cs` (empty entity with `[DoNotAuthorize]`)
 - `Frontend/src/app/pages/{kebab-name}/{kebab-name}-list.component.ts` + `.html`
 - `Frontend/src/app/pages/{kebab-name}/{kebab-name}-details.component.ts` + `.html`
@@ -46,6 +47,7 @@ This creates:
 Use the `entity-design` skill to write the entity with correct attributes. Replace the CLI-generated empty entity.
 
 Checklist:
+
 - [ ] `[DisplayName]` on the name/title property
 - [ ] `[Required]` on mandatory fields
 - [ ] `[StringLength(max, MinimumLength = min)]` on ALL strings (never omit — avoids NVARCHAR(MAX))
@@ -66,6 +68,7 @@ dotnet build
 ```
 
 Run from the `Backend/` directory. This triggers Spiderly source generators which produce:
+
 - DTOs, services, controllers, validators, mappers, TypeScript classes
 
 Fix any build errors before continuing.
@@ -87,12 +90,22 @@ Update the `cols` array in `ngOnInit()` with actual entity columns:
 
 ```typescript
 this.cols = [
-    { name: this.translocoService.translate('Name'), filterType: 'text', field: 'name' },
-    { name: this.translocoService.translate('Price'), filterType: 'numeric', field: 'price' },
-    { actions: [
-        { name: this.translocoService.translate('Details'), field: 'Details' },
-        { name: this.translocoService.translate('Delete'), field: 'Delete' },
-    ]},
+  {
+    name: this.translocoService.translate("Name"),
+    filterType: "text",
+    field: "name",
+  },
+  {
+    name: this.translocoService.translate("Price"),
+    filterType: "numeric",
+    field: "price",
+  },
+  {
+    actions: [
+      { name: this.translocoService.translate("Details"), field: "Details" },
+      { name: this.translocoService.translate("Delete"), field: "Delete" },
+    ],
+  },
 ];
 ```
 
@@ -103,7 +116,7 @@ Add keys to both `Frontend/src/assets/i18n/en.json` and `sr-Latn-RS.json`:
 ```json
 {
   "{EntityName}": "...",
-  "{EntityName}List": "...",
+  "{EntityName}List": "..."
   // property name keys as needed
 }
 ```

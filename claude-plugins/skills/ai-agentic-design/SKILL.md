@@ -13,13 +13,14 @@ Spiderly is an AI-agentic framework. Every feature must be drivable by an AI age
 
 Every CLI command must work fully via flags. Interactive prompts are convenience sugar on top.
 
-| Do | Don't |
-|---|---|
-| Add `--flag` first, then the interactive fallback | Default to interactive prompt, add `--flag` as an afterthought |
-| Guard with `ConsoleHelper.IsInteractive()` before any `AnsiConsole.Prompt()` | Call `AnsiConsole.Prompt()` unconditionally |
-| Emit `MarkupLineERROR` with usage hint when required flag is missing in non-interactive mode | Silently hang waiting for input |
+| Do                                                                                           | Don't                                                          |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Add `--flag` first, then the interactive fallback                                            | Default to interactive prompt, add `--flag` as an afterthought |
+| Guard with `ConsoleHelper.IsInteractive()` before any `AnsiConsole.Prompt()`                 | Call `AnsiConsole.Prompt()` unconditionally                    |
+| Emit `MarkupLineERROR` with usage hint when required flag is missing in non-interactive mode | Silently hang waiting for input                                |
 
 **Pattern:**
+
 ```csharp
 if (string.IsNullOrWhiteSpace(flagValue))
 {
@@ -39,18 +40,20 @@ if (string.IsNullOrWhiteSpace(flagValue))
 
 Non-zero exit codes on any failure. Never emit WARNING and return exit code 0 in non-interactive mode.
 
-| Mode | On partial failure |
-|---|---|
-| Interactive | `MarkupLineWARNING` + continue (user can fix manually) |
-| Non-interactive | `MarkupLineERROR` + set `hasErrors = true` + return 1 |
+| Mode            | On partial failure                                     |
+| --------------- | ------------------------------------------------------ |
+| Interactive     | `MarkupLineWARNING` + continue (user can fix manually) |
+| Non-interactive | `MarkupLineERROR` + set `hasErrors = true` + return 1  |
 
 **Anti-pattern** (from the old `AddNewEntityCommand`):
+
 ```csharp
 // BAD: Returns void, always exits 0. AI agent thinks everything succeeded.
 ConsoleHelper.MarkupLineWARNING("Could not find location to insert routes.");
 ```
 
 **Correct pattern:**
+
 ```csharp
 if (!ConsoleHelper.IsInteractive())
 {
@@ -70,6 +73,7 @@ else
 Check all requirements before starting work. Never discover a missing tool mid-way through a multi-step command.
 
 **Pattern:**
+
 ```csharp
 // At the TOP of Execute(), before any file generation or network calls:
 if (!await PrerequisiteChecker.ValidatePrerequisites())
@@ -84,9 +88,9 @@ if (!await PrerequisiteChecker.ValidatePrerequisites())
 
 In non-interactive mode, auto-provision dependencies via Docker without prompting.
 
-| Mode | Behavior when dependency is missing |
-|---|---|
-| Interactive | Ask permission: "Install via Docker?" |
+| Mode            | Behavior when dependency is missing           |
+| --------------- | --------------------------------------------- |
+| Interactive     | Ask permission: "Install via Docker?"         |
 | Non-interactive | Auto-start Docker container, retry connection |
 
 **Rule:** Interactive mode asks permission; non-interactive mode acts. If Docker is unavailable, fail with a clear message suggesting `--db-connection-string` or `--db skip`.
@@ -96,6 +100,7 @@ In non-interactive mode, auto-provision dependencies via Docker without promptin
 Getting-started docs and CLI reference must be precise enough for an AI agent to follow verbatim.
 
 **Checklist for every CLI change:**
+
 - [ ] Every flag documented in CLI reference with description and example
 - [ ] Non-interactive usage shown alongside interactive usage
 - [ ] Prerequisite verification commands listed with expected output
@@ -105,13 +110,13 @@ Getting-started docs and CLI reference must be precise enough for an AI agent to
 
 Before merging any CLI or framework feature, answer these questions:
 
-| Question | Required answer |
-|---|---|
-| Can an AI agent drive this without human intervention? | Yes |
-| Does it have flags for all inputs? | Yes |
-| Does it return proper exit codes on failure? | Yes |
-| Does it validate prerequisites before doing work? | Yes |
-| Is the behavior documented in CLI reference? | Yes |
+| Question                                               | Required answer        |
+| ------------------------------------------------------ | ---------------------- |
+| Can an AI agent drive this without human intervention? | Yes                    |
+| Does it have flags for all inputs?                     | Yes                    |
+| Does it return proper exit codes on failure?           | Yes                    |
+| Does it validate prerequisites before doing work?      | Yes                    |
+| Is the behavior documented in CLI reference?           | Yes                    |
 | Does non-interactive mode auto-provision dependencies? | Yes (where applicable) |
 
 ## Quick Reference: CLI Command Checklist

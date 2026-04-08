@@ -7,13 +7,13 @@ description: Configure file storage providers and blob upload behavior in Spider
 
 ## Provider Selection
 
-| Provider | Class | Best For | Returns |
-|---|---|---|---|
-| Disk | `DiskStorageService` | Local dev | File key |
-| S3 Public | `S3PublicStorageService` | CDN-served images | Full public URL |
-| S3 Private | `S3StorageService` | Authenticated files | S3 key |
-| Azure Blob | `BlobStorageService` | Azure environments | Blob name |
-| Cloudinary | `CloudinaryStorageService` | Image transformations | Public ID |
+| Provider   | Class                      | Best For              | Returns         |
+| ---------- | -------------------------- | --------------------- | --------------- |
+| Disk       | `DiskStorageService`       | Local dev             | File key        |
+| S3 Public  | `S3PublicStorageService`   | CDN-served images     | Full public URL |
+| S3 Private | `S3StorageService`         | Authenticated files   | S3 key          |
+| Azure Blob | `BlobStorageService`       | Azure environments    | Blob name       |
+| Cloudinary | `CloudinaryStorageService` | Image transformations | Public ID       |
 
 All providers implement `IFileManager`.
 
@@ -54,16 +54,16 @@ public string ProfilePicture { get; set; }
 
 ### Attribute Reference
 
-| Attribute | Level | Purpose |
-|---|---|---|
-| `[BlobName]` | Property | Marks as file reference (required for all uploads) |
-| `[S3PublicUrl]` | Property | Uses `S3PublicStorageService`, stores full CDN URL |
-| `[S3Url]` | Property | Uses `S3StorageService`, stores S3 key |
-| `[CloudinaryPublicId]` | Property | Uses `CloudinaryStorageService`, stores public ID |
-| `[AcceptedFileTypes("image/*")]` | Property | MIME type restriction (default: `image/*`) |
-| `[MaxFileSize(N)]` | Property | Max bytes (default: 20MB) |
-| `[ImageWidth(N)]` | Property | Validate exact image width |
-| `[ImageHeight(N)]` | Property | Validate exact image height |
+| Attribute                        | Level    | Purpose                                            |
+| -------------------------------- | -------- | -------------------------------------------------- |
+| `[BlobName]`                     | Property | Marks as file reference (required for all uploads) |
+| `[S3PublicUrl]`                  | Property | Uses `S3PublicStorageService`, stores full CDN URL |
+| `[S3Url]`                        | Property | Uses `S3StorageService`, stores S3 key             |
+| `[CloudinaryPublicId]`           | Property | Uses `CloudinaryStorageService`, stores public ID  |
+| `[AcceptedFileTypes("image/*")]` | Property | MIME type restriction (default: `image/*`)         |
+| `[MaxFileSize(N)]`               | Property | Max bytes (default: 20MB)                          |
+| `[ImageWidth(N)]`                | Property | Validate exact image width                         |
+| `[ImageHeight(N)]`               | Property | Validate exact image height                        |
 
 `[BlobName]` maps to an existing `string` column — no migration needed when adding it.
 
@@ -157,6 +157,7 @@ Generated methods per blob property:
 ```
 
 On entity save (Update/Insert):
+
 ```
 → storageService.DeleteNonActiveBlobs(activeKey, entityName, propertyName, entityId)
 ```

@@ -7,10 +7,10 @@ description: Design Spiderly entities with correct attributes, relationships, an
 
 ## Base Classes
 
-| Base Class | Use When | Generated |
-|---|---|---|
-| `BusinessObject<T>` | Full CRUD entity | Id, Version, CreatedAt, ModifiedAt + CRUD UI/API |
-| `ReadonlyObject<T>` | Lookup/reference table | Id only, read-only operations |
+| Base Class          | Use When               | Generated                                        |
+| ------------------- | ---------------------- | ------------------------------------------------ |
+| `BusinessObject<T>` | Full CRUD entity       | Id, Version, CreatedAt, ModifiedAt + CRUD UI/API |
+| `ReadonlyObject<T>` | Lookup/reference table | Id only, read-only operations                    |
 
 `T` = `long` (default), `int`, or `byte`.
 
@@ -37,11 +37,11 @@ public class Comment : BusinessObject<long>
 
 **Delete behavior:**
 
-| Attribute | FK nullable? | On parent delete |
-|---|---|---|
-| `[CascadeDelete]` | No | Delete all children |
-| `[SetNull]` | Yes | Set FK to null |
-| Neither | No | Block delete (EF default) |
+| Attribute         | FK nullable? | On parent delete          |
+| ----------------- | ------------ | ------------------------- |
+| `[CascadeDelete]` | No           | Delete all children       |
+| `[SetNull]`       | Yes          | Set FK to null            |
+| Neither           | No           | Block delete (EF default) |
 
 ### Simple Many-to-Many
 
@@ -95,14 +95,14 @@ Child **must** have `[UIDoNotGenerate] [Required] public int OrderNumber { get; 
 
 ## UI Control Auto-Mapping
 
-| C# Type | Default Control | Override With |
-|---|---|---|
-| `string` | TextBox | `[UIControlType(nameof(UIControlTypeCodes.TextArea))]`, `Editor`, `File` |
-| `int`, `long` | Number | — |
-| `decimal` | Decimal | — |
-| `bool` | CheckBox | — |
-| `DateTime` | Calendar | — |
-| Navigation prop | Autocomplete | `[UIControlType(nameof(UIControlTypeCodes.Dropdown))]` |
+| C# Type         | Default Control | Override With                                                            |
+| --------------- | --------------- | ------------------------------------------------------------------------ |
+| `string`        | TextBox         | `[UIControlType(nameof(UIControlTypeCodes.TextArea))]`, `Editor`, `File` |
+| `int`, `long`   | Number          | —                                                                        |
+| `decimal`       | Decimal         | —                                                                        |
+| `bool`          | CheckBox        | —                                                                        |
+| `DateTime`      | Calendar        | —                                                                        |
+| Navigation prop | Autocomplete    | `[UIControlType(nameof(UIControlTypeCodes.Dropdown))]`                   |
 
 Other `UIControlTypeCodes`: `ColorPicker`, `MultiAutocomplete`, `MultiSelect`, `Password`, `TextBlock`, `Table`.
 
@@ -110,35 +110,35 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 
 ## Key Attributes Checklist
 
-| Attribute | Level | Purpose |
-|---|---|---|
-| `[DisplayName]` | Property | Marks the property shown in dropdowns/autocompletes |
-| `[DisplayName("Entity.Prop")]` | Class | Display name from a related entity (e.g., `"User.Email"` — use plain string, **not** `nameof()`) |
-| `[UIDoNotGenerate]` | Property/Class | Exclude from generated UI (template, frontend validators). Backend DTO + validation still generated. |
-| `[UIControlWidth("col-X")]` | Property | Set form field width |
-| `[UIOrderedOneToMany]` | Property | Enable drag-and-drop ordered child list |
-| `[UIPropertyBlockOrder("N")]` | Property | Control field display order |
-| `[UIPanel("Name")]` | Property | Group fields into named panels |
-| `[BlobName]` | Property | Mark as file reference (pair with `[StringLength]`) |
-| `[S3PublicUrl]` | Property | File stored in S3 with public CDN URL |
-| `[S3Url]` | Property | File stored in S3 with private (authenticated) access |
-| `[CloudinaryPublicId]` | Property | File stored in Cloudinary |
-| `[AcceptedFileTypes("image/*")]` | Property | Restrict upload MIME types |
-| `[MaxFileSize(N)]` | Property | Max upload size in bytes (default: 20MB) |
-| `[ImageWidth(N)]` / `[ImageHeight(N)]` | Property | Validate exact image dimensions |
-| `[DoNotAuthorize]` | Class | Skip authorization checks for this entity |
-| `[Controller("Name")]` | Class | Group entity under a custom controller |
-| `[ExcludeFromDTO]` | Property | Exclude from generated DTO |
-| `[IncludeInDTO]` | Property | Force-include in DTO (e.g., collections) |
-| `[ExcludeServiceMethodsFromGeneration]` | Property | Skip generated service methods (implement custom logic) |
-| `[GreaterThanOrEqualTo(N)]` | Property | Numeric minimum validation |
-| `[Email]` | Property | Email format validation |
-| `[ProjectToDTO(".Map(...)")]` | Class | Custom Mapster projection |
-| `[GenerateCommaSeparatedDisplayName]` | Property | Add comma-separated display names to DTO |
-| `[ComplexManyToManyList]` | Property | Editable list UI for complex M2M junction (small sets only) |
-| `[ComplexManyToManyReadonlyTable]` | Property | Read-only table for complex M2M junction |
-| `[SimpleManyToManyTableLazyLoad]` | Property | Lazy-load M2M with table columns |
-| `[UITableColumn(nameof(DTO.Field))]` | Property | Define columns for M2M table (use with above) |
+| Attribute                               | Level          | Purpose                                                                                              |
+| --------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `[DisplayName]`                         | Property       | Marks the property shown in dropdowns/autocompletes                                                  |
+| `[DisplayName("Entity.Prop")]`          | Class          | Display name from a related entity (e.g., `"User.Email"` — use plain string, **not** `nameof()`)     |
+| `[UIDoNotGenerate]`                     | Property/Class | Exclude from generated UI (template, frontend validators). Backend DTO + validation still generated. |
+| `[UIControlWidth("col-X")]`             | Property       | Set form field width                                                                                 |
+| `[UIOrderedOneToMany]`                  | Property       | Enable drag-and-drop ordered child list                                                              |
+| `[UIPropertyBlockOrder("N")]`           | Property       | Control field display order                                                                          |
+| `[UIPanel("Name")]`                     | Property       | Group fields into named panels                                                                       |
+| `[BlobName]`                            | Property       | Mark as file reference (pair with `[StringLength]`)                                                  |
+| `[S3PublicUrl]`                         | Property       | File stored in S3 with public CDN URL                                                                |
+| `[S3Url]`                               | Property       | File stored in S3 with private (authenticated) access                                                |
+| `[CloudinaryPublicId]`                  | Property       | File stored in Cloudinary                                                                            |
+| `[AcceptedFileTypes("image/*")]`        | Property       | Restrict upload MIME types                                                                           |
+| `[MaxFileSize(N)]`                      | Property       | Max upload size in bytes (default: 20MB)                                                             |
+| `[ImageWidth(N)]` / `[ImageHeight(N)]`  | Property       | Validate exact image dimensions                                                                      |
+| `[DoNotAuthorize]`                      | Class          | Skip authorization checks for this entity                                                            |
+| `[Controller("Name")]`                  | Class          | Group entity under a custom controller                                                               |
+| `[ExcludeFromDTO]`                      | Property       | Exclude from generated DTO                                                                           |
+| `[IncludeInDTO]`                        | Property       | Force-include in DTO (e.g., collections)                                                             |
+| `[ExcludeServiceMethodsFromGeneration]` | Property       | Skip generated service methods (implement custom logic)                                              |
+| `[GreaterThanOrEqualTo(N)]`             | Property       | Numeric minimum validation                                                                           |
+| `[Email]`                               | Property       | Email format validation                                                                              |
+| `[ProjectToDTO(".Map(...)")]`           | Class          | Custom Mapster projection                                                                            |
+| `[GenerateCommaSeparatedDisplayName]`   | Property       | Add comma-separated display names to DTO                                                             |
+| `[ComplexManyToManyList]`               | Property       | Editable list UI for complex M2M junction (small sets only)                                          |
+| `[ComplexManyToManyReadonlyTable]`      | Property       | Read-only table for complex M2M junction                                                             |
+| `[SimpleManyToManyTableLazyLoad]`       | Property       | Lazy-load M2M with table columns                                                                     |
+| `[UITableColumn(nameof(DTO.Field))]`    | Property       | Define columns for M2M table (use with above)                                                        |
 
 ## Complete Entity Example
 
