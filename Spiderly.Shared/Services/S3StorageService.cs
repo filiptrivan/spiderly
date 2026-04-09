@@ -39,7 +39,8 @@ namespace Spiderly.Shared.Services
             {
                 BucketName = _bucketName,
                 Key = newFileName,
-                InputStream = content
+                InputStream = content,
+                DisablePayloadSigning = true,
             };
 
             await _s3Client.PutObjectAsync(putRequest);
