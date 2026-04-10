@@ -1,8 +1,6 @@
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
@@ -16,7 +14,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.DTO;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
@@ -71,6 +68,7 @@ namespace Spiderly.Shared.Extensions
             }
 
             // Core (always registered)
+            services.AddExceptionHandler<SpiderlyExceptionHandler>();
             services.AddMemoryCache();
             services.AddHttpContextAccessor();
             services.AddHttpClient();
@@ -414,105 +412,9 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app, IWebHostEnvironment env)
+        public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app)
         {
-            ILogger logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("Spiderly.ExceptionHandler");
-
-            app.UseExceptionHandler(appError =>
-            {
-                appError.Run(async context =>
-                {
-                    IExceptionHandlerFeature contextFeature = context.Features.Get<IExceptionHandlerFeature>();
-
-                    if (contextFeature != null)
-                    {
-                        context.Response.ContentType = "application/json";
-
-                        Exception ex = contextFeature.Error;
-                        IStringLocalizer localizer = context.RequestServices.GetRequiredService<IStringLocalizer>();
-
-                        string exceptionString = "";
-
-                        if (env.IsDevelopment())
-                            exceptionString = ex.ToString();
-
-                        string message;
-                        LogLevel logLevel;
-                        long? userId = Helper.GetCurrentUserIdOrDefault(context);
-
-                        if (ex is BusinessException businessEx)
-                        {
-                            context.Response.StatusCode = businessEx.StatusCode;
-                            message = businessEx.Message;
-                            logLevel = LogLevel.Warning;
-                        }
-                        else if (ex is ExpiredVerificationException expiredVerificationEx)
-                        {
-                            context.Response.StatusCode = expiredVerificationEx.StatusCode;
-                            message = expiredVerificationEx.Message;
-                            logLevel = LogLevel.Information;
-                        }
-                        else if (ex is UnauthorizedException unauthorizedEx)
-                        {
-                            context.Response.StatusCode = unauthorizedEx.StatusCode;
-                            message = unauthorizedEx.Message;
-                            logLevel = LogLevel.Error;
-                        }
-                        else if (ex is HackerException hackerEx)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                            message = localizer["GlobalError"];
-                            logLevel = LogLevel.Error;
-                            if (!env.IsDevelopment())
-                            {
-                                context.RequestServices.GetService<INotificationDispatcher>()
-                                    ?.DispatchSecurityEvent("HackerException", hackerEx.Message, $"User {userId}: {hackerEx.Message}");
-                            }
-                        }
-                        else if (ex is SecurityTokenException securityTokenEx)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
-                            message = securityTokenEx.Message;
-                            logLevel = LogLevel.Information;
-
-                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AccessTokenKey, httpOnly: true);
-                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
-                            CookieHelper.ClearCookie(context.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
-                        }
-                        else if (ex is DbUpdateConcurrencyException)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status409Conflict;
-                            message = localizer["ConcurrencyException"];
-                            logLevel = LogLevel.Warning;
-                        }
-                        else
-                        {
-                            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                            message = localizer["GlobalError"];
-                            logLevel = LogLevel.Error;
-                            if (!env.IsDevelopment())
-                            {
-                                context.RequestServices.GetService<INotificationDispatcher>()
-                                    ?.DispatchUnhandledException(userId, ex);
-                            }
-                        }
-
-                        logger.Log(
-                            logLevel,
-                            ex,
-                            "Currently authenticated user id: {UserId}",
-                            userId
-                        );
-
-                        await context.Response.WriteAsJsonAsync(new ApiErrorDTO
-                        {
-                            StatusCode = context.Response.StatusCode,
-                            Message = message,
-                            Exception = exceptionString
-                        });
-                    }
-                });
-            });
+            app.UseExceptionHandler();
         }
 
         #endregion

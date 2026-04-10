@@ -2596,7 +2596,7 @@ public class Startup
 
         app.SpiderlyConfigureLocalization();
 
-        app.SpiderlyConfigureExceptionHandling(env);
+        app.SpiderlyConfigureExceptionHandling();
 
         app.UseRouting();
 
