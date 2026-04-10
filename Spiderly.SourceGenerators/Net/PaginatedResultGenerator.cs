@@ -107,7 +107,10 @@ namespace {{basePartOfNamespace}}.Filtering
                     if (prop.IsCommaSeparated)
                     {
                         string entityPropName = prop.DTOPropName.Replace("CommaSeparated", ""); // "SegmentationItems"
-                        sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, entity.GetIdType(currentProjectEntities)));
+                        SpiderlyProperty listProp = efClassProps.First(x => x.Name == entityPropName);
+                        SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(listProp, allEntities);
+                        string childIdType = childEntity.GetIdType(allEntities);
+                        sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
                         continue;
                     }
 
