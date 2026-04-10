@@ -4047,11 +4047,11 @@ export const ThemePreset = definePreset(Aura, {
 @import "tailwindcss/utilities";
 
 {{SlashCommented("""
-@source "../../../../spiderly/Angular/projects/spiderly/src/lib";
+@source "../../../spiderly/Angular/projects/spiderly/src/lib";
 """, isRunningFromNuget)}}
 
 {{SlashCommented("""
-@source "../../node_modules/spiderly";
+@source "../node_modules/spiderly";
 """, !isRunningFromNuget)}}
 """;
     }
