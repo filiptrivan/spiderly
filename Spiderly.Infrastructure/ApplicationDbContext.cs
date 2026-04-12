@@ -33,19 +33,7 @@ namespace Spiderly.Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            List<Assembly> assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-
-            List<string> alreadyEntityTypeNames = modelBuilder.Model.GetEntityTypes().Select(x => x.Name).ToList();
-
-            List<Type> entityTypes = assemblies
-                .SelectMany(assembly => assembly.GetTypes())
-                .Where(type =>
-                    type != null &&
-                    type.Namespace != null &&
-                    type.Namespace.EndsWith(".Entities") &&
-                    (type.IsBusinessOrReadonlyEntity() || type.IsDefined(typeof(M2MAttribute), inherit: true))
-                )
-                .ToList();
+            List<Type> entityTypes = EntityTypeDiscovery.GetAllEntityTypes();
 
             foreach (Type entityType in entityTypes)
                 modelBuilder.Entity(entityType);
