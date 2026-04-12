@@ -97,6 +97,12 @@ namespace Spiderly.Shared.Services
         {
             string key = ExtractS3KeyFromUrl(url);
 
+            if (string.IsNullOrEmpty(key))
+            {
+                _logger.LogWarning("Extracted S3 key is empty for URL: {Url}", url);
+                return null;
+            }
+
             try
             {
                 GetObjectRequest getRequest = new GetObjectRequest

@@ -69,12 +69,15 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
   > = ['image/*'];
   @Input() required: boolean; // It's okay for this control, because for the custom uploads where we are not initializing the control from the backend, there is no need for formControl.
   @Input() multiple: boolean = false;
-  @Input() isCloudinaryFileData: boolean = true;
+  @Input() isUrlFileData: boolean = true;
   @Input() imageWidth: number = 0;
   @Input() imageHeight: number = 0;
   @Input() maxFileSize: number = 20_000_000;
 
   acceptedFileTypesCommaSeparated: string;
+  existingFileUrl: string | null = null;
+  existingFileIsImage: boolean = false;
+  existingFileName: string = '';
   @Input() files: File[] = [];
 
   constructor(
@@ -87,8 +90,8 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
 
   override ngOnInit() {
     if (this.control?.value != null && this.fileData != null) {
-      if (this.isCloudinaryFileData) {
-        this.pushFileFromCloudinaryUrl(this.fileData);
+      if (this.isUrlFileData) {
+        this.setExistingFileUrl(this.fileData);
       } else {
         const file = this.getFileFromBase64(this.fileData);
         this.files.push(file);
@@ -106,6 +109,7 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
 
   filesSelected(event: FileSelectEvent) {
     const file = event.files[0];
+    this.existingFileUrl = null;
 
     if (
       this.isFileImageType(file.type) &&
@@ -155,34 +159,26 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
 
   fileRemoved(removeFileCallback, index: number) {
     removeFileCallback(index);
+    this.clearFile();
+  }
+
+  removeExistingFile() {
+    this.existingFileUrl = null;
+    this.clearFile();
+  }
+
+  private clearFile() {
     this.control?.setValue(null);
     this.onFileRemoved.next(null);
   }
 
-  // Put inside global functions if you need it
-  async pushFileFromCloudinaryUrl(cloudinaryUrl: string) {
-    const response = await fetch(cloudinaryUrl);
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch file from Cloudinary: ${response.statusText}`,
-      );
-    }
-
-    const blob = await response.blob();
-
-    const urlParts = cloudinaryUrl.split('/');
-    const lastPart = urlParts[urlParts.length - 1];
-    const fileName = lastPart.split('?')[0];
-
-    const file = new File([blob], fileName, { type: blob.type });
-
-    this.files = [...this.files, file]; // this.files.push(file); doesn't work
-
-    return file;
+  private setExistingFileUrl(url: string) {
+    this.existingFileUrl = url;
+    this.existingFileName = url.split('/').pop()?.split('?')[0] ?? '';
+    const mimeType = getMimeTypeForFileName(this.existingFileName);
+    this.existingFileIsImage = isFileImageType(mimeType);
   }
 
-  // Put inside global functions if you need it
   getFileFromBase64(base64String: string) {
     const [header, base64Content] = base64String.split(';base64,');
     const fileName = header.split('=')[1];

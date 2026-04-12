@@ -42,7 +42,31 @@
         let-files
         let-removeFileCallback="removeFileCallback"
       >
-        <div *ngIf="files.length > 0">
+        <div *ngIf="existingFileUrl">
+          <div class="flex justify-center p-0 gap-8">
+            <div
+              class="card m-0 px-4 py-4 flex flex-col items-center gap-4"
+              style="justify-content: center; overflow: hidden"
+            >
+              <div *ngIf="existingFileIsImage" class="image-container">
+                <img [src]="existingFileUrl" />
+              </div>
+              <div *ngIf="!existingFileIsImage">
+                <i class="pi pi-file" style="margin-right: 4px"></i>
+                <span>{{ existingFileName }}</span>
+              </div>
+              <spiderly-button
+                [disabled]="disabled"
+                icon="pi pi-times"
+                (onClick)="removeExistingFile()"
+                [outlined]="true"
+                [rounded]="true"
+                severity="danger"
+              />
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!existingFileUrl && files.length > 0">
           <div class="flex justify-center p-0 gap-8">
             <div
               *ngFor="let file of files; let index = index"
@@ -75,7 +99,7 @@
       </ng-template>
       <ng-template pTemplate="file"> </ng-template>
       <ng-template pTemplate="empty">
-        <div class="flex items-center justify-center flex-col">
+        <div *ngIf="!existingFileUrl" class="flex items-center justify-center flex-col">
           <i
             class="pi pi-cloud-upload border-2 rounded-full p-8 text-8xl text-gray-400 border-gray-400 mt-4"
           ></i>

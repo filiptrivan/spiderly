@@ -75,6 +75,9 @@ namespace Spiderly.Shared.Services
 
         public async Task<string> GetFileDataAsync(string key)
         {
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentException("S3 key cannot be null or empty.", nameof(key));
+
             GetObjectRequest getRequest = new GetObjectRequest
             {
                 BucketName = _bucketName,

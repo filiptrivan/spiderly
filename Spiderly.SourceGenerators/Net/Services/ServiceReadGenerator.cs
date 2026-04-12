@@ -327,12 +327,27 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty property in blobProperies)
             {
-                blobParts.Add($$"""
+                if (property.IsPublicUrl())
+                {
+                    // Public URLs: pass through directly — the frontend loads from CDN.
+                    blobParts.Add($$"""
+                    if (!string.IsNullOrEmpty(dto.{{property.Name}}))
+                    {
+                        dto.{{property.Name}}Data = dto.{{property.Name}};
+                    }
+""");
+                }
+                else
+                {
+                    // TODO: For private S3 storage, generate presigned URLs instead of downloading + base64-encoding.
+                    // Private storage: download and base64-encode.
+                    blobParts.Add($$"""
                     if (!string.IsNullOrEmpty(dto.{{property.Name}}))
                     {
                         dto.{{property.Name}}Data = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.GetFileDataAsync(dto.{{property.Name}});
                     }
 """);
+                }
             }
 
             return blobParts;
