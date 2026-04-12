@@ -66,7 +66,6 @@ namespace Spiderly.Shared.Helpers
                                         {
                                             new SpiderlyFile { Name = "auth.spec.ts", Data = GetAuthSpecData() },
                                             new SpiderlyFile { Name = "user-crud.spec.ts", Data = GetUserCrudSpecData() },
-                                            new SpiderlyFile { Name = "notification-crud.spec.ts", Data = GetNotificationCrudSpecData() },
                                         }
                                     },
                                     new SpiderlyFolder
@@ -180,17 +179,6 @@ namespace Spiderly.Shared.Helpers
                                                 {
                                                     new SpiderlyFolder
                                                     {
-                                                        Name = "notification",
-                                                        Files =
-                                                        {
-                                                            new SpiderlyFile { Name = "notification-details.component.html", Data = GetNotificationDetailsComponentHtmlData() },
-                                                            new SpiderlyFile { Name = "notification-details.component.ts", Data = GetNotificationDetailsComponentTsData() },
-                                                            new SpiderlyFile { Name = "notification-list.component.html", Data = GetNotificationTableComponentHtmlData() },
-                                                            new SpiderlyFile { Name = "notification-list.component.ts", Data = GetNotificationTableComponentTsData() },
-                                                        }
-                                                    },
-                                                    new SpiderlyFolder
-                                                    {
                                                         Name = "user",
                                                         Files =
                                                         {
@@ -239,15 +227,6 @@ namespace Spiderly.Shared.Helpers
                                                     new SpiderlyFile { Name = "user-agreement.component.html", Data = GetUserAgreementComponentHtmlData() },
                                                     new SpiderlyFile { Name = "user-agreement.component.ts", Data = GetUserAgreementComponentTsData() },
                                                 },
-                                            },
-                                            new SpiderlyFolder
-                                            {
-                                                Name = "notifications-view",
-                                                Files =
-                                                {
-                                                    new SpiderlyFile { Name = "notifications-view.component.html", Data = GetNotificationsViewComponentHtmlData() },
-                                                    new SpiderlyFile { Name = "notifications-view.component.ts", Data = GetNotificationsViewComponentTsData() },
-                                                }
                                             },
                                         }
                                     },
@@ -339,7 +318,7 @@ namespace Spiderly.Shared.Helpers
                         Name = ".config",
                         Files =
                         {
-                            new SpiderlyFile { Name = "dotnet-tools.json", Data = GetDotnetToolsJsonData() },
+                            new SpiderlyFile { Name = "dotnet-tools.json", Data = GetDotnetToolsJsonData(spiderlyVersion) },
                         }
                     },
                     new SpiderlyFolder
@@ -357,25 +336,14 @@ namespace Spiderly.Shared.Helpers
                             },
                             new SpiderlyFolder
                             {
-                                Name = "DTO",
-                                Files = new List<SpiderlyFile>
-                                {
-                                    new SpiderlyFile { Name = "NotificationDTO.cs", Data = GetNotificationDTOCsData(appName) },
-                                    new SpiderlyFile { Name = "NotificationSaveBodyDTO.cs", Data = GetNotificationSaveBodyDTOCsData(appName) },
-                                }
-                            },
-                            new SpiderlyFolder
-                            {
                                 Name = "Entities",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "Notification.cs", Data = GetNotificationCsData(appName) },
                                     new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
                                     new SpiderlyFile { Name = "Role.cs", Data = GetRoleCsData(appName) },
                                     new SpiderlyFile { Name = "Permission.cs", Data = GetPermissionCsData(appName) },
                                     new SpiderlyFile { Name = "RolePermission.cs", Data = GetRolePermissionCsData(appName) },
                                     new SpiderlyFile { Name = "UserRole.cs", Data = GetUserRoleCsData(appName) },
-                                    new SpiderlyFile { Name = "UserNotification.cs", Data = GetUserNotificationCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
@@ -393,7 +361,6 @@ namespace Spiderly.Shared.Helpers
                                 {
                                     new SpiderlyFile { Name = $"AuthorizationService.cs", Data = GetAuthorizationServiceCsData(appName) },
                                     new SpiderlyFile { Name = $"SecurityService.cs", Data = GetSecurityServiceCsData(appName) },
-                                    new SpiderlyFile { Name = $"NotificationService.cs", Data = GetNotificationServiceCsData(appName) },
                                 }
                             },
                         },
@@ -463,7 +430,6 @@ namespace Spiderly.Shared.Helpers
                                 Name = "Controllers",
                                 Files =
                                 {
-                                    new SpiderlyFile { Name = "NotificationController.cs", Data = GetNotificationControllerCsData(appName) },
                                     new SpiderlyFile { Name = "SecurityController.cs", Data = GetSecurityControllerCsData(appName) },
                                     new SpiderlyFile { Name = "UserController.cs", Data = GetUserControllerCsData(appName) },
                                 }
@@ -725,166 +691,6 @@ export class {{entityName}}ListComponent implements OnInit {
     </spiderly-data-view>
 
 </ng-container>
-""";
-    }
-
-    private static string GetNotificationDetailsComponentHtmlData()
-    {
-      return $$"""
-<ng-container *transloco="let t">
-    <spiderly-card [title]="t('Notification')" icon="pi pi-bell">
-        <spiderly-panel [isFirstMultiplePanel]="true" [showPanelHeader]="false">
-            <panel-body>
-                <spiderly-checkbox [control]="isMarkedAsRead" [label]="t('NotifyUsers')" />
-            </panel-body>
-        </spiderly-panel>
-
-        <notification-base-details
-            [showBigPanelTitle]="false"
-            [parentFormGroup]="parentFormGroup"
-            (onSave)="onSave()"
-            [isLastMultiplePanel]="true"
-            (onIsAuthorizedForSaveChange)="isAuthorizedForSaveChange($event)"
-        >
-        </notification-base-details>
-    </spiderly-card>
-</ng-container>
-
-""";
-    }
-
-    private static string GetNotificationDetailsComponentTsData()
-    {
-      return $$"""
-import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef, Component, KeyValueDiffers, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import {
-    BaseFormComponent,
-    BaseFormService,
-    IsAuthorizedForSaveEvent,
-    SpiderlyCardComponent,
-    SpiderlyControlsModule,
-    SpiderlyFormControl,
-    SpiderlyMessageService,
-    SpiderlyPanelsModule,
-} from 'spiderly';
-import { NotificationBaseDetailsComponent } from 'src/app/business/components/base-details.generated';
-import { NotificationMainUIForm, NotificationSaveBody } from 'src/app/business/entities/entities.generated';
-
-@Component({
-    selector: 'notification-details',
-    templateUrl: './notification-details.component.html',
-    imports: [
-        CommonModule,
-        TranslocoDirective,
-        SpiderlyPanelsModule,
-        SpiderlyCardComponent,
-        SpiderlyControlsModule,
-        NotificationBaseDetailsComponent,
-    ],
-})
-export class NotificationDetailsComponent extends BaseFormComponent<NotificationMainUIForm, NotificationSaveBody> implements OnInit {
-    override mainUIFormClass = NotificationMainUIForm;
-    override saveBodyClass = NotificationSaveBody;
-
-    isMarkedAsRead = new SpiderlyFormControl<boolean>(true, { updateOn: 'change' });
-
-    isAuthorizedForSave = false;
-
-    constructor(
-        protected override differs: KeyValueDiffers,
-        protected override http: HttpClient,
-        protected override messageService: SpiderlyMessageService,
-        protected override changeDetectorRef: ChangeDetectorRef,
-        protected override router: Router,
-        protected override route: ActivatedRoute,
-        protected override translocoService: TranslocoService,
-        protected override baseFormService: BaseFormService,
-    ) {
-        super(differs, http, messageService, changeDetectorRef, router, route, translocoService, baseFormService);
-    }
-
-    override ngOnInit() {}
-
-    isAuthorizedForSaveChange = (event: IsAuthorizedForSaveEvent) => {
-        this.isAuthorizedForSave = event.isAuthorizedForSave;
-
-        if (event.isAuthorizedForSave) {
-            this.isMarkedAsRead.enable();
-        } else {
-            this.isMarkedAsRead.disable();
-        }
-    };
-
-    override onBeforeSave = (saveBody: NotificationSaveBody): void => {
-        saveBody.isMarkedAsRead = this.isMarkedAsRead.value;
-    };
-}
-
-""";
-    }
-
-    private static string GetNotificationTableComponentHtmlData()
-    {
-      return $$"""
-<ng-container *transloco="let t">
-    <spiderly-data-table 
-    [tableTitle]="t('NotificationList')" 
-    [cols]="cols" 
-    [getPaginatedListObservableMethod]="getPaginatedNotificationListObservableMethod" 
-    [exportListToExcelObservableMethod]="exportNotificationListToExcelObservableMethod"
-    [deleteItemFromTableObservableMethod]="deleteNotificationObservableMethod"
-    >
-    </spiderly-data-table>
-</ng-container>
-""";
-    }
-
-    private static string GetNotificationTableComponentTsData()
-    {
-      return $$"""
-import { Component, OnInit } from '@angular/core';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Column, SpiderlyDataTableComponent } from 'spiderly';
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { Notification } from 'src/app/business/entities/entities.generated';
-
-@Component({
-    selector: 'notification-list',
-    templateUrl: './notification-list.component.html',
-    imports: [
-        TranslocoDirective,
-        SpiderlyDataTableComponent
-    ]
-})
-export class NotificationListComponent implements OnInit {
-    cols: Column<Notification>[];
-
-    getPaginatedNotificationListObservableMethod = this.apiService.getPaginatedNotificationList;
-    exportNotificationListToExcelObservableMethod = this.apiService.exportNotificationListToExcel;
-    deleteNotificationObservableMethod = this.apiService.deleteNotification;
-
-    constructor(
-        private apiService: ApiService,
-        private translocoService: TranslocoService,
-    ) { }
-
-    ngOnInit(){
-        this.cols = [
-            {name: this.translocoService.translate('Title'), filterType: 'text', field: 'title'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
-            {actions:[
-                {name: this.translocoService.translate('Details'), field: 'Details'},
-                {name: this.translocoService.translate('Delete'), field: 'Delete'},
-            ]},
-        ]
-    }
-
-}
-
 """;
     }
 
@@ -1448,153 +1254,6 @@ export class UserAgreementComponent implements OnInit {
 """;
     }
 
-    private static string GetNotificationsViewComponentHtmlData()
-    {
-      return $$$"""
-<ng-container *transloco="let t">
-  <div class="card dashboard-card-wrapper">
-    <div class="big-header" style="margin-bottom: 10px;">
-      {{t('NotificationList')}}
-      <div class="bold-header-separator"></div>
-    </div>
-    <div style="display: flex; flex-direction: column; position: relative; z-index: 2;">
-      <div style="display: flex; justify-content: space-between;">
-      </div>
-      @for (notification of currentUserNotifications?.data; track $index) {
-        <div [class]="(notification.isMarkedAsRead ? 'primary-lighter-color-background opacity-70' : '') + ' transparent-card'" style="margin: 0px;">
-          <div class="text-wrapper">
-            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; position: relative; font-size: 17.5px;">
-              <div>
-                <div [class]="notification.isMarkedAsRead ? '' : 'bold'">{{notification.title}}</div>
-                <div class="header-separator"></div>
-              </div>
-              <div>
-                <i class="pi pi-ellipsis-h icon-hover" (click)="menuToggle($event, notification)"></i>
-                  <p-menu #menu [model]="crudMenu" [popup]="true" appendTo="body"></p-menu>
-              </div>
-            </div>
-            <div>
-              {{notification.description}}
-            </div>
-          </div>
-        </div>
-      }
-      @if (currentUserNotifications?.totalRecords == 0) {
-        {{t('YouDoNotHaveAnyNotification')}}
-      }
-    </div>
-    <p-paginator
-      (onPageChange)="onLazyLoad($event)"
-      [first]="filter.first"
-      [rows]="filter.rows" 
-      [totalRecords]="currentUserNotifications?.totalRecords">
-    </p-paginator>
-    <div class="card-overflow-icon">
-      <i class="pi pi-bell"></i>
-    </div>
-  </div>
-</ng-container>
-""";
-    }
-
-    private static string GetNotificationsViewComponentTsData()
-    {
-      return $$"""
-import { LayoutService } from './../../business/services/layout/layout.service';
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { MenuItem } from 'primeng/api';
-import { PaginatorModule, PaginatorState } from 'primeng/paginator';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Notification } from 'src/app/business/entities/entities.generated';
-import { Menu, MenuModule } from 'primeng/menu';
-import { PaginatedResult, Filter, SpiderlyMessageService } from 'spiderly';
-
-@Component({
-  templateUrl: './notifications-view.component.html',
-  imports: [
-    TranslocoDirective,
-    MenuModule,
-    PaginatorModule
-  ],
-})
-export class NotificationsViewComponent implements OnInit {
-  currentUserNotifications: PaginatedResult<Notification>;
-
-  crudMenu: MenuItem[] = [];
-  @ViewChild('menu') menu: Menu;
-  lastMenuToggledNotification: Notification;
-
-  filter = new Filter<Notification>({
-    first: 0,
-    rows: 10,
-  });
-
-  constructor(
-    private apiService: ApiService,
-    private translocoService: TranslocoService,
-    private messageService: SpiderlyMessageService,
-    private layoutService: LayoutService,
-  ) {}
-
-  ngOnInit() {
-    this.crudMenu = [
-      {label: this.translocoService.translate('Delete'), command: this.deleteNotificationForCurrentUser, icon: 'pi pi-trash'},
-      {label: this.translocoService.translate('MarkAsRead'), command: this.markNotificationAsReadForCurrentUser, icon: 'pi pi-eye'},
-      {label: this.translocoService.translate('MarkAsUnread'), command: this.markNotificationAsUnreadForCurrentUser, icon: 'pi pi-eye-slash'},
-    ]
-
-    this.getNotificationsForCurrentUser();
-  }
-
-  onLazyLoad(event: PaginatorState){
-    this.filter.first = event.first;
-    this.filter.rows = event.rows;
-    this.getNotificationsForCurrentUser();
-  }
-
-  getNotificationsForCurrentUser(){
-    this.apiService.getNotificationsForCurrentUser(this.filter).subscribe((notifications) => {
-      this.currentUserNotifications = notifications;
-    });
-  }
-
-  menuToggle($event: MouseEvent, notification: Notification) {
-    this.menu.toggle($event);
-    this.lastMenuToggledNotification = notification;
-  }
-
-  deleteNotificationForCurrentUser = () => {
-    this.apiService.deleteNotificationForCurrentUser(this.lastMenuToggledNotification.id, this.lastMenuToggledNotification.version).subscribe(() => {
-      this.messageService.successMessage(this.translocoService.translate('SuccessfulAction'));
-      this.onAfterNotificationCrudOperation();
-    });
-  }
-
-  markNotificationAsReadForCurrentUser = () => {
-    this.apiService.markNotificationAsReadForCurrentUser(this.lastMenuToggledNotification.id, this.lastMenuToggledNotification.version).subscribe(() => {
-      this.messageService.successMessage(this.translocoService.translate('SuccessfulAction'));
-      this.onAfterNotificationCrudOperation();
-    });
-  }
-
-  markNotificationAsUnreadForCurrentUser = () => {
-    this.apiService.markNotificationAsUnreadForCurrentUser(this.lastMenuToggledNotification.id, this.lastMenuToggledNotification.version).subscribe(() => {
-      this.messageService.successMessage(this.translocoService.translate('SuccessfulAction'));
-      this.onAfterNotificationCrudOperation();
-    });
-  }
-
-  onAfterNotificationCrudOperation = () => {
-    this.getNotificationsForCurrentUser();
-    this.layoutService.setUnreadNotificationsCountForCurrentUser().subscribe(); // Don't need to unsubscribe from the http observable
-  }
-
-}
-
-""";
-    }
-
     private static string GetAppRoutesTsData()
     {
       return $$"""
@@ -1627,21 +1286,6 @@ const layoutRoutes: Routes = [
         path: 'administration/roles/:id',
         loadComponent: () => import('./pages/administration/role/role-details.component').then(c => c.RoleDetailsComponent),
         canActivate: [AuthGuard],
-    },
-    {
-        path: 'administration/notifications',
-        loadComponent: () => import('./pages/administration/notification/notification-list.component').then(c => c.NotificationListComponent),
-        canActivate: [AuthGuard],
-    },
-    {
-        path: 'administration/notifications/:id',
-        loadComponent: () => import('./pages/administration/notification/notification-details.component').then(c => c.NotificationDetailsComponent),
-        canActivate: [AuthGuard],
-    },
-    { 
-        path: 'notifications',
-        loadComponent: () => import('./pages/notifications-view/notifications-view.component').then(c => c.NotificationsViewComponent),
-        canActivate: [AuthGuard]
     },
 ];
 
@@ -1918,7 +1562,6 @@ namespace {{appName}}.Shared.FluentValidation
   "LogoImage": "Logo Image",
   "ModifiedAt": "Modified At",
   "Name": "Name",
-  "NotificationList": "Notifications",
   "OnlyThirdPartyAccountButTriedToRegisterOrLoginException": "Your account already exists with third-party (eg. Google) authentication. If you want to set up a password as well, please use the 'Forgot password?' option to reset it or log in to your profile and add a password.",
   "OrderNumber": "Order Number",
   "PartnerDisplayName": "Partner",
@@ -1941,28 +1584,6 @@ namespace {{appName}}.Shared.FluentValidation
   "ValidTo": "Valid To",
   "VerificationCodeDevelopmentMode": "Your verification code: {0}\n\n(Shown here because you're in development environment without emailing set up)",
   "Version": "Version"
-}
-""";
-    }
-
-    private static string GetUserNotificationCsData(string appName)
-    {
-      return $$"""
-using Spiderly.Shared.Attributes.Entity;
-
-namespace {{appName}}.Business.Entities
-{
-    [M2M]
-    public class UserNotification 
-    {
-        [M2MWithMany(nameof(Notification.Recipients))]
-        public virtual Notification Notification { get; set; }
-
-        [M2MWithMany(nameof(User.Notifications))]
-        public virtual User User { get; set; }
-
-        public bool IsMarkedAsRead { get; set; }
-    }
 }
 """;
     }
@@ -2014,8 +1635,6 @@ namespace {{appName}}.Business.Entities
 
         public virtual List<Role> Roles { get; } = new(); // M2M
         IReadOnlyCollection<IRole> IUser.Roles => Roles;
-
-        public virtual List<Notification> Notifications { get; } = new(); // M2M
     }
 }
 """;
@@ -2133,80 +1752,6 @@ namespace {{appName}}.Business.Entities
 """;
     }
 
-    private static string GetNotificationControllerCsData(string appName)
-    {
-      return $$"""
-using Microsoft.AspNetCore.Mvc;
-using Spiderly.Shared.Attributes;
-using Spiderly.Shared.Attributes.Entity.UI;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.DTO;
-using Microsoft.Extensions.Localization;
-using {{appName}}.Business.DTO;
-using {{appName}}.Business.Services;
-
-namespace {{appName}}.WebAPI.Controllers
-{
-    [ApiController]
-    [Route("/api/[controller]/[action]")]
-    public class NotificationController : NotificationBaseController
-    {
-        private readonly NotificationService _notificationService;
-
-        public NotificationController(
-            IApplicationDbContext context,
-            IServiceProvider serviceProvider,
-            NotificationService notificationService,
-            IStringLocalizer localizer
-        )
-            : base(context, serviceProvider, localizer)
-        {
-            _notificationService = notificationService;
-        }
-
-        [HttpDelete]
-        [AuthGuard]
-        public async Task DeleteNotificationForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _notificationService.DeleteNotificationForCurrentUser(notificationId, notificationVersion);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task MarkNotificationAsReadForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _notificationService.MarkNotificationAsReadForCurrentUser(notificationId, notificationVersion);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        public async Task MarkNotificationAsUnreadForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _notificationService.MarkNotificationAsUnreadForCurrentUser(notificationId, notificationVersion);
-        }
-
-        [HttpGet]
-        [AuthGuard]
-        [SkipSpinner]
-        [UIDoNotGenerate]
-        public async Task<int> GetUnreadNotificationsCountForCurrentUser()
-        {
-            return await _notificationService.GetUnreadNotificationsCountForCurrentUser();
-        }
-
-        [HttpPost]
-        [AuthGuard]
-        public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
-        {
-            return await _notificationService.GetNotificationsForCurrentUser(filterDTO);
-        }
-
-    }
-}
-
-""";
-    }
-
     private static string GetSecurityControllerCsData(string appName)
     {
       return $$"""
@@ -2305,75 +1850,6 @@ namespace {{appName}}.WebAPI.Controllers
 """;
     }
 
-    private static string GetNotificationCsData(string appName)
-    {
-      return $$"""
-using Spiderly.Shared.Attributes.Entity;
-using Spiderly.Shared.Attributes.Entity.UI;
-using Spiderly.Shared.BaseEntities;
-using Spiderly.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using Spiderly.Shared.Interfaces;
-using {{appName}}.Business.DTO;
-
-namespace {{appName}}.Business.Entities
-{
-    public class Notification : BusinessObject<long>, INotification<User>
-    {
-        [UIControlWidth("col-8")]
-        [DisplayName]
-        [StringLength(100, MinimumLength = 1)]
-        [Required]
-        public string Title { get; set; }
-
-        [UIControlType(nameof(UIControlTypeCodes.TextArea))]
-        [StringLength(400, MinimumLength = 1)]
-        [Required]
-        public string Description { get; set; }
-
-        #region UITableColumn
-        [UITableColumn(nameof(UserDTO.Email))]
-        [UITableColumn(nameof(UserDTO.CreatedAt))]
-        #endregion
-        [SimpleManyToManyTableLazyLoad]
-        public virtual List<User> Recipients { get; } = new(); // M2M
-    }
-}
-""";
-    }
-
-    private static string GetNotificationSaveBodyDTOCsData(string appName)
-    {
-      return $$"""
-namespace {{appName}}.Business.DTO
-{
-    public partial class NotificationSaveBodyDTO
-    {
-        public bool IsMarkedAsRead { get; set; }
-    }
-}
-""";
-    }
-
-    private static string GetNotificationDTOCsData(string appName)
-    {
-      return $$"""
-using Spiderly.Shared.Attributes.Entity.UI;
-
-namespace {{appName}}.Business.DTO
-{
-    public partial class NotificationDTO
-    {
-        /// <summary>
-        /// This property is only for currently logged in user
-        /// </summary>
-        [UIDoNotGenerate]
-        public bool? IsMarkedAsRead { get; set; }
-    }
-}
-""";
-    }
-
     private static string GetInfrastructureApplicationDbContextData(string appName)
     {
       return $$"""
@@ -2410,14 +1886,10 @@ namespace {{appName}}.Infrastructure
                 new Permission { Id = 2, Name = "Edit existing users", Code = "UpdateUser" },
                 new Permission { Id = 3, Name = "Add new users", Code = "InsertUser" },
                 new Permission { Id = 4, Name = "Delete users", Code = "DeleteUser" },
-                new Permission { Id = 5, Name = "View notifications", Code = "ReadNotification" },
-                new Permission { Id = 6, Name = "Edit existing notifications", Code = "UpdateNotification" },
-                new Permission { Id = 7, Name = "Add new notifications", Code = "InsertNotification" },
-                new Permission { Id = 8, Name = "Delete notifications", Code = "DeleteNotification" },
-                new Permission { Id = 9, Name = "View roles", Code = "ReadRole" },
-                new Permission { Id = 10, Name = "Edit existing roles", Code = "UpdateRole" },
-                new Permission { Id = 11, Name = "Add new roles", Code = "InsertRole" },
-                new Permission { Id = 12, Name = "Delete roles", Code = "DeleteRole" }
+                new Permission { Id = 5, Name = "View roles", Code = "ReadRole" },
+                new Permission { Id = 6, Name = "Edit existing roles", Code = "UpdateRole" },
+                new Permission { Id = 7, Name = "Add new roles", Code = "InsertRole" },
+                new Permission { Id = 8, Name = "Delete roles", Code = "DeleteRole" }
             ];
 
             modelBuilder.Entity<Permission>().HasData(permissions);
@@ -2855,7 +2327,6 @@ namespace {{appName}}.WebAPI.Extensions
 
             services.AddTransient<SecurityService<User>>();
             services.AddEntityServices();
-            services.AddTransient<NotificationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationService>());
 
@@ -3219,137 +2690,6 @@ namespace {{appName}}.Business.Services
 """;
     }
 
-    private static string GetNotificationServiceCsData(string appName)
-    {
-      return $$"""
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
-using {{appName}}.Business.DTO;
-using {{appName}}.Business.Entities;
-using Spiderly.Security.Services;
-using Spiderly.Shared.DTO;
-using Spiderly.Shared.Extensions;
-using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Services;
-
-namespace {{appName}}.Business.Services
-{
-    public class NotificationService : ServiceBase
-    {
-        private readonly IApplicationDbContext _context;
-        private readonly AuthenticationService _authenticationService;
-
-        public NotificationService(
-            IApplicationDbContext context,
-            AuthenticationService authenticationService,
-            IStringLocalizer localizer)
-            : base(context, localizer)
-        {
-            _context = context;
-            _authenticationService = authenticationService;
-        }
-
-        #region Notification
-
-        /// <summary>
-        /// Don't need authorization because user can do whatever he wants with his notifications
-        /// </summary>
-        public async Task DeleteNotificationForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                long currentUserId = _authenticationService.GetCurrentUserId();
-
-                Notification notification = await GetInstanceAsync<Notification, long>(notificationId, notificationVersion);
-
-                await _context.DbSet<UserNotification>()
-                    .Where(x => x.User.Id == currentUserId && x.Notification.Id == notification.Id)
-                    .ExecuteDeleteAsync();
-            });
-        }
-
-        /// <summary>
-        /// Don't need authorization because user can do whatever he wants with his notifications
-        /// </summary>
-        public async Task MarkNotificationAsReadForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                long currentUserId = _authenticationService.GetCurrentUserId();
-
-                Notification notification = await GetInstanceAsync<Notification, long>(notificationId, notificationVersion);
-
-                await _context.DbSet<UserNotification>()
-                    .Where(x => x.User.Id == currentUserId && x.Notification.Id == notification.Id)
-                    .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsMarkedAsRead, true));
-            });
-        }
-
-        /// <summary>
-        /// Don't need authorization because user can do whatever he wants with his notifications
-        /// </summary>
-        public async Task MarkNotificationAsUnreadForCurrentUser(long notificationId, int notificationVersion)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                long currentUserId = _authenticationService.GetCurrentUserId();
-
-                Notification notification = await GetInstanceAsync<Notification, long>(notificationId, notificationVersion);
-
-                await _context.DbSet<UserNotification>()
-                    .Where(x => x.User.Id == currentUserId && x.Notification.Id == notification.Id)
-                    .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsMarkedAsRead, false));
-            });
-        }
-
-        public async Task<int> GetUnreadNotificationsCountForCurrentUser()
-        {
-            long currentUserId = _authenticationService.GetCurrentUserId();
-
-            return await _context.DbSet<UserNotification>()
-                .Where(x => x.User.Id == currentUserId && x.IsMarkedAsRead == false)
-                .CountAsync();
-        }
-
-        public async Task<PaginatedResultDTO<NotificationDTO>> GetNotificationsForCurrentUser(FilterDTO filterDTO)
-        {
-            long currentUserId = _authenticationService.GetCurrentUserId();
-
-            IQueryable<UserNotification> baseQuery = _context.DbSet<UserNotification>()
-                .Where(x => x.User.Id == currentUserId);
-
-            int count = await baseQuery.CountAsync();
-
-            List<NotificationDTO> notificationsDTO = await baseQuery
-                .OrderByDescending(x => x.Notification.CreatedAt)
-                .Skip(filterDTO.First)
-                .Take(filterDTO.Rows)
-                .Select(x => new NotificationDTO
-                {
-                    Id = x.Notification.Id,
-                    Version = x.Notification.Version,
-                    Title = x.Notification.Title,
-                    Description = x.Notification.Description,
-                    CreatedAt = x.Notification.CreatedAt,
-                    IsMarkedAsRead = x.IsMarkedAsRead,
-                })
-                .ToListAsync();
-
-            return new PaginatedResultDTO<NotificationDTO>
-            {
-                Data = notificationsDTO,
-                TotalRecords = count,
-            };
-        }
-
-        #endregion
-
-    }
-}
-""";
-    }
-
-
     private static string GetSecurityServiceCsData(string appName)
     {
       return $$"""
@@ -3523,9 +2863,9 @@ namespace {{appName}}.Business.DataMappers
 """;
     }
 
-    private static string GetDotnetToolsJsonData()
+    private static string GetDotnetToolsJsonData(string spiderlyVersion)
     {
-      return """
+      return $$"""
 {
   "version": 1,
   "isRoot": true,
@@ -3534,6 +2874,12 @@ namespace {{appName}}.Business.DataMappers
       "version": "9.0.1",
       "commands": [
         "dotnet-ef"
+      ]
+    },
+    "spiderly": {
+      "version": "{{spiderlyVersion}}",
+      "commands": [
+        "spiderly"
       ]
     }
   }
@@ -4102,12 +3448,7 @@ export const ThemePreset = definePreset(Aura, {
     "RoleList": "Uloge",
     "Permissions": "Dozvole",
     "Settings": "Podešavanja",
-    "RecipientsForNotification": "Primaoci",
     "PermissionList": "Dozvole",
-    "NotificationList": "Notifikacije",
-    "NotifyUsers": "Obavestite korisnike",
-    "Recipients": "Primaoci",
-    "SendEmailNotification": "Pošaljite email notifikaciju",
     "AgreementsOnRegister": "Klikom na Prijavi se, prihvatate",
     "UserAgreement": "uslove korišćenja",
     "PrivacyPolicy": "politiku privatnosti",
@@ -4144,14 +3485,11 @@ export const ThemePreset = definePreset(Aura, {
     "Actions": "Akcije",
     "Details": "Detalji",
     "User": "Korisnik",
-    "YouDoNotHaveAnyNotification": "Nemate nijednu notifikaciju.",
     "CreatedAt": "Kreirano",
     "Delete": "Obrišite",
     "Name": "Naziv",
     "Title": "Naslov",
     "SuccessfulAttempt": "Vaš pokušaj je obrađen.",
-    "MarkAsRead": "Označite kao pročitano",
-    "MarkAsUnread": "Označite kao nepročitano",
     "Email": "Email",
     "Slug": "Url putanja",
     "YourProfile": "Vaš profil",
@@ -4250,9 +3588,7 @@ export const ThemePreset = definePreset(Aura, {
     "Permission": "Dozvola",
     "Role": "Uloga",
     "RoleUser": "/",
-    "IsMarkedAsRead": "Označeno kao pročitano",
     "Checked": "Čekirano",
-    "NotificationDTO": "Notifikacija",
     "TableFilter": "Filter tabele",
     "SelectedIds": "Izabrani",
     "UnselectedIds": "Odčekirani",
@@ -4263,7 +3599,6 @@ export const ThemePreset = definePreset(Aura, {
     "Category": "Kategorija",
     "LinkToWebsite": "Link do sajta",
     "EmailBody": "Sadržaj email-a",
-    "Notifications": "Notifikacije",
     "LogoImageData": "/",
     "LogoImage": "Logo",
     "PrimaryColor": "Primarna boja",
@@ -4276,11 +3611,8 @@ export const ThemePreset = definePreset(Aura, {
     "NumberOfFailedAttemptsInARow": "Broj neuspešnih pokušaja uzastopno",
     "BirthDate": "Datum rođenja",
     "Gender": "Pol",
-    "Notification": "Notifikacija",
     "Brand": "Brend",
-    "NotificationSaveBody": "/",
     "QrCode": "QR kod",
-    "NotificationUser": "/",
     "Primeng": {
       "dayNames": [
         "Nedelja",
@@ -4347,7 +3679,6 @@ export const ThemePreset = definePreset(Aura, {
     "EmptyMessage": "Nema rezultata",
     "ClearFilters": "Uklonite sve filtere",
     "ApplyFilters": "Primeni filtere",
-    "YouDoNotHaveAnyNotifications": "Nemate nijednu notifikaciju.",
     "LoginRequired": "Morate biti prijavljeni da biste izvršili ovu radnju. Molimo prijavite se i pokušajte ponovo.",
     "BadRequestDetails": "Sistem ne može da obradi zahtev. Molimo vas da proverite zahtev i pokušate ponovo."
 }
@@ -4375,11 +3706,7 @@ export const ThemePreset = definePreset(Aura, {
   "AddNewSegmentationItem": "Add new segmentation item",
   "RoleList": "Roles",
   "Permissions": "Permissions",
-  "NotifyUsers": "Notify users",
   "Settings": "Settings",
-  "Recipients": "Recipients",
-  "RecipientsForNotification": "Recipients",
-  "SendEmailNotification": "Send email notification",
   "PartnerList": "Partners",
   "SelectThePartner": "Select partner",
   "AgreementsOnRegister": "By clicking Login, you accept the",
@@ -4546,17 +3873,14 @@ export const ThemePreset = definePreset(Aura, {
   "Permission": "Permission",
   "Role": "Role",
   "RoleUser": "/",
-  "IsMarkedAsRead": "Marked as read",
   "Checked": "Checked",
   "PointsMultiplier": "Points multiplier",
-  "NotificationDTO": "Notification",
   "TableFilter": "Table filter",
   "SelectedIds": "Selected",
   "UnselectedIds": "Unselected",
   "IsAllSelected": "All selected",
   "TransactionCode": "Transaction code",
   "Discount": "Discount",
-  "PartnerNotificationDTO": "Notification",
   "PartnerRoleDTO": "Role",
   "SelectedPartnerUserIds": "/",
   "UserDTO": "/",
@@ -4570,10 +3894,8 @@ export const ThemePreset = definePreset(Aura, {
   "SegmentationDTO": "/",
   "SegmentationItemsDTO": "Segmentation items",
   "EmailBody": "Email content",
-  "Notifications": "Notifications",
   "PartnerProfile": "Partner profile",
   "SuccessfulSaveAndRefreshThePageToastDescription": "Successfully saved. To see partner changes, please refresh the page.",
-  "NotificationList": "Notifications",
   "AddNewDiscountProductGroup": "Add new discount product group",
   "LogoImageData": "/",
   "StartUpdatePointsScheduledTask": "Start automatic points update",
@@ -4584,7 +3906,6 @@ export const ThemePreset = definePreset(Aura, {
   "PointsForTheFirstTimeGenderFill": "Points for first-time gender fill",
   "PointsForTheFirstTimeBirthDateFill": "Points for first-time birth date fill",
   "ProductsRecommendationEndpoint": "Product recommendation path",
-  "PartnerNotifications": "Notifications",
   "HasFilledGenderForTheFirstTime": "Gender filled for the first time",
   "HasFilledBirthDateForTheFirstTime": "Birth date filled for the first time",
   "CheckedSegmentationItems": "Checked segmentation items",
@@ -4596,22 +3917,16 @@ export const ThemePreset = definePreset(Aura, {
   "Transaction": "Transaction",
   "NumberOfFailedAttemptsInARow": "Number of failed attempts in a row",
   "BirthDate": "Birth Date",
-  "Notification": "Notification",
   "PartnerUser": "User",
   "SegmentationItem": "Segmentation item",
   "User": "User",
   "Brand": "Brand",
   "MergedPartnerUser": "User",
-  "NotificationSaveBody": "/",
-  "PartnerNotificationSaveBody": "/",
   "PartnerRoleSaveBody": "/",
   "PartnerUserSaveBody": "/",
   "QrCode": "QR Code",
   "SegmentationSaveBody": "/",
   "UserSaveBody": "/",
-  "NotificationUser": "/",
-  "PartnerNotification": "Notification",
-  "PartnerNotificationPartnerUser": "/",
   "PartnerPermission": "Permission",
   "PartnerRole": "Role",
   "TransactionProduct": "Transaction product",
@@ -4683,9 +3998,7 @@ export const ThemePreset = definePreset(Aura, {
   "EmptyMessage": "No results",
   "ClearFilters": "Clear all filters",
   "ApplyFilters": "Apply filters",
-  "PartnerNotificationList": "Notifications",
   "PartnerUserList": "Users",
-  "YouDoNotHaveAnyNotification": "You do not have any notifications.",
   "YouDoNotHaveAnyAchievement": "You haven't earned any points yet.",
   "PointsHistory": "Points History",
   "LoginRequired": "You need to be logged in to perform this action. Please log in and try again.",
@@ -4819,8 +4132,6 @@ export class LayoutService extends LayoutServiceBase implements OnDestroy {
         protected override authService: AuthService,
     ) {
         super(apiService, config, authService);
-
-        this.initUnreadNotificationsCountForCurrentUser();
     }
 
 }
@@ -4880,11 +4191,10 @@ export class LayoutComponent {
                     {
                         label: this.translocoService.translate('Administration'),
                         icon: 'pi pi-fw pi-cog',
-                        hasPermission: (permissionCodes: string[]): boolean => { 
+                        hasPermission: (permissionCodes: string[]): boolean => {
                             return (
                                 permissionCodes?.includes(PermissionCodes.ReadUser) ||
-                                permissionCodes?.includes(SecurityPermissionCodes.ReadRole) ||
-                                permissionCodes?.includes(PermissionCodes.ReadNotification)
+                                permissionCodes?.includes(SecurityPermissionCodes.ReadRole)
                             )
                         },
                         items: [
@@ -4892,7 +4202,7 @@ export class LayoutComponent {
                                 label: this.translocoService.translate('UserList'),
                                 icon: 'pi pi-fw pi-user',
                                 routerLink: [`/${this.config.administrationSlug}/users`],
-                                hasPermission: (permissionCodes: string[]): boolean => { 
+                                hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
                                         permissionCodes?.includes(PermissionCodes.ReadUser)
                                     )
@@ -4902,19 +4212,9 @@ export class LayoutComponent {
                                 label: this.translocoService.translate('RoleList'),
                                 icon: 'pi pi-fw pi-id-card',
                                 routerLink: [`/${this.config.administrationSlug}/roles`],
-                                hasPermission: (permissionCodes: string[]): boolean => { 
+                                hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
                                         permissionCodes?.includes(SecurityPermissionCodes.ReadRole)
-                                    )
-                                },
-                            },
-                            {
-                                label: this.translocoService.translate('NotificationList'),
-                                icon: 'pi pi-fw pi-bell',
-                                routerLink: [`/${this.config.administrationSlug}/notifications`],
-                                hasPermission: (permissionCodes: string[]): boolean => { 
-                                    return (
-                                        permissionCodes?.includes(PermissionCodes.ReadNotification)
                                     )
                                 },
                             },
@@ -5320,67 +4620,6 @@ test.describe('User CRUD Operations', () => {
     await userListPage.searchUser('admin');
 
     await expect(page.locator('tr', { hasText: 'admin' })).toBeVisible();
-  });
-});
-""";
-    }
-
-    private static string GetNotificationCrudSpecData()
-    {
-      return """
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../page-objects/login-page';
-
-test.describe('Notification CRUD Operations', () => {
-  let loginPage: LoginPage;
-
-  test.beforeEach(async ({ page }) => {
-    loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login('admin@example.com', 'Admin123!');
-  });
-
-  test('should display notifications list', async ({ page }) => {
-    await page.goto('/administration/notification');
-    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
-  });
-
-  test('should create a new notification', async ({ page }) => {
-    await page.goto('/administration/notification');
-    await page.getByRole('button', { name: 'Add New' }).click();
-
-    await page.getByLabel('Title').fill('Test Notification');
-    await page.getByLabel('Message').fill('This is a test notification message');
-
-    await page.getByRole('button', { name: 'Save' }).click();
-
-    await expect(page.getByText('Notification created successfully')).toBeVisible();
-    await expect(page.locator('tr', { hasText: 'Test Notification' })).toBeVisible();
-  });
-
-  test('should edit a notification', async ({ page }) => {
-    await page.goto('/administration/notification');
-
-    const row = page.locator('tr', { hasText: 'Test Notification' });
-    await row.getByRole('button', { name: 'Edit' }).click();
-
-    await page.getByLabel('Title').clear();
-    await page.getByLabel('Title').fill('Updated Notification');
-
-    await page.getByRole('button', { name: 'Save' }).click();
-
-    await expect(page.getByText('Notification updated successfully')).toBeVisible();
-    await expect(page.locator('tr', { hasText: 'Updated Notification' })).toBeVisible();
-  });
-
-  test('should delete a notification', async ({ page }) => {
-    await page.goto('/administration/notification');
-
-    const row = page.locator('tr', { hasText: 'Updated Notification' });
-    await row.getByRole('button', { name: 'Delete' }).click();
-    await page.getByRole('button', { name: 'Confirm' }).click();
-
-    await expect(page.getByText('Notification deleted successfully')).toBeVisible();
   });
 });
 """;

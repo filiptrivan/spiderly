@@ -112,7 +112,6 @@ export class ApiGeneratedService extends ApiSecurityService {
                 "RefreshTokenWithCookies",
                 "GetCurrentUserBase",
                 "GetCurrentUserPermissionCodes",
-                "GetUnreadNotificationsCountForCurrentUser",
             };
 
             foreach (SpiderlyClass controllerClass in controllerClasses)

@@ -4,20 +4,17 @@ import { UserBase } from './security-entities';
 export class InitTopBarData extends BaseEntity {
   companyName?: string;
   userProfilePath?: string;
-  unreadNotificationsCount?: number;
   showProfileIcon?: boolean;
   currentUser?: UserBase;
 
   constructor({
     companyName,
     userProfilePath,
-    unreadNotificationsCount,
     showProfileIcon,
     currentUser,
   }: {
     companyName?: string;
     userProfilePath?: string;
-    unreadNotificationsCount?: number;
     showProfileIcon?: boolean;
     currentUser?: UserBase;
   } = {}) {
@@ -25,7 +22,6 @@ export class InitTopBarData extends BaseEntity {
 
     this.companyName = companyName;
     this.userProfilePath = userProfilePath;
-    this.unreadNotificationsCount = unreadNotificationsCount;
     this.showProfileIcon = showProfileIcon;
     this.currentUser = currentUser;
   }

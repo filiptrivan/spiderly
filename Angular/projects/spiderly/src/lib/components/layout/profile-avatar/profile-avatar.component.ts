@@ -14,7 +14,6 @@ import { UserBase } from '../../../entities/security-entities';
 import { filter, Subscription } from 'rxjs';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { BadgeModule } from 'primeng/badge';
 import { SpiderlyButtonComponent } from '../../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { ConfigServiceBase } from '../../../services/config.service.base';
 
@@ -26,7 +25,6 @@ import { ConfigServiceBase } from '../../../services/config.service.base';
     CommonModule,
     RouterModule,
     AvatarModule,
-    BadgeModule,
     SpiderlyButtonComponent,
     TranslocoDirective,
   ],
@@ -56,18 +54,8 @@ export class ProfileAvatarComponent {
 
   currentUser: UserBase;
   userProfilePath: string;
-  unreadNotificationsCount: number;
   avatarLabel: string;
   showProfileIcon = false;
-
-  notificationMenuItem: ProfileAvatarModalMenuItem = {
-    label: this.translocoService.translate('Notifications'),
-    icon: 'pi-bell',
-    showNotificationBadge: true,
-    onClick: () => {
-      this.router.navigateByUrl(`/notifications`);
-    },
-  };
 
   @ViewChild('topbarmenu') menu!: ElementRef;
 
@@ -93,7 +81,6 @@ export class ProfileAvatarComponent {
             this.routeToUserPage();
           },
         },
-        this.notificationMenuItem,
         {
           label: this.translocoService.translate('Logout'),
           icon: 'pi-sign-out',
@@ -119,9 +106,6 @@ export class ProfileAvatarComponent {
       .initTopBarData()
       .subscribe((initTopBarData) => {
         this.userProfilePath = initTopBarData.userProfilePath;
-        this.unreadNotificationsCount = initTopBarData.unreadNotificationsCount;
-        this.notificationMenuItem.showNotificationBadge =
-          initTopBarData.unreadNotificationsCount > 0;
         this.showProfileIcon = initTopBarData.showProfileIcon;
         this.currentUser = initTopBarData.currentUser;
         this.avatarLabel = initTopBarData.currentUser?.email
@@ -164,5 +148,4 @@ export interface ProfileAvatarModalMenuItem {
   icon?: string;
   showSeparator?: boolean;
   onClick?: () => void;
-  showNotificationBadge?: boolean;
 }

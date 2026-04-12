@@ -15,12 +15,6 @@
           height: '34px',
           'font-size': '21px',
         }"
-        pBadge
-        [badgeStyleClass]="'p-badge-danger'"
-        [badgeDisabled]="
-          unreadNotificationsCount == 0 || unreadNotificationsCount == null
-        "
-        [value]="unreadNotificationsCount"
       />
     </div>
     <div #topbarprofiledropdownmenu (document:click)="onDocumentClick($event)">
@@ -79,14 +73,7 @@
               <i
                 class="pi pi-fw {{ item.icon }}"
                 style="font-size: 16px; position: relative"
-              >
-                <span
-                  *ngIf="
-                    item.showNotificationBadge && unreadNotificationsCount != 0
-                  "
-                  class="badge"
-                ></span>
-              </i>
+              ></i>
               <div style="font-size: 15px">{{ item.label }}</div>
             </div>
           </div>

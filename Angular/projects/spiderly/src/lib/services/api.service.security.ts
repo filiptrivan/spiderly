@@ -117,15 +117,4 @@ export class ApiSecurityService {
   };
 
   //#endregion
-
-  //#region Notification
-
-  getUnreadNotificationsCountForCurrentUser = (): Observable<number> => {
-    return this.http.get<number>(
-      `${this.config.apiUrl}/Notification/GetUnreadNotificationsCountForCurrentUser`,
-      this.config.httpSkipSpinnerOptions,
-    );
-  };
-
-  //#endregion
 }

@@ -2,16 +2,11 @@ import { AuthServiceBase } from './auth.service.base';
 import { ApiSecurityService } from './api.service.security';
 import { Injectable, OnDestroy } from '@angular/core';
 import {
-  BehaviorSubject,
-  combineLatest,
-  delay,
-  lastValueFrom,
   map,
   Observable,
   of,
   Subject,
   Subscription,
-  withLatestFrom,
 } from 'rxjs';
 import { InitTopBarData } from '../entities/init-top-bar-data';
 import { ConfigServiceBase } from './config.service.base';
@@ -43,11 +38,6 @@ interface LayoutState {
 })
 export class LayoutServiceBase implements OnDestroy {
   userSubscription: Subscription;
-
-  protected _unreadNotificationsNumber = new BehaviorSubject<number | null>(
-    null,
-  );
-  unreadNotificationsCount$ = this._unreadNotificationsNumber.asObservable();
 
   layoutConfig: AppConfig = {
     ripple: false,
@@ -82,32 +72,6 @@ export class LayoutServiceBase implements OnDestroy {
     protected config: ConfigServiceBase,
     protected authService: AuthServiceBase,
   ) {}
-
-  initUnreadNotificationsCountForCurrentUser = () => {
-    this.initUnreadNotificationsCountForCurrentUserObservable()
-      .pipe(
-        delay(1), // HACK: Adding delay so both additionalObservable and user emits single null value when logout
-        withLatestFrom(this.authService.user$), // Triggers when unread notifications change
-      )
-      .subscribe(([additionalObservable, user]) => {
-        if (user != null && additionalObservable !== undefined) {
-          this.setUnreadNotificationsCountForCurrentUser().subscribe();
-        }
-      });
-  };
-
-  initUnreadNotificationsCountForCurrentUserObservable =
-    (): Observable<any> => {
-      return this.authService.user$;
-    };
-
-  setUnreadNotificationsCountForCurrentUser = (): Observable<any> => {
-    return this.apiService.getUnreadNotificationsCountForCurrentUser().pipe(
-      map((unreadNotificationsCount) => {
-        this._unreadNotificationsNumber.next(unreadNotificationsCount);
-      }),
-    );
-  };
 
   onMenuToggle() {
     if (this.isOverlay()) {
@@ -167,15 +131,11 @@ export class LayoutServiceBase implements OnDestroy {
   //#region Top Bar
 
   initTopBarData = (): Observable<InitTopBarData> => {
-    return combineLatest([
-      this.authService.user$,
-      this.unreadNotificationsCount$,
-    ]).pipe(
-      map(([currentUser, unreadNotificationsCount]) => {
+    return this.authService.user$.pipe(
+      map((currentUser) => {
         return new InitTopBarData({
           companyName: this.config.companyName,
           userProfilePath: `/administration/users/${currentUser?.id}`,
-          unreadNotificationsCount: unreadNotificationsCount,
           showProfileIcon: true,
           currentUser: currentUser,
         });
