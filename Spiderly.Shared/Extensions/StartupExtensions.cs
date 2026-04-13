@@ -69,6 +69,7 @@ namespace Spiderly.Shared.Extensions
 
             // Core (always registered)
             services.AddExceptionHandler<SpiderlyExceptionHandler>();
+            services.AddProblemDetails(); // Required alongside AddExceptionHandler<T> so UseExceptionHandler() passes its options check
             services.AddMemoryCache();
             services.AddHttpContextAccessor();
             services.AddHttpClient();
