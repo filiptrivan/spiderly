@@ -115,7 +115,7 @@ namespace Spiderly.SourceGenerators.Net
                 {
                     result.Add($$"""
                 await _deps.Context.DbSet<{{parentEntity.Name}}>()
-                    .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains(x.{{property.Name}}.Id))
+                    .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains({{property.GetForeignKeyAccessExpression(parentEntity, allEntities)}}))
                     .ExecuteDeleteAsync();
 """);
 
@@ -126,7 +126,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 var {{parentEntity.Name.FirstCharToLower()}}ListForDeleteBecause{{property.Name}}_{{deleteIterator + 1}} = await _deps.Context.DbSet<{{parentEntity.Name}}>()
                     .AsNoTracking()
-                    .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains(x.{{property.Name}}.Id))
+                    .Where(x => {{listForDeleteVariableName}}_{{deleteIterator}}.Contains({{property.GetForeignKeyAccessExpression(parentEntity, allEntities)}}))
                     .Select(x => x.Id)
                     .ToListAsync();
 """);

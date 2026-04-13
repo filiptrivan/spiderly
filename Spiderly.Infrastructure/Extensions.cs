@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Spiderly.Shared.Attributes.Entity;
 using System.Reflection;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.BaseEntities;
 using Spiderly.Shared.Interfaces;
@@ -121,14 +122,38 @@ namespace Spiderly.Infrastructure
                     else
                         deleteBehavior = DeleteBehavior.SetNull;
 
+                    string foreignKeyName = ResolveForeignKeyName(property, clrType);
+
                     modelBuilder.Entity(clrType)
                         .HasOne(property.PropertyType, property.Name)
                         .WithMany(withManyAttribute.WithMany)
                         .OnDelete(deleteBehavior)
                         .IsRequired(requiredAttribute != null)
-                        .HasForeignKey($"{property.Name}Id");
+                        .HasForeignKey(foreignKeyName);
                 }
             }
+        }
+
+        /// <summary>
+        /// Resolves the FK column name for a many-to-one navigation. EF Core's
+        /// HasForeignKey(string) overload automatically picks up a CLR property with that
+        /// name if one exists on the entity; otherwise it creates a shadow property.
+        /// So this resolver can stay name-based — EF decides real-vs-shadow.
+        ///
+        /// Priority: [ForeignKey] on navigation → [ForeignKey(nameof(Nav))] on a scalar → convention "{NavName}Id".
+        /// </summary>
+        private static string ResolveForeignKeyName(PropertyInfo navigation, Type clrType)
+        {
+            ForeignKeyAttribute fkFromNav = navigation.GetCustomAttribute<ForeignKeyAttribute>();
+            if (fkFromNav != null)
+                return fkFromNav.Name;
+
+            PropertyInfo scalarPointingBack = clrType.GetProperties()
+                .FirstOrDefault(p => p.GetCustomAttribute<ForeignKeyAttribute>()?.Name == navigation.Name);
+            if (scalarPointingBack != null)
+                return scalarPointingBack.Name;
+
+            return $"{navigation.Name}Id";
         }
 
         public static bool IsBusinessOrReadonlyEntity(this Type type)

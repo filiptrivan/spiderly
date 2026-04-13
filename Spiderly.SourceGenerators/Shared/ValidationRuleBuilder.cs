@@ -15,7 +15,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty DTOproperty in DTOProperties)
             {
-                SpiderValidationRule rule = GetRuleForProperty(DTOproperty, DTOProperties);
+                SpiderValidationRule rule = GetRuleForProperty(DTOproperty, DTOProperties, entity);
 
                 if (rule != null)
                     rulesOnDTOProperties.Add(rule);
@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 foreach (SpiderlyProperty property in entity.Properties)
                 {
-                    SpiderValidationRule rule = GetRuleForProperty(property, DTOProperties);
+                    SpiderValidationRule rule = GetRuleForProperty(property, DTOProperties, entity);
 
                     if (rule != null)
                         rulesOnEntityProperties.Add(rule);
@@ -37,12 +37,12 @@ namespace Spiderly.SourceGenerators.Shared
             return mergedValidationRules;
         }
 
-        private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties)
+        private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
         {
             if (property.Type.IsEnumerable() && !property.Attributes.Any(x => x.Name == "Required"))
                 return null;
 
-            string rulePropertyName = GetRulePropertyName(property);
+            string rulePropertyName = GetRulePropertyName(property, entity);
             SpiderlyProperty dtoProperty = DTOProperties.SingleOrDefault(x => x.Name == rulePropertyName);
 
             if (dtoProperty == null)
@@ -60,10 +60,10 @@ namespace Spiderly.SourceGenerators.Shared
             };
         }
 
-        private static string GetRulePropertyName(SpiderlyProperty property)
+        private static string GetRulePropertyName(SpiderlyProperty property, SpiderlyClass entity)
         {
             if (property.HasWithManyAttribute() && property.Type.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
-                return $"{property.Name}Id";
+                return property.ResolveExplicitForeignKeyName(entity) ?? $"{property.Name}Id";
 
             if (property.HasUIOrderedOneToManyAttribute())
                 return $"Ordered{property.Name}SaveBodyDTO";

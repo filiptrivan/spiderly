@@ -201,7 +201,12 @@ namespace Spiderly.SourceGenerators.Shared
                     SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type);
 
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DisplayName", Type = "string", EntityName = $"{property.EntityName}DTO" });
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", EntityName = $"{property.EntityName}DTO" });
+
+                    // Skip FK synthesis when an explicit FK scalar is declared on the entity —
+                    // the scalar flows through the standard `else` branch below under its real name
+                    // (which may be {NavName}Id by convention, or a renamed property via [ForeignKey]).
+                    if (property.ResolveExplicitForeignKeyName(entity) == null)
+                        DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", EntityName = $"{property.EntityName}DTO" });
                 }
                 else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 {

@@ -462,9 +462,95 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "S3PublicUrl");
         }
 
+        public static bool HasForeignKeyAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "ForeignKey");
+        }
+
+        public static string GetForeignKeyAttributeValue(this SpiderlyProperty property)
+        {
+            return property.Attributes.Where(x => x.Name == "ForeignKey").Select(x => x.Value).SingleOrDefault();
+        }
+
         public static bool IsPublicUrl(this SpiderlyProperty property)
         {
             return property.HasCloudinaryPublicIdAttribute() || property.HasS3PublicUrlAttribute();
+        }
+
+        #endregion
+
+        #region Foreign Key Resolution
+
+        /// <summary>
+        /// Resolves the explicit foreign key scalar property paired with a many-to-one navigation,
+        /// or returns null when the navigation uses the shadow FK pattern.
+        ///
+        /// Priority:
+        /// 1. [ForeignKey(nameof(X))] on the navigation → X
+        /// 2. [ForeignKey(nameof(Nav))] on a scalar property → that scalar's name
+        /// 3. Convention: scalar property named "{NavName}Id" with a base data type → its name
+        /// 4. None of the above → null (shadow FK — legacy Spiderly behavior)
+        /// </summary>
+        /// <example>
+        /// public long? ParentCategoryId { get; set; }
+        /// [ForeignKey(nameof(ParentCategoryId))]
+        /// public virtual Category ParentCategory { get; set; }
+        /// // ResolveExplicitForeignKeyName(ParentCategory) => "ParentCategoryId"
+        /// </example>
+        public static string ResolveExplicitForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
+        {
+            if (navigation.Type.IsManyToOneType() == false)
+                return null;
+
+            string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
+            if (fkFromNavAttribute != null && entity.Properties.Any(p => p.Name == fkFromNavAttribute))
+                return fkFromNavAttribute;
+
+            SpiderlyProperty scalarWithFkAttribute = entity.Properties
+                .FirstOrDefault(p => p.Type.IsBaseDataType() && p.GetForeignKeyAttributeValue() == navigation.Name);
+
+            if (scalarWithFkAttribute != null)
+                return scalarWithFkAttribute.Name;
+
+            string conventionName = $"{navigation.Name}Id";
+            SpiderlyProperty conventionMatch = entity.Properties
+                .FirstOrDefault(p => p.Name == conventionName && p.Type.IsBaseDataType());
+
+            if (conventionMatch != null)
+                return conventionMatch.Name;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the LINQ expression fragment used to read a FK value inside an IQueryable.
+        /// Avoids the `{param}.Nav.Id` shape because EF Core still emits a JOIN when it sees
+        /// `nav.Id` access — unresolved since 2019 (https://github.com/dotnet/efcore/issues/15826).
+        ///
+        /// - Explicit FK declared → `{param}.FkName`
+        /// - Shadow fallback → `EF.Property&lt;{idType}&gt;({param}, "{Nav}Id")`
+        ///
+        /// The generic type is non-nullable to match the original `{param}.Nav.Id` semantics
+        /// (so `List&lt;long&gt;.Contains(...)` overload resolution stays intact). Nullable-FK
+        /// filter semantics are preserved because EF translates this to a column predicate —
+        /// the generic annotation is compile-time only; SQL `WHERE col = @id` returns false
+        /// for null cells without materializing.
+        ///
+        /// Generated code that uses the shadow branch must `using Microsoft.EntityFrameworkCore;`.
+        /// </summary>
+        public static string GetForeignKeyAccessExpression(
+            this SpiderlyProperty navigation,
+            SpiderlyClass entity,
+            List<SpiderlyClass> entities,
+            string parameterName = "x")
+        {
+            string fkName = navigation.ResolveExplicitForeignKeyName(entity);
+            if (fkName != null)
+                return $"{parameterName}.{fkName}";
+
+            SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type);
+            string idType = target != null ? target.GetIdType(entities) : "long";
+            return $"EF.Property<{idType}>({parameterName}, \"{navigation.Name}Id\")";
         }
 
         #endregion

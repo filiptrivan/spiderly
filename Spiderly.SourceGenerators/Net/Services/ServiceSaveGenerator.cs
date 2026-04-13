@@ -243,7 +243,7 @@ namespace Spiderly.SourceGenerators.Net
 
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                await _deps.Context.DbSet<{{extractedEntity.Name}}>().Where(x => x.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}.Id == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
+                await _deps.Context.DbSet<{{extractedEntity.Name}}>().Where(x => {{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name).GetForeignKeyAccessExpression(extractedEntity, allEntities)}} == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
 
                 var childService = _deps.ServiceProvider.GetRequiredService<{{extractedEntity.Name}}ServiceGenerated>();
                 var savedOrderedItemsDTO = new List<{{extractedEntity.Name}}MainUIFormDTO>();

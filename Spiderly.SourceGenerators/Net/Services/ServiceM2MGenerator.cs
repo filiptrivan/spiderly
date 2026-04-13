@@ -37,9 +37,9 @@ namespace Spiderly.SourceGenerators.Net
             string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
 
             return $$"""
-{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity)}}
+{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity, allEntityClasses)}}
 
-{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_2, m2mWithManyProperty_1, m2mEntityIdType_2, m2mEntityIdType_1, entity)}}
+{{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_2, m2mWithManyProperty_1, m2mEntityIdType_2, m2mEntityIdType_1, entity, allEntityClasses)}}
 """;
         }
 
@@ -48,7 +48,8 @@ namespace Spiderly.SourceGenerators.Net
             SpiderlyProperty m2mWithManyProperty_2,
             string m2mEntityIdType_1,
             string m2mEntityIdType_2,
-            SpiderlyClass entity
+            SpiderlyClass entity,
+            List<SpiderlyClass> entities
         )
         {
             return $$"""
@@ -71,7 +72,7 @@ namespace Spiderly.SourceGenerators.Net
                 // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
 
                 var dbSet = _deps.Context.DbSet<{{entity.Name}}>();
-                var {{entity.Name.FirstCharToLower()}}List = await dbSet.Where(x => x.{{m2mWithManyProperty_2.Name}}.Id == {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id).ToListAsync();
+                var {{entity.Name.FirstCharToLower()}}List = await dbSet.Where(x => {{m2mWithManyProperty_2.GetForeignKeyAccessExpression(entity, entities)}} == {{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id).ToListAsync();
 
                 foreach ({{entity.Name}}DTO selected{{entity.Name}}DTO in selectedDTOListHelper)
                 {

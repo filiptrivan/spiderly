@@ -234,7 +234,7 @@ namespace Spiderly.SourceGenerators.Net
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
-                    .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
+                    .Where(x => {{manyToOneProperty.GetForeignKeyAccessExpression(extractedPropertyEntity, entities)}} == id)
                     .ToListAsync();
             });
         }
@@ -263,7 +263,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 return await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
-                    .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
+                    .Where(x => {{manyToOneProperty.GetForeignKeyAccessExpression(extractedPropertyEntity, entities)}} == id)
                     .Select(x => new NamebookDTO<{{extractedPropertyEntityIdType}}>
                     {
                         Id = x.Id,
@@ -416,7 +416,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 var existingRecords = await _deps.Context.DbSet<{{junctionEntity.Name}}>()
                     .AsNoTracking()
-                    .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
+                    .Where(x => {{currentSideM2MProperty.GetForeignKeyAccessExpression(junctionEntity, allEntityClasses)}} == id)
                     .ProjectToType<{{junctionEntity.Name}}DTO>(Mapper.{{junctionEntity.Name}}ProjectToConfig())
                     .ToListAsync();
 
@@ -442,7 +442,7 @@ namespace Spiderly.SourceGenerators.Net
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await _deps.Context.DbSet<{{junctionEntity.Name}}>()
-                    .Where(x => x.{{currentSideM2MProperty.Name}}.Id == id)
+                    .Where(x => {{currentSideM2MProperty.GetForeignKeyAccessExpression(junctionEntity, allEntityClasses)}} == id)
                     .ExecuteDeleteAsync();
 
                 foreach (var dto in dtos)
@@ -564,7 +564,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 var ids = await _deps.Context.DbSet<{{extractedPropertyEntity.Name}}>()
                     .AsNoTracking()
-                    .Where(x => x.{{manyToOneProperty.Name}}.Id == id)
+                    .Where(x => {{manyToOneProperty.GetForeignKeyAccessExpression(extractedPropertyEntity, entities)}} == id)
                     .OrderBy(x => x.OrderNumber)
                     .Select(x => x.Id)
                     .ToListAsync();
