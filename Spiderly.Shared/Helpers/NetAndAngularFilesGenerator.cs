@@ -2876,7 +2876,7 @@ namespace {{appName}}.Business.DataMappers
         "dotnet-ef"
       ]
     },
-    "spiderly": {
+    "Spiderly.CLI": {
       "version": "{{spiderlyVersion}}",
       "commands": [
         "spiderly"
