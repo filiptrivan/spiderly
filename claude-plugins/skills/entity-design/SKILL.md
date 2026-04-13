@@ -18,9 +18,40 @@ description: Design Spiderly entities with correct attributes, relationships, an
 
 - Navigation properties **must** be `virtual`: `public virtual Brand Brand { get; set; }`
 - Collections use `List<T>` (not `IList<T>`), initialized inline: `public virtual List<Comment> Comments { get; } = new();`
-- **Never** declare explicit FK properties (e.g., `BrandId`) — Spiderly generates them from navigation properties
+- Explicit FK properties (`BrandId` alongside `Brand`) are **supported and recommended for hot paths** — see *Explicit FK properties* below
 - `[StringLength(X)]` **without** `MinimumLength` = **exact length** validation. Always use `[StringLength(X, MinimumLength = Y)]` for range
 - `[Required]` on navigation properties makes the relationship required (non-nullable FK)
+
+## Explicit FK properties
+
+Default: declare only the navigation (`public virtual Brand Brand { get; set; }`). Spiderly uses EF Core's shadow FK convention (`"BrandId"` column) and generated mappers read it via `EF.Property<>()`. For most admin entities this is fine.
+
+**Declare an explicit FK scalar** when the entity is in a hot path:
+
+```csharp
+public long? BrandId { get; set; }
+[WithMany(nameof(Brand.Products))]
+public virtual Brand Brand { get; set; }
+```
+
+### When to use it
+
+- **Hand-written save/sync code** that builds the entity directly (`new Order { BrandId = id, ... }`) — skips the `FindAsync` + navigation-attach roundtrip that the naive pattern requires
+- **Hot read paths** with `ProjectToDTO` — the mapper emits `x.BrandId` instead of the `EF.Property<long>(x, "BrandId")` workaround for [EF Core #15826](https://github.com/dotnet/efcore/issues/15826), which otherwise still forces a JOIN in some queries
+
+### Rules
+
+- Naming convention: `{NavigationName}Id` — resolved automatically. Use `[ForeignKey(nameof(OtherName))]` only when you need a different scalar name.
+- Nullability must match the relationship: `[Required]` navigation → non-nullable scalar (`long BrandId`); optional nav (`[SetNull]`) → nullable scalar (`long? BrandId`). Mismatch raises **SPID001**.
+- Scalar type must match the parent's `Id` type (`byte`/`int`/`long`). Mismatch raises **SPID003**.
+
+### Caveat — generated CRUD still loads the nav
+
+The generated `Save{Entity}AndReturnDTO` keeps loading the parent via `FindAsync` even when an explicit FK is declared, because the returned DTO's `{Nav}DisplayName` fields read `poco.Nav.DisplayProperty`. Declaring the explicit FK does **not** speed up generated admin CRUD saves — it only helps when you write the save/sync logic yourself and never round-trip through `Save{Entity}AndReturnDTO`.
+
+### Don't bother when
+
+Small admin-only entities with low write volume (banners, announcements, lookup tables without hot reads). The boilerplate isn't worth it — shadow FK stays idiomatic.
 
 ## Relationships Quick Reference
 
@@ -44,6 +75,8 @@ public class Comment : BusinessObject<long>
 | Neither           | No           | Block delete (EF default) |
 
 ### Simple Many-to-Many
+
+`[M2MWithMany]` is treated as an implicit `[Required]` — junction rows must have both sides, so do **not** add `[Required]` on these navigations. If you declare an explicit FK scalar alongside, it must be non-nullable (e.g. `long CartId`, not `long? CartId`).
 
 ```csharp
 [M2M]

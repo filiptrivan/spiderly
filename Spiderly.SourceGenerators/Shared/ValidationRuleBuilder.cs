@@ -75,6 +75,12 @@ namespace Spiderly.SourceGenerators.Shared
         {
             List<SpiderValidationRulePart> ruleParts = new();
 
+            // `[M2MWithMany]` on a junction entity implies required — junction rows can't exist
+            // with a null side — but Spiderly's M2M template never writes `[Required]`. Emit the
+            // NotEmpty rule here so the switch below doesn't need to special-case it.
+            if (property.IsEffectivelyRequired() && property.HasRequiredAttribute() == false)
+                ruleParts.Add(new NotEmptyRulePart());
+
             foreach (SpiderlyAttribute attribute in property.Attributes)
             {
                 switch (attribute.Name)
@@ -122,7 +128,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             // If there is no Required attribute, we should let user save null to database
-            if (ruleParts.Count > 0 && property.Attributes.Any(x => x.Name == "Required") == false)
+            if (ruleParts.Count > 0 && property.IsEffectivelyRequired() == false)
             {
                 if (property.Type == "string")
                 {

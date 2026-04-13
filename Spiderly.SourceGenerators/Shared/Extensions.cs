@@ -387,6 +387,18 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "Required");
         }
 
+        /// <summary>
+        /// Returns true when a navigation or FK scalar should be treated as non-nullable in the
+        /// generated model — either the user wrote <c>[Required]</c>, or the navigation is on an
+        /// M2M junction where <c>[M2MWithMany]</c> is an implicit "required" signal (a junction
+        /// row without both sides is meaningless, and Spiderly's M2M template never emits
+        /// <c>[Required]</c> on these, so callers must not gate on <c>HasRequiredAttribute</c> alone).
+        /// </summary>
+        public static bool IsEffectivelyRequired(this SpiderlyProperty property)
+        {
+            return property.HasRequiredAttribute() || property.HasM2MWithManyAttribute();
+        }
+
         public static bool HasUIOrderedOneToManyAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "UIOrderedOneToMany");

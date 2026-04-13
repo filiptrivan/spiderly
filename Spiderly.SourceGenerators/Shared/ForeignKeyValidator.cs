@@ -80,7 +80,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static void ValidateNullabilityAlignment(SpiderlyProperty navigation, SpiderlyProperty fkProperty, SpiderlyClass entity)
         {
-            bool navIsRequired = navigation.HasRequiredAttribute();
+            bool navIsRequired = navigation.IsEffectivelyRequired();
             bool fkIsNullable = fkProperty.Type.TrimEnd().EndsWith("?");
 
             if (navIsRequired && fkIsNullable)

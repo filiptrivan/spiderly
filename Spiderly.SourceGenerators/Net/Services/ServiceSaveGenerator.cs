@@ -402,6 +402,23 @@ namespace Spiderly.SourceGenerators.Net
 
         #endregion
 
+        /// <summary>
+        /// Emits one <c>FindAsync</c> + navigation-attach block per M2O relationship.
+        ///
+        /// This is intentionally not optimized into a direct scalar-FK assignment, even when the
+        /// entity declares an explicit FK property. Two reasons to keep the load:
+        ///   1. <c>Save{Entity}AndReturnDTO</c> maps the saved entity back through
+        ///      <c>{Entity}ToDTOConfig</c>, which reads <c>src.Nav.{DisplayName}</c> to populate
+        ///      <c>{Nav}DisplayName</c> fields on the response DTO. Skipping the load leaves those
+        ///      fields null — the admin grids and autocomplete chips would render empty.
+        ///   2. The generated CRUD path is an admin-panel path. Volume is low and latency is not
+        ///      user-facing, so the readability of "load parent, assign nav" wins over shaving a
+        ///      roundtrip. Hot paths (storefront order placement, bulk sync) are hand-written —
+        ///      those can assign the explicit FK scalar directly and skip this detour.
+        ///
+        /// If you ever need to change this, also rework <c>Save{Entity}AndReturnDTO</c> to do a
+        /// single post-save <c>Include</c>-query for the navs referenced by DisplayName mappings.
+        /// </summary>
         private static List<string> GetManyToOneInstancesForSave(SpiderlyClass entityClass, List<SpiderlyClass> allEntityClasses)
         {
             List<string> result = new();
