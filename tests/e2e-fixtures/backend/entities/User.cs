@@ -24,8 +24,6 @@ namespace __APP_NAME__.Business.Entities
         public virtual List<Role> Roles { get; } = new(); // M2M
         IReadOnlyCollection<IRole> IUser.Roles => Roles;
 
-        public virtual List<Notification> Notifications { get; } = new(); // M2M
-
         [UIDoNotGenerate]
         public virtual List<Project> Projects { get; } = new(); // M2M
 
