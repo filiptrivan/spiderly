@@ -1,4 +1,5 @@
 using Spiderly.Shared.DTO;
+using Spiderly.Shared.Emailing;
 
 namespace Spiderly.Shared.Interfaces
 {
@@ -23,6 +24,11 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="body">The email body (HTML supported)</param>
         /// <param name="from">Optional sender email address. If not provided, uses the default sender from settings</param>
         Task SendEmailAsync(string recipient, string subject, string body, string from = null);
+
+        /// <summary>
+        /// Sends an email with binary attachments (e.g., PDF documents).
+        /// </summary>
+        Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, string from = null);
 
         /// <summary>
         /// Sends the same email to multiple recipients

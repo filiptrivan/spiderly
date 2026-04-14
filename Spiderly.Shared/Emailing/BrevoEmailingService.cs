@@ -31,6 +31,11 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(recipient, subject, body, from);
         }
 
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, string from = null)
+        {
+            await SendViaBrevoAsync(recipient, subject, body, from, attachments);
+        }
+
         public async Task SendEmailAsync(List<string> recipients, string subject, string body)
         {
             foreach (string recipient in recipients)
@@ -57,17 +62,26 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private async Task SendViaBrevoAsync(string recipient, string subject, string body, string from = null)
+        private async Task SendViaBrevoAsync(string recipient, string subject, string body, string from = null, IEnumerable<EmailAttachment> attachments = null)
         {
             string senderEmail = from ?? SettingsProvider.Current.EmailSender;
 
-            var payload = new
+            Dictionary<string, object> payload = new()
             {
-                sender = new { email = senderEmail },
-                to = new[] { new { email = recipient } },
-                subject,
-                htmlContent = body
+                ["sender"] = new { email = senderEmail },
+                ["to"] = new[] { new { email = recipient } },
+                ["subject"] = subject,
+                ["htmlContent"] = body,
             };
+
+            // Brevo expects attachments as [{ name, content }] with base64 content.
+            object[] brevoAttachments = attachments?
+                .Where(a => a != null && !string.IsNullOrEmpty(a.ContentBase64))
+                .Select(a => (object)new { name = a.Name, content = a.ContentBase64 })
+                .ToArray();
+
+            if (brevoAttachments is { Length: > 0 })
+                payload["attachment"] = brevoAttachments;
 
             HttpClient httpClient = _httpClientFactory.CreateClient("Brevo");
 

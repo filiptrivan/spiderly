@@ -46,6 +46,32 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, string from = null)
+        {
+            using MailMessage mailMessage = new(from ?? SettingsProvider.Current.EmailSender, recipient)
+            {
+                Subject = subject,
+                Body = body,
+                BodyEncoding = Encoding.UTF8,
+                IsBodyHtml = true,
+            };
+
+            if (attachments != null)
+            {
+                foreach (EmailAttachment attachment in attachments)
+                {
+                    if (attachment == null || string.IsNullOrEmpty(attachment.ContentBase64))
+                        continue;
+
+                    byte[] bytes = Convert.FromBase64String(attachment.ContentBase64);
+                    MemoryStream stream = new(bytes);
+                    mailMessage.Attachments.Add(new Attachment(stream, attachment.Name, attachment.ContentType ?? "application/octet-stream"));
+                }
+            }
+
+            await _smtpClient.SendMailAsync(mailMessage);
+        }
+
         public async Task SendEmailAsync(List<string> recipients, string subject, string body)
         {
             foreach (string recipient in recipients)
