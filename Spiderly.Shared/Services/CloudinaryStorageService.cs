@@ -1,4 +1,4 @@
-﻿using CloudinaryDotNet;
+using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -28,12 +28,10 @@ namespace Spiderly.Shared.Services
             string newFileName = null
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
 
             if (newFileName == null)
             {
-                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-                newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}";
+                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
             }
 
             ImageUploadParams imageParams = new()
@@ -74,12 +72,11 @@ namespace Spiderly.Shared.Services
 
         public async Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId)
         {
-            // TODO: Do null validation for every argument of the method in Helper method
 
-            if (objectId == "0")
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
-            string prefix = $"{objectId}-{objectType}-{objectProperty}-";
+            string prefix = $"{objectType}/{objectProperty}/{objectId}/";
 
             ListResourcesByPrefixParams listParams = new ListResourcesByPrefixParams()
             {
@@ -125,6 +122,27 @@ namespace Spiderly.Shared.Services
             string objectId)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<string> MoveBlobToEntityPathAsync(
+            string currentKey,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+                return currentKey;
+
+            RenameResult renameResult = await _cloudinary.RenameAsync(new RenameParams(currentKey, newKey)
+            {
+                Overwrite = false,
+                Invalidate = true,
+            });
+
+            if (renameResult.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception(renameResult.Error?.Message ?? "Cloudinary rename failed.");
+
+            return newKey;
         }
     }
 }

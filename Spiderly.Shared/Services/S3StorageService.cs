@@ -1,4 +1,4 @@
-﻿using Amazon.S3;
+using Amazon.S3;
 using Amazon.S3.Model;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -26,13 +26,9 @@ namespace Spiderly.Shared.Services
             string newFileName = null
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
-            // TODO FT: Validate if user has changed ContentType to something we don't handle
-
             if (newFileName == null)
             {
-                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-                newFileName = $"{objectType}/{objectProperty}/{objectId}/{objectId}-{Guid.NewGuid()}.{fileExtension}";
+                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
             }
 
             var putRequest = new PutObjectRequest
@@ -54,7 +50,8 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId)
         {
-            if (objectId == "0") // If we delete 0, we will delete the blob for multiple users/partners/etc.
+            // Staged uploads live under _tmp/, not the per-entity folder scanned here.
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
             string prefix = $"{objectType}/{objectProperty}/{objectId}/";
@@ -101,6 +98,28 @@ namespace Spiderly.Shared.Services
             string objectId)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<string> MoveBlobToEntityPathAsync(
+            string currentKey,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+                return currentKey;
+
+            await _s3Client.CopyObjectAsync(new CopyObjectRequest
+            {
+                SourceBucket = _bucketName,
+                SourceKey = currentKey,
+                DestinationBucket = _bucketName,
+                DestinationKey = newKey,
+            });
+
+            await _s3Client.DeleteObjectAsync(_bucketName, currentKey);
+
+            return newKey;
         }
     }
 }

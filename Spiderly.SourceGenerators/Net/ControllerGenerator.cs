@@ -70,11 +70,13 @@ namespace Spiderly.SourceGenerators.Net
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Azure.Storage.Blobs;
 using System.Data;
 using Spiderly.Infrastructure;
+using Spiderly.Shared.Constants;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Attributes;
@@ -582,6 +584,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
+        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]
         public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}([FromForm] IFormFile file) // FT: It doesn't work without interface
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}For{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}}); // TODO: Make authorization in business service with override
@@ -607,6 +610,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
+        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]
         public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});

@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Spiderly.Shared.Constants;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
@@ -301,6 +302,17 @@ namespace Spiderly.Shared.Extensions
                         }
                     );
                 });
+
+                // Customer apps tune the limits via BlobUploadRequestsLimitNumber/Window in appsettings.
+                options.AddPolicy(SpiderlyRateLimitPolicies.BlobUpload, httpContext =>
+                    RateLimitPartition.GetSlidingWindowLimiter(
+                        partitionKey: Helper.GetIPAddress(httpContext),
+                        factory: _ => new SlidingWindowRateLimiterOptions
+                        {
+                            PermitLimit = SettingsProvider.Current.BlobUploadRequestsLimitNumber,
+                            Window = TimeSpan.FromSeconds(SettingsProvider.Current.BlobUploadRequestsLimitWindow),
+                            SegmentsPerWindow = 6,
+                        }));
 
                 options.OnRejected = (context, cancellationToken) =>
                 {

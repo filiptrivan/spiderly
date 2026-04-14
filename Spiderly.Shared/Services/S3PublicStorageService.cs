@@ -32,13 +32,9 @@ namespace Spiderly.Shared.Services
             string newFileName = null
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
-            // TODO: Validate if user has changed ContentType to something we don't handle
-
             if (newFileName == null)
             {
-                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-                newFileName = $"{objectType}/{objectProperty}/{objectId}/{objectId}-{Guid.NewGuid()}.{fileExtension}";
+                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
             }
 
             FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
@@ -61,7 +57,7 @@ namespace Spiderly.Shared.Services
 
             await _s3Client.PutObjectAsync(putRequest);
 
-            return $"{_endpoint.TrimEnd('/')}/{newFileName}";
+            return BuildUrl(newFileName);
         }
 
         public async Task DeleteNonActiveBlobs(
@@ -70,7 +66,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId)
         {
-            if (objectId == "0") // If we delete 0, we will delete the blob for multiple users/partners/etc.
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
             string activeKey = ExtractS3KeyFromUrl(url);
@@ -133,7 +129,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId)
         {
-            if (objectId == "0")
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
             HashSet<string> activeKeys = activeImageUrls
@@ -157,6 +153,34 @@ namespace Spiderly.Shared.Services
                 await _s3Client.DeleteObjectAsync(_bucketName, obj.Key);
             }
         }
+
+        public async Task<string> MoveBlobToEntityPathAsync(
+            string currentUrl,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            string currentKey = ExtractS3KeyFromUrl(currentUrl);
+
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+                return currentUrl;
+
+            await _s3Client.CopyObjectAsync(new CopyObjectRequest
+            {
+                SourceBucket = _bucketName,
+                SourceKey = currentKey,
+                DestinationBucket = _bucketName,
+                DestinationKey = newKey,
+                MetadataDirective = S3MetadataDirective.COPY,
+            });
+
+            await _s3Client.DeleteObjectAsync(_bucketName, currentKey);
+
+            return BuildUrl(newKey);
+        }
+
+        private string BuildUrl(string key) =>
+            $"{_endpoint.TrimEnd('/')}/{key}";
 
         private string ExtractS3KeyFromUrl(string urlOrKey)
         {

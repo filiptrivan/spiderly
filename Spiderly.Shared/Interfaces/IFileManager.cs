@@ -1,4 +1,4 @@
-﻿namespace Spiderly.Shared.Interfaces
+namespace Spiderly.Shared.Interfaces
 {
     public interface IFileManager
     {
@@ -11,5 +11,14 @@
         Task DeleteNonActiveEditorImages(List<string> activeImageUrls, string objectType, string objectProperty, string objectId);
 
         Task<string> GetFileDataAsync(string key);
+
+        /// <summary>
+        /// Moves a blob that was uploaded to the temporary staging prefix to its permanent
+        /// entity-scoped path. Called by generated save flow once the entity has a real id.
+        /// Returns the new key (or url for providers that return urls). If the supplied
+        /// <paramref name="currentKeyOrUrl"/> is not under the staging prefix the value is
+        /// returned unchanged.
+        /// </summary>
+        Task<string> MoveBlobToEntityPathAsync(string currentKeyOrUrl, string objectType, string objectProperty, string objectId);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -18,9 +18,6 @@ namespace Spiderly.Shared.Services
         {
         }
 
-        /// <summary>
-        /// If you want to store files under a custom root, pass it in here.
-        /// </summary>
         public DiskStorageService(string rootPath, ILogger<DiskStorageService> logger)
         {
             _rootPath = rootPath;
@@ -29,11 +26,10 @@ namespace Spiderly.Shared.Services
         }
 
         /// <summary>
-        /// 1. Extracts the extension from the original fileName.
-        /// 2. Builds a new filename: 
-        ///      "{objectType}-{objectProperty}-{objectId}-{GUID}.{extension}"
-        /// 3. Saves the stream at "{_rootPath}/{newFilename}".
-        /// 4. Returns just "newFilename" (this is your "key").
+        /// Builds a hierarchical key "{objectType}/{objectProperty}/{objectId}/{GUID}.{ext}"
+        /// (or "{objectType}/{objectProperty}/_tmp/{uploadGuid}/{GUID}.{ext}" for inserts),
+        /// creates the intermediate directories, and writes the stream.
+        /// Returns the relative key (forward-slash separated) — same semantics as S3.
         /// </summary>
         public async Task<string> UploadFileAsync(
             string fileName,
@@ -44,17 +40,15 @@ namespace Spiderly.Shared.Services
             string newFileName = null
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
 
             if (newFileName == null)
             {
-                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-                newFileName = $"{objectId}-{objectType}-{objectProperty}-{Guid.NewGuid()}.{fileExtension}"; // e.g. "1234-User-LogoBlobName-9f1b2c3d4e5f6789abcdef.pdf"
+                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
             }
 
-            string fullPath = Path.Combine(_rootPath, newFileName);
+            string fullPath = Path.Combine(_rootPath, newFileName.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
 
-            // Write the Stream to disk under "{_rootPath}/{newFileName}"
             using FileStream fileStream = new FileStream(
                 fullPath,
                 FileMode.CreateNew,
@@ -67,17 +61,16 @@ namespace Spiderly.Shared.Services
         }
 
         /// <summary>
-        /// Given the "key",
-        /// 1. Loads "{_rootPath}/{key}" into memory,
-        /// 2. Base64‐encodes it,
-        /// 3. Returns "filename={key};base64,{base64Payload}".
+        /// Given the "key" (relative path with forward slashes, as returned by <see cref="UploadFileAsync"/>),
+        /// loads the file from disk, base64-encodes its content, and returns
+        /// "filename={key};base64,{base64Payload}" — matching the format used by S3/Azure.
         /// </summary>
         public async Task<string> GetFileDataAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("key cannot be null or empty", nameof(key));
 
-            string fullPath = Path.Combine(_rootPath, key);
+            string fullPath = Path.Combine(_rootPath, key.Replace('/', Path.DirectorySeparatorChar));
             if (!File.Exists(fullPath))
                 throw new FileNotFoundException($"No file found for key '{key}' (expected path: '{fullPath}')");
 
@@ -88,11 +81,11 @@ namespace Spiderly.Shared.Services
         }
 
         /// <summary>
-        /// Deletes every file under {_rootPath} whose filename 
-        /// starts with "{objectId}-{objectType}-{objectProperty}-"
-        /// except the one named exactly "activeBlobName".
-        /// 
-        /// If objectId == "0", it does nothing (to avoid accidental mass‐deletion).
+        /// Deletes every file under "{_rootPath}/{objectType}/{objectProperty}/{objectId}/"
+        /// except the one matching <paramref name="activeBlobName"/>. No-op when
+        /// <paramref name="objectId"/> is the staging placeholder ("0" or empty) — staged
+        /// uploads live under a separate "_tmp/" prefix and are pruned by the provider's
+        /// lifecycle rule, not by this method.
         /// </summary>
         public Task DeleteNonActiveBlobs(
             string activeBlobName,
@@ -101,31 +94,31 @@ namespace Spiderly.Shared.Services
             string objectId
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
 
-            if (objectId == "0") // If objectId is "0", we skip deletion entirely
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return Task.CompletedTask;
 
-            // Build the prefix to match, e.g. "User-Logo-1234-"
-            string prefix = $"{objectId}-{objectType}-{objectProperty}-";
+            string entityDir = Path.Combine(_rootPath, objectType, objectProperty, objectId);
 
-            // Enumerate every file in _rootPath:
-            foreach (string fullPath in Directory.EnumerateFiles(_rootPath))
+            if (!Directory.Exists(entityDir))
+                return Task.CompletedTask;
+
+            string activeFullPath = string.IsNullOrEmpty(activeBlobName)
+                ? null
+                : Path.Combine(_rootPath, activeBlobName.Replace('/', Path.DirectorySeparatorChar));
+
+            foreach (string fullPath in Directory.EnumerateFiles(entityDir))
             {
-                string fileName = Path.GetFileName(fullPath);
+                if (activeFullPath != null && string.Equals(fullPath, activeFullPath, StringComparison.OrdinalIgnoreCase))
+                    continue;
 
-                // If it matches the prefix but is NOT the active one, delete it:
-                if (fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(fileName, activeBlobName, StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    try
-                    {
-                        File.Delete(fullPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to delete blob file: {FilePath}", fullPath);
-                    }
+                    File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete blob file: {FilePath}", fullPath);
                 }
             }
 
@@ -139,6 +132,25 @@ namespace Spiderly.Shared.Services
             string objectId)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<string> MoveBlobToEntityPathAsync(
+            string currentKey,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+                return currentKey;
+
+            string sourcePath = Path.Combine(_rootPath, currentKey.Replace('/', Path.DirectorySeparatorChar));
+            string destPath = Path.Combine(_rootPath, newKey.Replace('/', Path.DirectorySeparatorChar));
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+
+            await Task.Run(() => File.Move(sourcePath, destPath));
+
+            return newKey;
         }
     }
 }

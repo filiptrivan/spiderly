@@ -572,6 +572,47 @@ User ID: {{{userId}}}
                     ?? $"File size must not exceed {maxFileSize / 1_000_000} MB.");
         }
 
+        /// <summary>
+        /// Validates that the content-type header declared by the client is in the allowed list
+        /// AND that the stream's magic bytes match one of the signatures for that type.
+        /// Both checks are required — client-supplied Content-Type is trivially spoofable.
+        /// Resets <paramref name="content"/> to position 0 after reading the header.
+        /// </summary>
+        public static async Task ValidateFileSignature(
+            Stream content,
+            string declaredContentType,
+            IReadOnlyCollection<string> allowedMimeTypes,
+            IStringLocalizer localizer = null)
+        {
+            if (allowedMimeTypes == null || allowedMimeTypes.Count == 0)
+                return;
+
+            if (string.IsNullOrEmpty(declaredContentType) ||
+                !allowedMimeTypes.Any(t => t.Equals(declaredContentType, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new HackerException(localizer?["FileTypeNotAllowed", declaredContentType ?? ""]
+                    ?? $"File type '{declaredContentType}' is not allowed.");
+            }
+
+            byte[] header = new byte[16];
+            content.Position = 0;
+            int read = await content.ReadAsync(header, 0, header.Length);
+            content.Position = 0;
+
+            if (read == 0)
+                throw new HackerException(localizer?["FileIsEmpty"] ?? "File is empty.");
+
+            byte[] headerTrimmed = read == header.Length ? header : header.Take(read).ToArray();
+
+            if (!FileSignatures.Map.TryGetValue(declaredContentType, out byte?[][] signatures))
+                throw new HackerException(localizer?["FileTypeNotAllowed", declaredContentType]
+                    ?? $"File type '{declaredContentType}' is not allowed.");
+
+            if (!signatures.Any(sig => FileSignatures.Matches(headerTrimmed, sig)))
+                throw new HackerException(localizer?["FileContentDoesNotMatchType", declaredContentType]
+                    ?? $"File content does not match declared type '{declaredContentType}'.");
+        }
+
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);

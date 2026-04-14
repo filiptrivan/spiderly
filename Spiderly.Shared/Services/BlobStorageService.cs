@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Spiderly.Shared.Helpers;
@@ -25,27 +25,17 @@ namespace Spiderly.Shared.Services
             string newFileName = null
         )
         {
-            // TODO: Do null validation for every argument of the method in Helper method
-
-            // TODO FT: Validate if user has changed ContentType to something we don't handle
             if (newFileName == null)
             {
-                string fileExtension = Helper.GetFileExtensionFromFileName(fileName);
-                newFileName = $"{objectId}-{Guid.NewGuid()}.{fileExtension}";
+                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
             }
 
             BlobClient blobClient = _blobContainerClient.GetBlobClient(newFileName);
 
             await blobClient.UploadAsync(content);
 
-            Dictionary<string, string> tags = new()
-            {
-                { "objectType", $"{objectType}" },
-                { "objectProperty", $"{objectProperty}" },
-                { "objectId", $"{objectId}" },
-            };
-
-            await blobClient.SetTagsAsync(tags); // https://stackoverflow.com/questions/52769758/azure-blob-storage-authorization-permission-mismatch-error-for-get-request-wit 
+            // https://stackoverflow.com/questions/52769758/azure-blob-storage-authorization-permission-mismatch-error-for-get-request-wit
+            await blobClient.SetTagsAsync(BuildTags(objectType, objectProperty, objectId));
 
             return newFileName;
         }
@@ -53,7 +43,7 @@ namespace Spiderly.Shared.Services
         // Before this in save method the authorization is being done, so we don't need to do it here also
         public async Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId)
         {
-            if (objectId == "0") // If we delete 0, we will delete the blob for multiple users/partners/etc.
+            if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
             AsyncPageable<TaggedBlobItem> blobs = _blobContainerClient.FindBlobsByTagsAsync($"\"objectType\"='{objectType}' AND \"objectProperty\"='{objectProperty}' AND \"objectId\"='{objectId}'");
@@ -86,5 +76,39 @@ namespace Spiderly.Shared.Services
         {
             throw new NotImplementedException();
         }
+
+        public async Task<string> MoveBlobToEntityPathAsync(
+            string currentKey,
+            string objectType,
+            string objectProperty,
+            string objectId)
+        {
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+                return currentKey;
+
+            BlobClient sourceBlob = _blobContainerClient.GetBlobClient(currentKey);
+            BlobClient destBlob = _blobContainerClient.GetBlobClient(newKey);
+
+            // Tags applied atomically with the copy — saves a separate SetTagsAsync round-trip.
+            CopyFromUriOperation copyOp = await destBlob.StartCopyFromUriAsync(
+                sourceBlob.Uri,
+                new BlobCopyFromUriOptions
+                {
+                    Tags = BuildTags(objectType, objectProperty, objectId),
+                });
+            await copyOp.WaitForCompletionAsync();
+
+            await sourceBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots);
+
+            return newKey;
+        }
+
+        private static Dictionary<string, string> BuildTags(string objectType, string objectProperty, string objectId) =>
+            new()
+            {
+                { "objectType", objectType },
+                { "objectProperty", objectProperty },
+                { "objectId", objectId },
+            };
     }
 }

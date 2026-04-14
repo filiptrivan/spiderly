@@ -87,6 +87,8 @@ namespace Spiderly.SourceGenerators.Net
 
                 await _deps.Context.SaveChangesAsync();
 
+{{string.Join("\n", GetMoveStagedBlobMethods(entity))}}
+
 {{string.Join("\n", GetNonActiveDeleteBlobMethods(entity))}}
 
 {{string.Join("\n", GetNonActiveDeleteEditorImageMethods(entity))}}
@@ -493,6 +495,45 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
+        /// <summary>
+        /// Emits code that — once the entity has a real id — moves blobs uploaded into the
+        /// `_tmp/` staging prefix to their permanent entity-scoped path. No-op for blobs
+        /// already at their permanent path (the move method short-circuits). The trailing
+        /// SaveChanges is guarded by a flag so the common no-staged-upload path doesn't
+        /// incur a pointless round-trip.
+        /// </summary>
+        private static List<string> GetMoveStagedBlobMethods(SpiderlyClass entity)
+        {
+            List<string> result = new();
+
+            List<SpiderlyProperty> blobProperties = Helpers.GetBlobProperties(entity.Properties);
+
+            if (blobProperties.Count == 0)
+                return result;
+
+            result.Add("                bool anyBlobMoved = false;");
+
+            foreach (SpiderlyProperty property in blobProperties)
+            {
+                result.Add($$"""
+                if (!string.IsNullOrEmpty(poco.{{property.Name}}))
+                {
+                    string moved{{property.Name}} = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.MoveBlobToEntityPathAsync(poco.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
+                    if (moved{{property.Name}} != poco.{{property.Name}})
+                    {
+                        poco.{{property.Name}} = moved{{property.Name}};
+                        dto.{{property.Name}} = moved{{property.Name}};
+                        anyBlobMoved = true;
+                    }
+                }
+""");
+            }
+
+            result.Add("                if (anyBlobMoved) await _deps.Context.SaveChangesAsync();");
+
+            return result;
+        }
+
         private static List<string> GetNonActiveDeleteEditorImageMethods(SpiderlyClass entity)
         {
             List<string> result = new();
@@ -544,6 +585,7 @@ namespace Spiderly.SourceGenerators.Net
                 {{ServicesGenerator.GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Insert, "")}}
             }
 {{GetFileSizeValidation(property)}}
+{{GetFileTypeValidation(property)}}
             string fileName;
 
             using (Stream stream = file.OpenReadStream())
@@ -638,11 +680,43 @@ namespace Spiderly.SourceGenerators.Net
             int maxFileSize = property.GetMaxFileSize();
 
             if (maxFileSize == 0)
-                return "";
+                maxFileSize = 20_000_000; // 20 MB default when [MaxFileSize] not specified
 
             return $"""
 
             Helper.ValidateFileSize(file.Length, {maxFileSize}, _deps.Localizer);
+""";
+        }
+
+        /// <summary>
+        /// Emits server-side MIME + magic-byte validation. MIME types are taken from
+        /// <c>[AcceptedFileTypes]</c> (filtered to actual MIME strings — extensions like
+        /// ".pdf" are stripped); absent attribute falls back to <c>FileSignatures.ImageMimeTypes</c>.
+        /// </summary>
+        private static string GetFileTypeValidation(SpiderlyProperty property)
+        {
+            List<string> attributeValues = property.GetAcceptedFileTypes();
+            List<string> mimeTypes = attributeValues?
+                .Where(v => v.Contains('/'))
+                .ToList();
+
+            string allowedMimeTypesExpression;
+            if (mimeTypes == null || mimeTypes.Count == 0)
+            {
+                allowedMimeTypesExpression = "FileSignatures.ImageMimeTypes";
+            }
+            else
+            {
+                string joined = string.Join(", ", mimeTypes.Select(t => $"\"{t}\""));
+                allowedMimeTypesExpression = $"new[] {{ {joined} }}";
+            }
+
+            return $$"""
+
+            using (Stream signatureStream = file.OpenReadStream())
+            {
+                await Helper.ValidateFileSignature(signatureStream, file.ContentType, {{allowedMimeTypesExpression}}, _deps.Localizer);
+            }
 """;
         }
 
