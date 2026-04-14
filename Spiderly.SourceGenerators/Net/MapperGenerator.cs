@@ -61,7 +61,6 @@ namespace Spiderly.SourceGenerators.Net
             sb.AppendLine($$"""
 using Mapster;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using {{basePartOfNamespace}}.DTO;
 using {{basePartOfNamespace}}.Entities;
 
@@ -214,12 +213,11 @@ namespace {{basePartOfNamespace}}.DataMappers
                     string manyToOneEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
                     manyToOneEntityDisplayName = manyToOneEntityDisplayName.Replace(".ToString()", ""); // TODO FT: Check why are you doing this, maybe it's okay to do ToString()
 
-                    // FK projection: avoid `src.Nav.Id` where possible. EF Core still emits a JOIN
-                    // for navigation.Id access (unresolved since 2019: https://github.com/dotnet/efcore/issues/15826),
-                    // and a null navigation would NRE at mapping time.
-                    // - Explicit FK declared on the entity → read the scalar directly (typed, no magic).
-                    // - Shadow FK fallback → EF.Property<>() pulls the value from the change tracker without
-                    //   forcing the navigation to load and without the join.
+                    // Explicit FK (declared scalar) → read the scalar directly; avoids EF Core's spurious
+                    // JOIN on `src.Nav.Id` (unresolved since 2019: https://github.com/dotnet/efcore/issues/15826).
+                    // Shadow FK fallback → `src.Nav.Id`. Mapster inserts null-checks for nested access, and
+                    // EF.Property<>() cannot be used here because the same mapper config runs outside EF
+                    // (Mapster.Adapt on materialized entities), where EF.Property throws at runtime.
                     string fkName = property.ResolveExplicitForeignKeyName(entity);
                     if (fkName != null)
                     {
@@ -227,8 +225,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     }
                     else
                     {
-                        string idType = manyToOneEntity.GetIdType(entities);
-                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => EF.Property<{idType}?>(src, \"{property.Name}Id\"))");
+                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => src.{property.Name}.Id)");
                     }
                     manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}DisplayName, src => src.{property.Name}.{manyToOneEntityDisplayName})"); // "dest.TierDisplayName", "src.Tier.Name"
                 }
