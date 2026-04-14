@@ -65,7 +65,7 @@ namespace Spiderly.CLI.Commands
             bool hasEfMigrationErrors = false;
             bool hasDatabaseUpdateErrors = false;
             bool hasPmInstallErrors = false;
-            bool hasUserSecretsErrors = false;
+            bool hasLocalDevSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
             string connectionString = null;
@@ -119,19 +119,19 @@ namespace Spiderly.CLI.Commands
 
             string rootPath = Path.Combine(currentPath, appName.ToKebabCase());
 
-            // Parallelization opportunity: the steps below (user secrets, NuGet restore, EF pipeline, npm install)
+            // Parallelization opportunity: the steps below (local dev secrets, NuGet restore, EF pipeline, npm install)
             // are independent and could run in parallel (~30-45s savings). We intentionally keep them sequential
             // to preserve clean, non-interleaved process output — AI agents rely on verbose CLI output for observability.
             if (!hasNetAndAngularInitErrors)
             {
-                ConsoleHelper.MarkupLineLoading("Setting up user secrets...");
-                if (await SetupUserSecrets(rootPath, appName, jwtKey, connectionString))
+                ConsoleHelper.MarkupLineLoading("Writing local dev secrets...");
+                if (SetupLocalDevSecrets(rootPath, appName, jwtKey, connectionString))
                 {
-                    ConsoleHelper.MarkupLineOK("User secrets configured successfully");
+                    ConsoleHelper.MarkupLineOK("Local dev secrets written to appsettings.Development.local.json (gitignored)");
                 }
                 else
                 {
-                    hasUserSecretsErrors = true;
+                    hasLocalDevSecretsErrors = true;
                 }
             }
             string backendPath = Path.Combine(rootPath, "Backend");
@@ -191,15 +191,15 @@ namespace Spiderly.CLI.Commands
                 hasPmInstallErrors = true;
             }
 
-            if (hasNetAndAngularInitErrors || hasUserSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
+            if (hasNetAndAngularInitErrors || hasLocalDevSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
                     ConsoleHelper.MarkupLineERROR("Error occurred while generating files for the app.");
                 }
-                else if (hasUserSecretsErrors)
+                else if (hasLocalDevSecretsErrors)
                 {
-                    ConsoleHelper.MarkupLineERROR("Error occurred while setting up user secrets.");
+                    ConsoleHelper.MarkupLineERROR("Error occurred while writing local dev secrets.");
                 }
                 else if (hasRestoreErrors)
                 {
@@ -233,42 +233,39 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static async Task<bool> SetupUserSecrets(string rootPath, string appName, string jwtKey, string connectionString)
+        private static bool SetupLocalDevSecrets(string rootPath, string appName, string jwtKey, string connectionString)
         {
             string webApiPath = Path.Combine(rootPath, "Backend", $"{appName}.WebAPI");
+            string localSecretsFilePath = Path.Combine(webApiPath, "appsettings.Development.local.json");
 
-            bool success = true;
-
-            if (!string.IsNullOrEmpty(jwtKey))
+            try
             {
-                string jwtKeyUserSecretsErrorMessage = "Failed to set jwt key in user secrets.";
+                string jwtKeyJson = string.IsNullOrEmpty(jwtKey) ? "" : jwtKey;
+                string connectionStringJson = (connectionString ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-                (bool sharedJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:JwtKey\" \"{jwtKey}\"", webApiPath);
-                if (!sharedJwtSuccess)
-                {
-                    ConsoleHelper.MarkupLineERROR(jwtKeyUserSecretsErrorMessage);
-                    success = false;
-                }
+                string json = $$"""
+{
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "AppSettings": {
+    "Spiderly.Shared": {
+      "ConnectionString": "{{connectionStringJson}}",
+      "JwtKey": "{{jwtKeyJson}}"
+    },
+    "Spiderly.Security": {
+      "JwtKey": "{{jwtKeyJson}}"
+    }
+  }
+}
+""";
 
-                (bool securityJwtSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Security:JwtKey\" \"{jwtKey}\"", webApiPath);
-                if (!securityJwtSuccess)
-                {
-                    ConsoleHelper.MarkupLineERROR(jwtKeyUserSecretsErrorMessage);
-                    success = false;
-                }
+                File.WriteAllText(localSecretsFilePath, json);
+                return true;
             }
-
-            if (!string.IsNullOrEmpty(connectionString))
+            catch (Exception ex)
             {
-                (bool connectionStringSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"user-secrets set \"AppSettings:Spiderly.Shared:ConnectionString\" \"{connectionString}\"", webApiPath);
-                if (!connectionStringSuccess)
-                {
-                    ConsoleHelper.MarkupLineERROR($"Failed to set connection string in user secrets.");
-                    success = false;
-                }
+                ConsoleHelper.MarkupLineERROR($"Failed to write appsettings.Development.local.json: {ex.Message}");
+                return false;
             }
-
-            return success;
         }
 
         private static string GetAppName(string appName)

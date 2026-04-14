@@ -18,8 +18,6 @@ namespace Spiderly.Shared.Helpers
       DbProviderCodes dbProvider = options.DbProvider;
       PackageManagerCodes packageManager = options.PackageManager;
 
-      string userSecretsId = Guid.NewGuid().ToString();
-
       SpiderlyFolder appStructure = new SpiderlyFolder
       {
         Name = appName.ToKebabCase(),
@@ -380,7 +378,7 @@ namespace Spiderly.Shared.Helpers
                         Name = $"{appName}.Migrations",
                         Files =
                         {
-                            new SpiderlyFile { Name = $"{appName}.Migrations.csproj", Data = GetMigrationsCsProjData(appName, userSecretsId, dbProvider) },
+                            new SpiderlyFile { Name = $"{appName}.Migrations.csproj", Data = GetMigrationsCsProjData(appName, dbProvider) },
                             new SpiderlyFile { Name = "MigrationsDbContextFactory.cs", Data = GetMigrationsDbContextFactoryCsData(appName, dbProvider) },
                             new SpiderlyFile { Name = "Program.cs", Data = GetMigrationsProgramCsData() },
                         }
@@ -446,7 +444,9 @@ namespace Spiderly.Shared.Helpers
                         Files =
                         {
                             new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName) },
-                            new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, userSecretsId, dbProvider) },
+                            new SpiderlyFile { Name = "appsettings.Development.json", Data = GetAppSettingsDevelopmentJsonData(appName) },
+                            new SpiderlyFile { Name = "appsettings.Development.local.example.json", Data = GetAppSettingsDevelopmentLocalExampleJsonData() },
+                            new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, dbProvider) },
                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                             new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
                             new SpiderlyFile { Name = "Settings.cs", Data = GetWebAPISettingsCsData(appName) },
@@ -2129,6 +2129,7 @@ namespace {{appName}}.WebAPI
                 .CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
+                    config.AddJsonFile("appsettings.Development.local.json", optional: true, reloadOnChange: true);
                     config.AddEnvironmentVariables();
                 })
                 .UseSerilog((context, configuration) =>
@@ -2144,7 +2145,7 @@ namespace {{appName}}.WebAPI
 """;
     }
 
-    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget, string userSecretsId, DbProviderCodes dbProvider)
+    private static string GetWebAPICsProjData(string appName, string spiderlyVersion, bool isRunningFromNuget, DbProviderCodes dbProvider)
     {
       return $$"""
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -2154,7 +2155,6 @@ namespace {{appName}}.WebAPI
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>1591</NoWarn>
-		<UserSecretsId>{{userSecretsId}}</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -2257,6 +2257,48 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Security": {
       "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+    }
+  }
+}
+""";
+    }
+
+    private static string GetAppSettingsDevelopmentJsonData(string appName)
+    {
+      return $$"""
+{
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "AppSettings": {
+    "{{appName}}.WebAPI": {
+    },
+    "{{appName}}.Business": {
+    },
+    "Spiderly.Infrastructure": {
+    },
+    "Spiderly.Shared": {
+      "FrontendUrl": "http://localhost:4200",
+      "CookieDomain": "localhost"
+    },
+    "Spiderly.Security": {
+    }
+  }
+}
+""";
+    }
+
+    private static string GetAppSettingsDevelopmentLocalExampleJsonData()
+    {
+      return $$"""
+{
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "_comment": "Copy this file to appsettings.Development.local.json and fill in real dev secrets. The .local.json file is gitignored.",
+  "AppSettings": {
+    "Spiderly.Shared": {
+      "ConnectionString": "",
+      "JwtKey": ""
+    },
+    "Spiderly.Security": {
+      "JwtKey": ""
     }
   }
 }
@@ -2450,7 +2492,7 @@ namespace {{appName}}.Infrastructure
 """;
     }
 
-    private static string GetMigrationsCsProjData(string appName, string userSecretsId, DbProviderCodes dbProvider)
+    private static string GetMigrationsCsProjData(string appName, DbProviderCodes dbProvider)
     {
       return $$"""
 <!--
@@ -2466,7 +2508,6 @@ namespace {{appName}}.Infrastructure
 		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<UserSecretsId>{{userSecretsId}}</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -2481,7 +2522,6 @@ namespace {{appName}}.Infrastructure
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.1" />
 	</ItemGroup>
 
@@ -2512,7 +2552,7 @@ namespace {{appName}}.Migrations
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false)
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development"}.json", optional: true)
-                .AddUserSecrets<MigrationsDbContextFactory>(optional: true)
+                .AddJsonFile("appsettings.Development.local.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
 
@@ -4260,6 +4300,10 @@ export class LayoutComponent {
 **/.pnpm-debug.log
 **/*.env
 **/*.env.local
+
+# Local dev overrides (real secrets stay out of git)
+**/appsettings.Development.local.json
+**/appsettings.*.local.json
 
 # IDEs and editors
 **/.idea/
