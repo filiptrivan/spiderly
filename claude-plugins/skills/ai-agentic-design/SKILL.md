@@ -106,7 +106,30 @@ Getting-started docs and CLI reference must be precise enough for an AI agent to
 - [ ] Prerequisite verification commands listed with expected output
 - [ ] Error scenarios documented with recovery steps
 
-### 6. The AI Agent Test
+### 6. Fail at Build Time, Not at Runtime
+
+When a source generator detects user code that would produce invalid output (broken TypeScript references, missing imports, unresolvable types, impossible mappings), emit a compiler diagnostic via `context.ReportDiagnostic`. Don't silently emit broken code and let the failure surface at `ng build`, typecheck, or runtime — by then the connection to the root cause is lost.
+
+**Pattern:**
+
+```csharp
+context.ReportDiagnostic(Diagnostic.Create(
+    SpiderlyDiagnostics.UnresolvableControllerType,
+    method.Location ?? Location.None,
+    kind, cSharpType, controllerName, methodName));
+```
+
+**Rules:**
+
+- All diagnostic descriptors live in `Spiderly.SourceGenerators/Shared/SpiderlyDiagnostics.cs`.
+- IDs are `SPIDERLYNNN` — sequential, stable, never reused (even if a rule is removed).
+- Default severity is `Error` unless the generated output is merely suboptimal (then `Warning`).
+- The message must name the offending symbol and suggest the concrete fix.
+- Preserve syntax `Location` through the pipeline so the diagnostic squiggles on the right line — if a model object loses location info, add a `Location` property.
+
+**Rule:** A generator that produces invalid output without a diagnostic is a bug, not a feature. If you find one, add the diagnostic in the same change.
+
+### 7. The AI Agent Test
 
 Before merging any CLI or framework feature, answer these questions:
 

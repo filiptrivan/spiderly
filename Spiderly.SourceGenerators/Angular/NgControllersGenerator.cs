@@ -71,6 +71,11 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Entities}"))
                 .ToList();
 
+            HashSet<string> knownTsTypes = new(
+                referencedDTOs.Select(d => d.Name.Replace("DTO", ""))
+                    .Concat(allEntities.Select(e => e.Name))
+                    .Concat(Helpers.BaseClassNames));
+
             string result = $$"""
 {{string.Join("\n", GetImports(referencedDTOs))}}
 
@@ -86,7 +91,7 @@ export class ApiGeneratedService extends ApiSecurityService {
         super(http, config);
     }
 
-{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOs))}}
+{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOs, knownTsTypes, context))}}
 
 }
 """;
@@ -94,7 +99,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             Helpers.WriteToTheFile(result, outputPath);
         }
 
-        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs)
+        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs, HashSet<string> knownTsTypes, SourceProductionContext context)
         {
             List<string> result = new();
             // Methods already defined in ApiSecurityService (Angular). Keep this list in sync
@@ -129,6 +134,11 @@ export class ApiGeneratedService extends ApiSecurityService {
                     if (!alreadyAddedMethods.Add(controllerMethod.Name))
                         continue;
 
+                    ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, controllerMethod.Location);
+
+                    foreach (SpiderParameter parameter in controllerMethod.Parameters)
+                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, controllerMethod.Location);
+
                     if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type == "IFormFile") == false)
                     {
                         result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs));
@@ -146,6 +156,48 @@ export class ApiGeneratedService extends ApiSecurityService {
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Reports SPIDERLY001 if <paramref name="cSharpType"/> is a custom class that won't resolve to a known
+        /// TypeScript type in the generated Angular client (i.e. not a primitive, enum, discovered DTO, or discovered entity).
+        /// </summary>
+        private static void ValidateControllerType(
+            SourceProductionContext context,
+            string kind,
+            string cSharpType,
+            string controllerName,
+            string methodName,
+            HashSet<string> knownTsTypes,
+            Location location)
+        {
+            if (cSharpType.IsBaseDataType()
+                || cSharpType == "Task"
+                || cSharpType == "void"
+                || cSharpType.Contains("ActionResult")
+                || cSharpType.Contains("IFormFile")
+                || cSharpType.IsEnum())
+                return;
+
+            string extracted = AngularTypeMapper.ExtractAngularTypeFromGenericCSharpType(cSharpType);
+
+            if (string.IsNullOrEmpty(extracted))
+                return;
+
+            string target = extracted.StartsWith("PaginatedResult<")
+                ? Helpers.ExtractTypeFromGenericType(extracted)
+                : extracted;
+
+            if (AngularTypeMapper.IsKnownTsScalar(target) || target.IsEnum() || knownTsTypes.Contains(target))
+                return;
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                SpiderlyDiagnostics.UnresolvableControllerType,
+                location ?? Location.None,
+                kind,
+                cSharpType,
+                controllerName,
+                methodName));
         }
 
         private static List<string> GetImports(List<SpiderlyClass> DTOs)

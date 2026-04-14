@@ -34,6 +34,13 @@ namespace Spiderly.SourceGenerators.Shared
             return result.Distinct().ToList();
         }
 
+        private static readonly HashSet<string> KnownTsScalars = new()
+        {
+            "string", "boolean", "Date", "number", "any"
+        };
+
+        public static bool IsKnownTsScalar(string tsType) => KnownTsScalars.Contains(tsType);
+
         public static string GetAngularType(string cSharpType)
         {
             switch (cSharpType)

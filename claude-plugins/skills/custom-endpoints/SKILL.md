@@ -241,6 +241,42 @@ return result;
 return Ok();
 ```
 
+### Return and parameter types must be discoverable (SPIDERLY001)
+
+Any custom class used as a controller return type or `[FromBody]` parameter must be discoverable by the source generator, otherwise the generated Angular TS client will reference an undefined type. A type is discoverable when it either:
+
+- Lives in a namespace ending with `.DTO` (conventionally with a `DTO` suffix, e.g. `OrderSummaryDTO`), **or**
+- Inherits from a Spiderly entity base class (`BusinessObject<T>` / `ReadonlyObject<T>`).
+
+If the generator can't resolve the type, it emits build error **SPIDERLY001** at `dotnet build` time — no more broken TypeScript references surfacing later at `ng build`.
+
+**Canonical pattern for custom response shapes:**
+
+```csharp
+// In MyProject.Business.DTO namespace
+public class CheckoutSummaryDTO
+{
+    public decimal Total { get; set; }
+    public int ItemCount { get; set; }
+}
+
+// In controller
+[HttpGet]
+public async Task<CheckoutSummaryDTO> GetCheckoutSummary() => await _service.BuildSummary();
+```
+
+**Anti-pattern** — plain C# class in a non-`.DTO` namespace:
+
+```csharp
+// In MyProject.Business.Services — WILL TRIGGER SPIDERLY001
+public class CheckoutSummary { public decimal Total { get; set; } }
+
+[HttpGet]
+public async Task<CheckoutSummary> GetCheckoutSummary() => ...;  // ❌ broken TS ref
+```
+
+**Fix:** move the class into a `.DTO` namespace and suffix it with `DTO`.
+
 ## Exception Handling
 
 | Type | HTTP | When |

@@ -13,5 +13,6 @@ namespace Spiderly.SourceGenerators.Models
         public List<SpiderParameter> Parameters { get; set; }
         public IEnumerable<SyntaxNode> DescendantNodes { get; set; }
         public List<SpiderlyAttribute> Attributes { get; set; }
+        public Location Location { get; set; }
     }
 }

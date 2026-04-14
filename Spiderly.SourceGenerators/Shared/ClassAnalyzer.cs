@@ -157,7 +157,8 @@ namespace Spiderly.SourceGenerators.Shared
                         })
                         .ToList(),
                     DescendantNodes = method.DescendantNodes(),
-                    Attributes = method.AttributeLists.SelectMany(x => x.Attributes).Select(x => GetSpiderAttribute(x)).ToList()
+                    Attributes = method.AttributeLists.SelectMany(x => x.Attributes).Select(x => GetSpiderAttribute(x)).ToList(),
+                    Location = method.Identifier.GetLocation()
                 })
                 .ToList();
 
