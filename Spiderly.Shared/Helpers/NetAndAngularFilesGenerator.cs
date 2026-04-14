@@ -1915,11 +1915,7 @@ namespace {{appName}}.Infrastructure
                     new { RoleId = 1, PermissionId = 5 },
                     new { RoleId = 1, PermissionId = 6 },
                     new { RoleId = 1, PermissionId = 7 },
-                    new { RoleId = 1, PermissionId = 8 },
-                    new { RoleId = 1, PermissionId = 9 },
-                    new { RoleId = 1, PermissionId = 10 },
-                    new { RoleId = 1, PermissionId = 11 },
-                    new { RoleId = 1, PermissionId = 12 }
+                    new { RoleId = 1, PermissionId = 8 }
                 ));
         }
 
