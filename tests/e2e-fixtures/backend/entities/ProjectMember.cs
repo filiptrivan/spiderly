@@ -4,6 +4,7 @@ using Spiderly.Shared.BaseEntities;
 namespace __APP_NAME__.Business.Entities
 {
     [M2M]
+    [SpiderlyEntity]
     public class ProjectMember : BusinessObject<long>
     {
         [M2MWithMany(nameof(Project.Members))]

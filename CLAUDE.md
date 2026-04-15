@@ -33,6 +33,7 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 - **Database table names are singular** — matching the entity class name exactly (e.g., `Category` class → `"Category"` table, not `"Categories"`). This is because Spiderly registers entities via `modelBuilder.Entity()` without `DbSet<T>` properties, so EF Core uses the class name as-is
 - **Hand-written classes require classification attributes.** Source generators enroll classes by marker attribute, not by namespace suffix:
   - Entities → `[SpiderlyEntity]`
+  - M2M junction classes → `[M2M]` **and** `[SpiderlyEntity]` (both required — `[M2M]` flags the junction; `[SpiderlyEntity]` enrolls it for generation)
   - Hand-written DTOs → `[SpiderlyDTO]` (generated DTOs like `{Entity}DTO` / `{Entity}SaveBodyDTO` / `{Entity}MainUIFormDTO` need no attribute)
   - Custom controllers → `[SpiderlyController]`
   - Entity services extending `{Entity}ServiceGenerated` → `[SpiderlyService]`

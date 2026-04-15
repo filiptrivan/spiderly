@@ -179,6 +179,7 @@ export class NotificationDetailsComponent
 
 ```csharp
 [M2M]
+[SpiderlyEntity]
 public class RolePermission
 {
     [M2MWithMany(nameof(Role.Permissions))]

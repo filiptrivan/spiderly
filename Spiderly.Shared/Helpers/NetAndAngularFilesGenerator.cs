@@ -1718,6 +1718,7 @@ using Spiderly.Shared.Attributes.Entity;
 namespace {{appName}}.Business.Entities
 {
     [M2M]
+    [SpiderlyEntity]
     public class RolePermission
     {
         [M2MWithMany(nameof(Role.Permissions))]
@@ -1739,6 +1740,7 @@ using Spiderly.Shared.Attributes.Entity;
 namespace {{appName}}.Business.Entities
 {
     [M2M]
+    [SpiderlyEntity]
     public class UserRole
     {
         [M2MWithMany(nameof(User.Roles))]

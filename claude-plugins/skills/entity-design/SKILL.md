@@ -100,6 +100,7 @@ public class Comment : BusinessObject<long>
 
 ```csharp
 [M2M]
+[SpiderlyEntity]
 public class RolePermission
 {
     [CascadeDelete]
@@ -112,7 +113,7 @@ public class RolePermission
 }
 ```
 
-Junction entity must have exactly 2 `[M2MWithMany]` properties. Always add `[CascadeDelete]` on both — otherwise deleting a parent is blocked. Parent collections:
+Junction entity must have exactly 2 `[M2MWithMany]` properties and both `[M2M]` and `[SpiderlyEntity]` markers. `[M2M]` flags the class as a junction; `[SpiderlyEntity]` enrolls it in the generator pipeline — missing it breaks the parent entity's generated service. Always add `[CascadeDelete]` on both navigations — otherwise deleting a parent is blocked. Parent collections:
 
 ```csharp
 public class Role : BusinessObject<long>
@@ -123,7 +124,7 @@ public class Role : BusinessObject<long>
 
 ### Complex Many-to-Many (junction with extra fields)
 
-Add additional properties to the junction entity (without `[M2M]`). Use `[ComplexManyToManyList]` on the parent collection for editable junction UI, or `[ComplexManyToManyReadonlyTable]` for read-only display.
+Keep `[M2M]` and `[SpiderlyEntity]` on the junction and add additional properties beside the two `[M2MWithMany]` navigations. Use `[ComplexManyToManyList]` on the parent collection for editable junction UI, or `[ComplexManyToManyReadonlyTable]` for read-only display.
 
 ### Ordered One-to-Many
 
