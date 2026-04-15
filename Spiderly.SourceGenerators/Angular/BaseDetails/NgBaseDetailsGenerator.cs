@@ -28,8 +28,8 @@ namespace Spiderly.SourceGenerators.Angular
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -50,16 +50,14 @@ namespace Spiderly.SourceGenerators.Angular
                 return;
 
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
-            List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
-            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
-            if (currentProjectClasses == null || currentProjectClasses.Count == 0)
-            {
-                Console.WriteLine(currentProjectClasses.Count);
+            if (currentProjectClasses.Count == 0)
                 return;
-            }
+
+            List<SpiderlyClass> customDTOClasses = currentProjectClasses.Where(x => x.HasSpiderlyDTOAttribute()).ToList();
+            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
+            List<SpiderlyClass> referencedProjectEntities = referencedProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
+            List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
             string rootPath = callingProjectDirectory.GetRootPath();

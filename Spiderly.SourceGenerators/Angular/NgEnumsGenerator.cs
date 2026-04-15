@@ -32,17 +32,17 @@ namespace Spiderly.SourceGenerators.Angular
                     transform: static (ctx, _) => PipelineFactory.GetEnumSemanticTargetForGeneration(ctx))
                 .Where(static c => c is not null);
 
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = PipelineFactory.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<NamespaceExtensionCodes>
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = PipelineFactory.GetClassIncrementalValuesProvider(context.SyntaxProvider, new List<ClassCategoryCodes>
                 {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.Enums, // HACK: Because we can't make partial enums we are doing this
+                    ClassCategoryCodes.Entities,
+                    ClassCategoryCodes.Enums, // HACK: Because we can't make partial enums we are doing this
                 });
 
             IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context,
-                new List<NamespaceExtensionCodes>
+                new List<ClassCategoryCodes>
                 {
-                    NamespaceExtensionCodes.Entities,
-                    NamespaceExtensionCodes.Enums, // HACK: Because we can't make partial enums we are doing this
+                    ClassCategoryCodes.Entities,
+                    ClassCategoryCodes.Enums, // HACK: Because we can't make partial enums we are doing this
                 });
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
@@ -73,7 +73,7 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
 
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith(".Entities"))
+                .Where(x => x.HasSpiderlyEntityAttribute())
                 .ToList();
 
             List<SpiderlyClass> currentProjectClassEnums = currentProjectClasses

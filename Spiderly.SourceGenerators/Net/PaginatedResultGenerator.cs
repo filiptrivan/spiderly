@@ -30,8 +30,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO, NamespaceExtensionCodes.DataMappers },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.DataMappers },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -51,8 +51,8 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> spiderlyClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = spiderlyClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(spiderlyClasses, allClasses);
-            List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> allEntities = allClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
+            List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
+            List<SpiderlyClass> allEntities = allClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
 
             StringBuilder sb = new();
             List<string> usings = new();

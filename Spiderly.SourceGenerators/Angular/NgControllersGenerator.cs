@@ -29,8 +29,8 @@ namespace Spiderly.SourceGenerators.Angular
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Controllers },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -60,15 +60,15 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
 
             List<SpiderlyClass> controllerClasses = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Controllers}"))
+                .Where(x => x.Namespace.EndsWith($".{ClassCategoryCodes.Controllers}"))
                 .ToList();
 
             List<SpiderlyClass> referencedDTOs = referencedProjectClasses
-                .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.DTO}"))
+                .Where(x => x.HasSpiderlyDTOAttribute())
                 .ToList();
 
             List<SpiderlyClass> allEntities = referencedProjectClasses
-                .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Entities}"))
+                .Where(x => x.HasSpiderlyEntityAttribute())
                 .ToList();
 
             HashSet<string> knownTsTypes = new(

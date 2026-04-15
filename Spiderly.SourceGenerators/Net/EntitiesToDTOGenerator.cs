@@ -30,8 +30,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -48,8 +48,12 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(EntitiesToDTOGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectEntities = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
+            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
+
+            if (currentProjectEntities.Count == 0)
+                return;
 
             bool hasDisplayNameErrors = false;
             foreach (Diagnostic diagnostic in Validations.ValidateDisplayNameAttributes(currentProjectEntities, allEntities))
@@ -62,6 +66,11 @@ namespace Spiderly.SourceGenerators.Net
 
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectEntities, allEntities);
 
+            HashSet<string> handWrittenDTONames = new HashSet<string>(
+                currentProjectClasses
+                    .Where(x => x.HasSpiderlyDTOAttribute())
+                    .Select(x => x.Name));
+
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
@@ -70,26 +79,30 @@ namespace Spiderly.SourceGenerators.Net
 
 namespace {{basePartOfNamespace}}.DTO
 {
-{{GetDTOClasses(currentProjectDTOClasses, currentProjectEntities, allEntities)}}
+{{GetDTOClasses(currentProjectDTOClasses, handWrittenDTONames)}}
 }
 """;
 
             context.AddSource($"DTOList.generated", SourceText.From(result, Encoding.UTF8));
         }
 
-        private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
+        private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, HashSet<string> handWrittenDTONames)
         {
             List<string> result = new();
 
             foreach (SpiderlyClass currentProjectDTOClass in currentProjectDTOClasses)
             {
+                // Skip [SpiderlyDTO] when the user wrote a hand-typed partial for this class — that partial already carries the attribute,
+                // and a non-AllowMultiple marker would collide.
+                string attributeLine = handWrittenDTONames.Contains(currentProjectDTOClass.Name) ? "" : "[SpiderlyDTO]\n    ";
+
                 if (currentProjectDTOClass.Description != null)
                 {
                     result.Add($$"""
     /// <summary>
     /// {{currentProjectDTOClass.Description}}
     /// </summary>
-    public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
+    {{attributeLine}}public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
     {
 {{GetDTOProperties(currentProjectDTOClass)}}
     }
@@ -98,7 +111,7 @@ namespace {{basePartOfNamespace}}.DTO
                 else
                 {
                     result.Add($$"""
-    public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
+    {{attributeLine}}public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
     {
 {{GetDTOProperties(currentProjectDTOClass)}}
     }
@@ -154,6 +167,7 @@ namespace {{basePartOfNamespace}}.DTO
         {
             return $$"""
 using Microsoft.AspNetCore.Http;
+using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.DTO;
 using Spiderly.Security.DTO;
 using Spiderly.Shared.Helpers;

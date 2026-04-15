@@ -9,7 +9,7 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class ReferencedAssemblyAnalyzer
     {
-        public static IncrementalValueProvider<List<SpiderlyClass>> GetIncrementalValueProviderClassesFromReferencedAssemblies(IncrementalGeneratorInitializationContext context, List<NamespaceExtensionCodes> namespaceExtensions)
+        public static IncrementalValueProvider<List<SpiderlyClass>> GetIncrementalValueProviderClassesFromReferencedAssemblies(IncrementalGeneratorInitializationContext context, List<ClassCategoryCodes> categories)
         {
             return context.CompilationProvider
                 .Select((compilation, _) =>
@@ -18,7 +18,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                     foreach (IAssemblySymbol referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
                     {
-                        classes.AddRange(GetClassesFromReferencedAssemblies(referencedAssembly.GlobalNamespace, namespaceExtensions));
+                        classes.AddRange(GetClassesFromReferencedAssemblies(referencedAssembly.GlobalNamespace, categories));
                     }
 
                     return classes
@@ -27,14 +27,12 @@ namespace Spiderly.SourceGenerators.Shared
                 });
         }
 
-        private static List<SpiderlyClass> GetClassesFromReferencedAssemblies(INamespaceSymbol namespaceSymbol, List<NamespaceExtensionCodes> namespaceExtensions)
+        private static List<SpiderlyClass> GetClassesFromReferencedAssemblies(INamespaceSymbol namespaceSymbol, List<ClassCategoryCodes> categories)
         {
             List<SpiderlyClass> classes = new();
 
             List<INamedTypeSymbol> types = namespaceSymbol.GetTypeMembers()
-                .Where(type => type.TypeKind == TypeKind.Class &&
-                       namespaceExtensions.Any(namespaceExtension => GetFullNamespace(type).EndsWith($".{namespaceExtension}")) &&
-                       (!GetFullNamespace(type).EndsWith($".{NamespaceExtensionCodes.Entities}") || IsSpiderlyEntity(type)))
+                .Where(type => type.TypeKind == TypeKind.Class && IsRequestedClass(type, categories))
                 .OrderBy(type => type.Name)
                 .ToList();
 
@@ -59,27 +57,38 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (INamespaceSymbol nestedNamespace in namespaceSymbol.GetNamespaceMembers())
             {
-                classes.AddRange(GetClassesFromReferencedAssemblies(nestedNamespace, namespaceExtensions));
+                classes.AddRange(GetClassesFromReferencedAssemblies(nestedNamespace, categories));
             }
 
             return classes;
         }
 
-        private static bool IsSpiderlyEntity(INamedTypeSymbol type)
+        private static bool IsRequestedClass(INamedTypeSymbol type, List<ClassCategoryCodes> categories)
         {
-            INamedTypeSymbol current = type.BaseType;
-            while (current != null && current.SpecialType != SpecialType.System_Object)
+            System.Collections.Immutable.ImmutableArray<AttributeData> attrs = default;
+
+            foreach (ClassCategoryCodes category in categories)
             {
-                string name = current.OriginalDefinition?.Name;
-                if (name == "BusinessObject" || name == "ReadonlyObject")
+                bool match = category switch
+                {
+                    ClassCategoryCodes.Entities => HasAttributeByName(ref attrs, type, "SpiderlyEntityAttribute"),
+                    ClassCategoryCodes.DTO => HasAttributeByName(ref attrs, type, "SpiderlyDTOAttribute"),
+                    ClassCategoryCodes.Controllers => HasAttributeByName(ref attrs, type, "SpiderlyControllerAttribute"),
+                    _ => GetFullNamespace(type).EndsWith($".{category}"),
+                };
+
+                if (match)
                     return true;
-                current = current.BaseType;
             }
 
-            // M2M join entities inherit directly from object but carry Spiderly attributes (e.g. [M2M]).
-            // Third-party entities (e.g. Hangfire) have no Spiderly attributes.
-            return type.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ContainingAssembly?.Name?.StartsWith("Spiderly") == true);
+            return false;
+        }
+
+        private static bool HasAttributeByName(ref System.Collections.Immutable.ImmutableArray<AttributeData> attrs, INamedTypeSymbol type, string attributeTypeName)
+        {
+            if (attrs.IsDefault)
+                attrs = type.GetAttributes();
+            return attrs.Any(a => a.AttributeClass?.Name == attributeTypeName);
         }
 
         private static string GetFullNamespace(INamedTypeSymbol symbol)

@@ -18,9 +18,11 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 
 `ApiErrorCodes` (returned as `ApiErrorDTO.errorCode`) is a cross-language public contract. Three mirrors must stay in sync whenever a code is added, removed, or renamed:
 
-1. `Spiderly.Shared/DTO/ApiErrorCodes.cs` — canonical C# source.
+1. `Spiderly.Shared/Contracts/ApiErrorCodes.cs` — canonical C# source.
 2. `Angular/projects/spiderly/src/lib/errors/api-error-codes.ts` — admin consumers.
 3. Downstream TS mirrors (e.g. `pa-storefront/packages/shared/src/lib/api-error.ts` — storefront).
+
+`ApiErrorCodes` lives under `Spiderly.Shared.Contracts` because it is a static constants class, not a DTO.
 
 ## Coding conventions
 
@@ -29,6 +31,7 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 - `bool?` (nullable) is **recommended** for checkbox properties — non-nullable `bool` is supported but `bool?` is preferred in most cases. Treat `null` as `false` in business logic
 - All generated methods that end users can use (virtual hooks, overridable methods) must have XML `<summary>` documentation with `<example>` showing usage
 - **Database table names are singular** — matching the entity class name exactly (e.g., `Category` class → `"Category"` table, not `"Categories"`). This is because Spiderly registers entities via `modelBuilder.Entity()` without `DbSet<T>` properties, so EF Core uses the class name as-is
+- **Hand-written entity and DTO classes require classification attributes.** Mark every entity with `[SpiderlyEntity]` and every hand-written DTO with `[SpiderlyDTO]`; the source generators enroll classes by attribute. Generated DTOs (`{Entity}DTO`, `{Entity}SaveBodyDTO`, `{Entity}MainUIFormDTO`) need no attribute — Spiderly emits them.
 
 ## AI-Agentic Philosophy
 

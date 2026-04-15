@@ -1,7 +1,7 @@
-namespace Spiderly.Shared.DTO
+namespace Spiderly.Shared.Contracts
 {
     /// <summary>
-    /// Machine-readable error codes returned in <see cref="ApiErrorDTO.ErrorCode"/>.
+    /// Machine-readable error codes returned in <see cref="Spiderly.Shared.DTO.ApiErrorDTO.ErrorCode"/>.
     /// Treat as a public contract — clients (Angular interceptor, storefront middleware,
     /// external API consumers) switch on these values.
     /// </summary>

@@ -28,8 +28,8 @@ namespace Spiderly.SourceGenerators.Angular
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {

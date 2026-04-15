@@ -29,8 +29,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {

@@ -28,8 +28,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.Services });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Controllers },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.Services });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -55,11 +55,11 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices);
 
             List<SpiderlyClass> customControllers = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith(".Controllers"))
+                .Where(x => x.HasSpiderlyControllerAttribute())
                 .ToList();
 
             List<SpiderlyClass> allEntities = referencedProjectEntitiesAndServices
-                .Where(x => x.Namespace.EndsWith($".{NamespaceExtensionCodes.Entities}"))
+                .Where(x => x.HasSpiderlyEntityAttribute())
                 .ToList();
 
             string namespaceValue = currentProjectClasses[0].Namespace;

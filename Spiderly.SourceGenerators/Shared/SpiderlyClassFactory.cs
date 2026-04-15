@@ -42,11 +42,9 @@ namespace Spiderly.SourceGenerators.Shared
         {
             List<SpiderlyClass> DTOList = new();
 
-            foreach (var x in currentProjectClasses
-                .Where(x => x.Namespace.EndsWith($".{Helpers.EntitiesNamespaceEnding}") || x.Namespace.EndsWith($".{Helpers.DTONamespaceEnding}"))
-            )
+            foreach (var x in currentProjectClasses)
             {
-                if (x.Name.EndsWith("DTO") || x.Namespace.EndsWith(".DTO"))
+                if (x.HasSpiderlyDTOAttribute())
                 {
                     DTOList.Add(new SpiderlyClass
                     {
@@ -61,15 +59,17 @@ namespace Spiderly.SourceGenerators.Shared
                         IsGenerated = false,
                     });
                 }
-                else // Entity
+                else if (x.HasSpiderlyEntityAttribute())
                 {
+                    string dtoNamespace = GetDtoNamespaceForEntity(x.Namespace);
+
                     DTOList.Add(new SpiderlyClass
                     {
                         Name = $"{x.Name}DTO",
                         BaseType = x.GetDTOBaseType(),
                         Description = x.Description,
                         Properties = GetSpiderlyDTOProperties(x, allClasses),
-                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Namespace = dtoNamespace,
                         Location = x.Location,
                         IsGenerated = true
                     });
@@ -77,7 +77,7 @@ namespace Spiderly.SourceGenerators.Shared
                     {
                         Name = $"{x.Name}SaveBodyDTO",
                         Properties = GetSaveBodyDTOProperties(x, allClasses),
-                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Namespace = dtoNamespace,
                         Location = x.Location,
                         IsGenerated = true
                     });
@@ -85,7 +85,7 @@ namespace Spiderly.SourceGenerators.Shared
                     {
                         Name = $"{x.Name}MainUIFormDTO",
                         Properties = GetMainUIFormDTOProperties(x, allClasses),
-                        Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Namespace = dtoNamespace,
                         Location = x.Location,
                         IsGenerated = true
                     });
@@ -93,6 +93,16 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             return DTOList;
+        }
+
+        private static string GetDtoNamespaceForEntity(string entityNamespace)
+        {
+            string entitiesSuffix = $".{Helpers.EntitiesNamespaceEnding}";
+            string dtoSuffix = $".{Helpers.DTONamespaceEnding}";
+
+            return entityNamespace.EndsWith(entitiesSuffix)
+                ? entityNamespace.Substring(0, entityNamespace.Length - entitiesSuffix.Length) + dtoSuffix
+                : entityNamespace;
         }
 
         private static List<SpiderlyProperty> GetSaveBodyDTOProperties(SpiderlyClass entity, List<SpiderlyClass> entities)

@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Spiderly.SourceGenerators.Enums
 {
-    public enum NamespaceExtensionCodes
+    public enum ClassCategoryCodes
     {
         Entities,
         DTO,

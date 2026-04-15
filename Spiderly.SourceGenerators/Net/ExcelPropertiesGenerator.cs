@@ -28,8 +28,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO, NamespaceExtensionCodes.DataMappers },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.DataMappers },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {

@@ -1,5 +1,7 @@
 using Spiderly.Security.Interfaces;
 
+using Spiderly.Shared.Attributes.Entity;
+
 namespace Spiderly.Security.DTO
 {
     /// <summary>
@@ -8,6 +10,7 @@ namespace Spiderly.Security.DTO
     /// 2. We delete the old refresh token from the same browser, so the user can not use app from the multiple (defined) number of browsers
     /// https://stackoverflow.com/questions/38986005/what-is-the-purpose-of-a-refresh-token
     /// </summary>
+    [SpiderlyDTO]
     public class RefreshTokenDTO : IExpirableToken
     {
         public const string UserIdIndex = nameof(UserId);

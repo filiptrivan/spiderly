@@ -354,6 +354,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace {{appName}}.Business.Entities
 {
+    [SpiderlyEntity]
     [DoNotAuthorize]
     public class {{entityName}} : BusinessObject<long>
     {

@@ -30,8 +30,8 @@ namespace Spiderly.SourceGenerators.Angular
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -60,8 +60,8 @@ namespace Spiderly.SourceGenerators.Angular
 
             referencedProjectClasses = referencedProjectClasses.OrderBy(x => x.Name).ToList();
 
-            List<SpiderlyClass> entities = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
-            List<SpiderlyClass> dtoClasses = referencedProjectClasses.Where(x => x.Namespace.EndsWith(".DTO")).ToList();
+            List<SpiderlyClass> entities = referencedProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
+            List<SpiderlyClass> dtoClasses = referencedProjectClasses.Where(x => x.HasSpiderlyDTOAttribute()).ToList();
 
             List<string> formControlSwitchCases = new();
             List<string> validatorMethods = new();

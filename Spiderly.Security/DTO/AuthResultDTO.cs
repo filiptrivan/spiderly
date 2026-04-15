@@ -1,7 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+using Spiderly.Shared.Attributes.Entity;
+
 namespace Spiderly.Security.DTO
 {
+    [SpiderlyDTO]
     public class AuthResultDTO
     {
         [Required]

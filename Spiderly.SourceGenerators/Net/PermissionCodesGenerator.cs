@@ -27,8 +27,8 @@ namespace Spiderly.SourceGenerators.Net
             //            }
             //#endif
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities },
-                new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -46,7 +46,7 @@ namespace Spiderly.SourceGenerators.Net
                 return;
 
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
-            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.Namespace.EndsWith(".Entities")).ToList();
+            List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
             StringBuilder sb = new();

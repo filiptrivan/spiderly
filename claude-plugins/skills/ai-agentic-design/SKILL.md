@@ -129,6 +129,17 @@ context.ReportDiagnostic(Diagnostic.Create(
 
 **Rule:** A generator that produces invalid output without a diagnostic is a bug, not a feature. If you find one, add the diagnostic in the same change.
 
+### 6a. Classification is by attribute
+
+Source generators classify classes via `[SpiderlyEntity]` and `[SpiderlyDTO]` markers. The `*.Entities` and `*.DTO` namespace conventions are organizational preference and drive where generated DTOs land (entity in `Foo.Entities` → generated DTO in `Foo.DTO`), but they do not enroll classes in generation.
+
+**Rules:**
+
+- Any class the generator must process needs the matching attribute. Forgetting it means no generated output for that class; the consumer's own C# code will fail to compile and surface the omission.
+- Static classes, constants containers, enums, interfaces, and helpers are inert under classification — place them anywhere, including under `*.DTO` or `*.Entities` namespaces if organizationally convenient.
+- When adding a new generator that walks entities or DTOs, filter via `HasSpiderlyEntityAttribute()` / `HasSpiderlyDTOAttribute()`.
+- `ReferencedAssemblyAnalyzer.IsSpiderlyEntity` also accepts the inheritance signal (`BusinessObject<T>` / `ReadonlyObject<T>`) for cross-assembly entities so framework base types continue to resolve without an attribute.
+
 ### 7. The AI Agent Test
 
 Before merging any CLI or framework feature, answer these questions:

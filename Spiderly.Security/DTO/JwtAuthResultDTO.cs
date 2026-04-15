@@ -1,5 +1,8 @@
-﻿namespace Spiderly.Security.DTO
+using Spiderly.Shared.Attributes.Entity;
+
+namespace Spiderly.Security.DTO
 {
+    [SpiderlyDTO]
     public class JwtAuthResultDTO
     {
         public long UserId { get; set; }

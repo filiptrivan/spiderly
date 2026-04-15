@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Spiderly.Security.DTO
 {
+    [SpiderlyDTO]
     public class VerificationTokenRequestDTO
     {
         [Required]

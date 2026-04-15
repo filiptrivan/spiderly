@@ -5,6 +5,26 @@ description: Design Spiderly entities with correct attributes, relationships, an
 
 # Entity Design
 
+## Required attribute
+
+Every hand-written entity class must carry `[SpiderlyEntity]`. Without it, the source generators ignore the class — no generated DTO, mapper, controller, validator, or Angular form.
+
+```csharp
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.BaseEntities;
+
+namespace Foo.Business.Entities
+{
+    [SpiderlyEntity]
+    public class Product : BusinessObject<long>
+    {
+        public string Name { get; set; }
+    }
+}
+```
+
+Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}SaveBodyDTO`, `{Entity}MainUIFormDTO`) need no marker. The `spiderly add-new-entity` CLI emits `[SpiderlyEntity]` automatically.
+
 ## Base Classes
 
 | Base Class          | Use When               | Generated                                        |

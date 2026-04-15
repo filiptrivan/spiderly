@@ -1620,6 +1620,7 @@ using System.ComponentModel.DataAnnotations;
 namespace {{appName}}.Business.Entities
 {
     [Index(nameof(Email), IsUnique = true)]
+    [SpiderlyEntity]
     public class User : BusinessObject<long>, IUser
     {
         [UIDoNotGenerate]
@@ -1652,6 +1653,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace {{appName}}.Business.Entities
 {
+    [SpiderlyEntity]
     public class Role : BusinessObject<int>, IRole
     {
         [DisplayName]
@@ -1688,6 +1690,7 @@ namespace {{appName}}.Business.Entities
 {
     [Index(nameof(Code), IsUnique = true)]
     [UIDoNotGenerate]
+    [SpiderlyEntity]
     public class Permission : ReadonlyObject<int>, IPermission
     {
         [DisplayName]
@@ -1771,6 +1774,7 @@ using {{appName}}.Business.DTO;
 
 namespace {{appName}}.WebAPI.Controllers
 {
+    [SpiderlyController]
     [ApiController]
     [Route("/api/[controller]/[action]")]
     public class SecurityController : SecurityBaseController<User, Role>
@@ -1815,6 +1819,7 @@ using {{appName}}.Business.Entities;
 
 namespace {{appName}}.WebAPI.Controllers
 {
+    [SpiderlyController]
     [ApiController]
     [Route("/api/[controller]/[action]")]
     public class UserController : UserBaseController

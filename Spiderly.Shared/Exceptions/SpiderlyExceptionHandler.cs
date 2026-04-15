@@ -10,6 +10,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;

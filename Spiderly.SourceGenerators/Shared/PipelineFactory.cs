@@ -12,38 +12,72 @@ namespace Spiderly.SourceGenerators.Shared
     {
         #region Syntax and Semantic targets
 
-        public static IncrementalValuesProvider<ClassDeclarationSyntax> GetClassIncrementalValuesProvider(SyntaxValueProvider syntaxValueProvider, List<NamespaceExtensionCodes> namespaceExtensions)
+        public static IncrementalValuesProvider<ClassDeclarationSyntax> GetClassIncrementalValuesProvider(SyntaxValueProvider syntaxValueProvider, List<ClassCategoryCodes> categories)
         {
             return syntaxValueProvider
                 .CreateSyntaxProvider(
-                   predicate: (s, _) => IsClassSyntaxTargetForGeneration(s, namespaceExtensions),
-                   transform: (ctx, _) => GetClassSemanticTargetForGeneration(ctx, namespaceExtensions))
+                   predicate: (s, _) => IsClassSyntaxTargetForGeneration(s, categories),
+                   transform: (ctx, _) => GetClassSemanticTargetForGeneration(ctx, categories))
                 .Where(static c => c is not null);
         }
 
-        public static bool IsClassSyntaxTargetForGeneration(SyntaxNode node, List<NamespaceExtensionCodes> namespaceExtensions)
+        public static bool IsClassSyntaxTargetForGeneration(SyntaxNode node, List<ClassCategoryCodes> categories)
         {
-            if (node is ClassDeclarationSyntax classDeclaration)
-            {
-                string namespaceName = classDeclaration.GetNamespace();
+            return node is ClassDeclarationSyntax classDeclaration && MatchesCategories(classDeclaration, categories);
+        }
 
-                if (namespaceName != null && (namespaceExtensions.Any(namespaceExtension => namespaceName.EndsWith($".{namespaceExtension}")) || namespaceName.EndsWith($".GeneratorSettings")))
-                    return true;
-            }
+        public static ClassDeclarationSyntax GetClassSemanticTargetForGeneration(GeneratorSyntaxContext context, List<ClassCategoryCodes> categories)
+        {
+            ClassDeclarationSyntax classDeclaration = (ClassDeclarationSyntax)context.Node;
+            return MatchesCategories(classDeclaration, categories) ? classDeclaration : null;
+        }
+
+        private static bool MatchesCategories(ClassDeclarationSyntax classDeclaration, List<ClassCategoryCodes> categories)
+        {
+            string namespaceName = classDeclaration.GetNamespace();
+            if (namespaceName == null)
+                return false;
+
+            if (namespaceName.EndsWith($".GeneratorSettings"))
+                return true;
+
+            if (categories.Any(category => namespaceName.EndsWith($".{category}")))
+                return true;
+
+            // Attribute-enrolled categories accept classes regardless of namespace — the semantic
+            // pass (HasSpiderlyXxxAttribute() in each generator) filters by attribute name.
+            if (HasAttributeEnrolledCategory(categories) && HasClassificationAttribute(classDeclaration))
+                return true;
 
             return false;
         }
 
-        public static ClassDeclarationSyntax GetClassSemanticTargetForGeneration(GeneratorSyntaxContext context, List<NamespaceExtensionCodes> namespaceExtensions)
+        private static bool HasAttributeEnrolledCategory(List<ClassCategoryCodes> categories)
         {
-            ClassDeclarationSyntax classDeclaration = (ClassDeclarationSyntax)context.Node;
+            foreach (ClassCategoryCodes category in categories)
+            {
+                if (category == ClassCategoryCodes.Entities ||
+                    category == ClassCategoryCodes.DTO ||
+                    category == ClassCategoryCodes.Controllers)
+                    return true;
+            }
+            return false;
+        }
 
-            string namespaceName = classDeclaration.GetNamespace();
-
-            if (namespaceName != null && (namespaceExtensions.Any(namespaceExtension => namespaceName.EndsWith($".{namespaceExtension}")) || namespaceName.EndsWith($".GeneratorSettings")))
-                return classDeclaration;
-
-            return null;
+        private static bool HasClassificationAttribute(ClassDeclarationSyntax classDeclaration)
+        {
+            foreach (AttributeListSyntax attrList in classDeclaration.AttributeLists)
+            {
+                foreach (AttributeSyntax attr in attrList.Attributes)
+                {
+                    string name = attr.Name.ToString();
+                    if (name == "SpiderlyEntity" || name == "SpiderlyEntityAttribute" ||
+                        name == "SpiderlyDTO" || name == "SpiderlyDTOAttribute" ||
+                        name == "SpiderlyController" || name == "SpiderlyControllerAttribute")
+                        return true;
+                }
+            }
+            return false;
         }
 
         public static bool IsEnumSyntaxTargetForGeneration(SyntaxNode node)
@@ -109,12 +143,12 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static IncrementalValueProvider<((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), SpiderlyConfig Config)> CreatePipeline(
             IncrementalGeneratorInitializationContext context,
-            List<NamespaceExtensionCodes> syntaxNamespaces,
-            List<NamespaceExtensionCodes> referencedNamespaces)
+            List<ClassCategoryCodes> syntaxCategories,
+            List<ClassCategoryCodes> referencedCategories)
         {
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxNamespaces);
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxCategories);
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
+            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedCategories);
 
             IncrementalValueProvider<SpiderlyConfig> config = context.GetSpiderlyConfig();
 
@@ -128,12 +162,12 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), SpiderlyConfig Config)> CreatePipelineWithCallingPath(
             IncrementalGeneratorInitializationContext context,
-            List<NamespaceExtensionCodes> syntaxNamespaces,
-            List<NamespaceExtensionCodes> referencedNamespaces)
+            List<ClassCategoryCodes> syntaxCategories,
+            List<ClassCategoryCodes> referencedCategories)
         {
-            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxNamespaces);
+            IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = GetClassIncrementalValuesProvider(context.SyntaxProvider, syntaxCategories);
 
-            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedNamespaces);
+            IncrementalValueProvider<List<SpiderlyClass>> referencedProjectClasses = ReferencedAssemblyAnalyzer.GetIncrementalValueProviderClassesFromReferencedAssemblies(context, referencedCategories);
 
             IncrementalValueProvider<string> callingProjectDirectory = context.GetCallingPath();
             IncrementalValueProvider<SpiderlyConfig> config = context.GetSpiderlyConfig();
