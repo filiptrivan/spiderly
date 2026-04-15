@@ -101,7 +101,12 @@ namespace Spiderly.SourceGenerators.Shared
                 .ToList();
 
             if (m2mWithManyProperties.Count != 2)
-                throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {manyToManyEntity.Name}.");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.ManyToManyRequiresExactlyTwoWithMany,
+                    manyToManyEntity.Location,
+                    manyToManyEntity.Name, m2mWithManyProperties.Count);
+            }
 
             SpiderlyProperty m2mWithManyOppositeProperty = m2mWithManyProperties // Category
                 .Single(x => x.Attributes

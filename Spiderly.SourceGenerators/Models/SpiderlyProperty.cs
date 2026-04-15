@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace Spiderly.SourceGenerators.Models
 {
@@ -6,6 +7,12 @@ namespace Spiderly.SourceGenerators.Models
     {
         public string Type { get; set; }
         public string Name { get; set; }
+
+        /// <summary>
+        /// Location of the property identifier in source, used to anchor Roslyn diagnostics.
+        /// Null for synthesized properties (DTO-generated, base-class stubs).
+        /// </summary>
+        public Location Location { get; set; }
 
         /// <summary>
         /// input: public string Name { get; set; } = "Filip"

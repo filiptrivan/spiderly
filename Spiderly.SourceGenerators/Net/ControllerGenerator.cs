@@ -31,7 +31,7 @@ namespace Spiderly.SourceGenerators.Net
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Controllers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.Services });
 
-            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
                 var (classesAndEntitiesAndPath, config) = source;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
@@ -286,7 +286,12 @@ namespace {{basePartOfNamespace}}.Controllers
             SpiderlyClass manyToOneEntity = Helpers.GetEntityByPropertyType(property, allEntities);
 
             if (manyToOneEntity == null)
-                throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
+                    property.Location ?? entity.Location,
+                    property.EntityName, property.Name, property.Type);
+            }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
@@ -315,7 +320,12 @@ namespace {{basePartOfNamespace}}.Controllers
             SpiderlyClass manyToOneEntity = Helpers.GetEntityByPropertyType(property, allEntities);
 
             if (manyToOneEntity == null)
-                throw new Exception($"Property where problem occurred: Name: {property.Name}, Type: {property.Type}, Parent entity name: {property.EntityName}");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
+                    property.Location ?? entity.Location,
+                    property.EntityName, property.Name, property.Type);
+            }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);

@@ -31,7 +31,12 @@ namespace Spiderly.SourceGenerators.Net
                         );
 
                     if (m2mProperty == null)
-                        throw new Exception($"You didn't specify correct M2MWithMany attribute (entity:{entity.Name}).");
+                    {
+                        throw SpiderlyDiagnostics.Error(
+                            SpiderlyDiagnostics.OneToManyMissingM2MWithMany,
+                            oneToManyProperty.Location ?? entity.Location,
+                            entity.Name);
+                    }
 
                     if (oneToManyProperty.HasComplexManyToManyReadonlyTableAttribute())
                     {

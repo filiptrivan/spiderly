@@ -31,7 +31,7 @@ namespace Spiderly.SourceGenerators.Angular
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
-            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
                 var (classesAndEntitiesAndPath, config) = source;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;

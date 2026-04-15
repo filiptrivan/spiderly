@@ -716,7 +716,12 @@ namespace Spiderly.SourceGenerators.Shared
         public static string GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)
         {
             if (c == null)
-                throw new Exception($"The class does not exist ({nameof(GetIdType)}).");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
+                    null,
+                    "<unknown>", "<null>");
+            }
 
             if (c.IsManyToMany())
                 return null;
@@ -728,15 +733,23 @@ namespace Spiderly.SourceGenerators.Shared
                 SpiderlyClass baseClass = classes.SingleOrDefault(x => x.Name == baseType);
 
                 if (baseClass == null)
-                    throw new Exception($"The class (class: {c.Name}, baseType: {baseType}) does not exist ({nameof(GetIdType)}).");
+                {
+                    throw SpiderlyDiagnostics.Error(
+                        SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
+                        c.Location,
+                        c.Name, baseType);
+                }
 
                 baseType = baseClass.BaseType; //BaseClass<long>
             }
 
             if (baseType != null && baseType.Contains("<"))
                 return baseType.Split('<')[1].Replace(">", ""); // long
-            else
-                throw new Exception($"Entity (class: {c.Name}, baseType: {baseType}) needs to have the base class ({nameof(GetIdType)}).");
+
+            throw SpiderlyDiagnostics.Error(
+                SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
+                c.Location,
+                c.Name, baseType ?? "<none>");
         }
 
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)
@@ -767,7 +780,12 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             if (dir == null)
-                throw new InvalidOperationException($"Folder '{backendFolderName}' not found in path '{callingProjectDirectory}'");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.BackendFolderNotFound,
+                    null,
+                    backendFolderName, callingProjectDirectory);
+            }
 
             return dir.Parent?.FullName;
         }

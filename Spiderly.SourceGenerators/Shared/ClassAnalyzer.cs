@@ -127,6 +127,7 @@ namespace Spiderly.SourceGenerators.Shared
                     StringValue = prop.Initializer?.Value?.ToString()?.Trim('"'), // Trimming because: "\"John\"" --> "John"
                     EntityName = c.Identifier.Text,
                     Description = GetXmlDocSummary(prop),
+                    Location = prop.Identifier.GetLocation(),
                     Attributes = prop.AttributeLists
                         .SelectMany(x => x.Attributes)
                         .Select(x =>
@@ -217,6 +218,7 @@ namespace Spiderly.SourceGenerators.Shared
                 Name = prop.Identifier.Text,
                 EntityName = baseClass.Identifier.Text,
                 Description = GetXmlDocSummary(prop),
+                Location = prop.Identifier.GetLocation(),
                 Attributes = attributes,
             };
 

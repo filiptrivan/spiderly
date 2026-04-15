@@ -33,7 +33,7 @@ namespace Spiderly.SourceGenerators.Net
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO, NamespaceExtensionCodes.DataMappers },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.DTO });
 
-            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
                 var ((classes, referencedClasses), config) = source;
                 Execute(classes, referencedClasses, config, spc);

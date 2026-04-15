@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Net
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities, NamespaceExtensionCodes.Services },
                 new List<NamespaceExtensionCodes> { NamespaceExtensionCodes.Entities });
 
-            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
                 var ((classes, referencedClasses), config) = source;
                 Execute(classes, referencedClasses, config, spc);

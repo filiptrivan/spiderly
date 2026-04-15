@@ -54,7 +54,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .Combine(callingProjectDirectory)
                 .Combine(config);
 
-            context.RegisterImplementationSourceOutput(combined, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
                 var ((((enums, classDeclarations), referencedProjectClasses), callingPath), config) = source;
 

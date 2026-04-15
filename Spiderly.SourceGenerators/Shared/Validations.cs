@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Spiderly.SourceGenerators.Models;
@@ -25,7 +24,12 @@ namespace Spiderly.SourceGenerators.Shared
                         .SingleOrDefault(x => x.Name == propertyName);
 
                     if (property == null)
-                        throw new Exception($"'{propertyName}' is not a property on class '{currentEntity.Name}'.");
+                    {
+                        throw SpiderlyDiagnostics.Error(
+                            SpiderlyDiagnostics.DisplayNamePathInvalidProperty,
+                            currentEntity.Location ?? entity.Location,
+                            propertyName, currentEntity.Name);
+                    }
 
                     if (i < parts.Length - 1)
                     {
@@ -39,15 +43,24 @@ namespace Spiderly.SourceGenerators.Shared
         private static SpiderlyClass ResolveDisplayNameNavigationTarget(SpiderlyClass currentEntity, SpiderlyProperty property, List<SpiderlyClass> allEntities)
         {
             if (!property.Type.IsManyToOneType())
-                throw new Exception($"'{property.Name}' on class '{currentEntity.Name}' is not a many-to-one navigation property and cannot be used in a DisplayName path.");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.DisplayNameSegmentNotManyToOne,
+                    property.Location ?? currentEntity.Location,
+                    property.Name, currentEntity.Name);
+            }
 
             SpiderlyClass targetEntity = allEntities.SingleOrDefault(x => x.Name == property.Type);
 
             if (targetEntity == null)
-                throw new Exception($"Could not find entity '{property.Type}' referenced by property '{property.Name}' on class '{currentEntity.Name}'.");
+            {
+                throw SpiderlyDiagnostics.Error(
+                    SpiderlyDiagnostics.DisplayNameNavigationTargetNotFound,
+                    property.Location ?? currentEntity.Location,
+                    property.Type, property.Name, currentEntity.Name);
+            }
 
             return targetEntity;
         }
-
     }
 }

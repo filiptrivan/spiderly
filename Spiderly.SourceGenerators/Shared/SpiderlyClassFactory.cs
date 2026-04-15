@@ -29,6 +29,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
                         Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
                         Methods = ClassAnalyzer.GetMethodsOfCurrentClass(x),
+                        Location = x.Identifier.GetLocation(),
                     };
                 })
                 .OrderBy(x => x.Name)
@@ -56,6 +57,7 @@ namespace Spiderly.SourceGenerators.Shared
                         IsAbstract = x.IsAbstract,
                         Methods = x.Methods,
                         Namespace = x.Namespace,
+                        Location = x.Location,
                         IsGenerated = false,
                     });
                 }
@@ -68,6 +70,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Description = x.Description,
                         Properties = GetSpiderlyDTOProperties(x, allClasses),
                         Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Location = x.Location,
                         IsGenerated = true
                     });
                     DTOList.Add(new SpiderlyClass
@@ -75,6 +78,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Name = $"{x.Name}SaveBodyDTO",
                         Properties = GetSaveBodyDTOProperties(x, allClasses),
                         Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Location = x.Location,
                         IsGenerated = true
                     });
                     DTOList.Add(new SpiderlyClass
@@ -82,6 +86,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Name = $"{x.Name}MainUIFormDTO",
                         Properties = GetMainUIFormDTOProperties(x, allClasses),
                         Namespace = x.Namespace.Replace(".Entities", ".DTO"),
+                        Location = x.Location,
                         IsGenerated = true
                     });
                 }

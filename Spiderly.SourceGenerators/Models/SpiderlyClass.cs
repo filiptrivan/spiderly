@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,12 @@ namespace Spiderly.SourceGenerators.Models
     {
         public string Name { get; set; }
         public string Namespace { get; set; }
+
+        /// <summary>
+        /// Location of the class identifier in source, used to anchor Roslyn diagnostics.
+        /// Null for classes reconstructed from referenced assemblies — callers must fall back to <see cref="Location.None"/>.
+        /// </summary>
+        public Location Location { get; set; }
 
         /// <summary>
         /// Here is only one base type, no interfaces
