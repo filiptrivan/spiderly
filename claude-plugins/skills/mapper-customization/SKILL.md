@@ -53,14 +53,14 @@ The string is appended directly to the generated `.NewConfig<Entity, EntityDTO>(
 
 For complex mapping logic, override the entire generated method. The generator **skips generation** for any method that already exists in the user's partial `Mapper` class (detected by method name match).
 
-**Setup** — the user's mapper file (one per project, marked with `[CustomMapper]`):
+**Setup** — the user's mapper file (one per project, marked with `[SpiderlyDataMapper]`):
 
 ```csharp
 using Spiderly.Shared.Attributes;
 
 namespace MyProject.Business.DataMappers
 {
-    [CustomMapper]
+    [SpiderlyDataMapper]
     public static partial class Mapper
     {
         // Override any generated method by declaring it here
@@ -71,7 +71,7 @@ namespace MyProject.Business.DataMappers
 **Override example:**
 
 ```csharp
-[CustomMapper]
+[SpiderlyDataMapper]
 public static partial class Mapper
 {
     public static TypeAdapterConfig ProductToDTOConfig()

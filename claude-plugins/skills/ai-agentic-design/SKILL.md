@@ -131,14 +131,22 @@ context.ReportDiagnostic(Diagnostic.Create(
 
 ### 6a. Classification is by attribute
 
-Source generators classify classes via `[SpiderlyEntity]` and `[SpiderlyDTO]` markers. The `*.Entities` and `*.DTO` namespace conventions are organizational preference and drive where generated DTOs land (entity in `Foo.Entities` → generated DTO in `Foo.DTO`), but they do not enroll classes in generation.
+Source generators classify classes by marker attribute. Namespace conventions (`*.Entities`, `*.DTO`, `*.Services`, `*.DataMappers`) are organizational preference and drive where generated code lands, but they do **not** enroll classes in generation.
+
+| Class kind | Marker attribute |
+|---|---|
+| Entity | `[SpiderlyEntity]` |
+| Hand-written DTO | `[SpiderlyDTO]` |
+| Custom controller | `[SpiderlyController]` |
+| Entity service (extends `{Entity}ServiceGenerated`) | `[SpiderlyService]` |
+| Hand-written partial mapper | `[SpiderlyDataMapper]` |
+| C# enum / class-based enum exposed to Angular | `[SpiderlyEnum]` |
 
 **Rules:**
 
 - Any class the generator must process needs the matching attribute. Forgetting it means no generated output for that class; the consumer's own C# code will fail to compile and surface the omission.
 - Static classes, constants containers, enums, interfaces, and helpers are inert under classification — place them anywhere, including under `*.DTO` or `*.Entities` namespaces if organizationally convenient.
-- When adding a new generator that walks entities or DTOs, filter via `HasSpiderlyEntityAttribute()` / `HasSpiderlyDTOAttribute()`.
-- `ReferencedAssemblyAnalyzer.IsSpiderlyEntity` also accepts the inheritance signal (`BusinessObject<T>` / `ReadonlyObject<T>`) for cross-assembly entities so framework base types continue to resolve without an attribute.
+- When adding a new generator, filter via the dedicated `Has*Attribute()` extensions in `Spiderly.SourceGenerators.Shared.Extensions`.
 
 ### 7. The AI Agent Test
 

@@ -8,6 +8,5 @@ namespace Spiderly.SourceGenerators.Enums
         DataMappers,
         Enums,
         Services,
-        ValidationRules
     }
 }

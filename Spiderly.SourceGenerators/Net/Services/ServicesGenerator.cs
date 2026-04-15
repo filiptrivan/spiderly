@@ -45,8 +45,7 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
             List<SpiderlyClass> userEntityServices = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith(".Services"))
-                .Where(x => x.BaseType != null && x.BaseType.EndsWith("ServiceGenerated"))
+                .Where(x => x.HasSpiderlyServiceAttribute())
                 .ToList();
 
             if (currentProjectEntities.Count == 0)

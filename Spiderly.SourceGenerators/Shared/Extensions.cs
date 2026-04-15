@@ -387,6 +387,21 @@ namespace Spiderly.SourceGenerators.Shared
             return entity.Attributes.Any(x => x.Name == "SpiderlyController");
         }
 
+        public static bool HasSpiderlyDataMapperAttribute(this SpiderlyClass entity)
+        {
+            return entity.Attributes.Any(x => x.Name == "SpiderlyDataMapper");
+        }
+
+        public static bool HasSpiderlyServiceAttribute(this SpiderlyClass entity)
+        {
+            return entity.Attributes.Any(x => x.Name == "SpiderlyService");
+        }
+
+        public static bool HasSpiderlyEnumAttribute(this SpiderlyClass entity)
+        {
+            return entity.Attributes.Any(x => x.Name == "SpiderlyEnum");
+        }
+
         public static bool HasDisplayNameAttribute(this SpiderlyClass entity)
         {
             return entity.Attributes.Any(x => x.Name == "DisplayName");

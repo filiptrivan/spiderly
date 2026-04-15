@@ -29,7 +29,7 @@ namespace Spiderly.SourceGenerators.Net
             //#endif
             var combined = PipelineFactory.CreatePipelineWithCallingPath(context,
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Controllers },
-                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.Services });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.Services });
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
@@ -62,6 +62,10 @@ namespace Spiderly.SourceGenerators.Net
                 .Where(x => x.HasSpiderlyEntityAttribute())
                 .ToList();
 
+            List<SpiderlyClass> allDTOs = referencedProjectEntitiesAndServices
+                .Where(x => x.HasSpiderlyDTOAttribute())
+                .ToList();
+
             string namespaceValue = currentProjectClasses[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
             string appName = Helpers.GetAppName(namespaceValue);
@@ -84,8 +88,8 @@ using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Localization;
 using Spiderly.Shared.DTO;
 using {{appName}}.Business.Services;
-{{string.Join("\n", ReferencedAssemblyAnalyzer.GetEntityClassesUsings(allEntities))}}
-{{string.Join("\n", ReferencedAssemblyAnalyzer.GetDTOClassesUsings(allEntities))}}
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetClassesUsings(allEntities))}}
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetClassesUsings(allDTOs))}}
 
 namespace {{basePartOfNamespace}}.Controllers
 {

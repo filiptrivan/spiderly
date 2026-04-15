@@ -38,9 +38,6 @@ namespace Spiderly.SourceGenerators.Shared
             if (namespaceName == null)
                 return false;
 
-            if (namespaceName.EndsWith($".GeneratorSettings"))
-                return true;
-
             if (categories.Any(category => namespaceName.EndsWith($".{category}")))
                 return true;
 
@@ -58,13 +55,14 @@ namespace Spiderly.SourceGenerators.Shared
             return false;
         }
 
-        private static string GetMarkerAttributeName(ClassCategoryCodes category) => category switch
+        public static string GetMarkerAttributeName(ClassCategoryCodes category) => category switch
         {
             ClassCategoryCodes.Entities => "SpiderlyEntity",
             ClassCategoryCodes.DTO => "SpiderlyDTO",
             ClassCategoryCodes.Controllers => "SpiderlyController",
             ClassCategoryCodes.DataMappers => "SpiderlyDataMapper",
             ClassCategoryCodes.Services => "SpiderlyService",
+            ClassCategoryCodes.Enums => "SpiderlyEnum",
             _ => null,
         };
 
@@ -85,31 +83,29 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool IsEnumSyntaxTargetForGeneration(SyntaxNode node)
         {
-            if (node is EnumDeclarationSyntax enumDeclaration)
-            {
-                string namespaceName = enumDeclaration.GetNamespace();
-
-                if (namespaceName != null && (namespaceName.EndsWith(".Enums") || namespaceName.EndsWith(".GeneratorSettings")))
-                    return true;
-            }
-
-            return false;
+            return node is EnumDeclarationSyntax enumDeclaration
+                && HasEnumAttribute(enumDeclaration, "SpiderlyEnum");
         }
 
         public static EnumDeclarationSyntax GetEnumSemanticTargetForGeneration(GeneratorSyntaxContext context)
         {
             EnumDeclarationSyntax enumDeclaration = (EnumDeclarationSyntax)context.Node;
+            return IsEnumSyntaxTargetForGeneration(enumDeclaration) ? enumDeclaration : null;
+        }
 
-            string namespaceName = enumDeclaration
-               .Ancestors()
-               .OfType<NamespaceDeclarationSyntax>()
-               .Select(ns => ns.Name.ToString())
-               .FirstOrDefault();
-
-            if (namespaceName != null && (namespaceName.EndsWith(".Enums") || namespaceName.EndsWith(".GeneratorSettings")))
-                return enumDeclaration;
-
-            return null;
+        private static bool HasEnumAttribute(EnumDeclarationSyntax enumDeclaration, string attributeName)
+        {
+            string attributeNameWithSuffix = attributeName + "Attribute";
+            foreach (AttributeListSyntax attrList in enumDeclaration.AttributeLists)
+            {
+                foreach (AttributeSyntax attr in attrList.Attributes)
+                {
+                    string name = attr.Name.ToString();
+                    if (name == attributeName || name == attributeNameWithSuffix)
+                        return true;
+                }
+            }
+            return false;
         }
 
         public static bool IsSyntaxTargetForGenerationEveryClass(SyntaxNode node)

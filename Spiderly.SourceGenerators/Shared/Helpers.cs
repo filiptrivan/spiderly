@@ -193,7 +193,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static SpiderlyClass GetManualyWrittenMapperClass(List<SpiderlyClass> classes)
         {
             return classes
-                .Where(x => x.Namespace.EndsWith(".DataMappers") && x.Attributes.Any(x => x.Name == "CustomMapper"))
+                .Where(x => x.HasSpiderlyDataMapperAttribute())
                 .SingleOrDefault(); // FT: It should allways be only one or none
         }
 

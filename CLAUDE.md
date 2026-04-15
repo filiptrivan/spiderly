@@ -31,7 +31,13 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 - `bool?` (nullable) is **recommended** for checkbox properties — non-nullable `bool` is supported but `bool?` is preferred in most cases. Treat `null` as `false` in business logic
 - All generated methods that end users can use (virtual hooks, overridable methods) must have XML `<summary>` documentation with `<example>` showing usage
 - **Database table names are singular** — matching the entity class name exactly (e.g., `Category` class → `"Category"` table, not `"Categories"`). This is because Spiderly registers entities via `modelBuilder.Entity()` without `DbSet<T>` properties, so EF Core uses the class name as-is
-- **Hand-written entity and DTO classes require classification attributes.** Mark every entity with `[SpiderlyEntity]` and every hand-written DTO with `[SpiderlyDTO]`; the source generators enroll classes by attribute. Generated DTOs (`{Entity}DTO`, `{Entity}SaveBodyDTO`, `{Entity}MainUIFormDTO`) need no attribute — Spiderly emits them.
+- **Hand-written classes require classification attributes.** Source generators enroll classes by marker attribute, not by namespace suffix:
+  - Entities → `[SpiderlyEntity]`
+  - Hand-written DTOs → `[SpiderlyDTO]` (generated DTOs like `{Entity}DTO` / `{Entity}SaveBodyDTO` / `{Entity}MainUIFormDTO` need no attribute)
+  - Custom controllers → `[SpiderlyController]`
+  - Entity services extending `{Entity}ServiceGenerated` → `[SpiderlyService]`
+  - The hand-written partial mapper class → `[SpiderlyDataMapper]`
+  - C# enums and class-based enums (static classes of string constants) exposed to Angular → `[SpiderlyEnum]`
 
 ## AI-Agentic Philosophy
 

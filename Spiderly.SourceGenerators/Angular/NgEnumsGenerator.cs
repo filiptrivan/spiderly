@@ -77,7 +77,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .ToList();
 
             List<SpiderlyClass> currentProjectClassEnums = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith(".Enums"))
+                .Where(x => x.HasSpiderlyEnumAttribute())
                 .ToList();
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\enums\enums.generated.ts

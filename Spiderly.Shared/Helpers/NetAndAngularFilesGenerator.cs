@@ -1591,14 +1591,11 @@ namespace {{appName}}.Shared.FluentValidation
     private static string GetPermissionCodesCsData(string appName)
     {
       return $$"""
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Spiderly.Shared.Attributes;
 
 namespace {{appName}}.Business.Enums
 {
+    [SpiderlyEnum]
     public static partial class PermissionCodes
     {
 
@@ -2645,12 +2642,14 @@ using {{appName}}.Business.DTO;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
 using Spiderly.Security.Services;
+using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
 
 namespace {{appName}}.Business.Services
 {
+    [SpiderlyService]
     public class AuthorizationService : AuthorizationServiceGenerated
     {
         private readonly IApplicationDbContext _context;
@@ -2797,7 +2796,7 @@ using Spiderly.Shared.Attributes;
 
 namespace {{appName}}.Business.DataMappers
 {
-    [CustomMapper]
+    [SpiderlyDataMapper]
     public static partial class Mapper
     {
 

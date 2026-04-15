@@ -7,11 +7,6 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class SpiderlyClassFactory
     {
-        public static SpiderlyClass GetSettingsClass(List<SpiderlyClass> classes)
-        {
-            return classes.SingleOrDefault(x => x.Namespace.EndsWith($".GeneratorSettings"));
-        }
-
         public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
         {
             return currentProjectClasses

@@ -69,13 +69,10 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (ClassCategoryCodes category in categories)
             {
-                bool match = category switch
-                {
-                    ClassCategoryCodes.Entities => HasAttributeByName(ref attrs, type, "SpiderlyEntityAttribute"),
-                    ClassCategoryCodes.DTO => HasAttributeByName(ref attrs, type, "SpiderlyDTOAttribute"),
-                    ClassCategoryCodes.Controllers => HasAttributeByName(ref attrs, type, "SpiderlyControllerAttribute"),
-                    _ => GetFullNamespace(type).EndsWith($".{category}"),
-                };
+                string markerAttribute = PipelineFactory.GetMarkerAttributeName(category);
+                bool match = markerAttribute != null
+                    ? HasAttributeByName(ref attrs, type, markerAttribute + "Attribute")
+                    : GetFullNamespace(type).EndsWith($".{category}");
 
                 if (match)
                     return true;
@@ -219,28 +216,13 @@ namespace Spiderly.SourceGenerators.Shared
             return methods.OrderBy(x => x.Name).ToList();
         }
 
-        public static List<string> GetEntityClassesUsings(List<SpiderlyClass> referencedProjectEntities)
+        public static List<string> GetClassesUsings(IEnumerable<SpiderlyClass> classes)
         {
-            List<string> namespaces = referencedProjectEntities
-                .Where(x => x.Namespace.EndsWith(".Entities"))
+            return classes
                 .Select(x => $"using {x.Namespace};")
-                .OrderBy(x => x)
                 .Distinct()
-                .ToList();
-
-            return namespaces;
-        }
-
-        public static List<string> GetDTOClassesUsings(List<SpiderlyClass> referencedProjectEntities)
-        {
-            List<string> namespaces = referencedProjectEntities
-                .Where(x => x.Namespace.EndsWith(".Entities"))
-                .Select(x => $"using {x.Namespace.Replace(".Entities", ".DTO")};")
                 .OrderBy(x => x)
-                .Distinct()
                 .ToList();
-
-            return namespaces;
         }
     }
 }
