@@ -84,7 +84,7 @@ namespace Spiderly.Shared.Helpers
             List<string> parts = fileName.Split('-').ToList();
 
             if (parts.Count < 2)
-                throw new HackerException($"Invalid file name format ({fileName}).");
+                throw new SecurityViolationException($"Invalid file name format ({fileName}).");
 
             string idPart = parts[0];
 
@@ -100,7 +100,7 @@ namespace Spiderly.Shared.Helpers
             List<string> parts = fileName.Split('.').ToList();
 
             if (parts.Count < 2) // It could be only 2, it's not the same validation as spliting with '-'
-                throw new HackerException($"Invalid file name format ({fileName}).");
+                throw new SecurityViolationException($"Invalid file name format ({fileName}).");
 
             return parts.Last(); // The file could be .abc.png
         }
@@ -557,18 +557,18 @@ User ID: {{{userId}}}
             int actualHeight = imageInfo.Height;
 
             if (width > 0 && actualWidth != width)
-                throw new HackerException(localizer?["ImageWidthMustBeExact", width, actualWidth]
+                throw new SecurityViolationException(localizer?["ImageWidthMustBeExact", width, actualWidth]
                     ?? $"Image width must be exactly {width}px (current: {actualWidth}px).");
 
             if (height > 0 && actualHeight != height)
-                throw new HackerException(localizer?["ImageHeightMustBeExact", height, actualHeight]
+                throw new SecurityViolationException(localizer?["ImageHeightMustBeExact", height, actualHeight]
                     ?? $"Image height must be exactly {height}px (current: {actualHeight}px).");
         }
 
         public static void ValidateFileSize(long fileSize, int maxFileSize, IStringLocalizer localizer = null)
         {
             if (maxFileSize > 0 && fileSize > maxFileSize)
-                throw new HackerException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
+                throw new SecurityViolationException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
                     ?? $"File size must not exceed {maxFileSize / 1_000_000} MB.");
         }
 
@@ -590,7 +590,7 @@ User ID: {{{userId}}}
             if (string.IsNullOrEmpty(declaredContentType) ||
                 !allowedMimeTypes.Any(t => t.Equals(declaredContentType, StringComparison.OrdinalIgnoreCase)))
             {
-                throw new HackerException(localizer?["FileTypeNotAllowed", declaredContentType ?? ""]
+                throw new SecurityViolationException(localizer?["FileTypeNotAllowed", declaredContentType ?? ""]
                     ?? $"File type '{declaredContentType}' is not allowed.");
             }
 
@@ -600,16 +600,16 @@ User ID: {{{userId}}}
             content.Position = 0;
 
             if (read == 0)
-                throw new HackerException(localizer?["FileIsEmpty"] ?? "File is empty.");
+                throw new SecurityViolationException(localizer?["FileIsEmpty"] ?? "File is empty.");
 
             byte[] headerTrimmed = read == header.Length ? header : header.Take(read).ToArray();
 
             if (!FileSignatures.Map.TryGetValue(declaredContentType, out byte?[][] signatures))
-                throw new HackerException(localizer?["FileTypeNotAllowed", declaredContentType]
+                throw new SecurityViolationException(localizer?["FileTypeNotAllowed", declaredContentType]
                     ?? $"File type '{declaredContentType}' is not allowed.");
 
             if (!signatures.Any(sig => FileSignatures.Matches(headerTrimmed, sig)))
-                throw new HackerException(localizer?["FileContentDoesNotMatchType", declaredContentType]
+                throw new SecurityViolationException(localizer?["FileContentDoesNotMatchType", declaredContentType]
                     ?? $"File content does not match declared type '{declaredContentType}'.");
         }
 

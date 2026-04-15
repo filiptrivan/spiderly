@@ -2,6 +2,7 @@
  * Public API Surface of spiderly
  */
 
+export * from './lib/errors/api-error-codes';
 export * from './lib/controls/base-autocomplete-control';
 export * from './lib/controls/base-control';
 export * from './lib/controls/base-dropdown-control';

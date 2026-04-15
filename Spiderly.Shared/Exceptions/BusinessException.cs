@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Spiderly.Shared.Exceptions
 {
+    /// <summary>
+    /// Thrown when input is valid in shape but violates a domain rule (e.g. attempting to ship
+    /// an order that's already shipped, applying a discount that's expired). Mapped to HTTP 400
+    /// with the exception message passed verbatim to the client.
+    /// </summary>
+    /// <example>
+    /// throw new BusinessException(_localizer["ProductAlreadyArchived"]);
+    /// </example>
     public class BusinessException : Exception
     {
-        public int StatusCode { get; set; } = StatusCodes.Status400BadRequest;
-
-        // Constructor
         public BusinessException() : base() { }
 
-        // Constructor with message
         public BusinessException(string message) : base(message) { }
     }
 }

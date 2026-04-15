@@ -81,7 +81,7 @@ namespace Spiderly.Security.Services
             {
                 await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId);
                 await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken.Value);
-                throw new HackerException("The user id can't be different in refresh and access token.");
+                throw new SecurityViolationException("The user id can't be different in refresh and access token.");
             }
             if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
             {
@@ -213,7 +213,7 @@ namespace Spiderly.Security.Services
             JwtSecurityToken jwtToken = validatedToken as JwtSecurityToken;
 
             if (jwtToken == null || !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature)) // Validating JWT token, checking if it has changed claims etc.
-                throw new HackerException("Hacker is trying to change the jwt token.");
+                throw new SecurityViolationException("JWT header tampered (algorithm or claims changed).");
 
             return jwtToken;
         }

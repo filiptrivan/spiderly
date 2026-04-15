@@ -282,14 +282,14 @@ public async Task<CheckoutSummary> GetCheckoutSummary() => ...;  // ❌ broken T
 | Type | HTTP | When |
 |---|---|---|
 | `BusinessException(message)` | 400 | User-facing validation errors |
-| `HackerException()` | 500 (generic) | Tampering, impossible conditions |
+| `SecurityViolationException()` | 403 | Tampering, impossible conditions |
 
 ```csharp
 if (dto.Items.Count == 0)
     throw new BusinessException("Cart is empty.");
 
 if (paymentMethod == null)
-    throw new HackerException($"Invalid PaymentMethodId: {dto.PaymentMethodId}");
+    throw new SecurityViolationException($"Invalid PaymentMethodId: {dto.PaymentMethodId}");
 ```
 
 ## Key Attributes

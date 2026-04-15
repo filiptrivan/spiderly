@@ -8,9 +8,19 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 
 `X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag, `Angular/projects/spiderly/package.json`, and `spiderly-cli/package.json`.
 
+**Version bumps happen at publish time, not during refactors.** Don't bump the version as part of a feature or refactor PR — even for breaking changes. The human owns release cadence and decides when to cut a new version.
+
 ## Documentation updates
 
 When Spiderly code changes affect public API, attributes, generated output, or behavior — update the documentation in `spiderly-website/` (inside the PACMS workspace) accordingly.
+
+## API error codes
+
+`ApiErrorCodes` (returned as `ApiErrorDTO.errorCode`) is a cross-language public contract. Three mirrors must stay in sync whenever a code is added, removed, or renamed:
+
+1. `Spiderly.Shared/DTO/ApiErrorCodes.cs` — canonical C# source.
+2. `Angular/projects/spiderly/src/lib/errors/api-error-codes.ts` — admin consumers.
+3. Downstream TS mirrors (e.g. `pa-storefront/packages/shared/src/lib/api-error.ts` — storefront).
 
 ## Coding conventions
 

@@ -227,7 +227,7 @@ public static async Task ValidateImageDimensions(
 )
 ```
 
-Throws `HackerException` if dimensions don't match exactly.
+Throws `SecurityViolationException` if dimensions don't match exactly.
 
 ## Cleanup Methods
 

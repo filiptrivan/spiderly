@@ -2686,10 +2686,10 @@ namespace {{appName}}.Business.Services
                 User user = await GetInstanceAsync<User, long>(userDTO.Id, null);
 
                 if (user.Email != userDTO.Email)
-                    throw new HackerException($"No one can change {nameof(userDTO.Email)} from the main UI form.");
+                    throw new SecurityViolationException($"No one can change {nameof(userDTO.Email)} from the main UI form.");
 
                 if (userDTO.HasLoggedInWithGoogleAsExternalProvider != user.HasLoggedInWithGoogleAsExternalProvider)
-                    throw new HackerException($"No one can change {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
+                    throw new SecurityViolationException($"No one can change {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
 
                 bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(PermissionCodes.UpdateUser);
                 if (hasAdminUpdatePermission)
@@ -2697,10 +2697,10 @@ namespace {{appName}}.Business.Services
 
                 long currentUserId = _authenticationService.GetCurrentUserId();
                 if (currentUserId != userDTO.Id)
-                    throw new HackerException($"User without admin update permission which is not current user tryed to update user.");
+                    throw new SecurityViolationException($"User without admin update permission which is not current user tryed to update user.");
 
                 if (userDTO.IsDisabled != user.IsDisabled)
-                    throw new HackerException($"User without admin update permission tryed to change {nameof(userDTO.IsDisabled)}.");
+                    throw new SecurityViolationException($"User without admin update permission tryed to change {nameof(userDTO.IsDisabled)}.");
             });
         }
 
@@ -2709,13 +2709,13 @@ namespace {{appName}}.Business.Services
             await _context.WithTransactionAsync(async () =>
             {
                 if (userDTO.HasLoggedInWithGoogleAsExternalProvider != null)
-                    throw new HackerException($"No one can init {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
+                    throw new SecurityViolationException($"No one can init {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
 
                 bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(PermissionCodes.InsertUser);
                 if (hasAdminInsertPermission)
                     return;
 
-                throw new HackerException("User without admin insert permission tryed to add new user.");
+                throw new SecurityViolationException("User without admin insert permission tryed to add new user.");
             });
         }
 

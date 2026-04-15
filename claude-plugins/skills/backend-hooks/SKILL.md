@@ -1,6 +1,6 @@
 ---
 name: backend-hooks
-description: Override Spiderly lifecycle hooks to customize generated CRUD behavior. Use when overriding lifecycle hooks, customizing generated CRUD logic, adding business logic to save/delete/get operations, handling MARS exceptions or transaction issues, or throwing business/hacker exceptions.
+description: Override Spiderly lifecycle hooks to customize generated CRUD behavior. Use when overriding lifecycle hooks, customizing generated CRUD logic, adding business logic to save/delete/get operations, handling MARS exceptions or transaction issues, or throwing business/security-violation exceptions.
 ---
 
 # Backend Hooks
@@ -133,11 +133,11 @@ await _context.WithTransactionAsync(async () =>
 | Type | HTTP Status | When to Use |
 |---|---|---|
 | `BusinessException(message)` | 400 | Validation the user can trigger through normal UI usage |
-| `HackerException()` | 500 (generic) | Impossible conditions, tampering, unauthorized access |
+| `SecurityViolationException()` | 403 | Impossible conditions, tampering, unauthorized access |
 
 ```csharp
 throw new BusinessException("Sale price must be less than regular price.");
-throw new HackerException(); // logs detailed message server-side, returns generic error
+throw new SecurityViolationException(); // logs detailed message server-side, returns generic error
 ```
 
 ## PostgreSQL MARS Pitfall

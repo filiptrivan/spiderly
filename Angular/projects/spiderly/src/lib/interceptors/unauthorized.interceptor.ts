@@ -7,6 +7,7 @@ import { inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { ApiErrorCodes } from '../errors/api-error-codes';
 import { AuthServiceBase } from '../services/auth.service.base';
 import { ConfigServiceBase } from '../services/config.service.base';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
@@ -47,8 +48,13 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
 
       return of(err.message);
     } else if (err.status == 401) {
+      if (errorResponse?.errorCode === ApiErrorCodes.InvalidToken) {
+        authService.clearLocalStorage();
+        return of(err.message);
+      }
+
       messageService.warningMessage(
-        errorResponse.message ?? translocoService.translate('LoginRequired'),
+        errorResponse?.message ?? translocoService.translate('LoginRequired'),
         translocoService.translate('Warning'),
       );
 
@@ -64,10 +70,6 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         translocoService.translate('NotFoundDetails'),
         translocoService.translate('NotFoundTitle'),
       );
-      return of(err.message);
-    } else if (err.status == 419) {
-      // Access token expired
-      authService.clearLocalStorage();
       return of(err.message);
     } else {
       messageService.errorMessage(

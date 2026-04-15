@@ -286,7 +286,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 return $$"""
             if (orderedItemIds.Count == 0)
-                throw new HackerException("The ordered {{property.Name}} for {{entity.Name}} can't be empty.");
+                throw new SecurityViolationException("The ordered {{property.Name}} for {{entity.Name}} can't be empty.");
 """;
 
             }
