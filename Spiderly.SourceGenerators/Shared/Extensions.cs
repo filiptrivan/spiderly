@@ -717,7 +717,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             if (c == null)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
                     null,
                     "<unknown>", "<null>");
@@ -734,7 +734,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (baseClass == null)
                 {
-                    throw SpiderlyDiagnostics.Error(
+                    throw SpiderlyDiagnostics.Create(
                         SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
                         c.Location,
                         c.Name, baseType);
@@ -746,7 +746,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (baseType != null && baseType.Contains("<"))
                 return baseType.Split('<')[1].Replace(">", ""); // long
 
-            throw SpiderlyDiagnostics.Error(
+            throw SpiderlyDiagnostics.Create(
                 SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
                 c.Location,
                 c.Name, baseType ?? "<none>");
@@ -781,7 +781,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (dir == null)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.BackendFolderNotFound,
                     null,
                     backendFolderName, callingProjectDirectory);

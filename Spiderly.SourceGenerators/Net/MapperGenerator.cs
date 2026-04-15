@@ -71,7 +71,10 @@ namespace {{basePartOfNamespace}}.DataMappers
 """);
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
-                sb.AppendLine($$"""
+                string entityRegion;
+                try
+                {
+                    entityRegion = $$"""
 
         #region {{entity.Name}}
 
@@ -85,7 +88,15 @@ namespace {{basePartOfNamespace}}.DataMappers
 
         #endregion
 
-""");
+""";
+                }
+                catch (SpiderlyGenerationException ex)
+                {
+                    context.ReportDiagnostic(ex.Diagnostic);
+                    continue;
+                }
+
+                sb.AppendLine(entityRegion);
             }
 
             sb.AppendLine($$"""

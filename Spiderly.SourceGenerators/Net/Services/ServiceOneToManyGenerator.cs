@@ -32,7 +32,7 @@ namespace Spiderly.SourceGenerators.Net
 
                     if (m2mProperty == null)
                     {
-                        throw SpiderlyDiagnostics.Error(
+                        throw SpiderlyDiagnostics.Create(
                             SpiderlyDiagnostics.OneToManyMissingM2MWithMany,
                             oneToManyProperty.Location ?? entity.Location,
                             entity.Name);

@@ -89,7 +89,7 @@ using {{appName}}.Business.Services;
 
 namespace {{basePartOfNamespace}}.Controllers
 {
-{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, config))}}
+{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, config, context))}}
 }
 """;
 
@@ -102,7 +102,7 @@ namespace {{basePartOfNamespace}}.Controllers
         // avoids computing per-controller service dependency graphs in the generator,
         // and means user-written controllers don't break when entity relationships change.
         // We can introduce breaking changes freely, so we can always refactor later if needed.
-        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config)
+        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config, SourceProductionContext context)
         {
             string routePrefix = config.Api.RoutePrefix;
             List<string> result = new();
@@ -128,7 +128,7 @@ namespace {{basePartOfNamespace}}.Controllers
             _localizer = localizer;
         }
 
-{{string.Join("\n\n", GetControllerMethods(groupedControllerEntities.ToList(), allEntities))}}
+{{string.Join("\n\n", GetControllerMethods(groupedControllerEntities.ToList(), allEntities, context))}}
 
     }
 """);
@@ -148,7 +148,7 @@ namespace {{basePartOfNamespace}}.Controllers
 """;
         }
 
-        private static List<string> GetControllerMethods(List<SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> allEntities)
+        private static List<string> GetControllerMethods(List<SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> allEntities, SourceProductionContext context)
         {
             List<string> result = new();
 
@@ -157,10 +157,13 @@ namespace {{basePartOfNamespace}}.Controllers
                 if (controllerEntity.IsManyToMany()) // TODO FT: Do something with M2M entities
                     continue;
 
-                string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
-                string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
+                string entityRegion;
+                try
+                {
+                    string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
+                    string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
 
-                result.Add($$"""
+                    entityRegion = $$"""
         #region {{controllerEntity.Name}}
 
         #region Read
@@ -247,7 +250,15 @@ namespace {{basePartOfNamespace}}.Controllers
         #endregion
 
         #endregion
-""");
+""";
+                }
+                catch (SpiderlyGenerationException ex)
+                {
+                    context.ReportDiagnostic(ex.Diagnostic);
+                    continue;
+                }
+
+                result.Add(entityRegion);
             }
 
             return result;
@@ -287,7 +298,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
             if (manyToOneEntity == null)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
                     property.Location ?? entity.Location,
                     property.EntityName, property.Name, property.Type);
@@ -321,7 +332,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
             if (manyToOneEntity == null)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
                     property.Location ?? entity.Location,
                     property.EntityName, property.Name, property.Type);

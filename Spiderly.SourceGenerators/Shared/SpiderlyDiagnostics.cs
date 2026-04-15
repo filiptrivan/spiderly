@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using System;
 
 namespace Spiderly.SourceGenerators.Shared
 {
@@ -14,8 +15,30 @@ namespace Spiderly.SourceGenerators.Shared
         /// Builds a <see cref="SpiderlyGenerationException"/> carrying a located diagnostic.
         /// Pass <paramref name="location"/> as <c>null</c> to use <see cref="Location.None"/>.
         /// </summary>
-        public static SpiderlyGenerationException Error(DiagnosticDescriptor descriptor, Location location, params object[] args)
+        public static SpiderlyGenerationException Create(DiagnosticDescriptor descriptor, Location location, params object[] args)
             => new SpiderlyGenerationException(Diagnostic.Create(descriptor, location ?? Location.None, args));
+
+        /// <summary>
+        /// Same as <see cref="IncrementalGeneratorInitializationContext.RegisterImplementationSourceOutput"/>
+        /// but reports <see cref="SpiderlyGenerationException.Diagnostic"/> instead of letting the generator fault with CS8785.
+        /// </summary>
+        public static void RegisterSafeImplementationSourceOutput<TSource>(
+            this IncrementalGeneratorInitializationContext context,
+            IncrementalValueProvider<TSource> source,
+            Action<SourceProductionContext, TSource> body)
+        {
+            context.RegisterImplementationSourceOutput(source, (spc, s) =>
+            {
+                try
+                {
+                    body(spc, s);
+                }
+                catch (SpiderlyGenerationException ex)
+                {
+                    spc.ReportDiagnostic(ex.Diagnostic);
+                }
+            });
+        }
 
         public static readonly DiagnosticDescriptor UnresolvableControllerType = new(
             id: "SPIDERLY001",

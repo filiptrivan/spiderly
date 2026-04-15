@@ -51,7 +51,14 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectEntities = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
-            Validations.ValidateDisplayNameAttributes(currentProjectEntities, allEntities);
+            bool hasDisplayNameErrors = false;
+            foreach (Diagnostic diagnostic in Validations.ValidateDisplayNameAttributes(currentProjectEntities, allEntities))
+            {
+                context.ReportDiagnostic(diagnostic);
+                hasDisplayNameErrors = true;
+            }
+            if (hasDisplayNameErrors)
+                return;
 
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectEntities, allEntities);
 

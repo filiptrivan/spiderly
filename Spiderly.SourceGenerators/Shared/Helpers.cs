@@ -102,7 +102,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (m2mWithManyProperties.Count != 2)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ManyToManyRequiresExactlyTwoWithMany,
                     manyToManyEntity.Location,
                     manyToManyEntity.Name, m2mWithManyProperties.Count);

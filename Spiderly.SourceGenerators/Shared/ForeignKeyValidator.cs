@@ -34,7 +34,7 @@ namespace Spiderly.SourceGenerators.Shared
             string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
             if (fkFromNavAttribute != null && entity.Properties.Any(p => p.Name == fkFromNavAttribute) == false)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ForeignKeyPropertyNotFound,
                     navigation.Location ?? entity.Location,
                     fkFromNavAttribute, entity.Name, navigation.Name);
@@ -45,7 +45,7 @@ namespace Spiderly.SourceGenerators.Shared
                 string fkFromScalar = scalar.GetForeignKeyAttributeValue();
                 if (fkFromScalar != null && entity.Properties.Any(p => p.Name == fkFromScalar) == false)
                 {
-                    throw SpiderlyDiagnostics.Error(
+                    throw SpiderlyDiagnostics.Create(
                         SpiderlyDiagnostics.ForeignKeyPropertyNotFound,
                         scalar.Location ?? entity.Location,
                         fkFromScalar, entity.Name, scalar.Name);
@@ -68,7 +68,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (conventionCandidates > 1)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ForeignKeyAmbiguous,
                     navigation.Location ?? entity.Location,
                     entity.Name, navigation.Name, conventionName);
@@ -82,7 +82,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (navIsRequired && fkIsNullable)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ForeignKeyNullabilityMismatch,
                     fkProperty.Location ?? navigation.Location ?? entity.Location,
                     entity.Name, navigation.Name, "[Required]", fkProperty.Name, "nullable", fkProperty.Type,
@@ -91,7 +91,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (navIsRequired == false && fkIsNullable == false)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ForeignKeyNullabilityMismatch,
                     fkProperty.Location ?? navigation.Location ?? entity.Location,
                     entity.Name, navigation.Name, "optional", fkProperty.Name, "non-nullable", fkProperty.Type,
@@ -114,7 +114,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (fkType != targetIdType)
             {
-                throw SpiderlyDiagnostics.Error(
+                throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ForeignKeyTypeMismatch,
                     fkProperty.Location ?? entity.Location,
                     entity.Name, fkProperty.Name, fkProperty.Type, targetEntity.Name, targetIdType);
