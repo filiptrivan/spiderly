@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 namespace __APP_NAME__.Business.Entities
 {
     [DisplayName("Project.Name")]
+    [SpiderlyEntity]
     public class ProjectTask : BusinessObject<long>
     {
         [UIDoNotGenerate]

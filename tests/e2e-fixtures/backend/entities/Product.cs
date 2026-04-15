@@ -6,6 +6,7 @@ using Spiderly.Shared.Enums;
 
 namespace __APP_NAME__.Business.Entities
 {
+    [SpiderlyEntity]
     [DoNotAuthorize]
     public class Product : BusinessObject<int>
     {

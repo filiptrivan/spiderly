@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace __APP_NAME__.Business.Entities
 {
+    [SpiderlyEntity]
     public class Project : BusinessObject<long>
     {
         [DisplayName]

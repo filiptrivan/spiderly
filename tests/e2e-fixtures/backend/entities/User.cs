@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 namespace __APP_NAME__.Business.Entities
 {
     [Index(nameof(Email), IsUnique = true)]
+    [SpiderlyEntity]
     public class User : BusinessObject<long>, IUser
     {
         [UIDoNotGenerate]
