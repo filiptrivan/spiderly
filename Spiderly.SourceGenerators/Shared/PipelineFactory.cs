@@ -44,36 +44,39 @@ namespace Spiderly.SourceGenerators.Shared
             if (categories.Any(category => namespaceName.EndsWith($".{category}")))
                 return true;
 
-            // Attribute-enrolled categories accept classes regardless of namespace — the semantic
-            // pass (HasSpiderlyXxxAttribute() in each generator) filters by attribute name.
-            if (HasAttributeEnrolledCategory(categories) && HasClassificationAttribute(classDeclaration))
-                return true;
-
-            return false;
-        }
-
-        private static bool HasAttributeEnrolledCategory(List<ClassCategoryCodes> categories)
-        {
+            // Attribute-enrolled categories accept classes regardless of namespace, but only when the
+            // class carries the marker attribute that matches the requested category. Mixing — e.g.
+            // letting a [SpiderlyController]-annotated class satisfy a request for Entities — would
+            // leak controllers into entity-only generators and crash them on GetIdType / empty lists.
             foreach (ClassCategoryCodes category in categories)
             {
-                if (category == ClassCategoryCodes.Entities ||
-                    category == ClassCategoryCodes.DTO ||
-                    category == ClassCategoryCodes.Controllers)
+                string attributeName = GetMarkerAttributeName(category);
+                if (attributeName != null && HasAttributeByName(classDeclaration, attributeName))
                     return true;
             }
+
             return false;
         }
 
-        private static bool HasClassificationAttribute(ClassDeclarationSyntax classDeclaration)
+        private static string GetMarkerAttributeName(ClassCategoryCodes category) => category switch
         {
+            ClassCategoryCodes.Entities => "SpiderlyEntity",
+            ClassCategoryCodes.DTO => "SpiderlyDTO",
+            ClassCategoryCodes.Controllers => "SpiderlyController",
+            ClassCategoryCodes.DataMappers => "SpiderlyDataMapper",
+            ClassCategoryCodes.Services => "SpiderlyService",
+            _ => null,
+        };
+
+        private static bool HasAttributeByName(ClassDeclarationSyntax classDeclaration, string attributeName)
+        {
+            string attributeNameWithSuffix = attributeName + "Attribute";
             foreach (AttributeListSyntax attrList in classDeclaration.AttributeLists)
             {
                 foreach (AttributeSyntax attr in attrList.Attributes)
                 {
                     string name = attr.Name.ToString();
-                    if (name == "SpiderlyEntity" || name == "SpiderlyEntityAttribute" ||
-                        name == "SpiderlyDTO" || name == "SpiderlyDTOAttribute" ||
-                        name == "SpiderlyController" || name == "SpiderlyControllerAttribute")
+                    if (name == attributeName || name == attributeNameWithSuffix)
                         return true;
                 }
             }
