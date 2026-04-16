@@ -6,10 +6,12 @@ using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Notifications
 {
-    // Sends a Telegram notification when a Hangfire job enters FailedState
-    // after all retries are exhausted. Uses IApplyStateFilter so it only fires
-    // on the final applied state (AutomaticRetryAttribute redirects intermediate
-    // failures to ScheduledState before this filter runs).
+    /// <summary>
+    /// Sends a Telegram notification when a Hangfire job enters FailedState
+    /// after all retries are exhausted. Uses IApplyStateFilter so it only fires
+    /// on the final applied state (AutomaticRetryAttribute redirects intermediate
+    /// failures to ScheduledState before this filter runs).
+    /// </summary>
     public class HangfireFailedJobNotificationFilter : IApplyStateFilter
     {
         private readonly ILogger<HangfireFailedJobNotificationFilter> _logger;
