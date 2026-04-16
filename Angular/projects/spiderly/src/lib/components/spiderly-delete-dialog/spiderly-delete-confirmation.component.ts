@@ -4,6 +4,19 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { Observable } from 'rxjs';
+
+export type DeleteConfirmationData =
+  | {
+      message: string;
+      deleteItemFromTableObservableMethod: (id: number) => Observable<any>;
+      id: number;
+    }
+  | {
+      message: string;
+      deleteListFromTableObservableMethod: (ids: number[]) => Observable<any>;
+      ids: number[];
+    };
 
 @Component({
   selector: 'spiderly-delete-confirmation',
@@ -15,17 +28,15 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 export class SpiderlyDeleteConfirmationComponent {
   constructor(
     public ref: DynamicDialogRef,
-    public config: DynamicDialogConfig,
+    public config: DynamicDialogConfig<DeleteConfirmationData>,
   ) {}
 
   accept() {
-    const observable = this.config.data.deleteListFromTableObservableMethod
-      ? this.config.data.deleteListFromTableObservableMethod(
-          this.config.data.ids,
-        )
-      : this.config.data.deleteItemFromTableObservableMethod(
-          this.config.data.id,
-        );
+    const data = this.config.data;
+    const observable =
+      'deleteListFromTableObservableMethod' in data
+        ? data.deleteListFromTableObservableMethod(data.ids)
+        : data.deleteItemFromTableObservableMethod(data.id);
 
     observable.subscribe({
       next: () => {

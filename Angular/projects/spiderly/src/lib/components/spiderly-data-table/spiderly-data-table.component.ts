@@ -6,6 +6,7 @@ import {
   Inject,
   Input,
   LOCALE_ID,
+  OnDestroy,
   OnInit,
   Output,
   ViewChild,
@@ -26,7 +27,8 @@ import {
   TableModule,
 } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
 import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
@@ -39,7 +41,10 @@ import {
   getHtmlImgDisplayString64,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
-import { SpiderlyDeleteConfirmationComponent } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
+import {
+  DeleteConfirmationData,
+  SpiderlyDeleteConfirmationComponent,
+} from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 
 @Component({
@@ -59,7 +64,11 @@ import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-cont
     TooltipModule,
   ],
 })
-export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
+export class SpiderlyDataTableComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  private readonly destroy$ = new Subject<void>();
+
   @ViewChild('dt') table: Table;
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
@@ -435,6 +444,7 @@ export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
         deleteItemFromTableObservableMethod:
           this.deleteItemFromTableObservableMethod,
         id: rowId,
+        message: this.translocoService.translate('PleaseConfirmToProceed'),
       },
       'SuccessfullyDeletedMessage',
     );
@@ -450,6 +460,9 @@ export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
         deleteListFromTableObservableMethod:
           this.deleteListFromTableObservableMethod,
         ids: selectedIds,
+        message: this.translocoService.translate('DeleteBulkConfirmation', {
+          count: selectedIds.length,
+        }),
       },
       'SuccessfullyDeletedListMessage',
       () => this.resetSelection(),
@@ -457,7 +470,7 @@ export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
   }
 
   private openDeleteConfirmation(
-    data: Record<string, unknown>,
+    data: DeleteConfirmationData,
     successMessageKey: string,
     onSuccess?: () => void,
   ) {
@@ -470,15 +483,22 @@ export class SpiderlyDataTableComponent implements OnInit, AfterViewInit {
       },
     );
 
-    this.deleteRef.onClose.subscribe((deletedSuccessfully: boolean) => {
-      if (deletedSuccessfully === true) {
-        this.messageService.successMessage(
-          this.translocoService.translate(successMessageKey),
-        );
-        onSuccess?.();
-        this.reload();
-      }
-    });
+    this.deleteRef.onClose
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((deletedSuccessfully: boolean) => {
+        if (deletedSuccessfully === true) {
+          this.messageService.successMessage(
+            this.translocoService.translate(successMessageKey),
+          );
+          onSuccess?.();
+          this.reload();
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get showSelectAllCheckbox(): boolean {
