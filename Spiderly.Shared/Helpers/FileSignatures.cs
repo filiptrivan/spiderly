@@ -8,8 +8,10 @@ namespace Spiderly.Shared.Helpers
     /// </summary>
     public static class FileSignatures
     {
-        // MIME type → list of byte-sequence candidates the stream may start with.
-        // Null-entries inside a candidate match any byte (wildcard) — used for JPEG variants.
+        /// <summary>
+        /// MIME type → list of byte-sequence candidates the stream may start with.
+        /// Null-entries inside a candidate match any byte (wildcard) — used for JPEG variants.
+        /// </summary>
         public static readonly IReadOnlyDictionary<string, byte?[][]> Map = new Dictionary<string, byte?[][]>(StringComparer.OrdinalIgnoreCase)
         {
             ["image/jpeg"] = new byte?[][]
@@ -40,7 +42,9 @@ namespace Spiderly.Shared.Helpers
             },
         };
 
-        // Convenience set for the "images only" default.
+        /// <summary>
+        /// Convenience set for the "images only" default.
+        /// </summary>
         public static readonly IReadOnlyCollection<string> ImageMimeTypes = new[]
         {
             "image/jpeg",

@@ -2,12 +2,12 @@ namespace Spiderly.SourceGenerators.Models
 {
     public abstract class SpiderValidationRulePart { }
 
-    // Parameterless
+    /// <summary>Parameterless validation rule parts.</summary>
     public sealed class NotEmptyRulePart : SpiderValidationRulePart { }
     public sealed class EmailAddressRulePart : SpiderValidationRulePart { }
     public sealed class NotHaveWhiteSpaceRulePart : SpiderValidationRulePart { }
 
-    // String length
+    /// <summary>String length validation rule part.</summary>
     public sealed class MaximumLengthRulePart(int maxLength) : SpiderValidationRulePart
     {
         public int MaxLength { get; } = maxLength;
@@ -24,7 +24,7 @@ namespace Spiderly.SourceGenerators.Models
         public int Length { get; } = length;
     }
 
-    // Numeric
+    /// <summary>Numeric validation rule part.</summary>
     public sealed class GreaterThanOrEqualToRulePart(string value) : SpiderValidationRulePart
     {
         public string Value { get; } = value;
@@ -35,14 +35,14 @@ namespace Spiderly.SourceGenerators.Models
         public string Value { get; } = value;
     }
 
-    // Precision
+    /// <summary>Precision/scale validation rule part.</summary>
     public sealed class PrecisionScaleRulePart(int precision, int scale) : SpiderValidationRulePart
     {
         public int Precision { get; } = precision;
         public int Scale { get; } = scale;
     }
 
-    // Conditional
+    /// <summary>Conditional validation rule part.</summary>
     public sealed class UnlessRulePart(string condition) : SpiderValidationRulePart
     {
         public string Condition { get; } = condition;

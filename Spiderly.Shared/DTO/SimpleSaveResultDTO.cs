@@ -8,7 +8,9 @@ namespace Spiderly.Shared.DTO
 {
     public class SimpleSaveResultDTO
     {
-        // This is new id to reroute on the frontend
+        /// <summary>
+        /// The new id to reroute on the frontend.
+        /// </summary>
         public string Id { get; set; }
     }
 }

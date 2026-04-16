@@ -40,7 +40,10 @@ namespace Spiderly.Shared.Services
             return newFileName;
         }
 
-        // Before this in save method the authorization is being done, so we don't need to do it here also
+        /// <summary>
+        /// Deletes all blobs for the given object except the active one.
+        /// Authorization is handled by the calling save method.
+        /// </summary>
         public async Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId)
         {
             if (BlobKeyConventions.IsStagingObjectId(objectId))
