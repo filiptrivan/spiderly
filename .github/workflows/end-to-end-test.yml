@@ -16,6 +16,7 @@ jobs:
   integration-test:
     name: Test CLI Generated Application
     runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
     timeout-minutes: 20
 
     steps:
