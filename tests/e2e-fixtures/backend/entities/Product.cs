@@ -27,5 +27,10 @@ namespace __APP_NAME__.Business.Entities
         public int Stock { get; set; }
 
         public bool? IsActive { get; set; }
+
+        [BlobName]
+        [AcceptedFileTypes("video/mp4")]
+        [StringLength(1000)]
+        public string VideoUrl { get; set; }
     }
 }

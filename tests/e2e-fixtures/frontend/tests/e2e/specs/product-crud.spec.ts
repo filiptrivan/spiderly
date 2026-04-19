@@ -77,6 +77,51 @@ test.describe('Product CRUD Operations', () => {
     expect(response.ok()).toBeTruthy();
   });
 
+  test('should upload video/mp4 to VideoUrl via API', async ({ request }) => {
+    // Minimal valid ISO-BMFF MP4: ftyp box at offset 4 (`ftyp` + `isom` brand).
+    // Mime-Detective's default pack recognizes this as video/mp4.
+    const mp4Bytes = Buffer.from([
+      0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70,
+      0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00,
+      0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32,
+      0x61, 0x76, 0x63, 0x31, 0x6d, 0x70, 0x34, 0x31,
+    ]);
+
+    const response = await request.post(
+      `${API_BASE_URL}/api/Product/UploadVideoUrlForProduct`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        multipart: {
+          file: { name: 'test.mp4', mimeType: 'video/mp4', buffer: mp4Bytes },
+        },
+      }
+    );
+    expect(response.ok()).toBeTruthy();
+    const blobName = await response.text();
+    expect(blobName).toBeTruthy();
+  });
+
+  test('should reject PNG content when Content-Type claims video/mp4', async ({ request }) => {
+    // Valid PNG header sent with Content-Type: video/mp4 — declared type is in
+    // [AcceptedFileTypes] but magic bytes disagree, so the content check must reject.
+    const pngBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+    ]);
+
+    const response = await request.post(
+      `${API_BASE_URL}/api/Product/UploadVideoUrlForProduct`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        multipart: {
+          file: { name: 'fake.mp4', mimeType: 'video/mp4', buffer: pngBytes },
+        },
+      }
+    );
+    expect(response.ok()).toBeFalsy();
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+  });
+
   test('should delete product via API', async ({ request }) => {
     if (!productId) test.skip();
     const response = await request.delete(

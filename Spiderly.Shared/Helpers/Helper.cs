@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using MimeDetective;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -574,18 +575,18 @@ User ID: {{{userId}}}
 
         /// <summary>
         /// Validates that the content-type header declared by the client is in the allowed list
-        /// AND that the stream's magic bytes match one of the signatures for that type.
+        /// AND that the stream's magic bytes (inspected via Mime-Detective) match the declared type.
         /// Both checks are required — client-supplied Content-Type is trivially spoofable.
-        /// Resets <paramref name="content"/> to position 0 after reading the header.
+        /// Resets <paramref name="content"/> to position 0 before and after inspection.
         /// </summary>
-        public static async Task ValidateFileSignature(
+        public static Task ValidateFileSignature(
             Stream content,
             string declaredContentType,
             IReadOnlyCollection<string> allowedMimeTypes,
             IStringLocalizer localizer = null)
         {
             if (allowedMimeTypes == null || allowedMimeTypes.Count == 0)
-                return;
+                return Task.CompletedTask;
 
             if (string.IsNullOrEmpty(declaredContentType) ||
                 !allowedMimeTypes.Any(t => t.Equals(declaredContentType, StringComparison.OrdinalIgnoreCase)))
@@ -594,23 +595,21 @@ User ID: {{{userId}}}
                     ?? $"File type '{declaredContentType}' is not allowed.");
             }
 
-            byte[] header = new byte[16];
-            content.Position = 0;
-            int read = await content.ReadAsync(header, 0, header.Length);
-            content.Position = 0;
-
-            if (read == 0)
+            if (content.Length == 0)
                 throw new SecurityViolationException(localizer?["FileIsEmpty"] ?? "File is empty.");
 
-            byte[] headerTrimmed = read == header.Length ? header : header.Take(read).ToArray();
+            content.Position = 0;
+            var results = FileSignatures.Inspector.Inspect(content);
+            content.Position = 0;
 
-            if (!FileSignatures.Map.TryGetValue(declaredContentType, out byte?[][] signatures))
-                throw new SecurityViolationException(localizer?["FileTypeNotAllowed", declaredContentType]
-                    ?? $"File type '{declaredContentType}' is not allowed.");
+            bool matches = results.Any(r =>
+                string.Equals(r.Definition.File.MimeType, declaredContentType, StringComparison.OrdinalIgnoreCase));
 
-            if (!signatures.Any(sig => FileSignatures.Matches(headerTrimmed, sig)))
+            if (!matches)
                 throw new SecurityViolationException(localizer?["FileContentDoesNotMatchType", declaredContentType]
                     ?? $"File content does not match declared type '{declaredContentType}'.");
+
+            return Task.CompletedTask;
         }
 
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
