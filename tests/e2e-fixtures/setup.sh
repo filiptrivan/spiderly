@@ -46,4 +46,9 @@ echo "Copying page objects..."
 mkdir -p "$E2E_DIR/page-objects"
 cp "$SCRIPT_DIR/frontend/tests/e2e/page-objects/"*.ts "$E2E_DIR/page-objects/"
 
+# --- Copy E2E binary fixtures ---
+echo "Copying E2E fixtures..."
+mkdir -p "$E2E_DIR/fixtures"
+cp -r "$SCRIPT_DIR/frontend/tests/e2e/fixtures/." "$E2E_DIR/fixtures/"
+
 echo "=== Fixtures setup complete ==="

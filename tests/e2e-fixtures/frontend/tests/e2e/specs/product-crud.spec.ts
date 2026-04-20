@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
 import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
+
+const mp4Fixture = readFileSync(join(__dirname, '..', 'fixtures', 'test.mp4'));
 
 test.describe('Product CRUD Operations', () => {
   let accessToken: string;
@@ -78,21 +82,12 @@ test.describe('Product CRUD Operations', () => {
   });
 
   test('should upload video/mp4 to VideoUrl via API', async ({ request }) => {
-    // Minimal valid ISO-BMFF MP4: ftyp box at offset 4 (`ftyp` + `isom` brand).
-    // Mime-Detective's default pack recognizes this as video/mp4.
-    const mp4Bytes = Buffer.from([
-      0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70,
-      0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00,
-      0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32,
-      0x61, 0x76, 0x63, 0x31, 0x6d, 0x70, 0x34, 0x31,
-    ]);
-
     const response = await request.post(
       `${API_BASE_URL}/api/Product/UploadVideoUrlForProduct`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         multipart: {
-          file: { name: 'test.mp4', mimeType: 'video/mp4', buffer: mp4Bytes },
+          file: { name: 'test.mp4', mimeType: 'video/mp4', buffer: mp4Fixture },
         },
       }
     );
