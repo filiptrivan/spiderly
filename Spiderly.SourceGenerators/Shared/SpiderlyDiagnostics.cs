@@ -143,5 +143,13 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor BlobPropertyMissingAcceptedFileTypes = new(
+            id: "SPIDERLY014",
+            title: "Blob property missing [AcceptedFileTypes] attribute",
+            messageFormat: "Blob property '{0}.{1}' must declare [AcceptedFileTypes(\"mime/type\", ...)] with at least one MIME-typed value. Every blob property requires an explicit upload whitelist — there is no default.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

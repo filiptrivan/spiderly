@@ -585,7 +585,7 @@ namespace Spiderly.SourceGenerators.Net
                 {{ServicesGenerator.GetAuthorizeEntityMethodCall($"{property.Name}For{entity.Name}", CrudCodes.Insert, "")}}
             }
 {{GetFileSizeValidation(property)}}
-{{GetFileTypeValidation(property)}}
+{{GetFileTypeValidation(property, entity)}}
             string fileName;
 
             using (Stream stream = file.OpenReadStream())
@@ -690,26 +690,28 @@ namespace Spiderly.SourceGenerators.Net
 
         /// <summary>
         /// Emits server-side MIME + magic-byte validation. MIME types are taken from
-        /// <c>[AcceptedFileTypes]</c> (filtered to actual MIME strings — extensions like
-        /// ".pdf" are stripped); absent attribute falls back to <c>FileSignatures.ImageMimeTypes</c>.
+        /// <c>[AcceptedFileTypes]</c>, filtered to actual MIME strings — extensions like
+        /// ".pdf" are stripped. The attribute is mandatory on every blob property:
+        /// missing or extension-only values raise <see cref="SpiderlyDiagnostics.BlobPropertyMissingAcceptedFileTypes"/>
+        /// (<c>SPIDERLY014</c>) so the build fails until an explicit whitelist is declared.
         /// </summary>
-        private static string GetFileTypeValidation(SpiderlyProperty property)
+        private static string GetFileTypeValidation(SpiderlyProperty property, SpiderlyClass entity)
         {
             List<string> attributeValues = property.GetAcceptedFileTypes();
             List<string> mimeTypes = attributeValues?
                 .Where(v => v.Contains('/'))
                 .ToList();
 
-            string allowedMimeTypesExpression;
             if (mimeTypes == null || mimeTypes.Count == 0)
             {
-                allowedMimeTypesExpression = "FileSignatures.ImageMimeTypes";
+                throw SpiderlyDiagnostics.Create(
+                    SpiderlyDiagnostics.BlobPropertyMissingAcceptedFileTypes,
+                    property.Location ?? entity.Location,
+                    entity.Name, property.Name);
             }
-            else
-            {
-                string joined = string.Join(", ", mimeTypes.Select(t => $"\"{t}\""));
-                allowedMimeTypesExpression = $"new[] {{ {joined} }}";
-            }
+
+            string joined = string.Join(", ", mimeTypes.Select(t => $"\"{t}\""));
+            string allowedMimeTypesExpression = $"new[] {{ {joined} }}";
 
             return $$"""
 

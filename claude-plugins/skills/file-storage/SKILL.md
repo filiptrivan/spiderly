@@ -60,7 +60,7 @@ public string ProfilePicture { get; set; }
 | `[S3PublicUrl]`                  | Property | Uses `S3PublicStorageService`, stores full CDN URL |
 | `[S3Url]`                        | Property | Uses `S3StorageService`, stores S3 key             |
 | `[CloudinaryPublicId]`           | Property | Uses `CloudinaryStorageService`, stores public ID  |
-| `[AcceptedFileTypes("image/*")]` | Property | MIME type restriction (default: `image/*`)         |
+| `[AcceptedFileTypes("mime/type", ...)]` | Property | **Required on every `[BlobName]` property** — MIME-type whitelist. Build error `SPIDERLY014` if missing. No default. |
 | `[MaxFileSize(N)]`               | Property | Max bytes (default: 20MB)                          |
 | `[ImageWidth(N)]`                | Property | Validate exact image width                         |
 | `[ImageHeight(N)]`               | Property | Validate exact image height                        |

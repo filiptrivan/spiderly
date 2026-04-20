@@ -177,7 +177,7 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 | `[S3PublicUrl]`                         | Property       | File stored in S3 with public CDN URL                                                                |
 | `[S3Url]`                               | Property       | File stored in S3 with private (authenticated) access                                                |
 | `[CloudinaryPublicId]`                  | Property       | File stored in Cloudinary                                                                            |
-| `[AcceptedFileTypes("image/*")]`        | Property       | Restrict upload MIME types                                                                           |
+| `[AcceptedFileTypes("mime/type", ...)]` | Property       | **Required on every `[BlobName]` property** — whitelist upload MIME types. Build error `SPIDERLY014` if missing. No default.  |
 | `[MaxFileSize(N)]`                      | Property       | Max upload size in bytes (default: 20MB)                                                             |
 | `[ImageWidth(N)]` / `[ImageHeight(N)]`  | Property       | Validate exact image dimensions                                                                      |
 | `[DoNotAuthorize]`                      | Class          | Skip authorization checks for this entity                                                            |
