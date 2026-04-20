@@ -139,6 +139,7 @@ namespace Spiderly.CLI.Commands
             string solutionPath = Path.Combine(backendPath, $"{appName}.sln");
 
             bool hasRestoreErrors = false;
+            bool hasBuildErrors = false;
 
             ConsoleHelper.MarkupLineLoading("Restoring NuGet packages...");
             (bool restoreSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"restore \"{solutionPath}\"", backendPath);
@@ -152,7 +153,23 @@ namespace Spiderly.CLI.Commands
                 hasRestoreErrors = true;
             }
 
-            if (!skipDatabaseSetup)
+            // EF migrations only build *.Migrations; a full solution build is needed so the Angular source generators run.
+            if (!hasRestoreErrors)
+            {
+                ConsoleHelper.MarkupLineLoading("Building solution (runs source generators)...");
+                (bool buildSuccess, string _) = await ProcessRunner.RunCommand("dotnet", $"build \"{solutionPath}\" --no-restore", backendPath);
+                if (buildSuccess)
+                {
+                    ConsoleHelper.MarkupLineOK("Solution built successfully");
+                }
+                else
+                {
+                    ConsoleHelper.MarkupLineERROR("Failed to build solution");
+                    hasBuildErrors = true;
+                }
+            }
+
+            if (!skipDatabaseSetup && !hasBuildErrors)
             {
                 if (!await DotnetEfToolService.EnsureDotnetEfAvailable(backendPath))
                 {
@@ -191,7 +208,7 @@ namespace Spiderly.CLI.Commands
                 hasPmInstallErrors = true;
             }
 
-            if (hasNetAndAngularInitErrors || hasLocalDevSecretsErrors || hasRestoreErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
+            if (hasNetAndAngularInitErrors || hasLocalDevSecretsErrors || hasRestoreErrors || hasBuildErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)
                 {
@@ -204,6 +221,10 @@ namespace Spiderly.CLI.Commands
                 else if (hasRestoreErrors)
                 {
                     ConsoleHelper.MarkupLineERROR("Error occurred while restoring NuGet packages.");
+                }
+                else if (hasBuildErrors)
+                {
+                    ConsoleHelper.MarkupLineERROR("Error occurred while building the solution.");
                 }
                 else if (hasEfMigrationErrors)
                 {
