@@ -87,7 +87,7 @@ test.describe('Product CRUD Operations', () => {
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         multipart: {
-          file: { name: 'test.mp4', mimeType: 'video/mp4', buffer: mp4Fixture },
+          file: { name: '0-test.mp4', mimeType: 'video/mp4', buffer: mp4Fixture },
         },
       }
     );
@@ -109,7 +109,7 @@ test.describe('Product CRUD Operations', () => {
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         multipart: {
-          file: { name: 'fake.mp4', mimeType: 'video/mp4', buffer: pngBytes },
+          file: { name: '0-fake.mp4', mimeType: 'video/mp4', buffer: pngBytes },
         },
       }
     );
