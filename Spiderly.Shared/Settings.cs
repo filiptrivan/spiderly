@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Spiderly.Shared.Emailing;
 
 namespace Spiderly.Shared
 {
@@ -14,7 +15,11 @@ namespace Spiderly.Shared
 
 
         public List<string> UnhandledExceptionRecipients { get; set; }
-        public string EmailSender { get; set; }
+        /// <summary>
+        /// Default "From" address for transactional emails. <c>Email</c> is also used as the SMTP
+        /// username when the <see cref="EmailingService"/> (SMTP) implementation is active.
+        /// </summary>
+        public EmailSender EmailSender { get; set; } = new();
         public string EmailSenderPassword { get; set; }
         public string SmtpHost { get; set; } = "smtp.gmail.com";
         public int SmtpPort { get; set; } = 587;

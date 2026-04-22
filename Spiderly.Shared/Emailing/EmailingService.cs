@@ -20,7 +20,7 @@ namespace Spiderly.Shared.Emailing
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
         {
-            using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, toEmail)
+            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(toEmail))
             {
                 Subject = template.Subject,
                 Body = template.Body,
@@ -32,9 +32,9 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, string from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender from = null)
         {
-            using (MailMessage mailMessage = new MailMessage(from ?? SettingsProvider.Current.EmailSender, recipient)
+            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(from), new MailAddress(recipient))
             {
                 Subject = subject,
                 Body = body,
@@ -46,9 +46,9 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, string from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender from = null)
         {
-            using MailMessage mailMessage = new(from ?? SettingsProvider.Current.EmailSender, recipient)
+            using MailMessage mailMessage = new(BuildFromAddress(from), new MailAddress(recipient))
             {
                 Subject = subject,
                 Body = body,
@@ -76,7 +76,7 @@ namespace Spiderly.Shared.Emailing
         {
             foreach (string recipient in recipients)
             {
-                using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, recipient)
+                using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(recipient))
                 {
                     Subject = subject,
                     Body = body,
@@ -91,7 +91,7 @@ namespace Spiderly.Shared.Emailing
 
         public async Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body)
         {
-            using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, recipient)
+            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(recipient))
             {
                 Subject = subject,
                 Body = body,
@@ -117,5 +117,12 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
+        private static MailAddress BuildFromAddress(EmailSender sender)
+        {
+            EmailSender s = sender ?? SettingsProvider.Current.EmailSender;
+            return string.IsNullOrWhiteSpace(s.Name)
+                ? new MailAddress(s.Email)
+                : new MailAddress(s.Email, s.Name);
+        }
     }
 }

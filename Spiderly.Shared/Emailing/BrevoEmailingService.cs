@@ -26,12 +26,12 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(toEmail, template.Subject, template.Body);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, string from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender from = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, string from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender from = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from, attachments);
         }
@@ -62,17 +62,22 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private async Task SendViaBrevoAsync(string recipient, string subject, string body, string from = null, IEnumerable<EmailAttachment> attachments = null)
+        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender from = null, IEnumerable<EmailAttachment> attachments = null)
         {
-            string senderEmail = from ?? SettingsProvider.Current.EmailSender;
+            EmailSender sender = from ?? SettingsProvider.Current.EmailSender;
 
             Dictionary<string, object> payload = new()
             {
-                ["sender"] = new { email = senderEmail },
                 ["to"] = new[] { new { email = recipient } },
                 ["subject"] = subject,
                 ["htmlContent"] = body,
             };
+
+            // Omit `name` when blank — some clients render an empty display name as literally "".
+            if (string.IsNullOrWhiteSpace(sender.Name))
+                payload["sender"] = new { email = sender.Email };
+            else
+                payload["sender"] = new { email = sender.Email, name = sender.Name };
 
             // Brevo expects attachments as [{ name, content }] with base64 content.
             object[] brevoAttachments = attachments?

@@ -372,26 +372,11 @@ User ID: {{{userId}}}
             return ShouldSendNotification(key);
         }
 
-        public static async Task SendEmailAsync(string recipient, string subject, string body)
-        {
-            using (SmtpClient smtpClient = GetSmtpClient())
-            using (MailMessage mailMessage = new MailMessage(SettingsProvider.Current.EmailSender, recipient)
-            {
-                Subject = subject,
-                Body = body,
-                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                IsBodyHtml = true,
-            })
-            {
-                await smtpClient.SendMailAsync(mailMessage);
-            }
-        }
-
         public static SmtpClient GetSmtpClient()
         {
             return new SmtpClient(SettingsProvider.Current.SmtpHost, SettingsProvider.Current.SmtpPort)
             {
-                Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender, SettingsProvider.Current.EmailSenderPassword),
+                Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender?.Email, SettingsProvider.Current.EmailSenderPassword),
                 EnableSsl = true
             };
         }
@@ -399,7 +384,7 @@ User ID: {{{userId}}}
         public static bool IsEmailingConfigured()
         {
             Settings settings = SettingsProvider.Current;
-            return !string.IsNullOrWhiteSpace(settings.EmailSender) &&
+            return !string.IsNullOrWhiteSpace(settings.EmailSender?.Email) &&
                    !string.IsNullOrWhiteSpace(settings.EmailSenderPassword) &&
                    !string.IsNullOrWhiteSpace(settings.SmtpHost) &&
                    settings.SmtpPort > 0;

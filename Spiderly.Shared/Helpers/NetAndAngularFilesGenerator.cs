@@ -2250,7 +2250,10 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "EmailSender": "youremail@gmail.com",
+      "EmailSender": {
+        "email": "youremail@gmail.com",
+        "name": ""
+      },
       "UnhandledExceptionRecipients": [
         "youremail@gmail.com"
       ]
