@@ -277,6 +277,33 @@ public async Task<CheckoutSummary> GetCheckoutSummary() => ...;  // ❌ broken T
 
 **Fix:** move the class into a `.DTO` namespace and suffix it with `DTO`.
 
+### Prefer generated TS over hand-written `api.service.ts`
+
+The Spiderly CLI generates a typed method in `api.service.generated.ts` for every action on a `[SpiderlyController]` whose DTOs are `[SpiderlyDTO]`, plus the matching TS classes in `entities.generated.ts`. **Default to this** — one source of truth (C# DTOs), automatic regeneration on changes, no drift between backend and frontend types.
+
+Requirements to enable auto-generation:
+
+1. Put `[SpiderlyDTO]` DTOs in the flat `{App}.Business.DTO` namespace — **not** a sub-namespace like `{App}.Business.DTO.Foo`. The `ExcelPropertiesToExclude` and `ValidationRules` source generators only emit `using {App}.Business.DTO;` and will fail with `CS0246` for types in sub-namespaces.
+2. Mark the controller with `[SpiderlyController]` and **do not** add `[UIDoNotGenerate]`.
+3. Use explicit action names that disambiguate across controllers (e.g. `GetSupplierReplenishmentDrafts`, not bare `GetDrafts`) — the generated TS method is camelCase of the action name, unscoped by controller.
+
+Naming convention the generator applies:
+- DTO `FooBarDTO` → TS class `FooBar` in `entities.generated.ts`
+- Action `GetFooBar` → TS method `getFooBar` in `api.service.generated.ts`
+
+Consume in Angular by importing from the generated files directly — do **not** re-declare local interfaces or add a hand-written method to `api.service.ts`.
+
+### When to opt out (manual `api.service.ts`)
+
+Add `[UIDoNotGenerate]` to the controller + leave DTOs plain (no `[SpiderlyDTO]`) + write the method by hand in `api.service.ts` **only** when the shape cannot be auto-generated:
+- `IFormFile` uploads (bulk Excel import, image upload)
+- `Blob` responses (PDF download via `responseType: 'blob'`)
+- Custom content-type / header negotiation
+
+### Validation traps
+
+- `[StringLength]` on a `List<string>` (or any collection-of-scalar) breaks the FluentValidation generator with `CS1929` — it emits `.MaximumLength(...)` which only exists for scalar strings. Apply `[StringLength]` only to scalar `string` properties; leave collection elements unconstrained at the DTO level.
+
 ## Exception Handling
 
 | Type | HTTP | When |
