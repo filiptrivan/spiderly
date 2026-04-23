@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Locator } from '@playwright/test';
 import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
 test.describe('Project CRUD Operations', () => {
@@ -60,6 +60,34 @@ test.describe('Project CRUD Operations', () => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
     await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+  });
+
+  // Regression: nested [UIOrderedOneToMany] dropdowns must have options fetched in
+  // the parent component's ngOnInit — browser-driven because the bug (empty options)
+  // doesn't affect the API contract and is invisible to API tests.
+  test('should populate dropdowns at every UIOrderedOneToMany nesting depth', async ({ page, request }) => {
+    if (!projectId) test.skip();
+    await authenticateBrowser(page, request);
+    await page.goto(`/project-list/${projectId}`);
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+
+    const expectSeededCategories = async (card: Locator, expectedOption: string) => {
+      await card.locator('spiderly-dropdown p-select').click();
+      const overlay = page.locator('.p-select-overlay');
+      await expect(overlay).toBeVisible({ timeout: 5000 });
+      await expect(overlay.locator('.p-select-option')).toHaveCount(5);
+      await expect(overlay.getByText(expectedOption, { exact: true })).toBeVisible();
+    };
+
+    await page.locator('.panel-add-button spiderly-button button').click();
+    const projectTaskCard = page.locator('index-card').first();
+    await expect(projectTaskCard).toBeVisible({ timeout: 5000 });
+    await expectSeededCategories(projectTaskCard, 'Bug');
+
+    await projectTaskCard.locator('.panel-add-button spiderly-button button').click();
+    const taskCommentCard = projectTaskCard.locator('index-card').first();
+    await expect(taskCommentCard).toBeVisible({ timeout: 5000 });
+    await expectSeededCategories(taskCommentCard, 'Feature');
   });
 
   test('should update project via API', async ({ request }) => {

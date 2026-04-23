@@ -55,6 +55,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
             projectId: projectId,
             taskCategoryId: 1,
           },
+          orderedTaskCommentsSaveBodyDTO: [],
         },
       }
     );
@@ -94,6 +95,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
             projectId: projectId,
             taskCategoryId: 2,
           },
+          orderedTaskCommentsSaveBodyDTO: [],
         },
       }
     );

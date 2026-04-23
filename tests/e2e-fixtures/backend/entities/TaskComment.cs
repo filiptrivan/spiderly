@@ -22,5 +22,9 @@ namespace __APP_NAME__.Business.Entities
         [UIControlType(nameof(UIControlTypeCodes.Autocomplete))]
         [WithMany(nameof(User.TaskComments))]
         public virtual User Author { get; set; }
+
+        [UIControlType(nameof(UIControlTypeCodes.Dropdown))]
+        [WithMany(nameof(TaskCategory.TaskComments))]
+        public virtual TaskCategory Category { get; set; }
     }
 }

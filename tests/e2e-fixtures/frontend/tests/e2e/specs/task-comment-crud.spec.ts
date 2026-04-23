@@ -43,6 +43,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
             projectId: projectId,
             taskCategoryId: 1,
           },
+          orderedTaskCommentsSaveBodyDTO: [],
         },
       }
     );
@@ -162,6 +163,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
             projectId: projectId,
             taskCategoryId: 3,
           },
+          orderedTaskCommentsSaveBodyDTO: [],
         },
       }
     );

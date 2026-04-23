@@ -56,7 +56,7 @@ namespace __APP_NAME__.Business.Entities
         [WithMany(nameof(User.AssignedTasks))]
         public virtual User AssignedTo { get; set; }
 
-        [UIDoNotGenerate]
+        [UIOrderedOneToMany]
         public virtual List<TaskComment> TaskComments { get; } = new();
     }
 }
