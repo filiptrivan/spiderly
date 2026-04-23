@@ -69,12 +69,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (ClassCategoryCodes category in categories)
             {
-                string markerAttribute = PipelineFactory.GetMarkerAttributeName(category);
-                bool match = markerAttribute != null
-                    ? HasAttributeByName(ref attrs, type, markerAttribute + "Attribute")
-                    : GetFullNamespace(type).EndsWith($".{category}");
-
-                if (match)
+                if (HasAttributeByName(ref attrs, type, PipelineFactory.GetMarkerAttributeName(category) + "Attribute"))
                     return true;
             }
 

@@ -34,21 +34,9 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static bool MatchesCategories(ClassDeclarationSyntax classDeclaration, List<ClassCategoryCodes> categories)
         {
-            string namespaceName = classDeclaration.GetNamespace();
-            if (namespaceName == null)
-                return false;
-
-            if (categories.Any(category => namespaceName.EndsWith($".{category}")))
-                return true;
-
-            // Attribute-enrolled categories accept classes regardless of namespace, but only when the
-            // class carries the marker attribute that matches the requested category. Mixing — e.g.
-            // letting a [SpiderlyController]-annotated class satisfy a request for Entities — would
-            // leak controllers into entity-only generators and crash them on GetIdType / empty lists.
             foreach (ClassCategoryCodes category in categories)
             {
-                string attributeName = GetMarkerAttributeName(category);
-                if (attributeName != null && HasAttributeByName(classDeclaration, attributeName))
+                if (HasAttributeByName(classDeclaration, GetMarkerAttributeName(category)))
                     return true;
             }
 
@@ -63,7 +51,7 @@ namespace Spiderly.SourceGenerators.Shared
             ClassCategoryCodes.DataMappers => "SpiderlyDataMapper",
             ClassCategoryCodes.Services => "SpiderlyService",
             ClassCategoryCodes.Enums => "SpiderlyEnum",
-            _ => null,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(category), category, "No marker attribute is defined for this category."),
         };
 
         private static bool HasAttributeByName(ClassDeclarationSyntax classDeclaration, string attributeName)

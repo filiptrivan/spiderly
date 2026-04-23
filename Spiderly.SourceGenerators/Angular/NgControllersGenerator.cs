@@ -60,7 +60,7 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
 
             List<SpiderlyClass> controllerClasses = currentProjectClasses
-                .Where(x => x.Namespace.EndsWith($".{ClassCategoryCodes.Controllers}"))
+                .Where(x => x.HasSpiderlyControllerAttribute())
                 .ToList();
 
             List<SpiderlyClass> referencedDTOs = referencedProjectClasses
