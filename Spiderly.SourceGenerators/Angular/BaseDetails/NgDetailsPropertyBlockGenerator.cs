@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
 
-            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties))
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties, entity))
             {
                 if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
                 {
@@ -67,7 +67,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (customDTOClass != null)
                 properties = properties.Concat(customDTOClass.Properties).ToList();
 
-            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties);
+            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties, entity);
 
             foreach (SpiderlyProperty property in orderedProperties)
             {
@@ -239,8 +239,10 @@ namespace Spiderly.SourceGenerators.Angular
             return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
         }
 
-        internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties)
+        internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties, SpiderlyClass entity)
         {
+            HashSet<string> pairedFkNames = entity.GetPairedForeignKeyNames();
+
             List<SpiderlyProperty> orderedProperties = properties
                 .Where(x =>
                     x.Name != "Version" &&
@@ -256,7 +258,8 @@ namespace Spiderly.SourceGenerators.Angular
                         x.HasComplexManyToManyReadonlyTableAttribute() ||
                         x.HasComplexManyToManyListAttribute()
                     ) &&
-                    x.HasUIDoNotGenerateAttribute() == false
+                    x.HasUIDoNotGenerateAttribute() == false &&
+                    pairedFkNames.Contains(x.Name) == false
                 )
                 .OrderBy(x =>
                     x.Attributes.Any(attr => attr.Name == "BlobName") ? 0 :

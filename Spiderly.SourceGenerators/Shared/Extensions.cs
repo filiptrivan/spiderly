@@ -565,6 +565,28 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
+        /// Returns the names of scalar properties that are the explicit FK of a many-to-one navigation
+        /// on the same entity. Useful for UI generators that want to suppress the redundant numeric
+        /// input that would otherwise be rendered next to the navigation's autocomplete picker.
+        /// </summary>
+        public static HashSet<string> GetPairedForeignKeyNames(this SpiderlyClass entity)
+        {
+            HashSet<string> result = new();
+
+            foreach (SpiderlyProperty nav in entity.Properties)
+            {
+                if (nav.HasWithManyAttribute() == false)
+                    continue;
+
+                string fkName = nav.ResolveExplicitForeignKeyName(entity);
+                if (fkName != null)
+                    result.Add(fkName);
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Returns the LINQ expression fragment used to read a FK value inside an IQueryable.
         /// Avoids the `{param}.Nav.Id` shape because EF Core still emits a JOIN when it sees
         /// `nav.Id` access — unresolved since 2019 (https://github.com/dotnet/efcore/issues/15826).
