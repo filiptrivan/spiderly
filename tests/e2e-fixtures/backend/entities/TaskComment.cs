@@ -9,6 +9,10 @@ namespace __APP_NAME__.Business.Entities
     [SpiderlyEntity]
     public class TaskComment : BusinessObject<long>
     {
+        [UIDoNotGenerate]
+        [Required]
+        public int OrderNumber { get; set; }
+
         [DisplayName]
         [Required]
         [StringLength(2000, MinimumLength = 1)]
