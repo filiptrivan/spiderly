@@ -72,19 +72,28 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
-        internal static List<string> GetManyToManyMultiSelectListForDropdownMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        internal static List<string> GetManyToManyMultiSelectListForDropdownMethods(SpiderlyClass entity, List<SpiderlyClass> entities, bool isFromOrderedOneToMany = false)
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties
-                .Where(x =>
-                    (x.IsMultiSelectControlType() || x.IsDropdownControlType()) &&
-                    x.HasUIDoNotGenerateAttribute() == false
-                )
-            )
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasUIDoNotGenerateAttribute() == false))
             {
+                if (property.HasUIOrderedOneToManyAttribute())
+                {
+                    SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
+
+                    result.AddRange(GetManyToManyMultiSelectListForDropdownMethods(extractedEntity, entities, isFromOrderedOneToMany: true));
+
+                    continue;
+                }
+
+                if (property.IsMultiSelectControlType() == false && property.IsDropdownControlType() == false)
+                    continue;
+
+                string idArgument = isFromOrderedOneToMany ? "null" : "this.modelId";
+
                 result.Add($$"""
-            this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}(this.modelId).subscribe(no => {
+            this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}({{idArgument}}).subscribe(no => {
                 this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
             });
 """);
