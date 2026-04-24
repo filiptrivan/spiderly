@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENTITIES_DIR="$APP_FOLDER/Backend/$APP_NAME.Business/Entities"
 INFRA_DIR="$APP_FOLDER/Backend/$APP_NAME.Infrastructure"
 E2E_DIR="$APP_FOLDER/Frontend/e2e"
+APP_PAGES_DIR="$APP_FOLDER/Frontend/src/app/pages"
 
 echo "=== Spiderly E2E Fixtures Setup ==="
 echo "App name: $APP_NAME"
@@ -50,5 +51,11 @@ cp "$SCRIPT_DIR/frontend/tests/e2e/page-objects/"*.ts "$E2E_DIR/page-objects/"
 echo "Copying E2E fixtures..."
 mkdir -p "$E2E_DIR/fixtures"
 cp -r "$SCRIPT_DIR/frontend/tests/e2e/fixtures/." "$E2E_DIR/fixtures/"
+
+# --- Copy Angular list component overrides ---
+# Spiderly-cli generates minimal list components (Id column only). Tests that need
+# varied filter types replace the generated file with a richer version.
+echo "Copying Angular list component overrides..."
+cp "$SCRIPT_DIR/frontend/app/product/product-list.component.ts" "$APP_PAGES_DIR/product/product-list.component.ts"
 
 echo "=== Fixtures setup complete ==="

@@ -137,22 +137,25 @@ test.describe('Product CRUD Operations', () => {
     }
   });
 
-  // Verifies stateful-table feature: sort + pagination are saved to sessionStorage
-  // (key derived from route) and restored after page.reload(). Uses only the Id
-  // column because Spiderly CLI generates list components with Id only — extending
-  // to name/price/bool filters would need a fixture override of the generated list.
-  test('product list table restores sort and pagination after refresh', async ({ page, request }) => {
-    // Seed 25 products so pagination spans > 1 page (default rows = 10 → 3 pages).
-    for (let i = 0; i < 25; i++) {
+  // Relies on the product-list.component.ts override shipped in e2e-fixtures/frontend/app/
+  // (spiderly-cli's default list renders only the Id column, which can't exercise
+  // text/numeric/boolean filters). Exercises the full stateful-table feature:
+  // three filter types + multi-column sort + pagination, then a page.reload()
+  // must restore every bit of state from sessionStorage.
+  test('product list table restores filters, multi-sort, and pagination after refresh', async ({ page, request }) => {
+    // 40 products so filters leave enough rows to span multiple pager pages:
+    // 20 "Widget N" and 20 "Gadget N"; prices 10..410 step 10; stock 0..312 step 8;
+    // all active so the boolean filter trivially matches.
+    for (let i = 0; i < 40; i++) {
       const res = await request.put(
         `${API_BASE_URL}/api/Product/SaveProduct`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
           data: {
             productDTO: {
-              name: `E2E Seed Product ${i}`,
+              name: `${i % 2 === 0 ? 'Widget' : 'Gadget'} ${i}`,
               description: 'E2E table test seed',
-              price: 10 + i * 20,
+              price: 10 + i * 10,
               stock: i * 8,
               isActive: true,
             },
@@ -165,25 +168,35 @@ test.describe('Product CRUD Operations', () => {
 
     await authenticateBrowser(page, request);
     await page.goto('/product-list');
-    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('thead th').filter({ hasText: /^\s*Name\s*$/ }).first()).toBeVisible({ timeout: 15000 });
 
     const listPage = new BasePage(page);
     const stateKey = 'spiderly-table:/product-list';
 
-    // Sort Id descending (tri-state cycle: 1st click = asc, 2nd = desc), then go to page 2.
-    await listPage.sortByColumn('Id');
-    await listPage.sortByColumn('Id');
+    await listPage.applyTextFilter('Name', 'Widget');
+    await listPage.applyNumericFilter('Price', 100, 'greaterThan');
+    await listPage.applyBooleanFilter('IsActive', true);
+
+    // Multi-sort: Price (asc→desc via tri-state), then Ctrl+click Stock for asc.
+    await listPage.sortByColumn('Price');
+    await listPage.sortByColumn('Price');
+    await listPage.sortByColumn('Stock', { multi: true });
+
     await listPage.gotoTablePage(2);
     await page.waitForLoadState('networkidle');
 
     const preReload = await listPage.getSessionStorageEntry<{
+      filters?: Record<string, unknown>;
       multiSortMeta?: Array<{ field: string; order: number }>;
       first?: number;
       rows?: number;
     }>(stateKey);
     expect(preReload).not.toBeNull();
     expect(preReload!.first).toBeGreaterThan(0);
-    expect(preReload!.multiSortMeta?.some((m) => m.field === 'id' && m.order === -1)).toBeTruthy();
+    expect(preReload!.multiSortMeta?.length).toBe(2);
+    expect(preReload!.multiSortMeta?.some((m) => m.field === 'price' && m.order === -1)).toBeTruthy();
+    expect(preReload!.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1)).toBeTruthy();
+    expect(Object.keys(preReload!.filters ?? {})).toEqual(expect.arrayContaining(['name', 'price', 'isActive']));
 
     await page.reload();
     await page.locator('sidebar-menu').waitFor({ state: 'visible', timeout: 15000 });
@@ -191,6 +204,7 @@ test.describe('Product CRUD Operations', () => {
 
     const postReload = await listPage.getSessionStorageEntry<typeof preReload>(stateKey);
     expect(postReload).toEqual(preReload);
+    await expect(page.locator('.p-paginator-page-selected', { hasText: '2' })).toBeVisible();
 
     await listPage.clearTableFilters();
     await page.waitForLoadState('networkidle');

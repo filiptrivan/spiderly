@@ -77,15 +77,63 @@ export class BasePage {
     await this.page.locator('.p-confirmdialog .p-confirm-dialog-accept').click();
   }
 
+  // --- Spiderly data-table helpers ---
+  // PrimeNG v19 classes (verified against primeng-table.mjs + live DOM trace):
+  //   .p-datatable-column-filter-button  — filter icon in column header
+  //   .p-datatable-filter-overlay        — popup containing the filter inputs
+  //   .p-datatable-filter-apply-button   — Apply button in popup footer
+  //   .p-paginator-page-selected         — currently-selected pager page
+  // Spiderly renders match-mode labels as 'Equals', 'LessThan', 'MoreThan' (from
+  // matchModeNumberOptions in spiderly-data-table.component.ts).
+
+  private columnHeader(columnLabel: string) {
+    const pattern = new RegExp(`^\\s*${columnLabel}\\s*$`, 'i');
+    return this.page.locator('thead th').filter({ has: this.page.locator('span', { hasText: pattern }) });
+  }
+
+  private async openColumnFilter(columnLabel: string) {
+    await this.columnHeader(columnLabel).locator('.p-datatable-column-filter-button').first().click();
+    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeVisible();
+  }
+
+  private async applyColumnFilter() {
+    await this.page.locator('.p-datatable-filter-overlay .p-datatable-filter-apply-button').click();
+    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeHidden();
+  }
+
+  async applyTextFilter(columnLabel: string, value: string) {
+    await this.openColumnFilter(columnLabel);
+    await this.page.locator('.p-datatable-filter-overlay input[type="text"]').first().fill(value);
+    await this.applyColumnFilter();
+  }
+
+  async applyNumericFilter(columnLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
+    const matchModeLabels = { equals: 'Equals', lessThan: 'LessThan', greaterThan: 'MoreThan' } as const;
+    await this.openColumnFilter(columnLabel);
+    const overlay = this.page.locator('.p-datatable-filter-overlay');
+    await overlay.locator('p-select, .p-select').first().click();
+    await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
+    await overlay.locator('p-inputnumber input').first().fill(String(value));
+    await this.applyColumnFilter();
+  }
+
+  async applyBooleanFilter(columnLabel: string, value: boolean) {
+    await this.openColumnFilter(columnLabel);
+    // PrimeNG tri-state cycle starting from null: 1 click → true, 2 clicks → false.
+    const clicks = value ? 1 : 2;
+    const box = this.page.locator('.p-datatable-filter-overlay .p-checkbox-box').first();
+    for (let i = 0; i < clicks; i++) await box.click();
+    await this.applyColumnFilter();
+  }
+
   async clearTableFilters() {
-    // Spiderly's ClearFilters translocoKey renders as "Clear all filters" in en.json.
+    // Spiderly's t('ClearFilters') renders as "Clear all filters" in en.json.
     await this.page.locator('.table-header button', { hasText: /Clear/i }).click();
   }
 
-  async sortByColumn(columnLabel: string) {
-    // Case-insensitive: Spiderly translation may render "Id" as "ID" in en.json.
-    const pattern = new RegExp(columnLabel, 'i');
-    await this.page.locator('thead th').filter({ hasText: pattern }).first().click();
+  async sortByColumn(columnLabel: string, opts: { multi?: boolean } = {}) {
+    const header = this.columnHeader(columnLabel).first();
+    await (opts.multi ? header.click({ modifiers: ['Control'] }) : header.click());
   }
 
   async gotoTablePage(pageNumber: number) {
