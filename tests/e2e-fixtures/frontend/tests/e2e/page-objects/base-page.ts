@@ -77,59 +77,15 @@ export class BasePage {
     await this.page.locator('.p-confirmdialog .p-confirm-dialog-accept').click();
   }
 
-  // Spiderly data-table column matches on header text (<th>).
-  private columnHeader(columnLabel: string) {
-    return this.page.locator('thead th', { hasText: columnLabel });
-  }
-
-  private async openColumnFilter(columnLabel: string) {
-    await this.columnHeader(columnLabel).locator('button.p-column-filter-menu-button').click();
-    await expect(this.page.locator('.p-column-filter-overlay')).toBeVisible();
-  }
-
-  private async applyColumnFilter() {
-    await this.page.locator('.p-column-filter-overlay .p-column-filter-apply-button').click();
-    await expect(this.page.locator('.p-column-filter-overlay')).toBeHidden();
-  }
-
-  async applyTextFilter(columnLabel: string, value: string) {
-    await this.openColumnFilter(columnLabel);
-    await this.page.locator('.p-column-filter-overlay input[type="text"]').fill(value);
-    await this.applyColumnFilter();
-  }
-
-  async applyNumericFilter(columnLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
-    // Spiderly's matchModeNumberOptions in spiderly-data-table.component.ts uses these labels:
-    // MatchModeCodes.GreaterThan → 'MoreThan', LessThan → 'LessThan', Equals → 'Equals'.
-    const matchModeLabels = { equals: 'Equals', lessThan: 'LessThan', greaterThan: 'MoreThan' } as const;
-    await this.openColumnFilter(columnLabel);
-    const overlay = this.page.locator('.p-column-filter-overlay');
-    await overlay.locator('p-select, .p-select').first().click();
-    await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
-    await overlay.locator('p-inputnumber input').fill(String(value));
-    await this.applyColumnFilter();
-  }
-
-  async applyBooleanFilter(columnLabel: string, value: boolean) {
-    await this.openColumnFilter(columnLabel);
-    // PrimeNG tri-state cycles null → true → false → null. Assumes the filter starts at null.
-    const clicks = value ? 1 : 2;
-    const box = this.page.locator('.p-column-filter-overlay .p-checkbox-box').first();
-    for (let i = 0; i < clicks; i++) await box.click();
-    await this.applyColumnFilter();
-  }
-
   async clearTableFilters() {
-    await this.page.locator('.table-header button', { hasText: 'Clear filters' }).click();
+    // Spiderly's ClearFilters translocoKey renders as "Clear all filters" in en.json.
+    await this.page.locator('.table-header button', { hasText: /Clear/i }).click();
   }
 
-  async sortByColumn(columnLabel: string, opts: { multi?: boolean } = {}) {
-    const header = this.columnHeader(columnLabel);
-    if (opts.multi) {
-      await header.click({ modifiers: ['Control'] });
-    } else {
-      await header.click();
-    }
+  async sortByColumn(columnLabel: string) {
+    // Case-insensitive: Spiderly translation may render "Id" as "ID" in en.json.
+    const pattern = new RegExp(columnLabel, 'i');
+    await this.page.locator('thead th').filter({ hasText: pattern }).first().click();
   }
 
   async gotoTablePage(pageNumber: number) {
