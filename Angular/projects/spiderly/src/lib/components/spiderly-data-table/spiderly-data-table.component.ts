@@ -127,6 +127,17 @@ export class SpiderlyDataTableComponent
   // @Input() formArrayItems: any[]; // Pass this only if you have some additional logic for showing data
   @Input() getFormArrayItems: (additionalIndexes?: any) => any[];
   @Input() hasLazyLoad: boolean = true;
+
+  /**
+   * Unique key for persisting table state (filters, sort, pagination) to storage.
+   * Auto-generated from the current route when not provided.
+   */
+  @Input() stateKey?: string;
+
+  /** 'session' persists across refresh only; 'local' persists indefinitely. */
+  @Input() stateStorage: 'session' | 'local' = 'session';
+
+  resolvedStateKey: string | null = null;
   selectedItemIds: number[] = []; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
   @Input() getAlreadySelectedItemIds: (additionalIndexes?: any) => number[]; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
   selectedItems: any[] = []; // Pass only when hasLazyLoad === false
@@ -242,7 +253,13 @@ export class SpiderlyDataTableComponent
       },
     ];
 
-    if (this.hasLazyLoad === false) {
+    if (this.hasLazyLoad) {
+      const baseKey = this.stateKey ?? `spiderly-table:${this.router.url}`;
+      this.resolvedStateKey =
+        this.additionalFilterIdLong != null
+          ? `${baseKey}:${this.additionalFilterIdLong}`
+          : baseKey;
+    } else {
       this.clientLoad();
     }
   }
@@ -616,6 +633,7 @@ export class SpiderlyDataTableComponent
 
   clear(table: Table) {
     table.clear();
+    table.clearState();
   }
 
   //#region Selection

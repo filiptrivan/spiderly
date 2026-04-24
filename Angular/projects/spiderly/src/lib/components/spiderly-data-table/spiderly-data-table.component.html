@@ -20,6 +20,8 @@
       dataKey="id"
       (onFilter)="filter($event)"
       sortMode="multiple"
+      [stateKey]="resolvedStateKey"
+      [stateStorage]="stateStorage"
     >
       <ng-template pTemplate="caption">
         <div class="table-header overflow-auto">
