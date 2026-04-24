@@ -59,6 +59,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
         data: {
           taskCommentDTO: {
             content: 'E2E test comment content',
+            orderNumber: 1,
             projectTaskId: taskId,
           },
         },
@@ -100,6 +101,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
           taskCommentDTO: {
             id: commentId,
             content: 'Updated E2E comment',
+            orderNumber: 1,
             projectTaskId: taskId,
           },
         },
@@ -119,6 +121,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
         data: {
           taskCommentDTO: {
             content: 'Comment to be cascade deleted',
+            orderNumber: 2,
             projectTaskId: taskId,
           },
         },
@@ -178,6 +181,7 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
         data: {
           taskCommentDTO: {
             content: 'Deep cascade target',
+            orderNumber: 1,
             projectTaskId: cascadeTaskId,
           },
         },
