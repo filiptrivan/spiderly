@@ -39,7 +39,8 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 - Navigation properties **must** be `virtual`: `public virtual Brand Brand { get; set; }`
 - Collections use `List<T>` (not `IList<T>`), initialized inline: `public virtual List<Comment> Comments { get; } = new();`
 - Explicit FK properties (`BrandId` alongside `Brand`) are **supported and recommended for hot paths** — see *Explicit FK properties* below
-- `[StringLength(X)]` **without** `MinimumLength` = **exact length** validation. Always use `[StringLength(X, MinimumLength = Y)]` for range
+- `[StringLength(X)]` without `MinimumLength` = **max-length** validation (minimum defaults to 0, standard .NET semantics). Use `[StringLength(X, MinimumLength = Y)]` for a range; `[StringLength(X, MinimumLength = X)]` (min == max) for exact length.
+- On properties that aren't effectively required (no `[Required]`, not an `[M2MWithMany]` junction), all validation rules wrap in `.Unless(string.IsNullOrEmpty(x))` on strings — or `== null` on other types — so the validator skips null/empty entirely. Consequence: `MinimumLength = 1` is a no-op on non-required strings; use `MinimumLength ≥ 2` or add `[Required]` to actually reject empty values.
 - `[Required]` on navigation properties makes the relationship required (non-nullable FK)
 
 ## Explicit FK properties
