@@ -109,10 +109,12 @@ export class BasePage {
   }
 
   async applyNumericFilter(columnLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
+    // Spiderly maps MatchModeCodes.GreaterThan → 'MoreThan' label; the column must
+    // have showMatchModes:true on its Column<T> definition for the dropdown to render.
     const matchModeLabels = { equals: 'Equals', lessThan: 'LessThan', greaterThan: 'MoreThan' } as const;
     await this.openColumnFilter(columnLabel);
     const overlay = this.page.locator('.p-datatable-filter-overlay');
-    await overlay.locator('p-select, .p-select').first().click();
+    await overlay.locator('p-select').first().click();
     await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
     await overlay.locator('p-inputnumber input').first().fill(String(value));
     await this.applyColumnFilter();

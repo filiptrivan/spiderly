@@ -29,10 +29,12 @@ export class ProductListComponent implements OnInit {
     ) { }
 
     ngOnInit() {
+        // showMatchModes:true on numeric/Price so the e2e test can drive a
+        // greaterThan filter via the match-mode dropdown.
         this.cols = [
             { name: 'Id', filterType: 'numeric', field: 'id' },
             { name: 'Name', filterType: 'text', field: 'name' },
-            { name: 'Price', filterType: 'numeric', field: 'price' },
+            { name: 'Price', filterType: 'numeric', field: 'price', showMatchModes: true },
             { name: 'Stock', filterType: 'numeric', field: 'stock' },
             { name: 'IsActive', filterType: 'boolean', field: 'isActive' },
             { actions: [
