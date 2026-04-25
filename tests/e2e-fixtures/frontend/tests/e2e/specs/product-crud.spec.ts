@@ -129,12 +129,14 @@ test.describe('Product CRUD Operations', () => {
   });
 
   test.afterAll(async ({ request }) => {
-    for (const id of tableTestSeedIds) {
-      await request.delete(
-        `${API_BASE_URL}/api/Product/DeleteProduct?id=${id}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-    }
+    await Promise.all(
+      tableTestSeedIds.map((id) =>
+        request.delete(
+          `${API_BASE_URL}/api/Product/DeleteProduct?id=${id}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+      )
+    );
   });
 
   // Relies on the product-list.component.ts override shipped in e2e-fixtures/frontend/app/
@@ -146,22 +148,26 @@ test.describe('Product CRUD Operations', () => {
     // 40 products so filters leave enough rows to span multiple pager pages:
     // 20 "Widget N" and 20 "Gadget N"; prices 10..410 step 10; stock 0..312 step 8;
     // all active so the boolean filter trivially matches.
-    for (let i = 0; i < 40; i++) {
-      const res = await request.put(
-        `${API_BASE_URL}/api/Product/SaveProduct`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          data: {
-            productDTO: {
-              name: `${i % 2 === 0 ? 'Widget' : 'Gadget'} ${i}`,
-              description: 'E2E table test seed',
-              price: 10 + i * 10,
-              stock: i * 8,
-              isActive: true,
+    const seedResponses = await Promise.all(
+      Array.from({ length: 40 }, (_, i) =>
+        request.put(
+          `${API_BASE_URL}/api/Product/SaveProduct`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            data: {
+              productDTO: {
+                name: `${i % 2 === 0 ? 'Widget' : 'Gadget'} ${i}`,
+                description: 'E2E table test seed',
+                price: 10 + i * 10,
+                stock: i * 8,
+                isActive: true,
+              },
             },
-          },
-        }
-      );
+          }
+        )
+      )
+    );
+    for (const res of seedResponses) {
       expect(res.ok()).toBeTruthy();
       tableTestSeedIds.push((await res.json()).productDTO.id);
     }

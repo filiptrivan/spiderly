@@ -1,5 +1,5 @@
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
 import { Product } from 'src/app/business/entities/entities.generated';
 import { Column, SpiderlyDataTableComponent } from 'spiderly';
@@ -26,7 +26,6 @@ export class ProductListComponent implements OnInit {
 
     constructor(
         private apiService: ApiService,
-        private translocoService: TranslocoService,
     ) { }
 
     ngOnInit() {

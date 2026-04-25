@@ -78,13 +78,14 @@ export class BasePage {
   }
 
   // --- Spiderly data-table helpers ---
-  // PrimeNG v19 classes (verified against primeng-table.mjs + live DOM trace):
-  //   .p-datatable-column-filter-button  — filter icon in column header
-  //   .p-datatable-filter-overlay        — popup containing the filter inputs
-  //   .p-datatable-filter-apply-button   — Apply button in popup footer
-  //   .p-paginator-page-selected         — currently-selected pager page
-  // Spiderly renders match-mode labels as 'Equals', 'LessThan', 'MoreThan' (from
-  // matchModeNumberOptions in spiderly-data-table.component.ts).
+  // PrimeNG v19 DOM (verified from primeng-table.mjs + live CI trace):
+  //   .p-datatable-column-filter-button  — filter icon in the column header
+  //   .p-datatable-filter-overlay        — popup containing the filter form
+  //   .p-paginator-page-selected         — selected pager page
+  // The Apply/Clear buttons in the popup footer are <p-button> elements without
+  // any identifying class (the pcFilterApplyButton entry in PrimeNG's classes
+  // table is unused at render time), so we match them by accessible name.
+  // Spiderly's matchModeNumberOptions render labels 'Equals', 'LessThan', 'MoreThan'.
 
   private columnHeader(columnLabel: string) {
     const pattern = new RegExp(`^\\s*${columnLabel}\\s*$`, 'i');
@@ -97,7 +98,7 @@ export class BasePage {
   }
 
   private async applyColumnFilter() {
-    await this.page.locator('.p-datatable-filter-overlay .p-datatable-filter-apply-button').click();
+    await this.page.locator('.p-datatable-filter-overlay').getByRole('button', { name: 'Apply' }).first().click();
     await expect(this.page.locator('.p-datatable-filter-overlay')).toBeHidden();
   }
 
