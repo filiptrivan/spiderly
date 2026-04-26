@@ -123,10 +123,13 @@ export class BasePage {
 
   async applyBooleanFilter(columnLabel: string, value: boolean) {
     await this.openColumnFilter(columnLabel);
-    // PrimeNG tri-state cycle starting from null: 1 click → true, 2 clicks → false.
+    // PrimeNG renders <p-checkbox binary indeterminate> with click cycle null → true → false → null.
+    // Force click bypasses stability check: when the column sits near the viewport
+    // edge (e.g. last column), PrimeNG keeps repositioning the overlay so .p-checkbox-box
+    // never settles long enough for a normal click.
     const clicks = value ? 1 : 2;
     const box = this.page.locator('.p-datatable-filter-overlay .p-checkbox-box').first();
-    for (let i = 0; i < clicks; i++) await box.click();
+    for (let i = 0; i < clicks; i++) await box.click({ force: true });
     await this.applyColumnFilter();
   }
 
