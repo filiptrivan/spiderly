@@ -109,9 +109,10 @@ export class BasePage {
   }
 
   async applyNumericFilter(columnLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
-    // Spiderly maps MatchModeCodes.GreaterThan → 'MoreThan' label; the column must
-    // have showMatchModes:true on its Column<T> definition for the dropdown to render.
-    const matchModeLabels = { equals: 'Equals', lessThan: 'LessThan', greaterThan: 'MoreThan' } as const;
+    // Match mode option labels are the translocoService output (en.json):
+    // 'MoreThan' key → 'More than' rendered text. Spiderly's column must have
+    // showMatchModes:true for PrimeNG to render the match-mode <p-select>.
+    const matchModeLabels = { equals: 'Equals', lessThan: 'Less than', greaterThan: 'More than' } as const;
     await this.openColumnFilter(columnLabel);
     const overlay = this.page.locator('.p-datatable-filter-overlay');
     await overlay.locator('p-select').first().click();
