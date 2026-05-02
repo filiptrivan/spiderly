@@ -5,7 +5,6 @@ using System.Reflection;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Spiderly.Shared.Extensions;
-using Spiderly.Shared.BaseEntities;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Infrastructure
@@ -154,26 +153,6 @@ namespace Spiderly.Infrastructure
                 return scalarPointingBack.Name;
 
             return $"{navigation.Name}Id";
-        }
-
-        public static bool IsBusinessOrReadonlyEntity(this Type type)
-        {
-            for (Type? current = type; current != null; current = current.BaseType)
-            {
-                if (
-                    current == typeof(BusinessObject<byte>) ||
-                    current == typeof(BusinessObject<int>) ||
-                    current == typeof(BusinessObject<long>) ||
-                    current == typeof(ReadonlyObject<byte>) ||
-                    current == typeof(ReadonlyObject<int>) ||
-                    current == typeof(ReadonlyObject<long>)
-                )
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static bool IsM2MEntity(this Type type)
