@@ -50,6 +50,7 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
+            List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
 
             SpiderlyClass customMapperClass = Helpers.GetManualyWrittenMapperClass(currentProjectClasses);
 
@@ -61,7 +62,7 @@ namespace Spiderly.SourceGenerators.Net
             sb.AppendLine($$"""
 using Mapster;
 using Microsoft.AspNetCore.Http;
-using {{basePartOfNamespace}}.DTO;
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetClassesUsings(currentProjectDTOClasses))}}
 using {{basePartOfNamespace}}.Entities;
 
 namespace {{basePartOfNamespace}}.DataMappers

@@ -58,7 +58,7 @@ namespace Spiderly.SourceGenerators.Net
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
             sb.AppendLine($$"""
-using {{basePartOfNamespace}}.DTO;
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetClassesUsings(currentProjectDTOClasses))}}
 
 namespace {{basePartOfNamespace}}.ExcelProperties
 {

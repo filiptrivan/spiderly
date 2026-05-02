@@ -59,7 +59,7 @@ namespace Spiderly.SourceGenerators.Net
 
             string result = $$"""
 using FluentValidation;
-using {{basePartOfNamespace}}.DTO;
+{{string.Join("\n", ReferencedAssemblyAnalyzer.GetClassesUsings(currentProjectDTOClasses))}}
 using Spiderly.Shared.FluentValidation;
 
 namespace {{basePartOfNamespace}}.ValidationRules
