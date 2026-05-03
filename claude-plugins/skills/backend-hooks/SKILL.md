@@ -64,9 +64,14 @@ protected virtual async Task OnAfterSave{Entity}AndReturnMainUIFormDTO(
 ### Delete Hooks
 
 ```csharp
-public virtual async Task OnBefore{Entity}Delete({IdType} id) { }
+// Default forwards to OnBefore{Entity}ListDelete with a single-element list.
+public virtual Task OnBefore{Entity}Delete({IdType} id) =>
+    OnBefore{Entity}ListDelete(id.StructToList());
+
 public virtual async Task OnBefore{Entity}ListDelete(List<{IdType}> ids) { }
 ```
+
+**When single and batch deletes need the same logic, override only the list hook** — the single-id path forwards to it automatically. Override the single hook only when the per-id behaviour genuinely diverges from the batch case.
 
 ### Get Hooks
 
