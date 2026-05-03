@@ -29,11 +29,13 @@ namespace Spiderly.SourceGenerators.Net
 
             return $$"""
         /// <summary>
-        /// Lifecycle hook called before deleting a {{entity.Name}} entity.
-        /// Override this to add custom validation or business logic before deletion.
+        /// Per-id variant of the pre-delete hook. By default forwards to
+        /// <see cref="OnBefore{{entity.Name}}ListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
         /// </summary>
         /// <param name="id">The ID of the entity being deleted</param>
-        public virtual async Task OnBefore{{entity.Name}}Delete({{entityIdType}} id) { }
+        public virtual Task OnBefore{{entity.Name}}Delete({{entityIdType}} id) =>
+            OnBefore{{entity.Name}}ListDelete(id.StructToList());
 
         /// <summary>
         /// Deletes a single {{entity.Name}} entity with cascade delete handling for dependent entities.
