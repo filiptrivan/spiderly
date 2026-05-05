@@ -34,6 +34,10 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 
 `T` = `long` (default), `int`, or `byte`.
 
+## Operational tables
+
+Tables that exist as operational state (outbox, audit log, sync cursors, dispatcher queues) are still `[SpiderlyEntity]` — do **not** reach for `[UIDoNotGenerate]` at the class level and a parallel custom Angular page; you lose the generated table, mappers, validators, and DTOs for no gain. Restrict mutations by not granting `Insert{Entity}` / `Update{Entity}` / `Delete{Entity}` permissions to any role in your seed setup; default-filter the admin table to "interesting" rows (e.g. pending, failed) via a paginated-list override (see `spiderly:filtering-patterns`); expose semantic row actions like Retry/Dismiss via a custom controller alongside the generated one (see `spiderly:custom-endpoints`).
+
 ## Property Rules
 
 - Navigation properties **must** be `virtual`: `public virtual Brand Brand { get; set; }`
