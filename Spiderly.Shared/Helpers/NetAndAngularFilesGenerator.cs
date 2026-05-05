@@ -464,6 +464,7 @@ namespace Spiderly.Shared.Helpers
         {
             new SpiderlyFile { Name = ".gitignore", Data = GetGitIgnoreData() },
             new SpiderlyFile { Name = "README.md", Data = GetREADMEData(appName, spiderlyVersion) },
+            new SpiderlyFile { Name = "CLAUDE.md", Data = GetClaudeMdData(appName) },
         }
             };
 
@@ -4351,6 +4352,52 @@ export class LayoutComponent {
 This project was generated with [Spiderly CLI](https://github.com/filiptrivan/spiderly/tree/main/Spiderly.CLI) version {{spiderlyVersion}}.
 
 For more information about Spiderly, visit our [documentation](https://www.spiderly.dev/docs/getting-started).
+""";
+        }
+
+        private static string GetClaudeMdData(string appName)
+        {
+            return $$"""
+# {{appName}}
+
+A Spiderly application — .NET 9 backend + Angular 19 admin panel, scaffolded by Spiderly CLI.
+
+## What is Spiderly
+
+Spiderly is a code generator. You define EF Core entities as C# classes decorated with custom attributes; source generators emit DTOs, controllers, services, FluentValidation rules, Mapster mappers, Angular CRUD pages, TypeScript entity classes, validators, and translation entries.
+
+**Hand-written code extends generated base classes.** Generated files are regenerated on every build — never edit them directly. Custom logic lives in entity service overrides, custom controllers, custom DTOs, and override hooks.
+
+## Layout
+
+- `Backend/` — .NET 9 solution
+  - `{{appName}}.WebAPI` — ASP.NET host
+  - `{{appName}}.Business` — entity services (`{Entity}Service : {Entity}ServiceGenerated`), hand-written DTOs, business logic
+  - `{{appName}}.Infrastructure` — `EntityModels/` (entity classes), DbContext, EF migrations
+  - `{{appName}}.Migrations` — lightweight startup project for `dotnet ef` (avoids DLL locking when the WebAPI is running)
+- `Frontend/` — Angular 19 SPA (admin panel)
+  - `src/app/business/entities` — generated TypeScript entity classes
+  - `src/app/business/components` — generated and custom CRUD pages
+  - `src/app/business/services` — API service, auth service, layout service
+- `tests/e2e/` — Playwright end-to-end tests
+
+## Key conventions
+
+- **Classification attributes are required** on hand-written classes (source generators enroll by attribute, not namespace):
+  - Entities → `[SpiderlyEntity]`
+  - M2M junctions → `[M2M]` **and** `[SpiderlyEntity]`
+  - Custom controllers → `[SpiderlyController]`
+  - Hand-written DTOs → `[SpiderlyDTO]`
+  - Entity services extending the generated base → `[SpiderlyService]`
+  - Hand-written partial mapper class → `[SpiderlyDataMapper]`
+  - C# enums / class-based string-constant enums exposed to Angular → `[SpiderlyEnum]`
+- **Database table names are singular** — match the entity class name exactly (`Category` class → `"Category"` table).
+- **`bool?` is preferred** over non-nullable `bool` for checkbox properties; treat `null` as `false`.
+- **EF migrations**: run `dotnet ef` commands from `Backend/{{appName}}.Migrations/` as the startup project.
+
+## Working with Claude Code
+
+This project ships with `.claude/settings.json` that auto-enables the **`spiderly@spiderly`** plugin. The plugin contributes trigger-based skills for deeper tasks — entity design, EF migrations, backend hooks, custom endpoints, mapper customization, filtering, file storage, authorization, Angular customization, deployment. Run `/skills` to list. They load on demand, so this file stays small.
 """;
         }
 
