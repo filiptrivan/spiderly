@@ -116,6 +116,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Type = propertySymbol.Type.TypeToDisplayString(),
                         Name = propertySymbol.Name,
                         EntityName = type.Name,
+                        IsEnum = IsSpiderlyEnumType(propertySymbol.Type),
                         Attributes = GetAttributesFromReferencedAssemblies(propertySymbol),
                     };
 
@@ -126,6 +127,28 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             return properties.OrderBy(x => x.Name).ToList();
+        }
+
+        // Mirrors ClassAnalyzer.GetPropsOfCurrentClass's enum tagging for properties
+        // sourced from a referenced assembly: a property whose underlying type is an
+        // enum decorated with [SpiderlyEnum] is a scalar value, not a M2O navigation.
+        // Without this flag, generators that skip enum-typed properties (autocomplete
+        // / dropdown controller methods, DTO M2O field synthesis) misclassify them
+        // and ControllerGenerator throws SPIDERLY011 trying to resolve the "entity".
+        // Handles both <c>EventKind</c> and <c>EventKind?</c> shapes.
+        private static bool IsSpiderlyEnumType(ITypeSymbol type)
+        {
+            if (type is INamedTypeSymbol named
+                && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+                && named.TypeArguments.Length == 1)
+            {
+                type = named.TypeArguments[0];
+            }
+
+            if (type.TypeKind != TypeKind.Enum)
+                return false;
+
+            return type.GetAttributes().Any(a => a.AttributeClass?.Name == "SpiderlyEnumAttribute");
         }
 
         private static List<SpiderlyAttribute> GetAttributesFromReferencedAssemblies(ISymbol symbol)
