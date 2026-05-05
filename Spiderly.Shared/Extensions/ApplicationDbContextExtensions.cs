@@ -39,7 +39,20 @@ namespace Spiderly.Shared.Extensions
                 T result = await action();
 
                 if (isFirstTransaction)
+                {
+                    // Loud guard against the "added entities to the tracker but forgot to
+                    // SaveChanges before returning" footgun. transaction.CommitAsync() does
+                    // NOT flush the change tracker — it only commits the DB transaction —
+                    // so silent dropped writes are otherwise possible (e.g. an outbox row
+                    // added after the last SaveChangesAsync that never reaches the DB).
+                    if (context.ChangeTracker.HasChanges())
+                        throw new InvalidOperationException(
+                            "WithTransactionAsync: pending tracked changes at commit. " +
+                            "Call SaveChangesAsync before returning from the action, or " +
+                            "discard/detach the entries you don't intend to persist.");
+
                     await transaction.CommitAsync();
+                }
 
                 return result;
             }
@@ -87,7 +100,20 @@ namespace Spiderly.Shared.Extensions
                 await action();
 
                 if (isFirstTransaction)
+                {
+                    // Loud guard against the "added entities to the tracker but forgot to
+                    // SaveChanges before returning" footgun. transaction.CommitAsync() does
+                    // NOT flush the change tracker — it only commits the DB transaction —
+                    // so silent dropped writes are otherwise possible (e.g. an outbox row
+                    // added after the last SaveChangesAsync that never reaches the DB).
+                    if (context.ChangeTracker.HasChanges())
+                        throw new InvalidOperationException(
+                            "WithTransactionAsync: pending tracked changes at commit. " +
+                            "Call SaveChangesAsync before returning from the action, or " +
+                            "discard/detach the entries you don't intend to persist.");
+
                     await transaction.CommitAsync();
+                }
             }
             catch
             {
