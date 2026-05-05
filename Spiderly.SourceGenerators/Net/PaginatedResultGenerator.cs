@@ -5,6 +5,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -33,14 +34,17 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.DataMappers },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
+            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+
+            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var ((classes, referencedClasses), config) = source;
-                Execute(classes, referencedClasses, config, spc);
+                var (combinedSource, enumNames) = source;
+                var ((classes, referencedClasses), config) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -48,7 +52,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(PaginatedResultGenerator)))
                 return;
 
-            List<SpiderlyClass> spiderlyClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses);
+            List<SpiderlyClass> spiderlyClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames);
             List<SpiderlyClass> allClasses = spiderlyClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(spiderlyClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
@@ -343,7 +347,7 @@ using {{item}};
 
         private static string GetCaseForNumber(string DTOIdentifier, string entityDotNotation, string numberType)
         {
-            string numberTypeWithoutQuestion = numberType.Replace("?", "");
+            string numberTypeWithoutQuestion = numberType.WithoutNullableSuffix();
 
             return $$"""
                             case "{{DTOIdentifier.FirstCharToLower()}}":

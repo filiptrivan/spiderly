@@ -426,7 +426,7 @@ namespace Spiderly.SourceGenerators.Net
             List<string> result = new();
 
             List<SpiderlyProperty> properties = entityClass.Properties
-                .Where(prop => prop.Type.IsManyToOneType())
+                .Where(prop => prop.IsManyToOneType())
                 .ToList();
 
             foreach (SpiderlyProperty prop in properties)

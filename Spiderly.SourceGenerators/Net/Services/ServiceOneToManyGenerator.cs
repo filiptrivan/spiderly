@@ -383,7 +383,7 @@ namespace Spiderly.SourceGenerators.Net
             string otherSideFKName = $"{otherSideM2MProperty.Name}Id";
 
             List<SpiderlyProperty> additionalFields = junctionEntity.Properties
-                .Where(p => !p.Type.IsManyToOneType() && !p.Type.IsOneToManyType())
+                .Where(p => !p.IsManyToOneType() && !p.Type.IsOneToManyType())
                 .ToList();
 
             StringBuilder additionalFieldMappings = new();

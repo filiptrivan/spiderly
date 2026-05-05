@@ -55,7 +55,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static SpiderlyClass ResolveDisplayNameNavigationTarget(SpiderlyClass currentEntity, SpiderlyProperty property, List<SpiderlyClass> allEntities, out Diagnostic error)
         {
-            if (!property.Type.IsManyToOneType())
+            if (!property.IsManyToOneType())
             {
                 error = Diagnostic.Create(
                     SpiderlyDiagnostics.DisplayNameSegmentNotManyToOne,

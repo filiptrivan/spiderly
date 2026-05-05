@@ -25,6 +25,13 @@ namespace Spiderly.SourceGenerators.Models
 
         public string Description { get; set; }
 
+        /// <summary>
+        /// True when this property's type is a C# enum decorated with <c>[SpiderlyEnum]</c>.
+        /// Set during class analysis when an enum-name set is supplied; defaults to false otherwise.
+        /// Generators consult this to short-circuit M2O classification (an enum is a scalar value, not a navigation property).
+        /// </summary>
+        public bool IsEnum { get; set; }
+
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
     }
 }

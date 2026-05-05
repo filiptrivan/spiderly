@@ -5,6 +5,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -25,14 +26,17 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.Services },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
+            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+
+            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var ((classes, referencedClasses), config) = source;
-                Execute(classes, referencedClasses, config, spc);
+                var (combinedSource, enumNames) = source;
+                var ((classes, referencedClasses), config) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -40,7 +44,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(ServicesGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities, spiderlyEnumNames);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 

@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -18,11 +19,19 @@ namespace Spiderly.SourceGenerators.Shared
         /// The inherited properties doesn't have any attributes
         /// </summary>
         public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
+            => GetAllPropertiesOfTheClass(c, currentProjectClasses, referencedProjectsClasses, ImmutableArray<string>.Empty);
+
+        /// <summary>
+        /// Enum-aware overload. <paramref name="spiderlyEnumNames"/> is the set of <c>[SpiderlyEnum]</c>-decorated enum type names
+        /// in the current compilation; properties whose stringified type matches a name in the set get <c>IsEnum = true</c>.
+        /// Pass <see cref="ImmutableArray{T}.Empty"/> to opt out of enum tagging (legacy behavior).
+        /// </summary>
+        public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
         {
             TypeSyntax baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
             ClassDeclarationSyntax baseClass = GetClass(baseType, currentProjectClasses);
 
-            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c);
+            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames);
 
             TypeSyntax typeGeneric = null;
 
@@ -116,25 +125,44 @@ namespace Spiderly.SourceGenerators.Shared
         /// Without inherited properties
         /// </summary>
         public static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c)
+            => GetPropsOfCurrentClass(c, ImmutableArray<string>.Empty);
+
+        /// <summary>
+        /// Enum-aware overload. <paramref name="spiderlyEnumNames"/> is the set of <c>[SpiderlyEnum]</c>-decorated enum type names
+        /// in the current compilation; properties whose stringified type matches a name in the set get <c>IsEnum = true</c>.
+        /// </summary>
+        public static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames)
         {
+            // Build a HashSet once per class scan; ImmutableArray.Contains is O(N).
+            // Nullable enum properties (`OrderStatusCodes?`) need the suffix stripped to match the unadorned name in the set.
+            HashSet<string> enumNameSet = spiderlyEnumNames.IsDefaultOrEmpty
+                ? null
+                : new HashSet<string>(spiderlyEnumNames);
+
             List<SpiderlyProperty> properties = c.Members
                 .OfType<PropertyDeclarationSyntax>()
                 .Where(prop => prop.ExplicitInterfaceSpecifier == null)
-                .Select(prop => new SpiderlyProperty()
+                .Select(prop =>
                 {
-                    Type = prop.Type.ToString(),
-                    Name = prop.Identifier.Text,
-                    StringValue = prop.Initializer?.Value?.ToString()?.Trim('"'), // Trimming because: "\"John\"" --> "John"
-                    EntityName = c.Identifier.Text,
-                    Description = GetXmlDocSummary(prop),
-                    Location = prop.Identifier.GetLocation(),
-                    Attributes = prop.AttributeLists
-                        .SelectMany(x => x.Attributes)
-                        .Select(x =>
-                        {
-                            return GetSpiderAttribute(x);
-                        })
-                        .ToList()
+                    string typeText = prop.Type.ToString();
+
+                    return new SpiderlyProperty()
+                    {
+                        Type = typeText,
+                        Name = prop.Identifier.Text,
+                        StringValue = prop.Initializer?.Value?.ToString()?.Trim('"'), // Trimming because: "\"John\"" --> "John"
+                        EntityName = c.Identifier.Text,
+                        Description = GetXmlDocSummary(prop),
+                        Location = prop.Identifier.GetLocation(),
+                        IsEnum = enumNameSet != null && enumNameSet.Contains(typeText.WithoutNullableSuffix()),
+                        Attributes = prop.AttributeLists
+                            .SelectMany(x => x.Attributes)
+                            .Select(x =>
+                            {
+                                return GetSpiderAttribute(x);
+                            })
+                            .ToList()
+                    };
                 })
                 .ToList();
 

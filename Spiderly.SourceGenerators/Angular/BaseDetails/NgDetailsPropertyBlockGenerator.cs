@@ -129,7 +129,12 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.IsBlob())
                 return UIControlTypeCodes.File;
 
-            if (property.Type.IsManyToOneType())
+            // Enum-typed entity properties render as a dropdown bound to the TS enum (no API round-trip).
+            // Must come before the M2O check because IsEnum short-circuits IsManyToOneType for the same property.
+            if (property.IsEnum)
+                return UIControlTypeCodes.Dropdown;
+
+            if (property.IsManyToOneType())
                 return UIControlTypeCodes.Autocomplete;
 
             if (property.HasSimpleManyToManyTableLazyLoadAttribute())
@@ -212,7 +217,11 @@ namespace Spiderly.SourceGenerators.Angular
 
         internal static string GetFormControlName(SpiderlyProperty property)
         {
-            if (property.Type.IsManyToOneType())
+            // Enum-typed properties bind directly to the property name (the DTO field is the enum value, not a synthesized FK).
+            if (property.IsEnum)
+                return property.Name.FirstCharToLower();
+
+            if (property.IsManyToOneType())
                 return $"{property.Name.FirstCharToLower()}Id";
 
             if (property.IsMultiSelectControlType())
@@ -372,7 +381,7 @@ namespace Spiderly.SourceGenerators.Angular
             string junctionFormGroupVar = $"{junctionEntity.Name.FirstCharToLower()}FormGroup";
 
             List<SpiderlyProperty> additionalFields = junctionEntity.Properties
-                .Where(p => !p.Type.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
+                .Where(p => !p.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
                 .ToList();
 
             StringBuilder fieldsHtml = new();
