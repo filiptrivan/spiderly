@@ -81,6 +81,23 @@ namespace Spiderly.SourceGenerators.Shared
             return IsEnumSyntaxTargetForGeneration(enumDeclaration) ? enumDeclaration : null;
         }
 
+        /// <summary>
+        /// Collects the type names of every <c>[SpiderlyEnum]</c>-decorated enum in the current compilation,
+        /// already projected to <see cref="ImmutableArray{T}"/> so consumers don't re-project per <c>Execute</c>.
+        /// Generators that emit code for entity properties feed this into <see cref="SpiderlyClassFactory.GetSpiderlyClasses"/>
+        /// so enum-typed properties get <c>SpiderlyProperty.IsEnum = true</c> instead of being misclassified as M2O navigation.
+        /// </summary>
+        public static IncrementalValueProvider<ImmutableArray<string>> GetSpiderlyEnumNamesProvider(SyntaxValueProvider syntaxValueProvider)
+        {
+            return syntaxValueProvider
+                .CreateSyntaxProvider(
+                    predicate: static (s, _) => IsEnumSyntaxTargetForGeneration(s),
+                    transform: static (ctx, _) => GetEnumSemanticTargetForGeneration(ctx))
+                .Where(static c => c is not null)
+                .Collect()
+                .Select(static (enums, _) => enums.Select(e => e.Identifier.Text).ToImmutableArray());
+        }
+
         private static bool HasEnumAttribute(EnumDeclarationSyntax enumDeclaration, string attributeName)
         {
             string attributeNameWithSuffix = attributeName + "Attribute";

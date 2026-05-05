@@ -6,6 +6,7 @@ using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -31,17 +32,20 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Controllers },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.Services });
 
-            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
+            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+
+            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var (classesAndEntitiesAndPath, config) = source;
+                var (combinedSource, enumNames) = source;
+                var (classesAndEntitiesAndPath, config) = combinedSource;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, callingPath, config, spc);
+                Execute(classes, referencedClasses, enumNames, callingPath, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, ImmutableArray<string> spiderlyEnumNames, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -52,7 +56,7 @@ namespace Spiderly.SourceGenerators.Net
             if (callingProjectDirectory.Contains(".WebAPI") == false)
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntitiesAndServices, spiderlyEnumNames);
 
             List<SpiderlyClass> customControllers = currentProjectClasses
                 .Where(x => x.HasSpiderlyControllerAttribute())

@@ -62,7 +62,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static string GetRulePropertyName(SpiderlyProperty property, SpiderlyClass entity)
         {
-            if (property.HasWithManyAttribute() && property.Type.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
+            if (property.HasWithManyAttribute() && property.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
                 return property.ResolveExplicitForeignKeyName(entity) ?? $"{property.Name}Id";
 
             if (property.HasUIOrderedOneToManyAttribute())

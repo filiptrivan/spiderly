@@ -64,7 +64,7 @@ namespace Spiderly.SourceGenerators.Shared
             return entities
                 .SelectMany(x => x.Properties)
                 .Where(prop =>
-                    prop.Type.IsManyToOneType() &&
+                    prop.IsManyToOneType() &&
                     prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
                     prop.Type == entityName
                 )

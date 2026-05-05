@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Spiderly.SourceGenerators.Shared
@@ -8,6 +9,14 @@ namespace Spiderly.SourceGenerators.Shared
     public static class SpiderlyClassFactory
     {
         public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses)
+            => GetSpiderlyClasses(currentProjectClasses, referencedProjectsClasses, ImmutableArray<string>.Empty);
+
+        /// <summary>
+        /// Enum-aware overload. <paramref name="spiderlyEnumNames"/> is the set of <c>[SpiderlyEnum]</c>-decorated enum type names
+        /// in the current compilation; entity properties whose stringified type matches a name in the set get <c>IsEnum = true</c>.
+        /// Pass <see cref="ImmutableArray{T}.Empty"/> to opt out of enum tagging (legacy behavior).
+        /// </summary>
+        public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
         {
             return currentProjectClasses
                 .Select(x =>
@@ -21,7 +30,7 @@ namespace Spiderly.SourceGenerators.Shared
                         BaseType = x.GetBaseType(),
                         IsAbstract = x.IsAbstract(),
                         Description = ClassAnalyzer.GetXmlDocSummary(x),
-                        Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
+                        Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames),
                         Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
                         Methods = ClassAnalyzer.GetMethodsOfCurrentClass(x),
                         Location = x.Identifier.GetLocation(),
@@ -206,7 +215,7 @@ namespace Spiderly.SourceGenerators.Shared
                 if (property.ShouldSkipPropertyInDTO())
                     continue;
 
-                if (property.Type.IsManyToOneType())
+                if (property.IsManyToOneType())
                 {
                     SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type);
 

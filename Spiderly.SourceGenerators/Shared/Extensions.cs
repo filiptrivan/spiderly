@@ -171,6 +171,19 @@ namespace Spiderly.SourceGenerators.Shared
             return true;
         }
 
+        /// <summary>
+        /// Enum-aware overload. A property whose type is a <c>[SpiderlyEnum]</c>-decorated enum is a scalar value,
+        /// not a navigation target — short-circuit M2O classification before falling through to the string-based check.
+        /// Generators that have a <see cref="SpiderlyProperty"/> in scope should prefer this overload.
+        /// </summary>
+        public static bool IsManyToOneType(this SpiderlyProperty property)
+        {
+            if (property.IsEnum)
+                return false;
+
+            return property.Type.IsManyToOneType();
+        }
+
         public static bool IsEnumerable(this string type)
         {
             return type.Contains("List") || type.Contains("IList") || type.Contains("[]");
@@ -239,6 +252,16 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool IsReadonlyObject(this SpiderlyClass c)
         {
             return c.BaseType?.Contains($"{Helpers.ReadonlyObject}<") == true;
+        }
+
+        /// <summary>
+        /// Strips the trailing nullability marker from a stringified type name.
+        /// <c>"int?"</c> -> <c>"int"</c>; <c>"OrderStatusCodes"</c> -> <c>"OrderStatusCodes"</c>.
+        /// Tolerates trailing whitespace from upstream type-syntax stringification.
+        /// </summary>
+        public static string WithoutNullableSuffix(this string typeName)
+        {
+            return typeName?.TrimEnd().TrimEnd('?');
         }
 
 
@@ -349,8 +372,10 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldGenerateAutocompleteControllerMethod(this SpiderlyProperty property)
         {
+            // Enum-typed properties get a static client-side dropdown bound to the TS enum,
+            // so the backend doesn't need to expose an autocomplete endpoint for them.
             if (
-                property.Type.IsManyToOneType() &&
+                property.IsManyToOneType() &&
                 property.Attributes.Any(x => x.Name == "UIControlType") == false
             )
             {
@@ -541,7 +566,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// </example>
         public static string ResolveExplicitForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
         {
-            if (navigation.Type.IsManyToOneType() == false)
+            if (navigation.IsManyToOneType() == false)
                 return null;
 
             string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();

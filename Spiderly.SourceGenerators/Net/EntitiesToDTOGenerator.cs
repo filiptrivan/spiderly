@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Shared;
@@ -33,14 +34,17 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
+            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+
+            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var ((classes, referencedClasses), config) = source;
-                Execute(classes, referencedClasses, config, spc);
+                var (combinedSource, enumNames) = source;
+                var ((classes, referencedClasses), config) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -48,7 +52,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(EntitiesToDTOGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities, spiderlyEnumNames);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
@@ -75,7 +79,7 @@ namespace Spiderly.SourceGenerators.Net
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
             string result = $$"""
-{{GetUsings()}}
+{{GetUsings(basePartOfNamespace)}}
 
 namespace {{basePartOfNamespace}}.DTO
 {
@@ -163,14 +167,18 @@ namespace {{basePartOfNamespace}}.DTO
             return DTObaseType == null ? "" : $": {DTObaseType}";
         }
 
-        private static string GetUsings()
+        private static string GetUsings(string basePartOfNamespace)
         {
+            // {basePartOfNamespace}.Enums is needed when entity properties are typed as a
+            // [SpiderlyEnum]-decorated enum — the DTO emits the enum type by short name and
+            // would otherwise fail to resolve. Convention: enums always live under .Enums.
             return $$"""
 using Microsoft.AspNetCore.Http;
 using Spiderly.Shared.Attributes.Entity;
 using Spiderly.Shared.DTO;
 using Spiderly.Security.DTO;
 using Spiderly.Shared.Helpers;
+using {{basePartOfNamespace}}.Enums;
 """;
         }
 

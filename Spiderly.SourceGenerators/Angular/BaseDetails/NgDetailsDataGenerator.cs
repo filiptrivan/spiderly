@@ -389,7 +389,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 return "multiselect";
 
-            if (property.Type.IsManyToOneType())
+            if (property.IsManyToOneType())
                 return "text";
 
             switch (property.Type)

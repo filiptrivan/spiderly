@@ -14,7 +14,7 @@ namespace Spiderly.SourceGenerators.Shared
     {
         public static void ValidateEntity(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            foreach (SpiderlyProperty navigation in entity.Properties.Where(p => p.Type.IsManyToOneType()))
+            foreach (SpiderlyProperty navigation in entity.Properties.Where(p => p.IsManyToOneType()))
             {
                 ValidateForeignKeyAttributeTargets(navigation, entity);
                 ValidateConventionAmbiguity(navigation, entity);
@@ -110,7 +110,7 @@ namespace Spiderly.SourceGenerators.Shared
                 return;
 
             string targetIdType = targetEntity.GetIdType(allEntities);
-            string fkType = fkProperty.Type.TrimEnd().TrimEnd('?');
+            string fkType = fkProperty.Type.WithoutNullableSuffix();
 
             if (fkType != targetIdType)
             {
