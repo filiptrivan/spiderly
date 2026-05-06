@@ -95,7 +95,7 @@ export class ApiGeneratedService extends ApiSecurityService {
         super(http, config);
     }
 
-{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOs, knownTsTypes, context))}}
+{{string.Join("\n\n", GetAngularHttpMethods(controllerClasses, allEntities, referencedDTOs, knownTsTypes, spiderlyEnumNames, context))}}
 
 }
 """;
@@ -103,7 +103,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             Helpers.WriteToTheFile(result, outputPath);
         }
 
-        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs, HashSet<string> knownTsTypes, SourceProductionContext context)
+        private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs, HashSet<string> knownTsTypes, ImmutableArray<string> spiderlyEnumNames, SourceProductionContext context)
         {
             List<string> result = new();
             // Methods already defined in ApiSecurityService (Angular). Keep this list in sync
@@ -138,18 +138,18 @@ export class ApiGeneratedService extends ApiSecurityService {
                     if (!alreadyAddedMethods.Add(controllerMethod.Name))
                         continue;
 
-                    ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, controllerMethod.Location);
+                    ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     foreach (SpiderParameter parameter in controllerMethod.Parameters)
-                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, controllerMethod.Location);
+                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type == "IFormFile") == false)
                     {
-                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs));
+                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs, spiderlyEnumNames));
                     }
                     else
                     {
-                        result.Add(GetCustomAngularControllerMethod(controllerMethod, controllerName));
+                        result.Add(GetCustomAngularControllerMethod(controllerMethod, controllerName, spiderlyEnumNames));
                     }
                 }
             }
@@ -173,6 +173,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             string controllerName,
             string methodName,
             HashSet<string> knownTsTypes,
+            ImmutableArray<string> spiderlyEnumNames,
             Location location)
         {
             if (cSharpType.IsBaseDataType()
@@ -180,10 +181,10 @@ export class ApiGeneratedService extends ApiSecurityService {
                 || cSharpType == "void"
                 || cSharpType.Contains("ActionResult")
                 || cSharpType.Contains("IFormFile")
-                || cSharpType.IsEnum())
+                || cSharpType.IsEnum(spiderlyEnumNames))
                 return;
 
-            string extracted = AngularTypeMapper.ExtractAngularTypeFromGenericCSharpType(cSharpType);
+            string extracted = AngularTypeMapper.ExtractAngularTypeFromGenericCSharpType(cSharpType, spiderlyEnumNames);
 
             if (string.IsNullOrEmpty(extracted))
                 return;
@@ -192,7 +193,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                 ? Helpers.ExtractTypeFromGenericType(extracted)
                 : extracted;
 
-            if (AngularTypeMapper.IsKnownTsScalar(target) || target.IsEnum() || knownTsTypes.Contains(target))
+            if (AngularTypeMapper.IsKnownTsScalar(target) || target.IsEnum(spiderlyEnumNames) || knownTsTypes.Contains(target))
                 return;
 
             context.ReportDiagnostic(Diagnostic.Create(
@@ -239,26 +240,26 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         #region Custom Angular Controller Method
 
-        private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerName)
+        private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerName, ImmutableArray<string> spiderlyEnumNames)
         {
-            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType);
+            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
             HttpTypeCodes httpType = GetHttpType(controllerMethod);
 
             Dictionary<string, string> inputParameters = controllerMethod.Parameters
                 .ToDictionary(
                     x => x.Name,
-                    x => AngularTypeMapper.GetAngularType(x.Type)
+                    x => AngularTypeMapper.GetAngularType(x.Type, spiderlyEnumNames)
                 );
 
-            string httpOptions = GetHttpOptions(controllerMethod);
+            string httpOptions = GetHttpOptions(controllerMethod, spiderlyEnumNames);
 
             return GetAngularControllerMethod(controllerMethod.Name, inputParameters, angularReturnType, httpType, controllerName, httpOptions);
         }
 
-        private static string GetHttpOptions(SpiderlyMethod controllerMethod)
+        private static string GetHttpOptions(SpiderlyMethod controllerMethod, ImmutableArray<string> spiderlyEnumNames)
         {
-            if (AngularTypeMapper.GetAngularType(controllerMethod.ReturnType) == "string")
+            if (AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames) == "string")
                 return Settings.HttpOptionsText;
 
             if (controllerMethod.ReturnType.Contains("IActionResult"))
@@ -341,11 +342,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
 """;
         }
 
-        private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList)
+        private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList, ImmutableArray<string> spiderlyEnumNames)
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
             SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type).SingleOrDefault();
-            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType);
+            string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
             return $$"""
     {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{parameter.Type.Replace("DTO", "")}}): Observable<{{angularReturnType}}> => { 

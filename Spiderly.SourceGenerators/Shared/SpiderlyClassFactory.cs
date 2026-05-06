@@ -242,7 +242,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else
                 {
-                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO", Description = property.Description });
+                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO", Description = property.Description, IsEnum = property.IsEnum });
                 }
             }
 
