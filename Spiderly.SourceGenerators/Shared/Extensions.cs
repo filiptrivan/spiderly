@@ -4,6 +4,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -265,9 +266,23 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
 
-        public static bool IsEnum(this string type)
+        /// <summary>
+        /// Registry-aware enum check. A type is treated as an enum when its (unwrapped, non-nullable) name
+        /// appears in <paramref name="spiderlyEnumNames"/> — the set of <c>[SpiderlyEnum]</c>-decorated enum
+        /// type names collected by <see cref="PipelineFactory.GetSpiderlyEnumNamesProvider"/>.
+        /// <c>[SpiderlyEnum]</c> is the single source of truth — the type name is irrelevant.
+        /// </summary>
+        public static bool IsEnum(this string type, ImmutableArray<string> spiderlyEnumNames)
         {
-            return type.EndsWith("Codes") || type.EndsWith("Codes>");
+            if (type == null || spiderlyEnumNames.IsDefaultOrEmpty)
+                return false;
+
+            string inner = type.WithoutNullableSuffix();
+            int genericOpen = inner.IndexOf('<');
+            if (genericOpen >= 0)
+                inner = inner.Substring(genericOpen + 1).TrimEnd('>').WithoutNullableSuffix();
+
+            return spiderlyEnumNames.Contains(inner);
         }
 
         public static bool IsBlob(this SpiderlyProperty property)

@@ -65,7 +65,7 @@ namespace Spiderly.SourceGenerators.Angular
             StringBuilder sbImports = new();
             sbImports.Append($$"""
 import { BaseEntity, Filter, FilterRule, FilterSortMeta, Namebook } from 'spiderly';
-{{string.Join("\n", GetEnumPropertyImports(currentProjectDTOClasses))}}
+{{string.Join("\n", GetEnumPropertyImports(currentProjectDTOClasses, spiderlyEnumNames))}}
 
 """);
 
@@ -76,10 +76,10 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, Namebook } from 'spider
                 foreach (SpiderlyClass DTOClass in DTOClassGroup) // It can only be 2 here
                     DTOProperties.AddRange(DTOClass.Properties);
 
-                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties);
+                List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties, spiderlyEnumNames);
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
-                sbImports.Append(string.Join("\n", AngularTypeMapper.GetAngularImports(DTOProperties)));
+                sbImports.Append(string.Join("\n", AngularTypeMapper.GetAngularImports(DTOProperties, spiderlyEnumNames)));
 
                 sb.AppendLine($$"""
 
@@ -101,7 +101,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
     }
 
     static schema = {
-{{GetSchemaProperties(DTOProperties)}}
+{{GetSchemaProperties(DTOProperties, spiderlyEnumNames)}}
     } as const;
 
     static typeName = '{{angularClassIdentifier}}' as const;
@@ -115,7 +115,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             Helpers.WriteToTheFile(sbImports.ToString(), outputPath);
         }
 
-        private static List<string> GetAllAngularPropertyDefinitions(List<SpiderlyProperty> DTOProperties)
+        private static List<string> GetAllAngularPropertyDefinitions(List<SpiderlyProperty> DTOProperties, ImmutableArray<string> spiderlyEnumNames)
         {
             List<string> result = new();
 
@@ -123,7 +123,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             {
                 string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
 
-                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type);
+                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type, spiderlyEnumNames);
                 result.Add($"{DTOPropLowerCase}?: {angularDataType};");
             }
 
@@ -143,14 +143,14 @@ export class {{angularClassIdentifier}} extends BaseEntity
             return result;
         }
 
-        private static string GetSchemaProperties(List<SpiderlyProperty> DTOProperties)
+        private static string GetSchemaProperties(List<SpiderlyProperty> DTOProperties, ImmutableArray<string> spiderlyEnumNames)
         {
             StringBuilder result = new();
 
             foreach (SpiderlyProperty DTOProp in DTOProperties)
             {
                 string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
-                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type);
+                string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type, spiderlyEnumNames);
 
                 result.AppendLine($$"""
         {{DTOPropLowerCase}}: {
@@ -164,7 +164,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             return result.ToString();
         }
 
-        private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses)
+        private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, ImmutableArray<string> spiderlyEnumNames)
         {
             List<string> result = new();
 
@@ -175,7 +175,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
                 foreach (SpiderlyClass DTOClass in DTOClassGroup) // It can only be 2 here
                     DTOProperties.AddRange(DTOClass.Properties);
 
-                foreach (SpiderlyProperty property in DTOProperties.Where(x => x.Type.IsEnum()))
+                foreach (SpiderlyProperty property in DTOProperties.Where(x => x.Type.IsEnum(spiderlyEnumNames)))
                 {
                     if (result.Contains(property.Name) == false)
                     {

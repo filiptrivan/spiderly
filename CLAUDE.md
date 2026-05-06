@@ -27,7 +27,7 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 ## Coding conventions
 
 - Prefer raw string literals (`$$""" """`) for multiline strings in C#
-- Enum types follow the `...Codes` naming convention (e.g., `StatusCodes`, `UIControlTypeCodes`)
+- Enum types are conventionally named with a `...Codes` suffix (e.g., `StatusCodes`, `UIControlTypeCodes`) — convention only, not enforced; `[SpiderlyEnum]` is what marks an enum for code generation
 - `bool?` (nullable) is **recommended** for checkbox properties — non-nullable `bool` is supported but `bool?` is preferred in most cases. Treat `null` as `false` in business logic
 - All public members in shipped packages (`Spiderly.Shared`, `Spiderly.Security`, `Spiderly.Infrastructure`) must have `/// <summary>` XML doc comments — never plain `//` comments as documentation. Generated methods that end users can override (virtual hooks) should also include `<example>` showing usage
 - **Database table names are singular** — matching the entity class name exactly (e.g., `Category` class → `"Category"` table, not `"Categories"`). This is because Spiderly registers entities via `modelBuilder.Entity()` without `DbSet<T>` properties, so EF Core uses the class name as-is
