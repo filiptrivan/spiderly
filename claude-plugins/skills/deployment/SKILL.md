@@ -57,7 +57,8 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
+      start_period: 60s
       retries: 3
     depends_on:
       postgres: { condition: service_healthy }
@@ -283,9 +284,46 @@ For migration mechanics (creating migrations, the dedicated `*.Migrations` start
 ## Pitfalls
 
 - **Cookie domain across subdomains.** Set `CookieDomain` to `.<your-domain>` (leading dot) so cookies set by `api.<your-domain>` are accepted by `admin.<your-domain>`. `SameSite=Lax` is the right default for an admin SPA.
-- **`ForwardLimit = 2`.** With Cloudflare → Caddy → backend, your forwarded headers cross two proxies. Set `ForwardLimit = 2` in `appsettings.Production.json` and trust Cloudflare IP ranges (see https://www.cloudflare.com/ips/).
+- **`ForwardLimit = 2`.** With Cloudflare → Caddy → backend, your forwarded headers cross two proxies. The Spiderly scaffold ships `appsettings.Production.json` with `ForwardLimit: 2` already set; if you sit behind Cloudflare, paste the current Cloudflare CIDR list into `TrustedProxyNetworks` (refresh from https://www.cloudflare.com/ips/ periodically — Cloudflare adds ranges occasionally):
+
+  ```json
+  {
+    "AppSettings": {
+      "Spiderly.Shared": {
+        "ForwardLimit": 2,
+        "TrustedProxyNetworks": [
+          "173.245.48.0/20",
+          "103.21.244.0/22",
+          "103.22.200.0/22",
+          "103.31.4.0/22",
+          "141.101.64.0/18",
+          "108.162.192.0/18",
+          "190.93.240.0/20",
+          "188.114.96.0/20",
+          "197.234.240.0/22",
+          "198.41.128.0/17",
+          "162.158.0.0/15",
+          "104.16.0.0/13",
+          "104.24.0.0/14",
+          "172.64.0.0/13",
+          "131.0.72.0/22",
+          "2400:cb00::/32",
+          "2606:4700::/32",
+          "2803:f800::/32",
+          "2405:b500::/32",
+          "2405:8100::/32",
+          "2a06:98c0::/29",
+          "2c0f:f248::/32"
+        ]
+      }
+    }
+  }
+  ```
+
+  When `TrustedProxyNetworks` is unset, Spiderly trusts RFC 1918 private ranges by default — fine for Docker-internal Caddy → backend traffic but **not** for the outermost Cloudflare → Caddy hop, which arrives over public IPs.
 - **CORS `FrontendUrl`.** The backend's `AppSettings__Spiderly.Shared__FrontendUrl` must point to the admin subdomain, not a build-preview URL. Update it when you cut over from staging hosting.
 - **First deploy ordering.** The backend compose references `${ADMIN_IMAGE}`. On a fresh VPS, that image must exist in GHCR before backend deploys, or the admin service definition fails to pull. Push admin first, or run the admin workflow once before the first backend deploy.
 - **`docker compose up -d` brings up everything.** When a backend deploy uses `up -d` without a service name, it'll also bring up `admin` if it's not running. That's usually desired — but means a backend-only commit can replace the admin container. The healthcheck-gated `depends_on` keeps this safe.
 - **Static assets caching.** Hashed Angular bundles (e.g. `main.abc123.js`) can be cached forever; `index.html` must never cache, or users will get a stale shell after a deploy. The Caddyfile in this skill already handles both cases.
 - **`tls_private_key` lives in Terraform state in cleartext.** R2 encryption-at-rest is bucket-level; anyone with R2 API access (or a leaked state file) can read the key. Scope the R2 token tightly, audit who can pull state, and never copy `terraform.tfstate` to laptops or shared drives. Rotating the cert means a fresh `terraform apply` followed by re-pasting the new outputs into GitHub Secrets — plan a maintenance window.
+- **Cloudflare in front of Vercel must stay "DNS only".** When the Next.js storefront (or a Vercel-hosted admin) deploys to Vercel and DNS is on Cloudflare, those records must be **DNS only** (grey cloud), not proxied. Vercel terminates TLS and runs its own edge — CDN, image optimization, ISR, PPR — so adding the Cloudflare proxy on top breaks the TLS handshake and double-caches/conflicts with Vercel's edge features. Cloudflare's WAF/cache/analytics/Turnstile belong on the **Hetzner-served** records (`api.*`, `admin.*`) where the orange cloud stays on. If you want Cloudflare features in front of Vercel anyway, that's an advanced setup ("Full (strict)" SSL + custom hostnames) that Vercel does not officially recommend.

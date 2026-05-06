@@ -446,6 +446,7 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFile { Name = "appsettings.json", Data = GetAppSettingsJsonData(appName) },
                             new SpiderlyFile { Name = "appsettings.Development.json", Data = GetAppSettingsDevelopmentJsonData(appName) },
                             new SpiderlyFile { Name = "appsettings.Development.local.example.json", Data = GetAppSettingsDevelopmentLocalExampleJsonData() },
+                            new SpiderlyFile { Name = "appsettings.Production.json", Data = GetAppSettingsProductionJsonData() },
                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj", Data = GetWebAPICsProjData(appName, spiderlyVersion, isRunningFromNuget, dbProvider) },
                             new SpiderlyFile { Name = $"{appName}.WebAPI.csproj.user", Data = GetWebAPICsProjUserData() },
                             new SpiderlyFile { Name = "Program.cs", Data = GetProgramCsData(appName) },
@@ -2023,6 +2024,9 @@ public class Startup
         services.AddHangfireServer();
         services.AddSingleton<INotificationDispatcher, HangfireNotificationDispatcher>();
 
+        services.AddHealthChecks()
+            .AddDbContextCheck<{{appName}}ApplicationDbContext>();
+
         services.AddSpiderly<{{appName}}ApplicationDbContext>(spiderly =>
         {
             spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
@@ -2035,6 +2039,7 @@ public class Startup
             spiderly.AddFileStorage<DiskStorageService>();
             spiderly.AddSwagger();
             spiderly.AddRateLimiting();
+            spiderly.AddForwardedHeaders();
         });
 
         services.AddAppServices();
@@ -2042,6 +2047,8 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        app.SpiderlyConfigureForwardedHeaders();
+
         app.UseCors(builder =>
         {
             builder
@@ -2086,8 +2093,8 @@ public class Startup
 
         app.UseEndpoints(endpoints =>
         {
-            endpoints
-                .MapControllers();
+            endpoints.MapHealthChecks("/health");
+            endpoints.MapControllers();
         });
     }
 }
@@ -2167,6 +2174,7 @@ namespace {{appName}}.WebAPI
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.1" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Hangfire.SqlServer\" Version=\"1.8.*\" />" : "<PackageReference Include=\"Hangfire.PostgreSql\" Version=\"1.20.*\" />")}}
@@ -2303,6 +2311,21 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Security": {
       "JwtKey": ""
+    }
+  }
+}
+""";
+        }
+
+        private static string GetAppSettingsProductionJsonData()
+        {
+            return $$"""
+{
+  "$schema": "https://raw.githubusercontent.com/filiptrivan/spiderly/main/schemas/appsettings.schema.json",
+  "AppSettings": {
+    "Spiderly.Shared": {
+      // 2 = Cloudflare -> reverse-proxy -> backend; drop to 1 if only one proxy hop. See the Spiderly 'deployment' skill for TrustedProxyNetworks.
+      "ForwardLimit": 2
     }
   }
 }
