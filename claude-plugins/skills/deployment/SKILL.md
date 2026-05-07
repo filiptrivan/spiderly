@@ -100,21 +100,64 @@ volumes:
 
 ## Caddy site blocks
 
-`Backend/Caddyfile`:
+`Backend/Caddyfile` — extracts compression + security headers into a `(common)` snippet so both site blocks stay DRY. Cloudflare also sets some of these (HSTS, Brotli) at its edge, but defense-in-depth at the origin is cheap and keeps origin→Cloudflare bandwidth compressed:
 
 ```
+(common) {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+}
+
 api.<your-domain> {
+    import common
     tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin-key.pem
     reverse_proxy backend:8080
 }
 
 admin.<your-domain> {
+    import common
     tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin-key.pem
     reverse_proxy admin:80
 }
 ```
 
 Both subdomains share a single Cloudflare origin cert with both names as SANs (set up in Terraform — see below).
+
+## Backend Dockerfile
+
+`Backend/Dockerfile` (multi-stage SDK build → aspnet runtime):
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:9.0.102 AS build
+WORKDIR /src
+COPY ["<YourApp>.WebAPI/<YourApp>.WebAPI.csproj", "<YourApp>.WebAPI/"]
+# ... copy other csprojs, restore, copy source, publish ...
+RUN dotnet publish "<YourApp>.WebAPI/<YourApp>.WebAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.1
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+COPY --from=publish /app/publish .
+USER app
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "<YourApp>.WebAPI.dll"]
+```
+
+**Pin patch versions** (`9.0.102` SDK, `9.0.1` runtime) — `:9.0` floats and breaks reproducible builds.
+
+**Run as non-root.** The aspnet image ships an `app` user (UID 1654). Add `USER app` after `COPY` for defense-in-depth — limits the blast radius of a container escape and matches the platform's sandbox model.
+
+**Caveat — log volumes:** if you're using a Serilog **File sink** (not just Console) with a Hangfire log-archival job — i.e., the app needs to *write* to `/app/logs` — a Docker named volume mount overlays that path with root-owned storage and `app` can't write. Two options:
+- **Bind mount with chowned host dir** (recommended): `volumes: - /var/log/<your-app>:/app/logs` in compose, plus a one-time `mkdir -p /var/log/<your-app> && chown 1654:1654 /var/log/<your-app>` on the VPS. Bind mounts respect host ownership.
+- **No File sink** (simplest): rely on Console sink + Docker's `json-file` driver (50 MB × 3 files rotation already in compose — see below). Access logs via `docker logs`. Drop the `/app/logs` volume entirely.
+
+Console-only is right for greenfield deploys; file-sink-with-archival is right when you have a long-term log retention requirement and ship to S3/R2.
 
 ## Angular admin Dockerfile
 
@@ -208,6 +251,10 @@ Origin cert covering both `api` and `admin` subdomains (`cloudflare-origin-cert.
 resource "tls_private_key" "origin" {
   algorithm = "RSA"
   rsa_bits  = 2048
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "tls_cert_request" "origin" {
@@ -229,6 +276,12 @@ resource "cloudflare_origin_ca_certificate" "origin" {
   hostnames          = tls_cert_request.origin.dns_names
   request_type       = "origin-rsa"
   requested_validity = 5475 # 15 years
+
+  lifecycle {
+    prevent_destroy = true
+    # Cloudflare normalizes hostname/CSR ordering server-side; ignore both to avoid spurious recreate.
+    ignore_changes = [hostnames, csr]
+  }
 }
 ```
 
@@ -273,9 +326,9 @@ Steps (typical sequence):
 1. **Run tests** (gate the deploy on green tests).
 2. **Build + push image** to GHCR (`docker/build-push-action@v6` with GHA cache).
 3. **SSH key setup** + `ssh-keyscan` to trust the host.
-4. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts).
+4. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts). Open the tunnel with `ssh -o ExitOnForwardFailure=yes -fN -L 5432:127.0.0.1:5432 root@host`, then `trap 'pkill -f "ssh ... -L 5432" || true' EXIT` so the tunnel always closes, then `for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done` instead of a fixed `sleep` — fixed sleeps race against slow SSH startup.
 5. **Sync compose + Caddyfile** with `envsubst` to inject image tags + secrets, then `scp` to `/opt/<your-app>/`.
-6. **Deploy**: `ssh ... "docker compose pull backend && docker compose up -d"` (compose's healthcheck-aware deps roll the new container only after the new image is healthy).
+6. **Deploy**: `ssh ... "docker compose pull backend && docker compose up -d backend caddy"`. Scope to just the services you're updating — unscoped `up -d` will also bounce admin/postgres on every backend push, which is rarely what you want.
 
 The admin workflow is similar but lighter: build → push → ssh → `docker compose pull admin && docker compose up -d admin`. **Don't** restart Caddy after an admin update — Caddy resolves `admin:80` via Docker DNS at request time and picks up the new container automatically.
 
@@ -321,9 +374,28 @@ For migration mechanics (creating migrations, the dedicated `*.Migrations` start
   ```
 
   When `TrustedProxyNetworks` is unset, Spiderly trusts RFC 1918 private ranges by default — fine for Docker-internal Caddy → backend traffic but **not** for the outermost Cloudflare → Caddy hop, which arrives over public IPs.
+
+  On the Terraform side (Hetzner firewall, etc.), use the **`cloudflare_ip_ranges` data source** instead of a hardcoded list — keeps the firewall in sync with Cloudflare's published ranges automatically:
+
+  ```hcl
+  data "cloudflare_ip_ranges" "this" {}
+
+  resource "hcloud_firewall" "main" {
+    rule {
+      direction  = "in"
+      protocol   = "tcp"
+      port       = "443"
+      source_ips = concat(data.cloudflare_ip_ranges.this.ipv4_cidrs, data.cloudflare_ip_ranges.this.ipv6_cidrs)
+    }
+    # ...
+  }
+  ```
+
+  The .NET `TrustedProxyNetworks` list still has to be hardcoded — there's no equivalent runtime data source short of fetching at startup. The hardcoded list and the Terraform data source describe the same set, so both rot at the same speed; pin a calendar reminder to refresh quarterly.
 - **CORS `FrontendUrl`.** The backend's `AppSettings__Spiderly.Shared__FrontendUrl` must point to the admin subdomain, not a build-preview URL. Update it when you cut over from staging hosting.
 - **First deploy ordering.** The backend compose references `${ADMIN_IMAGE}`. On a fresh VPS, that image must exist in GHCR before backend deploys, or the admin service definition fails to pull. Push admin first, or run the admin workflow once before the first backend deploy.
-- **`docker compose up -d` brings up everything.** When a backend deploy uses `up -d` without a service name, it'll also bring up `admin` if it's not running. That's usually desired — but means a backend-only commit can replace the admin container. The healthcheck-gated `depends_on` keeps this safe.
+- **`docker compose up -d` scoping.** Always scope to the services you're updating: `docker compose up -d backend caddy` for backend deploys, `docker compose up -d admin` for admin deploys. Unscoped `up -d` bounces every service that's currently down or has a config change — including admin and postgres on a backend-only commit. The healthcheck-gated `depends_on` makes the unscoped form *safe* but not *desirable*.
 - **Static assets caching.** Hashed Angular bundles (e.g. `main.abc123.js`) can be cached forever; `index.html` must never cache, or users will get a stale shell after a deploy. The Caddyfile in this skill already handles both cases.
-- **`tls_private_key` lives in Terraform state in cleartext.** R2 encryption-at-rest is bucket-level; anyone with R2 API access (or a leaked state file) can read the key. Scope the R2 token tightly, audit who can pull state, and never copy `terraform.tfstate` to laptops or shared drives. Rotating the cert means a fresh `terraform apply` followed by re-pasting the new outputs into GitHub Secrets — plan a maintenance window.
+- **`tls_private_key` lives in Terraform state in cleartext.** R2 encryption-at-rest is bucket-level; anyone with R2 API access (or a leaked state file) can read the key. Scope the R2 token tightly, audit who can pull state, and never copy `terraform.tfstate` to laptops or shared drives. Rotating the cert means a fresh `terraform apply` followed by re-pasting the new outputs into GitHub Secrets — plan a maintenance window. Add `lifecycle { prevent_destroy = true }` to the `tls_private_key` and `cloudflare_origin_ca_certificate` resources so accidental config changes can't trigger a silent rotation. Also add `ignore_changes = [hostnames, csr]` on the cert — Cloudflare normalizes hostname/CSR ordering server-side, otherwise every plan would show a phantom recreate.
+- **Postgres data on Docker named volumes is not durable across server replacement.** If the VPS itself is Terraform-managed (`hcloud_server`) and gets recreated for any reason — image change, server_type change, accidental destroy — the local Docker named volume `postgres_data` goes with it. Add `lifecycle { prevent_destroy = true }` to the `hcloud_server` resource. For genuine durability, attach an `hcloud_volume` and bind-mount it into postgres (`/var/lib/postgresql/data`); volumes survive server destruction and snapshot independently.
 - **Cloudflare in front of Vercel must stay "DNS only".** When the Next.js storefront (or a Vercel-hosted admin) deploys to Vercel and DNS is on Cloudflare, those records must be **DNS only** (grey cloud), not proxied. Vercel terminates TLS and runs its own edge — CDN, image optimization, ISR, PPR — so adding the Cloudflare proxy on top breaks the TLS handshake and double-caches/conflicts with Vercel's edge features. Cloudflare's WAF/cache/analytics/Turnstile belong on the **Hetzner-served** records (`api.*`, `admin.*`) where the orange cloud stays on. If you want Cloudflare features in front of Vercel anyway, that's an advanced setup ("Full (strict)" SSL + custom hostnames) that Vercel does not officially recommend.
