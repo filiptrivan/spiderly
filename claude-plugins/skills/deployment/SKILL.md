@@ -153,11 +153,7 @@ ENTRYPOINT ["dotnet", "<YourApp>.WebAPI.dll"]
 
 **Run as non-root.** The aspnet image ships an `app` user (UID 1654). Add `USER app` after `COPY` for defense-in-depth — limits the blast radius of a container escape and matches the platform's sandbox model.
 
-**Caveat — log volumes:** if you're using a Serilog **File sink** (not just Console) with a Hangfire log-archival job — i.e., the app needs to *write* to `/app/logs` — a Docker named volume mount overlays that path with root-owned storage and `app` can't write. Two options:
-- **Bind mount with chowned host dir** (recommended): `volumes: - /var/log/<your-app>:/app/logs` in compose, plus a one-time `mkdir -p /var/log/<your-app> && chown 1654:1654 /var/log/<your-app>` on the VPS. Bind mounts respect host ownership.
-- **No File sink** (simplest): rely on Console sink + Docker's `json-file` driver (50 MB × 3 files rotation already in compose — see below). Access logs via `docker logs`. Drop the `/app/logs` volume entirely.
-
-Console-only is right for greenfield deploys; file-sink-with-archival is right when you have a long-term log retention requirement and ship to S3/R2.
+**Log volumes:** if you're using a Serilog File sink (not just Console) with a Hangfire log-archival job, see the **Backups → Log archival** section below for the full bind-mount-vs-Console-only trade-off. Greenfield deploys can stick with Console sink + Docker's `json-file` rotation and skip the volume entirely.
 
 ## Angular admin Dockerfile
 
@@ -340,6 +336,127 @@ Steps (typical sequence):
 The admin workflow is similar but lighter: build → push → ssh → `docker compose pull admin && docker compose up -d admin`. **Don't** restart Caddy after an admin update — Caddy resolves `admin:80` via Docker DNS at request time and picks up the new container automatically.
 
 For migration mechanics (creating migrations, the dedicated `*.Migrations` startup-project pattern, why direct DDL on prod is forbidden), see the `ef-migrations` skill.
+
+## Backups
+
+If you ship this stack to prod, you ship a backup with it. Postgres data lives in a Docker volume on a single VPS — disk failure, accidental `docker volume rm`, or `terraform destroy` all wipe it without a snapshot to restore from.
+
+### Database backups (required)
+
+Daily `pg_dump` to a Cloudflare R2 bucket, 7-day retention both local and remote. ~24h RPO; if you need tighter, layer WAL archiving on top (separate skill).
+
+**1. R2 bucket — Terraform-managed.** No chicken-and-egg here (only the *state* bucket has to be bootstrapped manually); manage data buckets like any other resource:
+
+```hcl
+# infrastructure/cloudflare-r2.tf
+resource "cloudflare_r2_bucket" "db_backups" {
+  account_id = var.cloudflare_account_id
+  name       = "<your-app>-db-backups"
+  location   = "EEUR"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+```
+
+**2. Backup script — `infrastructure/scripts/pg_backup_s3.sh`** (deployed to `/usr/local/bin/` on the VPS):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTAINER_NAME="<your-app>-postgres-1"
+DB_NAME="<your-db>"
+DB_USER="postgres"
+S3_BUCKET="s3://<your-app>-db-backups"
+R2_ENDPOINT="https://<account-id>.r2.cloudflarestorage.com"
+RETENTION_DAYS=7
+LOCAL_BACKUP_DIR="/var/backups/postgresql"
+LOG_FILE="/var/log/<your-app>_pg_backup.log"
+
+TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
+BACKUP_FILE="<your-app>_${TIMESTAMP}.sql.gz"
+LOCAL_PATH="${LOCAL_BACKUP_DIR}/${BACKUP_FILE}"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"; }
+
+mkdir -p "$LOCAL_BACKUP_DIR"
+
+if ! docker exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$LOCAL_PATH"; then
+    log "ERROR: pg_dump failed"; rm -f "$LOCAL_PATH"; exit 1
+fi
+log "Backup created: ${LOCAL_PATH} ($(du -h "$LOCAL_PATH" | cut -f1))"
+
+aws s3 --endpoint-url "$R2_ENDPOINT" cp "$LOCAL_PATH" "${S3_BUCKET}/${BACKUP_FILE}" || { log "ERROR: S3 upload failed"; exit 1; }
+log "Uploaded to ${S3_BUCKET}/${BACKUP_FILE}"
+
+find "$LOCAL_BACKUP_DIR" -name "<your-app>_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+
+CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y-%m-%d)
+aws s3 --endpoint-url "$R2_ENDPOINT" ls "${S3_BUCKET}/" | while read -r line; do
+    FILE_DATE=$(echo "$line" | awk '{print $1}')
+    FILE_NAME=$(echo "$line" | awk '{print $4}')
+    if [[ -n "$FILE_NAME" && "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
+        aws s3 --endpoint-url "$R2_ENDPOINT" rm "${S3_BUCKET}/${FILE_NAME}"
+    fi
+done
+```
+
+**3. VPS prerequisites.** Add `awscli` and `cron` to `cloud-init` `packages:` so future server replacements have them. Configure R2 credentials in `/root/.aws/credentials` (same keys as the Terraform state backend — they're account-scoped):
+
+```ini
+[default]
+aws_access_key_id = <R2 access key>
+aws_secret_access_key = <R2 secret>
+```
+
+**4. Cron entry** (`/etc/cron.d/<your-app>-pg-backup`):
+
+```
+0 2 * * * root /usr/local/bin/pg_backup_s3.sh >> /var/log/<your-app>_pg_backup.log 2>&1
+```
+
+**5. Restore — `scripts/db-restore.sh`** (run from local). Lists server-side backups via SSH, prompts for selection, takes a safety dump first, then restores. Skeleton:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+SSH_ALIAS="<your-app>"
+CONTAINER="<your-app>-postgres-1"
+DB="<your-db>"
+
+mapfile -t BACKUPS < <(ssh "$SSH_ALIAS" "ls -1t /var/backups/postgresql/<your-app>_*.sql.gz | xargs -n1 basename")
+for i in "${!BACKUPS[@]}"; do printf "  %2d) %s\n" "$((i+1))" "${BACKUPS[$i]}"; done
+read -rp "Pick: " PICK
+CHOSEN="${BACKUPS[$((PICK-1))]}"
+
+read -rp "Type DB name to confirm overwrite ($DB): " CONFIRM
+[[ "$CONFIRM" == "$DB" ]] || { echo "aborted"; exit 1; }
+
+# safety snapshot
+ssh "$SSH_ALIAS" "docker exec $CONTAINER pg_dump -U postgres $DB | gzip > /var/backups/postgresql/<your-app>_pre_restore_$(date +%s).sql.gz"
+
+# restore
+ssh "$SSH_ALIAS" "
+    docker exec $CONTAINER psql -U postgres -d postgres -c \"DROP DATABASE IF EXISTS $DB WITH (FORCE);\"
+    docker exec $CONTAINER psql -U postgres -d postgres -c \"CREATE DATABASE $DB;\"
+    gunzip -c /var/backups/postgresql/$CHOSEN | docker exec -i $CONTAINER psql -U postgres -d $DB
+"
+```
+
+**6. Restore drill — quarterly.** A backup you've never restored from is not a backup. At least once a quarter, restore the latest dump into a throwaway local Postgres and verify schema + row counts. Calendar reminder.
+
+### Log archival (optional)
+
+When to use it: you need long-term log retention beyond Docker's `json-file` rotation buffer (default ~150 MB rolling per container, configured in compose).
+
+Pattern: a Hangfire job watches `/app/logs/`, ships files older than N days to R2 once total > threshold, deletes locally. PACMS's `LogArchivalJob` is the reference implementation.
+
+To make `/app/logs` writable under `USER app`:
+
+- **Bind mount with chowned host dir** (recommended): `volumes: - /var/log/<your-app>:/app/logs` in compose, one-time `mkdir -p /var/log/<your-app> && chown 1654:1654 /var/log/<your-app>` on the VPS. Bind mounts respect host ownership; named volumes overlay the path with root-owned storage which `app` can't write to.
+- **No File sink at all** (simpler): rely on Console + Docker rotation. Drop the `/app/logs` volume entirely. Right answer for greenfield deploys.
 
 ## Pitfalls
 
