@@ -326,7 +326,14 @@ Steps (typical sequence):
 1. **Run tests** (gate the deploy on green tests).
 2. **Build + push image** to GHCR (`docker/build-push-action@v6` with GHA cache).
 3. **SSH key setup** + `ssh-keyscan` to trust the host.
-4. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts). Open the tunnel with `ssh -o ExitOnForwardFailure=yes -fN -L 5432:127.0.0.1:5432 root@host`, then `trap 'pkill -f "ssh ... -L 5432" || true' EXIT` so the tunnel always closes, then `for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done` instead of a fixed `sleep` — fixed sleeps race against slow SSH startup.
+4. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts). Set the cleanup trap *before* opening the tunnel so an early ssh failure doesn't leak the trap:
+   ```bash
+   trap 'pkill -f "ssh -o ExitOnForwardFailure=yes -fN -L 5432" || true' EXIT
+   ssh -o ExitOnForwardFailure=yes -fN -L 5432:127.0.0.1:5432 root@host
+   for i in {1..30}; do nc -z localhost 5432 && break; sleep 1; done
+   nc -z localhost 5432 || { echo "::error::SSH tunnel never came up after 30s"; exit 1; }
+   ```
+   The explicit `nc` check after the loop is what turns a timed-out tunnel into a clear failure — without it, `dotnet ef` runs against a dead port and reports a confusing "connection refused" instead.
 5. **Sync compose + Caddyfile** with `envsubst` to inject image tags + secrets, then `scp` to `/opt/<your-app>/`.
 6. **Deploy**: `ssh ... "docker compose pull backend && docker compose up -d backend caddy"`. Scope to just the services you're updating — unscoped `up -d` will also bounce admin/postgres on every backend push, which is rarely what you want.
 
