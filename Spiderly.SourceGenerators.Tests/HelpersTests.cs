@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
@@ -48,6 +49,9 @@ public class HelpersTests
 
     #region GetAngularType
 
+    private static readonly ImmutableArray<string> EmptyEnumRegistry = ImmutableArray<string>.Empty;
+    private static readonly ImmutableArray<string> StatusCodesEnumRegistry = ImmutableArray.Create("StatusCodes");
+
     [Theory]
     [InlineData("string", "string")]
     [InlineData("bool", "boolean")]
@@ -68,26 +72,26 @@ public class HelpersTests
     [InlineData("byte?", "number")]
     public void GetAngularType_BaseTypes_ReturnsMappedType(string cSharpType, string expected)
     {
-        Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharpType));
+        Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharpType, EmptyEnumRegistry));
     }
 
     [Fact]
     public void GetAngularType_EnumType_ReturnsSameType()
     {
-        Assert.Equal("StatusCodes", AngularTypeMapper.GetAngularType("StatusCodes"));
+        Assert.Equal("StatusCodes", AngularTypeMapper.GetAngularType("StatusCodes", StatusCodesEnumRegistry));
     }
 
     [Fact]
     public void GetAngularType_List_ReturnsArrayType()
     {
-        string result = AngularTypeMapper.GetAngularType("List<long>");
+        string result = AngularTypeMapper.GetAngularType("List<long>", EmptyEnumRegistry);
         Assert.Equal("number[]", result);
     }
 
     [Fact]
     public void GetAngularType_ActionResult_ReturnsAny()
     {
-        Assert.Equal("any", AngularTypeMapper.GetAngularType("ActionResult"));
+        Assert.Equal("any", AngularTypeMapper.GetAngularType("ActionResult", EmptyEnumRegistry));
     }
 
     #endregion

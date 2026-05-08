@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
@@ -116,24 +117,91 @@ public class ExtensionsTests
 
     #endregion
 
-    #region IsEnum
+    #region WithoutNullableSuffix
 
     [Theory]
-    [InlineData("StatusCodes")]
-    [InlineData("UIControlTypeCodes")]
-    [InlineData("List<StatusCodes>")]
-    public void IsEnum_EnumTypes_ReturnsTrue(string type)
+    [InlineData("OrderStatusCodes?", "OrderStatusCodes")]
+    [InlineData("OrderStatusCodes", "OrderStatusCodes")]
+    [InlineData("string?", "string")]
+    [InlineData("int", "int")]
+    [InlineData("OrderStatusCodes? ", "OrderStatusCodes")]
+    public void WithoutNullableSuffix_StripsTrailingQuestionMark(string input, string expected)
     {
-        Assert.True(type.IsEnum());
+        Assert.Equal(expected, input.WithoutNullableSuffix());
+    }
+
+    [Fact]
+    public void WithoutNullableSuffix_Null_ReturnsNull()
+    {
+        Assert.Null(((string?)null).WithoutNullableSuffix());
+    }
+
+    #endregion
+
+    #region IsEnum (registry-aware overload)
+
+    [Theory]
+    [InlineData("OrderStatusCodes")]
+    [InlineData("OrderStatusCodes?")]
+    [InlineData("List<OrderStatusCodes>")]
+    public void IsEnum_RegistryHit_ReturnsTrue(string type)
+    {
+        ImmutableArray<string> registry = ImmutableArray.Create("OrderStatusCodes", "PaymentMethodCodes");
+        Assert.True(type.IsEnum(registry));
     }
 
     [Theory]
-    [InlineData("User")]
+    [InlineData("UnknownCodes")]
     [InlineData("string")]
-    [InlineData("Code")]
-    public void IsEnum_NonEnumTypes_ReturnsFalse(string type)
+    [InlineData("User")]
+    public void IsEnum_RegistryMiss_ReturnsFalse(string type)
     {
-        Assert.False(type.IsEnum());
+        ImmutableArray<string> registry = ImmutableArray.Create("OrderStatusCodes");
+        Assert.False(type.IsEnum(registry));
+    }
+
+    [Fact]
+    public void IsEnum_EmptyRegistry_ReturnsFalse()
+    {
+        Assert.False("OrderStatusCodes".IsEnum(ImmutableArray<string>.Empty));
+    }
+
+    [Fact]
+    public void IsEnum_DefaultRegistry_ReturnsFalse()
+    {
+        Assert.False("OrderStatusCodes".IsEnum(default(ImmutableArray<string>)));
+    }
+
+    [Fact]
+    public void IsEnum_NullType_ReturnsFalse()
+    {
+        ImmutableArray<string> registry = ImmutableArray.Create("OrderStatusCodes");
+        Assert.False(((string?)null).IsEnum(registry));
+    }
+
+    #endregion
+
+    #region IsManyToOneType (property overload)
+
+    [Fact]
+    public void IsManyToOneType_PropertyMarkedIsEnum_ReturnsFalse()
+    {
+        SpiderlyProperty p = new() { Type = "OrderStatusCodes", IsEnum = true };
+        Assert.False(p.IsManyToOneType());
+    }
+
+    [Fact]
+    public void IsManyToOneType_NavigationProperty_ReturnsTrue()
+    {
+        SpiderlyProperty p = new() { Type = "User", IsEnum = false };
+        Assert.True(p.IsManyToOneType());
+    }
+
+    [Fact]
+    public void IsManyToOneType_BaseDataType_ReturnsFalse()
+    {
+        SpiderlyProperty p = new() { Type = "string", IsEnum = false };
+        Assert.False(p.IsManyToOneType());
     }
 
     #endregion
