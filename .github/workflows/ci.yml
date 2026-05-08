@@ -1,11 +1,15 @@
-name: End to End Spiderly Test
+name: CI
 
 on:
   push:
     branches: [main, develop, v*]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   DOTNET_VERSION: "9.0.x"
@@ -13,8 +17,29 @@ env:
   TEST_APP_NAME: "TestApp"
 
 jobs:
+  unit-test:
+    name: Unit Tests (.NET)
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Run tests
+        run: dotnet test -c Release --verbosity normal
+
   integration-test:
     name: Test CLI Generated Application
+    needs: unit-test
     runs-on: ubuntu-latest
     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
     timeout-minutes: 20
