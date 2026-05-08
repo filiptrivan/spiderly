@@ -473,7 +473,7 @@ echo "Restored. Safety snapshot at $SSH_ALIAS:$REMOTE_DIR/$SAFETY."
 
 When to use it: you need long-term log retention beyond Docker's `json-file` rotation buffer (default ~150 MB rolling per container, configured in compose).
 
-Pattern: a Hangfire job watches `/app/logs/`, ships files older than N days to R2 once total > threshold, deletes locally. PACMS's `LogArchivalJob` is the reference implementation.
+Pattern: a Hangfire recurring job watches `/app/logs/`, ships files older than N days to R2 once total > threshold, deletes locally.
 
 To make `/app/logs` writable under `USER app`:
 

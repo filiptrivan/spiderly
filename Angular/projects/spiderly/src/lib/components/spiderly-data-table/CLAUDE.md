@@ -6,7 +6,7 @@ Wraps PrimeNG v19 `<p-table>` and exposes Spiderly's column-based filter / sort 
 
 The match-mode `<p-select>` rendered next to text/numeric/date filter inputs is gated by **two** conditions in PrimeNG (`*ngIf="showMatchModes && matchModes"`). Spiderly always supplies `matchModeOptions` (`matchModeNumberOptions`, `matchModeDateOptions`), so the second condition is satisfied — but the binding `[showMatchModes]="col.showMatchModes"` resolves to `undefined` when a column omits the flag, and PrimeNG's `booleanAttribute` coerces that to `false`. Net effect: the dropdown does not render and the column filters with the default match mode (`Equals` for numeric, `Contains` for text) only.
 
-To let the user pick a match mode, set `showMatchModes: true` on the column. Example from PACMS `user-list.component.ts`:
+To let the user pick a match mode, set `showMatchModes: true` on the column. Example:
 
 ```typescript
 { name: t('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true }

@@ -12,7 +12,7 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 
 ## Documentation updates
 
-When Spiderly code changes affect public API, attributes, generated output, or behavior — update the documentation in `spiderly-website/` (inside the PACMS workspace) accordingly.
+When Spiderly code changes affect public API, attributes, generated output, or behavior — update the documentation in the `spiderly-website/` sibling repo accordingly.
 
 ## API error codes
 
@@ -20,7 +20,7 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 
 1. `Spiderly.Shared/Contracts/ApiErrorCodes.cs` — canonical C# source.
 2. `Angular/projects/spiderly/src/lib/errors/api-error-codes.ts` — admin consumers.
-3. Downstream TS mirrors (e.g. `pa-storefront/packages/shared/src/lib/api-error.ts` — storefront).
+3. Downstream TS mirrors in any consuming app (e.g. a storefront's `api-error.ts`).
 
 `ApiErrorCodes` lives under `Spiderly.Shared.Contracts` because it is a static constants class, not a DTO.
 

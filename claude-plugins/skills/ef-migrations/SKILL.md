@@ -13,11 +13,11 @@ Run from the Backend directory, using the **Migrations console project** as star
 dotnet ef migrations add <MigrationName> --project <InfrastructureProject> --startup-project <MigrationsProject>
 ```
 
-Example for PACMS:
+Example:
 
 ```bash
-cd pa-cms/Backend
-dotnet ef migrations add AddOrderNumberToProduct --project PACMS.Infrastructure --startup-project PACMS.Migrations
+cd MyApp/Backend
+dotnet ef migrations add AddOrderNumberToProduct --project MyApp.Infrastructure --startup-project MyApp.Migrations
 ```
 
 Always review the generated migration file before proceeding.
@@ -42,4 +42,4 @@ Direct production DB access (via db-query or psql) is only for **data queries an
 
 ## The Migrations project
 
-Each Spiderly solution includes a lightweight console app (e.g., `PACMS.Migrations`) specifically for running EF tooling. It exists because the main WebAPI project's DLLs are often locked by the running dev server. Always use it as the `--startup-project` for `dotnet ef` commands.
+Each Spiderly solution includes a lightweight console app (e.g., `MyApp.Migrations`) specifically for running EF tooling. It exists because the main WebAPI project's DLLs are often locked by the running dev server. Always use it as the `--startup-project` for `dotnet ef` commands.
