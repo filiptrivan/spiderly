@@ -1,4 +1,5 @@
 name: Release Pipeline
+run-name: Release ${{ inputs.release_type }} (${{ inputs.version_bump }}) from ${{ github.ref_name }}${{ inputs.dry_run && ' [dry-run]' || '' }}
 
 on:
   workflow_dispatch:
@@ -78,6 +79,17 @@ jobs:
       has_dotnet_packages: ${{ steps.packages.outputs.has_dotnet_packages }}
 
     steps:
+      - name: Enforce develop branch
+        if: inputs.dry_run != true
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/develop" ]; then
+            echo "Branch: ${GITHUB_REF_NAME}"
+            echo "The release pipeline fast-forwards 'main' from 'develop' as part of finalize."
+            echo "Running from any other branch would publish that branch's code under a fresh version."
+            echo "::error::Release pipeline must be run from 'develop' (got: ${GITHUB_REF_NAME}). See spiderly/CLAUDE.md."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -319,7 +331,7 @@ jobs:
   publish-nuget:
     name: Publish to NuGet
     needs: [validate, build-dotnet, test-dotnet]
-    if: inputs.dry_run != true && needs.validate.outputs.has_dotnet_packages == 'true'
+    if: inputs.dry_run != true && needs.validate.outputs.has_dotnet_packages == 'true' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     outputs:
       published_packages: ${{ steps.publish.outputs.published_packages }}
@@ -395,6 +407,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
+      github.ref == 'refs/heads/develop' &&
       needs.validate.result == 'success' &&
       needs.validate.outputs.publish_angular == 'true' &&
       needs.build-angular.result == 'success' &&
@@ -439,6 +452,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
+      github.ref == 'refs/heads/develop' &&
       needs.validate.outputs.is_prerelease == 'false' &&
       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
@@ -525,6 +539,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
+      github.ref == 'refs/heads/develop' &&
       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success') &&
@@ -574,20 +589,19 @@ jobs:
           fi
 
       - name: Merge to main
-        if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
+        if: needs.validate.outputs.is_prerelease == 'false'
         run: |
-          current_branch=$(git branch --show-current)
-          echo "Fast-forwarding main to match $current_branch..."
+          echo "Fast-forwarding main to match develop..."
 
           git fetch origin main
           git checkout main
-          git merge --ff-only "origin/$current_branch"
+          git merge --ff-only origin/develop
           git push origin main
 
           echo "Successfully fast-forwarded main"
 
       - name: Merge spiderly-website develop into master
-        if: needs.validate.outputs.is_prerelease == 'false' && github.ref != 'refs/heads/main'
+        if: needs.validate.outputs.is_prerelease == 'false'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
