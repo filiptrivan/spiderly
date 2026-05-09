@@ -56,7 +56,7 @@ Checklist:
 - [ ] `[WithMany]` on M2O child side, `[CascadeDelete]` or `[SetNull]` for delete behavior
 - [ ] `[UIOrderedOneToMany]` on parent collection + `OrderNumber` on child (if ordered)
 - [ ] `[M2M]` on junction entities with exactly 2 `[M2MWithMany]` properties
-- [ ] File properties: `[BlobName]` + storage attribute + `[AcceptedFileTypes]` + `[MaxFileSize]` + `[StringLength]`
+- [ ] File properties: a `StorageAttribute` subclass (`[DiskStorage]` / `[S3PublicStorage]` / `[S3PrivateStorage]` / custom) + `[AcceptedFileTypes]` + `[MaxFileSize]` + `[StringLength]`
 - [ ] Remove `[DoNotAuthorize]` if the entity needs authorization
 
 Also add the collection property to related parent entities (e.g., `public virtual List<Product> Products { get; } = new();` on `Category`).

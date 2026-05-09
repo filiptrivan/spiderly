@@ -10,7 +10,11 @@ namespace Spiderly.Shared.Extensions
     /// <summary>
     /// Configures which Spiderly features to enable.
     /// Use <c>Use*</c> for infrastructure choices (database provider, culture)
-    /// and <c>Add*</c> for feature registration (auth, emailing, file storage, etc.).
+    /// and <c>Add*</c> for feature registration (auth, emailing, etc.).
+    /// File storage is selected per-property via <see cref="Spiderly.Shared.Attributes.Entity.StorageAttribute"/>
+    /// subclasses (<c>[DiskStorage]</c>, <c>[S3PublicStorage]</c>, <c>[S3PrivateStorage]</c>, or your own
+    /// custom subclass); register the implementation classes you reference in your DI container directly
+    /// (e.g. <c>services.AddTransient&lt;S3PublicStorageService&gt;()</c>).
     /// <example>
     /// <code>
     /// services.AddSpiderly&lt;MyDbContext&gt;(spiderly =&gt;
@@ -21,7 +25,6 @@ namespace Spiderly.Shared.Extensions
     ///     spiderly.AddTokenStorage();
     ///     spiderly.AddExcel();
     ///     spiderly.AddBrevoEmailing();
-    ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();
     ///     spiderly.AddSwagger();
     ///     spiderly.AddRateLimiting();
     /// });
@@ -43,14 +46,10 @@ namespace Spiderly.Shared.Extensions
         internal bool SwaggerEnabled { get; private set; }
         internal bool RateLimitingEnabled { get; private set; }
         internal bool ForwardedHeadersEnabled { get; private set; }
-        internal bool AzureBlobEnabled { get; private set; }
 
         internal bool EmailingEnabled { get; private set; }
         internal Type EmailingServiceType { get; private set; }
         internal bool BrevoHttpClientEnabled { get; private set; }
-
-        internal bool FileStorageEnabled { get; private set; }
-        internal Type FileStorageServiceType { get; private set; }
 
         internal SpiderlyBuilder(IServiceCollection services)
         {
@@ -171,27 +170,6 @@ namespace Spiderly.Shared.Extensions
             EmailingEnabled = true;
             EmailingServiceType = typeof(BrevoEmailingService);
             BrevoHttpClientEnabled = true;
-            return this;
-        }
-
-        /// <summary>
-        /// Registers the specified type as the <see cref="IFileManager"/> implementation.
-        /// </summary>
-        public SpiderlyBuilder AddFileStorage<TFileManager>()
-            where TFileManager : class, IFileManager
-        {
-            FileStorageEnabled = true;
-            FileStorageServiceType = typeof(TFileManager);
-            return this;
-        }
-
-        /// <summary>
-        /// Registers Azure Blob Storage clients (BlobServiceClient, BlobContainerClient).
-        /// Only needed when using Azure Blob Storage for file management.
-        /// </summary>
-        public SpiderlyBuilder AddAzureBlobStorage()
-        {
-            AzureBlobEnabled = true;
             return this;
         }
 

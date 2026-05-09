@@ -271,7 +271,7 @@ namespace Spiderly.SourceGenerators.Angular
                     pairedFkNames.Contains(x.Name) == false
                 )
                 .OrderBy(x =>
-                    x.Attributes.Any(attr => attr.Name == "BlobName") ? 0 :
+                    x.IsBlob() ? 0 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.Editor.ToString()) ? 3 :
                     x.Attributes.Any(attr => attr.Name == "UIOrderedOneToMany") ? 4 :
@@ -508,7 +508,7 @@ namespace Spiderly.SourceGenerators.Angular
             }
             else if (controlType == UIControlTypeCodes.Editor)
             {
-                if (property.HasS3PublicUrlAttribute())
+                if (property.HasS3PublicStorageAttribute())
                 {
                     return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\"";
                 }

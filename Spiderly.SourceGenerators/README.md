@@ -250,49 +250,49 @@ public int Stock { get; set; }
 
 ### File & Storage
 
-#### BlobName
+Blob properties are marked by any subclass of `StorageAttribute`. Spiderly ships three built-in subclasses; consumers may write their own (see the `file-storage` skill for the extension pattern).
 
-- Set this attribute to a property that serves as a pointer to the file identifier in storage (Azure, S3, Cloudinary).
+#### DiskStorage
+
+- Routes uploads through `DiskStorageService` (local filesystem). Intended for development.
+- e.g. `[DiskStorage]`
+
+#### S3PublicStorage
+
+- Routes uploads through `S3PublicStorageService`. The bucket is configured for public access; the column stores a CDN URL with `Cache-Control: public, max-age=31536000, immutable`.
+- e.g. `[S3PublicStorage]`
+
+#### S3PrivateStorage
+
+- Routes uploads through `S3PrivateStorageService`. The column stores an opaque S3 key; access is mediated via signed URLs or a backend proxy.
+- e.g. `[S3PrivateStorage]`
 
 #### AcceptedFileTypes
 
 - Specifies the accepted file types for a blob property.
-- Default: `image/*` (accepts images only).
-- Use alongside `BlobName` for non-image uploads (e.g., PDFs, Excel files).
+- **Required** on every blob property. Build error `SPIDERLY014` if missing. No default.
 - e.g. `[AcceptedFileTypes("application/pdf", ".pdf")]`
 
 #### MaxFileSize
 
 - Specifies the maximum allowed file size (in bytes) for a blob property.
 - Default: 20 MB (20,000,000 bytes).
-- Use alongside `BlobName`.
+- Use alongside any `StorageAttribute` subclass.
 - e.g. `[MaxFileSize(5_000_000)]`
 
 #### ImageWidth
 
 - Validates exact image width (in pixels) for a blob property.
 - Provides both server-side and client-side validation.
-- Use alongside `BlobName`.
+- Use alongside any `StorageAttribute` subclass.
 - e.g. `[ImageWidth(100)]`
 
 #### ImageHeight
 
 - Validates exact image height (in pixels) for a blob property.
 - Provides both server-side and client-side validation.
-- Use alongside `BlobName`.
+- Use alongside any `StorageAttribute` subclass.
 - e.g. `[ImageHeight(100)]`
-
-#### S3Url
-
-- Marks a property as an S3 URL.
-
-#### S3PublicUrl
-
-- Marks a property as an S3 public URL.
-
-#### CloudinaryPublicId
-
-- Marks a property as a Cloudinary public ID.
 
 ### UI
 

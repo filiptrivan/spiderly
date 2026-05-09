@@ -32,11 +32,12 @@ namespace Spiderly.Shared.Enums
 
         /// <summary>
         /// File upload control. Renders <c>spiderly-file</c> with support for image preview and dimension validation.
-        /// <para>Auto-detected for: properties decorated with the <c>[BlobName]</c> attribute.</para>
+        /// <para>Auto-detected for: properties decorated with any subclass of <c>StorageAttribute</c>
+        /// (e.g. <c>[DiskStorage]</c>, <c>[S3PublicStorage]</c>, <c>[S3PrivateStorage]</c>).</para>
         /// <example>
         /// Example:
         /// <code>
-        /// [BlobName]
+        /// [S3PublicStorage]
         /// [ImageWidth(300)]
         /// [ImageHeight(300)]
         /// public string ProfilePictureName { get; set; }

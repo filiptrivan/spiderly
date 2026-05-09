@@ -1,4 +1,3 @@
-using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -6,7 +5,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -36,6 +34,9 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Registers Spiderly framework services using a modular builder pattern.
         /// Only the features you opt in to via the builder are registered.
+        /// File storage adapters are not configured here — they are selected per blob property
+        /// via <see cref="Spiderly.Shared.Attributes.Entity.StorageAttribute"/> subclasses, and
+        /// the consumer registers each implementation class it references in DI directly.
         /// <example>
         /// <code>
         /// services.AddSpiderly&lt;MyDbContext&gt;(spiderly =&gt;
@@ -46,7 +47,6 @@ namespace Spiderly.Shared.Extensions
         ///     spiderly.AddTokenStorage();
         ///     spiderly.AddExcel();
         ///     spiderly.AddBrevoEmailing();
-        ///     spiderly.AddFileStorage&lt;DiskStorageService&gt;();
         ///     spiderly.AddSwagger();
         ///     spiderly.AddRateLimiting();
         /// });
@@ -99,16 +99,6 @@ namespace Spiderly.Shared.Extensions
                 {
                     services.SpiderlyAddBrevoHttpClient();
                 }
-            }
-
-            if (builder.FileStorageEnabled)
-            {
-                services.AddTransient(typeof(IFileManager), builder.FileStorageServiceType);
-            }
-
-            if (builder.AzureBlobEnabled)
-            {
-                services.SpiderlyAddAzureClients();
             }
 
             if (builder.SwaggerEnabled)
@@ -219,28 +209,6 @@ namespace Spiderly.Shared.Extensions
                     options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
                     options.JsonSerializerOptions.Converters.Add(new JsonDateTimeConverter());
                 });
-        }
-
-        public static void SpiderlyAddAzureClients(this IServiceCollection services)
-        {
-            if (string.IsNullOrEmpty(SettingsProvider.Current.BlobStorageConnectionString))
-                return;
-
-            services.AddAzureClients(clientBuilder =>
-            {
-                clientBuilder.AddBlobServiceClient(SettingsProvider.Current.BlobStorageConnectionString);
-
-                clientBuilder.AddClient<BlobContainerClient, BlobClientOptions>((options, provider) => // https://stackoverflow.com/questions/78430531/registering-blobcontainerclient-and-injecting-into-isolated-function
-                {
-                    string storageContainerName = SettingsProvider.Current.BlobStorageContainerName;
-
-                    BlobServiceClient blobServiceClient = provider.GetRequiredService<BlobServiceClient>();
-
-                    BlobContainerClient blobContainerClient = blobServiceClient.GetBlobContainerClient(storageContainerName);
-
-                    return blobContainerClient;
-                });
-            });
         }
 
         public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services, DbProviderCodes dbProvider) where TDbContext : DbContext, IApplicationDbContext

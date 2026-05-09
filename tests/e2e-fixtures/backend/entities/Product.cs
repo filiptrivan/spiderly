@@ -28,7 +28,7 @@ namespace __APP_NAME__.Business.Entities
 
         public bool? IsActive { get; set; }
 
-        [BlobName]
+        [DiskStorage]
         [AcceptedFileTypes("video/mp4")]
         [StringLength(1000)]
         public string VideoUrl { get; set; }

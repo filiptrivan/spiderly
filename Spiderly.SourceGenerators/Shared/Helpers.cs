@@ -203,13 +203,13 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static List<SpiderlyProperty> GetBlobProperties(List<SpiderlyProperty> properties)
         {
-            return properties.Where(x => x.Attributes.Any(x => x.Name == "BlobName")).ToList();
+            return properties.Where(x => x.IsBlob()).ToList();
         }
 
         public static List<SpiderlyProperty> GetEditorImageProperties(List<SpiderlyProperty> properties)
         {
             return properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicUrlAttribute())
+                .Where(x => x.IsEditorControlType() && x.HasS3PublicStorageAttribute())
                 .ToList();
         }
 

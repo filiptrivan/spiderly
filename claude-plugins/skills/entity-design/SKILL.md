@@ -178,11 +178,10 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 | `[UIOrderedOneToMany]`                  | Property       | Enable drag-and-drop ordered child list                                                              |
 | `[UIPropertyBlockOrder("N")]`           | Property       | Control field display order                                                                          |
 | `[UIPanel("Name")]`                     | Property       | Group fields into named panels                                                                       |
-| `[BlobName]`                            | Property       | Mark as file reference (pair with `[StringLength]`)                                                  |
-| `[S3PublicUrl]`                         | Property       | File stored in S3 with public CDN URL                                                                |
-| `[S3Url]`                               | Property       | File stored in S3 with private (authenticated) access                                                |
-| `[CloudinaryPublicId]`                  | Property       | File stored in Cloudinary                                                                            |
-| `[AcceptedFileTypes("mime/type", ...)]` | Property       | **Required on every `[BlobName]` property** — whitelist upload MIME types. Build error `SPIDERLY014` if missing. No default.  |
+| `[DiskStorage]`                         | Property       | File stored on local filesystem (dev only). Marks the property as a blob.                            |
+| `[S3PublicStorage]`                     | Property       | File stored in S3 with public CDN URL. Marks the property as a blob.                                 |
+| `[S3PrivateStorage]`                    | Property       | File stored in S3 with private (signed-URL) access. Marks the property as a blob.                    |
+| `[AcceptedFileTypes("mime/type", ...)]` | Property       | **Required on every blob property** — whitelist upload MIME types. Build error `SPIDERLY014` if missing. No default.          |
 | `[MaxFileSize(N)]`                      | Property       | Max upload size in bytes (default: 20MB)                                                             |
 | `[ImageWidth(N)]` / `[ImageHeight(N)]`  | Property       | Validate exact image dimensions                                                                      |
 | `[DoNotAuthorize]`                      | Class          | Skip authorization checks for this entity                                                            |
@@ -224,8 +223,7 @@ public class Product : BusinessObject<long>
     [WithMany(nameof(Brand.Products))]
     public virtual Brand Brand { get; set; }
 
-    [BlobName]
-    [S3PublicUrl]
+    [S3PublicStorage]
     [AcceptedFileTypes("image/*")]
     [MaxFileSize(2_000_000)]
     [StringLength(1000, MinimumLength = 1)]

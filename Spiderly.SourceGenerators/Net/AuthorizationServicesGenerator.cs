@@ -185,7 +185,6 @@ namespace {{basePartOfNamespace}}.Services
 using {{basePartOfTheNamespace}}.Entities;
 using {{basePartOfTheNamespace}}.Enums;
 using {{basePartOfTheNamespace}}.DTO;
-using Azure.Storage.Blobs;
 using Microsoft.Extensions.Localization;
 using Spiderly.Security.Services;
 using Spiderly.Security.Interfaces;

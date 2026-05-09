@@ -38,19 +38,11 @@ namespace Spiderly.Shared
         public string RefreshTokenKey { get; set; } = "refresh_token";
         public string AuthResultKey { get; set; } = "auth_status";
 
-        public string BlobStorageConnectionString { get; set; }
-        public string BlobStorageUrl { get; set; }
-        public string BlobStorageContainerName { get; set; }
-
         public int RequestsLimitNumber { get; set; } = 240;
         public int RequestsLimitWindow { get; set; } = 60;
 
         public int BlobUploadRequestsLimitNumber { get; set; } = 20;
         public int BlobUploadRequestsLimitWindow { get; set; } = 60;
-
-        public string CloudinaryCloudName { get; set; }
-        public string CloudinaryApiKey { get; set; }
-        public string CloudinaryApiSecret { get; set; }
 
         public string S3BucketName { get; set; }
         public string S3PublicEndpoint { get; set; }

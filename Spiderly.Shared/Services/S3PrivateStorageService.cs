@@ -5,12 +5,12 @@ using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Services
 {
-    public class S3StorageService : IFileManager
+    public class S3PrivateStorageService : IFileManager
     {
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
 
-        public S3StorageService(IAmazonS3 s3Client)
+        public S3PrivateStorageService(IAmazonS3 s3Client)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
             _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
@@ -63,8 +63,9 @@ namespace Spiderly.Shared.Services
             };
 
             ListObjectsV2Response response = await _s3Client.ListObjectsV2Async(listRequest);
+            List<S3Object> s3Objects = response.S3Objects ?? [];
 
-            foreach (S3Object obj in response.S3Objects.Where(o => o.Key != activeKey))
+            foreach (S3Object obj in s3Objects.Where(o => o.Key != activeKey))
             {
                 await _s3Client.DeleteObjectAsync(_bucketName, obj.Key);
             }

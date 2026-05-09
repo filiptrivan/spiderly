@@ -80,6 +80,9 @@ namespace Spiderly.SourceGenerators.Net
         // references AuthorizationServiceGenerated, which is generated per project with entity-specific methods.
         // We intentionally use IServiceProvider here (service locator) — it keeps this class universal across
         // all entities, avoids per-entity deps classes, and sidesteps circular dependency issues without Lazy<T>.
+        // Storage adapters are not in this bundle: per-blob-property attributes ([DiskStorage] / [S3PublicStorage]
+        // / [S3PrivateStorage] / custom StorageAttribute subclass) drive direct GetRequiredService<TConcrete>
+        // calls in each generated entity service, so there is no global IFileManager slot.
         private static string GetEntityServiceDependencies(string basePartOfNamespace)
         {
             return $$"""
@@ -100,7 +103,6 @@ namespace {{basePartOfNamespace}}.Services
         public IApplicationDbContext Context { get; }
         public ExcelService ExcelService { get; }
         public AuthorizationServiceGenerated AuthorizationService { get; }
-        public IFileManager FileManager { get; }
         public IStringLocalizer Localizer { get; }
         public IServiceProvider ServiceProvider { get; }
 
@@ -108,14 +110,12 @@ namespace {{basePartOfNamespace}}.Services
             IApplicationDbContext context,
             ExcelService excelService,
             AuthorizationServiceGenerated authorizationService,
-            IFileManager fileManager,
             IStringLocalizer localizer,
             IServiceProvider serviceProvider)
         {
             Context = context;
             ExcelService = excelService;
             AuthorizationService = authorizationService;
-            FileManager = fileManager;
             Localizer = localizer;
             ServiceProvider = serviceProvider;
         }
@@ -130,11 +130,12 @@ namespace {{basePartOfNamespace}}.Services
 
         private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace)
         {
-            bool entityNeedsCloudinary = entity.Properties.Any(x => x.HasCloudinaryPublicIdAttribute());
-            bool entityNeedsS3Public = entity.Properties.Any(x => x.HasS3PublicUrlAttribute());
+            bool entityNeedsS3Public = entity.Properties.Any(x => x.HasS3PublicStorageAttribute());
+            bool entityNeedsS3Private = entity.Properties.Any(x => x.HasS3PrivateStorageAttribute());
+            bool entityNeedsDisk = entity.Properties.Any(x => x.HasDiskStorageAttribute());
 
-            string storageFields = GetStorageFields(entityNeedsCloudinary, entityNeedsS3Public);
-            string storageInit = GetStorageInit(entityNeedsCloudinary, entityNeedsS3Public);
+            string storageFields = GetStorageFields(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
+            string storageInit = GetStorageInit(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
 
             string methods = GetEntityServiceMethods(entity, allEntities);
 
@@ -165,23 +166,27 @@ namespace {{basePartOfNamespace}}.Services
 """;
         }
 
-        private static string GetStorageFields(bool needsCloudinary, bool needsS3Public)
+        private static string GetStorageFields(bool needsS3Public, bool needsS3Private, bool needsDisk)
         {
             StringBuilder sb = new();
-            if (needsCloudinary)
-                sb.AppendLine("        private readonly CloudinaryStorageService _cloudinaryStorageService;");
             if (needsS3Public)
                 sb.AppendLine("        private readonly S3PublicStorageService _s3PublicStorageService;");
+            if (needsS3Private)
+                sb.AppendLine("        private readonly S3PrivateStorageService _s3PrivateStorageService;");
+            if (needsDisk)
+                sb.AppendLine("        private readonly DiskStorageService _diskStorageService;");
             return sb.ToString();
         }
 
-        private static string GetStorageInit(bool needsCloudinary, bool needsS3Public)
+        private static string GetStorageInit(bool needsS3Public, bool needsS3Private, bool needsDisk)
         {
             StringBuilder sb = new();
-            if (needsCloudinary)
-                sb.AppendLine("            _cloudinaryStorageService = deps.ServiceProvider.GetRequiredService<CloudinaryStorageService>();");
             if (needsS3Public)
                 sb.AppendLine("            _s3PublicStorageService = deps.ServiceProvider.GetRequiredService<S3PublicStorageService>();");
+            if (needsS3Private)
+                sb.AppendLine("            _s3PrivateStorageService = deps.ServiceProvider.GetRequiredService<S3PrivateStorageService>();");
+            if (needsDisk)
+                sb.AppendLine("            _diskStorageService = deps.ServiceProvider.GetRequiredService<DiskStorageService>();");
             return sb.ToString();
         }
 
@@ -315,8 +320,6 @@ using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Mapster;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 """;
         }
@@ -329,13 +332,20 @@ using Microsoft.AspNetCore.Http;
 
         internal static string GetFileManagerServiceField(SpiderlyProperty property)
         {
-            if (property.HasCloudinaryPublicIdAttribute())
-                return "_cloudinaryStorageService";
-
-            if (property.HasS3PublicUrlAttribute())
+            if (property.HasS3PublicStorageAttribute())
                 return "_s3PublicStorageService";
 
-            return "_deps.FileManager";
+            if (property.HasS3PrivateStorageAttribute())
+                return "_s3PrivateStorageService";
+
+            if (property.HasDiskStorageAttribute())
+                return "_diskStorageService";
+
+            // Should be unreachable: only properties with a recognized [*Storage] attribute
+            // reach this dispatcher (IsBlob() gates upstream callers). If the entity carries
+            // a custom StorageAttribute subclass that isn't one of the three built-ins, the
+            // current generator can't resolve a field for it — emit an obvious compile error.
+            return $"/* SPIDERLY: unrecognized storage attribute on {property.Name}; the source generator only auto-resolves [DiskStorage], [S3PublicStorage], [S3PrivateStorage]. Custom adapters must inject directly into hand-written services. */";
         }
 
         #endregion

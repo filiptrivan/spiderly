@@ -2036,7 +2036,10 @@ public class Startup
             spiderly.AddTokenStorage();
             spiderly.AddExcel();
             spiderly.AddEmailing<EmailingService>();
-            spiderly.AddFileStorage<DiskStorageService>();
+            // File storage is now selected per blob property via [DiskStorage], [S3PublicStorage],
+            // [S3PrivateStorage], or a custom StorageAttribute subclass — there is no global slot.
+            // Register the storage classes you reference in your DI container, e.g.:
+            // services.AddTransient<DiskStorageService>();
             spiderly.AddSwagger();
             spiderly.AddRateLimiting();
             spiderly.AddForwardedHeaders();
@@ -2166,7 +2169,6 @@ namespace {{appName}}.WebAPI
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Azure.Storage.Blobs" Version="12.22.2" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.14" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
@@ -2178,7 +2180,6 @@ namespace {{appName}}.WebAPI
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Microsoft.EntityFrameworkCore.SqlServer\" Version=\"9.0.1\" />" : "<PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.1\" />")}}
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
 		{{(dbProvider == DbProviderCodes.SQLServer ? "<PackageReference Include=\"Hangfire.SqlServer\" Version=\"1.8.*\" />" : "<PackageReference Include=\"Hangfire.PostgreSql\" Version=\"1.20.*\" />")}}
-		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.6" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.7.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
         <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />

@@ -81,7 +81,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
-using Azure.Storage.Blobs;
 using System.Data;
 using Spiderly.Infrastructure;
 using Spiderly.Shared.Constants;

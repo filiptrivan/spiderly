@@ -285,14 +285,16 @@ namespace Spiderly.SourceGenerators.Shared
             return spiderlyEnumNames.Contains(inner);
         }
 
+        /// <summary>
+        /// A property is a blob when it carries any attribute whose simple name ends with
+        /// <c>"Storage"</c> — the convention shared by all subclasses of
+        /// <see cref="Spiderly.Shared.Attributes.Entity.StorageAttribute"/> (built-in
+        /// <c>[DiskStorage]</c>, <c>[S3PublicStorage]</c>, <c>[S3PrivateStorage]</c>, and any
+        /// custom subclass a consumer ships).
+        /// </summary>
         public static bool IsBlob(this SpiderlyProperty property)
         {
-            SpiderlyAttribute blobNameAttribute = property.Attributes.Where(x => x.Name == "BlobName").SingleOrDefault();
-
-            if (blobNameAttribute == null)
-                return false;
-
-            return true;
+            return property.Attributes.Any(x => x.Name != null && x.Name.EndsWith("Storage"));
         }
 
         public static int GetImageWidth(this SpiderlyProperty property)
@@ -529,19 +531,19 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "UIDoNotGenerate");
         }
 
-        public static bool HasCloudinaryPublicIdAttribute(this SpiderlyProperty property)
+        public static bool HasS3PublicStorageAttribute(this SpiderlyProperty property)
         {
-            return property.Attributes.Any(x => x.Name == "CloudinaryPublicId");
+            return property.Attributes.Any(x => x.Name == "S3PublicStorage");
         }
 
-        public static bool HasS3UrlAttribute(this SpiderlyProperty property)
+        public static bool HasS3PrivateStorageAttribute(this SpiderlyProperty property)
         {
-            return property.Attributes.Any(x => x.Name == "S3Url");
+            return property.Attributes.Any(x => x.Name == "S3PrivateStorage");
         }
 
-        public static bool HasS3PublicUrlAttribute(this SpiderlyProperty property)
+        public static bool HasDiskStorageAttribute(this SpiderlyProperty property)
         {
-            return property.Attributes.Any(x => x.Name == "S3PublicUrl");
+            return property.Attributes.Any(x => x.Name == "DiskStorage");
         }
 
         public static bool HasForeignKeyAttribute(this SpiderlyProperty property)
@@ -554,9 +556,15 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Where(x => x.Name == "ForeignKey").Select(x => x.Value).SingleOrDefault();
         }
 
+        /// <summary>
+        /// True when the column stores a directly URL-addressable value (a CDN URL) rather
+        /// than an opaque key requiring a signed-URL or proxy round-trip. Today this is
+        /// equivalent to <see cref="HasS3PublicStorageAttribute"/>; custom adapters that
+        /// also store full URLs are not auto-detected here.
+        /// </summary>
         public static bool IsPublicUrl(this SpiderlyProperty property)
         {
-            return property.HasCloudinaryPublicIdAttribute() || property.HasS3PublicUrlAttribute();
+            return property.HasS3PublicStorageAttribute();
         }
 
         #endregion
