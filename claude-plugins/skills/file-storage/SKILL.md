@@ -54,14 +54,17 @@ public class WarrantyRegistration : BusinessObject<long>
 
 ## DI registration
 
-Register the concrete service classes you reference in your application's DI container. Spiderly's source generator emits `_deps.ServiceProvider.GetRequiredService<TConcrete>()` per blob property, so each adapter you use must be discoverable by its concrete type:
+Spiderly's source generator emits `_deps.ServiceProvider.GetRequiredService<TConcrete>()` per blob property, so each adapter you use must be discoverable by its concrete type.
+
+`DiskStorageService` is pre-registered by the `spiderly init` template in `AppServiceExtensions.AddAppServices` (it's the dev default and has no external dependencies). When you opt in to S3, register the adapters you reference there:
 
 ```csharp
-// In your AppServiceExtensions.cs (or equivalent)
-services.AddTransient<S3PublicStorageService>();
-services.AddTransient<S3PrivateStorageService>();
-services.AddTransient<DiskStorageService>();   // dev only
+// In your AppServiceExtensions.cs
+services.AddSingleton<S3PublicStorageService>();
+services.AddSingleton<S3PrivateStorageService>();
 ```
+
+The storage services are stateless wrappers around external clients (the `IAmazonS3` instance for S3, the local filesystem for Disk) — `Singleton` avoids per-resolve constructor work like the `Directory.CreateDirectory` call in `DiskStorageService`.
 
 The S3 client itself is registered separately (one `IAmazonS3` shared by both S3 adapters):
 

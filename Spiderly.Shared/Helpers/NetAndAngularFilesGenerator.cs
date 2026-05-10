@@ -2036,10 +2036,9 @@ public class Startup
             spiderly.AddTokenStorage();
             spiderly.AddExcel();
             spiderly.AddEmailing<EmailingService>();
-            // File storage is now selected per blob property via [DiskStorage], [S3PublicStorage],
-            // [S3PrivateStorage], or a custom StorageAttribute subclass — there is no global slot.
-            // Register the storage classes you reference in your DI container, e.g.:
-            // services.AddTransient<DiskStorageService>();
+            // File storage is selected per blob property via [DiskStorage], [S3PublicStorage],
+            // [S3PrivateStorage], or a custom StorageAttribute subclass. DiskStorageService is
+            // pre-registered in AppServiceExtensions; opt in to S3 adapters there when needed.
             spiderly.AddSwagger();
             spiderly.AddRateLimiting();
             spiderly.AddForwardedHeaders();
@@ -2373,6 +2372,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
+using Spiderly.Shared.Services;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Services;
 using {{appName}}.Shared.FluentValidation;
@@ -2390,6 +2390,9 @@ namespace {{appName}}.WebAPI.Extensions
             services.AddTransient<SecurityServiceBase<User>>();
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
+
+            // DiskStorageService is the dev default; add S3PublicStorageService / S3PrivateStorageService here when adopting S3.
+            services.AddSingleton<DiskStorageService>();
 
             #endregion
 
