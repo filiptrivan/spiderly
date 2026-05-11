@@ -582,11 +582,8 @@ jobs:
           fi
 
           # Bump marketplace.json + spiderly-cli/package.json in lockstep with the framework.
-          # Both live here (rather than build matrix lanes) because they produce no artifact:
-          # skills aren't built/published, and spiderly-cli is a placeholder npm name with no
-          # shipping code yet.
-          # TODO: sed assumes exactly one "version" key per file (plugins[0].version in
-          # marketplace.json, top-level in package.json); switch to `jq` if either grows a second.
+          # These live in finalize (not a build matrix lane) because they produce no artifact.
+          # TODO: sed assumes exactly one "version" key per file; switch to `jq` if either grows a second.
           new_version="${{ needs.validate.outputs.new_version }}"
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$new_version\"|" .claude-plugin/marketplace.json
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$new_version\"|" spiderly-cli/package.json
