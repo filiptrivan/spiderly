@@ -581,6 +581,14 @@ jobs:
             git add "Angular/projects/spiderly/package.json"
           fi
 
+          # Bump marketplace.json in lockstep with the framework version. Lives in `finalize`
+          # rather than a build matrix lane because skills produce no artifact to test/publish.
+          # TODO: sed assumes exactly one "version" key (under plugins[0]); if a second is
+          # ever added, switch to `jq` to scope the rewrite.
+          new_version="${{ needs.validate.outputs.new_version }}"
+          sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$new_version\"|" .claude-plugin/marketplace.json
+          git add .claude-plugin/marketplace.json
+
           if ! git diff --staged --quiet; then
             git commit -m "chore: bump version to ${{ needs.validate.outputs.new_version }}"
             git push
