@@ -16,6 +16,7 @@ public class FilterDTO
     public List<FilterSortMetaDTO> MultiSortMeta { get; set; } = new();
     public int? AdditionalFilterIdInt { get; set; }
     public long? AdditionalFilterIdLong { get; set; }
+    public byte? AdditionalFilterIdByte { get; set; }
 }
 
 public class FilterRuleDTO
@@ -99,7 +100,7 @@ public override async Task<PaginatedResultDTO<CommentDTO>> GetPaginatedCommentLi
 }
 ```
 
-Use `AdditionalFilterIdInt` or `AdditionalFilterIdLong` based on the parent entity's ID type.
+Use `AdditionalFilterIdInt`, `AdditionalFilterIdLong`, or `AdditionalFilterIdByte` based on the parent entity's ID type.
 
 ## Custom Projection (Advanced)
 

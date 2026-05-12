@@ -91,6 +91,27 @@ namespace Spiderly.Infrastructure
                 case BusinessObject<byte> businessObjectByte:
                     HandleBusinessObjectChanges(businessObjectByte, changedEntity);
                     break;
+
+                default:
+                    if (changedEntity.Entity is ReadonlyObject<long> or ReadonlyObject<int> or ReadonlyObject<byte>)
+                        break;
+
+                    Type entityClrType = changedEntity.Entity.GetType();
+                    Type currentType = entityClrType.BaseType;
+                    while (currentType != null && currentType != typeof(object))
+                    {
+                        if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BusinessObject<>))
+                        {
+                            Type idType = currentType.GetGenericArguments()[0];
+                            throw new InvalidOperationException(
+                                $"Spiderly: entity '{entityClrType.Name}' inherits BusinessObject<{idType.Name}>, " +
+                                $"but primary keys must be int, long, or byte. This is enforced at compile time by SPIDERLY018; " +
+                                $"reaching this branch means the diagnostic was suppressed (<NoWarn> / #pragma) or the assembly " +
+                                $"was built against an older Spiderly. Remove the suppression and rebuild.");
+                        }
+                        currentType = currentType.BaseType;
+                    }
+                    break;
             }
         }
 

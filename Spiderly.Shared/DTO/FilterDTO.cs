@@ -14,5 +14,6 @@ namespace Spiderly.Shared.DTO
         public List<FilterSortMetaDTO> MultiSortMeta { get; set; } = new();
         public int? AdditionalFilterIdInt { get; set; }
         public long? AdditionalFilterIdLong { get; set; }
+        public byte? AdditionalFilterIdByte { get; set; }
     }
 }

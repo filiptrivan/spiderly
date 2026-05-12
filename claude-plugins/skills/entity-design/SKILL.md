@@ -32,7 +32,7 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 | `BusinessObject<T>` | Full CRUD entity       | Id, Version, CreatedAt, ModifiedAt + CRUD UI/API |
 | `ReadonlyObject<T>` | Lookup/reference table | Id only, read-only operations                    |
 
-`T` = `long` (default), `int`, or `byte`. **`Guid` is not supported as the PK type** — `ServiceSaveGenerator` emits `dto.Id > 0` arithmetic checks on the PK (and matching `{Prop}Id > 0` checks on FK scalars pointing at that PK), which compile for integral types but fail with CS0019 against `Guid`. Ordinary `Guid` scalar properties on entities are fine; only the PK type argument is restricted.
+`T` = `long` (default), `int`, or `byte`. **Anything else is rejected at compile time by [SPIDERLY018](/docs/build-diagnostics#spiderly018)** — including `Guid`, `decimal`, `short`, `DateTime`, etc. Ordinary `Guid` scalar properties on entities are fully supported; only the PK type argument is restricted. For public, non-enumerable identifiers (UUID-style URLs) keep the numeric `Id` and add a separate `Guid PublicId` property.
 
 ## Operational tables
 

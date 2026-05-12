@@ -754,6 +754,10 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 return "AdditionalFilterIdLong";
             }
+            else if (idType == "byte" || idType == "byte?")
+            {
+                return "AdditionalFilterIdByte";
+            }
 
             return null;
         }
@@ -864,12 +868,35 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             if (baseType != null && baseType.Contains("<"))
-                return baseType.Split('<')[1].Replace(">", ""); // long
+            {
+                string idType = Helpers.ExtractTypeFromGenericType(baseType);
+                string baseClassName = baseType.Substring(0, baseType.IndexOf('<'));
+
+                if (!idType.IsAllowedPrimaryKeyType())
+                {
+                    throw SpiderlyDiagnostics.Create(
+                        SpiderlyDiagnostics.UnsupportedPrimaryKeyType,
+                        c.Location,
+                        c.Name, baseClassName, idType);
+                }
+
+                return idType;
+            }
 
             throw SpiderlyDiagnostics.Create(
                 SpiderlyDiagnostics.EntityMissingBusinessObjectBase,
                 c.Location,
                 c.Name, baseType ?? "<none>");
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> when <paramref name="idType"/> is one of the C# types
+        /// permitted as a Spiderly entity primary key (<c>int</c>, <c>long</c>, <c>byte</c>).
+        /// Backs the SPIDERLY018 diagnostic emitted by <see cref="GetIdType"/>.
+        /// </summary>
+        public static bool IsAllowedPrimaryKeyType(this string idType)
+        {
+            return idType == "int" || idType == "long" || idType == "byte";
         }
 
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)

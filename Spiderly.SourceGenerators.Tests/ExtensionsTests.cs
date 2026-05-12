@@ -57,6 +57,36 @@ public class ExtensionsTests
 
     #endregion
 
+    #region IsAllowedPrimaryKeyType
+
+    [Theory]
+    [InlineData("int")]
+    [InlineData("long")]
+    [InlineData("byte")]
+    public void IsAllowedPrimaryKeyType_AllowedTypes_ReturnsTrue(string idType)
+    {
+        Assert.True(idType.IsAllowedPrimaryKeyType());
+    }
+
+    [Theory]
+    [InlineData("Guid")]
+    [InlineData("System.Guid")]
+    [InlineData("decimal")]
+    [InlineData("short")]
+    [InlineData("uint")]
+    [InlineData("ulong")]
+    [InlineData("string")]
+    [InlineData("DateTime")]
+    [InlineData("int?")]
+    [InlineData("long?")]
+    [InlineData("byte?")]
+    public void IsAllowedPrimaryKeyType_DisallowedTypes_ReturnsFalse(string idType)
+    {
+        Assert.False(idType.IsAllowedPrimaryKeyType());
+    }
+
+    #endregion
+
     #region IsManyToOneType
 
     [Theory]
