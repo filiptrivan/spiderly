@@ -4140,7 +4140,6 @@ namespace {{appName}}.Business.DataMappers
         "@angular/router": "19.2.13",
         "@jsverse/transloco": "7.5.0",
         "file-saver": "2.0.5",
-        "json-parser": "3.1.2",
         "ngx-spinner": "19.0.0",
         "primeflex": "3.3.1",
         "primeicons": "7.0.0",
@@ -4149,7 +4148,6 @@ namespace {{appName}}.Business.DataMappers
         "quill": "2.0.2",
         "rxjs": "7.8.1",
         "tslib": "2.3.0",
-        "webpack-dev-server": "4.15.1",
         "zone.js": "0.15.1"
     },
     "devDependencies": {
