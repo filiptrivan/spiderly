@@ -1,0 +1,25 @@
+﻿//HintName: EntityServiceRegistration.generated.cs
+using Microsoft.Extensions.DependencyInjection;
+using Spiderly.Shared.Services;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Registers all entity services in the DI container.
+    /// Call <c>services.AddEntityServices()</c> in your startup configuration.
+    /// </summary>
+    public static class EntityServiceRegistration
+    {
+        public static IServiceCollection AddEntityServices(this IServiceCollection services)
+        {
+            services.AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
+            services.AddTransient<EntityServiceDependencies>();
+
+            services.AddTransient<ProductService>();
+            services.AddTransient<ProductServiceGenerated>(sp => sp.GetRequiredService<ProductService>());
+            services.AddTransient<TagServiceGenerated>();
+
+            return services;
+        }
+    }
+}

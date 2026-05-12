@@ -1,0 +1,31 @@
+﻿//HintName: DTOList.generated.cs
+using Microsoft.AspNetCore.Http;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.DTO;
+using Spiderly.Security.DTO;
+using Spiderly.Shared.Helpers;
+using TestApp.Business.Enums;
+
+namespace TestApp.Business.DTO
+{
+    [SpiderlyDTO]
+    public partial class BrandDTO : BusinessObjectDTO<long>
+    {
+        public string Name { get; set; }
+        public string Slug { get; set; }
+        public string InternalNote { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    [SpiderlyDTO]
+    public partial class BrandSaveBodyDTO 
+    {
+        public BrandDTO BrandDTO { get; set; }
+    }
+
+    [SpiderlyDTO]
+    public partial class BrandMainUIFormDTO 
+    {
+        public BrandDTO BrandDTO { get; set; }
+    }
+}
