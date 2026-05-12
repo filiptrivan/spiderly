@@ -14,6 +14,8 @@ public class HelpersTests
     [InlineData("nameof(User.Email)", "Email")]
     [InlineData("nameof(Email)", "Email")]
     [InlineData("nameof(User.Roles)", "Roles")]
+    [InlineData("nameof(Entities.Product.WarrantyRegistrations)", "WarrantyRegistrations")]
+    [InlineData("nameof(Foo.Bar.Baz.Qux)", "Qux")]
     [InlineData(null, null)]
     public void GetFormatedAttributeValue_VariousInputs_ReturnsCleanedValue(string? input, string? expected)
     {

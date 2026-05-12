@@ -231,7 +231,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             value = value?.Replace("\"", "").Replace("@", "");
 
-            string pattern = @"nameof\((?:[^.]*\.)?([^.)]*)\)"; // nameof(abc.def.ghi) => ghi
+            string pattern = @"nameof\((?:[^.]*\.)*([^.)]*)\)"; // nameof(a.b.c.d) => d
             value = value != null ? Regex.Replace(value, pattern, "$1") : null;
 
             return value;
