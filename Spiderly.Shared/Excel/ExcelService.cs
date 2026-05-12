@@ -57,6 +57,12 @@ namespace Spiderly.Shared.Excel
                     col.Index = visibleIndex++;
                     col.Name = localizer.Translate(prop.Name);
                     col.Width = GetColumnWidth(prop);
+
+                    Type underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                    if (underlying == typeof(DateOnly))
+                        col.Format = "yyyy-MM-dd";
+                    else if (underlying == typeof(TimeOnly))
+                        col.Format = "HH:mm";
                 }
 
                 columns[i] = col;
@@ -73,6 +79,7 @@ namespace Spiderly.Shared.Excel
             if (type == typeof(byte) || type == typeof(short) || type == typeof(int) || type == typeof(long)) return 14;
             if (type == typeof(decimal) || type == typeof(double) || type == typeof(float)) return 16;
             if (type == typeof(DateTime) || type == typeof(DateOnly)) return 18;
+            if (type == typeof(TimeOnly)) return 12;
 
             StringLengthAttribute strLen = prop.GetCustomAttribute<StringLengthAttribute>();
             if (strLen != null)

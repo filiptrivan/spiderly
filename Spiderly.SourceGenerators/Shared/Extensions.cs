@@ -210,6 +210,14 @@ namespace Spiderly.SourceGenerators.Shared
                 propType == "DateTime?" ||
                 propType == "System.DateTime" ||
                 propType == "System.DateTime?" ||
+                propType == "DateOnly" ||
+                propType == "DateOnly?" ||
+                propType == "System.DateOnly" ||
+                propType == "System.DateOnly?" ||
+                propType == "TimeOnly" ||
+                propType == "TimeOnly?" ||
+                propType == "System.TimeOnly" ||
+                propType == "System.TimeOnly?" ||
                 propType == "long" ||
                 propType == "long?" ||
                 propType == "int" ||
@@ -227,6 +235,18 @@ namespace Spiderly.SourceGenerators.Shared
                 propType == "Guid" ||
                 propType == "Guid?";
         }
+
+        public static bool IsDateTime(this string propType) =>
+            propType == "DateTime" || propType == "DateTime?" ||
+            propType == "System.DateTime" || propType == "System.DateTime?";
+
+        public static bool IsDateOnly(this string propType) =>
+            propType == "DateOnly" || propType == "DateOnly?" ||
+            propType == "System.DateOnly" || propType == "System.DateOnly?";
+
+        public static bool IsTimeOnly(this string propType) =>
+            propType == "TimeOnly" || propType == "TimeOnly?" ||
+            propType == "System.TimeOnly" || propType == "System.TimeOnly?";
 
         public static bool IsManyToMany(this SpiderlyClass c)
         {

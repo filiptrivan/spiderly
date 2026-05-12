@@ -55,6 +55,11 @@ namespace Spiderly.SourceGenerators.Shared
                 case "DateTime":
                 case "DateTime?":
                     return "Date";
+                case "DateOnly":
+                case "DateOnly?":
+                case "TimeOnly":
+                case "TimeOnly?":
+                    return "string";
                 case "long":
                 case "long?":
                 case "int":

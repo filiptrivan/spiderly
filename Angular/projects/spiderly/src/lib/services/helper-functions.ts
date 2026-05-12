@@ -71,6 +71,14 @@ export function adjustColor(color: string, percent: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+// new Date('yyyy-MM-dd') is parsed as UTC midnight per the JS spec, which shifts to the previous day
+// in negative-UTC locales. Construct via numeric components to anchor at local midnight instead.
+export function parseDateOnlyLocal(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3]);
+}
+
 export function getHtmlImgDisplayString64(base64String: string) {
   if (base64String == null) return null;
 

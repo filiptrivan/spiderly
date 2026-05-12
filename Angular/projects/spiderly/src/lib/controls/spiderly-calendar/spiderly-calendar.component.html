@@ -19,12 +19,13 @@
   </div>
   <p-datepicker
     *ngIf="control"
-    [formControl]="control"
+    [formControl]="usesStringProxy() ? internalControl : control"
     (onBlur)="control.markAsDirty()"
-    dateFormat="dd.mm.yy."
+    [dateFormat]="timeOnly ? '' : 'dd.mm.yy.'"
     iconDisplay="input"
     [showIcon]="true"
-    [showTime]="showTime"
+    [showTime]="!usesStringProxy() && showTime"
+    [timeOnly]="timeOnly"
     (onSelect)="setDate($event)"
     appendTo="body"
     [fluid]="true"

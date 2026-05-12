@@ -152,6 +152,10 @@ namespace Spiderly.SourceGenerators.Angular
                     return UIControlTypeCodes.CheckBox;
                 case "DateTime":
                 case "DateTime?":
+                case "DateOnly":
+                case "DateOnly?":
+                case "TimeOnly":
+                case "TimeOnly?":
                     return UIControlTypeCodes.Calendar;
                 case "decimal":
                 case "decimal?":
@@ -445,7 +449,13 @@ namespace Spiderly.SourceGenerators.Angular
             }
             else if (controlType == UIControlTypeCodes.Calendar)
             {
-                return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
+                string control = $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
+
+                if (property.Type.IsDateOnly())
+                    return $"{control} [dateOnly]=\"true\"";
+                if (property.Type.IsTimeOnly())
+                    return $"{control} [timeOnly]=\"true\"";
+                return $"{control} [showTime]=\"showTimeOn{property.Name}For{entity.Name}\"";
             }
             else if (controlType == UIControlTypeCodes.CheckBox)
             {

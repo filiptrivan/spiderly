@@ -41,7 +41,7 @@ namespace Spiderly.SourceGenerators.Angular
     @Output() on{{context.Property.Name}}For{{context.Entity.Name}}Change = new EventEmitter<DropdownChangeEvent>();
 """);
                 }
-                else if (controlType == UIControlTypeCodes.Calendar)
+                else if (controlType == UIControlTypeCodes.Calendar && context.Property.Type.IsDateTime())
                 {
                     sb.AppendLine($$"""
     @Input() showTimeOn{{context.Property.Name}}For{{context.Entity.Name}} = false;

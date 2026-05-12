@@ -39,6 +39,7 @@ import { ConfigServiceBase } from '../../services/config.service.base';
 import {
   exportListToExcel,
   getHtmlImgDisplayString64,
+  parseDateOnlyLocal,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import {
@@ -593,7 +594,10 @@ export class SpiderlyDataTableComponent
 
         if (col.showTime)
           return formatDate(rowData[col.field], 'short', this.locale);
-        else return formatDate(rowData[col.field], 'shortDate', this.locale);
+
+        const raw = rowData[col.field];
+        const local = typeof raw === 'string' ? parseDateOnlyLocal(raw) : null;
+        return formatDate(local ?? raw, 'shortDate', this.locale);
       case 'multiselect':
         return rowData[col.field];
       case 'boolean':

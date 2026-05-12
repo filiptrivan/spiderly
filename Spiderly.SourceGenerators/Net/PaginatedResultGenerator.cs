@@ -129,7 +129,15 @@ namespace {{basePartOfNamespace}}.Filtering
                             break;
                         case "DateTime":
                         case "DateTime?":
-                            sb.AppendLine(GetCaseForDateTime(prop.DTOPropName, prop.EntityDotNotation));
+                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateTime", "Convert.ToDateTime(filterRuleDTO.Value.ToString())"));
+                            break;
+                        case "DateOnly":
+                        case "DateOnly?":
+                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateOnly", "DateOnly.Parse(filterRuleDTO.Value.ToString())"));
+                            break;
+                        case "TimeOnly":
+                        case "TimeOnly?":
+                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "TimeOnly", "TimeOnly.Parse(filterRuleDTO.Value.ToString())"));
                             break;
                         case "long":
                         case "long?":
@@ -322,23 +330,23 @@ using {{item}};
 """;
         }
 
-        private static string GetCaseForDateTime(string DTOIdentifier, string entityDotNotation)
+        private static string GetCaseForTemporal(string DTOIdentifier, string entityDotNotation, string typeLabel, string parseExpr)
         {
             return $$"""
                             case "{{DTOIdentifier.FirstCharToLower()}}":
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{entityDotNotation}} == Convert.ToDateTime(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}} == {{parseExpr}};
                                         break;
                                     case MatchModeCodes.LessThan:
-                                        condition = x => x.{{entityDotNotation}} < Convert.ToDateTime(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}} < {{parseExpr}};
                                         break;
                                     case MatchModeCodes.GreaterThan:
-                                        condition = x => x.{{entityDotNotation}} > Convert.ToDateTime(filterRuleDTO.Value.ToString());
+                                        condition = x => x.{{entityDotNotation}} > {{parseExpr}};
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid DateTime match mode!");
+                                        throw new ArgumentException("Invalid {{typeLabel}} match mode!");
                                 }
                                 predicate = predicate.And(condition);
                                 break;

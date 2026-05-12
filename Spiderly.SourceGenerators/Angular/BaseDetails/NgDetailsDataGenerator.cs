@@ -356,6 +356,10 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 case "DateTime":
                 case "DateTime?":
+                case "DateOnly":
+                case "DateOnly?":
+                case "TimeOnly":
+                case "TimeOnly?":
                     return ", showMatchModes: true";
                 case "decimal":
                 case "decimal?":
@@ -401,7 +405,12 @@ namespace Spiderly.SourceGenerators.Angular
                     return "boolean";
                 case "DateTime":
                 case "DateTime?":
+                case "DateOnly":
+                case "DateOnly?":
                     return "date";
+                case "TimeOnly":
+                case "TimeOnly?":
+                    return "text";
                 case "decimal":
                 case "decimal?":
                 case "float":
