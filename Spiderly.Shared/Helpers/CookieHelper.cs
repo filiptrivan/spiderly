@@ -4,9 +4,9 @@ namespace Spiderly.Shared.Helpers
 {
     public static class CookieHelper
     {
-        public static void ApplyCookieSettings(CookieOptions options)
+        public static void ApplyCookieSettings(CookieOptions options, SameSiteMode? sameSiteOverride = null)
         {
-            options.SameSite = SettingsProvider.Current.CookieSameSite;
+            options.SameSite = sameSiteOverride ?? SettingsProvider.Current.CookieSameSite;
 
             if (!string.IsNullOrEmpty(SettingsProvider.Current.CookieDomain))
                 options.Domain = SettingsProvider.Current.CookieDomain;
