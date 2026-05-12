@@ -32,7 +32,7 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 | `BusinessObject<T>` | Full CRUD entity       | Id, Version, CreatedAt, ModifiedAt + CRUD UI/API |
 | `ReadonlyObject<T>` | Lookup/reference table | Id only, read-only operations                    |
 
-`T` = `long` (default), `int`, or `byte`.
+`T` = `long` (default), `int`, or `byte`. **`Guid` is not supported as the PK type** — `ServiceSaveGenerator` emits `dto.Id > 0` arithmetic checks on the PK (and matching `{Prop}Id > 0` checks on FK scalars pointing at that PK), which compile for integral types but fail with CS0019 against `Guid`. Ordinary `Guid` scalar properties on entities are fine; only the PK type argument is restricted.
 
 ## Operational tables
 
@@ -46,6 +46,7 @@ Tables that exist as operational state (outbox, audit log, sync cursors, dispatc
 - `[StringLength(X)]` without `MinimumLength` = **max-length** validation (minimum defaults to 0, standard .NET semantics). Use `[StringLength(X, MinimumLength = Y)]` for a range; `[StringLength(X, MinimumLength = X)]` (min == max) for exact length.
 - On properties that aren't effectively required (no `[Required]`, not an `[M2MWithMany]` junction), all validation rules wrap in `.Unless(string.IsNullOrEmpty(x))` on strings — or `== null` on other types — so the validator skips null/empty entirely. Consequence: `MinimumLength = 1` is a no-op on non-required strings; use `MinimumLength ≥ 2` or add `[Required]` to actually reject empty values.
 - `[Required]` on navigation properties makes the relationship required (non-nullable FK)
+- The `[Index]` attribute lives in `Microsoft.EntityFrameworkCore` and is **not** in Spiderly's default using-block. Add `using Microsoft.EntityFrameworkCore;` to the entity file or you get the misleading `'Index' is not an attribute class` error.
 
 ## Explicit FK properties
 
@@ -90,6 +91,17 @@ public class Comment : BusinessObject<long>
     public virtual Post Post { get; set; }
 }
 ```
+
+The target entity **must** have a back-collection matching the `[WithMany(nameof(...))]` name. Forgetting `[WithMany]`, naming a target collection that doesn't exist, or declaring the back-collection with the wrong element type all surface at `dotnet build` time as `SPIDERLY015` / `SPIDERLY016` / `SPIDERLY017` respectively — no runtime explosion in `DbContext.OnModelCreating`. Two options:
+
+1. Add the back-collection on the target (`public virtual List<Comment> Comments { get; } = new();` on `Post`) — preferred when both directions are useful.
+2. **Drop the nav property** and keep only the explicit FK scalar (`public long PostId { get; set; }`). Then configure the relationship + delete behavior manually in `OnModelCreating`:
+   ```csharp
+   modelBuilder.Entity<Comment>()
+       .HasOne<Post>().WithMany().HasForeignKey(c => c.PostId)
+       .OnDelete(DeleteBehavior.Cascade);
+   ```
+   Use this when an FK exists only as a pointer (e.g. `LastReadMessage`, `ParentMessage`) and a back-collection on the target would be noise.
 
 **Delete behavior:**
 
@@ -235,3 +247,7 @@ public class Product : BusinessObject<long>
     public virtual List<ProductVariant> ProductVariants { get; } = new();
 }
 ```
+
+## Diagnosing build failures
+
+When the build dumps **hundreds of CS0246 errors about missing `*DTO` types**, scroll up and find the **SPIDERLY-prefixed error first**. Violating any contract (unsupported PK type, missing `[WithMany]` target, unsupported scalar, broken `[DisplayName]` path) makes `MapperGenerator` bail, which in turn deletes every entity's generated DTO — and *that* is what produces the CS0246 flood. The downstream errors are noise. Full diagnostic code reference: https://www.spiderly.dev/docs/build-diagnostics

@@ -33,7 +33,7 @@ namespace Spiderly.SourceGenerators.Shared
                     {
                         yield return Diagnostic.Create(
                             SpiderlyDiagnostics.DisplayNamePathInvalidProperty,
-                            currentEntity.Location ?? entity.Location ?? Location.None,
+                            LocationOrFallback(null, currentEntity, entity),
                             propertyName, currentEntity.Name);
                         break;
                     }
@@ -59,24 +59,103 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 error = Diagnostic.Create(
                     SpiderlyDiagnostics.DisplayNameSegmentNotManyToOne,
-                    property.Location ?? currentEntity.Location ?? Location.None,
+                    LocationOrFallback(property, currentEntity),
                     property.Name, currentEntity.Name);
                 return null;
             }
 
-            SpiderlyClass targetEntity = allEntities.SingleOrDefault(x => x.Name == property.Type);
+            SpiderlyClass targetEntity = Helpers.GetEntityByPropertyType(property, allEntities);
 
             if (targetEntity == null)
             {
                 error = Diagnostic.Create(
                     SpiderlyDiagnostics.DisplayNameNavigationTargetNotFound,
-                    property.Location ?? currentEntity.Location ?? Location.None,
+                    LocationOrFallback(property, currentEntity),
                     property.Type, property.Name, currentEntity.Name);
                 return null;
             }
 
             error = null;
             return targetEntity;
+        }
+
+        /// <summary>
+        /// Validates every many-to-one navigation property on the supplied entities and yields one diagnostic
+        /// per broken contract. Three failure modes are surfaced as SPIDERLY015 / SPIDERLY016 / SPIDERLY017:
+        /// missing <c>[WithMany]</c>, missing back-collection on the target entity, and back-collection with the
+        /// wrong element type respectively. Navigations marked with <c>[M2MWithMany]</c> belong to junction entities
+        /// and are intentionally skipped — they are validated separately (SPIDERLY002).
+        /// </summary>
+        public static IEnumerable<Diagnostic> ValidateWithManyAttributes(List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
+        {
+            foreach (SpiderlyClass entity in currentProjectEntities)
+            {
+                foreach (SpiderlyProperty navigation in entity.Properties)
+                {
+                    if (!navigation.IsManyToOneType())
+                        continue;
+
+                    if (navigation.HasM2MWithManyAttribute())
+                        continue;
+
+                    string withManyValue = navigation.WithMany();
+
+                    if (withManyValue == null)
+                    {
+                        yield return Diagnostic.Create(
+                            SpiderlyDiagnostics.ManyToOneMissingWithMany,
+                            LocationOrFallback(navigation, entity),
+                            entity.Name, navigation.Name, navigation.Type);
+                        continue;
+                    }
+
+                    SpiderlyClass targetEntity = Helpers.GetEntityByPropertyType(navigation, allEntities);
+
+                    // Target type isn't a Spiderly-modelled entity (e.g. a non-[SpiderlyEntity] class or
+                    // a framework type we don't have a model for). EF Core still validates at runtime;
+                    // we have nothing useful to say at compile time.
+                    if (targetEntity == null)
+                        continue;
+
+                    SpiderlyProperty backCollection = targetEntity.Properties
+                        .FirstOrDefault(p => p.Name == withManyValue);
+
+                    if (backCollection == null)
+                    {
+                        yield return Diagnostic.Create(
+                            SpiderlyDiagnostics.WithManyTargetCollectionNotFound,
+                            LocationOrFallback(navigation, entity),
+                            withManyValue, entity.Name, navigation.Name, targetEntity.Name);
+                        continue;
+                    }
+
+                    string elementType = backCollection.Type.IsEnumerable()
+                        ? Helpers.ExtractTypeFromGenericType(backCollection.Type)
+                        : backCollection.Type;
+
+                    if (elementType != entity.Name)
+                    {
+                        yield return Diagnostic.Create(
+                            SpiderlyDiagnostics.WithManyTargetCollectionElementTypeMismatch,
+                            LocationOrFallback(navigation, entity),
+                            withManyValue, entity.Name, navigation.Name, targetEntity.Name, elementType);
+                    }
+                }
+            }
+        }
+
+        private static Location LocationOrFallback(SpiderlyProperty property, params SpiderlyClass[] entities)
+        {
+            if (property?.Location != null)
+                return property.Location;
+
+            foreach (SpiderlyClass entity in entities)
+            {
+                if (entity?.Location != null)
+                    return entity.Location;
+            }
+
+            return Location.None;
         }
     }
 }

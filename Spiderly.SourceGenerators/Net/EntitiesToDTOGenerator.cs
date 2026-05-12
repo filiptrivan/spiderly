@@ -59,13 +59,18 @@ namespace Spiderly.SourceGenerators.Net
             if (currentProjectEntities.Count == 0)
                 return;
 
-            bool hasDisplayNameErrors = false;
+            bool hasValidationErrors = false;
             foreach (Diagnostic diagnostic in Validations.ValidateDisplayNameAttributes(currentProjectEntities, allEntities))
             {
                 context.ReportDiagnostic(diagnostic);
-                hasDisplayNameErrors = true;
+                hasValidationErrors = true;
             }
-            if (hasDisplayNameErrors)
+            foreach (Diagnostic diagnostic in Validations.ValidateWithManyAttributes(currentProjectEntities, allEntities))
+            {
+                context.ReportDiagnostic(diagnostic);
+                hasValidationErrors = true;
+            }
+            if (hasValidationErrors)
                 return;
 
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectEntities, allEntities);

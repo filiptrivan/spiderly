@@ -151,5 +151,37 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ManyToOneMissingWithMany = new(
+            id: "SPIDERLY015",
+            title: "Many-to-one navigation missing [WithMany] attribute",
+            messageFormat: "ManyToOne navigation '{0}.{1}' is missing [WithMany]. Add [WithMany(nameof({2}.<BackCollectionName>))] to this property and declare 'public virtual List<{0}> <BackCollectionName> {{ get; }} = new();' on '{2}'.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor WithManyTargetCollectionNotFound = new(
+            id: "SPIDERLY016",
+            title: "[WithMany] target collection does not exist on the related entity",
+            messageFormat: "[WithMany(\"{0}\")] on '{1}.{2}' requires '{3}' to declare a 'List<{1}>' property named '{0}'. Add it to '{3}'.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor WithManyTargetCollectionElementTypeMismatch = new(
+            id: "SPIDERLY017",
+            title: "[WithMany] target collection has the wrong element type",
+            messageFormat: "[WithMany(\"{0}\")] on '{1}.{2}' expects '{3}.{0}' to contain '{1}', but it contains '{4}'. Either fix the collection element type or change the [WithMany] target.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnsupportedPrimaryKeyType = new(
+            id: "SPIDERLY018",
+            title: "Entity primary key type must be int, long, or byte",
+            messageFormat: "Entity '{0}' inherits '{1}<{2}>'. Spiderly primary keys must be int, long, or byte. Change '{2}' to one of those, or — if you need a public, non-enumerable identifier — keep a numeric Id and add a separate 'Guid PublicId' property.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

@@ -26,9 +26,6 @@ namespace Spiderly.Infrastructure
                     .Where(x => x != null && x.GetCustomAttribute<M2MWithManyAttribute>() != null)
                     .ToList();
 
-                if (m2mProperties.Count != 2)
-                    throw new Exception($"[M2MWithMany] attribute is required for exactly two properties in {clrType.Name}.");
-
                 var m2mEntity_1 = m2mProperties
                     .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>() })
                     .First();
@@ -107,9 +104,6 @@ namespace Spiderly.Infrastructure
                     }
 
                     WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
-
-                    if (withManyAttribute == null)
-                        throw new Exception($"[WithMany({property.Name}.YourOneToManyProperty)] attribute is required for ManyToOne property: {clrType.Name}.{property.Name}.");
 
                     RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 
