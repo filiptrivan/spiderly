@@ -199,7 +199,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
             const valid = {{allRuleConditions}};
 
-            return valid ? null : { _ : this.translocoService.translate('{{string.Join("", parts.TranslationTags)}}', {{{string.Join(", ", parts.TranslocoVariables)}}}) };
+            return valid ? null : { _ : this.translocoService.translate('{{BuildTranslationKey(parts.TranslationTags)}}', {{{string.Join(", ", parts.TranslocoVariables)}}}) };
         };
 {{GenerateNotEmptyMarkers(parts.RuleNames)}}
         control.validator = validator;
@@ -261,7 +261,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             const {{ruleName}} = {{GetNotEmptyCheckExpression(property)}};
 """);
             parts.RuleNames.Add(ruleName);
-            parts.TranslationTags.Add("NotEmpty");
+            parts.TranslationTags.Add(TranslationTags.NotEmpty);
         }
 
         private static string GetNotEmptyCheckExpression(SpiderlyProperty property)
@@ -286,7 +286,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["min", "max"]);
-            parts.TranslationTags.Add("Length");
+            parts.TranslationTags.Add(TranslationTags.Length);
         }
 
         private static void AddExactLengthRule(ExactLengthRulePart part, ValidationMethodParts parts)
@@ -298,7 +298,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["length"]);
-            parts.TranslationTags.Add("SingleLength");
+            parts.TranslationTags.Add(TranslationTags.SingleLength);
         }
 
         private static void AddMaximumLengthRule(MaximumLengthRulePart part, ValidationMethodParts parts)
@@ -310,7 +310,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["max"]);
-            parts.TranslationTags.Add("MaxLength");
+            parts.TranslationTags.Add(TranslationTags.MaxLength);
         }
 
         private static void AddLessThanOrEqualToRule(LessThanOrEqualToRulePart part, ValidationMethodParts parts)
@@ -322,7 +322,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["max"]);
-            parts.TranslationTags.Add("NumberRangeMax");
+            parts.TranslationTags.Add(TranslationTags.NumberRangeMax);
         }
 
         private static void AddGreaterThanOrEqualToRule(GreaterThanOrEqualToRulePart part, ValidationMethodParts parts)
@@ -334,7 +334,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["min"]);
-            parts.TranslationTags.Add("NumberRangeMin");
+            parts.TranslationTags.Add(TranslationTags.NumberRangeMin);
         }
 
         private static void AddNotHaveWhiteSpaceRule(ValidationMethodParts parts)
@@ -344,7 +344,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             const {{ruleName}} = !/\\s/.test(value);
 """);
             parts.RuleNames.Add(ruleName);
-            parts.TranslationTags.Add("NotHaveWhiteSpace");
+            parts.TranslationTags.Add(TranslationTags.NotHaveWhiteSpace);
         }
 
         private static void AddEmailAddressRule(ValidationMethodParts parts)
@@ -354,7 +354,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             const {{ruleName}} = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 """);
             parts.RuleNames.Add(ruleName);
-            parts.TranslationTags.Add("EmailAddress");
+            parts.TranslationTags.Add(TranslationTags.EmailAddress);
         }
 
         private static void AddPrecisionScaleRule(PrecisionScaleRulePart part, ValidationMethodParts parts)
@@ -369,7 +369,47 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 """);
             parts.RuleNames.Add(ruleName);
             parts.TranslocoVariables.AddRange(["precision", "scale"]);
-            parts.TranslationTags.Add("PrecisionScale");
+            parts.TranslationTags.Add(TranslationTags.PrecisionScale);
+        }
+
+        private static class TranslationTags
+        {
+            public const string NotEmpty = nameof(NotEmpty);
+            public const string Length = nameof(Length);
+            public const string MaxLength = nameof(MaxLength);
+            public const string SingleLength = nameof(SingleLength);
+            public const string NumberRangeMin = nameof(NumberRangeMin);
+            public const string NumberRangeMax = nameof(NumberRangeMax);
+            public const string PrecisionScale = nameof(PrecisionScale);
+            public const string EmailAddress = nameof(EmailAddress);
+            public const string NotHaveWhiteSpace = nameof(NotHaveWhiteSpace);
+        }
+
+        /// <summary>
+        /// Translation tags are added in the order rule parts are processed (which mirrors
+        /// attribute-declaration order on the DTO/entity). That order is not stable — `[Required, Email]`
+        /// and `[Email, Required]` would produce different keys (`NotEmptyEmailAddress` vs `EmailAddressNotEmpty`),
+        /// only one of which the i18n template ships. Sort tags into a fixed canonical order so the
+        /// translation key is deterministic and the init template only needs one entry per combo.
+        /// </summary>
+        private static readonly Dictionary<string, int> TagCanonicalOrder = new()
+        {
+            [TranslationTags.NotEmpty] = 0,
+            [TranslationTags.Length] = 1,
+            [TranslationTags.MaxLength] = 2,
+            [TranslationTags.SingleLength] = 3,
+            [TranslationTags.NumberRangeMin] = 4,
+            [TranslationTags.NumberRangeMax] = 5,
+            [TranslationTags.PrecisionScale] = 6,
+            [TranslationTags.EmailAddress] = 7,
+            [TranslationTags.NotHaveWhiteSpace] = 8,
+        };
+
+        private static string BuildTranslationKey(List<string> tags)
+        {
+            return string.Concat(tags.OrderBy(t => TagCanonicalOrder.TryGetValue(t, out int rank)
+                ? rank
+                : throw new NotSupportedException($"Translation tag '{t}' is not registered in {nameof(TagCanonicalOrder)} — add it so the emitted key is deterministic.")));
         }
 
         private static string GenerateNotEmptyMarkers(List<string> ruleNames)
