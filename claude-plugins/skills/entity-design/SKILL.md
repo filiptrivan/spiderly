@@ -105,11 +105,25 @@ The target entity **must** have a back-collection matching the `[WithMany(nameof
 
 **Delete behavior:**
 
-| Attribute         | FK nullable? | On parent delete          |
-| ----------------- | ------------ | ------------------------- |
-| `[CascadeDelete]` | No           | Delete all children       |
-| `[SetNull]`       | Yes          | Set FK to null            |
-| Neither           | No           | Block delete (EF default) |
+| Attribute         | FK nullable? | On parent delete                                          |
+| ----------------- | ------------ | --------------------------------------------------------- |
+| `[CascadeDelete]` | No           | Children deleted by generated service code               |
+| `[SetNull]`       | Yes          | DB sets FK to null (`OnDelete(SetNull)`)                 |
+| Neither           | No           | DB throws FK violation at runtime (`OnDelete(NoAction)`) |
+
+#### How `[CascadeDelete]` actually works
+
+`[CascadeDelete]` is **application-layer**, not EF Core `OnDelete(Cascade)`. The source generator scans many-to-one navigations marked with it and emits explicit `ExecuteDeleteAsync()` calls inside the generated `Delete{Entity}` / `Delete{Entity}List` methods, recursing through dependents in child→parent order inside a single transaction.
+
+**Why app-layer instead of `OnDelete(Cascade)`.** SQL Server refuses cascading FKs whenever the schema has any potential cycle or multiple cascade paths. App-layer cascade sidesteps that entirely and gives transaction control, `OnBefore{Entity}Delete` hooks, authorization checks, and audit visibility — so it stays the idiom even on Postgres.
+
+**Placement vs. semantics gotcha.** The attribute sits on the **child's** FK navigation but fires on **parent** deletion. `[CascadeDelete] public virtual Post Post` on `Comment` means *"when the `Post` is deleted, this `Comment` is deleted with it"* — not the other direction.
+
+**No DB safety net.** Because the relationship is `NoAction`, forgetting `[CascadeDelete]` on a required FK causes a runtime FK violation at parent deletion. Either add the attribute, or delete the dependent rows explicitly with `ExecuteDeleteAsync` before the parent delete.
+
+**Collection-side placement is a no-op.** The generator only scans many-to-one navigations on the child side; `[CascadeDelete]` on a parent's `List<Child>` collection does nothing — it must go on `Child.ParentNav`.
+
+**Intentional omission** requires an inline `// no cascade because …` comment on the FK and a manual `ExecuteDeleteAsync` in the entity's `OnBefore{Entity}Delete` hook. Use this only when a dependent must outlive its parent (e.g. an audit or loyalty row that should survive the order it references), so future readers don't flag it as a bug.
 
 ### Simple Many-to-Many
 
@@ -130,7 +144,7 @@ public class RolePermission
 }
 ```
 
-Junction entity must have exactly 2 `[M2MWithMany]` properties and both `[M2M]` and `[SpiderlyEntity]` markers. `[M2M]` flags the class as a junction; `[SpiderlyEntity]` enrolls it in the generator pipeline — missing it breaks the parent entity's generated service. Always add `[CascadeDelete]` on both navigations — otherwise deleting a parent is blocked. Parent collections:
+Junction entity must have exactly 2 `[M2MWithMany]` properties and both `[M2M]` and `[SpiderlyEntity]` markers. `[M2M]` flags the class as a junction; `[SpiderlyEntity]` enrolls it in the generator pipeline — missing it breaks the parent entity's generated service. Always add `[CascadeDelete]` on both navigations — otherwise the parent delete throws an FK violation at runtime (see *How `[CascadeDelete]` actually works* under Many-to-One). Parent collections:
 
 ```csharp
 public class Role : BusinessObject<long>
