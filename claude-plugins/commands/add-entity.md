@@ -111,7 +111,7 @@ this.cols = [
 
 ### Translation keys
 
-Add keys to both `Frontend/src/assets/i18n/en.json` and `sr-Latn-RS.json`:
+Add keys to `Frontend/src/assets/i18n/en.json` (and to any other language files your app uses):
 
 ```json
 {
