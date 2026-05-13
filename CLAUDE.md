@@ -10,6 +10,8 @@ Spiderly is a fast-moving startup — no backward compatibility needed. Make bre
 
 **Version bumps happen at publish time, not during refactors.** Don't bump the version as part of a feature or refactor PR — even for breaking changes. The human owns release cadence and decides when to cut a new version.
 
+User-facing version upgrades (consumer apps moving from one Spiderly release to another) are handled by the `spiderly-upgrade` skill — see `claude-plugins/skills/spiderly-upgrade/SKILL.md`.
+
 ## Documentation updates
 
 When Spiderly code changes affect public API, attributes, generated output, or behavior — update the documentation in the `spiderly-website/` sibling repo accordingly.
