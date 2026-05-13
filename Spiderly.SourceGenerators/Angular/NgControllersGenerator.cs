@@ -213,7 +213,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiSecurityService, Filter, PaginatedResult, Namebook, Codebook, LazyLoadSelectedIdsResult, VerificationTokenRequest, AuthResult, AuthResultWithCookies, ExternalProvider, Login, SendLoginVerificationEmailResult } from 'spiderly';
+import { ApiSecurityService, Filter, PaginatedResult, Namebook, Codebook, LazyLoadSelectedIdsResult, VerificationTokenRequest, AuthResult, AuthResultWithCookies, ExternalProvider, Login, SendLoginVerificationEmailResult, EditorImageUploadResult } from 'spiderly';
 import { ConfigService } from '../config.service';
 """);
 
@@ -612,7 +612,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
                 Dictionary<string, string> postParameter = new Dictionary<string, string> { { "file", "FormData" } };
 
-                result.Add(GetAngularControllerMethod(methodName, postParameter, "string", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsText));
+                result.Add(GetAngularControllerMethod(methodName, postParameter, "EditorImageUploadResult", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBase));
             }
 
             return result;

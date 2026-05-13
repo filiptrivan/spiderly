@@ -733,7 +733,7 @@ namespace Spiderly.SourceGenerators.Net
             foreach (SpiderlyProperty property in editorProperties)
             {
                 result.Add($$"""
-        public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert)
+        public virtual async Task<EditorImageUploadResultDTO> Upload{{property.Name}}ImageFor{{entity.Name}}(IFormFile file, bool authorizeUpdate, bool authorizeInsert)
         {
             {{entityIdType}} id = Helper.GetObjectIdFromFileName<{{entityIdType}}>(file.FileName);
 
@@ -747,10 +747,12 @@ namespace Spiderly.SourceGenerators.Net
             }
 
             string imageUrl;
+            int imageWidth;
+            int imageHeight;
 
             using (Stream stream = file.OpenReadStream())
             {
-                byte[] byteArray = await Helper.OptimizeImage(stream);
+                (byte[] byteArray, imageWidth, imageHeight) = await Helper.OptimizeImageWithDimensions(stream);
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
@@ -758,7 +760,12 @@ namespace Spiderly.SourceGenerators.Net
                 }
             }
 
-            return imageUrl;
+            return new EditorImageUploadResultDTO
+            {
+                Url = imageUrl,
+                Width = imageWidth,
+                Height = imageHeight,
+            };
         }
 """);
             }

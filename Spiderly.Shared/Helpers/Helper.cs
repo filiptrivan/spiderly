@@ -502,6 +502,26 @@ User ID: {{{userId}}}
             int quality = 85
         )
         {
+            (byte[] bytes, _, _) = await OptimizeImageWithDimensions(originalImageStream, newImageSize, quality);
+            return bytes;
+        }
+
+        /// <summary>
+        /// Compresses an image, exports it as WebP, and returns the dimensions of the encoded result.
+        /// Use this overload when callers need the final width/height — for example, the Spiderly editor
+        /// upload endpoints write the dimensions onto the inserted &lt;img&gt; tag to prevent storefront
+        /// layout shift.
+        /// </summary>
+        /// <param name="originalImageStream">Original image stream</param>
+        /// <param name="newImageSize">New image size (optional)</param>
+        /// <param name="quality">Compression quality (1-100)</param>
+        /// <returns>Optimized image bytes plus the post-resize width and height in pixels</returns>
+        public static async Task<(byte[] Bytes, int Width, int Height)> OptimizeImageWithDimensions(
+            Stream originalImageStream,
+            Size? newImageSize = null,
+            int quality = 85
+        )
+        {
             using (Image image = await Image.LoadAsync(originalImageStream))
             {
                 // Don't separate Image resizing and optimizing, we always want resizing first, then optimizing.
@@ -516,6 +536,9 @@ User ID: {{{userId}}}
                     );
                 }
 
+                int width = image.Width;
+                int height = image.Height;
+
                 using (MemoryStream outputStream = new())
                 {
                     WebpEncoder encoder = new WebpEncoder
@@ -526,7 +549,7 @@ User ID: {{{userId}}}
 
                     await image.SaveAsWebpAsync(outputStream, encoder);
 
-                    return outputStream.ToArray();
+                    return (outputStream.ToArray(), width, height);
                 }
             }
         }

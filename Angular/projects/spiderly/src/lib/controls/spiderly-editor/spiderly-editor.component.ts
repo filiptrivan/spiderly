@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { TranslocoService } from '@jsverse/transloco';
 import { Editor, EditorModule, EditorInitEvent } from 'primeng/editor';
 import { Observable } from 'rxjs';
+import { EditorImageUploadResult } from '../../entities/editor-image-upload-result';
 
 @Component({
   selector: 'spiderly-editor',
@@ -22,7 +23,7 @@ import { Observable } from 'rxjs';
 export class SpiderlyEditorComponent extends BaseControl implements OnInit {
   @ViewChild(Editor) editor: Editor;
 
-  @Input() uploadImageMethod: (formData: FormData) => Observable<string>;
+  @Input() uploadImageMethod: (formData: FormData) => Observable<EditorImageUploadResult>;
   @Input() objectId: number = 0;
 
   constructor(protected override translocoService: TranslocoService) {
@@ -54,9 +55,13 @@ export class SpiderlyEditorComponent extends BaseControl implements OnInit {
         const formData = new FormData();
         formData.append('file', file, `${this.objectId}-${file.name}`);
 
-        this.uploadImageMethod(formData).subscribe((imageUrl: string) => {
+        this.uploadImageMethod(formData).subscribe((result: EditorImageUploadResult) => {
           const range = quill.getSelection(true);
-          quill.insertEmbed(range.index, 'image', imageUrl);
+          quill.insertEmbed(range.index, 'image', result.url);
+          // Quill 2's built-in Image blot recognizes width/height as native attributes,
+          // so formatText writes them directly onto the rendered <img>. Storefront uses
+          // these to size the image up-front and prevent CLS.
+          quill.formatText(range.index, 1, { width: result.width, height: result.height });
           quill.setSelection(range.index + 1);
         });
       }

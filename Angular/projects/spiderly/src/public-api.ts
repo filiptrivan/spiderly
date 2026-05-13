@@ -56,6 +56,7 @@ export * from './lib/components/spiderly-panels/spiderly-panels.module';
 
 export * from './lib/entities/base-entity';
 export * from './lib/entities/codebook';
+export * from './lib/entities/editor-image-upload-result';
 export * from './lib/entities/filter';
 export * from './lib/entities/filter-rule';
 export * from './lib/entities/filter-sort-meta';

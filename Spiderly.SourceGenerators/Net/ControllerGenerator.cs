@@ -639,7 +639,7 @@ namespace {{basePartOfNamespace}}.Controllers
         [HttpPost]
         [AuthGuard]
         [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]
-        public virtual async Task<string> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
+        public virtual async Task<EditorImageUploadResultDTO> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }

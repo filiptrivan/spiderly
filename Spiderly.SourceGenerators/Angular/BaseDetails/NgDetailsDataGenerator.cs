@@ -210,7 +210,7 @@ namespace Spiderly.SourceGenerators.Angular
                 else if (controlType == UIControlTypeCodes.Editor && property.HasS3PublicStorageAttribute())
                 {
                     result.Add($$"""
-    upload{{property.Name}}ImageFor{{entity.Name}} = (formData: FormData): Observable<string> => {
+    upload{{property.Name}}ImageFor{{entity.Name}} = (formData: FormData): Observable<EditorImageUploadResult> => {
         return this.apiService.upload{{property.Name}}ImageFor{{entity.Name}}(formData);
     }
 """);

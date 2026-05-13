@@ -25,6 +25,7 @@ namespace Spiderly.SourceGenerators.Shared
             "Namebook",
             "Codebook",
             "SimpleSaveResult",
+            "EditorImageUploadResult",
             "BusinessObject",
             "ReadonlyObject",
             "ExcelReportOptions",
