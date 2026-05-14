@@ -12,6 +12,8 @@ namespace Spiderly.CLI.Commands
 {
     internal static class AddNewEntityCommand
     {
+        private const string PrimeIconsImport = "import { PrimeIcons } from 'primeng/api';";
+
         public static async Task<int> Execute(bool shouldGenerateDataView, string entityName = null)
         {
             if (string.IsNullOrWhiteSpace(entityName))
@@ -204,10 +206,12 @@ namespace Spiderly.CLI.Commands
                 return true;
             }
 
+            layoutContent = EnsurePrimeIconsImport(layoutContent);
+
             string menuItemToAdd = $$"""
                                 {
                                     label: this.translocoService.translate('{{entityName}}List'),
-                                    icon: 'pi pi-fw pi-list',
+                                    icon: PrimeIcons.LIST,
                                     routerLink: ['/{{kebabEntityName}}-list'],
                                 },
             """;
@@ -246,6 +250,19 @@ namespace Spiderly.CLI.Commands
 
             ConsoleHelper.MarkupLineWARNING("Could not find the appropriate location to insert menu item. Please add it manually.");
             return true;
+        }
+
+        private static string EnsurePrimeIconsImport(string layoutContent)
+        {
+            if (layoutContent.Contains("PrimeIcons", StringComparison.Ordinal))
+                return layoutContent;
+
+            MatchCollection importMatches = Regex.Matches(layoutContent, @"^import .+;$", RegexOptions.Multiline);
+            if (importMatches.Count == 0)
+                return $"{PrimeIconsImport}{Environment.NewLine}{layoutContent}";
+
+            Match lastImport = importMatches[^1];
+            return layoutContent.Insert(lastImport.Index + lastImport.Length, $"{Environment.NewLine}{PrimeIconsImport}");
         }
 
         private static async Task<bool> AddTranslations(string entityName)
