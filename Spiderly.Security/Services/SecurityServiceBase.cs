@@ -12,6 +12,7 @@ using Spiderly.Shared.DTO;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -267,7 +268,8 @@ namespace Spiderly.Security.Services
             if (!string.IsNullOrWhiteSpace(accessToken))
             {
                 List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
-                userIdFromAccessToken = long.Parse(claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid)?.Value);
+                // Raw wire claim from JwtSecurityToken.Claims — the bearer middleware's inbound map (sub → NameIdentifier) has not been applied here.
+                userIdFromAccessToken = long.Parse(claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value);
             }
 
             // When access token cookie expired (browser deleted it), RefreshAsync derives user ID from refresh token storage.

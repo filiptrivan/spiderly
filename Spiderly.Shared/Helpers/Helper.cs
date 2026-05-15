@@ -410,13 +410,13 @@ User ID: {{{userId}}}
 
         public static long GetCurrentUserId(HttpContext context)
         {
-            return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid).Value);
+            return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value);
         }
 
         public static long? GetCurrentUserIdOrDefault(HttpContext context)
         {
             if (IsUserLoggedIn(context))
-                return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.PrimarySid).Value);
+                return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value);
 
             return null;
         }

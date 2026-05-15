@@ -137,11 +137,17 @@ namespace Spiderly.Security.Services
             };
         }
 
+        /// <summary>
+        /// Emits the JWT user id as the RFC 7519 <c>"sub"</c> claim. Request-time readers see it as
+        /// <see cref="ClaimTypes.NameIdentifier"/> after the bearer middleware's default inbound map;
+        /// code reading raw <see cref="JwtSecurityToken"/> claims (e.g. the refresh flow) must look up
+        /// <see cref="JwtRegisteredClaimNames.Sub"/> instead, because no middleware mapping applies there.
+        /// </summary>
         public virtual List<Claim> GenerateClaims(long userId)
         {
             return new List<Claim>
             {
-                new Claim(ClaimTypes.PrimarySid, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             };
         }
 
