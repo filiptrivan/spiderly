@@ -765,6 +765,7 @@ export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, Role
     [getPaginatedListObservableMethod]="getPaginatedRoleListObservableMethod" 
     [exportListToExcelObservableMethod]="exportRoleListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteRoleObservableMethod"
+    [deleteListFromTableObservableMethod]="deleteRoleListObservableMethod"
     ></spiderly-data-table>
 </ng-container>
 """;
@@ -793,6 +794,7 @@ export class RoleListComponent implements OnInit {
     getPaginatedRoleListObservableMethod = this.apiService.getPaginatedRoleList;
     exportRoleListToExcelObservableMethod = this.apiService.exportRoleListToExcel;
     deleteRoleObservableMethod = this.apiService.deleteRole;
+    deleteRoleListObservableMethod = this.apiService.deleteRoleList;
 
     constructor(
         private apiService: ApiService,
@@ -923,6 +925,7 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
     [getPaginatedListObservableMethod]="getPaginatedUserListObservableMethod" 
     [exportListToExcelObservableMethod]="exportUserListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteUserObservableMethod"
+    [deleteListFromTableObservableMethod]="deleteUserListObservableMethod"
     ></spiderly-data-table>
 </ng-container>
 """;
@@ -951,6 +954,7 @@ export class UserListComponent implements OnInit {
     getPaginatedUserListObservableMethod = this.apiService.getPaginatedUserList;
     exportUserListToExcelObservableMethod = this.apiService.exportUserListToExcel;
     deleteUserObservableMethod = this.apiService.deleteUser;
+    deleteUserListObservableMethod = this.apiService.deleteUserList;
 
     constructor(
         private apiService: ApiService,
