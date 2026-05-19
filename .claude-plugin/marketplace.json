@@ -10,7 +10,7 @@
     {
       "name": "spiderly",
       "source": "./claude-plugins",
-      "version": "19.8.1",
+      "version": "19.8.2",
       "description": "Claude Code skills for Spiderly — entity design, backend hooks, filtering patterns, and migration workflow"
     }
   ]
