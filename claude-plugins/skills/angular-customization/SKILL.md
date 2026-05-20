@@ -1,9 +1,19 @@
 ---
 name: angular-customization
-description: Customize Spiderly Angular admin panel — forms, data tables, service overrides, layout, validation, translations. Use when extending generated Angular components, overriding form save behavior, configuring data table columns, customizing layout or theme, adding custom validators, or working with translations.
+description: Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, adding validators, or working with translations. Admin panel only — not storefront (Next.js/shadcn/Tailwind).
 ---
 
 # Angular Customization
+
+> **Scope:** Angular admin panel only — not storefront apps (Next.js + shadcn/Tailwind), where plain Tailwind is correct.
+
+## Reuse components before hand-writing UI
+
+Before building or restyling any admin UI, check for an existing component first. Prefer: **Spiderly (`spiderly-*`) → PrimeNG (`p-*`) → raw Tailwind/HTML.** Spiderly is built on PrimeNG, so the theme applies to both. See the catalogs below; unsure a wrapper exists? `grep -rE "selector:.*spiderly-" projects/spiderly/src/lib`.
+
+**Look before you build — don't force-fit a component you'd have to hack.** Raw Tailwind/HTML is correct for pure layout/spacing, one-off widgets with no component analog, or when forcing a component means fighting it. When you hand-roll, state in one line why no component fit.
+
+Keep admin UI **responsive and mobile-first**, matching the layout/grid conventions of surrounding pages rather than inventing a new one.
 
 ## Generated File Structure
 
@@ -360,3 +370,24 @@ export class MyValidatorService extends ValidatorAbstractService {
 | Password | `spiderly-password` | `control` |
 
 All controls share base inputs: `label`, `disabled`, `showLabel`, `showRequired`, `placeholder`, `showTooltip`, `tooltipText`.
+
+## Presentational & Layout Components
+
+Reach for these before hand-rolling cards, panels, buttons, lists, or empty/loading states.
+
+| Component | Selector | Purpose | Key inputs |
+|---|---|---|---|
+| Card | `spiderly-card` | Titled content container with icon | `title`, `icon` |
+| Panel | `spiderly-panel` | Collapsible section, supports multi-panel grouping + CRUD menu | `toggleable`, `collapsed`, `crudMenu`, `showRemoveIcon`, `isFirstMultiplePanel`/`isMiddleMultiplePanel`/`isLastMultiplePanel` |
+| Panel parts | `panel-header`, `panel-body`, `panel-footer` | Compose a panel's regions | (slotted content) |
+| Info card | `info-card` | Inline informational/callout box | `header`, `icon`, `showSmallIcon`, `textColor` |
+| Index card | `index-card` | Ordered list item with index + CRUD menu | `index`, `header`, `description`, `crudMenu`, `showRemoveIcon`, `last` |
+| Card skeleton | `card-skeleton` | **Loading placeholder** — use instead of a hand-rolled spinner/skeleton | `height` |
+| Button | `spiderly-button` | Themed button | `type` (`button`/`submit`/`reset`) |
+| Split button | `spiderly-split-button` | Button with dropdown menu | `dropdownItems` |
+| Return button | `return-button` | Back-navigation button | `navigateUrl` |
+| Data view | `spiderly-data-view` | Card/grid list with filters + pagination (vs. table) | `items`, `rows`, `filters`, `getPaginatedListObservableMethod`, `showCardWrapper` |
+| Delete confirmation | `spiderly-delete-confirmation` | Standard delete-confirm dialog | — |
+| Not found | `not-found` | **Empty / 404 state** — use instead of a hand-rolled empty state | — |
+
+For data lists, use `spiderly-data-table` (tabular — see Data Table section) or `spiderly-data-view` (card/grid) — don't build either from scratch.
