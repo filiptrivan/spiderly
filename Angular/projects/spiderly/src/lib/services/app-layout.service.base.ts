@@ -16,11 +16,8 @@ import { Namebook } from '../entities/namebook';
 export interface AppConfig {
   inputStyle: string;
   colorScheme: string;
-  theme: string;
   ripple: boolean;
   menuMode: string;
-  scale: number;
-  color: string;
 }
 
 interface LayoutState {
@@ -28,7 +25,6 @@ interface LayoutState {
   overlayMenuActive: boolean;
   profileSidebarVisible: boolean;
   profileDropdownSidebarVisible: boolean;
-  configSidebarVisible: boolean;
   staticMenuMobileActive: boolean;
   menuHoverActive: boolean;
 }
@@ -44,9 +40,6 @@ export class LayoutServiceBase implements OnDestroy {
     inputStyle: 'outlined',
     menuMode: 'static',
     colorScheme: 'light',
-    theme: 'lara-light-indigo',
-    scale: 14,
-    color: `var(--p-primary-color)`,
   };
 
   state: LayoutState = {
@@ -54,16 +47,11 @@ export class LayoutServiceBase implements OnDestroy {
     overlayMenuActive: false,
     profileSidebarVisible: false,
     profileDropdownSidebarVisible: false,
-    configSidebarVisible: false,
     staticMenuMobileActive: false,
     menuHoverActive: false,
   };
 
-  private configUpdate = new Subject<AppConfig>();
-
   private overlayOpen = new Subject<any>();
-
-  configUpdate$ = this.configUpdate.asObservable();
 
   overlayOpen$ = this.overlayOpen.asObservable();
 
@@ -108,10 +96,6 @@ export class LayoutServiceBase implements OnDestroy {
     }
   }
 
-  showConfigSidebar() {
-    this.state.configSidebarVisible = true;
-  }
-
   isOverlay() {
     return this.layoutConfig.menuMode === 'overlay';
   }
@@ -122,10 +106,6 @@ export class LayoutServiceBase implements OnDestroy {
 
   isMobile() {
     return !this.isDesktop();
-  }
-
-  onConfigUpdate() {
-    this.configUpdate.next(this.layoutConfig);
   }
 
   //#region Top Bar
