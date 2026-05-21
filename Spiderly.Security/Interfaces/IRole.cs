@@ -6,8 +6,6 @@ namespace Spiderly.Security.Interfaces
     {
         public string Name { get; set; }
 
-        public string Description { get; set; }
-
         IReadOnlyCollection<IUser> Users { get; }
 
         IReadOnlyCollection<IPermission> Permissions { get; }

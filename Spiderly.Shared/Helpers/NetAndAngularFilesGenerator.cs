@@ -28,7 +28,7 @@ namespace Spiderly.Shared.Helpers
                 Name = ".claude",
                 Files =
                 {
-                    new SpiderlyFile { Name = "settings.json", Data = GetClaudeSettingsJsonData() },
+                    new SpiderlyFile { Name = "settings.json", Data = GetClaudeSettingsJsonData(spiderlyVersion) },
                 }
             },
             new SpiderlyFolder
@@ -1664,9 +1664,6 @@ namespace {{appName}}.Business.Entities
         [StringLength(255, MinimumLength = 1)]
         public string Name { get; set; }
 
-        [StringLength(400, MinimumLength = 1)]
-        public string Description { get; set; }
-
         [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
         public virtual List<User> Users { get; } = new(); // M2M
         IReadOnlyCollection<IUser> IRole.Users => Users;
@@ -1700,9 +1697,6 @@ namespace {{appName}}.Business.Entities
         [Required]
         [StringLength(100, MinimumLength = 1)]
         public string Name { get; set; }
-
-        [StringLength(400, MinimumLength = 1)]
-        public string Description { get; set; }
 
         [Required]
         [StringLength(100, MinimumLength = 1)]
@@ -1871,8 +1865,8 @@ namespace {{appName}}.Infrastructure
 {
     public partial class {{appName}}ApplicationDbContext : ApplicationDbContext<User> // https://stackoverflow.com/questions/41829229/how-do-i-implement-dbcontext-inheritance-for-multiple-databases-in-ef7-net-co
     {
-        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options)
-        : base(options)
+        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options, Spiderly.Shared.Interfaces.IExternalProviderSettings externalProviderSettings)
+        : base(options, externalProviderSettings)
         {
         }
 
@@ -2012,18 +2006,18 @@ public class Startup
     public Startup(IConfiguration configuration)
     {
         Configuration = configuration;
-
-        {{appName}}.WebAPI.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.WebAPI").Get<{{appName}}.WebAPI.Settings>() ?? new();
-        {{appName}}.Business.SettingsProvider.Current = configuration.GetSection("AppSettings:{{appName}}.Business").Get<{{appName}}.Business.Settings>() ?? new();
-        Spiderly.Infrastructure.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Infrastructure").Get<Spiderly.Infrastructure.Settings>() ?? new();
-        Spiderly.Security.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Security").Get<Spiderly.Security.Settings>() ?? new();
-        Spiderly.Shared.SettingsProvider.Current = configuration.GetSection("AppSettings:Spiderly.Shared").Get<Spiderly.Shared.Settings>() ?? new();
+        // All settings are bound and registered in DI in ConfigureServices (services.Configure<Settings>)
+        // and via AddSpiderly(Configuration, ...). No global mutable static is used.
     }
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.Configure<{{appName}}.Business.Settings>(Configuration.GetSection("AppSettings:{{appName}}.Business"));
+        services.Configure<{{appName}}.WebAPI.Settings>(Configuration.GetSection("AppSettings:{{appName}}.WebAPI"));
+
+        string spiderlyConnectionString = Configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:ConnectionString");
         services.AddHangfire(config =>
-            config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)" : "UseHangfirePostgreSqlStorage(Spiderly.Shared.SettingsProvider.Current.ConnectionString)")}}
+            config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(spiderlyConnectionString)" : "UseHangfirePostgreSqlStorage(spiderlyConnectionString)")}}
         );
         services.AddHangfireServer();
         services.AddSingleton<INotificationDispatcher, HangfireNotificationDispatcher>();
@@ -2031,7 +2025,7 @@ public class Startup
         services.AddHealthChecks()
             .AddDbContextCheck<{{appName}}ApplicationDbContext>();
 
-        services.AddSpiderly<{{appName}}ApplicationDbContext>(spiderly =>
+        services.AddSpiderly<{{appName}}ApplicationDbContext>(Configuration, spiderly =>
         {
             spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
             spiderly.UseCulture("en");
@@ -2061,7 +2055,7 @@ public class Startup
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithOrigins(new[] { Spiderly.Shared.SettingsProvider.Current.FrontendUrl })
+                .WithOrigins(new[] { Configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:FrontendUrl") })
                 .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
         });
 
@@ -2092,6 +2086,8 @@ public class Startup
 
         app.UseRateLimiter();
 
+        app.SpiderlyUseHangfireFailedJobNotificationFilter();
+
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
             Authorization = new[] { new LocalRequestsOnlyAuthorizationFilter() },
@@ -2112,11 +2108,6 @@ public class Startup
             return $$"""
 namespace {{appName}}.WebAPI
 {
-    public static class SettingsProvider
-    {
-        public static Settings Current { internal get; set; } = new Settings();
-    }
-
     public class Settings
     {
     }
@@ -2591,13 +2582,17 @@ namespace {{appName}}.Migrations
                 .AddEnvironmentVariables()
                 .Build();
 
-            string connectionString = configuration["AppSettings:Spiderly.Shared:ConnectionString"];
+            string connectionString = configuration[$"{Spiderly.Shared.Settings.ConfigurationSection}:ConnectionString"];
 
             DbContextOptionsBuilder<{{appName}}ApplicationDbContext> optionsBuilder = new();
             optionsBuilder.UseLazyLoadingProxies();
             {{(dbProvider == DbProviderCodes.SQLServer ? "optionsBuilder.UseSqlServer(connectionString);" : "optionsBuilder.UseNpgsql(connectionString);")}}
 
-            return new {{appName}}ApplicationDbContext(optionsBuilder.Options);
+            // Spiderly.Shared.Settings implements IExternalProviderSettings (consumed by OnModelCreating).
+            Spiderly.Shared.Settings spiderlySharedSettings =
+                configuration.GetSection(Spiderly.Shared.Settings.ConfigurationSection).Get<Spiderly.Shared.Settings>() ?? new();
+
+            return new {{appName}}ApplicationDbContext(optionsBuilder.Options, spiderlySharedSettings);
         }
     }
 }
@@ -2616,11 +2611,6 @@ return;
             return $$"""
 namespace {{appName}}.Business
 {
-    public static class SettingsProvider
-    {
-        public static Settings Current { internal get; set; } = new Settings();
-    }
-
     public class Settings
     {
 
@@ -2791,9 +2781,10 @@ namespace {{appName}}.Business.Services
             IEmailingService emailingService,
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
-            IStringLocalizer localizer
+            IStringLocalizer localizer,
+            IAuthPolicySettings authPolicySettings
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicySettings)
         {
             _context = context;
         }
@@ -3488,15 +3479,18 @@ export const ThemePreset = definePreset(Aura, {
 """;
         }
 
-        private static string GetClaudeSettingsJsonData()
+        private static string GetClaudeSettingsJsonData(string spiderlyVersion)
         {
-            return """
+            // Pin the marketplace to the matching "v{version}" tag so the Claude Code skills track the
+            // framework version, not the repo's default branch. `spiderly-upgrade` bumps this ref on upgrade.
+            return $$"""
 {
     "extraKnownMarketplaces": {
         "spiderly": {
             "source": {
                 "source": "github",
-                "repo": "filiptrivan/spiderly"
+                "repo": "filiptrivan/spiderly",
+                "ref": "v{{spiderlyVersion}}"
             }
         }
     },

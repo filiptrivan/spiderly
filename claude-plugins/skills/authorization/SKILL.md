@@ -27,7 +27,6 @@ public interface IUser : IBusinessObject<long>
 public interface IRole : IBusinessObject<int>
 {
     string Name { get; set; }
-    string Description { get; set; }
     IReadOnlyCollection<IUser> Users { get; }
     IReadOnlyCollection<IPermission> Permissions { get; }
 }
@@ -39,7 +38,6 @@ public interface IRole : IBusinessObject<int>
 public interface IPermission : IReadonlyObject<int>
 {
     string Name { get; set; }
-    string Description { get; set; }
     string Code { get; set; }
     IReadOnlyCollection<IRole> Roles { get; }
 }
@@ -72,9 +70,6 @@ public class Role : BusinessObject<int>, IRole
     [StringLength(255, MinimumLength = 1)]
     public string Name { get; set; }
 
-    [StringLength(400, MinimumLength = 1)]
-    public string Description { get; set; }
-
     [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
     public virtual List<User> Users { get; } = new();
     IReadOnlyCollection<IUser> IRole.Users => Users;
@@ -91,9 +86,6 @@ public class Permission : ReadonlyObject<int>, IPermission
     [Required]
     [StringLength(100, MinimumLength = 1)]
     public string Name { get; set; }
-
-    [StringLength(400, MinimumLength = 1)]
-    public string Description { get; set; }
 
     [Required]
     [StringLength(100, MinimumLength = 1)]
