@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Spiderly.Shared.DTO;
-using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using System.Net;
 using System.Net.Mail;
 using System.Text;
 
@@ -11,11 +11,25 @@ namespace Spiderly.Shared.Emailing
     {
         private readonly SmtpClient _smtpClient;
         private readonly ILogger<EmailingService> _logger;
+        private readonly IEmailSettings _emailSettings;
 
-        public EmailingService(ILogger<EmailingService> logger)
+        public EmailingService(ILogger<EmailingService> logger, IEmailSettings emailSettings)
         {
-            _smtpClient = Helper.GetSmtpClient();
+            _emailSettings = emailSettings;
+            _smtpClient = new SmtpClient(emailSettings.SmtpHost, emailSettings.SmtpPort)
+            {
+                Credentials = new NetworkCredential(emailSettings.EmailSender?.Email, emailSettings.EmailSenderPassword),
+                EnableSsl = true
+            };
             _logger = logger;
+        }
+
+        public bool IsConfigured()
+        {
+            return !string.IsNullOrWhiteSpace(_emailSettings.EmailSender?.Email) &&
+                   !string.IsNullOrWhiteSpace(_emailSettings.EmailSenderPassword) &&
+                   !string.IsNullOrWhiteSpace(_emailSettings.SmtpHost) &&
+                   _emailSettings.SmtpPort > 0;
         }
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
@@ -117,9 +131,9 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private static MailAddress BuildFromAddress(EmailSender sender)
+        private MailAddress BuildFromAddress(EmailSender sender)
         {
-            EmailSender s = sender ?? SettingsProvider.Current.EmailSender;
+            EmailSender s = sender ?? _emailSettings.EmailSender;
             return string.IsNullOrWhiteSpace(s.Name)
                 ? new MailAddress(s.Email)
                 : new MailAddress(s.Email, s.Name);

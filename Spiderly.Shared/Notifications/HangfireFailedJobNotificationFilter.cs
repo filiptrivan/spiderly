@@ -2,7 +2,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.Helpers;
+using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -11,13 +11,25 @@ namespace Spiderly.Shared.Notifications
     /// after all retries are exhausted. Uses IApplyStateFilter so it only fires
     /// on the final applied state (AutomaticRetryAttribute redirects intermediate
     /// failures to ScheduledState before this filter runs).
+    /// Registered via <c>app.SpiderlyUseHangfireFailedJobNotificationFilter()</c> after the DI
+    /// container is built, so its dependencies can be resolved from the service provider.
     /// </summary>
     public class HangfireFailedJobNotificationFilter : IApplyStateFilter
     {
+        private readonly TelegramNotifier _telegramNotifier;
+        private readonly NotificationRateLimiter _rateLimiter;
+        private readonly INotificationSettings _notificationSettings;
         private readonly ILogger<HangfireFailedJobNotificationFilter> _logger;
 
-        public HangfireFailedJobNotificationFilter(ILogger<HangfireFailedJobNotificationFilter> logger)
+        public HangfireFailedJobNotificationFilter(
+            TelegramNotifier telegramNotifier,
+            NotificationRateLimiter rateLimiter,
+            INotificationSettings notificationSettings,
+            ILogger<HangfireFailedJobNotificationFilter> logger)
         {
+            _telegramNotifier = telegramNotifier;
+            _rateLimiter = rateLimiter;
+            _notificationSettings = notificationSettings;
             _logger = logger;
         }
 
@@ -26,10 +38,10 @@ namespace Spiderly.Shared.Notifications
             if (context.NewState is not FailedState failedState)
                 return;
 
-            if (!Helper.IsTelegramConfigured())
+            if (!_telegramNotifier.IsConfigured)
                 return;
 
-            if (!Helper.ShouldSendNotification(failedState.Exception))
+            if (!_rateLimiter.ShouldSend(failedState.Exception))
                 return;
 
             string jobType = context.BackgroundJob.Job?.Type?.Name ?? "Unknown";
@@ -37,7 +49,7 @@ namespace Spiderly.Shared.Notifications
             string jobId = context.BackgroundJob.Id;
 
             string text = $"""
-[{SettingsProvider.Current.ApplicationName}] Hangfire Job Failed
+[{_notificationSettings.ApplicationName}] Hangfire Job Failed
 Job: {jobType}.{jobMethod} (ID: {jobId})
 {failedState.Exception}
 """;
@@ -46,7 +58,7 @@ Job: {jobType}.{jobMethod} (ID: {jobId})
             {
                 try
                 {
-                    await Helper.SendTelegramNotificationAsync(text, _logger);
+                    await _telegramNotifier.SendAsync(text);
                 }
                 catch (Exception ex)
                 {

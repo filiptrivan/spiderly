@@ -1,15 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Spiderly.Shared.Emailing;
+using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared
 {
-    public static class SettingsProvider
+    public class Settings : IJwtSettings, IS3Settings, IEmailSettings, INotificationSettings, ITokenKeySettings, ICookieSettings, IExcelSettings, IExternalProviderSettings
     {
-        public static Settings Current { get; set; } = new Settings();
-    }
+        /// <summary>Configuration section these settings bind from.</summary>
+        public const string ConfigurationSection = "AppSettings:Spiderly.Shared";
 
-    public class Settings
-    {
+        /// <summary>
+        /// When <c>false</c>, the Google external-provider column is omitted from the user model.
+        /// </summary>
+        public bool UseGoogleAsExternalProvider { get; set; } = true;
+
         public string ApplicationName { get; set; }
         public string ConnectionString { get; set; }
 

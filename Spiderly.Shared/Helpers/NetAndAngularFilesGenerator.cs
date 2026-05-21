@@ -2012,8 +2012,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<{{appName}}.Business.Settings>(Configuration.GetSection("AppSettings:{{appName}}.Business"));
-        services.Configure<{{appName}}.WebAPI.Settings>(Configuration.GetSection("AppSettings:{{appName}}.WebAPI"));
+        services.Configure<{{appName}}.Business.Settings>(Configuration.GetSection({{appName}}.Business.Settings.ConfigurationSection));
+        services.Configure<{{appName}}.WebAPI.Settings>(Configuration.GetSection({{appName}}.WebAPI.Settings.ConfigurationSection));
 
         string spiderlyConnectionString = Configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:ConnectionString");
         services.AddHangfire(config =>
@@ -2110,6 +2110,7 @@ namespace {{appName}}.WebAPI
 {
     public class Settings
     {
+        public const string ConfigurationSection = "AppSettings:{{appName}}.WebAPI";
     }
 }
 """;
@@ -2613,7 +2614,7 @@ namespace {{appName}}.Business
 {
     public class Settings
     {
-
+        public const string ConfigurationSection = "AppSettings:{{appName}}.Business";
     }
 }
 """;

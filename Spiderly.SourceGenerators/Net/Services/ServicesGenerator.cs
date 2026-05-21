@@ -105,19 +105,22 @@ namespace {{basePartOfNamespace}}.Services
         public AuthorizationServiceGenerated AuthorizationService { get; }
         public IStringLocalizer Localizer { get; }
         public IServiceProvider ServiceProvider { get; }
+        public IExcelSettings ExcelSettings { get; }
 
         public EntityServiceDependencies(
             IApplicationDbContext context,
             ExcelService excelService,
             AuthorizationServiceGenerated authorizationService,
             IStringLocalizer localizer,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IExcelSettings excelSettings)
         {
             Context = context;
             ExcelService = excelService;
             AuthorizationService = authorizationService;
             Localizer = localizer;
             ServiceProvider = serviceProvider;
+            ExcelSettings = excelSettings;
         }
     }
 }

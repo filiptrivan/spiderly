@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Spiderly.Shared.Helpers;
+using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Attributes
 {
@@ -22,8 +24,9 @@ namespace Spiderly.Shared.Attributes
                 return;
             }
 
+            string accessTokenKey = context.HttpContext.RequestServices.GetRequiredService<ITokenKeySettings>().AccessTokenKey;
             string accessTokenFromHeader = Helper.GetAccessTokenFromHeader(context.HttpContext);
-            string accessTokenFromCookie = Helper.GetAccessTokenFromCookie(context.HttpContext);
+            string accessTokenFromCookie = Helper.GetAccessTokenFromCookie(context.HttpContext, accessTokenKey);
             bool authenticatedViaCookie = accessTokenFromHeader == null && accessTokenFromCookie != null;
 
             string method = context.HttpContext.Request.Method;

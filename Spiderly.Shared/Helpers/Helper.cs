@@ -1,19 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging;
 using MimeDetective;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
-using System.Collections.Concurrent;
 using System.ComponentModel;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -284,121 +278,6 @@ namespace Spiderly.Shared.Helpers
 
         #endregion
 
-        #region Notifications
-
-        private static readonly HttpClient _telegramHttpClient = new();
-        private static readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
-        private static DateTimeOffset _lastCacheCleanup = DateTimeOffset.UtcNow;
-        private const int TelegramMaxLength = 4096;
-        private const string TruncationMarker = "\n...[truncated]...\n";
-
-        private static string TruncateForTelegram(string text)
-        {
-            if (text.Length <= TelegramMaxLength)
-                return text;
-
-            const int headBudget = 500;
-            int tailBudget = TelegramMaxLength - headBudget - TruncationMarker.Length;
-            return text[..headBudget] + TruncationMarker + text[^tailBudget..];
-        }
-
-        public static async Task SendTelegramNotificationAsync(string text, ILogger logger)
-        {
-            try
-            {
-                Settings settings = SettingsProvider.Current;
-                string truncated = TruncateForTelegram(text);
-
-                string url = $"https://api.telegram.org/bot{settings.TelegramBotToken}/sendMessage";
-                using HttpResponseMessage response = await _telegramHttpClient.PostAsJsonAsync(url, new { chat_id = settings.TelegramChatId, text = truncated });
-                if (!response.IsSuccessStatusCode)
-                {
-                    string responseBody = await response.Content.ReadAsStringAsync();
-                    logger.LogError("Telegram notification failed: {StatusCode} — {Body}", response.StatusCode, responseBody);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Telegram notification not sent");
-            }
-        }
-
-        public static async Task SendTelegramNotificationAsync(long? userId, string exceptionString, ILogger logger)
-        {
-            string text = $$$"""
-[{{{SettingsProvider.Current.ApplicationName}}}] Unhandled Exception
-User ID: {{{userId}}}
-{{{exceptionString}}}
-""";
-            await SendTelegramNotificationAsync(text, logger);
-        }
-
-        public static bool ShouldSendNotification(string eventKey)
-        {
-            if (SettingsProvider.Current.NotificationRateLimitMinutes <= 0)
-                return true;
-
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-            int rateLimitMinutes = SettingsProvider.Current.NotificationRateLimitMinutes;
-            DateTimeOffset threshold = now.AddMinutes(-rateLimitMinutes);
-
-            // Lazy cleanup: prune stale entries periodically
-            DateTimeOffset cleanupThreshold = now.AddMinutes(-rateLimitMinutes * 2);
-            if (_lastCacheCleanup < cleanupThreshold)
-            {
-                _lastCacheCleanup = now;
-                foreach (var kvp in _rateLimitCache)
-                {
-                    if (kvp.Value < cleanupThreshold)
-                        _rateLimitCache.TryRemove(kvp.Key, out _);
-                }
-            }
-
-            bool shouldSend = false;
-            _rateLimitCache.AddOrUpdate(
-                eventKey,
-                addValueFactory: _ => { shouldSend = true; return now; },
-                updateValueFactory: (_, existing) =>
-                {
-                    if (existing < threshold) { shouldSend = true; return now; }
-                    return existing;
-                });
-            return shouldSend;
-        }
-
-        public static bool ShouldSendNotification(Exception ex)
-        {
-            string key = $"{ex.GetType().FullName}:{ex.Message.GetHashCode()}";
-            return ShouldSendNotification(key);
-        }
-
-        public static SmtpClient GetSmtpClient()
-        {
-            return new SmtpClient(SettingsProvider.Current.SmtpHost, SettingsProvider.Current.SmtpPort)
-            {
-                Credentials = new NetworkCredential(SettingsProvider.Current.EmailSender?.Email, SettingsProvider.Current.EmailSenderPassword),
-                EnableSsl = true
-            };
-        }
-
-        public static bool IsEmailingConfigured()
-        {
-            Settings settings = SettingsProvider.Current;
-            return !string.IsNullOrWhiteSpace(settings.EmailSender?.Email) &&
-                   !string.IsNullOrWhiteSpace(settings.EmailSenderPassword) &&
-                   !string.IsNullOrWhiteSpace(settings.SmtpHost) &&
-                   settings.SmtpPort > 0;
-        }
-
-        public static bool IsTelegramConfigured()
-        {
-            Settings settings = SettingsProvider.Current;
-            return !string.IsNullOrWhiteSpace(settings.TelegramBotToken) &&
-                   !string.IsNullOrWhiteSpace(settings.TelegramChatId);
-        }
-
-        #endregion
-
         #region Security
 
         #region User
@@ -444,9 +323,9 @@ User ID: {{{userId}}}
         /// <summary>
         /// Reads the access token from the cookie.
         /// </summary>
-        public static string GetAccessTokenFromCookie(HttpContext context)
+        public static string GetAccessTokenFromCookie(HttpContext context, string accessTokenKey)
         {
-            if (context.Request.Cookies.TryGetValue(SettingsProvider.Current.AccessTokenKey, out string cookieToken) &&
+            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string cookieToken) &&
                 !string.IsNullOrWhiteSpace(cookieToken))
             {
                 return cookieToken;

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Spiderly.Shared.Emailing;
@@ -34,6 +35,10 @@ namespace Spiderly.Shared.Extensions
     public class SpiderlyBuilder
     {
         public IServiceCollection Services { get; }
+
+        /// <summary>Application configuration, used to bind the Spiderly settings sections.</summary>
+        public IConfiguration Configuration { get; }
+
         internal DbProviderCodes DbProvider { get; private set; }
         internal bool DbProviderSet { get; private set; }
         internal string CultureCode { get; private set; } = "en";
@@ -51,9 +56,10 @@ namespace Spiderly.Shared.Extensions
         internal Type EmailingServiceType { get; private set; }
         internal bool BrevoHttpClientEnabled { get; private set; }
 
-        internal SpiderlyBuilder(IServiceCollection services)
+        internal SpiderlyBuilder(IServiceCollection services, IConfiguration configuration)
         {
             Services = services;
+            Configuration = configuration;
         }
 
         /// <summary>

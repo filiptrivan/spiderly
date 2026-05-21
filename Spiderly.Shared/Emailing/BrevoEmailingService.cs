@@ -14,11 +14,18 @@ namespace Spiderly.Shared.Emailing
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<BrevoEmailingService> _logger;
+        private readonly IEmailSettings _emailSettings;
 
-        public BrevoEmailingService(IHttpClientFactory httpClientFactory, ILogger<BrevoEmailingService> logger)
+        public BrevoEmailingService(IHttpClientFactory httpClientFactory, ILogger<BrevoEmailingService> logger, IEmailSettings emailSettings)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _emailSettings = emailSettings;
+        }
+
+        public bool IsConfigured()
+        {
+            return !string.IsNullOrWhiteSpace(_emailSettings.BrevoApiKey);
         }
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
@@ -64,7 +71,7 @@ namespace Spiderly.Shared.Emailing
 
         private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender from = null, IEnumerable<EmailAttachment> attachments = null)
         {
-            EmailSender sender = from ?? SettingsProvider.Current.EmailSender;
+            EmailSender sender = from ?? _emailSettings.EmailSender;
 
             Dictionary<string, object> payload = new()
             {

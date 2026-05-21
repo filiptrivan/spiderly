@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -18,6 +20,8 @@ using Spiderly.Shared.Excel;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Notifications;
+using Spiderly.Shared.Services;
 using System.Globalization;
 using System.Net;
 using System.IO;
@@ -55,11 +59,12 @@ namespace Spiderly.Shared.Extensions
         /// </summary>
         public static SpiderlyBuilder AddSpiderly<TDbContext>(
             this IServiceCollection services,
+            IConfiguration configuration,
             Action<SpiderlyBuilder> configure
         )
             where TDbContext : DbContext, IApplicationDbContext
         {
-            SpiderlyBuilder builder = new(services);
+            SpiderlyBuilder builder = new(services, configuration);
             configure(builder);
 
             if (!builder.DbProviderSet)
@@ -68,7 +73,32 @@ namespace Spiderly.Shared.Extensions
                     "A database provider must be configured. Call UsePostgreSQL() or UseSQLServer() inside the AddSpiderly configuration.");
             }
 
+            // Bind the Spiderly.Shared settings section once and register it as the injectable source of
+            // truth, plus focused read-only interface views. Framework services depend on these injected
+            // settings rather than a global mutable static. Fail fast if a signing key is missing.
+            Settings settings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
+
+            if (builder.AuthenticationEnabled && string.IsNullOrWhiteSpace(settings.JwtKey))
+                throw new InvalidOperationException(
+                    $"Spiderly: '{Settings.ConfigurationSection}:JwtKey' is required when authentication is enabled.");
+
+            services.AddSingleton<IJwtSettings>(settings);
+            services.AddSingleton<ITokenKeySettings>(settings);
+            services.AddSingleton<IS3Settings>(settings);
+            services.AddSingleton<IEmailSettings>(settings);
+            services.AddSingleton<INotificationSettings>(settings);
+            services.AddSingleton<ICookieSettings>(settings);
+            services.AddSingleton<IExcelSettings>(settings);
+            services.AddSingleton<IExternalProviderSettings>(settings);
+
             // Core (always registered)
+            services.AddSingleton<CookieManager>();
+
+            // Notification helpers (replace the former static Helper Telegram/rate-limit methods).
+            // Singletons: TelegramNotifier owns an HttpClient, NotificationRateLimiter owns the dedupe cache.
+            services.AddSingleton<TelegramNotifier>();
+            services.AddSingleton<NotificationRateLimiter>();
+
             services.AddExceptionHandler<SpiderlyExceptionHandler>();
             services.AddProblemDetails(); // Required alongside AddExceptionHandler<T> so UseExceptionHandler() passes its options check
             services.AddMemoryCache();
@@ -77,12 +107,12 @@ namespace Spiderly.Shared.Extensions
             services.AddCors();
             services.SpiderlyConfigureCulture(builder); // Must be before AddControllers
             services.SpiderlyAddControllers();
-            services.SpiderlyAddDbContext<TDbContext>(builder.DbProvider);
+            services.SpiderlyAddDbContext<TDbContext>(builder.DbProvider, settings.ConnectionString);
 
             // Optional modules
             if (builder.AuthenticationEnabled)
             {
-                services.SpiderlyAddAuthentication();
+                services.SpiderlyAddAuthentication(settings);
                 services.AddAuthorization();
             }
 
@@ -97,7 +127,7 @@ namespace Spiderly.Shared.Extensions
 
                 if (builder.BrevoHttpClientEnabled)
                 {
-                    services.SpiderlyAddBrevoHttpClient();
+                    services.SpiderlyAddBrevoHttpClient(settings);
                 }
             }
 
@@ -108,12 +138,12 @@ namespace Spiderly.Shared.Extensions
 
             if (builder.RateLimitingEnabled)
             {
-                services.SpiderlyAddRateLimiters();
+                services.SpiderlyAddRateLimiters(settings);
             }
 
             if (builder.ForwardedHeadersEnabled)
             {
-                services.SpiderlyAddForwardedHeaders();
+                services.SpiderlyAddForwardedHeaders(settings);
             }
 
             if (builder.LocalizerType != null)
@@ -132,7 +162,7 @@ namespace Spiderly.Shared.Extensions
             return builder;
         }
 
-        public static void SpiderlyAddAuthentication(this IServiceCollection services)
+        public static void SpiderlyAddAuthentication(this IServiceCollection services, Settings settings)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -143,7 +173,7 @@ namespace Spiderly.Shared.Extensions
                     {
                         PathString path = context.HttpContext.Request.Path;
 
-                        string accessTokenKey = SettingsProvider.Current.AccessTokenKey;
+                        string accessTokenKey = settings.AccessTokenKey;
 
                         // SignalR clients can't set HTTP headers, so hubs accept the token via query string
                         if (path.StartsWithSegments("/api/hubs"))
@@ -178,10 +208,10 @@ namespace Spiderly.Shared.Extensions
                     ValidateAudience = true,
                     ValidateLifetime = true, // GetTokenAsync() returns null for rejected tokens, so code that needs the raw token uses Helper.GetAccessTokenFromHeader/Cookie() instead
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = SettingsProvider.Current.JwtIssuer,
-                    ValidAudience = SettingsProvider.Current.JwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SettingsProvider.Current.JwtKey)),
-                    ClockSkew = TimeSpan.FromMinutes(SettingsProvider.Current.ClockSkewMinutes),
+                    ValidIssuer = settings.JwtIssuer,
+                    ValidAudience = settings.JwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JwtKey)),
+                    ClockSkew = TimeSpan.FromMinutes(settings.ClockSkewMinutes),
                 };
             });
         }
@@ -211,7 +241,7 @@ namespace Spiderly.Shared.Extensions
                 });
         }
 
-        public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services, DbProviderCodes dbProvider) where TDbContext : DbContext, IApplicationDbContext
+        public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services, DbProviderCodes dbProvider, string connectionString) where TDbContext : DbContext, IApplicationDbContext
         {
             services.AddDbContext<IApplicationDbContext, TDbContext>(options =>
             {
@@ -219,11 +249,11 @@ namespace Spiderly.Shared.Extensions
 
                 if (dbProvider == DbProviderCodes.SQLServer)
                 {
-                    options.UseSqlServer(SettingsProvider.Current.ConnectionString);
+                    options.UseSqlServer(connectionString);
                 }
                 else if (dbProvider == DbProviderCodes.PostgreSQL)
                 {
-                    options.UseNpgsql(SettingsProvider.Current.ConnectionString);
+                    options.UseNpgsql(connectionString);
                 }
 
             });
@@ -250,7 +280,7 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyAddRateLimiters(this IServiceCollection services)
+        public static void SpiderlyAddRateLimiters(this IServiceCollection services, Settings settings)
         {
             services.AddRateLimiter(options =>
             {
@@ -264,8 +294,8 @@ namespace Spiderly.Shared.Extensions
                         partitionKey: ipAddress,
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
-                            PermitLimit = SettingsProvider.Current.RequestsLimitNumber,
-                            Window = TimeSpan.FromSeconds(SettingsProvider.Current.RequestsLimitWindow),
+                            PermitLimit = settings.RequestsLimitNumber,
+                            Window = TimeSpan.FromSeconds(settings.RequestsLimitWindow),
                             SegmentsPerWindow = 6,
                         }
                     );
@@ -277,8 +307,8 @@ namespace Spiderly.Shared.Extensions
                         partitionKey: Helper.GetIPAddress(httpContext),
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
-                            PermitLimit = SettingsProvider.Current.BlobUploadRequestsLimitNumber,
-                            Window = TimeSpan.FromSeconds(SettingsProvider.Current.BlobUploadRequestsLimitWindow),
+                            PermitLimit = settings.BlobUploadRequestsLimitNumber,
+                            Window = TimeSpan.FromSeconds(settings.BlobUploadRequestsLimitWindow),
                             SegmentsPerWindow = 6,
                         }));
 
@@ -315,12 +345,12 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyAddForwardedHeaders(this IServiceCollection services)
+        public static void SpiderlyAddForwardedHeaders(this IServiceCollection services, Settings settings)
         {
             services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.ForwardLimit = SettingsProvider.Current.ForwardLimit;
+                options.ForwardLimit = settings.ForwardLimit;
 
                 options.KnownNetworks.Clear();
                 options.KnownProxies.Clear();
@@ -333,7 +363,7 @@ namespace Spiderly.Shared.Extensions
                 options.KnownNetworks.Add(new IPNetwork(IPAddress.IPv6Loopback, 128));
 
                 // Add any additional trusted proxy networks (e.g. Cloudflare, AWS CloudFront, etc.)
-                foreach (string network in SettingsProvider.Current.TrustedProxyNetworks)
+                foreach (string network in settings.TrustedProxyNetworks)
                 {
                     string[] parts = network.Split('/');
 
@@ -352,14 +382,14 @@ namespace Spiderly.Shared.Extensions
 
         /// <summary>
         /// Registers a named <c>"Brevo"</c> HttpClient pre-configured with the Brevo API base address
-        /// and the API key from <see cref="SettingsProvider.Current"/>.
+        /// and the API key from the bound Spiderly.Shared settings.
         /// </summary>
-        public static void SpiderlyAddBrevoHttpClient(this IServiceCollection services)
+        public static void SpiderlyAddBrevoHttpClient(this IServiceCollection services, Settings settings)
         {
             services.AddHttpClient("Brevo", client =>
             {
                 client.BaseAddress = new Uri("https://api.brevo.com/v3/");
-                client.DefaultRequestHeaders.Add("api-key", SettingsProvider.Current.BrevoApiKey);
+                client.DefaultRequestHeaders.Add("api-key", settings.BrevoApiKey);
             });
         }
 
@@ -396,6 +426,27 @@ namespace Spiderly.Shared.Extensions
         public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app)
         {
             app.UseExceptionHandler();
+        }
+
+        /// <summary>
+        /// Registers the global Hangfire filter that sends a Telegram alert when a job lands in
+        /// FailedState. Call this in the Configure phase (after the DI container is built) so the
+        /// filter's dependencies (<see cref="TelegramNotifier"/>, <see cref="NotificationRateLimiter"/>)
+        /// can be resolved from <see cref="IApplicationBuilder.ApplicationServices"/>.
+        /// <example>
+        /// <code>
+        /// app.SpiderlyUseHangfireFailedJobNotificationFilter();
+        /// </code>
+        /// </example>
+        /// </summary>
+        public static void SpiderlyUseHangfireFailedJobNotificationFilter(this IApplicationBuilder app)
+        {
+            IServiceProvider services = app.ApplicationServices;
+            GlobalJobFilters.Filters.Add(new HangfireFailedJobNotificationFilter(
+                services.GetRequiredService<TelegramNotifier>(),
+                services.GetRequiredService<NotificationRateLimiter>(),
+                services.GetRequiredService<INotificationSettings>(),
+                services.GetRequiredService<ILoggerFactory>().CreateLogger<HangfireFailedJobNotificationFilter>()));
         }
 
         #endregion

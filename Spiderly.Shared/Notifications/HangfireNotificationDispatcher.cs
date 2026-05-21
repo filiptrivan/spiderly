@@ -1,5 +1,4 @@
 using Hangfire;
-using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
@@ -7,15 +6,17 @@ namespace Spiderly.Shared.Notifications
     public class HangfireNotificationDispatcher : INotificationDispatcher
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
+        private readonly NotificationRateLimiter _rateLimiter;
 
-        public HangfireNotificationDispatcher(IBackgroundJobClient backgroundJobClient)
+        public HangfireNotificationDispatcher(IBackgroundJobClient backgroundJobClient, NotificationRateLimiter rateLimiter)
         {
             _backgroundJobClient = backgroundJobClient;
+            _rateLimiter = rateLimiter;
         }
 
         public void DispatchUnhandledException(long? userId, Exception ex)
         {
-            if (!Helper.ShouldSendNotification(ex))
+            if (!_rateLimiter.ShouldSend(ex))
                 return;
 
             _backgroundJobClient.Enqueue<UnhandledExceptionNotificationJob>(
@@ -25,7 +26,7 @@ namespace Spiderly.Shared.Notifications
 
         public void DispatchSecurityEvent(string eventType, string debounceKey, string message)
         {
-            if (!Helper.ShouldSendNotification(debounceKey))
+            if (!_rateLimiter.ShouldSend(debounceKey))
                 return;
 
             _backgroundJobClient.Enqueue<SecurityEventNotificationJob>(

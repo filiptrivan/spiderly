@@ -3,8 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Interfaces;
+using Microsoft.IdentityModel.JsonWebTokens;
 using System.Collections.Immutable;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,14 +22,24 @@ namespace Spiderly.Security.Services
         private readonly ITokenStorage<RefreshTokenDTO> _usersRefreshTokens;
         private readonly ITokenStorage<LoginVerificationTokenDTO> _usersLoginVerificationTokens;
         private readonly IStringLocalizer _localizer;
+        private readonly IJwtSettings _jwtSettings;
+        private readonly IAuthPolicySettings _authPolicySettings;
 
         private static readonly Random Random = new();
+        private static readonly JsonWebTokenHandler _jsonWebTokenHandler = new();
 
-        public JwtAuthManagerService(ITokenStorage<RefreshTokenDTO> refreshTokenStorage, ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage, IStringLocalizer localizer)
+        public JwtAuthManagerService(
+            ITokenStorage<RefreshTokenDTO> refreshTokenStorage,
+            ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage,
+            IStringLocalizer localizer,
+            IJwtSettings jwtSettings,
+            IAuthPolicySettings authPolicySettings)
         {
             _usersRefreshTokens = refreshTokenStorage;
             _usersLoginVerificationTokens = loginVerificationTokenStorage;
             _localizer = localizer;
+            _jwtSettings = jwtSettings;
+            _authPolicySettings = authPolicySettings;
         }
 
         public virtual async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
@@ -83,7 +94,7 @@ namespace Spiderly.Security.Services
                 await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken.Value);
                 throw new SecurityViolationException("The user id can't be different in refresh and access token.");
             }
-            if (SettingsProvider.Current.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
+            if (_authPolicySettings.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
             {
                 // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
                 // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
@@ -111,7 +122,7 @@ namespace Spiderly.Security.Services
                 IpAddress = ipAddress,
                 BrowserId = browserId,
                 TokenString = GenerateRandomTokenString(),
-                ExpiresAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.RefreshTokenExpiration),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_authPolicySettings.RefreshTokenExpiration),
             };
 
             await _generateAccessAndRefreshTokensLock.WaitAsync();
@@ -140,7 +151,7 @@ namespace Spiderly.Security.Services
         /// <summary>
         /// Emits the JWT user id as the RFC 7519 <c>"sub"</c> claim. Request-time readers see it as
         /// <see cref="ClaimTypes.NameIdentifier"/> after the bearer middleware's default inbound map;
-        /// code reading raw <see cref="JwtSecurityToken"/> claims (e.g. the refresh flow) must look up
+        /// code reading raw <see cref="JsonWebToken"/> claims (e.g. the refresh flow) must look up
         /// <see cref="JwtRegisteredClaimNames.Sub"/> instead, because no middleware mapping applies there.
         /// </summary>
         public virtual List<Claim> GenerateClaims(long userId)
@@ -155,19 +166,20 @@ namespace Spiderly.Security.Services
 
         private AccessTokenDTO GenerateAccessToken(List<Claim> claims, int? verificationExpiration = null)
         {
-            byte[] secretKey = Encoding.UTF8.GetBytes(Spiderly.Shared.SettingsProvider.Current.JwtKey);
-            SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256Signature);
-            DateTime expiresAt = DateTime.UtcNow.AddMinutes(verificationExpiration ?? SettingsProvider.Current.AccessTokenExpiration);
+            byte[] secretKey = Encoding.UTF8.GetBytes(_jwtSettings.JwtKey);
+            SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256);
+            DateTime expiresAt = DateTime.UtcNow.AddMinutes(verificationExpiration ?? _authPolicySettings.AccessTokenExpiration);
 
-            bool shouldAddAudienceClaim = string.IsNullOrWhiteSpace(claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Aud)?.Value);
-            JwtSecurityToken jwtToken = new JwtSecurityToken(
-                Spiderly.Shared.SettingsProvider.Current.JwtIssuer,
-                shouldAddAudienceClaim ? Spiderly.Shared.SettingsProvider.Current.JwtAudience : string.Empty,
-                claims,
-                expires: expiresAt,
-                signingCredentials: credentials);
+            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Issuer = _jwtSettings.JwtIssuer,
+                Audience = _jwtSettings.JwtAudience,
+                Expires = expiresAt,
+                Subject = new ClaimsIdentity(claims),
+                SigningCredentials = credentials,
+            };
 
-            string accessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            string accessToken = _jsonWebTokenHandler.CreateToken(tokenDescriptor);
 
             return new AccessTokenDTO
             {
@@ -182,7 +194,7 @@ namespace Spiderly.Security.Services
 
             try
             {
-                JwtSecurityToken jwtToken = ValidateJwtToken(accessToken); // We are not validating the jwt token here, we are just reading claims so we don't need to go to the database
+                JsonWebToken jwtToken = await ValidateJwtTokenAsync(accessToken); // We are not validating the jwt token here, we are just reading claims so we don't need to go to the database
                 principalClaims = jwtToken.Claims.ToList();
             }
             catch (Exception)
@@ -194,32 +206,33 @@ namespace Spiderly.Security.Services
             return principalClaims; // It's not possible to return null, if there is no exception it will return, if there is the catch block will throw
         }
 
-        private JwtSecurityToken ValidateJwtToken(string accessToken)
+        private async Task<JsonWebToken> ValidateJwtTokenAsync(string accessToken)
         {
             if (string.IsNullOrWhiteSpace(accessToken))
                 throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
-            byte[] secretKey = Encoding.UTF8.GetBytes(Spiderly.Shared.SettingsProvider.Current.JwtKey);
+            byte[] secretKey = Encoding.UTF8.GetBytes(_jwtSettings.JwtKey);
 
-            new JwtSecurityTokenHandler()
-                .ValidateToken(accessToken,
+            TokenValidationResult result = await _jsonWebTokenHandler
+                .ValidateTokenAsync(accessToken,
                     new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = Spiderly.Shared.SettingsProvider.Current.JwtIssuer,
+                        ValidIssuer = _jwtSettings.JwtIssuer,
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-                        ValidAudience = Spiderly.Shared.SettingsProvider.Current.JwtAudience,
+                        ValidAudience = _jwtSettings.JwtAudience,
                         ValidateAudience = true, // Checking if the audience is the valid one (localhost:7260)
-                        ValidateLifetime = false, // If the token has expired, it will not be valid, so we don't need to do something like this: if (existingRefreshToken.ExpiresAt - jwtToken.ExpiresAt > SettingsProvider.Current.RefreshTokenExpiration - SettingsProvider.Current.AccessTokenExpiration) ...
-                        ClockSkew = TimeSpan.FromMinutes(Spiderly.Shared.SettingsProvider.Current.ClockSkewMinutes)
-                    },
-            out SecurityToken validatedToken);
+                        ValidateLifetime = false, // If the token has expired, it will not be valid, so we don't need to do something like this: if (existingRefreshToken.ExpiresAt - jwtToken.ExpiresAt > RefreshTokenExpiration - AccessTokenExpiration) ...
+                        ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }, // Pin HS256 to block alg-downgrade (e.g. "none")
+                        ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewMinutes)
+                    });
 
-            JwtSecurityToken jwtToken = validatedToken as JwtSecurityToken;
+            if (result.IsValid == false) // ValidateTokenAsync reports failure via IsValid instead of throwing; the flow expects an exception
+                throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
 
-            if (jwtToken == null || !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature)) // Validating JWT token, checking if it has changed claims etc.
-                throw new SecurityViolationException("JWT header tampered (algorithm or claims changed).");
+            if (result.SecurityToken is not JsonWebToken jwtToken)
+                throw new InvalidOperationException("Expected a JsonWebToken from a successful validation result.");
 
             return jwtToken;
         }
@@ -299,9 +312,9 @@ namespace Spiderly.Security.Services
         {
             IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString());
             List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = tokens.ToList();
-            if (refreshTokens.Count > SettingsProvider.Current.AllowedBrowsersForTheSingleUser)
+            if (refreshTokens.Count > _authPolicySettings.AllowedBrowsersForTheSingleUser)
             {
-                List<KeyValuePair<string, RefreshTokenDTO>> excessBrowserRefreshTokens = refreshTokens.OrderBy(x => x.Value.ExpiresAt).Take(refreshTokens.Count - SettingsProvider.Current.AllowedBrowsersForTheSingleUser).ToList();
+                List<KeyValuePair<string, RefreshTokenDTO>> excessBrowserRefreshTokens = refreshTokens.OrderBy(x => x.Value.ExpiresAt).Take(refreshTokens.Count - _authPolicySettings.AllowedBrowsersForTheSingleUser).ToList();
                 foreach (KeyValuePair<string, RefreshTokenDTO> refreshToken in excessBrowserRefreshTokens)
                 {
                     await _usersRefreshTokens.TryRemoveAsync(refreshToken.Key);
@@ -347,7 +360,7 @@ namespace Spiderly.Security.Services
             {
                 Email = userEmail,
                 BrowserId = browserId,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(SettingsProvider.Current.VerificationTokenExpiration),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_authPolicySettings.VerificationTokenExpiration),
             };
 
             string code = GenerateVerificationCodeKey();

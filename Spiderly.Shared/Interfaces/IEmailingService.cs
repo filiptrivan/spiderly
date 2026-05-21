@@ -45,5 +45,12 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="subject">The email subject</param>
         /// <param name="body">The email body (HTML supported)</param>
         Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body);
+
+        /// <summary>
+        /// Whether this implementation has enough configuration to actually deliver email.
+        /// Used (e.g.) to decide whether to surface a login verification code in dev when delivery
+        /// is unavailable. Each implementation checks what it needs (SMTP credentials, an API key, etc.).
+        /// </summary>
+        bool IsConfigured();
     }
 }

@@ -1,6 +1,5 @@
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
@@ -10,17 +9,21 @@ namespace Spiderly.Shared.Notifications
     {
         private readonly IEmailingService _emailingService;
         private readonly ILogger<SecurityEventNotificationJob> _logger;
+        private readonly INotificationSettings _notificationSettings;
+        private readonly TelegramNotifier _telegramNotifier;
 
-        public SecurityEventNotificationJob(IEmailingService emailingService, ILogger<SecurityEventNotificationJob> logger)
+        public SecurityEventNotificationJob(IEmailingService emailingService, ILogger<SecurityEventNotificationJob> logger, INotificationSettings notificationSettings, TelegramNotifier telegramNotifier)
         {
             _emailingService = emailingService;
             _logger = logger;
+            _notificationSettings = notificationSettings;
+            _telegramNotifier = telegramNotifier;
         }
 
         public async Task SendAsync(string eventType, string message)
         {
-            bool hasEmailRecipients = SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0;
-            bool hasTelegram = Helper.IsTelegramConfigured();
+            bool hasEmailRecipients = _notificationSettings.UnhandledExceptionRecipients?.Count > 0;
+            bool hasTelegram = _telegramNotifier.IsConfigured;
 
             if (!hasEmailRecipients && !hasTelegram)
             {
@@ -33,8 +36,8 @@ namespace Spiderly.Shared.Notifications
 
             if (hasTelegram)
             {
-                string text = $"[{SettingsProvider.Current.ApplicationName}] {eventType}\n{message}";
-                await Helper.SendTelegramNotificationAsync(text, _logger);
+                string text = $"[{_notificationSettings.ApplicationName}] {eventType}\n{message}";
+                await _telegramNotifier.SendAsync(text);
             }
         }
 
@@ -42,11 +45,11 @@ namespace Spiderly.Shared.Notifications
         {
             try
             {
-                string subject = $"{SettingsProvider.Current.ApplicationName}: {eventType}";
+                string subject = $"{_notificationSettings.ApplicationName}: {eventType}";
                 string body = message.Replace("\n", "<br>");
 
                 await _emailingService.SendEmailAsync(
-                    SettingsProvider.Current.UnhandledExceptionRecipients,
+                    _notificationSettings.UnhandledExceptionRecipients,
                     subject,
                     body
                 );

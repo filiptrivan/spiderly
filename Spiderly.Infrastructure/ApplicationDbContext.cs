@@ -21,14 +21,18 @@ namespace Spiderly.Infrastructure
         where TUser : class, IUser, new()
     {
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options)
+        private readonly IExternalProviderSettings _externalProviderSettings;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options, IExternalProviderSettings externalProviderSettings)
                 : base(options)
         {
+            _externalProviderSettings = externalProviderSettings;
         }
 
-        protected ApplicationDbContext(DbContextOptions options)
+        protected ApplicationDbContext(DbContextOptions options, IExternalProviderSettings externalProviderSettings)
             : base(options)
         {
+            _externalProviderSettings = externalProviderSettings;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -49,7 +53,7 @@ namespace Spiderly.Infrastructure
                 }
             }
 
-            if (SettingsProvider.Current.UseGoogleAsExternalProvider == false)
+            if (_externalProviderSettings.UseGoogleAsExternalProvider == false)
             {
                 modelBuilder.Entity<TUser>().Ignore(x => x.HasLoggedInWithGoogleAsExternalProvider);
             }

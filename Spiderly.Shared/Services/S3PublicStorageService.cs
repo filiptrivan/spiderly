@@ -14,11 +14,11 @@ namespace Spiderly.Shared.Services
         private readonly string _endpoint;
         private readonly ILogger<S3PublicStorageService> _logger;
 
-        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger)
+        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger, IS3Settings s3Settings)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-            _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
-            _endpoint = SettingsProvider.Current.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3PublicEndpoint));
+            _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(IS3Settings.S3BucketName));
+            _endpoint = s3Settings.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(IS3Settings.S3PublicEndpoint));
             _logger = logger;
         }
 

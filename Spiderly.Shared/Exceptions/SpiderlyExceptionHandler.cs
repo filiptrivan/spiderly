@@ -14,6 +14,7 @@ using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
 
 namespace Spiderly.Shared.Exceptions
 {
@@ -22,15 +23,21 @@ namespace Spiderly.Shared.Exceptions
         private readonly ILogger<SpiderlyExceptionHandler> _logger;
         private readonly IStringLocalizer _localizer;
         private readonly IWebHostEnvironment _env;
+        private readonly ITokenKeySettings _tokenKeySettings;
+        private readonly CookieManager _cookieManager;
 
         public SpiderlyExceptionHandler(
             ILogger<SpiderlyExceptionHandler> logger,
             IStringLocalizer localizer,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            ITokenKeySettings tokenKeySettings,
+            CookieManager cookieManager)
         {
             _logger = logger;
             _localizer = localizer;
             _env = env;
+            _tokenKeySettings = tokenKeySettings;
+            _cookieManager = cookieManager;
         }
 
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception ex, CancellationToken cancellationToken)
@@ -106,9 +113,9 @@ namespace Spiderly.Shared.Exceptions
                 logLevel = LogLevel.Information;
                 logException = false;
 
-                CookieHelper.ClearCookie(httpContext.Response.Cookies, SettingsProvider.Current.AccessTokenKey, httpOnly: true);
-                CookieHelper.ClearCookie(httpContext.Response.Cookies, SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
-                CookieHelper.ClearCookie(httpContext.Response.Cookies, SettingsProvider.Current.AuthResultKey, httpOnly: false);
+                _cookieManager.ClearCookie(httpContext.Response.Cookies, _tokenKeySettings.AccessTokenKey, httpOnly: true);
+                _cookieManager.ClearCookie(httpContext.Response.Cookies, _tokenKeySettings.RefreshTokenKey, httpOnly: true);
+                _cookieManager.ClearCookie(httpContext.Response.Cookies, _tokenKeySettings.AuthResultKey, httpOnly: false);
             }
             else if (ex is DbUpdateConcurrencyException)
             {

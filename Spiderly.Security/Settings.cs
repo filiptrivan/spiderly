@@ -1,12 +1,10 @@
 namespace Spiderly.Security
 {
-    public static class SettingsProvider
+    public class Settings : Interfaces.IAuthPolicySettings
     {
-        public static Settings Current { get; set; } = new Settings();
-    }
+        /// <summary>Configuration section these settings bind from.</summary>
+        public const string ConfigurationSection = "AppSettings:Spiderly.Security";
 
-    public class Settings
-    {
         public int AccessTokenExpiration { get; set; } = 20;
         public int RefreshTokenExpiration { get; set; } = 1440;
 
@@ -26,8 +24,8 @@ namespace Spiderly.Security
         public bool UseRedisCache { get; set; }
         public string RedisConnectionString { get; set; }
 
-        public string RefreshTokenKey { get; set; } = "refresh_token";
-        public string AccessTokenKey { get; set; } = "access_token";
-        public string AuthResultKey { get; set; } = "auth_status";
+        // Token cookie key names live on Spiderly.Shared.Settings (ITokenKeySettings) as the single
+        // source of truth — the JWT bearer middleware (Shared) and the auth/cookie services (Security)
+        // must agree on them. Configure them under AppSettings:Spiderly.Shared.
     }
 }

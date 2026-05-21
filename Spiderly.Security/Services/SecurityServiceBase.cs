@@ -33,6 +33,7 @@ namespace Spiderly.Security.Services
         private readonly IEmailingService _emailingService;
         private readonly IWebHostEnvironment _environment;
         private readonly IStringLocalizer _localizer;
+        private readonly IAuthPolicySettings _authPolicySettings;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
@@ -40,7 +41,8 @@ namespace Spiderly.Security.Services
             IEmailingService emailingService,
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
-            IStringLocalizer localizer
+            IStringLocalizer localizer,
+            IAuthPolicySettings authPolicySettings
         )
         {
             _context = context;
@@ -49,6 +51,7 @@ namespace Spiderly.Security.Services
             _authenticationService = authenticationService;
             _environment = environment;
             _localizer = localizer;
+            _authPolicySettings = authPolicySettings;
         }
 
         #region Authentication
@@ -65,7 +68,7 @@ namespace Spiderly.Security.Services
 
             if (user == null)
             {
-                if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                if (_authPolicySettings.OnlyAdminCanAddUsers)
                     throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                 userEmail = loginDTO.Email;
@@ -130,7 +133,7 @@ namespace Spiderly.Security.Services
 
                 if (user == null)
                 {
-                    if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                    if (_authPolicySettings.OnlyAdminCanAddUsers)
                         throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                     user = new TUser
@@ -166,7 +169,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
-            string googleClientId = SettingsProvider.Current.GoogleClientId;
+            string googleClientId = _authPolicySettings.GoogleClientId;
 
             GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
 
@@ -178,7 +181,7 @@ namespace Spiderly.Security.Services
 
                 if (user == null)
                 {
-                    if (SettingsProvider.Current.OnlyAdminCanAddUsers)
+                    if (_authPolicySettings.OnlyAdminCanAddUsers)
                         throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
                     user = new TUser
@@ -376,7 +379,7 @@ namespace Spiderly.Security.Services
 
         private bool ShouldShowVerificationCodeInNotification()
         {
-            bool isEmailingConfigured = Shared.Helpers.Helper.IsEmailingConfigured();
+            bool isEmailingConfigured = _emailingService.IsConfigured();
             bool isDevelopment = _environment.IsDevelopment();
 
             return isDevelopment && !isEmailingConfigured;

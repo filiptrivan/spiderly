@@ -10,10 +10,10 @@ namespace Spiderly.Shared.Services
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
 
-        public S3PrivateStorageService(IAmazonS3 s3Client)
+        public S3PrivateStorageService(IAmazonS3 s3Client, IS3Settings s3Settings)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-            _bucketName = SettingsProvider.Current.S3BucketName ?? throw new ArgumentNullException(nameof(SettingsProvider.Current.S3BucketName));
+            _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(IS3Settings.S3BucketName));
         }
 
         /// <returns>Newly generated file name (S3 key)</returns>

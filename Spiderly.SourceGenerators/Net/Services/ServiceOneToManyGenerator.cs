@@ -347,7 +347,7 @@ namespace Spiderly.SourceGenerators.Net
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 PaginatedResult<{{listEntitty.Name}}> paginationResult = await GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(filterDTO, query);
-                int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
+                int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query{{(hasId ? ".OrderBy(x => x.Id)" : "")}}
                     .Take(maxRows)
                     .ProjectToType<{{listEntitty.Name}}DTO>(Mapper.{{listEntitty.Name}}ExcelProjectToConfig());

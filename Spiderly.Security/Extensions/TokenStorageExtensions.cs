@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
@@ -24,7 +25,7 @@ namespace Spiderly.Security.Extensions
         /// </summary>
         public static SpiderlyBuilder AddTokenStorage(this SpiderlyBuilder builder)
         {
-            builder.Services.AddSpiderlyTokenStorage();
+            builder.Services.AddSpiderlyTokenStorage(builder.Configuration);
             return builder;
         }
 
@@ -33,8 +34,15 @@ namespace Spiderly.Security.Extensions
         /// Uses Redis when <see cref="Settings.UseRedisCache"/> is enabled, otherwise uses in-memory storage.
         /// Prefer using the <see cref="AddTokenStorage(SpiderlyBuilder)"/> builder extension instead.
         /// </summary>
-        public static IServiceCollection AddSpiderlyTokenStorage(this IServiceCollection services)
+        public static IServiceCollection AddSpiderlyTokenStorage(this IServiceCollection services, IConfiguration configuration)
         {
+            // Bind the Spiderly.Security settings section once and register IAuthPolicySettings as an
+            // injectable read-only view, so the security services depend on configuration rather than a
+            // global mutable static. (Token cookie key names — ITokenKeySettings — live in Spiderly.Shared
+            // as the single source of truth.)
+            Settings securitySettings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
+            services.AddSingleton<IAuthPolicySettings>(securitySettings);
+
             Dictionary<string, Func<RefreshTokenDTO, string>> refreshTokenIndexes = new()
             {
                 [RefreshTokenDTO.UserIdIndex] = token => token.UserId.ToString(),
@@ -45,10 +53,10 @@ namespace Spiderly.Security.Extensions
                 [LoginVerificationTokenDTO.EmailIndex] = token => token.Email,
             };
 
-            if (SettingsProvider.Current.UseRedisCache)
+            if (securitySettings.UseRedisCache)
             {
                 services.AddSingleton<IConnectionMultiplexer>(sp =>
-                    ConnectionMultiplexer.Connect(SettingsProvider.Current.RedisConnectionString));
+                    ConnectionMultiplexer.Connect(securitySettings.RedisConnectionString));
 
                 services.AddSingleton<ITokenStorage<RefreshTokenDTO>>(sp =>
                     new RedisTokenStorage<RefreshTokenDTO>(

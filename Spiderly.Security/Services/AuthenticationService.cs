@@ -19,16 +19,25 @@ namespace Spiderly.Security.Services
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IApplicationDbContext _context;
+        private readonly IAuthPolicySettings _authPolicySettings;
+        private readonly ITokenKeySettings _tokenKeySettings;
+        private readonly CookieManager _cookieManager;
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor,
             IApplicationDbContext context,
-            IStringLocalizer localizer
+            IStringLocalizer localizer,
+            IAuthPolicySettings authPolicySettings,
+            ITokenKeySettings tokenKeySettings,
+            CookieManager cookieManager
         )
             : base(context, localizer)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;
+            _authPolicySettings = authPolicySettings;
+            _tokenKeySettings = tokenKeySettings;
+            _cookieManager = cookieManager;
         }
 
         public virtual long GetCurrentUserId()
@@ -81,7 +90,7 @@ namespace Spiderly.Security.Services
 
         public virtual string GetAccessTokenFromCookie()
         {
-            return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext);
+            return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext, _tokenKeySettings.AccessTokenKey);
         }
 
         public virtual string GetIPAddress()
@@ -91,49 +100,49 @@ namespace Spiderly.Security.Services
 
         public virtual string GetRefreshTokenFromCookie()
         {
-            return _httpContextAccessor.HttpContext?.Request.Cookies[SettingsProvider.Current.RefreshTokenKey];
+            return _httpContextAccessor.HttpContext?.Request.Cookies[_tokenKeySettings.RefreshTokenKey];
         }
 
         public virtual void SetRefreshTokenCookie(string refreshToken)
         {
-            SetCookie(SettingsProvider.Current.RefreshTokenKey, refreshToken, SettingsProvider.Current.RefreshTokenExpiration, httpOnly: true);
+            SetCookie(_tokenKeySettings.RefreshTokenKey, refreshToken, _authPolicySettings.RefreshTokenExpiration, httpOnly: true);
         }
 
         public virtual void ClearRefreshTokenCookie()
         {
-            ClearCookie(SettingsProvider.Current.RefreshTokenKey, httpOnly: true);
+            ClearCookie(_tokenKeySettings.RefreshTokenKey, httpOnly: true);
         }
 
         public virtual void SetAccessTokenCookie(string accessToken)
         {
-            SetCookie(SettingsProvider.Current.AccessTokenKey, accessToken, SettingsProvider.Current.AccessTokenExpiration, httpOnly: true);
+            SetCookie(_tokenKeySettings.AccessTokenKey, accessToken, _authPolicySettings.AccessTokenExpiration, httpOnly: true);
         }
 
         public virtual void ClearAccessTokenCookie()
         {
-            ClearCookie(SettingsProvider.Current.AccessTokenKey, httpOnly: true);
+            ClearCookie(_tokenKeySettings.AccessTokenKey, httpOnly: true);
         }
 
         public virtual void SetAuthResultCookie(AuthResultWithCookiesDTO authResult)
         {
             string json = JsonSerializer.Serialize(authResult);
-            SetCookie(SettingsProvider.Current.AuthResultKey, json, SettingsProvider.Current.RefreshTokenExpiration, httpOnly: false);
+            SetCookie(_tokenKeySettings.AuthResultKey, json, _authPolicySettings.RefreshTokenExpiration, httpOnly: false);
         }
 
         public virtual void ClearAuthResultCookie()
         {
-            ClearCookie(SettingsProvider.Current.AuthResultKey, httpOnly: false);
+            ClearCookie(_tokenKeySettings.AuthResultKey, httpOnly: false);
         }
 
         private void SetCookie(string key, string value, int expirationMinutes, bool httpOnly)
         {
-            CookieOptions cookieOptions = CookieHelper.GetCookieOptions(expirationMinutes, httpOnly);
+            CookieOptions cookieOptions = _cookieManager.GetCookieOptions(expirationMinutes, httpOnly);
             _httpContextAccessor.HttpContext.Response.Cookies.Append(key, value, cookieOptions);
         }
 
         private void ClearCookie(string key, bool httpOnly)
         {
-            CookieHelper.ClearCookie(_httpContextAccessor.HttpContext.Response.Cookies, key, httpOnly);
+            _cookieManager.ClearCookie(_httpContextAccessor.HttpContext.Response.Cookies, key, httpOnly);
         }
     }
 }

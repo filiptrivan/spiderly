@@ -1,8 +1,6 @@
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using System.Text;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -11,17 +9,21 @@ namespace Spiderly.Shared.Notifications
     {
         private readonly IEmailingService _emailingService;
         private readonly ILogger<UnhandledExceptionNotificationJob> _logger;
+        private readonly INotificationSettings _notificationSettings;
+        private readonly TelegramNotifier _telegramNotifier;
 
-        public UnhandledExceptionNotificationJob(IEmailingService emailingService, ILogger<UnhandledExceptionNotificationJob> logger)
+        public UnhandledExceptionNotificationJob(IEmailingService emailingService, ILogger<UnhandledExceptionNotificationJob> logger, INotificationSettings notificationSettings, TelegramNotifier telegramNotifier)
         {
             _emailingService = emailingService;
             _logger = logger;
+            _notificationSettings = notificationSettings;
+            _telegramNotifier = telegramNotifier;
         }
 
         public async Task SendAsync(long? userId, string exceptionString)
         {
-            bool hasEmailRecipients = SettingsProvider.Current.UnhandledExceptionRecipients?.Count > 0;
-            bool hasTelegram = Helper.IsTelegramConfigured();
+            bool hasEmailRecipients = _notificationSettings.UnhandledExceptionRecipients?.Count > 0;
+            bool hasTelegram = _telegramNotifier.IsConfigured;
 
             if (!hasEmailRecipients && !hasTelegram)
             {
@@ -33,21 +35,21 @@ namespace Spiderly.Shared.Notifications
                 await SendUnhandledExceptionEmailAsync(userId, exceptionString);
 
             if (hasTelegram)
-                await Helper.SendTelegramNotificationAsync(userId, exceptionString, _logger);
+                await _telegramNotifier.SendUnhandledExceptionAsync(userId, exceptionString);
         }
 
         private async Task SendUnhandledExceptionEmailAsync(long? userId, string exceptionString)
         {
             try
             {
-                string subject = $"{SettingsProvider.Current.ApplicationName}: Unhandled Exception";
+                string subject = $"{_notificationSettings.ApplicationName}: Unhandled Exception";
                 string body = $$"""
 Currently authenticated user id: {{userId}}); <br>
 {{exceptionString}}
 """;
 
                 await _emailingService.SendEmailAsync(
-                    SettingsProvider.Current.UnhandledExceptionRecipients,
+                    _notificationSettings.UnhandledExceptionRecipients,
                     subject,
                     body
                 );

@@ -174,7 +174,7 @@ namespace TestApp.Business.Services
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 PaginatedResult<Product> paginationResult = await GetPaginatedProductList(filterDTO, query);
-                int maxRows = Spiderly.Shared.SettingsProvider.Current.ExcelExportMaxRows;
+                int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
                     .Take(maxRows)
