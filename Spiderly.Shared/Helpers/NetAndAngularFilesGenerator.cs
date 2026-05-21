@@ -2007,7 +2007,7 @@ public class Startup
     {
         Configuration = configuration;
         // All settings are bound and registered in DI in ConfigureServices (services.Configure<Settings>)
-        // and via AddSpiderly(Configuration, ...). No global mutable static is used.
+        // and via AddSpiderly(Configuration, ...).
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -3150,6 +3150,7 @@ namespace {{appName}}.Business.DataMappers
         "karma-jasmine-html-reporter": "2.1.0",
         "tailwindcss": "^4.0.0",
         "@tailwindcss/postcss": "^4.0.0",
+        "tailwindcss-primeui": "0.6.1",
         "typescript": "5.5.4"
     }
 }
@@ -3457,6 +3458,14 @@ export const ThemePreset = definePreset(Aura, {
             return $$"""
 @layer primeng;
 @import "tailwindcss/theme";
+/* Bridges PrimeNG's runtime theme variables (--p-surface-*, --p-primary-* from the Aura preset) to
+   Tailwind color tokens, so utilities like `bg-primary-50` / `border-surface-200` resolve to the
+   active theme instead of being dead classes. MUST stay before `tailwindcss/utilities`: it registers
+   the tokens via `@theme inline`, and Tailwind generates utilities at the utilities import, so tokens
+   added after that point are silently ignored. The tokens are unlayered and the enabled utilities land
+   in the `utilities` layer, so don't move this into `@layer primeng`. Note: Tailwind v4 defaults a bare
+   `border` (no color modifier) to `currentColor` — always name a color. */
+@import "tailwindcss-primeui";
 @import "tailwindcss/utilities";
 
 {{SlashCommented("""
