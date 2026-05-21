@@ -87,7 +87,7 @@ Code edits (N items affect you):
 Manual steps after upgrade:
   - <step the agent can't do for you>
 
-Version bumps: Spiderly.*  19.5.0 → 21.2.0  (4 csproj + Frontend/package.json)
+Version bumps: Spiderly.*  19.5.0 → 21.2.0  (4 csproj + Frontend/package.json[ + .claude/settings.json skills pin])
 
 After approval: apply → bump → restore + install (parallel) → build. Up to 2 build-fix retries on failure.
 ```
@@ -102,8 +102,9 @@ In this order. A failure at any step is a hard stop until the recovery procedure
 
 1. **Code edits.** Apply each plan item via Edit. Read each target file first.
 2. **Version bumps.** Iterate the csproj list cached in Step 1: rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />` to the new version. Rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
-3. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
-4. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
+3. **Skills pin.** If a `.claude/settings.json` exists with `extraKnownMarketplaces.spiderly.source.ref`, rewrite that `ref` to `v{target}` so the Claude Code skills track the upgraded framework version instead of staying frozen at the version that originally scaffolded the app. No-op if the file or the `ref` field is absent — apps scaffolded before ref-pinning was introduced won't have it, and that's fine; don't add the field in that case.
+4. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
+5. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
 
 ## Step 7 — Build-failure recovery (max 2 retries)
 
