@@ -12,6 +12,9 @@ Spiderly's `SendLoginVerificationEmail` endpoint returns the verification code i
 ```ts
 import { APIRequestContext, Page, expect } from '@playwright/test';
 
+// Scaffold default only. The authoritative backend URL is the origin of `apiUrl`
+// in Frontend/src/environments/environment.ts (strip the trailing /api); the bound
+// port is in Backend/<App>.WebAPI/Properties/launchSettings.json -> applicationUrl.
 const API_BASE_URL = 'http://localhost:5000';
 
 export async function login(request: APIRequestContext) {

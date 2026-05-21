@@ -8,6 +8,7 @@ description: Upgrade a Spiderly consumer app's package version (NuGet + npm) to 
 End-to-end version upgrade for apps consuming Spiderly via the NuGet packages (`Spiderly.Shared`, `Spiderly.Security`, `Spiderly.Infrastructure`, `Spiderly.SourceGenerators`) and the `spiderly` npm package. (`Spiderly.CLI` is a `dotnet tool`, not a project reference — out of scope.)
 
 Invocation forms:
+
 - `/spiderly-upgrade <version>` — explicit target (e.g. `21.2.0`)
 - `/spiderly-upgrade latest` — fetch latest stable from NuGet
 - `/spiderly-upgrade` — same as `latest`
@@ -16,15 +17,18 @@ Spiderly has no backward-compatibility commitment — every release can break pu
 
 ## Step 1 — Pre-flight
 
-Follow [ai-agentic-design](../ai-agentic-design/SKILL.md): every refused-to-start condition exits non-zero with an actionable message. Cache the parsed csproj and `package.json` contents from this step — Step 6 reuses them.
+Follow Spiderly's fail-loudly convention: every refused-to-start condition exits non-zero with an actionable message. Cache the parsed csproj and `package.json` contents from this step — Step 6 reuses them.
 
 1. **Locate the app.** Glob `**/*.csproj` and `**/package.json` from CWD (skip `node_modules`, `bin`, `obj`). Identify the Backend (csproj with `Spiderly.*` PackageReferences) and Frontend (package.json with `"spiderly"` dep). If neither is found, exit:
+
    > Not a Spiderly app: no `Spiderly.*` PackageReference or `spiderly` npm dep found from this directory.
 
 2. **Reject local-dev consumers.** If any csproj has a `<ProjectReference Include="...\spiderly\...">` pointing at a sibling Spiderly checkout, exit:
+
    > This skill is for NuGet/npm consumers. You're using local ProjectReferences to a sibling `spiderly/` directory — upgrade by `git pull` in that directory instead.
 
 3. **Require clean git state.** Run `git status --porcelain`. If non-empty, exit:
+
    > Working tree must be clean before upgrading. Commit or stash your changes first — the upgrade will make many edits, and a clean tree is your `git restore .` safety net.
 
 4. **Detect current version.** Read all `Spiderly.*` `PackageReference` `Version=` values across every csproj, plus the `"spiderly"` value in `Frontend/package.json`. They should agree. If they drift, list the values and ask the user which to treat as "current".
@@ -51,6 +55,7 @@ On 403 rate-limited: ask the user to export `GH_TOKEN` (no scopes needed) and re
 ### User-facing file paths (filter the compare response client-side)
 
 **Include** — changes here affect consumers:
+
 - `Spiderly.Shared/**/*.cs` — public attributes, contracts, builders
 - `Spiderly.Security/**/*.cs` — auth interfaces, attributes
 - `Spiderly.Infrastructure/**/*.cs` — DI extensions, base services
@@ -64,6 +69,7 @@ On 403 rate-limited: ask the user to export `GH_TOKEN` (no scopes needed) and re
 ## Step 4 — Impact scan and plan
 
 Read the combined release notes + filtered diff in a single pass. Identify changes that likely affect a consumer:
+
 - New / renamed / removed public types, methods, attributes in `Spiderly.Shared`, `Spiderly.Security`, `Spiderly.Infrastructure`
 - Changes in source-generator output shape (consumers may have overrides that no longer compile)
 - Changes in the init template — signals what NEW apps look like; existing apps may need to mirror (e.g. a new `services.AddTransient<X>()`)
@@ -71,6 +77,7 @@ Read the combined release notes + filtered diff in a single pass. Identify chang
 - CLI command/flag changes (if the user has CI scripts invoking `spiderly`)
 
 For each candidate change:
+
 1. Describe in one line what changed.
 2. Use Grep over the user's codebase to find real usages. Read context, don't just match symbol names blindly.
 3. If no real usages exist, drop the item from the plan.
@@ -102,13 +109,14 @@ In this order. A failure at any step is a hard stop until the recovery procedure
 
 1. **Code edits.** Apply each plan item via Edit. Read each target file first.
 2. **Version bumps.** Iterate the csproj list cached in Step 1: rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />` to the new version. Rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
-3. **Skills pin.** If a `.claude/settings.json` exists with `extraKnownMarketplaces.spiderly.source.ref`, rewrite that `ref` to `v{target}` so the Claude Code skills track the upgraded framework version instead of staying frozen at the version that originally scaffolded the app. No-op if the file or the `ref` field is absent — apps scaffolded before ref-pinning was introduced won't have it, and that's fine; don't add the field in that case.
+3. **Skills pin.** If a `.claude/settings.json` exists with `extraKnownMarketplaces.spiderly.source.ref`, rewrite that `ref` to `v{target}` so the Claude Code skills track the upgraded framework version instead of staying frozen at the version that originally scaffolded the app.
 4. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
 5. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
 
 ## Step 7 — Build-failure recovery (max 2 retries)
 
 Loop up to 2 times — stop on first green build:
+
 1. Scan output for the **first `SPIDERLY`-prefixed diagnostic** (these are the root cause; downstream `CS0246` errors about missing `*DTO` types are noise). Fall back to the first `CS` error only if no SPIDERLY diagnostic exists.
 2. Read the offending file. Apply the most likely fix using the error message + the diff context from Step 3.
 3. Re-run `dotnet build`.
@@ -133,6 +141,7 @@ The in-progress upgrade is in your working tree.
 ## Step 8 — Done
 
 Print summary:
+
 - Versions bumped (from → to)
 - Files edited (count + list)
 - Manual steps remaining (re-print verbatim from the plan)

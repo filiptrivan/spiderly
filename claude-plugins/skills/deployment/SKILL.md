@@ -5,7 +5,7 @@ description: Deploy a Spiderly project to your own infrastructure with Docker, C
 
 # Deployment
 
-Spiderly is Docker-first by design (see `ai-agentic-design`). The recommended production setup is a single VPS running Docker Compose, fronted by Caddy and Cloudflare, with all infrastructure declared in Terraform.
+Spiderly is Docker-first by design. The recommended production setup is a single VPS running Docker Compose, fronted by Caddy and Cloudflare, with all infrastructure declared in Terraform.
 
 ## Recommended stack
 

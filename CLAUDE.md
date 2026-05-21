@@ -48,4 +48,4 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 
 ## AI-Agentic Philosophy
 
-Spiderly is an AI-agentic framework. Every feature must be drivable by an AI agent without human intervention. See the `ai-agentic-design` skill (`claude-plugins/skills/ai-agentic-design/SKILL.md`) for the complete design principles. Key rules: non-interactive by default, fail loudly with non-zero exit codes, validate prerequisites upfront, Docker-first for infrastructure in non-interactive mode.
+Spiderly is an AI-agentic framework. Every feature must be drivable by an AI agent without human intervention. See the `ai-agentic-design` skill (`.claude/skills/ai-agentic-design/SKILL.md` — contributor-only, intentionally kept out of the consumer-shipped `claude-plugins/skills/`) for the complete design principles. Key rules: non-interactive by default, fail loudly with non-zero exit codes, validate prerequisites upfront, Docker-first for infrastructure in non-interactive mode.
