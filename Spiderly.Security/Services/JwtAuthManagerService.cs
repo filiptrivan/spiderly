@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
+using Spiderly.Shared;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Interfaces;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -22,8 +24,10 @@ namespace Spiderly.Security.Services
         private readonly ITokenStorage<RefreshTokenDTO> _usersRefreshTokens;
         private readonly ITokenStorage<LoginVerificationTokenDTO> _usersLoginVerificationTokens;
         private readonly IStringLocalizer _localizer;
-        private readonly IJwtSettings _jwtSettings;
-        private readonly IAuthPolicySettings _authPolicySettings;
+        private readonly JwtOptions _jwtSettings;
+        private readonly AuthPolicyOptions _authPolicySettings;
+        private readonly SigningCredentials _signingCredentials;
+        private readonly TokenValidationParameters _accessTokenValidationParameters;
 
         private static readonly Random Random = new();
         private static readonly JsonWebTokenHandler _jsonWebTokenHandler = new();
@@ -32,14 +36,31 @@ namespace Spiderly.Security.Services
             ITokenStorage<RefreshTokenDTO> refreshTokenStorage,
             ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage,
             IStringLocalizer localizer,
-            IJwtSettings jwtSettings,
-            IAuthPolicySettings authPolicySettings)
+            IOptions<JwtOptions> jwtOptions,
+            IOptions<AuthPolicyOptions> authPolicyOptions)
         {
             _usersRefreshTokens = refreshTokenStorage;
             _usersLoginVerificationTokens = loginVerificationTokenStorage;
             _localizer = localizer;
-            _jwtSettings = jwtSettings;
-            _authPolicySettings = authPolicySettings;
+            _jwtSettings = jwtOptions.Value;
+            _authPolicySettings = authPolicyOptions.Value;
+
+            // Key/issuer/audience are fixed for the service lifetime, so build the signing credentials and
+            // validation parameters once instead of per token issue/validate (both on the auth hot path).
+            SymmetricSecurityKey signingKey = new(Encoding.UTF8.GetBytes(_jwtSettings.JwtKey));
+            _signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+            _accessTokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = _jwtSettings.JwtIssuer,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = signingKey,
+                ValidAudience = _jwtSettings.JwtAudience,
+                ValidateAudience = true,
+                ValidateLifetime = false, // Refresh deliberately reads claims from a possibly-expired access token
+                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }, // Pin HS256 to block alg-downgrade (e.g. "none")
+                ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewMinutes),
+            };
         }
 
         public virtual async Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync()
@@ -166,8 +187,6 @@ namespace Spiderly.Security.Services
 
         private AccessTokenDTO GenerateAccessToken(List<Claim> claims, int? verificationExpiration = null)
         {
-            byte[] secretKey = Encoding.UTF8.GetBytes(_jwtSettings.JwtKey);
-            SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256);
             DateTime expiresAt = DateTime.UtcNow.AddMinutes(verificationExpiration ?? _authPolicySettings.AccessTokenExpiration);
 
             SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
@@ -176,7 +195,7 @@ namespace Spiderly.Security.Services
                 Audience = _jwtSettings.JwtAudience,
                 Expires = expiresAt,
                 Subject = new ClaimsIdentity(claims),
-                SigningCredentials = credentials,
+                SigningCredentials = _signingCredentials,
             };
 
             string accessToken = _jsonWebTokenHandler.CreateToken(tokenDescriptor);
@@ -211,22 +230,7 @@ namespace Spiderly.Security.Services
             if (string.IsNullOrWhiteSpace(accessToken))
                 throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
 
-            byte[] secretKey = Encoding.UTF8.GetBytes(_jwtSettings.JwtKey);
-
-            TokenValidationResult result = await _jsonWebTokenHandler
-                .ValidateTokenAsync(accessToken,
-                    new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = _jwtSettings.JwtIssuer,
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-                        ValidAudience = _jwtSettings.JwtAudience,
-                        ValidateAudience = true, // Checking if the audience is the valid one (localhost:7260)
-                        ValidateLifetime = false, // If the token has expired, it will not be valid, so we don't need to do something like this: if (existingRefreshToken.ExpiresAt - jwtToken.ExpiresAt > RefreshTokenExpiration - AccessTokenExpiration) ...
-                        ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }, // Pin HS256 to block alg-downgrade (e.g. "none")
-                        ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewMinutes)
-                    });
+            TokenValidationResult result = await _jsonWebTokenHandler.ValidateTokenAsync(accessToken, _accessTokenValidationParameters);
 
             if (result.IsValid == false) // ValidateTokenAsync reports failure via IsValid instead of throwing; the flow expects an exception
                 throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);

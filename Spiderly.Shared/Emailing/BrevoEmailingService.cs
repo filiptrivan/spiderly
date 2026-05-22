@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Interfaces;
 using System.Net.Http.Json;
@@ -14,13 +15,13 @@ namespace Spiderly.Shared.Emailing
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<BrevoEmailingService> _logger;
-        private readonly IEmailSettings _emailSettings;
+        private readonly EmailOptions _emailSettings;
 
-        public BrevoEmailingService(IHttpClientFactory httpClientFactory, ILogger<BrevoEmailingService> logger, IEmailSettings emailSettings)
+        public BrevoEmailingService(IHttpClientFactory httpClientFactory, ILogger<BrevoEmailingService> logger, IOptions<EmailOptions> emailOptions)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            _emailSettings = emailSettings;
+            _emailSettings = emailOptions.Value;
         }
 
         public bool IsConfigured()

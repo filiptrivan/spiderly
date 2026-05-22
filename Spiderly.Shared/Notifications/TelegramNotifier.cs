@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.Interfaces;
+using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Net.Http.Json;
 
@@ -12,16 +12,16 @@ namespace Spiderly.Shared.Notifications
     /// </summary>
     public class TelegramNotifier
     {
-        private readonly INotificationSettings _settings;
+        private readonly NotificationOptions _settings;
         private readonly ILogger<TelegramNotifier> _logger;
         private readonly HttpClient _httpClient = new();
 
         private const int TelegramMaxLength = 4096;
         private const string TruncationMarker = "\n...[truncated]...\n";
 
-        public TelegramNotifier(INotificationSettings settings, ILogger<TelegramNotifier> logger)
+        public TelegramNotifier(IOptions<NotificationOptions> options, ILogger<TelegramNotifier> logger)
         {
-            _settings = settings;
+            _settings = options.Value;
             _logger = logger;
         }
 

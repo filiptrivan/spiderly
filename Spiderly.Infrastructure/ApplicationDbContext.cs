@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Spiderly.Shared;
 using Spiderly.Shared.BaseEntities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spiderly.Shared.Interfaces;
@@ -21,18 +23,18 @@ namespace Spiderly.Infrastructure
         where TUser : class, IUser, new()
     {
 
-        private readonly IExternalProviderSettings _externalProviderSettings;
+        private readonly ExternalProviderOptions _externalProviderSettings;
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options, IExternalProviderSettings externalProviderSettings)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options, IOptions<ExternalProviderOptions> externalProviderOptions)
                 : base(options)
         {
-            _externalProviderSettings = externalProviderSettings;
+            _externalProviderSettings = externalProviderOptions.Value;
         }
 
-        protected ApplicationDbContext(DbContextOptions options, IExternalProviderSettings externalProviderSettings)
+        protected ApplicationDbContext(DbContextOptions options, IOptions<ExternalProviderOptions> externalProviderOptions)
             : base(options)
         {
-            _externalProviderSettings = externalProviderSettings;
+            _externalProviderSettings = externalProviderOptions.Value;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

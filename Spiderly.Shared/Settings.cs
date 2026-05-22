@@ -1,63 +1,34 @@
-﻿using Microsoft.AspNetCore.Http;
-using Spiderly.Shared.Emailing;
-using Spiderly.Shared.Interfaces;
-
 namespace Spiderly.Shared
 {
-    public class Settings : IJwtSettings, IS3Settings, IEmailSettings, INotificationSettings, ITokenKeySettings, ICookieSettings, IExcelSettings, IExternalProviderSettings
+    /// <summary>
+    /// Composition-time-only settings bound from <c>AppSettings:Spiderly.Shared</c> during startup
+    /// (the DB connection string, CORS frontend URL, rate-limit and forwarded-headers tuning). These are
+    /// read once while building the service collection and are never injected — runtime services consume
+    /// the focused <c>*Options</c> classes (e.g. <see cref="JwtOptions"/>, <see cref="S3Options"/>) via
+    /// the .NET Options pattern instead.
+    /// </summary>
+    public class Settings
     {
         /// <summary>Configuration section these settings bind from.</summary>
         public const string ConfigurationSection = "AppSettings:Spiderly.Shared";
 
-        /// <summary>
-        /// When <c>false</c>, the Google external-provider column is omitted from the user model.
-        /// </summary>
-        public bool UseGoogleAsExternalProvider { get; set; } = true;
-
-        public string ApplicationName { get; set; }
+        /// <summary>Database connection string used to configure the application <c>DbContext</c>.</summary>
         public string ConnectionString { get; set; }
 
+        /// <summary>Storefront/admin origin allowed by CORS.</summary>
+        public string FrontendUrl { get; set; } = "http://localhost:4200";
 
-        public List<string> UnhandledExceptionRecipients { get; set; }
-        /// <summary>
-        /// Default "From" address for transactional emails. <c>Email</c> is also used as the SMTP
-        /// username when the <see cref="EmailingService"/> (SMTP) implementation is active.
-        /// </summary>
-        public EmailSender EmailSender { get; set; } = new();
-        public string EmailSenderPassword { get; set; }
-        public string SmtpHost { get; set; } = "smtp.gmail.com";
-        public int SmtpPort { get; set; } = 587;
-        public string BrevoApiKey { get; set; }
-
-        public string TelegramBotToken { get; set; }
-        public string TelegramChatId { get; set; }
-        public int NotificationRateLimitMinutes { get; set; } = 5;
-
-
-        public string JwtKey { get; set; }
-        public string JwtIssuer { get; set; } = "https://localhost:7260;";
-        public string JwtAudience { get; set; } = "https://localhost:7260;";
-        public int ClockSkewMinutes { get; set; } = 1;
-        public string AccessTokenKey { get; set; } = "access_token";
-        public string RefreshTokenKey { get; set; } = "refresh_token";
-        public string AuthResultKey { get; set; } = "auth_status";
-
+        /// <summary>Global sliding-window permit limit per IP.</summary>
         public int RequestsLimitNumber { get; set; } = 240;
+
+        /// <summary>Global sliding-window length, in seconds.</summary>
         public int RequestsLimitWindow { get; set; } = 60;
 
+        /// <summary>Blob-upload sliding-window permit limit per IP.</summary>
         public int BlobUploadRequestsLimitNumber { get; set; } = 20;
+
+        /// <summary>Blob-upload sliding-window length, in seconds.</summary>
         public int BlobUploadRequestsLimitWindow { get; set; } = 60;
-
-        public string S3BucketName { get; set; }
-        public string S3PublicEndpoint { get; set; }
-
-        public string CookieDomain { get; set; }
-        public SameSiteMode CookieSameSite { get; set; } = SameSiteMode.None;
-
-        public string FrontendUrl { get; set; } = "http://localhost:4200";
-        public string ExcelContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-        public int ExcelExportMaxRows { get; set; } = 100_000;
 
         /// <summary>
         /// Additional CIDR ranges of trusted proxies allowed to set X-Forwarded-For headers
@@ -71,6 +42,5 @@ namespace Spiderly.Shared
         /// Set to the number of reverse proxies in front of the app (e.g. 1 for Caddy/Nginx, 2 for Cloudflare + Nginx).
         /// </summary>
         public int ForwardLimit { get; set; } = 1;
-
     }
 }

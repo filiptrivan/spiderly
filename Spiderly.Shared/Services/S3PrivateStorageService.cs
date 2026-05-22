@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -10,10 +11,10 @@ namespace Spiderly.Shared.Services
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
 
-        public S3PrivateStorageService(IAmazonS3 s3Client, IS3Settings s3Settings)
+        public S3PrivateStorageService(IAmazonS3 s3Client, IOptions<S3Options> s3Options)
         {
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-            _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(IS3Settings.S3BucketName));
+            _bucketName = s3Options.Value.S3BucketName ?? throw new ArgumentNullException(nameof(S3Options.S3BucketName));
         }
 
         /// <returns>Newly generated file name (S3 key)</returns>

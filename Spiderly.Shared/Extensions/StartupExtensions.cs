@@ -73,23 +73,30 @@ namespace Spiderly.Shared.Extensions
                     "A database provider must be configured. Call UsePostgreSQL() or UseSQLServer() inside the AddSpiderly configuration.");
             }
 
-            // Bind the Spiderly.Shared settings section once and register it as the injectable source of
-            // truth, plus focused read-only interface views. Framework services depend on these injected
-            // settings rather than a global mutable static. Fail fast if a signing key is missing.
-            Settings settings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
+            // Bind the focused settings classes from the Spiderly.Shared section via the Options pattern.
+            // Framework services inject IOptions<T> rather than depending on a global mutable static, and
+            // ValidateOnStart fails fast at boot. The signing-key check is conditional: a JWT key is only
+            // required when authentication is enabled.
+            IConfigurationSection section = configuration.GetSection(Settings.ConfigurationSection);
 
-            if (builder.AuthenticationEnabled && string.IsNullOrWhiteSpace(settings.JwtKey))
-                throw new InvalidOperationException(
-                    $"Spiderly: '{Settings.ConfigurationSection}:JwtKey' is required when authentication is enabled.");
+            services.AddOptions<JwtOptions>().Bind(section)
+                .Validate(
+                    o => !builder.AuthenticationEnabled || !string.IsNullOrWhiteSpace(o.JwtKey),
+                    $"Spiderly: '{Settings.ConfigurationSection}:JwtKey' is required when authentication is enabled.")
+                .ValidateOnStart();
+            services.AddOptions<TokenKeyOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<S3Options>().Bind(section).ValidateOnStart();
+            services.AddOptions<EmailOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<NotificationOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<CookieSettings>().Bind(section).ValidateOnStart();
+            services.AddOptions<ExcelOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<ExternalProviderOptions>().Bind(section).ValidateOnStart();
 
-            services.AddSingleton<IJwtSettings>(settings);
-            services.AddSingleton<ITokenKeySettings>(settings);
-            services.AddSingleton<IS3Settings>(settings);
-            services.AddSingleton<IEmailSettings>(settings);
-            services.AddSingleton<INotificationSettings>(settings);
-            services.AddSingleton<ICookieSettings>(settings);
-            services.AddSingleton<IExcelSettings>(settings);
-            services.AddSingleton<IExternalProviderSettings>(settings);
+            // Composition-time-only values (connection string, rate-limit/proxy tuning) plus the Email
+            // snapshot the Brevo HttpClient setup needs before the container is built. JWT/auth options are
+            // consumed via IOptions<T> inside SpiderlyAddAuthentication, so no local snapshot is needed.
+            Settings settings = section.Get<Settings>() ?? new();
+            EmailOptions email = section.Get<EmailOptions>() ?? new();
 
             // Core (always registered)
             services.AddSingleton<CookieManager>();
@@ -112,7 +119,7 @@ namespace Spiderly.Shared.Extensions
             // Optional modules
             if (builder.AuthenticationEnabled)
             {
-                services.SpiderlyAddAuthentication(settings);
+                services.SpiderlyAddAuthentication();
                 services.AddAuthorization();
             }
 
@@ -127,7 +134,7 @@ namespace Spiderly.Shared.Extensions
 
                 if (builder.BrevoHttpClientEnabled)
                 {
-                    services.SpiderlyAddBrevoHttpClient(settings);
+                    services.SpiderlyAddBrevoHttpClient(email);
                 }
             }
 
@@ -162,18 +169,27 @@ namespace Spiderly.Shared.Extensions
             return builder;
         }
 
-        public static void SpiderlyAddAuthentication(this IServiceCollection services, Settings settings)
+        public static void SpiderlyAddAuthentication(this IServiceCollection services)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+                .AddJwtBearer();
+
+            // Configure the bearer options from the validated JwtOptions / TokenKeyOptions, so the signing
+            // key comes from the same Options instance ValidateOnStart guards — a missing JwtKey surfaces the
+            // friendly OptionsValidationException instead of a raw ArgumentNullException from GetBytes(null).
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtOptions>, IOptions<TokenKeyOptions>>((options, jwtOptions, tokenKeyOptions) =>
             {
+                JwtOptions jwt = jwtOptions.Value;
+                TokenKeyOptions tokenKeys = tokenKeyOptions.Value;
+
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
                         PathString path = context.HttpContext.Request.Path;
 
-                        string accessTokenKey = settings.AccessTokenKey;
+                        string accessTokenKey = tokenKeys.AccessTokenKey;
 
                         // SignalR clients can't set HTTP headers, so hubs accept the token via query string
                         if (path.StartsWithSegments("/api/hubs"))
@@ -208,10 +224,10 @@ namespace Spiderly.Shared.Extensions
                     ValidateAudience = true,
                     ValidateLifetime = true, // GetTokenAsync() returns null for rejected tokens, so code that needs the raw token uses Helper.GetAccessTokenFromHeader/Cookie() instead
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = settings.JwtIssuer,
-                    ValidAudience = settings.JwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JwtKey)),
-                    ClockSkew = TimeSpan.FromMinutes(settings.ClockSkewMinutes),
+                    ValidIssuer = jwt.JwtIssuer,
+                    ValidAudience = jwt.JwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.JwtKey)),
+                    ClockSkew = TimeSpan.FromMinutes(jwt.ClockSkewMinutes),
                 };
             });
         }
@@ -384,12 +400,12 @@ namespace Spiderly.Shared.Extensions
         /// Registers a named <c>"Brevo"</c> HttpClient pre-configured with the Brevo API base address
         /// and the API key from the bound Spiderly.Shared settings.
         /// </summary>
-        public static void SpiderlyAddBrevoHttpClient(this IServiceCollection services, Settings settings)
+        public static void SpiderlyAddBrevoHttpClient(this IServiceCollection services, EmailOptions email)
         {
             services.AddHttpClient("Brevo", client =>
             {
                 client.BaseAddress = new Uri("https://api.brevo.com/v3/");
-                client.DefaultRequestHeaders.Add("api-key", settings.BrevoApiKey);
+                client.DefaultRequestHeaders.Add("api-key", email.BrevoApiKey);
             });
         }
 
@@ -445,7 +461,7 @@ namespace Spiderly.Shared.Extensions
             GlobalJobFilters.Filters.Add(new HangfireFailedJobNotificationFilter(
                 services.GetRequiredService<TelegramNotifier>(),
                 services.GetRequiredService<NotificationRateLimiter>(),
-                services.GetRequiredService<INotificationSettings>(),
+                services.GetRequiredService<IOptions<NotificationOptions>>(),
                 services.GetRequiredService<ILoggerFactory>().CreateLogger<HangfireFailedJobNotificationFilter>()));
         }
 

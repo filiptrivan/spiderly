@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -14,11 +15,12 @@ namespace Spiderly.Shared.Services
         private readonly string _endpoint;
         private readonly ILogger<S3PublicStorageService> _logger;
 
-        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger, IS3Settings s3Settings)
+        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger, IOptions<S3Options> s3Options)
         {
+            S3Options s3Settings = s3Options.Value;
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-            _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(IS3Settings.S3BucketName));
-            _endpoint = s3Settings.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(IS3Settings.S3PublicEndpoint));
+            _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(S3Options.S3BucketName));
+            _endpoint = s3Settings.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(S3Options.S3PublicEndpoint));
             _logger = logger;
         }
 

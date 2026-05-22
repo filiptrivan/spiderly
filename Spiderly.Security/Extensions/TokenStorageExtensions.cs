@@ -36,12 +36,15 @@ namespace Spiderly.Security.Extensions
         /// </summary>
         public static IServiceCollection AddSpiderlyTokenStorage(this IServiceCollection services, IConfiguration configuration)
         {
-            // Bind the Spiderly.Security settings section once and register IAuthPolicySettings as an
-            // injectable read-only view, so the security services depend on configuration rather than a
-            // global mutable static. (Token cookie key names — ITokenKeySettings — live in Spiderly.Shared
-            // as the single source of truth.)
+            // Bind AuthPolicyOptions from the Spiderly.Security section via the Options pattern, so the
+            // security services inject IOptions<AuthPolicyOptions> and validation runs at startup. (Token
+            // cookie key names — TokenKeyOptions — live in Spiderly.Shared as the single source of truth.)
+            services.AddOptions<AuthPolicyOptions>()
+                .Bind(configuration.GetSection(Settings.ConfigurationSection))
+                .ValidateOnStart();
+
+            // The token-storage backend selection is read once here at composition time (not injected).
             Settings securitySettings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
-            services.AddSingleton<IAuthPolicySettings>(securitySettings);
 
             Dictionary<string, Func<RefreshTokenDTO, string>> refreshTokenIndexes = new()
             {

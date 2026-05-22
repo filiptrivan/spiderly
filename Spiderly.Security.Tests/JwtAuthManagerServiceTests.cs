@@ -1,13 +1,13 @@
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Services;
+using Spiderly.Shared;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Localization;
-using SharedSettings = Spiderly.Shared.Settings;
-using SecuritySettings = Spiderly.Security.Settings;
 
 namespace Spiderly.Security.Tests
 {
@@ -31,11 +31,10 @@ namespace Spiderly.Security.Tests
 
         public JwtAuthManagerServiceTests()
         {
-            // JWT config is injected, so each test instance gets its own settings — no global static to
-            // mutate and no teardown. Tests are fully isolated and safe to parallelize. SharedSettings /
-            // SecuritySettings implement the injected IJwtSettings / IAuthPolicySettings views; their
-            // defaults are fine for the codec, we only pin the JWT signing/issuer/audience values.
-            SharedSettings jwtSettings = new()
+            // JWT config is injected as IOptions<T>, so each test instance gets its own settings — no
+            // global static to mutate and no teardown. Tests are fully isolated and safe to parallelize.
+            // AuthPolicyOptions defaults are fine for the codec; we only pin the JWT signing/issuer/audience.
+            JwtOptions jwtOptions = new()
             {
                 JwtKey = ValidKey,
                 JwtIssuer = Issuer,
@@ -50,7 +49,7 @@ namespace Spiderly.Security.Tests
                 });
             InMemoryTokenStorage<LoginVerificationTokenDTO> verificationStore = new();
 
-            _sut = new JwtAuthManagerService(refreshStore, verificationStore, new PassthroughStringLocalizer(), jwtSettings, new SecuritySettings());
+            _sut = new JwtAuthManagerService(refreshStore, verificationStore, new PassthroughStringLocalizer(), Options.Create(jwtOptions), Options.Create(new AuthPolicyOptions()));
         }
 
         [Fact]

@@ -1,6 +1,8 @@
-﻿//HintName: EntityServiceDependencies.generated.cs
+//HintName: EntityServiceDependencies.generated.cs
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Spiderly.Security.Services;
+using Spiderly.Shared;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Interfaces;
 using TestApp.Business.Services;
@@ -18,7 +20,7 @@ namespace TestApp.Business.Services
         public AuthorizationServiceGenerated AuthorizationService { get; }
         public IStringLocalizer Localizer { get; }
         public IServiceProvider ServiceProvider { get; }
-        public IExcelSettings ExcelSettings { get; }
+        public ExcelOptions ExcelSettings { get; }
 
         public EntityServiceDependencies(
             IApplicationDbContext context,
@@ -26,14 +28,14 @@ namespace TestApp.Business.Services
             AuthorizationServiceGenerated authorizationService,
             IStringLocalizer localizer,
             IServiceProvider serviceProvider,
-            IExcelSettings excelSettings)
+            IOptions<ExcelOptions> excelOptions)
         {
             Context = context;
             ExcelService = excelService;
             AuthorizationService = authorizationService;
             Localizer = localizer;
             ServiceProvider = serviceProvider;
-            ExcelSettings = excelSettings;
+            ExcelSettings = excelOptions.Value;
         }
     }
 }

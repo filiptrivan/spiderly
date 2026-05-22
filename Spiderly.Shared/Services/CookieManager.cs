@@ -1,21 +1,21 @@
 using Microsoft.AspNetCore.Http;
-using Spiderly.Shared.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace Spiderly.Shared.Services
 {
     /// <summary>
     /// Builds <see cref="CookieOptions"/> with the configured SameSite/Domain attributes and clears
     /// cookies. Injectable replacement for the former static <c>CookieHelper</c> — depends on
-    /// <see cref="ICookieSettings"/> rather than the global mutable <c>SettingsProvider</c> static.
+    /// <see cref="CookieSettings"/> rather than the global mutable <c>SettingsProvider</c> static.
     /// Registered as a singleton (stateless aside from the injected settings).
     /// </summary>
     public class CookieManager
     {
-        private readonly ICookieSettings _cookieSettings;
+        private readonly CookieSettings _cookieSettings;
 
-        public CookieManager(ICookieSettings cookieSettings)
+        public CookieManager(IOptions<CookieSettings> options)
         {
-            _cookieSettings = cookieSettings;
+            _cookieSettings = options.Value;
         }
 
         /// <summary>Applies the configured SameSite (or an override) and Domain to <paramref name="options"/>.</summary>

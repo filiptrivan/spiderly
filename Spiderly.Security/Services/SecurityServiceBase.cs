@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
@@ -33,7 +34,7 @@ namespace Spiderly.Security.Services
         private readonly IEmailingService _emailingService;
         private readonly IWebHostEnvironment _environment;
         private readonly IStringLocalizer _localizer;
-        private readonly IAuthPolicySettings _authPolicySettings;
+        private readonly AuthPolicyOptions _authPolicySettings;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
@@ -42,7 +43,7 @@ namespace Spiderly.Security.Services
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
-            IAuthPolicySettings authPolicySettings
+            IOptions<AuthPolicyOptions> authPolicyOptions
         )
         {
             _context = context;
@@ -51,7 +52,7 @@ namespace Spiderly.Security.Services
             _authenticationService = authenticationService;
             _environment = environment;
             _localizer = localizer;
-            _authPolicySettings = authPolicySettings;
+            _authPolicySettings = authPolicyOptions.Value;
         }
 
         #region Authentication

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Interfaces;
 using System.Net;
@@ -11,14 +12,14 @@ namespace Spiderly.Shared.Emailing
     {
         private readonly SmtpClient _smtpClient;
         private readonly ILogger<EmailingService> _logger;
-        private readonly IEmailSettings _emailSettings;
+        private readonly EmailOptions _emailSettings;
 
-        public EmailingService(ILogger<EmailingService> logger, IEmailSettings emailSettings)
+        public EmailingService(ILogger<EmailingService> logger, IOptions<EmailOptions> emailOptions)
         {
-            _emailSettings = emailSettings;
-            _smtpClient = new SmtpClient(emailSettings.SmtpHost, emailSettings.SmtpPort)
+            _emailSettings = emailOptions.Value;
+            _smtpClient = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
             {
-                Credentials = new NetworkCredential(emailSettings.EmailSender?.Email, emailSettings.EmailSenderPassword),
+                Credentials = new NetworkCredential(_emailSettings.EmailSender?.Email, _emailSettings.EmailSenderPassword),
                 EnableSsl = true
             };
             _logger = logger;

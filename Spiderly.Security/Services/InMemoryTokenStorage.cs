@@ -6,7 +6,7 @@ namespace Spiderly.Security.Services
     public class InMemoryTokenStorage<T> : ITokenStorage<T> where T : class, IExpirableToken
     {
         // Making ConcurrentDictionary if two users are searching for the refresh token in the same time
-        // The maximum number of the refresh tokens inside dictionary is IAuthPolicySettings.AllowedBrowsersForTheSingleUser
+        // The maximum number of the refresh tokens inside dictionary is AuthPolicyOptions.AllowedBrowsersForTheSingleUser
         private readonly ConcurrentDictionary<string, T> _storage = new();
         private readonly Dictionary<string, Func<T, string>> _indexExtractors;
 

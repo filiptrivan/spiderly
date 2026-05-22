@@ -1,5 +1,6 @@
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
@@ -9,14 +10,14 @@ namespace Spiderly.Shared.Notifications
     {
         private readonly IEmailingService _emailingService;
         private readonly ILogger<SecurityEventNotificationJob> _logger;
-        private readonly INotificationSettings _notificationSettings;
+        private readonly NotificationOptions _notificationSettings;
         private readonly TelegramNotifier _telegramNotifier;
 
-        public SecurityEventNotificationJob(IEmailingService emailingService, ILogger<SecurityEventNotificationJob> logger, INotificationSettings notificationSettings, TelegramNotifier telegramNotifier)
+        public SecurityEventNotificationJob(IEmailingService emailingService, ILogger<SecurityEventNotificationJob> logger, IOptions<NotificationOptions> notificationOptions, TelegramNotifier telegramNotifier)
         {
             _emailingService = emailingService;
             _logger = logger;
-            _notificationSettings = notificationSettings;
+            _notificationSettings = notificationOptions.Value;
             _telegramNotifier = telegramNotifier;
         }
 

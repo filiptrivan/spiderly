@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Spiderly.Shared.Contracts;
@@ -23,20 +24,20 @@ namespace Spiderly.Shared.Exceptions
         private readonly ILogger<SpiderlyExceptionHandler> _logger;
         private readonly IStringLocalizer _localizer;
         private readonly IWebHostEnvironment _env;
-        private readonly ITokenKeySettings _tokenKeySettings;
+        private readonly TokenKeyOptions _tokenKeySettings;
         private readonly CookieManager _cookieManager;
 
         public SpiderlyExceptionHandler(
             ILogger<SpiderlyExceptionHandler> logger,
             IStringLocalizer localizer,
             IWebHostEnvironment env,
-            ITokenKeySettings tokenKeySettings,
+            IOptions<TokenKeyOptions> tokenKeyOptions,
             CookieManager cookieManager)
         {
             _logger = logger;
             _localizer = localizer;
             _env = env;
-            _tokenKeySettings = tokenKeySettings;
+            _tokenKeySettings = tokenKeyOptions.Value;
             _cookieManager = cookieManager;
         }
 

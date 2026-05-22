@@ -1,4 +1,4 @@
-using Spiderly.Shared.Interfaces;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
 namespace Spiderly.Shared.Notifications
@@ -10,18 +10,18 @@ namespace Spiderly.Shared.Notifications
     /// </summary>
     public class NotificationRateLimiter
     {
-        private readonly INotificationSettings _settings;
+        private readonly NotificationOptions _settings;
         private readonly ConcurrentDictionary<string, DateTimeOffset> _rateLimitCache = new();
         private DateTimeOffset _lastCacheCleanup = DateTimeOffset.UtcNow;
 
-        public NotificationRateLimiter(INotificationSettings settings)
+        public NotificationRateLimiter(IOptions<NotificationOptions> options)
         {
-            _settings = settings;
+            _settings = options.Value;
         }
 
         /// <summary>
         /// Returns <c>true</c> the first time an <paramref name="eventKey"/> is seen and again only after
-        /// <see cref="INotificationSettings.NotificationRateLimitMinutes"/> have elapsed since the last send.
+        /// <see cref="NotificationOptions.NotificationRateLimitMinutes"/> have elapsed since the last send.
         /// A non-positive rate limit disables debouncing (always <c>true</c>).
         /// </summary>
         public bool ShouldSend(string eventKey)

@@ -87,7 +87,9 @@ namespace Spiderly.SourceGenerators.Net
         {
             return $$"""
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Spiderly.Security.Services;
+using Spiderly.Shared;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Interfaces;
 using {{basePartOfNamespace}}.Services;
@@ -105,7 +107,7 @@ namespace {{basePartOfNamespace}}.Services
         public AuthorizationServiceGenerated AuthorizationService { get; }
         public IStringLocalizer Localizer { get; }
         public IServiceProvider ServiceProvider { get; }
-        public IExcelSettings ExcelSettings { get; }
+        public ExcelOptions ExcelSettings { get; }
 
         public EntityServiceDependencies(
             IApplicationDbContext context,
@@ -113,14 +115,14 @@ namespace {{basePartOfNamespace}}.Services
             AuthorizationServiceGenerated authorizationService,
             IStringLocalizer localizer,
             IServiceProvider serviceProvider,
-            IExcelSettings excelSettings)
+            IOptions<ExcelOptions> excelOptions)
         {
             Context = context;
             ExcelService = excelService;
             AuthorizationService = authorizationService;
             Localizer = localizer;
             ServiceProvider = serviceProvider;
-            ExcelSettings = excelSettings;
+            ExcelSettings = excelOptions.Value;
         }
     }
 }

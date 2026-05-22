@@ -2,7 +2,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
-using Spiderly.Shared.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -18,18 +18,18 @@ namespace Spiderly.Shared.Notifications
     {
         private readonly TelegramNotifier _telegramNotifier;
         private readonly NotificationRateLimiter _rateLimiter;
-        private readonly INotificationSettings _notificationSettings;
+        private readonly NotificationOptions _notificationSettings;
         private readonly ILogger<HangfireFailedJobNotificationFilter> _logger;
 
         public HangfireFailedJobNotificationFilter(
             TelegramNotifier telegramNotifier,
             NotificationRateLimiter rateLimiter,
-            INotificationSettings notificationSettings,
+            IOptions<NotificationOptions> notificationOptions,
             ILogger<HangfireFailedJobNotificationFilter> logger)
         {
             _telegramNotifier = telegramNotifier;
             _rateLimiter = rateLimiter;
-            _notificationSettings = notificationSettings;
+            _notificationSettings = notificationOptions.Value;
             _logger = logger;
         }
 

@@ -195,7 +195,7 @@ namespace {{basePartOfNamespace}}.Controllers
             byte[] fileContent = await {{entityServiceField}}.Export{{controllerEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
             return File(
                 fileContent,
-                _serviceProvider.GetRequiredService<Spiderly.Shared.Interfaces.IExcelSettings>().ExcelContentType,
+                _serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Spiderly.Shared.ExcelOptions>>().Value.ExcelContentType,
                 Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{controllerEntity.Name}}ExcelExportName", "{{controllerEntity.Name}}List")}.xlsx")
             );
         }
@@ -419,7 +419,7 @@ namespace {{basePartOfNamespace}}.Controllers
             byte[] fileContent = await _serviceProvider.GetRequiredService<{{extractedEntity.Name}}ServiceGenerated>().Export{{extractedEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), false);
             return File(
                 fileContent,
-                _serviceProvider.GetRequiredService<Spiderly.Shared.Interfaces.IExcelSettings>().ExcelContentType,
+                _serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Spiderly.Shared.ExcelOptions>>().Value.ExcelContentType,
                 Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }
@@ -461,7 +461,7 @@ namespace {{basePartOfNamespace}}.Controllers
             byte[] fileContent = await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(entity)}});
             return File(
                 fileContent,
-                _serviceProvider.GetRequiredService<Spiderly.Shared.Interfaces.IExcelSettings>().ExcelContentType,
+                _serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Spiderly.Shared.ExcelOptions>>().Value.ExcelContentType,
                 Uri.EscapeDataString($"{_localizer.GetExcelTranslation("{{extractedEntity.Name}}ExcelExportName", "{{extractedEntity.Name}}List")}.xlsx")
             );
         }

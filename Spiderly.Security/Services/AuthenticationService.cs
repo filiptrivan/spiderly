@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
+using Spiderly.Shared;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -19,24 +21,24 @@ namespace Spiderly.Security.Services
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IApplicationDbContext _context;
-        private readonly IAuthPolicySettings _authPolicySettings;
-        private readonly ITokenKeySettings _tokenKeySettings;
+        private readonly AuthPolicyOptions _authPolicySettings;
+        private readonly TokenKeyOptions _tokenKeySettings;
         private readonly CookieManager _cookieManager;
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor,
             IApplicationDbContext context,
             IStringLocalizer localizer,
-            IAuthPolicySettings authPolicySettings,
-            ITokenKeySettings tokenKeySettings,
+            IOptions<AuthPolicyOptions> authPolicyOptions,
+            IOptions<TokenKeyOptions> tokenKeyOptions,
             CookieManager cookieManager
         )
             : base(context, localizer)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;
-            _authPolicySettings = authPolicySettings;
-            _tokenKeySettings = tokenKeySettings;
+            _authPolicySettings = authPolicyOptions.Value;
+            _tokenKeySettings = tokenKeyOptions.Value;
             _cookieManager = cookieManager;
         }
 
