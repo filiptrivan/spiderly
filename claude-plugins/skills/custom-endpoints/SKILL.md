@@ -229,8 +229,8 @@ List<CustomDTO> dtos = await result.Query
 | `Task<ActionResult<TDto>>` | Entity or 404 | 200 or 404 |
 
 ```csharp
-// File download
-return File(bytes, SettingsProvider.Current.ExcelContentType, "export.xlsx");
+// File download (inject IExcelSettings excelSettings via the constructor)
+return File(bytes, excelSettings.ExcelContentType, "export.xlsx");
 
 // Conditional 404
 StorefrontBrandDTO result = await _catalogService.GetBrandBySlug(slug);

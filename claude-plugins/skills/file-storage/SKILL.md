@@ -71,17 +71,18 @@ The S3 client itself is registered separately (one `IAmazonS3` shared by both S3
 ```csharp
 services.AddSingleton<IAmazonS3>(sp =>
 {
+    IConfiguration configuration = sp.GetRequiredService<IConfiguration>();
     AmazonS3Config s3Config = new AmazonS3Config
     {
-        ServiceURL = SettingsProvider.Current.S3ServiceUrl,
+        ServiceURL = configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:S3ServiceUrl"),
         ForcePathStyle = true,
         AuthenticationRegion = "auto",
     };
 
     return new AmazonS3Client(
         new BasicAWSCredentials(
-            SettingsProvider.Current.S3AccessKey,
-            SettingsProvider.Current.S3SecretKey
+            configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:S3AccessKey"),
+            configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:S3SecretKey")
         ),
         s3Config
     );

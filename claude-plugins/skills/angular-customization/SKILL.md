@@ -1,6 +1,6 @@
 ---
 name: angular-customization
-description: Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, adding validators, or working with translations. Admin panel only — not storefront (Next.js/shadcn/Tailwind).
+description: Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, adding validators, or working with translations.
 ---
 
 # Angular Customization
@@ -65,8 +65,11 @@ export class ProductDetailsComponent
   override saveBodyClass = ProductSaveBody;
 
   override onBeforeSave = (saveBody?: ProductSaveBody) => {
-    saveBody.productDTO.stock = saveBody.orderedProductVariantsSaveBodyDTO
-      .reduce((sum, v) => sum + (v.productVariantDTO.stock ?? 0), 0);
+    saveBody.productDTO.stock =
+      saveBody.orderedProductVariantsSaveBodyDTO.reduce(
+        (sum, v) => sum + (v.productVariantDTO.stock ?? 0),
+        0,
+      );
   };
 
   override onAfterSave = () => {
@@ -127,11 +130,7 @@ SpiderlyFormArray<T> extends FormArray
 ### Client-Side Mode
 
 ```html
-<spiderly-data-table
-  [cols]="cols"
-  [items]="localItems"
-  [hasLazyLoad]="false"
->
+<spiderly-data-table [cols]="cols" [items]="localItems" [hasLazyLoad]="false">
 </spiderly-data-table>
 ```
 
@@ -157,41 +156,41 @@ cols: Column<ProductDTO>[] = [
 
 ### Key Inputs
 
-| Input | Type | Default | Purpose |
-|---|---|---|---|
-| `cols` | `Column[]` | — | Column definitions |
-| `getPaginatedListObservableMethod` | `(filter) => Observable` | — | Server-side data source |
-| `additionalFilterIdLong` | `number` | — | Parent entity filter |
-| `hasLazyLoad` | `boolean` | `true` | Server vs client mode |
-| `items` | `any[]` | — | Client-side data |
-| `selectionMode` | `'single' \| 'multiple'` | — | Selection mode |
-| `navigateOnRowClick` | `boolean` | `false` | Click row → details |
-| `rowNavigationPath` | `string` | — | Base path for row click |
-| `showAddButton` | `boolean` | `true` | Show "New" button |
-| `showExportToExcelButton` | `boolean` | `true` | Show Excel export |
-| `readonly` | `boolean` | `false` | Disable mutations |
+| Input                              | Type                     | Default | Purpose                 |
+| ---------------------------------- | ------------------------ | ------- | ----------------------- |
+| `cols`                             | `Column[]`               | —       | Column definitions      |
+| `getPaginatedListObservableMethod` | `(filter) => Observable` | —       | Server-side data source |
+| `additionalFilterIdLong`           | `number`                 | —       | Parent entity filter    |
+| `hasLazyLoad`                      | `boolean`                | `true`  | Server vs client mode   |
+| `items`                            | `any[]`                  | —       | Client-side data        |
+| `selectionMode`                    | `'single' \| 'multiple'` | —       | Selection mode          |
+| `navigateOnRowClick`               | `boolean`                | `false` | Click row → details     |
+| `rowNavigationPath`                | `string`                 | —       | Base path for row click |
+| `showAddButton`                    | `boolean`                | `true`  | Show "New" button       |
+| `showExportToExcelButton`          | `boolean`                | `true`  | Show Excel export       |
+| `readonly`                         | `boolean`                | `false` | Disable mutations       |
 
 ### Key Outputs
 
-| Output | Payload | Purpose |
-|---|---|---|
-| `onRowSelect` | `RowClickEvent` | Row selected |
-| `onRowUnselect` | `RowClickEvent` | Row deselected |
-| `onIsAllSelectedChange` | `AllClickEvent` | Select-all toggled |
-| `onTotalRecordsChange` | `number` | Total records updated |
+| Output                  | Payload         | Purpose               |
+| ----------------------- | --------------- | --------------------- |
+| `onRowSelect`           | `RowClickEvent` | Row selected          |
+| `onRowUnselect`         | `RowClickEvent` | Row deselected        |
+| `onIsAllSelectedChange` | `AllClickEvent` | Select-all toggled    |
+| `onTotalRecordsChange`  | `number`        | Total records updated |
 
 ## Service Overrides
 
 ### ConfigServiceBase
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class ConfigService extends ConfigServiceBase {
-  override logoPath = 'assets/images/my-logo.png';
-  override companyName = 'My Company';
-  override primaryColor = '#3B82F6';
+  override logoPath = "assets/images/my-logo.png";
+  override companyName = "My Company";
+  override primaryColor = "#3B82F6";
   override defaultPageSize = 25;
-  override loginSlug = 'sign-in';
+  override loginSlug = "sign-in";
   override showGoogleAuth = true;
 }
 ```
@@ -205,7 +204,7 @@ Override hooks for custom post-auth behavior:
 ```typescript
 export class AuthService extends AuthServiceBase {
   override onAfterLoginExternal = () => {
-    this.analyticsService.trackLogin('google');
+    this.analyticsService.trackLogin("google");
   };
 
   override onAfterLogout = () => {
@@ -236,13 +235,13 @@ export class LayoutService extends LayoutServiceBase {
 
 ```typescript
 layoutConfig: AppConfig = {
-  inputStyle: 'outlined',     // 'outlined' | 'filled'
-  colorScheme: 'light',       // 'light' | 'dark'
-  menuMode: 'static',         // 'static' | 'overlay'
-  scale: 14,                  // Font scale
+  inputStyle: "outlined", // 'outlined' | 'filled'
+  colorScheme: "light", // 'light' | 'dark'
+  menuMode: "static", // 'static' | 'overlay'
+  scale: 14, // Font scale
   ripple: false,
-  theme: 'lara-light-indigo',
-  color: 'var(--p-primary-color)',
+  theme: "lara-light-indigo",
+  color: "var(--p-primary-color)",
 };
 ```
 
@@ -299,14 +298,17 @@ menu: SpiderlyMenuItem[] = [
 Subclass to add custom validators per entity/field:
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class MyValidatorService extends ValidatorAbstractService {
-  setValidator(control: SpiderlyFormControl, className: string): SpiderlyValidatorFn {
-    if (className === 'Product' && control.label === 'sku') {
+  setValidator(
+    control: SpiderlyFormControl,
+    className: string,
+  ): SpiderlyValidatorFn {
+    if (className === "Product" && control.label === "sku") {
       const validator: SpiderlyValidatorFn = (): ValidationErrors | null => {
         const value = control.value as string;
         if (value && !value.match(/^[A-Z0-9]{6,12}$/))
-          return { _: this.translocoService.translate('InvalidSKU') };
+          return { _: this.translocoService.translate("InvalidSKU") };
         return null;
       };
       control.validator = validator;
@@ -315,7 +317,7 @@ export class MyValidatorService extends ValidatorAbstractService {
   }
 
   setFormArrayValidator(formArray: SpiderlyFormArray, className: string): void {
-    if (className === 'OrderItems') {
+    if (className === "OrderItems") {
       this.isFormArrayEmpty(formArray);
     }
   }
@@ -324,18 +326,19 @@ export class MyValidatorService extends ValidatorAbstractService {
 
 ### Built-in Validators
 
-| Method | Purpose |
-|---|---|
-| `notEmpty(control)` | Required field (sets `control.required = true`) |
-| `isFormArrayEmpty(formArray)` | Array must have items |
-| `isArrayEmpty(control)` | Multi-select must have selections |
-| `validateImageDimensions(file, width, height)` | Async image dimension check (client-side) |
+| Method                                         | Purpose                                         |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `notEmpty(control)`                            | Required field (sets `control.required = true`) |
+| `isFormArrayEmpty(formArray)`                  | Array must have items                           |
+| `isArrayEmpty(control)`                        | Multi-select must have selections               |
+| `validateImageDimensions(file, width, height)` | Async image dimension check (client-side)       |
 
 ## Translations
 
 ### Adding Custom Keys
 
 1. Add to `Frontend/src/assets/i18n/en.json`:
+
    ```json
    { "MyCustomKey": "Custom text" }
    ```
@@ -347,27 +350,28 @@ export class MyValidatorService extends ValidatorAbstractService {
 ### Label Auto-Translation
 
 `BaseFormService.getTranslatedLabel()` converts camelCase property names:
+
 - `productId` → looks up `Product` key
 - `displayName` → empty string (stripped)
 - `name` → looks up `Name` key
 
 ## UI Controls Reference
 
-| Component | Selector | Key Inputs |
-|---|---|---|
-| TextBox | `spiderly-textbox` | `control` |
-| Number | `spiderly-number` | `control` |
-| TextArea | `spiderly-textarea` | `control` |
-| CheckBox | `spiderly-checkbox` | `control` |
-| Calendar | `spiderly-calendar` | `control`, `showTime` |
-| Dropdown | `spiderly-dropdown` | `control`, `options: Namebook[]` |
-| MultiSelect | `spiderly-multiselect` | `control`, `options` |
-| Autocomplete | `spiderly-autocomplete` | `control`, `onTextInput` |
-| MultiAutocomplete | `spiderly-multiautocomplete` | `control`, `onTextInput` |
-| Editor | `spiderly-editor` | `control` |
-| File | `spiderly-file` | `control` |
-| ColorPicker | `spiderly-colorpicker` | `control` |
-| Password | `spiderly-password` | `control` |
+| Component         | Selector                     | Key Inputs                       |
+| ----------------- | ---------------------------- | -------------------------------- |
+| TextBox           | `spiderly-textbox`           | `control`                        |
+| Number            | `spiderly-number`            | `control`                        |
+| TextArea          | `spiderly-textarea`          | `control`                        |
+| CheckBox          | `spiderly-checkbox`          | `control`                        |
+| Calendar          | `spiderly-calendar`          | `control`, `showTime`            |
+| Dropdown          | `spiderly-dropdown`          | `control`, `options: Namebook[]` |
+| MultiSelect       | `spiderly-multiselect`       | `control`, `options`             |
+| Autocomplete      | `spiderly-autocomplete`      | `control`, `onTextInput`         |
+| MultiAutocomplete | `spiderly-multiautocomplete` | `control`, `onTextInput`         |
+| Editor            | `spiderly-editor`            | `control`                        |
+| File              | `spiderly-file`              | `control`                        |
+| ColorPicker       | `spiderly-colorpicker`       | `control`                        |
+| Password          | `spiderly-password`          | `control`                        |
 
 All controls share base inputs: `label`, `disabled`, `showLabel`, `showRequired`, `placeholder`, `showTooltip`, `tooltipText`.
 
@@ -375,19 +379,19 @@ All controls share base inputs: `label`, `disabled`, `showLabel`, `showRequired`
 
 Reach for these before hand-rolling cards, panels, buttons, lists, or empty/loading states.
 
-| Component | Selector | Purpose | Key inputs |
-|---|---|---|---|
-| Card | `spiderly-card` | Titled content container with icon | `title`, `icon` |
-| Panel | `spiderly-panel` | Collapsible section, supports multi-panel grouping + CRUD menu | `toggleable`, `collapsed`, `crudMenu`, `showRemoveIcon`, `isFirstMultiplePanel`/`isMiddleMultiplePanel`/`isLastMultiplePanel` |
-| Panel parts | `panel-header`, `panel-body`, `panel-footer` | Compose a panel's regions | (slotted content) |
-| Info card | `info-card` | Inline informational/callout box | `header`, `icon`, `showSmallIcon`, `textColor` |
-| Index card | `index-card` | Ordered list item with index + CRUD menu | `index`, `header`, `description`, `crudMenu`, `showRemoveIcon`, `last` |
-| Card skeleton | `card-skeleton` | **Loading placeholder** — use instead of a hand-rolled spinner/skeleton | `height` |
-| Button | `spiderly-button` | Themed button | `type` (`button`/`submit`/`reset`) |
-| Split button | `spiderly-split-button` | Button with dropdown menu | `dropdownItems` |
-| Return button | `return-button` | Back-navigation button | `navigateUrl` |
-| Data view | `spiderly-data-view` | Card/grid list with filters + pagination (vs. table) | `items`, `rows`, `filters`, `getPaginatedListObservableMethod`, `showCardWrapper` |
-| Delete confirmation | `spiderly-delete-confirmation` | Standard delete-confirm dialog | — |
-| Not found | `not-found` | **Empty / 404 state** — use instead of a hand-rolled empty state | — |
+| Component           | Selector                                     | Purpose                                                                 | Key inputs                                                                                                                    |
+| ------------------- | -------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Card                | `spiderly-card`                              | Titled content container with icon                                      | `title`, `icon`                                                                                                               |
+| Panel               | `spiderly-panel`                             | Collapsible section, supports multi-panel grouping + CRUD menu          | `toggleable`, `collapsed`, `crudMenu`, `showRemoveIcon`, `isFirstMultiplePanel`/`isMiddleMultiplePanel`/`isLastMultiplePanel` |
+| Panel parts         | `panel-header`, `panel-body`, `panel-footer` | Compose a panel's regions                                               | (slotted content)                                                                                                             |
+| Info card           | `info-card`                                  | Inline informational/callout box                                        | `header`, `icon`, `showSmallIcon`, `textColor`                                                                                |
+| Index card          | `index-card`                                 | Ordered list item with index + CRUD menu                                | `index`, `header`, `description`, `crudMenu`, `showRemoveIcon`, `last`                                                        |
+| Card skeleton       | `card-skeleton`                              | **Loading placeholder** — use instead of a hand-rolled spinner/skeleton | `height`                                                                                                                      |
+| Button              | `spiderly-button`                            | Themed button                                                           | `type` (`button`/`submit`/`reset`)                                                                                            |
+| Split button        | `spiderly-split-button`                      | Button with dropdown menu                                               | `dropdownItems`                                                                                                               |
+| Return button       | `return-button`                              | Back-navigation button                                                  | `navigateUrl`                                                                                                                 |
+| Data view           | `spiderly-data-view`                         | Card/grid list with filters + pagination (vs. table)                    | `items`, `rows`, `filters`, `getPaginatedListObservableMethod`, `showCardWrapper`                                             |
+| Delete confirmation | `spiderly-delete-confirmation`               | Standard delete-confirm dialog                                          | —                                                                                                                             |
+| Not found           | `not-found`                                  | **Empty / 404 state** — use instead of a hand-rolled empty state        | —                                                                                                                             |
 
 For data lists, use `spiderly-data-table` (tabular — see Data Table section) or `spiderly-data-view` (card/grid) — don't build either from scratch.
