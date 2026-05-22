@@ -17,9 +17,15 @@ playwright test              → exercises the resulting app
 | Source | Target |
 |---|---|
 | `backend/entities/*.cs` | `$APP_FOLDER/Backend/$APP_NAME.Business/Entities/` |
-| `backend/infrastructure/ApplicationDbContext.cs` | `$APP_FOLDER/Backend/$APP_NAME.Infrastructure/${APP_NAME}ApplicationDbContext.cs` |
+| `backend/infrastructure/ApplicationDbContext.SeedData.cs` | `$APP_FOLDER/Backend/$APP_NAME.Infrastructure/${APP_NAME}ApplicationDbContext.SeedData.cs` |
 | `frontend/tests/e2e/{helpers,specs,page-objects,fixtures}/` | `$APP_FOLDER/Frontend/e2e/` |
 | `frontend/app/<entity>/<entity>-list.component.ts` | `$APP_FOLDER/Frontend/src/app/pages/<entity>/...` (overrides generated minimal list) |
+
+## Why the DbContext overlay is seed-data-only
+
+The fixture overrides **only** the demo seed data (`${APP_NAME}ApplicationDbContext.SeedData.cs`), never the DbContext class itself. The generated `${APP_NAME}ApplicationDbContext.cs` (constructor, `OnModelCreating`, `SaveChangesAsync`) is left untouched, and `SeedData` is wired as a `partial class` member that our overlay supplies.
+
+This exists because the old overlay copied the *entire* DbContext class. When the framework changed `ApplicationDbContext<TUser>`'s constructor signature (adding `IExternalProviderSettings`), the init template was updated but the fixture's full-file copy drifted and CI failed with `CS1729: ... does not contain a constructor that takes 1 arguments`. A seed-only overlay carries no framework plumbing, so signature changes can never break it again. When you need different e2e seed data, edit only `ApplicationDbContext.SeedData.cs`.
 
 ## Overriding the generated list inside the fixture suite
 

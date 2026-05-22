@@ -1,28 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using __APP_NAME__.Business.Entities;
-using Spiderly.Infrastructure;
 
 namespace __APP_NAME__.Infrastructure
 {
-    public partial class __APP_NAME__ApplicationDbContext : ApplicationDbContext<User>
+    // E2E fixture seed overlay. Replaces the generated demo SeedData (see
+    // Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs -> GetInfrastructureApplicationDbContextSeedDataData)
+    // with the permission/role/category set the e2e specs depend on. This is a partial-class file: it owns ONLY
+    // the seed data, never the DbContext constructor or OnModelCreating, so framework plumbing changes can't break it.
+    public partial class __APP_NAME__ApplicationDbContext
     {
-        public __APP_NAME__ApplicationDbContext(DbContextOptions<__APP_NAME__ApplicationDbContext> options)
-        : base(options)
-        {
-        }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            SeedData(modelBuilder);
-        }
-
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            return await base.SaveChangesAsync(cancellationToken);
-        }
-
         private static void SeedData(ModelBuilder modelBuilder)
         {
             Permission[] permissions =
@@ -103,6 +89,5 @@ namespace __APP_NAME__.Infrastructure
                     new { RoleId = 1, PermissionId = 24 }
                 ));
         }
-
     }
 }

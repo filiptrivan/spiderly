@@ -24,9 +24,12 @@ cp "$SCRIPT_DIR/backend/entities/ProjectMember.cs" "$ENTITIES_DIR/ProjectMember.
 cp "$SCRIPT_DIR/backend/entities/ProjectTask.cs" "$ENTITIES_DIR/ProjectTask.cs"
 cp "$SCRIPT_DIR/backend/entities/TaskComment.cs" "$ENTITIES_DIR/TaskComment.cs"
 
-# --- Copy ApplicationDbContext ---
-echo "Copying ApplicationDbContext..."
-cp "$SCRIPT_DIR/backend/infrastructure/ApplicationDbContext.cs" "$INFRA_DIR/${APP_NAME}ApplicationDbContext.cs"
+# --- Copy ApplicationDbContext seed overlay ---
+# We only override the demo seed data (a partial-class file), never the generated DbContext
+# plumbing (constructor / OnModelCreating). This keeps the fixture immune to framework signature
+# changes that previously broke the build via a stale full-file copy.
+echo "Copying ApplicationDbContext seed overlay..."
+cp "$SCRIPT_DIR/backend/infrastructure/ApplicationDbContext.SeedData.cs" "$INFRA_DIR/${APP_NAME}ApplicationDbContext.SeedData.cs"
 
 # --- Replace __APP_NAME__ placeholder in copied .cs files ---
 echo "Replacing __APP_NAME__ with $APP_NAME in copied files..."

@@ -1865,8 +1865,8 @@ namespace {{appName}}.Infrastructure
 {
     public partial class {{appName}}ApplicationDbContext : ApplicationDbContext<User> // https://stackoverflow.com/questions/41829229/how-do-i-implement-dbcontext-inheritance-for-multiple-databases-in-ef7-net-co
     {
-        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options, Spiderly.Shared.Interfaces.IExternalProviderSettings externalProviderSettings)
-        : base(options, externalProviderSettings)
+        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options, Microsoft.Extensions.Options.IOptions<Spiderly.Shared.ExternalProviderOptions> externalProviderOptions)
+        : base(options, externalProviderOptions)
         {
         }
 
@@ -1881,7 +1881,23 @@ namespace {{appName}}.Infrastructure
         {
             return await base.SaveChangesAsync(cancellationToken);
         }
+    }
+}
+""";
+        }
 
+        private static string GetInfrastructureApplicationDbContextSeedDataData(string appName)
+        {
+            return $$"""
+using Microsoft.EntityFrameworkCore;
+using {{appName}}.Business.Entities;
+
+namespace {{appName}}.Infrastructure
+{
+    // Demo seed data lives in its own partial file so it can be replaced (e.g. by the e2e fixture overlay)
+    // without copying the DbContext plumbing (constructor / OnModelCreating), which is what causes template drift.
+    public partial class {{appName}}ApplicationDbContext
+    {
         private static void SeedData(ModelBuilder modelBuilder)
         {
             Permission[] permissions =
@@ -1922,7 +1938,6 @@ namespace {{appName}}.Infrastructure
                     new { RoleId = 1, PermissionId = 8 }
                 ));
         }
-
     }
 }
 """;
@@ -2003,11 +2018,16 @@ public class Startup
 {
     public IConfiguration Configuration { get; }
 
+    // Composition-time-only Spiderly.Shared settings (connection string, CORS frontend URL). Runtime
+    // services consume the focused *Options classes (e.g. JwtOptions) via the .NET Options pattern,
+    // registered inside AddSpiderly(Configuration, ...).
+    private readonly Spiderly.Shared.Settings _spiderlySharedSettings;
+
     public Startup(IConfiguration configuration)
     {
         Configuration = configuration;
-        // All settings are bound and registered in DI in ConfigureServices (services.Configure<Settings>)
-        // and via AddSpiderly(Configuration, ...).
+        _spiderlySharedSettings = configuration.GetSection(Spiderly.Shared.Settings.ConfigurationSection)
+            .Get<Spiderly.Shared.Settings>() ?? new();
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -2015,7 +2035,7 @@ public class Startup
         services.Configure<{{appName}}.Business.Settings>(Configuration.GetSection({{appName}}.Business.Settings.ConfigurationSection));
         services.Configure<{{appName}}.WebAPI.Settings>(Configuration.GetSection({{appName}}.WebAPI.Settings.ConfigurationSection));
 
-        string spiderlyConnectionString = Configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:ConnectionString");
+        string spiderlyConnectionString = _spiderlySharedSettings.ConnectionString;
         services.AddHangfire(config =>
             config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(spiderlyConnectionString)" : "UseHangfirePostgreSqlStorage(spiderlyConnectionString)")}}
         );
@@ -2055,7 +2075,7 @@ public class Startup
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithOrigins(new[] { Configuration.GetValue<string>($"{Spiderly.Shared.Settings.ConfigurationSection}:FrontendUrl") })
+                .WithOrigins(new[] { _spiderlySharedSettings.FrontendUrl })
                 .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
         });
 
@@ -2449,6 +2469,7 @@ namespace {{appName}}.WebAPI.Extensions
             List<SpiderlyFile> files = new()
         {
             new SpiderlyFile { Name = $"{appName}ApplicationDbContext.cs", Data = GetInfrastructureApplicationDbContextData(appName) },
+            new SpiderlyFile { Name = $"{appName}ApplicationDbContext.SeedData.cs", Data = GetInfrastructureApplicationDbContextSeedDataData(appName) },
             new SpiderlyFile { Name = $"{appName}.Infrastructure.csproj", Data = GetInfrastructureCsProjData(appName, spiderlyVersion, isRunningFromNuget, dbProvider) },
         };
 
@@ -2589,11 +2610,11 @@ namespace {{appName}}.Migrations
             optionsBuilder.UseLazyLoadingProxies();
             {{(dbProvider == DbProviderCodes.SQLServer ? "optionsBuilder.UseSqlServer(connectionString);" : "optionsBuilder.UseNpgsql(connectionString);")}}
 
-            // Spiderly.Shared.Settings implements IExternalProviderSettings (consumed by OnModelCreating).
-            Spiderly.Shared.Settings spiderlySharedSettings =
-                configuration.GetSection(Spiderly.Shared.Settings.ConfigurationSection).Get<Spiderly.Shared.Settings>() ?? new();
+            // ExternalProviderOptions is consumed by OnModelCreating to shape the user model.
+            Spiderly.Shared.ExternalProviderOptions externalProviderOptions =
+                configuration.GetSection(Spiderly.Shared.Settings.ConfigurationSection).Get<Spiderly.Shared.ExternalProviderOptions>() ?? new();
 
-            return new {{appName}}ApplicationDbContext(optionsBuilder.Options, spiderlySharedSettings);
+            return new {{appName}}ApplicationDbContext(optionsBuilder.Options, Microsoft.Extensions.Options.Options.Create(externalProviderOptions));
         }
     }
 }
@@ -2765,6 +2786,8 @@ using {{appName}}.Business.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
+using Spiderly.Security;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -2783,9 +2806,9 @@ namespace {{appName}}.Business.Services
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
-            IAuthPolicySettings authPolicySettings
+            IOptions<AuthPolicyOptions> authPolicyOptions
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicySettings)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions)
         {
             _context = context;
         }
