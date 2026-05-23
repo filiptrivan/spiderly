@@ -115,10 +115,10 @@ namespace Spiderly.Security.Services
                 await RemoveRefreshTokenByUserIdAsync(userIdFromAccessToken.Value);
                 throw new SecurityViolationException("The user id can't be different in refresh and access token.");
             }
-            if (_authPolicySettings.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress) == true)
+            if (_authPolicySettings.AllowTheUseOfAppWithDifferentIpAddresses == false && await IsRefreshTokenWithNewIpAddressAsync(existingRefreshToken.UserId, existingRefreshToken.IpAddress))
             {
-                // cuvas device-ove koje je cesto korisio, guras ih u familiju uredjaja, po nekom algoritmu odredi neki koji ti se cini sumnjiv i
-                // na njemu mu trazi multifaktor aut. ako je klijent uopste trazio multifaktor
+                // Future idea: track the user's frequently-used devices as a "device family", flag a suspicious
+                // one by some heuristic, and require multi-factor auth on it — if the client opted into MFA at all.
                 await RemoveRefreshTokenByUserIdAsync(existingRefreshToken.UserId); // Don't need to delete for userDTO also, because we already did that
                 throw new SecurityTokenException(_localizer["TwoDifferentIpAddressesRefreshException"]);
             }

@@ -12,10 +12,10 @@ namespace Spiderly.Shared
         public string JwtKey { get; set; }
 
         /// <summary>Expected token issuer (<c>iss</c>).</summary>
-        public string JwtIssuer { get; set; } = "https://localhost:7260;";
+        public string JwtIssuer { get; set; } = "https://localhost:7260";
 
         /// <summary>Expected token audience (<c>aud</c>).</summary>
-        public string JwtAudience { get; set; } = "https://localhost:7260;";
+        public string JwtAudience { get; set; } = "https://localhost:7260";
 
         /// <summary>Allowed clock drift, in minutes, when validating token issuer/audience/lifetime claims.</summary>
         public int ClockSkewMinutes { get; set; } = 1;

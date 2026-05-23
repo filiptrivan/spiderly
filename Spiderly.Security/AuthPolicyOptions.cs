@@ -1,8 +1,8 @@
 namespace Spiderly.Security
 {
     /// <summary>
-    /// Authentication policy options — token lifetimes, multi-browser / new-IP rules, user provisioning,
-    /// and external-provider config. Bound from the <c>AppSettings:Spiderly.Security</c> configuration
+    /// Authentication policy options — token lifetimes, multi-browser / new-IP rules, and user
+    /// provisioning. Bound from the <c>AppSettings:Spiderly.Security</c> configuration
     /// section and injected into the security services as
     /// <see cref="Microsoft.Extensions.Options.IOptions{T}"/>, so the security flow depends on
     /// configuration passed in rather than a global mutable static — which keeps the services
@@ -15,9 +15,6 @@ namespace Spiderly.Security
 
         /// <summary>Refresh token lifetime, in minutes.</summary>
         public int RefreshTokenExpiration { get; set; } = 1440;
-
-        /// <summary>Google OAuth client id used to validate external-provider id tokens.</summary>
-        public string GoogleClientId { get; set; }
 
         /// <summary>
         /// Login verification code lifetime, in minutes. It can be longer — it has the same chance of

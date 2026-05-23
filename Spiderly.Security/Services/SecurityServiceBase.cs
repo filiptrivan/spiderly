@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.ValidationRules;
+using Spiderly.Shared;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
@@ -35,6 +36,7 @@ namespace Spiderly.Security.Services
         private readonly IWebHostEnvironment _environment;
         private readonly IStringLocalizer _localizer;
         private readonly AuthPolicyOptions _authPolicySettings;
+        private readonly ExternalProviderOptions _externalProviderSettings;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
@@ -43,7 +45,8 @@ namespace Spiderly.Security.Services
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
-            IOptions<AuthPolicyOptions> authPolicyOptions
+            IOptions<AuthPolicyOptions> authPolicyOptions,
+            IOptions<ExternalProviderOptions> externalProviderOptions
         )
         {
             _context = context;
@@ -53,6 +56,7 @@ namespace Spiderly.Security.Services
             _environment = environment;
             _localizer = localizer;
             _authPolicySettings = authPolicyOptions.Value;
+            _externalProviderSettings = externalProviderOptions.Value;
         }
 
         #region Authentication
@@ -170,7 +174,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
-            string googleClientId = _authPolicySettings.GoogleClientId;
+            string googleClientId = _externalProviderSettings.GoogleClientId;
 
             GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
 

@@ -2275,6 +2275,7 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
+      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
       "EmailSender": {
         "email": "youremail@gmail.com",
         "name": ""
@@ -2284,7 +2285,6 @@ namespace {{appName}}.WebAPI
       ]
     },
     "Spiderly.Security": {
-      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
     }
   }
 }
@@ -2323,9 +2323,6 @@ namespace {{appName}}.WebAPI
   "AppSettings": {
     "Spiderly.Shared": {
       "ConnectionString": "",
-      "JwtKey": ""
-    },
-    "Spiderly.Security": {
       "JwtKey": ""
     }
   }
@@ -2806,9 +2803,10 @@ namespace {{appName}}.Business.Services
             AuthenticationService authenticationService,
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
-            IOptions<AuthPolicyOptions> authPolicyOptions
+            IOptions<AuthPolicyOptions> authPolicyOptions,
+            IOptions<Spiderly.Shared.ExternalProviderOptions> externalProviderOptions
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions, externalProviderOptions)
         {
             _context = context;
         }
