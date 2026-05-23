@@ -186,13 +186,13 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         // ----- SpiderlyTypeRef overloads of the type-classification checks -----
-        // These delegate to the string implementations on SpiderlyTypeRef.Raw so behavior is identical to the
-        // pre-refactor call sites; they exist so generators holding a SpiderlyTypeRef read naturally
-        // (property.Type.IsEnumerable()) instead of reaching for property.Type.Raw at every site.
+        // Collection detection routes through the parser (IsCollection); the name-set checks (base data type,
+        // date/time) delegate to the string implementations on Raw. Either way the logic lives in one place, so
+        // generators holding a SpiderlyTypeRef read naturally (property.Type.IsEnumerable()) without re-parsing.
 
         public static bool IsManyToOneType(this SpiderlyTypeRef type) => type?.Raw.IsManyToOneType() ?? false;
 
-        public static bool IsEnumerable(this SpiderlyTypeRef type) => type?.Raw.IsEnumerable() ?? false;
+        public static bool IsEnumerable(this SpiderlyTypeRef type) => type?.IsCollection ?? false;
 
         public static bool IsOneToManyType(this SpiderlyTypeRef type) => type?.Raw.IsOneToManyType() ?? false;
 
@@ -206,9 +206,14 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool IsEnum(this SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames) => type?.Raw.IsEnum(spiderlyEnumNames) ?? false;
 
+        /// <summary>
+        /// Routes through the single parser (<see cref="SpiderlyTypeRef.IsCollection"/>) so there is exactly one
+        /// notion of "is this a collection" — exact outer-type-name matching, not a loose <c>Contains("List")</c>
+        /// that would also match a type literally named e.g. <c>Listing</c>.
+        /// </summary>
         public static bool IsEnumerable(this string type)
         {
-            return type.Contains("List") || type.Contains("IList") || type.Contains("[]");
+            return SpiderlyTypeRef.Parse(type)?.IsCollection ?? false;
         }
 
         public static bool IsOneToManyType(this string type)

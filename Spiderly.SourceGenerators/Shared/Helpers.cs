@@ -77,21 +77,13 @@ namespace Spiderly.SourceGenerators.Shared
         /// (<c>ExtractTypeFromGenericType(property.Type)</c>) instead of reaching for <c>.Raw</c>.
         /// Delegates to the string implementation, so behavior is identical.
         /// </summary>
-        public static string ExtractTypeFromGenericType(SpiderlyTypeRef input) => ExtractTypeFromGenericType(input?.Raw);
+        public static string ExtractTypeFromGenericType(SpiderlyTypeRef input) => input?.CoreName;
 
         /// <summary>
-        /// List<long> -> long
+        /// List<long> -> long. Delegates to the single parser (<see cref="SpiderlyTypeRef.CoreName"/>) so the
+        /// "inner type" is derived in one place rather than by a separate ad-hoc string split.
         /// </summary>
-        public static string ExtractTypeFromGenericType(string input)
-        {
-            if (input == null)
-                return null;
-
-            string[] parts = input.Split('<'); // List, long>
-            string result = parts.Last().Replace(">", "");
-
-            return result;
-        }
+        public static string ExtractTypeFromGenericType(string input) => SpiderlyTypeRef.Parse(input)?.CoreName;
 
         public static SpiderlyProperty GetOppositeManyToManyProperty(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
