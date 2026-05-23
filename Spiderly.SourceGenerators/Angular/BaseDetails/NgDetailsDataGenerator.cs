@@ -344,7 +344,7 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
-        private static string GetTableColAdditionalProperties(SpiderlyProperty property, SpiderlyClass entity)
+        internal static string GetTableColAdditionalProperties(SpiderlyProperty property, SpiderlyClass entity)
         {
             if (property.IsDropdownControlType())
                 return $", filterField: '{property.Name.FirstCharToLower()}Id', dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
@@ -385,7 +385,7 @@ namespace Spiderly.SourceGenerators.Angular
             return null;
         }
 
-        private static string GetTableColFilterType(SpiderlyProperty property)
+        internal static string GetTableColFilterType(SpiderlyProperty property)
         {
             if (property.IsDropdownControlType())
                 return "multiselect";
