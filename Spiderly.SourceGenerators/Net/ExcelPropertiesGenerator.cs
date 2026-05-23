@@ -54,8 +54,6 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
 
-            SpiderlyClass customMapperClass = Helpers.GetManualyWrittenMapperClass(currentProjectClasses);
-
             StringBuilder sb = new();
 
             string namespaceValue = currentProjectClasses[0].Namespace;
@@ -82,7 +80,7 @@ namespace {{basePartOfNamespace}}.ExcelProperties
 
                 List<string> propertyNames = new();
 
-                foreach (string propertyName in GetPropertiesToExcludeFromExcelExport(DTOClassGroup.Key, DTOProperties, customMapperClass))
+                foreach (string propertyName in GetPropertiesToExcludeFromExcelExport(DTOClassGroup.Key, DTOProperties, allClasses))
                     propertyNames.Add($"\"{propertyName}\"");
 
                 sb.AppendLine($$"""
@@ -98,32 +96,91 @@ namespace {{basePartOfNamespace}}.ExcelProperties
             context.AddSource("ExcelPropertiesToExclude.generated", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        private static List<string> GetPropertiesToExcludeFromExcelExport(string DTOClassName, List<SpiderlyProperty> DTOProperties, SpiderlyClass customMapperClass)
+        private static List<string> GetPropertiesToExcludeFromExcelExport(string DTOClassName, List<SpiderlyProperty> DTOProperties, List<SpiderlyClass> allClasses)
         {
-            List<string> DTOClassPropertiesToExclude = new();
-
-            SpiderlyMethod excelMethod = customMapperClass.Methods
-                .SingleOrDefault(x => x.ReturnType == DTOClassName && x.Name == "ExcelProjectTo");
-
-            List<SpiderlyAttribute> excludePropertyAttributes = new();
-
-            DTOClassPropertiesToExclude = DTOProperties // FT: Excluding Enumerables from the excel
+            // FT: Always exclude enumerables (collections) from the Excel export.
+            List<string> DTOClassPropertiesToExclude = DTOProperties
                 .Where(prop => prop.Type.IsEnumerable())
                 .Select(x => x.Name)
                 .ToList();
 
-            if (excelMethod != null)
+            // Honor [ExcludeFromExcelExport] declared on the source entity. The generated DTO
+            // properties don't carry entity attributes, so resolve the entity for this DTO and
+            // map each attributed entity property to the DTO column name(s) it produces.
+            SpiderlyClass entity = GetEntityForDTO(DTOClassName, allClasses);
+
+            if (entity != null)
             {
-                foreach (SpiderlyAttribute attribute in excelMethod.Attributes)
+                foreach (SpiderlyProperty property in entity.Properties)
                 {
-                    if (attribute.Name == "MapperIgnoreTarget")
-                    {
-                        DTOClassPropertiesToExclude.Add(attribute.Value);
-                    }
+                    if (!property.Attributes.Any(x => x.Name == "ExcludeFromExcelExport"))
+                        continue;
+
+                    foreach (string columnName in GetExcludedDTOColumnNames(property, entity))
+                        DTOClassPropertiesToExclude.Add(columnName);
                 }
             }
 
+            // Hand-written ([SpiderlyDTO]) DTOs aren't derived from an entity, so their own
+            // properties carry the attribute directly — honor it there too. (Entity-derived DTO
+            // properties have empty Attributes, so this loop is a no-op for them.)
+            foreach (SpiderlyProperty dtoProperty in DTOProperties)
+            {
+                if (dtoProperty.Attributes.Any(x => x.Name == "ExcludeFromExcelExport"))
+                    DTOClassPropertiesToExclude.Add(dtoProperty.Name);
+            }
+
             return DTOClassPropertiesToExclude;
+        }
+
+        /// <summary>
+        /// Resolves the source entity for a generated DTO class name by matching it against the
+        /// DTO names the entity produces ("{Entity}DTO", "{Entity}SaveBodyDTO",
+        /// "{Entity}MainUIFormDTO"). Returns null for hand-written DTOs with no matching entity.
+        /// Matching the full generated name (rather than stripping a suffix) avoids mis-resolving
+        /// entities whose own name ends in "SaveBody"/"MainUIForm".
+        /// </summary>
+        private static SpiderlyClass GetEntityForDTO(string DTOClassName, List<SpiderlyClass> allClasses)
+        {
+            return allClasses.FirstOrDefault(x =>
+                x.HasSpiderlyEntityAttribute() &&
+                (DTOClassName == $"{x.Name}DTO" ||
+                 DTOClassName == $"{x.Name}SaveBodyDTO" ||
+                 DTOClassName == $"{x.Name}MainUIFormDTO"));
+        }
+
+        /// <summary>
+        /// Maps a single entity property to the DTO column name(s) it produces, mirroring
+        /// <c>SpiderlyClassFactory.GetSpiderlyDTOProperties</c> so the exclusion targets the same
+        /// generated columns. M2O navigations exclude <c>{Nav}DisplayName</c> (and the synthesized
+        /// <c>{Nav}Id</c> when no explicit FK scalar is declared); scalars exclude the matching name.
+        /// </summary>
+        private static IEnumerable<string> GetExcludedDTOColumnNames(SpiderlyProperty property, SpiderlyClass entity)
+        {
+            if (property.IsManyToOneType())
+            {
+                yield return $"{property.Name}DisplayName";
+
+                if (property.ResolveExplicitForeignKeyName(entity) == null)
+                    yield return $"{property.Name}Id";
+            }
+            else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
+            {
+                yield return $"{property.Name}CommaSeparated";
+            }
+            else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
+            {
+                yield return $"{property.Name}DTOList";
+            }
+            else if (property.IsBlob())
+            {
+                yield return $"{property.Name}Data";
+                yield return property.Name;
+            }
+            else if (!property.Type.IsOneToManyType())
+            {
+                yield return property.Name;
+            }
         }
     }
 }
