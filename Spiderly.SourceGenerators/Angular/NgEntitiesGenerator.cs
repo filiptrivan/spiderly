@@ -164,7 +164,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
             return result.ToString();
         }
 
-        private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, ImmutableArray<string> spiderlyEnumNames)
+        internal static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, ImmutableArray<string> spiderlyEnumNames)
         {
             List<string> result = new();
             HashSet<string> importedEnumNames = new(); // dedup on the enum type, not the property name
