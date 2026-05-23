@@ -352,31 +352,18 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 return $", dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
 
-            switch (property.Type.Raw)
+            switch (property.Type.ScalarKind)
             {
-                case "DateTime":
-                case "DateTime?":
-                case "DateOnly":
-                case "DateOnly?":
-                case "TimeOnly":
-                case "TimeOnly?":
+                case SpiderlyScalarKind.DateTime:
+                case SpiderlyScalarKind.DateOnly:
+                case SpiderlyScalarKind.TimeOnly:
                     return ", showMatchModes: true";
-                case "decimal":
-                case "decimal?":
-                case "float":
-                case "float?":
-                case "double":
-                case "double?":
+                case SpiderlyScalarKind.Decimal:
                     string decimalScale = property.GetDecimalScale();
                     return decimalScale != null
                         ? $", showMatchModes: true, decimalPlaces: {decimalScale}"
                         : ", showMatchModes: true";
-                case "long":
-                case "long?":
-                case "int":
-                case "int?":
-                case "byte":
-                case "byte?":
+                case SpiderlyScalarKind.Integer:
                     return ", showMatchModes: true";
                 default:
                     break;
@@ -396,33 +383,19 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.IsManyToOneType())
                 return "text";
 
-            switch (property.Type.Raw)
+            switch (property.Type.ScalarKind)
             {
-                case "string":
+                case SpiderlyScalarKind.String:
                     return "text";
-                case "bool":
-                case "bool?":
+                case SpiderlyScalarKind.Boolean:
                     return "boolean";
-                case "DateTime":
-                case "DateTime?":
-                case "DateOnly":
-                case "DateOnly?":
+                case SpiderlyScalarKind.DateTime:
+                case SpiderlyScalarKind.DateOnly:
                     return "date";
-                case "TimeOnly":
-                case "TimeOnly?":
+                case SpiderlyScalarKind.TimeOnly:
                     return "text";
-                case "decimal":
-                case "decimal?":
-                case "float":
-                case "float?":
-                case "double":
-                case "double?":
-                case "long":
-                case "long?":
-                case "int":
-                case "int?":
-                case "byte":
-                case "byte?":
+                case SpiderlyScalarKind.Integer:
+                case SpiderlyScalarKind.Decimal:
                     return "numeric";
                 default:
                     break;

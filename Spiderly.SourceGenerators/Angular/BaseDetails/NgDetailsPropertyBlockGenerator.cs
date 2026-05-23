@@ -143,33 +143,19 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasComplexManyToManyReadonlyTableAttribute())
                 return UIControlTypeCodes.Table;
 
-            switch (property.Type.Raw)
+            switch (property.Type.ScalarKind)
             {
-                case "string":
+                case SpiderlyScalarKind.String:
                     return UIControlTypeCodes.TextBox;
-                case "bool":
-                case "bool?":
+                case SpiderlyScalarKind.Boolean:
                     return UIControlTypeCodes.CheckBox;
-                case "DateTime":
-                case "DateTime?":
-                case "DateOnly":
-                case "DateOnly?":
-                case "TimeOnly":
-                case "TimeOnly?":
+                case SpiderlyScalarKind.DateTime:
+                case SpiderlyScalarKind.DateOnly:
+                case SpiderlyScalarKind.TimeOnly:
                     return UIControlTypeCodes.Calendar;
-                case "decimal":
-                case "decimal?":
-                case "float":
-                case "float?":
-                case "double":
-                case "double?":
+                case SpiderlyScalarKind.Decimal:
                     return UIControlTypeCodes.Decimal;
-                case "long":
-                case "long?":
-                case "int":
-                case "int?":
-                case "byte":
-                case "byte?":
+                case SpiderlyScalarKind.Integer:
                     return UIControlTypeCodes.Integer;
                 default:
                     break;

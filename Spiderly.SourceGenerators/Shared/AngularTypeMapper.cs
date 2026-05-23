@@ -52,33 +52,19 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static string GetAngularType(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
         {
-            switch (cSharpType)
+            switch (SpiderlyTypeRef.Parse(cSharpType)?.ScalarKind ?? SpiderlyScalarKind.Other)
             {
-                case "string":
+                case SpiderlyScalarKind.String:
                     return "string";
-                case "bool":
-                case "bool?":
+                case SpiderlyScalarKind.Boolean:
                     return "boolean";
-                case "DateTime":
-                case "DateTime?":
+                case SpiderlyScalarKind.DateTime:
                     return "Date";
-                case "DateOnly":
-                case "DateOnly?":
-                case "TimeOnly":
-                case "TimeOnly?":
+                case SpiderlyScalarKind.DateOnly:
+                case SpiderlyScalarKind.TimeOnly:
                     return "string";
-                case "long":
-                case "long?":
-                case "int":
-                case "int?":
-                case "decimal":
-                case "decimal?":
-                case "float":
-                case "float?":
-                case "double":
-                case "double?":
-                case "byte":
-                case "byte?":
+                case SpiderlyScalarKind.Integer:
+                case SpiderlyScalarKind.Decimal:
                     return "number";
                 default:
                     break;

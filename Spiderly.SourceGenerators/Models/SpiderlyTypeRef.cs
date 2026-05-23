@@ -76,6 +76,42 @@ namespace Spiderly.SourceGenerators.Models
         /// </summary>
         public string CoreName => ElementType?.CoreName ?? Name;
 
+        /// <summary>
+        /// Buckets a scalar C# type for the Angular generators' type dispatch (TS type, form control,
+        /// table filter, …). Centralizes the "which type names are integers / decimals / dates / …"
+        /// membership that those per-target switches used to each repeat. Non-scalar types — collections,
+        /// enums, entities, DTOs, qualified names — are <see cref="SpiderlyScalarKind.Other"/>. Nullable
+        /// variants share their underlying kind (<c>int?</c> -> <see cref="SpiderlyScalarKind.Integer"/>),
+        /// reproducing the old <c>case "int": case "int?":</c> lists.
+        /// </summary>
+        public SpiderlyScalarKind ScalarKind
+        {
+            get
+            {
+                if (IsCollection)
+                    return SpiderlyScalarKind.Other;
+
+                switch (CoreName)
+                {
+                    case "string": return SpiderlyScalarKind.String;
+                    case "bool": return SpiderlyScalarKind.Boolean;
+                    case "DateTime": return SpiderlyScalarKind.DateTime;
+                    case "DateOnly": return SpiderlyScalarKind.DateOnly;
+                    case "TimeOnly": return SpiderlyScalarKind.TimeOnly;
+                    case "long":
+                    case "int":
+                    case "byte":
+                        return SpiderlyScalarKind.Integer;
+                    case "decimal":
+                    case "float":
+                    case "double":
+                        return SpiderlyScalarKind.Decimal;
+                    default:
+                        return SpiderlyScalarKind.Other;
+                }
+            }
+        }
+
         public override string ToString() => Raw;
 
         public override bool Equals(object obj) => obj is SpiderlyTypeRef other && other.Raw == Raw;
@@ -125,5 +161,22 @@ namespace Spiderly.SourceGenerators.Models
             // Simple: Foo
             return new SpiderlyTypeRef(raw, core, isNullable, isCollection: false, elementType: null);
         }
+    }
+
+    /// <summary>
+    /// Scalar classification buckets for the Angular generators' per-target type dispatch.
+    /// See <see cref="SpiderlyTypeRef.ScalarKind"/>. <see cref="Other"/> covers every non-scalar type
+    /// (collections, enums, entities, DTOs, qualified names).
+    /// </summary>
+    public enum SpiderlyScalarKind
+    {
+        Other = 0,
+        String,
+        Boolean,
+        DateTime,
+        DateOnly,
+        TimeOnly,
+        Integer,
+        Decimal,
     }
 }
