@@ -78,7 +78,7 @@ namespace Spiderly.SourceGenerators.Shared
         private static void ValidateNullabilityAlignment(SpiderlyProperty navigation, SpiderlyProperty fkProperty, SpiderlyClass entity)
         {
             bool navIsRequired = navigation.IsEffectivelyRequired();
-            bool fkIsNullable = fkProperty.Type.TrimEnd().EndsWith("?");
+            bool fkIsNullable = fkProperty.Type.Raw.TrimEnd().EndsWith("?");
 
             if (navIsRequired && fkIsNullable)
             {
@@ -105,12 +105,12 @@ namespace Spiderly.SourceGenerators.Shared
             SpiderlyClass entity,
             List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass targetEntity = allEntities.FirstOrDefault(c => c.Name == navigation.Type);
+            SpiderlyClass targetEntity = allEntities.FirstOrDefault(c => c.Name == navigation.Type.Raw);
             if (targetEntity == null)
                 return;
 
             string targetIdType = targetEntity.GetIdType(allEntities);
-            string fkType = fkProperty.Type.WithoutNullableSuffix();
+            string fkType = fkProperty.Type.Raw.WithoutNullableSuffix();
 
             if (fkType != targetIdType)
             {

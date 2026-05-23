@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
@@ -246,7 +246,7 @@ using {{item}};
                 foreach (SpiderlyProperty DTOprop in pairDTOClass.Properties)
                 {
                     string entityDotNotation = DTOprop.Name;
-                    string DTOpropType = DTOprop.Type;
+                    string DTOpropType = DTOprop.Type.Raw;
 
                     if (efClassProps.Any(x => x.Name == DTOprop.Name) == false)
                     {
@@ -411,7 +411,7 @@ using {{item}};
             {
                 string baseClassInDotNotation = DTOClassProp.Replace("DisplayName", ""); // "Rolinho"
                 SpiderlyProperty propertyInEntityClass = entity.Properties.Where(x => x.Name == baseClassInDotNotation).Single();
-                string typeOfThePropertyInEntityClass = propertyInEntityClass.Type; // "Role"
+                string typeOfThePropertyInEntityClass = propertyInEntityClass.Type.Raw; // "Role"
                 SpiderlyClass entityClassWhichWeAreSearchingDisplayNameFor = allClasses.Where(x => x.Name == typeOfThePropertyInEntityClass).Single();
                 string displayName = ClassAnalyzer.GetDisplayNameProperty(entityClassWhichWeAreSearchingDisplayNameFor); // Name
                 displayName = displayName.Replace(".ToString()", "");
@@ -445,7 +445,7 @@ using {{item}};
             int i = 1;
             while (prop.Type.IsBaseDataType() == false)
             {
-                SpiderlyClass helperClass = allClasses.Where(x => x.Name == prop.Type).Single(); // Role
+                SpiderlyClass helperClass = allClasses.Where(x => x.Name == prop.Type.Raw).Single(); // Role
 
                 List<SpiderlyProperty> helperProps = helperClass.Properties;
 
@@ -454,7 +454,7 @@ using {{item}};
                 i++;
             }
 
-            return prop.Type;
+            return prop.Type.Raw;
         }
     }
 }

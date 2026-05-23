@@ -352,7 +352,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 return $", dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
 
-            switch (property.Type)
+            switch (property.Type.Raw)
             {
                 case "DateTime":
                 case "DateTime?":
@@ -396,7 +396,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.IsManyToOneType())
                 return "text";
 
-            switch (property.Type)
+            switch (property.Type.Raw)
             {
                 case "string":
                     return "text";

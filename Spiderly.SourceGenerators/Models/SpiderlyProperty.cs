@@ -5,7 +5,14 @@ namespace Spiderly.SourceGenerators.Models
 {
     public class SpiderlyProperty
     {
-        public string Type { get; set; }
+        /// <summary>
+        /// The property's C# type, parsed once into <see cref="SpiderlyTypeRef"/>. Assign a raw type string
+        /// (<c>Type = "List&lt;Foo&gt;"</c>) — it converts implicitly. Read structured parts
+        /// (<c>Type.CoreName</c>, <c>Type.Name</c>, <c>Type.IsNullable</c>, <c>Type.IsCollection</c>) instead of
+        /// re-parsing the string by hand; use <c>Type.Raw</c> when the verbatim type string is needed (emission,
+        /// literal type-name dispatch). One parser is the single source of truth, so call sites can't drift.
+        /// </summary>
+        public SpiderlyTypeRef Type { get; set; }
         public string Name { get; set; }
 
         /// <summary>

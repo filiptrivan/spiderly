@@ -143,7 +143,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasComplexManyToManyReadonlyTableAttribute())
                 return UIControlTypeCodes.Table;
 
-            switch (property.Type)
+            switch (property.Type.Raw)
             {
                 case "string":
                     return UIControlTypeCodes.TextBox;
@@ -359,7 +359,7 @@ namespace Spiderly.SourceGenerators.Angular
             SpiderlyProperty currentSideM2MProperty = junctionEntity.Properties
                 .Single(x =>
                     x.HasM2MWithManyAttribute() &&
-                    x.Type == entity.Name &&
+                    x.Type.Raw == entity.Name &&
                     x.Attributes.Any(a => a.Name == "M2MWithMany" && a.Value == property.Name)
                 );
 
@@ -367,7 +367,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.HasM2MWithManyAttribute())
                 .Single(x => x != currentSideM2MProperty);
 
-            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type);
+            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type.Raw);
 
             return (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity);
         }

@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -141,9 +141,9 @@ export class ApiGeneratedService extends ApiSecurityService {
                     ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     foreach (SpiderParameter parameter in controllerMethod.Parameters)
-                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
+                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type.Raw, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
-                    if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type == "IFormFile") == false)
+                    if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type.Raw == "IFormFile") == false)
                     {
                         result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs, spiderlyEnumNames));
                     }
@@ -345,11 +345,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
         private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList, ImmutableArray<string> spiderlyEnumNames)
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
-            SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type).SingleOrDefault();
+            SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type.Raw).SingleOrDefault();
             string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
             return $$"""
-    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{parameter.Type.Replace("DTO", "")}}): Observable<{{angularReturnType}}> => { 
+    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{parameter.Type.Raw.Replace("DTO", "")}}): Observable<{{angularReturnType}}> => { 
         let formData = new FormData();
 {{string.Join("\n", GetFormDataAppends(parameterType))}}
         return this.http.post(`${this.config.apiUrl}/{{controllerName}}/{{controllerMethod.Name}}`, formData, this.config.httpOptions);
@@ -363,7 +363,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             foreach (SpiderlyProperty property in dto.Properties)
             {
-                if (property.Type == "List<IFormFile>")
+                if (property.Type.Raw == "List<IFormFile>")
                 {
                     result.Add($$"""
         dto.{{property.Name.FirstCharToLower()}}.forEach((file: File) => {
@@ -371,7 +371,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         });
 """);
                 }
-                else if (property.Type == "IFormFile")
+                else if (property.Type.Raw == "IFormFile")
                 {
                     result.Add($$"""
         formData.append('{{property.Name}}', dto.{{property.Name.FirstCharToLower()}});

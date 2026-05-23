@@ -130,7 +130,7 @@ namespace Spiderly.SourceGenerators.Shared
             // If there is no Required attribute, we should let user save null to database
             if (ruleParts.Count > 0 && property.IsEffectivelyRequired() == false)
             {
-                if (property.Type == "string")
+                if (property.Type.Raw == "string")
                 {
                     ruleParts.Add(new UnlessRulePart($"i => string.IsNullOrEmpty(i.{rulePropertyName})"));
                 }

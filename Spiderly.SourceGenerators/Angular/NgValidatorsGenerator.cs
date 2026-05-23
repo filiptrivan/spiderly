@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Shared;
 using System;
@@ -427,7 +427,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
         private static string GenerateDateValidityUpdate(SpiderlyProperty property)
         {
-            if (property.Type == "DateTime" || property.Type == "DateTime?")
+            if (property.Type.Raw == "DateTime" || property.Type.Raw == "DateTime?")
             {
                 return $$"""
         control.updateValueAndValidity(); // It's necessary only for Date Angular type

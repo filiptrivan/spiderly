@@ -26,7 +26,7 @@ namespace Spiderly.SourceGenerators.Net
                     SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
                         .SingleOrDefault(x =>
                             x.HasM2MWithManyAttribute() &&
-                            x.Type == entity.Name &&
+                            x.Type.Raw == entity.Name &&
                             x.Attributes.Any(x => x.Name == "M2MWithMany" && x.Value == oneToManyProperty.Name)
                         );
 
@@ -376,7 +376,7 @@ namespace Spiderly.SourceGenerators.Net
                 .Where(x => x.HasM2MWithManyAttribute())
                 .Single(x => x != currentSideM2MProperty);
 
-            SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type);
+            SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type.Raw);
             string otherSideEntityIdType = otherSideEntity.GetIdType(allEntityClasses);
 
             string currentSideFKName = $"{currentSideM2MProperty.Name}Id";
@@ -390,7 +390,7 @@ namespace Spiderly.SourceGenerators.Net
             foreach (SpiderlyProperty field in additionalFields)
             {
                 string dtoPropertyName = field.Name;
-                bool needsValueAccess = field.Type != "string" && field.Type.IsBaseDataType() && !field.Type.EndsWith("?");
+                bool needsValueAccess = field.Type.Raw != "string" && field.Type.IsBaseDataType() && !field.Type.Raw.EndsWith("?");
                 string valueAccess = needsValueAccess ? ".Value" : "";
                 additionalFieldMappings.AppendLine($$"""
                         poco.{{field.Name}} = dto.{{dtoPropertyName}}{{valueAccess}};

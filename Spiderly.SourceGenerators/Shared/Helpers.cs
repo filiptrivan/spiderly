@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -67,10 +67,17 @@ namespace Spiderly.SourceGenerators.Shared
                 .Where(prop =>
                     prop.IsManyToOneType() &&
                     prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
-                    prop.Type == entityName
+                    prop.Type.Raw == entityName
                 )
                 .ToList();
         }
+
+        /// <summary>
+        /// SpiderlyTypeRef overload — lets callers holding a parsed property type pass it directly
+        /// (<c>ExtractTypeFromGenericType(property.Type)</c>) instead of reaching for <c>.Raw</c>.
+        /// Delegates to the string implementation, so behavior is identical.
+        /// </summary>
+        public static string ExtractTypeFromGenericType(SpiderlyTypeRef input) => ExtractTypeFromGenericType(input?.Raw);
 
         /// <summary>
         /// List<long> -> long
@@ -123,7 +130,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             return entities
                 .SingleOrDefault(x => x.HasM2MAttribute() && x.Properties
-                    .Any(x => x.Type == entity.Name && x.Attributes
+                    .Any(x => x.Type.Raw == entity.Name && x.Attributes
                         .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)));
         }
 

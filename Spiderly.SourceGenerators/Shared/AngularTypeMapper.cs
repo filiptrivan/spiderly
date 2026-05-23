@@ -17,7 +17,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty prop in properties)
             {
-                string cSharpDataType = prop.Type;
+                string cSharpDataType = prop.Type.Raw;
                 if (cSharpDataType.IsBaseDataType() == false)
                 {
                     string angularDataType = GetAngularDataTypeForImport(cSharpDataType, spiderlyEnumNames);
@@ -42,6 +42,13 @@ namespace Spiderly.SourceGenerators.Shared
         };
 
         public static bool IsKnownTsScalar(string tsType) => KnownTsScalars.Contains(tsType);
+
+        /// <summary>
+        /// SpiderlyTypeRef overload — lets callers holding a parsed property type pass it directly
+        /// (<c>GetAngularType(property.Type, ...)</c>) instead of reaching for <c>.Raw</c>.
+        /// Delegates to the string implementation, so behavior is identical.
+        /// </summary>
+        public static string GetAngularType(SpiderlyTypeRef cSharpType, ImmutableArray<string> spiderlyEnumNames) => GetAngularType(cSharpType?.Raw, spiderlyEnumNames);
 
         public static string GetAngularType(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
         {

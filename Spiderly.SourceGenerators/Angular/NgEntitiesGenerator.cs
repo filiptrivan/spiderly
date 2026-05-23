@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -167,6 +167,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
         private static List<string> GetEnumPropertyImports(List<SpiderlyClass> DTOClasses, ImmutableArray<string> spiderlyEnumNames)
         {
             List<string> result = new();
+            HashSet<string> importedEnumNames = new(); // dedup on the enum type, not the property name
 
             foreach (IGrouping<string, SpiderlyClass> DTOClassGroup in DTOClasses.GroupBy(x => x.Name)) // Grouping because UserDTO.generated and UserDTO
             {
@@ -177,10 +178,14 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
                 foreach (SpiderlyProperty property in DTOProperties.Where(x => x.Type.IsEnum(spiderlyEnumNames)))
                 {
-                    if (result.Contains(property.Name) == false)
+                    // CoreName unwraps nullability + collection (e.g. "MyEnum?" / "List<MyEnum>" -> "MyEnum"),
+                    // so we import the bare enum name instead of leaking "MyEnum?" or "List<MyEnum>".
+                    string enumName = property.Type.CoreName;
+
+                    if (importedEnumNames.Add(enumName))
                     {
                         result.Add($$"""
-import { {{property.Type}} } from "../enums/enums.generated";
+import { {{enumName}} } from "../enums/enums.generated";
 """);
                     }
                 }

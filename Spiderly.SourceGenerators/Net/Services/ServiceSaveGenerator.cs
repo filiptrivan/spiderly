@@ -431,7 +431,7 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty prop in properties)
             {
-                SpiderlyClass classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type, allEntityClasses);
+                SpiderlyClass classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type.Raw, allEntityClasses);
 
                 if (classOfManyToOneProperty == null)
                     continue;

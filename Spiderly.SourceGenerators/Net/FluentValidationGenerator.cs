@@ -118,7 +118,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
 
             foreach (SpiderValidationRule rule in rules)
             {
-                string ruleChain = string.Join("", rule.ValidationRuleParts.Select(x => ToFluentValidationCall(x, rule.Property.Type)));
+                string ruleChain = string.Join("", rule.ValidationRuleParts.Select(x => ToFluentValidationCall(x, rule.Property.Type.Raw)));
                 result.Add($$"""
             RuleFor(x => x.{{rule.Property.Name}}){{ruleChain}};
 """);

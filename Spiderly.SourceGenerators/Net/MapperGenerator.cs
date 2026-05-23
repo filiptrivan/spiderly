@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Shared;
@@ -220,7 +220,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                 if (property.IsManyToOneType())
                 {
                     SpiderlyClass manyToOneEntity = entities
-                        .Where(x => x.Name == property.Type)
+                        .Where(x => x.Name == property.Type.Raw)
                         .SingleOrDefault();
 
                     if (manyToOneEntity == null)

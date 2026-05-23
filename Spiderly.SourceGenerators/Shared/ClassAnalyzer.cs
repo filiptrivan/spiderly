@@ -206,7 +206,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (displayNamePropForClass == null)
                 return $"Id.ToString()";
 
-            if (displayNamePropForClass.Type != "string")
+            if (displayNamePropForClass.Type.Raw != "string")
                 return $"{displayNamePropForClass.Name}.ToString()";
 
             return displayNamePropForClass.Name;

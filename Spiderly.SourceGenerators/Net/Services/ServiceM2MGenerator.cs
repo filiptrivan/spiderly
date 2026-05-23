@@ -30,10 +30,10 @@ namespace Spiderly.SourceGenerators.Net
             if (m2mWithManyAttribute_1.Value != m2mWithManyAttribute_2.Value)
                 return null; // It's simple M2M
 
-            SpiderlyClass m2mEntity_1 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_1.Type);
+            SpiderlyClass m2mEntity_1 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_1.Type.Raw);
             string m2mEntityIdType_1 = m2mEntity_1.GetIdType(allEntityClasses);
 
-            SpiderlyClass m2mEntity_2 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_2.Type);
+            SpiderlyClass m2mEntity_2 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_2.Type.Raw);
             string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
 
             return $$"""

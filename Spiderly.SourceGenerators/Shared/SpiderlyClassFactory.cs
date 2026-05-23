@@ -217,7 +217,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                 if (property.IsManyToOneType())
                 {
-                    SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type);
+                    SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);
 
                     DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DisplayName", Type = "string", EntityName = $"{property.EntityName}DTO" });
 
@@ -233,7 +233,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
                 {
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DTOList", Type = property.Type.Replace(">", "DTO>"), EntityName = $"{property.EntityName}DTO" });
+                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DTOList", Type = property.Type.Raw.Replace(">", "DTO>"), EntityName = $"{property.EntityName}DTO" });
                 }
                 else if (property.IsBlob())
                 {
@@ -242,7 +242,7 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else
                 {
-                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type), EntityName = $"{property.EntityName}DTO", Description = property.Description, IsEnum = property.IsEnum });
+                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw), EntityName = $"{property.EntityName}DTO", Description = property.Description, IsEnum = property.IsEnum });
                 }
             }
 

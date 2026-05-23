@@ -131,7 +131,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                     string elementType = backCollection.Type.IsEnumerable()
                         ? Helpers.ExtractTypeFromGenericType(backCollection.Type)
-                        : backCollection.Type;
+                        : backCollection.Type.Raw;
 
                     if (elementType != entity.Name)
                     {

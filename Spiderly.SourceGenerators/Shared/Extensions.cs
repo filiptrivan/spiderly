@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -182,8 +182,29 @@ namespace Spiderly.SourceGenerators.Shared
             if (property.IsEnum)
                 return false;
 
-            return property.Type.IsManyToOneType();
+            return property.Type.Raw.IsManyToOneType();
         }
+
+        // ----- SpiderlyTypeRef overloads of the type-classification checks -----
+        // These delegate to the string implementations on SpiderlyTypeRef.Raw so behavior is identical to the
+        // pre-refactor call sites; they exist so generators holding a SpiderlyTypeRef read naturally
+        // (property.Type.IsEnumerable()) instead of reaching for property.Type.Raw at every site.
+
+        public static bool IsManyToOneType(this SpiderlyTypeRef type) => type?.Raw.IsManyToOneType() ?? false;
+
+        public static bool IsEnumerable(this SpiderlyTypeRef type) => type?.Raw.IsEnumerable() ?? false;
+
+        public static bool IsOneToManyType(this SpiderlyTypeRef type) => type?.Raw.IsOneToManyType() ?? false;
+
+        public static bool IsBaseDataType(this SpiderlyTypeRef type) => type?.Raw.IsBaseDataType() ?? false;
+
+        public static bool IsDateTime(this SpiderlyTypeRef type) => type?.Raw.IsDateTime() ?? false;
+
+        public static bool IsDateOnly(this SpiderlyTypeRef type) => type?.Raw.IsDateOnly() ?? false;
+
+        public static bool IsTimeOnly(this SpiderlyTypeRef type) => type?.Raw.IsTimeOnly() ?? false;
+
+        public static bool IsEnum(this SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames) => type?.Raw.IsEnum(spiderlyEnumNames) ?? false;
 
         public static bool IsEnumerable(this string type)
         {
@@ -297,12 +318,10 @@ namespace Spiderly.SourceGenerators.Shared
             if (type == null || spiderlyEnumNames.IsDefaultOrEmpty)
                 return false;
 
-            string inner = type.WithoutNullableSuffix();
-            int genericOpen = inner.IndexOf('<');
-            if (genericOpen >= 0)
-                inner = inner.Substring(genericOpen + 1).TrimEnd('>').WithoutNullableSuffix();
-
-            return spiderlyEnumNames.Contains(inner);
+            // Unwrap nullability + collection/generic wrappers through the single parser, so this check
+            // and every site that emits the enum name (e.g. the Angular enum import) agree on what the
+            // underlying type is. Drift between the two was the original duplicate / "Foo?" import bug.
+            return spiderlyEnumNames.Contains(SpiderlyTypeRef.Parse(type).CoreName);
         }
 
         /// <summary>
@@ -680,7 +699,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (fkName != null)
                 return $"{parameterName}.{fkName}";
 
-            SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type);
+            SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type.Raw);
             string idType = target != null ? target.GetIdType(entities) : "long";
             return $"EF.Property<{idType}>({parameterName}, \"{navigation.Name}Id\")";
         }
@@ -824,7 +843,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static SpiderlyProperty GetManyToOnePropertyWithManyAttribute(this SpiderlyClass entity, string manyToOneType, string withMany)
         {
-            return entity.Properties.SingleOrDefault(x => x.Type == manyToOneType && x.WithMany() == withMany);
+            return entity.Properties.SingleOrDefault(x => x.Type.Raw == manyToOneType && x.WithMany() == withMany);
         }
 
         public static List<SpiderlyProperty> GetOrderedOneToManyProperties(this SpiderlyClass entity)
