@@ -215,38 +215,65 @@ namespace Spiderly.SourceGenerators.Shared
                 if (property.ShouldSkipPropertyInDTO())
                     continue;
 
-                if (property.IsManyToOneType())
+                foreach (SpiderlyDTOColumn column in GetDTOColumns(property, entity, entities))
                 {
-                    SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);
-
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DisplayName", Type = "string", EntityName = $"{property.EntityName}DTO" });
-
-                    // Skip FK synthesis when an explicit FK scalar is declared on the entity —
-                    // the scalar flows through the standard `else` branch below under its real name
-                    // (which may be {NavName}Id by convention, or a renamed property via [ForeignKey]).
-                    if (property.ResolveExplicitForeignKeyName(entity) == null)
-                        DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", EntityName = $"{property.EntityName}DTO" });
-                }
-                else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
-                {
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}CommaSeparated", Type = "string", EntityName = $"{property.EntityName}DTO" });
-                }
-                else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
-                {
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}DTOList", Type = property.Type.Raw.Replace(">", "DTO>"), EntityName = $"{property.EntityName}DTO" });
-                }
-                else if (property.IsBlob())
-                {
-                    DTOProperties.Add(new SpiderlyProperty { Name = $"{property.Name}Data", Type = "string", EntityName = $"{property.EntityName}DTO" });
-                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = "string", EntityName = $"{property.EntityName}DTO" });
-                }
-                else
-                {
-                    DTOProperties.Add(new SpiderlyProperty { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw), EntityName = $"{property.EntityName}DTO", Description = property.Description, IsEnum = property.IsEnum });
+                    DTOProperties.Add(new SpiderlyProperty
+                    {
+                        Name = column.Name,
+                        Type = column.Type,
+                        EntityName = $"{property.EntityName}DTO",
+                        Description = column.Description,
+                        IsEnum = column.IsEnum,
+                    });
                 }
             }
 
             return DTOProperties;
+        }
+
+        /// <summary>
+        /// Derives the read-DTO column(s) a single entity property expands into — the single source
+        /// of truth for the entity-property → DTO-column mapping. <see cref="GetSpiderlyDTOProperties"/>
+        /// turns these into DTO properties; <c>ExcelPropertiesGenerator</c> matches them by
+        /// <see cref="SpiderlyDTOColumn.Name"/> to know which Excel columns to drop. Keeping both
+        /// directions on this one method makes silent drift between them impossible.
+        /// <para>
+        /// Callers that only want columns actually present in the DTO should gate on
+        /// <c>ShouldSkipPropertyInDTO()</c> first (as <see cref="GetSpiderlyDTOProperties"/> does);
+        /// this method assumes the property is included and only computes the column shape.
+        /// </para>
+        /// </summary>
+        public static IEnumerable<SpiderlyDTOColumn> GetDTOColumns(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
+        {
+            if (property.IsManyToOneType())
+            {
+                SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);
+
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}DisplayName", Type = "string", Kind = SpiderlyDTOColumnKind.ManyToOneDisplayName };
+
+                // Skip FK synthesis when an explicit FK scalar is declared on the entity —
+                // the scalar flows through the Scalar branch below under its real name
+                // (which may be {NavName}Id by convention, or a renamed property via [ForeignKey]).
+                if (property.ResolveExplicitForeignKeyName(entity) == null)
+                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", Kind = SpiderlyDTOColumnKind.ManyToOneId };
+            }
+            else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
+            {
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}CommaSeparated", Type = "string", Kind = SpiderlyDTOColumnKind.OneToManyCommaSeparated };
+            }
+            else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
+            {
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}DTOList", Type = property.Type.Raw.Replace(">", "DTO>"), Kind = SpiderlyDTOColumnKind.OneToManyDTOList };
+            }
+            else if (property.IsBlob())
+            {
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}Data", Type = "string", Kind = SpiderlyDTOColumnKind.BlobData };
+                yield return new SpiderlyDTOColumn { Name = property.Name, Type = "string", Kind = SpiderlyDTOColumnKind.BlobValue };
+            }
+            else
+            {
+                yield return new SpiderlyDTOColumn { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw), Kind = SpiderlyDTOColumnKind.Scalar, Description = property.Description, IsEnum = property.IsEnum };
+            }
         }
 
         public static string GetFormatedDTOPropertyType(string propertyType)

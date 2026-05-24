@@ -98,26 +98,37 @@ namespace {{basePartOfNamespace}}.ExcelProperties
 
         private static List<string> GetPropertiesToExcludeFromExcelExport(string DTOClassName, List<SpiderlyProperty> DTOProperties, List<SpiderlyClass> allClasses)
         {
-            // FT: Always exclude enumerables (collections) from the Excel export.
+            // Always exclude enumerables (collections) from the Excel export — a flat sheet can't
+            // render nested lists. This already covers [IncludeInDTO] O2M "{Nav}DTOList" columns,
+            // so they need no separate handling in the attribute pass below.
             List<string> DTOClassPropertiesToExclude = DTOProperties
                 .Where(prop => prop.Type.IsEnumerable())
                 .Select(x => x.Name)
                 .ToList();
 
             // Honor [ExcludeFromExcelExport] declared on the source entity. The generated DTO
-            // properties don't carry entity attributes, so resolve the entity for this DTO and
-            // map each attributed entity property to the DTO column name(s) it produces.
+            // properties don't carry entity attributes, so resolve the entity for this DTO and map
+            // each attributed entity property to the DTO column name(s) it produces — via the same
+            // SpiderlyClassFactory.GetDTOColumns the DTO generator uses, so the exclusion can never
+            // drift from the real generated column names.
             SpiderlyClass entity = GetEntityForDTO(DTOClassName, allClasses);
 
             if (entity != null)
             {
                 foreach (SpiderlyProperty property in entity.Properties)
                 {
+                    // Gate exactly as GetSpiderlyDTOProperties does, so we only ever name columns the
+                    // DTO actually has. Skips properties absent from the DTO ([ExcludeFromDTO], plain
+                    // O2M navs) — but NOT [UIDoNotGenerate] scalars, which stay in the DTO and are the
+                    // common reason to reach for [ExcludeFromExcelExport].
+                    if (property.ShouldSkipPropertyInDTO())
+                        continue;
+
                     if (!property.Attributes.Any(x => x.Name == "ExcludeFromExcelExport"))
                         continue;
 
-                    foreach (string columnName in GetExcludedDTOColumnNames(property, entity))
-                        DTOClassPropertiesToExclude.Add(columnName);
+                    foreach (SpiderlyDTOColumn column in SpiderlyClassFactory.GetDTOColumns(property, entity, allClasses))
+                        DTOClassPropertiesToExclude.Add(column.Name);
                 }
             }
 
@@ -130,7 +141,7 @@ namespace {{basePartOfNamespace}}.ExcelProperties
                     DTOClassPropertiesToExclude.Add(dtoProperty.Name);
             }
 
-            return DTOClassPropertiesToExclude;
+            return DTOClassPropertiesToExclude.Distinct().ToList();
         }
 
         /// <summary>
@@ -143,44 +154,7 @@ namespace {{basePartOfNamespace}}.ExcelProperties
         private static SpiderlyClass GetEntityForDTO(string DTOClassName, List<SpiderlyClass> allClasses)
         {
             return allClasses.FirstOrDefault(x =>
-                x.HasSpiderlyEntityAttribute() &&
-                (DTOClassName == $"{x.Name}DTO" ||
-                 DTOClassName == $"{x.Name}SaveBodyDTO" ||
-                 DTOClassName == $"{x.Name}MainUIFormDTO"));
-        }
-
-        /// <summary>
-        /// Maps a single entity property to the DTO column name(s) it produces, mirroring
-        /// <c>SpiderlyClassFactory.GetSpiderlyDTOProperties</c> so the exclusion targets the same
-        /// generated columns. M2O navigations exclude <c>{Nav}DisplayName</c> (and the synthesized
-        /// <c>{Nav}Id</c> when no explicit FK scalar is declared); scalars exclude the matching name.
-        /// </summary>
-        private static IEnumerable<string> GetExcludedDTOColumnNames(SpiderlyProperty property, SpiderlyClass entity)
-        {
-            if (property.IsManyToOneType())
-            {
-                yield return $"{property.Name}DisplayName";
-
-                if (property.ResolveExplicitForeignKeyName(entity) == null)
-                    yield return $"{property.Name}Id";
-            }
-            else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
-            {
-                yield return $"{property.Name}CommaSeparated";
-            }
-            else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
-            {
-                yield return $"{property.Name}DTOList";
-            }
-            else if (property.IsBlob())
-            {
-                yield return $"{property.Name}Data";
-                yield return property.Name;
-            }
-            else if (!property.Type.IsOneToManyType())
-            {
-                yield return property.Name;
-            }
+                x.HasSpiderlyEntityAttribute() && SpiderlyNaming.IsGeneratedDTOName(DTOClassName, x.Name));
         }
     }
 }

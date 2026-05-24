@@ -16,6 +16,20 @@ namespace Spiderly.Shared.Attributes.Entity
     /// Differs from <see cref="ExcludeFromDTOAttribute"/>, which removes the property from the DTO
     /// entirely (no API exposure at all). This one only hides the column from the Excel export.
     /// </para>
+    /// <para>
+    /// Placement controls which column disappears, so for a many-to-one you can drop just the raw id
+    /// while keeping the human-readable name (or vice-versa):
+    /// <code>
+    /// [ExcludeFromExcelExport]            // hides the "OrderStatusId" column...
+    /// public byte OrderStatusId { get; set; }
+    ///
+    /// [WithMany(nameof(OrderStatus.Orders))]
+    /// public virtual OrderStatus OrderStatus { get; set; }   // ...while "OrderStatusDisplayName" stays
+    /// </code>
+    /// Putting it on the navigation property instead (<c>OrderStatus</c>) hides
+    /// <c>OrderStatusDisplayName</c>, and also <c>OrderStatusId</c> only when no explicit foreign-key
+    /// scalar like the one above is declared.
+    /// </para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class ExcludeFromExcelExportAttribute : Attribute
