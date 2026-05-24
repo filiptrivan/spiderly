@@ -384,25 +384,6 @@ namespace Spiderly.SourceGenerators.Shared
             return maxFileSize;
         }
 
-        /// <summary>
-        /// Should use this method for the referenced project types
-        /// </summary>
-        public static string TypeToDisplayString(this object type)
-        {
-            string bigType = type.ToString();
-
-            string splitType = bigType.Split('.').Last().Replace(">", "");
-
-            if (bigType.IsOneToManyType())
-            {
-                string enumerableType = bigType.Split('<').First().Split('.').Last();
-
-                return $"{enumerableType}<{splitType}>";
-            }
-
-            return splitType;
-        }
-
         public static List<UITableColumn> GetUITableColumns(this SpiderlyProperty property)
         {
             List<UITableColumn> result = new List<UITableColumn>();

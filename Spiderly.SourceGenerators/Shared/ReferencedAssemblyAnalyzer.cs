@@ -9,22 +9,63 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class ReferencedAssemblyAnalyzer
     {
+        /// <summary>
+        /// Renders a type symbol from a referenced assembly into the same string the in-project
+        /// syntax path produces (<see cref="Extensions.GetBaseType"/> / <c>TypeSyntax.ToString()</c>):
+        /// unqualified name, C# keyword primitives (<c>long</c>, not <c>Int64</c>), generic arguments
+        /// intact (<c>BusinessObject&lt;long&gt;</c>, <c>List&lt;Foo&gt;</c>), nullable value types as
+        /// <c>long?</c>. Keeping both paths aligned lets everything downstream
+        /// (<see cref="Extensions.GetIdType"/>, <c>ExtractTypeFromGenericType</c>, …) be path-agnostic.
+        /// <para>
+        /// This replaces the old <c>symbol.ToString().Split('.').Last().Replace("&gt;", "")</c> munging,
+        /// which dropped the closing generic bracket (turning <c>BusinessObject&lt;long&gt;</c> into the
+        /// malformed <c>BusinessObject&lt;long</c> and triggering a false SPIDERLY018) and collapsed
+        /// <c>List&lt;Foo&gt;</c> to <c>Foo</c> because the fully-qualified <c>System.Collections.Generic.List</c>
+        /// failed the bare-<c>List</c> collection check.
+        /// </para>
+        /// <para>
+        /// Nullable <i>reference</i> annotations are intentionally NOT emitted (no
+        /// <c>IncludeNullableReferenceTypeModifier</c>): the old <c>ToString()</c> path stripped them, so a
+        /// nullable navigation <c>Brand?</c> rendered as <c>Brand</c>, and many downstream lookups match an entity
+        /// name against the raw property type by exact equality (<c>x.Name == property.Type.Raw</c>). Emitting the
+        /// <c>?</c> would turn those into <c>Single(...)</c> "no matching element" crashes. Nullable <i>value</i>
+        /// types (<c>long?</c>) are unaffected — that is intrinsic to <see cref="System.Nullable{T}"/> rendering,
+        /// not the NRT modifier — so primary-key / scalar handling stays correct.
+        /// </para>
+        /// </summary>
+        private static readonly SymbolDisplayFormat ReferencedTypeDisplayFormat = new SymbolDisplayFormat(
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypes,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+
+        private static string ToDisplayName(ITypeSymbol type) => type?.ToDisplayString(ReferencedTypeDisplayFormat);
+
         public static IncrementalValueProvider<List<SpiderlyClass>> GetIncrementalValueProviderClassesFromReferencedAssemblies(IncrementalGeneratorInitializationContext context, List<ClassCategoryCodes> categories)
         {
             return context.CompilationProvider
-                .Select((compilation, _) =>
-                {
-                    List<SpiderlyClass> classes = new();
+                .Select((compilation, _) => GetClassesFromCompilation(compilation, categories));
+        }
 
-                    foreach (IAssemblySymbol referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
-                    {
-                        classes.AddRange(GetClassesFromReferencedAssemblies(referencedAssembly.GlobalNamespace, categories));
-                    }
+        /// <summary>
+        /// Builds <see cref="SpiderlyClass"/> models for every <paramref name="categories"/>-matching class in the
+        /// referenced assemblies of <paramref name="compilation"/> (the "metadata path" — entities living in a
+        /// referenced project rather than the one being compiled). Pulled out of the incremental pipeline lambda so
+        /// this path is directly unit-testable; it's the path that produced the SPIDERLY018 false-positive when an
+        /// entity's generic base (<c>BusinessObject&lt;long&gt;</c>) was mangled during symbol-to-string conversion.
+        /// </summary>
+        public static List<SpiderlyClass> GetClassesFromCompilation(Compilation compilation, List<ClassCategoryCodes> categories)
+        {
+            List<SpiderlyClass> classes = new();
 
-                    return classes
-                        .OrderBy(c => c.Name)
-                        .ToList();
-                });
+            foreach (IAssemblySymbol referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
+            {
+                classes.AddRange(GetClassesFromReferencedAssemblies(referencedAssembly.GlobalNamespace, categories));
+            }
+
+            return classes
+                .OrderBy(c => c.Name)
+                .ToList();
         }
 
         private static List<SpiderlyClass> GetClassesFromReferencedAssemblies(INamespaceSymbol namespaceSymbol, List<ClassCategoryCodes> categories)
@@ -44,7 +85,9 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = type.Name,
                     Namespace = GetFullNamespace(type),
-                    BaseType = type.BaseType?.TypeToDisplayString() == "object" ? null : type.BaseType?.TypeToDisplayString(),
+                    BaseType = type.BaseType == null || type.BaseType.SpecialType == SpecialType.System_Object
+                        ? null
+                        : ToDisplayName(type.BaseType),
                     IsAbstract = type.IsAbstract,
                     ControllerName = attributes.Where(x => x.Name == "Controller").Select(x => x.Value).SingleOrDefault() ?? type.Name,
                     Properties = GetPropertiesFromReferencedAssemblies(type),
@@ -113,7 +156,7 @@ namespace Spiderly.SourceGenerators.Shared
 
                     SpiderlyProperty property = new SpiderlyProperty
                     {
-                        Type = propertySymbol.Type.TypeToDisplayString(),
+                        Type = ToDisplayName(propertySymbol.Type),
                         Name = propertySymbol.Name,
                         EntityName = type.Name,
                         IsEnum = IsSpiderlyEnumType(propertySymbol.Type),
@@ -224,7 +267,7 @@ namespace Spiderly.SourceGenerators.Shared
                 SpiderlyMethod method = new SpiderlyMethod
                 {
                     Name = methodSymbol.Name,
-                    ReturnType = methodSymbol.ReturnType.ToString(),
+                    ReturnType = ToDisplayName(methodSymbol.ReturnType),
                     Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
                 };
 

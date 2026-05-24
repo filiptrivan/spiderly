@@ -25,6 +25,30 @@ internal static class GeneratorTestHarness
         return CSharpGeneratorDriver.Create(new TGenerator()).RunGenerators(compilation);
     }
 
+    /// <summary>
+    /// Builds a compilation whose entities live in a *referenced* compilation rather than its own source — the
+    /// metadata path exercised by <see cref="Spiderly.SourceGenerators.Shared.ReferencedAssemblyAnalyzer"/> (e.g.
+    /// PACMS.WebAPI referencing PACMS.Business). <paramref name="referencedSource"/> is compiled to its own assembly
+    /// and attached via <see cref="Compilation.ToMetadataReference"/>, so the analyzer sees real symbols (a generic
+    /// base like <c>BusinessObject&lt;long&gt;</c>, <c>List&lt;Foo&gt;</c> properties) exactly as it would in a build.
+    /// Unlike the inline tests, the referenced source must actually compile, so it declares the marker attributes and
+    /// base types it uses.
+    /// </summary>
+    public static Compilation CreateCompilationWithReference(string mainSource, string referencedSource)
+    {
+        CSharpCompilation referencedCompilation = CSharpCompilation.Create(
+            assemblyName: "Spiderly.SourceGenerators.Tests.ReferencedFixture",
+            syntaxTrees: [CSharpSyntaxTree.ParseText(referencedSource)],
+            references: References,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        return CSharpCompilation.Create(
+            assemblyName: "Spiderly.SourceGenerators.Tests.MainFixture",
+            syntaxTrees: [CSharpSyntaxTree.ParseText(mainSource)],
+            references: References.Append(referencedCompilation.ToMetadataReference()),
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
     private static IReadOnlyList<MetadataReference> BuildReferences()
     {
         HashSet<string> paths = new()
