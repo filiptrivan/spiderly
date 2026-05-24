@@ -330,7 +330,8 @@ if (paymentMethod == null)
 |---|---|
 | `[AuthGuard]` | Require valid JWT |
 | `[UIDoNotGenerate]` | Hide from Swagger / skip Angular UI generation |
-| `[SkipSpinner]` | Frontend won't show loading spinner |
+| `[SkipSpinner]` | Skip the global full-screen blocking spinner. **Usually unnecessary** — auto-applied to `Namebook`/`Codebook`/`PaginatedResult`/`LazyLoadSelectedIds` returns and to any `HttpGet` returning a bare scalar (`int`/`bool`/`decimal`/`DateTime`/…). Add it manually only when the inference can't see your intent: a GET that returns a **full DTO but is polled/refreshed on a timer**, or a background submit. |
+| `[ShowSpinner]` | Force the spinner back ON, overriding the auto-skip. **Rarely needed** — a slow user-triggered operation is usually a `POST` (which keeps the spinner without any attribute). Use only for a deliberately slow `HttpGet` returning a bare scalar where you still want the blocking overlay. |
 | `[ApiExplorerSettings(GroupName = "...")]` | Swagger grouping |
 | `[FromForm]` | Bind file uploads |
 | `[FromBody]` | Bind JSON body |

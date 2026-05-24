@@ -265,18 +265,78 @@ import { {{ngType}} } from '../../entities/entities.generated';
             if (controllerMethod.ReturnType.Contains("IActionResult"))
                 return Settings.HttpOptionsBlob;
 
-            bool skipSpinner = controllerMethod.Attributes.Any(attr => attr.Name == "SkipSpinner");
+            if (ShouldSkipSpinner(controllerMethod, spiderlyEnumNames))
+                return Settings.HttpOptionsSkipSpinner;
 
-            if (skipSpinner ||
-                controllerMethod.ReturnType.Contains("NamebookDTO") ||
+            return Settings.HttpOptionsBase;
+        }
+
+        /// <summary>
+        /// Decides whether a generated Angular method opts out of the global full-screen blocking spinner.
+        /// The spinner exists for primary, user-initiated blocking operations (form load, save, delete);
+        /// it must never black out the screen for frequent or background fetches.
+        /// </summary>
+        private static bool ShouldSkipSpinner(SpiderlyMethod controllerMethod, ImmutableArray<string> spiderlyEnumNames)
+        {
+            // Explicit attributes always win over inference. [ShowSpinner] is the opt-back-in for the rare
+            // case the auto-skip below gets wrong (a deliberately slow scalar GET); checked first so it also
+            // overrides the read-shaped-DTO skip if a consumer insists.
+            if (controllerMethod.Attributes.Any(attr => attr.Name == "ShowSpinner"))
+                return false;
+
+            // Explicit opt-out.
+            if (controllerMethod.Attributes.Any(attr => attr.Name == "SkipSpinner"))
+                return true;
+
+            // Read-shaped DTOs fetched frequently (autocomplete, dropdown, table pagination, M2M).
+            if (controllerMethod.ReturnType.Contains("NamebookDTO") ||
                 controllerMethod.ReturnType.Contains("CodebookDTO") ||
                 controllerMethod.ReturnType.Contains("PaginatedResultDTO") ||
                 controllerMethod.ReturnType.Contains("LazyLoadSelectedIdsResultDTO"))
             {
-                return Settings.HttpOptionsSkipSpinner;
+                return true;
             }
 
-            return Settings.HttpOptionsBase;
+            // A GET returning a bare scalar (count, flag, status, timestamp) is almost always a lightweight
+            // or polled read; blacking out the whole screen for a single value is never what the caller wants.
+            // Primary blocking loads return an entity/DTO, never a bare scalar, so the false-positive risk is
+            // low. This is the case authors (and coding agents) most often forget to mark with [SkipSpinner],
+            // so we infer it instead of relying on the attribute. ("string" is handled earlier as a text
+            // response. A user-triggered operation that does real work is usually a POST, which keeps the
+            // spinner; for the rare slow scalar GET that genuinely wants it, mark it [ShowSpinner].)
+            if (controllerMethod.Attributes.Any(attr => attr.Name == "HttpGet") &&
+                ReturnsBareScalar(controllerMethod.ReturnType, spiderlyEnumNames))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// True when the return type resolves to a <b>single</b> numeric, boolean, or date value.
+        /// A collection at any nesting level is not a bare scalar and must be excluded explicitly: for a
+        /// wrapped collection like <c>Task&lt;List&lt;int&gt;&gt;</c> or <c>ActionResult&lt;List&lt;int&gt;&gt;</c>
+        /// the outer wrapper node isn't itself a collection, so <see cref="AngularTypeMapper.GetAngularType"/>
+        /// unwraps straight to the inner scalar ("number") instead of "number[]". We therefore walk the whole
+        /// generic chain and bail on any collection node. DTOs resolve to their type name, so they never match.
+        /// </summary>
+        private static bool ReturnsBareScalar(string returnType, ImmutableArray<string> spiderlyEnumNames)
+        {
+            SpiderlyTypeRef parsed = SpiderlyTypeRef.Parse(returnType);
+
+            if (parsed == null)
+                return false;
+
+            // A collection anywhere in the chain (Task<List<int>>, ActionResult<int[]>, ValueTask<List<int>>, …)
+            // is not a bare scalar — the outer wrapper hides it from GetAngularType's own collection handling.
+            for (SpiderlyTypeRef node = parsed; node != null; node = node.ElementType)
+                if (node.IsCollection)
+                    return false;
+
+            string angularType = AngularTypeMapper.GetAngularType(returnType, spiderlyEnumNames);
+
+            return angularType == "number" || angularType == "boolean" || angularType == "Date";
         }
 
         private static HttpTypeCodes GetHttpType(SpiderlyMethod controllerMethod)
