@@ -93,27 +93,7 @@ namespace Spiderly.SourceGenerators.Angular
     selector: '{{entity.Name.FromPascalToKebabCase()}}-base-details',
     template: `
 <ng-container *transloco="let t">
-    <spiderly-panel [isFirstMultiplePanel]="isFirstMultiplePanel" [isMiddleMultiplePanel]="isMiddleMultiplePanel" [isLastMultiplePanel]="isLastMultiplePanel" [showPanelHeader]="showPanelHeader" >
-        <panel-header [title]="panelTitle" [showBigTitle]="showBigPanelTitle" [icon]="panelIcon"></panel-header>
-
-        <panel-body>
-            @defer (when loading === false) {
-                <form class="spiderly-grid">
-                    <ng-content select="[before]"></ng-content>
-{{string.Join("\n", NgDetailsPropertyBlockGenerator.GetPropertyBlocks(entity.Properties.ToList(), entity, allEntities, customDTOClasses, isFromOrderedOneToMany: false))}}
-                    <ng-content select="[after]"></ng-content>
-                </form>
-            } @placeholder {
-                <card-skeleton [height]="502"></card-skeleton>
-            }
-        </panel-body>
-
-        <panel-footer>
-            <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
-            <ng-content select="[buttons]"></ng-content>
-            <return-button *ngIf="showReturnButton" ></return-button>
-        </panel-footer>
-    </spiderly-panel>
+{{GetDetailsPanels(entity, allEntities, customDTOClasses)}}
 </ng-container>
     `,
     imports: [
@@ -225,6 +205,102 @@ export class {{entity.Name}}BaseDetailsComponent {
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Renders the details panel region. When no property declares <c>[UIDetailsGroup]</c> this emits
+        /// the original single flat-grid panel (backward compatible). Otherwise it emits one stacked panel
+        /// per group, with the Save footer on the last panel only.
+        /// </summary>
+        private static string GetDetailsPanels(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
+        {
+            if (NgDetailsPropertyBlockGenerator.HasAnyUISection(entity.Properties.ToList(), entity, customDTOClasses) == false)
+                return GetSingleDetailsPanel(entity, allEntities, customDTOClasses);
+
+            return GetGroupedDetailsPanels(entity, allEntities, customDTOClasses);
+        }
+
+        private static string GetSingleDetailsPanel(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
+        {
+            return $$"""
+    <spiderly-panel [isFirstMultiplePanel]="isFirstMultiplePanel" [isMiddleMultiplePanel]="isMiddleMultiplePanel" [isLastMultiplePanel]="isLastMultiplePanel" [showPanelHeader]="showPanelHeader" >
+        <panel-header [title]="panelTitle" [showBigTitle]="showBigPanelTitle" [icon]="panelIcon"></panel-header>
+
+        <panel-body>
+            @defer (when loading === false) {
+                <form class="spiderly-grid">
+                    <ng-content select="[before]"></ng-content>
+{{string.Join("\n", NgDetailsPropertyBlockGenerator.GetPropertyBlocks(entity.Properties.ToList(), entity, allEntities, customDTOClasses, isFromOrderedOneToMany: false))}}
+                    <ng-content select="[after]"></ng-content>
+                </form>
+            } @placeholder {
+                <card-skeleton [height]="502"></card-skeleton>
+            }
+        </panel-body>
+
+        <panel-footer>
+            <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
+            <ng-content select="[buttons]"></ng-content>
+            <return-button *ngIf="showReturnButton" ></return-button>
+        </panel-footer>
+    </spiderly-panel>
+""";
+        }
+
+        private static string GetGroupedDetailsPanels(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
+        {
+            List<DetailsFieldGroup> groups = NgDetailsPropertyBlockGenerator.GetGroupedPropertyBlocks(entity.Properties.ToList(), entity, allEntities, customDTOClasses);
+
+            List<string> panels = new();
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                DetailsFieldGroup group = groups[i];
+
+                bool isOnly = groups.Count == 1;
+                bool isFirst = isOnly == false && i == 0;
+                bool isLast = isOnly == false && i == groups.Count - 1;
+                bool isMiddle = isOnly == false && isFirst == false && isLast == false;
+                bool showHeader = group.TranslationKey != null;
+
+                string header = showHeader
+                    ? $$"""
+        <panel-header [title]="t('{{group.TranslationKey}}')" [showBigTitle]="false"></panel-header>
+"""
+                    : "";
+
+                string beforeSlot = i == 0 ? "                    <ng-content select=\"[before]\"></ng-content>\n" : "";
+                string afterSlot = i == groups.Count - 1 ? "\n                    <ng-content select=\"[after]\"></ng-content>" : "";
+
+                string footer = i == groups.Count - 1
+                    ? $$"""
+
+        <panel-footer>
+            <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
+            <ng-content select="[buttons]"></ng-content>
+            <return-button *ngIf="showReturnButton" ></return-button>
+        </panel-footer>
+"""
+                    : "";
+
+                panels.Add($$"""
+    <spiderly-panel [isFirstMultiplePanel]="{{isFirst.ToString().ToLower()}}" [isMiddleMultiplePanel]="{{isMiddle.ToString().ToLower()}}" [isLastMultiplePanel]="{{isLast.ToString().ToLower()}}" [showPanelHeader]="{{showHeader.ToString().ToLower()}}" >
+{{header}}
+        <panel-body>
+            @defer (when loading === false) {
+                <form class="spiderly-grid">
+{{beforeSlot}}{{string.Join("\n", group.Blocks)}}{{afterSlot}}
+                </form>
+            } @placeholder {
+                <card-skeleton [height]="200"></card-skeleton>
+            }
+        </panel-body>
+{{footer}}
+    </spiderly-panel>
+""");
+            }
+
+            return string.Join("\n", panels);
         }
     }
 }

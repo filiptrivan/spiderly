@@ -203,7 +203,7 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default t
 | `[UIControlWidth("col-X")]`             | Property       | Set form field width                                                                                 |
 | `[UIOrderedOneToMany]`                  | Property       | Enable drag-and-drop ordered child list                                                              |
 | `[UIPropertyBlockOrder("N")]`           | Property       | Control field display order                                                                          |
-| `[UIPanel("Name")]`                     | Property       | Group fields into named panels                                                                       |
+| `[UISection("Name")]`                   | Property       | Group fields into named sections (cards) on the details page                                         |
 | `[DiskStorage]`                         | Property       | File stored on local filesystem (dev only). Marks the property as a blob.                            |
 | `[S3PublicStorage]`                     | Property       | File stored in S3 with public CDN URL. Marks the property as a blob.                                 |
 | `[S3PrivateStorage]`                    | Property       | File stored in S3 with private (signed-URL) access. Marks the property as a blob.                    |

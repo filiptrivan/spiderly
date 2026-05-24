@@ -333,10 +333,11 @@ public string PrimaryColor { get; set; }
 public int OrderNumber { get; set; }
 ```
 
-#### UIPanel
+#### UISection
 
-- With this attribute you determine in which panel the UI control will be located.
-- By default all controls are inside the "Details" panel.
+- Groups properties into named sections (cards) on the details page; the argument is a Transloco translation key used as the section header.
+- Properties sharing the same section name render together in one panel; sections are ordered by first appearance.
+- Properties without the attribute collapse into a single implicit headerless section. If no property declares it, the page renders as a single panel (backward compatible).
 
 #### UIPropertyBlockOrder
 

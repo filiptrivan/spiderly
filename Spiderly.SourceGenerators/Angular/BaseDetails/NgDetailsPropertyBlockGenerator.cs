@@ -27,31 +27,101 @@ namespace Spiderly.SourceGenerators.Angular
 
             foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties, entity))
             {
-                if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
-                {
-                    result.Add(GetOrderedOneToManyBlock(entity, property, allEntities, customDTOClasses, isFromOrderedOneToMany));
+                result.Add(GetSinglePropertyBlock(property, entity, allEntities, customDTOClasses, isFromOrderedOneToMany));
+            }
 
-                    continue;
-                }
+            return result;
+        }
 
-                if (property.HasComplexManyToManyListAttribute())
-                {
-                    result.Add(GetComplexManyToManyListBlock(entity, property, allEntities, isFromOrderedOneToMany));
+        /// <summary>
+        /// Builds the HTML block for a single property (normal control, ordered-one-to-many panel,
+        /// or complex-many-to-many list panel). Shared by the flat-grid generator and the grouped generator.
+        /// </summary>
+        private static string GetSinglePropertyBlock(
+            SpiderlyProperty property,
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses,
+            bool isFromOrderedOneToMany
+        )
+        {
+            if (property.Attributes.Any(x => x.Name == "UIOrderedOneToMany"))
+                return GetOrderedOneToManyBlock(entity, property, allEntities, customDTOClasses, isFromOrderedOneToMany);
 
-                    continue;
-                }
+            if (property.HasComplexManyToManyListAttribute())
+                return GetComplexManyToManyListBlock(entity, property, allEntities, isFromOrderedOneToMany);
 
-                string controlType = GetUIStringControlType(GetUIControlType(property));
+            string controlType = GetUIStringControlType(GetUIControlType(property));
 
-                result.Add($$"""
+            return $$"""
                     <div {{GetNgIfForPropertyBlock(property, isFromOrderedOneToMany)}} class="{{GetUIControlWidth(property, isFromOrderedOneToMany)}}">
                         <{{controlType}} {{GetControlAttributes(property, entity, isFromOrderedOneToMany)}}></{{controlType}}>
                         <ng-content select="[below{{property.Name}}For{{entity.Name}}]"></ng-content>
                     </div>
-""");
+""";
+        }
+
+        /// <summary>
+        /// Reads the <c>[UISection("...")]</c> section name (used as a Transloco key) for a property,
+        /// or <c>null</c> when the property is not assigned to a section.
+        /// </summary>
+        internal static string GetUISectionName(SpiderlyProperty property)
+        {
+            return property.Attributes.SingleOrDefault(x => x.Name == "UISection")?.Value;
+        }
+
+        /// <summary>
+        /// True when at least one property included in the details UI declares <c>[UISection]</c>.
+        /// When false, the details page renders as a single flat grid for backward compatibility.
+        /// </summary>
+        internal static bool HasAnyUISection(
+            List<SpiderlyProperty> properties,
+            SpiderlyClass entity,
+            List<SpiderlyClass> customDTOClasses
+        )
+        {
+            List<SpiderlyProperty> allProperties = properties.ToList();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            if (customDTOClass != null)
+                allProperties.AddRange(customDTOClass.Properties);
+
+            return GetOrderedPropertiesForUIBlocks(allProperties, entity).Any(x => GetUISectionName(x) != null);
+        }
+
+        /// <summary>
+        /// Groups property blocks into sections (panels) for the details page. Returns one entry per
+        /// section in first-appearance order; properties without <c>[UISection]</c> collapse into a single
+        /// implicit headerless section (<c>null</c> key), positioned by the first such property's appearance.
+        /// </summary>
+        internal static List<DetailsFieldGroup> GetGroupedPropertyBlocks(
+            List<SpiderlyProperty> properties,
+            SpiderlyClass entity,
+            List<SpiderlyClass> allEntities,
+            List<SpiderlyClass> customDTOClasses
+        )
+        {
+            List<SpiderlyProperty> allProperties = properties.ToList();
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            if (customDTOClass != null)
+                allProperties.AddRange(customDTOClass.Properties);
+
+            List<DetailsFieldGroup> groups = new();
+
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(allProperties, entity))
+            {
+                string groupKey = GetUISectionName(property);
+
+                DetailsFieldGroup group = groups.FirstOrDefault(x => x.TranslationKey == groupKey);
+                if (group == null)
+                {
+                    group = new DetailsFieldGroup { TranslationKey = groupKey };
+                    groups.Add(group);
+                }
+
+                group.Blocks.Add(GetSinglePropertyBlock(property, entity, allEntities, customDTOClasses, isFromOrderedOneToMany: false));
             }
 
-            return result;
+            return groups;
         }
 
         internal static List<PropertyWithContext> GetAllPropertiesWithContext(
