@@ -40,6 +40,17 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("UserDTO", "User")]
     [InlineData("List<UserDTO>", "User[]")]
     [InlineData("Guid", "any")]
+    // Transport wrappers are unwrapped to the awaited body; collections under them keep their "[]".
+    [InlineData("Task<UserDTO>", "User")]
+    [InlineData("Task<List<UserDTO>>", "User[]")]
+    [InlineData("Task<List<MyEnum>>", "MyEnum[]")]
+    [InlineData("ActionResult<List<UserDTO>>", "User[]")]
+    [InlineData("Task<PaginatedResultDTO<UserDTO>>", "PaginatedResult<User>")]
+    [InlineData("Task<List<NamebookDTO<long>>>", "Namebook[]")]
+    [InlineData("Task<string>", "string")]
+    [InlineData("Task<int>", "number")]
+    [InlineData("ValueTask<List<UserDTO>>", "User[]")]
+    [InlineData("IActionResult", "any")]
     public void GetAngularType(string cSharp, string expected)
         => Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharp, Enums));
 

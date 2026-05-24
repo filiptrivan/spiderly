@@ -44,15 +44,49 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool IsKnownTsScalar(string tsType) => KnownTsScalars.Contains(tsType);
 
         /// <summary>
-        /// SpiderlyTypeRef overload — lets callers holding a parsed property type pass it directly
-        /// (<c>GetAngularType(property.Type, ...)</c>) instead of reaching for <c>.Raw</c>.
-        /// Delegates to the string implementation, so behavior is identical.
+        /// String overload — parses once, then delegates to the structured implementation.
         /// </summary>
-        public static string GetAngularType(SpiderlyTypeRef cSharpType, ImmutableArray<string> spiderlyEnumNames) => GetAngularType(cSharpType?.Raw, spiderlyEnumNames);
+        public static string GetAngularType(string cSharpType, ImmutableArray<string> spiderlyEnumNames) => GetAngularType(SpiderlyTypeRef.Parse(cSharpType), spiderlyEnumNames);
 
-        public static string GetAngularType(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
+        /// <summary>
+        /// Maps a C# type to its TypeScript/Angular equivalent by walking the parsed
+        /// <see cref="SpiderlyTypeRef"/> tree, so nesting is honoured at every level instead of being
+        /// inferred from flat <c>.Raw.Contains(...)</c> sniffing on the outer type.
+        /// <para>
+        /// Transport wrappers (<c>Task&lt;&gt;</c>, <c>ActionResult&lt;&gt;</c>) are unwrapped to the awaited
+        /// body, and collections recurse on their element. That pairing is what fixes the dropped-list bug:
+        /// a <c>Task&lt;List&lt;FooDTO&gt;&gt;</c> now resolves to <c>Foo[]</c> rather than <c>Foo</c> — the
+        /// old code's <c>IsEnumerable()</c> only inspected the outer <c>Task</c> and never saw the list.
+        /// </para>
+        /// </summary>
+        public static string GetAngularType(SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames)
         {
-            switch (SpiderlyTypeRef.Parse(cSharpType)?.ScalarKind ?? SpiderlyScalarKind.Other)
+            if (type == null)
+                return "any";
+
+            // Unwrap async / MVC transport wrappers — the Angular client only ever sees the awaited body.
+            // A bare wrapper with no type argument (e.g. "IActionResult", "Task") carries no typed body.
+            // Matched by simple (unqualified) name, the form controllers are written in; fully-qualified
+            // wrapper names (e.g. System.Threading.Tasks.Task<...>) are intentionally out of scope.
+            if (type.Name == "Task" || type.Name == "ValueTask" || type.Name == "ActionResult" || type.Name == "IActionResult")
+                return type.ElementType == null ? "any" : GetAngularType(type.ElementType, spiderlyEnumNames);
+
+            // Collections recurse on the element, so arbitrary nesting (List<List<T>>, Task<List<T>>, ...) works.
+            if (type.IsCollection)
+                return $"{GetAngularType(type.ElementType, spiderlyEnumNames)}[]";
+
+            if (type.Raw.IsEnum(spiderlyEnumNames))
+                return type.Raw;
+
+            // DTO leaf — checked before the scalar switch because a generic DTO like NamebookDTO<long>
+            // has CoreName "long" and would otherwise be misread as a scalar. ExtractAngularTypeFromGenericCSharpType
+            // owns the special-type mappings (PaginatedResultDTO -> PaginatedResult<T>, NamebookDTO -> Namebook,
+            // CodebookDTO -> Codebook, LazyLoadSelectedIdsResultDTO -> LazyLoadSelectedIdsResult, plain FooDTO -> Foo).
+            if (type.Raw.Contains(Helpers.DTONamespaceEnding))
+                return ExtractAngularTypeFromGenericCSharpType(type.Raw, spiderlyEnumNames); // ManyToOne
+
+            // Scalars (ScalarKind already folds nullable variants into their underlying kind).
+            switch (type.ScalarKind)
             {
                 case SpiderlyScalarKind.String:
                     return "string";
@@ -70,16 +104,7 @@ namespace Spiderly.SourceGenerators.Shared
                     break;
             }
 
-            if (cSharpType.IsEnumerable())
-                return $"{ExtractAngularTypeFromGenericCSharpType(cSharpType, spiderlyEnumNames)}[]";
-
-            if (cSharpType.IsEnum(spiderlyEnumNames))
-                return cSharpType;
-
-            if (cSharpType.Contains(Helpers.DTONamespaceEnding) || (cSharpType.Contains("Task<") && cSharpType.Contains("ActionResult") == false)) // FT: We don't want to handle "ActionResult"
-                return ExtractAngularTypeFromGenericCSharpType(cSharpType, spiderlyEnumNames); // ManyToOne
-
-            return "any"; // eg. "ActionResult", "Task"...
+            return "any"; // eg. "Guid", bare "ActionResult"/"Task", unmapped types
         }
 
         internal static string GetAngularDataTypeForImport(string CSharpDataType, ImmutableArray<string> spiderlyEnumNames)
