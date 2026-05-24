@@ -310,26 +310,8 @@ namespace Spiderly.SourceGenerators.Angular
 
         internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties, SpiderlyClass entity)
         {
-            HashSet<string> pairedFkNames = entity.GetPairedForeignKeyNames();
-
             List<SpiderlyProperty> orderedProperties = properties
-                .Where(x =>
-                    x.Name != "Version" &&
-                    x.Name != "Id" &&
-                    x.Name != "CreatedAt" &&
-                    x.Name != "ModifiedAt" &&
-                    (
-                        x.Type.IsEnumerable() == false ||
-                        x.HasUIOrderedOneToManyAttribute() ||
-                        x.IsMultiSelectControlType() ||
-                        x.IsMultiAutocompleteControlType() ||
-                        x.HasSimpleManyToManyTableLazyLoadAttribute() ||
-                        x.HasComplexManyToManyReadonlyTableAttribute() ||
-                        x.HasComplexManyToManyListAttribute()
-                    ) &&
-                    x.HasUIDoNotGenerateAttribute() == false &&
-                    pairedFkNames.Contains(x.Name) == false
-                )
+                .Where(x => x.IsIncludedInDetailsUi(entity))
                 .OrderBy(x =>
                     x.IsBlob() ? 0 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :

@@ -29,7 +29,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasSimpleManyToManyTableLazyLoadAttribute()))
             {
                 result.Add($$"""
     selected{{property.Name}}LazyLoadMethodFor{{entity.Name}} = (event: Filter): Observable<LazyLoadSelectedIdsResult> => {
@@ -54,7 +54,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity)))
             {
                 if (
                     property.HasSimpleManyToManyTableLazyLoadAttribute() ||
@@ -76,7 +76,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasUIDoNotGenerateAttribute() == false))
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity)))
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
@@ -132,7 +132,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in properties.Where(x => x.HasUIDoNotGenerateAttribute() == false))
+            foreach (SpiderlyProperty property in properties.Where(x => x.IsIncludedInDetailsUi(entity)))
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
@@ -169,7 +169,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in properties.Where(x => x.HasUIDoNotGenerateAttribute() == false))
+            foreach (SpiderlyProperty property in properties.Where(x => x.IsIncludedInDetailsUi(entity)))
             {
                 if (property.HasUIOrderedOneToManyAttribute())
                 {

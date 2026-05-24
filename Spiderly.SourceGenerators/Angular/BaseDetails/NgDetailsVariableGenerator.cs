@@ -91,7 +91,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties)
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity)))
             {
                 if (
                     property.HasSimpleManyToManyTableLazyLoadAttribute() ||
@@ -115,7 +115,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasSimpleManyToManyTableLazyLoadAttribute()))
             {
                 result.Add($$"""
     newlySelected{{property.Name}}IdsFor{{entity.Name}}: number[] = [];
@@ -212,7 +212,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.HasSimpleManyToManyTableLazyLoadAttribute()))
+            foreach (SpiderlyProperty property in entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasSimpleManyToManyTableLazyLoadAttribute()))
             {
                 result.Add($$"""
         this.parentFormGroup.controls.selected{{property.Name}}Ids.setValue(this.newlySelected{{property.Name}}IdsFor{{entity.Name}});

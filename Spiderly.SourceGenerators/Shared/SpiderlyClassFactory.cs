@@ -117,11 +117,14 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty property in entity.Properties
                 .Where(x =>
-                    x.HasUIOrderedOneToManyAttribute() ||
-                    x.IsMultiSelectControlType() ||
-                    x.IsMultiAutocompleteControlType() ||
-                    x.HasSimpleManyToManyTableLazyLoadAttribute() ||
-                    x.HasComplexManyToManyListAttribute()
+                    x.HasExcludeFromDTOAttribute() == false &&
+                    (
+                        x.HasUIOrderedOneToManyAttribute() ||
+                        x.IsMultiSelectControlType() ||
+                        x.IsMultiAutocompleteControlType() ||
+                        x.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                        x.HasComplexManyToManyListAttribute()
+                    )
                 )
             )
             {
@@ -170,10 +173,13 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty property in entity.Properties
                 .Where(x =>
-                    x.HasUIOrderedOneToManyAttribute() ||
-                    x.IsMultiSelectControlType() ||
-                    x.IsMultiAutocompleteControlType() ||
-                    x.HasComplexManyToManyListAttribute()
+                    x.HasExcludeFromDTOAttribute() == false &&
+                    (
+                        x.HasUIOrderedOneToManyAttribute() ||
+                        x.IsMultiSelectControlType() ||
+                        x.IsMultiAutocompleteControlType() ||
+                        x.HasComplexManyToManyListAttribute()
+                    )
                 )
             )
             {

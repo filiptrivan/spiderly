@@ -832,14 +832,58 @@ namespace Spiderly.SourceGenerators.Shared
             return entity.Properties.SingleOrDefault(x => x.Type.Raw == manyToOneType && x.WithMany() == withMany);
         }
 
+        /// <summary>
+        /// Single source of truth for "does this property render in the details UI?".
+        /// Every details-UI sub-generator (field blocks, option vars, search methods, table
+        /// cols/vars, ordered-one-to-many and complex-many-to-many panels) must gate on this so
+        /// inclusion is decided once and dangling references become structurally impossible.
+        /// Property-scoped only — it does NOT decide whether the entity gets a page at all
+        /// (that is the class-level <see cref="HasUIDoNotGenerateAttribute(SpiderlyClass)"/> switch).
+        /// </summary>
+        public static bool IsIncludedInDetailsUi(this SpiderlyProperty property, SpiderlyClass entity)
+        {
+            if (property.Name == "Version" ||
+                property.Name == "Id" ||
+                property.Name == "CreatedAt" ||
+                property.Name == "ModifiedAt")
+                return false;
+
+            bool isRenderableShape =
+                property.Type.IsEnumerable() == false ||
+                property.HasUIOrderedOneToManyAttribute() ||
+                property.IsMultiSelectControlType() ||
+                property.IsMultiAutocompleteControlType() ||
+                property.HasSimpleManyToManyTableLazyLoadAttribute() ||
+                property.HasComplexManyToManyReadonlyTableAttribute() ||
+                property.HasComplexManyToManyListAttribute();
+
+            if (isRenderableShape == false)
+                return false;
+
+            if (property.HasUIDoNotGenerateAttribute())
+                return false;
+
+            // [ExcludeFromDTO] removes the backing SaveBody/MainUIForm DTO field (see
+            // GetSaveBodyDTOProperties / GetMainUIFormDTOProperties), so the control has nothing to
+            // bind to — keep the UI gate in lockstep with the DTO gate or the generated Angular
+            // dangles on getControl('selected{P}Ids') / controls.selected{P}Ids.setValue(...).
+            if (property.HasExcludeFromDTOAttribute())
+                return false;
+
+            if (entity.GetPairedForeignKeyNames().Contains(property.Name))
+                return false;
+
+            return true;
+        }
+
         public static List<SpiderlyProperty> GetOrderedOneToManyProperties(this SpiderlyClass entity)
         {
-            return entity.Properties.Where(x => x.HasUIOrderedOneToManyAttribute()).ToList();
+            return entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasUIOrderedOneToManyAttribute()).ToList();
         }
 
         public static List<SpiderlyProperty> GetComplexManyToManyListProperties(this SpiderlyClass entity)
         {
-            return entity.Properties.Where(x => x.HasComplexManyToManyListAttribute()).ToList();
+            return entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasComplexManyToManyListAttribute()).ToList();
         }
 
         public static string GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)
@@ -904,9 +948,21 @@ namespace Spiderly.SourceGenerators.Shared
             return idType == "int" || idType == "long" || idType == "byte";
         }
 
+        /// <summary>
+        /// True when the property carries <c>[ExcludeFromDTO]</c>. Narrow attribute check only —
+        /// use this (NOT <see cref="ShouldSkipPropertyInDTO"/>) when filtering the SaveBody /
+        /// MainUIForm collection loops, where <see cref="ShouldSkipPropertyInDTO"/> would wrongly
+        /// drop every ordered-one-to-many / many-to-many property (they are one-to-many types
+        /// without <c>[GenerateCommaSeparatedDisplayName]</c>/<c>[IncludeInDTO]</c>).
+        /// </summary>
+        public static bool HasExcludeFromDTOAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "ExcludeFromDTO");
+        }
+
         public static bool ShouldSkipPropertyInDTO(this SpiderlyProperty property)
         {
-            if (property.Attributes.Any(x => x.Name == "ExcludeFromDTO") || (
+            if (property.HasExcludeFromDTOAttribute() || (
                 property.Type.IsOneToManyType() &&
                 !property.HasGenerateCommaSeparatedDisplayNameAttribute() &&
                 !property.HasIncludeInDTOAttribute()
