@@ -32,6 +32,8 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 | `BusinessObject<T>` | Full CRUD entity       | Id, Version, CreatedAt, ModifiedAt + CRUD UI/API |
 | `ReadonlyObject<T>` | Lookup/reference table | Id only, read-only operations                    |
 
+`Version` is an optimistic-concurrency token you get for free on every `BusinessObject<T>` — `ReadonlyObject<T>` has none. It's a `[ConcurrencyCheck]` column, auto-set to `1` on insert and incremented on every update inside `SaveChanges` (you never touch it), and it round-trips to the client on the DTO. On update the generated `Save{Entity}` reloads the row via `GetInstanceAsync(id, dto.Version)`, which throws a localized `ConcurrencyException` (a `BusinessException`) when the incoming version is stale — so two users editing the same record can't silently overwrite each other. No per-entity wiring required. (The guard is on update; deletes go through `ExecuteDeleteAsync` and are not version-checked.)
+
 `T` = `long` (default), `int`, or `byte`. **Anything else is rejected at compile time by [SPIDERLY018](/docs/build-diagnostics#spiderly018)** — including `Guid`, `decimal`, `short`, `DateTime`, etc. Ordinary `Guid` scalar properties on entities are fully supported; only the PK type argument is restricted. For public, non-enumerable identifiers (UUID-style URLs) keep the numeric `Id` and add a separate `Guid PublicId` property.
 
 ## Operational tables
