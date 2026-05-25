@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CanActivate } from '@angular/router';
-import { Observable, map } from 'rxjs';
+import { Observable, filter, map, take } from 'rxjs';
 import { AuthServiceBase } from '../services/auth.service.base';
 
 @Injectable({
@@ -15,13 +15,14 @@ export class NotAuthGuard implements CanActivate {
 
   private checkAuth(): Observable<boolean> {
     return this.authService.user$.pipe(
+      filter((user) => user !== undefined), // wait until the session is resolved (undefined = still loading)
+      take(1),
       map((user) => {
         if (user) {
           this.authService.navigateToDashboard();
           return false;
-        } else {
-          return true;
         }
+        return true;
       }),
     );
   }

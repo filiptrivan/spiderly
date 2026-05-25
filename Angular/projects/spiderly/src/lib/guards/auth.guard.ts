@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
-import { Observable, map } from 'rxjs';
+import { Observable, filter, map, take } from 'rxjs';
 import { AuthServiceBase } from '../services/auth.service.base';
 import { ConfigServiceBase } from '../services/config.service.base';
 
@@ -20,17 +20,14 @@ export class AuthGuard implements CanActivate {
 
   private checkAuth(): Observable<boolean> {
     return this.authService.user$.pipe(
+      filter((user) => user !== undefined), // wait until the session is resolved (undefined = still loading)
+      take(1),
       map((user) => {
         if (user) {
           return true;
-        } else {
-          // const returnUrl = this.router.getCurrentNavigation()?.extractedUrl.toString() || '/';
-          // this.router.navigate(['login'], {
-          //    queryParams: { returnUrl },
-          // });
-          this.router.navigate([this.config.loginSlug]);
-          return false;
         }
+        this.router.navigate([this.config.loginSlug]);
+        return false;
       }),
     );
   }
