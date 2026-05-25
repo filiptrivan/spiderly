@@ -17,6 +17,20 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(f => $"    @Output() {f.ChangeOutput.OutputName} = new EventEmitter<{f.ChangeOutput.EventType}>();"));
             string outputsBlock = outputs.Length > 0 ? $"\n{outputs}" : "";
 
+            string optionsFields = string.Join("\n", model.Fields
+                .Where(f => f.OptionsFieldName != null)
+                .Select(f => $"    {f.OptionsFieldName}: Namebook[];"));
+            string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
+
+            string ctorBlock = model.Fields.Any(f => f.Search != null)
+                ? "\n\n    constructor(private apiService: ApiService) {}"
+                : "";
+
+            string searchMethods = string.Join("\n\n", model.Fields
+                .Where(f => f.Search != null)
+                .Select(GetSearchMethod));
+            string searchMethodsBlock = searchMethods.Length > 0 ? $"\n\n{searchMethods}" : "";
+
             return $$"""
 @Component({
     selector: '{{model.Selector}}',
@@ -37,8 +51,19 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}
 }
+""";
+        }
+
+        private static string GetSearchMethod(FieldModel field)
+        {
+            return $$"""
+    {{field.Search.MethodName}}(event: AutoCompleteCompleteEvent, modelId: number = null) {
+        this.apiService.{{field.Search.ApiMethodName}}(50, event?.query ?? '', modelId).subscribe(no => {
+            this.{{field.Search.OptionsFieldName}} = no;
+        });
+    }
 """;
         }
 

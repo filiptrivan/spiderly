@@ -38,4 +38,29 @@ public class NgFieldsComponentGeneratorTests
 
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsAutocompleteFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new() { Name = "Country", Type = "Country", EntityName = "Brand" },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model)
+            + "\n\n"
+            + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+
+        return Verify(output);
+    }
 }
