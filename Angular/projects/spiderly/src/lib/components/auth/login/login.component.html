@@ -2,8 +2,6 @@
   @if (loginFormGroup != null) {
     @if (showEmailSentDialog == false) {
       <spiderly-auth-card>
-        <ng-content select="[auth-logo]" ngProjectAs="[auth-logo]"></ng-content>
-
         <form [formGroup]="loginFormGroup" style="margin-bottom: 16px">
           <div>
             <spiderly-textbox
@@ -42,8 +40,6 @@
         <spiderly-external-login
           [providerIcons]="providerIcons"
         ></spiderly-external-login>
-
-        <ng-content select="[auth-footer]" ngProjectAs="[auth-footer]"></ng-content>
       </spiderly-auth-card>
     } @else {
       <login-verification
