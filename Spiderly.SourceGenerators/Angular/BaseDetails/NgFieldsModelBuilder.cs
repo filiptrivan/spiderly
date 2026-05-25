@@ -150,6 +150,20 @@ namespace Spiderly.SourceGenerators.Angular
                     field.ExtraControlAttributes = $" [showInputTextField]=\"config.{showTextFieldFlag} !== false\"";
                     return field;
                 }
+                case UIControlTypeCodes.Editor:
+                    field.ControlTag = "spiderly-editor";
+                    if (property.HasS3PublicStorageAttribute())
+                    {
+                        field.EditorImageUpload = new EditorImageUploadModel
+                        {
+                            MethodName = $"upload{property.Name}Image",
+                            ApiMethodName = $"upload{property.Name}ImageFor{entityName}",
+                        };
+                        field.ExtraControlAttributes =
+                            $" [uploadImageMethod]=\"{field.EditorImageUpload.MethodName}\""
+                            + $" [objectId]=\"{mainDtoAccess}.controls.id.getRawValue()\"";
+                    }
+                    return field;
                 default:
                     return null; // control types beyond current slices are added in later slices
             }

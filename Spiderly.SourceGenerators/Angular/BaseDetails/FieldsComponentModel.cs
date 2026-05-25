@@ -69,6 +69,12 @@ namespace Spiderly.SourceGenerators.Angular
 
         /// <summary>On-demand autocomplete search method backing a M2O autocomplete control; null otherwise.</summary>
         public FieldSearchModel Search { get; set; }
+
+        /// <summary>
+        /// Editor image-upload method backing an <c>[S3PublicStorage]</c> Editor control; null otherwise. The
+        /// fragment declares an arrow-fn <c>{MethodName}</c> that delegates to <c>ApiService.{ApiMethodName}</c>.
+        /// </summary>
+        public EditorImageUploadModel EditorImageUpload { get; set; }
     }
 
     /// <summary>A control change event wired to a component <c>@Output()</c>.</summary>
@@ -85,5 +91,12 @@ namespace Spiderly.SourceGenerators.Angular
         public string MethodName { get; set; }
         public string ApiMethodName { get; set; }
         public string OptionsFieldName { get; set; }
+    }
+
+    /// <summary>An Editor's image-upload arrow-fn that delegates to an ApiService upload method.</summary>
+    internal sealed class EditorImageUploadModel
+    {
+        public string MethodName { get; set; }
+        public string ApiMethodName { get; set; }
     }
 }

@@ -41,6 +41,8 @@ public class NgFieldsModelBuilderTests
             Prop("BirthDate", "DateOnly"),
             Prop("OpenTime", "TimeOnly"),
             Prop("Color", "string", ("UIControlType", "ColorPicker")),
+            Prop("Content", "string", ("UIControlType", "Editor")),
+            Prop("Bio", "string", ("UIControlType", "Editor"), ("S3PublicStorage", null)),
         },
     };
 
@@ -227,5 +229,29 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("color", color.FormControlName);
         Assert.Contains("showColorTextField", color.ExtraConfigFlags);
         Assert.Equal(" [showInputTextField]=\"config.showColorTextField !== false\"", color.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_Editor_PlainHasNoUploadOrExtraAttributes()
+    {
+        FieldModel content = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Content");
+
+        Assert.Equal("spiderly-editor", content.ControlTag);
+        Assert.Equal("content", content.FormControlName);
+        Assert.Equal("", content.ExtraControlAttributes);
+        Assert.Null(content.EditorImageUpload);
+    }
+
+    [Fact]
+    public void Build_EditorS3_HasUploadImageMethodAndObjectId()
+    {
+        FieldModel bio = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Bio");
+
+        Assert.Equal("spiderly-editor", bio.ControlTag);
+        Assert.NotNull(bio.EditorImageUpload);
+        Assert.Equal("uploadBioImage", bio.EditorImageUpload.MethodName);
+        Assert.Equal("uploadBioImageForBrand", bio.EditorImageUpload.ApiMethodName);
+        Assert.Contains("[uploadImageMethod]=\"uploadBioImage\"", bio.ExtraControlAttributes);
+        Assert.Contains("[objectId]=\"formGroup.controls.brandDTO.controls.id.getRawValue()\"", bio.ExtraControlAttributes);
     }
 }
