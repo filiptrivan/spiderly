@@ -1,0 +1,39 @@
+﻿@Component({
+    selector: 'brand-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showName !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.getControl('name')"></spiderly-textbox>
+        <ng-content select="[belowName]"></ng-content>
+    </div>
+    <div *ngIf="config.showPrice !== false" class="col-8 md:col-4">
+        <spiderly-number [control]="formGroup.getControl('price')" [decimal]="true" [maxFractionDigits]=""></spiderly-number>
+        <ng-content select="[belowPrice]"></ng-content>
+    </div>
+    <div *ngIf="config.showIsActive !== false" class="col-8 md:col-4">
+        <spiderly-checkbox [control]="formGroup.getControl('isActive')" (onChange)="onIsActiveChange.next($event)"></spiderly-checkbox>
+        <ng-content select="[belowIsActive]"></ng-content>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+    ]
+})
+export class BrandFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<BrandSaveBody>;
+    @Input() config: BrandFieldsConfig = {};
+    @Output() onIsActiveChange = new EventEmitter<CheckboxChangeEvent>();
+}
+
+export class BrandFieldsConfig {
+    showName?: boolean;
+    showPrice?: boolean;
+    showIsActive?: boolean;
+}
