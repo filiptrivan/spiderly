@@ -1302,7 +1302,7 @@ export const routes: Routes = [
     },
     {
         path: 'login',
-        loadComponent: () => import('spiderly').then(c => c.LoginComponent),
+        loadComponent: () => import('spiderly').then(c => c.SpiderlyLoginComponent),
         canActivate: [NotAuthGuard],
     },
     { path: 'privacy-policy', loadComponent: () => import('./pages/privacy-policy/privacy-policy.component').then(c => c.PrivacyPolicyComponent) },
