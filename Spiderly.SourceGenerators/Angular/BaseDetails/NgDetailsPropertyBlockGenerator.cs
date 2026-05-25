@@ -572,7 +572,7 @@ namespace Spiderly.SourceGenerators.Angular
             return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany, isControlDirectlyOnParent)}.getControl('{GetFormControlName(property)}')";
         }
 
-        private static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
+        internal static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
         {
             SpiderlyAttribute uiControlWidthAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlWidth");
 
