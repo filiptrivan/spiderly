@@ -21,6 +21,8 @@ export * from './lib/controls/spiderly-password/spiderly-password.component';
 export * from './lib/controls/spiderly-textarea/spiderly-textarea.component';
 export * from './lib/controls/spiderly-textbox/spiderly-textbox.component';
 
+export * from './lib/components/auth/external-provider-icons';
+export * from './lib/components/auth/external-login/external-login.component';
 export * from './lib/components/auth/login/login.component';
 export * from './lib/components/auth/partials/login-verification.component';
 export * from './lib/components/auth/partials/verification-wrapper.component';

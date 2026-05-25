@@ -1,0 +1,20 @@
+<ng-container *transloco="let t">
+  <div *ngIf="externalProviders.length > 0">
+    <div
+      style="display: flex; align-items: center; gap: 7px; justify-content: center; margin-bottom: 16px;"
+    >
+      <div class="separator"></div>
+      <div>{{ t("or") }}</div>
+      <div class="separator"></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <spiderly-button
+        *ngFor="let provider of externalProviders"
+        (onClick)="loginWithExternalProvider(provider.code)"
+        [label]="provider.label || (provider.code | titlecase)"
+        [iconUrl]="iconFor(provider.code)"
+        styleClass="w-full"
+      ></spiderly-button>
+    </div>
+  </div>
+</ng-container>
