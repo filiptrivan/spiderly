@@ -9,8 +9,14 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 // (TextBox, Integer, Decimal, CheckBox) and M2O Autocomplete controls.
 public class NgFieldsModelBuilderTests
 {
-    private static SpiderlyProperty Prop(string name, string type) =>
-        new() { Name = name, Type = type, EntityName = "Brand" };
+    private static SpiderlyProperty Prop(string name, string type, params (string Name, string? Value)[] attributes) =>
+        new()
+        {
+            Name = name,
+            Type = type,
+            EntityName = "Brand",
+            Attributes = attributes.Select(a => new SpiderlyAttribute { Name = a.Name, Value = a.Value }).ToList(),
+        };
 
     private static SpiderlyClass Brand() => new()
     {
@@ -25,6 +31,10 @@ public class NgFieldsModelBuilderTests
             Prop("Stock", "int"),
             Prop("IsActive", "bool?"),
             Prop("Country", "Country"),
+            new() { Name = "Status", Type = "BrandStatusCodes", EntityName = "Brand", IsEnum = true },
+            Prop("Description", "string", ("UIControlType", "TextArea")),
+            Prop("Secret", "string", ("UIControlType", "Password")),
+            Prop("Info", "string", ("UIControlType", "TextBlock")),
         },
     };
 
@@ -104,5 +114,35 @@ public class NgFieldsModelBuilderTests
         Assert.Contains("[options]=\"countryOptions\"", country.ExtraControlAttributes);
         Assert.Contains("[displayName]=\"formGroup.controls.brandDTO.controls.countryDisplayName.getRawValue()\"", country.ExtraControlAttributes);
         Assert.Contains("(onTextInput)=\"searchCountry($event, formGroup.controls.brandDTO.controls.id.getRawValue())\"", country.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_Dropdown_HasInputOptionsAndChangeOutput()
+    {
+        FieldModel status = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Status");
+
+        Assert.Equal("spiderly-dropdown", status.ControlTag);
+        Assert.Equal("status", status.FormControlName);
+        Assert.Equal("statusOptions", status.OptionsFieldName);
+        Assert.True(status.OptionsIsInput);
+        Assert.Contains("[options]=\"statusOptions\"", status.ExtraControlAttributes);
+        Assert.NotNull(status.ChangeOutput);
+        Assert.Equal("onStatusChange", status.ChangeOutput.OutputName);
+        Assert.Equal("DropdownChangeEvent", status.ChangeOutput.EventType);
+        Assert.Equal("onChange", status.ChangeOutput.ControlEventName);
+    }
+
+    [Theory]
+    [InlineData("Description", "spiderly-textarea")]
+    [InlineData("Secret", "spiderly-password")]
+    [InlineData("Info", "spiderly-textblock")]
+    public void Build_SimpleScalarControls_MapToTag(string propertyName, string expectedTag)
+    {
+        FieldModel field = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == propertyName);
+
+        Assert.Equal(expectedTag, field.ControlTag);
+        Assert.Equal("", field.ExtraControlAttributes);
+        Assert.Null(field.ChangeOutput);
+        Assert.Null(field.OptionsFieldName);
     }
 }

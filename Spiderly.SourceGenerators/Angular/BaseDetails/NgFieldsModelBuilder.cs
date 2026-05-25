@@ -83,6 +83,27 @@ namespace Spiderly.SourceGenerators.Angular
                         + $" [displayName]=\"{mainDtoAccess}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\""
                         + $" (onTextInput)=\"{field.Search.MethodName}($event, {mainDtoAccess}.controls.id.getRawValue())\"";
                     return field;
+                case UIControlTypeCodes.TextArea:
+                    field.ControlTag = "spiderly-textarea";
+                    return field;
+                case UIControlTypeCodes.Password:
+                    field.ControlTag = "spiderly-password";
+                    return field;
+                case UIControlTypeCodes.TextBlock:
+                    field.ControlTag = "spiderly-textblock";
+                    return field;
+                case UIControlTypeCodes.Dropdown:
+                    field.ControlTag = "spiderly-dropdown";
+                    field.OptionsFieldName = $"{property.Name.FirstCharToLower()}Options";
+                    field.OptionsIsInput = true;
+                    field.ChangeOutput = new FieldOutputModel
+                    {
+                        ControlEventName = "onChange",
+                        OutputName = $"on{property.Name}Change",
+                        EventType = "DropdownChangeEvent",
+                    };
+                    field.ExtraControlAttributes = $" [options]=\"{field.OptionsFieldName}\"";
+                    return field;
                 default:
                     return null; // control types beyond current slices are added in later slices
             }

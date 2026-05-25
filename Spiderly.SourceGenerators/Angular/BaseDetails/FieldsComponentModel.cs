@@ -45,6 +45,12 @@ namespace Spiderly.SourceGenerators.Angular
         /// <summary>Self-owned options array field name for option-backed controls (e.g. "countryOptions"); null otherwise.</summary>
         public string OptionsFieldName { get; set; }
 
+        /// <summary>
+        /// True when the options array is supplied by the parent/shell as an <c>@Input</c> (e.g. Dropdown — static
+        /// options loaded once and passed down). False when the fragment owns it (e.g. Autocomplete fills it on demand).
+        /// </summary>
+        public bool OptionsIsInput { get; set; }
+
         /// <summary>On-demand autocomplete search method backing a M2O autocomplete control; null otherwise.</summary>
         public FieldSearchModel Search { get; set; }
     }
