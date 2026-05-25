@@ -87,7 +87,9 @@ export class {{model.ComponentClassName}} {
 
         internal static string BuildFieldsConfig(FieldsComponentModel model)
         {
-            string flags = string.Join("\n", model.Fields.Select(f => $"    {f.ConfigShowFlagName}?: boolean;"));
+            string flags = string.Join("\n", model.Fields
+                .SelectMany(f => new[] { f.ConfigShowFlagName }.Concat(f.ExtraConfigFlags))
+                .Select(name => $"    {name}?: boolean;"));
             string body = flags.Length > 0 ? $"\n{flags}\n" : "\n";
 
             return $"export class {model.ConfigClassName} {{{body}}}";

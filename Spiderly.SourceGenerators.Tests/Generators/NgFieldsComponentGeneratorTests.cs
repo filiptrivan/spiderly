@@ -138,4 +138,52 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsCalendarFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new() { Name = "PublishedAt", Type = "DateTime", EntityName = "Brand" },
+                new() { Name = "BirthDate", Type = "DateOnly", EntityName = "Brand" },
+                new() { Name = "OpenTime", Type = "TimeOnly", EntityName = "Brand" },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    [Fact]
+    public Task EmitsColorPickerFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new()
+                {
+                    Name = "Color", Type = "string", EntityName = "Brand",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "ColorPicker" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }
