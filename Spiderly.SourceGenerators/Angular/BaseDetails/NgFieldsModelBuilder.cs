@@ -125,6 +125,31 @@ namespace Spiderly.SourceGenerators.Angular
                         + $" (onTextInput)=\"{field.Search.MethodName}($event, {mainDtoAccess}.controls.id.getRawValue())\""
                         + $" [label]=\"t('{property.Name}')\"";
                     return field;
+                case UIControlTypeCodes.Calendar:
+                    field.ControlTag = "spiderly-calendar";
+                    if (property.Type.IsDateOnly())
+                    {
+                        field.ExtraControlAttributes = " [dateOnly]=\"true\"";
+                    }
+                    else if (property.Type.IsTimeOnly())
+                    {
+                        field.ExtraControlAttributes = " [timeOnly]=\"true\"";
+                    }
+                    else
+                    {
+                        string showTimeFlag = $"show{property.Name}Time";
+                        field.ExtraConfigFlags.Add(showTimeFlag);
+                        field.ExtraControlAttributes = $" [showTime]=\"config.{showTimeFlag} === true\"";
+                    }
+                    return field;
+                case UIControlTypeCodes.ColorPicker:
+                {
+                    field.ControlTag = "spiderly-colorpicker";
+                    string showTextFieldFlag = $"show{property.Name}TextField";
+                    field.ExtraConfigFlags.Add(showTextFieldFlag);
+                    field.ExtraControlAttributes = $" [showInputTextField]=\"config.{showTextFieldFlag} !== false\"";
+                    return field;
+                }
                 default:
                     return null; // control types beyond current slices are added in later slices
             }

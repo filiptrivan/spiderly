@@ -39,6 +39,14 @@ namespace Spiderly.SourceGenerators.Angular
         /// <summary>Extra control attributes (with a leading space), e.g. <c> [decimal]="true" [maxFractionDigits]="2"</c>. Empty when none.</summary>
         public string ExtraControlAttributes { get; set; } = "";
 
+        /// <summary>
+        /// Extra config-class flags this field contributes beyond <see cref="ConfigShowFlagName"/> (e.g. a Calendar's
+        /// show-time toggle or a ColorPicker's show-text-field toggle). Each entry becomes an optional boolean on the
+        /// {Entity}FieldsConfig class; the binding that consumes it — carrying its own default — is baked into
+        /// <see cref="ExtraControlAttributes"/>.
+        /// </summary>
+        public List<string> ExtraConfigFlags { get; set; } = new();
+
         /// <summary>Set for controls that emit a change event (e.g. CheckBox); null otherwise.</summary>
         public FieldOutputModel ChangeOutput { get; set; }
 

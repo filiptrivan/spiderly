@@ -37,6 +37,10 @@ public class NgFieldsModelBuilderTests
             Prop("Info", "string", ("UIControlType", "TextBlock")),
             Prop("Tags", "List<Tag>", ("UIControlType", "MultiSelect")),
             Prop("Authors", "List<Author>", ("UIControlType", "MultiAutocomplete")),
+            Prop("PublishedAt", "DateTime"),
+            Prop("BirthDate", "DateOnly"),
+            Prop("OpenTime", "TimeOnly"),
+            Prop("Color", "string", ("UIControlType", "ColorPicker")),
         },
     };
 
@@ -181,5 +185,47 @@ public class NgFieldsModelBuilderTests
         Assert.Contains("[options]=\"authorsOptions\"", authors.ExtraControlAttributes);
         Assert.Contains("(onTextInput)=\"searchAuthors($event, formGroup.controls.brandDTO.controls.id.getRawValue())\"", authors.ExtraControlAttributes);
         Assert.Contains("[label]=\"t('Authors')\"", authors.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_CalendarDateTime_AddsShowTimeConfigFlagDefaultFalse()
+    {
+        FieldModel publishedAt = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "PublishedAt");
+
+        Assert.Equal("spiderly-calendar", publishedAt.ControlTag);
+        Assert.Equal("publishedAt", publishedAt.FormControlName);
+        Assert.Contains("showPublishedAtTime", publishedAt.ExtraConfigFlags);
+        Assert.Equal(" [showTime]=\"config.showPublishedAtTime === true\"", publishedAt.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_CalendarDateOnly_UsesStaticLiteralNoExtraFlag()
+    {
+        FieldModel birthDate = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "BirthDate");
+
+        Assert.Equal("spiderly-calendar", birthDate.ControlTag);
+        Assert.Equal(" [dateOnly]=\"true\"", birthDate.ExtraControlAttributes);
+        Assert.Empty(birthDate.ExtraConfigFlags);
+    }
+
+    [Fact]
+    public void Build_CalendarTimeOnly_UsesStaticLiteralNoExtraFlag()
+    {
+        FieldModel openTime = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "OpenTime");
+
+        Assert.Equal("spiderly-calendar", openTime.ControlTag);
+        Assert.Equal(" [timeOnly]=\"true\"", openTime.ExtraControlAttributes);
+        Assert.Empty(openTime.ExtraConfigFlags);
+    }
+
+    [Fact]
+    public void Build_ColorPicker_AddsShowTextFieldConfigFlagDefaultTrue()
+    {
+        FieldModel color = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Color");
+
+        Assert.Equal("spiderly-colorpicker", color.ControlTag);
+        Assert.Equal("color", color.FormControlName);
+        Assert.Contains("showColorTextField", color.ExtraConfigFlags);
+        Assert.Equal(" [showInputTextField]=\"config.showColorTextField !== false\"", color.ExtraControlAttributes);
     }
 }
