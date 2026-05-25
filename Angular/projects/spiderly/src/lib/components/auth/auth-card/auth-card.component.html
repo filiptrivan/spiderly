@@ -1,0 +1,40 @@
+<div class="flex min-h-screen overflow-hidden p-5">
+  <div class="flex flex-col w-full">
+    <div
+      class="w-full sm:w-120"
+      style="
+        margin: auto;
+        border-radius: 50px;
+        padding: 0.3rem;
+        background: linear-gradient(
+          180deg,
+          var(--p-primary-color) 10%,
+          rgba(33, 150, 243, 0) 30%
+        );
+      "
+    >
+      <div class="surface-card py-12 px-8 sm:px-12" style="border-radius: 45px">
+        <div class="flex justify-center" style="margin-bottom: 38px">
+          <ng-content select="[auth-logo]">
+            <img
+              *ngIf="image != null"
+              [src]="image"
+              alt="{{ companyName }} Logo"
+              title="{{ companyName }} Logo"
+              class="max-h-15"
+            />
+            <i
+              *ngIf="image == null"
+              class="pi pi-spin pi-spinner primary-color"
+              style="font-size: 2rem"
+            ></i>
+          </ng-content>
+        </div>
+
+        <ng-content></ng-content>
+
+        <ng-content select="[auth-footer]"></ng-content>
+      </div>
+    </div>
+  </div>
+</div>
