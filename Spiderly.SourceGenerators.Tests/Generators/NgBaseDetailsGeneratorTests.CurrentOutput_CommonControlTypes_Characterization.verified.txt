@@ -1,0 +1,183 @@
+﻿import { ValidatorService } from 'src/app/business/services/validators/validators';
+import { DropdownChangeEvent } from 'primeng/dropdown';
+import { CheckboxChangeEvent } from 'primeng/checkbox';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component, EventEmitter, Input, Output, TemplateRef } from '@angular/core';
+import { ApiService } from '../services/api/api.service';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { ActivatedRoute } from '@angular/router';
+import { combineLatest, firstValueFrom, forkJoin, map, Observable, of, Subscription } from 'rxjs';
+import { MenuItem } from 'primeng/api';
+import { AuthService } from '../services/auth/auth.service';
+import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule, Namebook, EditorImageUploadResult } from 'spiderly';
+import { Brand, BrandSaveBody, BrandMainUIForm } from '../entities/entities.generated';
+
+@Component({
+    selector: 'brand-base-details',
+    template: `
+<ng-container *transloco="let t">
+    <spiderly-panel [isFirstMultiplePanel]="isFirstMultiplePanel" [isMiddleMultiplePanel]="isMiddleMultiplePanel" [isLastMultiplePanel]="isLastMultiplePanel" [showPanelHeader]="showPanelHeader" >
+        <panel-header [title]="panelTitle" [showBigTitle]="showBigPanelTitle" [icon]="panelIcon"></panel-header>
+
+        <panel-body>
+            @defer (when loading === false) {
+                <form class="spiderly-grid">
+                    <ng-content select="[before]"></ng-content>
+                    <div *ngIf="showNameForBrand" class="col-8 md:col-4">
+                        <spiderly-textbox [control]="this.parentFormGroup.controls.brandDTO.getControl('name')"></spiderly-textbox>
+                        <ng-content select="[belowNameForBrand]"></ng-content>
+                    </div>
+                    <div *ngIf="showPriceForBrand" class="col-8 md:col-4">
+                        <spiderly-number [control]="this.parentFormGroup.controls.brandDTO.getControl('price')" [decimal]="true" [maxFractionDigits]=""></spiderly-number>
+                        <ng-content select="[belowPriceForBrand]"></ng-content>
+                    </div>
+                    <div *ngIf="showIsActiveForBrand" class="col-8 md:col-4">
+                        <spiderly-checkbox [control]="this.parentFormGroup.controls.brandDTO.getControl('isActive')" (onChange)="onIsActiveForBrandChange.next($event)"></spiderly-checkbox>
+                        <ng-content select="[belowIsActiveForBrand]"></ng-content>
+                    </div>
+                    <ng-content select="[after]"></ng-content>
+                </form>
+            } @placeholder {
+                <card-skeleton [height]="502"></card-skeleton>
+            }
+        </panel-body>
+
+        <panel-footer>
+            <spiderly-button *ngIf="isAuthorizedForSave" (onClick)="save()" [label]="t('Save')" icon="pi pi-save"></spiderly-button>
+            <ng-content select="[buttons]"></ng-content>
+            <return-button *ngIf="showReturnButton" ></return-button>
+        </panel-footer>
+    </spiderly-panel>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        CardSkeletonComponent,
+        IndexCardComponent,
+        SpiderlyDataTableComponent,
+        SpiderlyPanelsModule,
+    ]
+})
+export class BrandBaseDetailsComponent {
+    @Output() onSave = new EventEmitter<void>();
+    @Output() onAfterFormGroupInit = new EventEmitter<void>();
+    @Input() parentFormGroup: SpiderlyFormGroup<BrandSaveBody>;
+    @Input() isFirstMultiplePanel: boolean = false;
+    @Input() isMiddleMultiplePanel: boolean = false;
+    @Input() isLastMultiplePanel: boolean = false;
+    @Input() showPanelHeader: boolean = true;
+    @Input() panelTitle: string;
+    @Input() showBigPanelTitle: boolean = true;
+    @Input() panelIcon: string;
+    @Input() showReturnButton: boolean = true;
+    @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve(false);
+    isAuthorizedForSave: boolean = false;
+    @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>();
+
+
+    modelId: number;
+    loading: boolean = true;
+
+
+
+
+
+
+
+
+
+
+
+    @Input() showNameForBrand = true;
+    @Input() showPriceForBrand = true;
+    @Input() showIsActiveForBrand = true;
+
+
+    @Output() onIsActiveForBrandChange = new EventEmitter<CheckboxChangeEvent>();
+
+
+    constructor(
+        private apiService: ApiService,
+        private route: ActivatedRoute,
+        private baseFormService: BaseFormService,
+        private validatorService: ValidatorService,
+        private translocoService: TranslocoService,
+        private authService: AuthService,
+    ) {}
+
+    ngOnInit(){
+
+
+        this.parentFormGroup.saveObservableMethod = this.apiService.saveBrand;
+
+        this.route.params.subscribe(async (params) => {
+            this.modelId = params['id'];
+
+
+
+
+            if (this.modelId > 0) {
+                forkJoin({
+                    mainUIFormDTO: this.apiService.getBrandMainUIFormDTO(this.modelId),
+                })
+                .subscribe(async (data) => {
+                    const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
+                        BrandMainUIForm,
+                        data.mainUIFormDTO,
+                    );
+                    this.baseFormService.initFormGroup(this.parentFormGroup, BrandSaveBody, saveBody);
+                    await this.handleAuthorizationForSave();
+                    this.loading = false;
+                    this.onAfterFormGroupInit.next();
+                });
+            }
+            else {
+                this.baseFormService.initFormGroup(this.parentFormGroup, BrandSaveBody);
+                await this.handleAuthorizationForSave();
+                this.loading = false;
+                this.onAfterFormGroupInit.next();
+            }
+        });
+    }
+
+    handleAuthorizationForSave = async () => {
+        const currentUserPermissionCodes = await firstValueFrom(this.authService.currentUserPermissionCodes$);
+        const isAdditionallyAuthorizedForSave = await this.handleAdditionalSaveAuthorization();
+
+        this.isAuthorizedForSave =
+
+            (currentUserPermissionCodes.includes('InsertBrand') && this.modelId <= 0) ||
+            (currentUserPermissionCodes.includes('UpdateBrand') && this.modelId > 0) ||
+            isAdditionallyAuthorizedForSave;
+
+        if (this.isAuthorizedForSave) {
+            this.parentFormGroup.enable();
+        }
+        else{
+            this.parentFormGroup.disable();
+        }
+
+        this.onIsAuthorizedForSaveChange.next(
+            new IsAuthorizedForSaveEvent({
+                isAuthorizedForSave: this.isAuthorizedForSave,
+            })
+        );
+    };
+
+
+
+
+
+
+
+    save(){
+        this.onSave.next();
+    }
+
+}
