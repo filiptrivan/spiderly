@@ -104,6 +104,28 @@ namespace Spiderly.SourceGenerators.Angular
                     };
                     field.ExtraControlAttributes = $" [options]=\"{field.OptionsFieldName}\"";
                     return field;
+                case UIControlTypeCodes.MultiSelect:
+                    field.ControlTag = "spiderly-multiselect";
+                    field.BindsOnSaveBody = true;
+                    field.OptionsFieldName = $"{property.Name.FirstCharToLower()}Options";
+                    field.OptionsIsInput = true;
+                    field.ExtraControlAttributes = $" [options]=\"{field.OptionsFieldName}\" [label]=\"t('{property.Name}')\"";
+                    return field;
+                case UIControlTypeCodes.MultiAutocomplete:
+                    field.ControlTag = "spiderly-multiautocomplete";
+                    field.BindsOnSaveBody = true;
+                    field.OptionsFieldName = $"{property.Name.FirstCharToLower()}Options";
+                    field.Search = new FieldSearchModel
+                    {
+                        MethodName = $"search{property.Name}",
+                        ApiMethodName = $"get{property.Name}AutocompleteListFor{entityName}",
+                        OptionsFieldName = field.OptionsFieldName,
+                    };
+                    field.ExtraControlAttributes =
+                        $" [options]=\"{field.OptionsFieldName}\""
+                        + $" (onTextInput)=\"{field.Search.MethodName}($event, {mainDtoAccess}.controls.id.getRawValue())\""
+                        + $" [label]=\"t('{property.Name}')\"";
+                    return field;
                 default:
                     return null; // control types beyond current slices are added in later slices
             }

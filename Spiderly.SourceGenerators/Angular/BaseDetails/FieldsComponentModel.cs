@@ -51,6 +51,13 @@ namespace Spiderly.SourceGenerators.Angular
         /// </summary>
         public bool OptionsIsInput { get; set; }
 
+        /// <summary>
+        /// True for collection controls (MultiSelect/MultiAutocomplete) whose form control lives at the SaveBody
+        /// level (e.g. <c>selected{Prop}Ids</c>) — the emitter binds them on <c>formGroup</c> directly rather than
+        /// through the nested <c>{entityCamel}DTO</c> control.
+        /// </summary>
+        public bool BindsOnSaveBody { get; set; }
+
         /// <summary>On-demand autocomplete search method backing a M2O autocomplete control; null otherwise.</summary>
         public FieldSearchModel Search { get; set; }
     }

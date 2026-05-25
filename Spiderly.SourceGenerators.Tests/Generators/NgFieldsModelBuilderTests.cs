@@ -35,6 +35,8 @@ public class NgFieldsModelBuilderTests
             Prop("Description", "string", ("UIControlType", "TextArea")),
             Prop("Secret", "string", ("UIControlType", "Password")),
             Prop("Info", "string", ("UIControlType", "TextBlock")),
+            Prop("Tags", "List<Tag>", ("UIControlType", "MultiSelect")),
+            Prop("Authors", "List<Author>", ("UIControlType", "MultiAutocomplete")),
         },
     };
 
@@ -145,5 +147,39 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("", field.ExtraControlAttributes);
         Assert.Null(field.ChangeOutput);
         Assert.Null(field.OptionsFieldName);
+    }
+
+    [Fact]
+    public void Build_MultiSelect_BindsOnSaveBodyWithInputOptionsAndLabel()
+    {
+        FieldModel tags = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Tags");
+
+        Assert.Equal("spiderly-multiselect", tags.ControlTag);
+        Assert.Equal("selectedTagsIds", tags.FormControlName);
+        Assert.True(tags.BindsOnSaveBody);
+        Assert.Equal("tagsOptions", tags.OptionsFieldName);
+        Assert.True(tags.OptionsIsInput);
+        Assert.Null(tags.Search);
+        Assert.Null(tags.ChangeOutput);
+        Assert.Contains("[options]=\"tagsOptions\"", tags.ExtraControlAttributes);
+        Assert.Contains("[label]=\"t('Tags')\"", tags.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_MultiAutocomplete_BindsOnSaveBodyWithSelfOwnedSearchAndLabel()
+    {
+        FieldModel authors = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Authors");
+
+        Assert.Equal("spiderly-multiautocomplete", authors.ControlTag);
+        Assert.Equal("selectedAuthorsNamebookDTOList", authors.FormControlName);
+        Assert.True(authors.BindsOnSaveBody);
+        Assert.Equal("authorsOptions", authors.OptionsFieldName);
+        Assert.False(authors.OptionsIsInput);
+        Assert.NotNull(authors.Search);
+        Assert.Equal("searchAuthors", authors.Search.MethodName);
+        Assert.Equal("getAuthorsAutocompleteListForBrand", authors.Search.ApiMethodName);
+        Assert.Contains("[options]=\"authorsOptions\"", authors.ExtraControlAttributes);
+        Assert.Contains("(onTextInput)=\"searchAuthors($event, formGroup.controls.brandDTO.controls.id.getRawValue())\"", authors.ExtraControlAttributes);
+        Assert.Contains("[label]=\"t('Authors')\"", authors.ExtraControlAttributes);
     }
 }
