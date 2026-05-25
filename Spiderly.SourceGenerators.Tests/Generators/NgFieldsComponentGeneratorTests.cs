@@ -88,4 +88,54 @@ public class NgFieldsComponentGeneratorTests
 
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsMultiSelectFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new()
+                {
+                    Name = "Tags", Type = "List<Tag>", EntityName = "Brand",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "MultiSelect" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    [Fact]
+    public Task EmitsMultiAutocompleteFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new()
+                {
+                    Name = "Authors", Type = "List<Author>", EntityName = "Brand",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "MultiAutocomplete" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }

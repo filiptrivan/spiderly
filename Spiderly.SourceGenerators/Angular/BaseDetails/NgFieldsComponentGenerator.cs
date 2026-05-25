@@ -71,13 +71,15 @@ export class {{model.ComponentClassName}} {
 
         private static string GetFieldBlock(FieldModel field, string mainDtoAccess)
         {
+            string controlBase = field.BindsOnSaveBody ? "formGroup" : mainDtoAccess;
+
             string eventAttr = field.ChangeOutput != null
                 ? $" ({field.ChangeOutput.ControlEventName})=\"{field.ChangeOutput.OutputName}.next($event)\""
                 : "";
 
             return $$"""
     <div *ngIf="config.{{field.ConfigShowFlagName}} !== false" class="{{field.Width}}">
-        <{{field.ControlTag}} [control]="{{mainDtoAccess}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
+        <{{field.ControlTag}} [control]="{{controlBase}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
         <ng-content select="[below{{field.PropertyName}}]"></ng-content>
     </div>
 """;
