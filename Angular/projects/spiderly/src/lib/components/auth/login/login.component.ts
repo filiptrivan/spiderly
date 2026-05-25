@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectorRef,
   Component,
+  Input,
   KeyValueDiffers,
   OnInit,
 } from '@angular/core';
@@ -13,30 +14,32 @@ import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.modu
 import { Login } from '../../../entities/security-entities';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { BaseFormService } from '../../../services/base-form.service';
-import { ConfigServiceBase } from '../../../services/config.service.base';
 import { SpiderlyMessageService } from '../../../services/spiderly-message.service';
 import { BaseFormComponent } from '../../base-form/base-form.component';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
-import { AuthComponent } from '../partials/auth.component';
+import { AuthCardComponent } from '../auth-card/auth-card.component';
+import { ExternalLoginComponent } from '../external-login/external-login.component';
 import { LoginVerificationComponent } from '../partials/login-verification.component';
 
 @Component({
-  selector: 'app-login',
+  selector: 'spiderly-login',
   templateUrl: './login.component.html',
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    AuthComponent,
+    AuthCardComponent,
+    ExternalLoginComponent,
     SpiderlyControlsModule,
     LoginVerificationComponent,
     TranslocoDirective,
   ],
 })
-export class LoginComponent extends BaseFormComponent implements OnInit {
+export class SpiderlyLoginComponent extends BaseFormComponent implements OnInit {
   loginFormGroup = new SpiderlyFormGroup<Login>({});
-
-  companyName: string;
   showEmailSentDialog: boolean = false;
+
+  /** Per-code provider icon overrides, forwarded to <spiderly-external-login>. */
+  @Input() providerIcons: Record<string, string> = {};
 
   constructor(
     protected override differs: KeyValueDiffers,
@@ -48,7 +51,6 @@ export class LoginComponent extends BaseFormComponent implements OnInit {
     protected override translocoService: TranslocoService,
     protected override baseFormService: BaseFormService,
     private authService: AuthServiceBase,
-    private config: ConfigServiceBase,
   ) {
     super(
       differs,
@@ -70,10 +72,6 @@ export class LoginComponent extends BaseFormComponent implements OnInit {
     this.baseFormService.initFormGroup(this.loginFormGroup, Login, model, [
       'email',
     ]);
-  }
-
-  companyNameChange(companyName: string) {
-    this.companyName = companyName;
   }
 
   sendLoginVerificationEmail() {

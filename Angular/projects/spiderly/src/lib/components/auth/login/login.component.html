@@ -1,8 +1,9 @@
 <ng-container *transloco="let t">
   @if (loginFormGroup != null) {
     @if (showEmailSentDialog == false) {
-      <auth (onCompanyNameChange)="companyNameChange($event)">
-        <!-- We are not loading anything from the server here so we don't need defer block -->
+      <spiderly-auth-card>
+        <ng-content select="[auth-logo]" ngProjectAs="[auth-logo]"></ng-content>
+
         <form [formGroup]="loginFormGroup" style="margin-bottom: 16px">
           <div>
             <spiderly-textbox
@@ -37,13 +38,17 @@
             ></spiderly-button>
           </div>
         </form>
-      </auth>
+
+        <spiderly-external-login
+          [providerIcons]="providerIcons"
+        ></spiderly-external-login>
+
+        <ng-content select="[auth-footer]" ngProjectAs="[auth-footer]"></ng-content>
+      </spiderly-auth-card>
     } @else {
       <login-verification
         [email]="loginFormGroup.controls.email.getRawValue()"
       ></login-verification>
     }
-  } @else {
-    <!-- TODO: Add skeleton -->
   }
 </ng-container>

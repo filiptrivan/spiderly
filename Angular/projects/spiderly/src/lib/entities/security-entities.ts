@@ -151,20 +151,17 @@ export class ExternalProviderPublic extends BaseEntity {
   authority?: string;
   clientId?: string;
   label?: string;
-  iconUrl?: string;
 
   constructor({
     code,
     authority,
     clientId,
     label,
-    iconUrl,
   }: {
     code?: string;
     authority?: string;
     clientId?: string;
     label?: string;
-    iconUrl?: string;
   } = {}) {
     super();
 
@@ -172,7 +169,6 @@ export class ExternalProviderPublic extends BaseEntity {
     this.authority = authority;
     this.clientId = clientId;
     this.label = label;
-    this.iconUrl = iconUrl;
   }
 
   static readonly schema = {
@@ -186,9 +182,6 @@ export class ExternalProviderPublic extends BaseEntity {
       type: 'string',
     },
     label: {
-      type: 'string',
-    },
-    iconUrl: {
       type: 'string',
     },
   } as const;
