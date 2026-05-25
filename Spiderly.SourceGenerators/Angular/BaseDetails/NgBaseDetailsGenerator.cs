@@ -75,13 +75,27 @@ namespace Spiderly.SourceGenerators.Angular
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "components", "base-details.generated.ts");
 
-            string result = $$"""
+            string result = BuildBaseDetailsOutput(customDTOClasses, currentProjectEntities, allEntities);
+
+            Helpers.WriteToTheFile(result, outputPath);
+        }
+
+        /// <summary>
+        /// Builds the full <c>base-details.generated.ts</c> contents (imports + every entity component) as a string.
+        /// Pure and side-effect-free so it can be snapshot-tested directly — the generator itself writes to disk via
+        /// <see cref="Helpers.WriteToTheFile(string, string)"/> rather than <c>context.AddSource</c>, so the standard
+        /// driver snapshot never sees this output.
+        /// </summary>
+        internal static string BuildBaseDetailsOutput(
+            List<SpiderlyClass> customDTOClasses,
+            List<SpiderlyClass> currentProjectEntities,
+            List<SpiderlyClass> allEntities)
+        {
+            return $$"""
 {{NgDetailsImportGenerator.GetImports(customDTOClasses, allEntities)}}
 
 {{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
 """;
-
-            Helpers.WriteToTheFile(result, outputPath);
         }
 
         private static List<string> GetAngularBaseDetailsComponents(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
