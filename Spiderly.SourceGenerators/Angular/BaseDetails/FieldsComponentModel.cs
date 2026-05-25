@@ -19,8 +19,8 @@ namespace Spiderly.SourceGenerators.Angular
         /// <summary>
         /// Form-group access expression for the entity's editable fields, e.g. <c>formGroup.controls.brandDTO</c>.
         /// The fragment's <c>formGroup</c> input is the {Entity}SaveBody group; its scalar/M2O/dropdown/autocomplete
-        /// controls live under the nested {entityCamel}DTO control. (Collection controls like multiselect bind
-        /// directly on <c>formGroup</c> and are handled in a later slice.)
+        /// controls live under the nested {entityCamel}DTO control. Collection controls (MultiSelect/MultiAutocomplete)
+        /// bind directly on <c>formGroup</c> via <see cref="FieldModel.BindsOnSaveBody"/>.
         /// </summary>
         public string MainDtoAccess { get; set; }
 
@@ -46,8 +46,9 @@ namespace Spiderly.SourceGenerators.Angular
         public string OptionsFieldName { get; set; }
 
         /// <summary>
-        /// True when the options array is supplied by the parent/shell as an <c>@Input</c> (e.g. Dropdown — static
-        /// options loaded once and passed down). False when the fragment owns it (e.g. Autocomplete fills it on demand).
+        /// True when the options array is supplied by the parent/shell as an <c>@Input</c> (static options loaded
+        /// once and passed down, e.g. Dropdown/MultiSelect). False when the fragment owns it and fills it on demand
+        /// (e.g. Autocomplete/MultiAutocomplete via the search method).
         /// </summary>
         public bool OptionsIsInput { get; set; }
 
