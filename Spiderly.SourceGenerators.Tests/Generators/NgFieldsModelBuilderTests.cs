@@ -23,6 +23,7 @@ public class NgFieldsModelBuilderTests
         {
             Prop("Name", "string"),
             Prop("Price", "decimal"),
+            Prop("Stock", "int"),
             Prop("IsActive", "bool?"),
         },
     };
@@ -58,8 +59,20 @@ public class NgFieldsModelBuilderTests
 
         Assert.Equal("spiderly-number", price.ControlTag);
         Assert.Equal("price", price.FormControlName);
-        Assert.Contains("[decimal]=\"true\"", price.ExtraControlAttributes);
-        Assert.Contains("[maxFractionDigits]=", price.ExtraControlAttributes);
+        // Brand.Price has no [Precision] attribute, so the scale is empty. Assert the exact current shape so an
+        // empty [maxFractionDigits] can't masquerade as a populated one (the builder passes GetDecimalScale through verbatim).
+        Assert.Equal(" [decimal]=\"true\" [maxFractionDigits]=\"\"", price.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_IntegerField_HasNoExtraAttributes()
+    {
+        FieldModel stock = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Stock");
+
+        Assert.Equal("spiderly-number", stock.ControlTag);
+        Assert.Equal("stock", stock.FormControlName);
+        Assert.Equal("", stock.ExtraControlAttributes);
+        Assert.Null(stock.ChangeOutput);
     }
 
     [Fact]
