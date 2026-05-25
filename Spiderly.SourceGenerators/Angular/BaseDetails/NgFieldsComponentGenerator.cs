@@ -19,7 +19,9 @@ namespace Spiderly.SourceGenerators.Angular
 
             string optionsFields = string.Join("\n", model.Fields
                 .Where(f => f.OptionsFieldName != null)
-                .Select(f => $"    {f.OptionsFieldName}: Namebook[];"));
+                .Select(f => f.OptionsIsInput
+                    ? $"    @Input() {f.OptionsFieldName}: Namebook[];"
+                    : $"    {f.OptionsFieldName}: Namebook[];"));
             string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
 
             string ctorBlock = model.Fields.Any(f => f.Search != null)

@@ -63,4 +63,29 @@ public class NgFieldsComponentGeneratorTests
 
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsDropdownFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new() { Name = "Status", Type = "BrandStatusCodes", EntityName = "Brand", IsEnum = true },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model)
+            + "\n\n"
+            + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+
+        return Verify(output);
+    }
 }
