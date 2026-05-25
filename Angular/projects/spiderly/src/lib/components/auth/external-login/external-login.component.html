@@ -13,6 +13,7 @@
         (onClick)="loginWithExternalProvider(provider.code)"
         [label]="provider.label || (provider.code | titlecase)"
         [iconUrl]="iconFor(provider.code)"
+        [outlined]="true"
         styleClass="w-full"
       ></spiderly-button>
     </div>
