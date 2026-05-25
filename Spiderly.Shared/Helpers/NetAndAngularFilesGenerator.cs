@@ -342,6 +342,8 @@ namespace Spiderly.Shared.Helpers
                                     new SpiderlyFile { Name = "Permission.cs", Data = GetPermissionCsData(appName) },
                                     new SpiderlyFile { Name = "RolePermission.cs", Data = GetRolePermissionCsData(appName) },
                                     new SpiderlyFile { Name = "UserRole.cs", Data = GetUserRoleCsData(appName) },
+                                    new SpiderlyFile { Name = "UserExternalLogin.cs", Data = GetUserExternalLoginCsData(appName) },
+                                    new SpiderlyFile { Name = "OutboxMessage.cs", Data = GetOutboxMessageCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
@@ -359,6 +361,7 @@ namespace Spiderly.Shared.Helpers
                                 {
                                     new SpiderlyFile { Name = $"AuthorizationService.cs", Data = GetAuthorizationServiceCsData(appName) },
                                     new SpiderlyFile { Name = $"SecurityService.cs", Data = GetSecurityServiceCsData(appName) },
+                                    new SpiderlyFile { Name = $"OutboxMessageService.cs", Data = GetOutboxMessageServiceCsData(appName) },
                                 }
                             },
                         },
@@ -430,6 +433,7 @@ namespace Spiderly.Shared.Helpers
                                 {
                                     new SpiderlyFile { Name = "SecurityController.cs", Data = GetSecurityControllerCsData(appName) },
                                     new SpiderlyFile { Name = "UserController.cs", Data = GetUserControllerCsData(appName) },
+                                    new SpiderlyFile { Name = "OutboxMessageController.cs", Data = GetOutboxMessageControllerCsData(appName) },
                                 }
                             },
                             new SpiderlyFolder
@@ -826,7 +830,6 @@ export class RoleListComponent implements OnInit {
         [parentFormGroup]="parentFormGroup"
         (onSave)="onSave()"
         [showIsDisabledForUser]="showIsDisabledControl"
-        [showHasLoggedInWithGoogleAsExternalProviderForUser]="showHasLoggedInWithGoogleAsExternalProvider"
         [showReturnButton]="false"
         [handleAdditionalSaveAuthorization]="handleAdditionalSaveAuthorization"
         (onAfterFormGroupInit)="handleAfterFormGroupInit()"
@@ -866,7 +869,6 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
     override mainUIFormClass = UserMainUIForm;
 
     showIsDisabledControl: boolean = false;
-    showHasLoggedInWithGoogleAsExternalProvider: boolean = false;
 
     constructor(
         protected override differs: KeyValueDiffers,
@@ -898,9 +900,6 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
             this.showIsDisabledAndExternalLoggedIn(currentUserPermissionCodes);
 
         this.showIsDisabledControl = shouldShowIsDisabledAndExternalLoggedIn;
-        this.showHasLoggedInWithGoogleAsExternalProvider = shouldShowIsDisabledAndExternalLoggedIn;
-
-        this.parentFormGroup.controls.userDTO.controls.hasLoggedInWithGoogleAsExternalProvider.disable();
     }
 
     showIsDisabledAndExternalLoggedIn = (currentUserPermissionCodes: string[]) => {
@@ -1373,7 +1372,7 @@ import { RouterModule } from '@angular/router';
 export class AppComponent implements OnInit {
 
     constructor(
-        private primengConfig: PrimeNG, 
+        private primengConfig: PrimeNG,
         private translocoService: TranslocoService
     ) {
 
@@ -1402,7 +1401,6 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
 import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, SpiderlyTranslocoLoader, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
-import { SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from 'src/environments/environment';
 import { ValidatorService } from './business/services/validators/validators';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
@@ -1452,28 +1450,6 @@ export const appConfig: ApplicationConfig = {
       useFactory: authInitializer,
       multi: true,
       deps: [AuthService, PLATFORM_ID],
-    },
-    {
-      provide: 'SocialAuthServiceConfig',
-      useValue: {
-        autoLogin: false,
-        providers: [
-          {
-            id: GoogleLoginProvider.PROVIDER_ID,
-            provider: new GoogleLoginProvider(
-              environment.GoogleClientId,
-              {
-                scopes: 'email',
-                oneTapEnabled: false,
-                prompt: 'none',
-              },
-            )
-          },
-        ],
-        onError: (err) => {
-          console.error(err);
-        }
-      } as SocialAuthServiceConfig
     },
     {
       provide: ValidatorAbstractService,
@@ -1633,12 +1609,51 @@ namespace {{appName}}.Business.Entities
         [Required]
         public string Email { get; set; }
 
-        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
-
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
         IReadOnlyCollection<IRole> IUser.Roles => Roles;
+
+        [UIDoNotGenerate]
+        public virtual List<UserExternalLogin> ExternalLogins { get; } = new();
+    }
+}
+""";
+        }
+
+        private static string GetUserExternalLoginCsData(string appName)
+        {
+            return $$"""
+using Microsoft.EntityFrameworkCore;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.Attributes.Entity.UI;
+using Spiderly.Shared.BaseEntities;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{appName}}.Business.Entities
+{
+    // Links a user to an external identity-provider login, keyed by the provider's stable subject.
+    // [UIDoNotGenerate]: auth plumbing, not admin-editable. A non-nullable FK (UserId) requires
+    // [Required] on the navigation, otherwise the SPIDERLY006 diagnostic fires.
+    [Index(nameof(Provider), nameof(ProviderKey), IsUnique = true)]
+    [UIDoNotGenerate]
+    [SpiderlyEntity]
+    public class UserExternalLogin : BusinessObject<long>, IUserExternalLogin
+    {
+        [Required]
+        [StringLength(50, MinimumLength = 1)]
+        public string Provider { get; set; }
+
+        [Required]
+        [StringLength(255, MinimumLength = 1)]
+        public string ProviderKey { get; set; }
+
+        public long UserId { get; set; }
+
+        [Required]
+        [WithMany(nameof(User.ExternalLogins))]
+        public virtual User User { get; set; }
     }
 }
 """;
@@ -1776,15 +1791,15 @@ namespace {{appName}}.WebAPI.Controllers
     [SpiderlyController]
     [ApiController]
     [Route("/api/[controller]/[action]")]
-    public class SecurityController : SecurityBaseController<User, Role>
+    public class SecurityController : SecurityBaseController<User, Role, UserExternalLogin>
     {
         private readonly ILogger<SecurityController> _logger;
-        private readonly SecurityService<User> _securityService;
+        private readonly SecurityService<User, UserExternalLogin> _securityService;
         private readonly IApplicationDbContext _context;
 
         public SecurityController(
             ILogger<SecurityController> logger,
-            SecurityService<User> securityService,
+            SecurityService<User, UserExternalLogin> securityService,
             IJwtAuthManager jwtAuthManagerService,
             IApplicationDbContext context,
             AuthenticationService authenticationService,
@@ -1854,6 +1869,187 @@ namespace {{appName}}.WebAPI.Controllers
 """;
         }
 
+        private static string GetOutboxMessageCsData(string appName)
+        {
+            return $$"""
+using Spiderly.Shared.Attributes.Entity;
+using Spiderly.Shared.BaseEntities;
+using Spiderly.Shared.Interfaces;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{appName}}.Business.Entities
+{
+    /// <summary>
+    /// Transactional-outbox row, written inside the same transaction as the entity change it represents
+    /// (via Spiderly's IOutbox). The recurring OutboxDispatcherJob sweeps pending rows (DispatchedAt IS NULL)
+    /// and routes each to the IOutboxHandler whose Code matches HandlerCode. Payload carries semantic intent
+    /// (e.g. ids), not rendered content.
+    ///
+    /// Surfaced as a read-only Spiderly admin page; operators act through the OutboxMessageController
+    /// Retry / Dismiss endpoints, and OutboxMessageService default-filters the list to pending rows.
+    /// </summary>
+    [SpiderlyEntity]
+    public class OutboxMessage : BusinessObject<long>, IOutboxMessage
+    {
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string HandlerCode { get; set; }
+
+        [Required]
+        [StringLength(4000, MinimumLength = 1)]
+        public string Payload { get; set; }
+
+        public DateTime? DispatchedAt { get; set; }
+
+        [Required]
+        public int AttemptCount { get; set; }
+
+        public DateTime? LastAttemptedAt { get; set; }
+
+        [StringLength(2000)]
+        public string LastError { get; set; }
+
+        public long? DismissedByUserId { get; set; }
+    }
+}
+""";
+        }
+
+        private static string GetOutboxMessageServiceCsData(string appName)
+        {
+            return $$"""
+using {{appName}}.Business.Entities;
+using Spiderly.Shared.Attributes;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+
+namespace {{appName}}.Business.Services
+{
+    /// <summary>
+    /// Default-filters the outbox admin table to pending rows (DispatchedAt IS NULL) so the page surfaces
+    /// stuck/failing events without an explicit filter. To inspect dispatched history, add an explicit
+    /// DispatchedAt filter in the table UI — its presence in the FilterDTO suppresses this default.
+    /// </summary>
+    [SpiderlyService]
+    public class OutboxMessageService : OutboxMessageServiceGenerated
+    {
+        public OutboxMessageService(EntityServiceDependencies deps) : base(deps) { }
+
+        public override async Task<PaginatedResult<OutboxMessage>> GetPaginatedOutboxMessageList(
+            FilterDTO filterDTO, IQueryable<OutboxMessage> query)
+        {
+            bool hasExplicitDispatchedFilter = filterDTO.Filters != null
+                && filterDTO.Filters.ContainsKey(nameof(OutboxMessage.DispatchedAt).FirstCharToLower());
+
+            if (!hasExplicitDispatchedFilter)
+                query = query.Where(x => x.DispatchedAt == null);
+
+            return await base.GetPaginatedOutboxMessageList(filterDTO, query);
+        }
+    }
+}
+""";
+        }
+
+        private static string GetOutboxMessageControllerCsData(string appName)
+        {
+            return $$"""
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using {{appName}}.Business.Entities;
+using {{appName}}.Business.Enums;
+using Spiderly.Security.Services;
+using Spiderly.Shared.Attributes;
+using Spiderly.Shared.Attributes.Entity.UI;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Interfaces;
+
+namespace {{appName}}.WebAPI.Controllers
+{
+    /// <summary>
+    /// Admin row actions on the OutboxMessage table beyond the generated read:
+    /// <list type="bullet">
+    /// <item><description><c>Retry</c> — clears AttemptCount + LastError so the next OutboxDispatcherJob sweep
+    /// picks the row up (e.g. after an external dependency that was down recovers).</description></item>
+    /// <item><description><c>Dismiss</c> — marks the row handled out-of-band (sets DispatchedAt +
+    /// DismissedByUserId); the sweep skips it.</description></item>
+    /// </list>
+    /// Both require the generated UpdateOutboxMessage permission. Insert/Delete are intentionally never granted —
+    /// rows are produced by IOutbox and consumed by OutboxDispatcherJob.
+    /// </summary>
+    [UIDoNotGenerate]
+    [ApiController]
+    [Route("/api/[controller]/[action]")]
+    [SpiderlyController]
+    public class OutboxMessageController : ControllerBase
+    {
+        private readonly IApplicationDbContext _context;
+        private readonly AuthorizationService _authorizationService;
+        private readonly AuthenticationService _authenticationService;
+
+        public OutboxMessageController(
+            IApplicationDbContext context,
+            AuthorizationService authorizationService,
+            AuthenticationService authenticationService)
+        {
+            _context = context;
+            _authorizationService = authorizationService;
+            _authenticationService = authenticationService;
+        }
+
+        [HttpPost]
+        [AuthGuard]
+        public async Task<IActionResult> Retry(long id)
+        {
+            await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateOutboxMessage);
+
+            OutboxMessage row = await _context.DbSet<OutboxMessage>()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (row == null)
+                throw new BusinessException("Message not found.");
+
+            // Fail loud rather than silently re-emit a side effect that already happened.
+            if (row.DispatchedAt != null)
+                throw new BusinessException("Message already dispatched or dismissed — cannot retry.");
+
+            row.AttemptCount = 0;
+            row.LastError = null;
+            row.LastAttemptedAt = null;
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPost]
+        [AuthGuard]
+        public async Task<IActionResult> Dismiss(long id)
+        {
+            await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateOutboxMessage);
+
+            OutboxMessage row = await _context.DbSet<OutboxMessage>()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (row == null)
+                throw new BusinessException("Message not found.");
+
+            // Idempotent: dismissing an already-dispatched/dismissed row is a no-op.
+            if (row.DispatchedAt != null)
+                return Ok();
+
+            long currentUserId = _authenticationService.GetCurrentUserId();
+            row.DispatchedAt = DateTime.UtcNow;
+            row.DismissedByUserId = currentUserId;
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+    }
+}
+""";
+        }
+
         private static string GetInfrastructureApplicationDbContextData(string appName)
         {
             return $$"""
@@ -1865,8 +2061,8 @@ namespace {{appName}}.Infrastructure
 {
     public partial class {{appName}}ApplicationDbContext : ApplicationDbContext<User> // https://stackoverflow.com/questions/41829229/how-do-i-implement-dbcontext-inheritance-for-multiple-databases-in-ef7-net-co
     {
-        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options, Microsoft.Extensions.Options.IOptions<Spiderly.Shared.ExternalProviderOptions> externalProviderOptions)
-        : base(options, externalProviderOptions)
+        public {{appName}}ApplicationDbContext(DbContextOptions<{{appName}}ApplicationDbContext> options)
+        : base(options)
         {
         }
 
@@ -2013,6 +2209,7 @@ using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Services;
 using {{appName}}.WebAPI.Extensions;
 using {{appName}}.Infrastructure;
+using {{appName}}.Business.Entities;
 
 public class Startup
 {
@@ -2040,7 +2237,6 @@ public class Startup
             config.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSqlServerStorage(spiderlyConnectionString)" : "UseHangfirePostgreSqlStorage(spiderlyConnectionString)")}}
         );
         services.AddHangfireServer();
-        services.AddSingleton<INotificationDispatcher, HangfireNotificationDispatcher>();
 
         services.AddHealthChecks()
             .AddDbContextCheck<{{appName}}ApplicationDbContext>();
@@ -2060,6 +2256,8 @@ public class Startup
             spiderly.AddSwagger();
             spiderly.AddRateLimiting();
             spiderly.AddForwardedHeaders();
+            spiderly.AddOutbox<OutboxMessage>();
+            spiderly.AddNotifications(_ => { });
         });
 
         services.AddAppServices();
@@ -2107,6 +2305,8 @@ public class Startup
         app.UseRateLimiter();
 
         app.SpiderlyUseHangfireFailedJobNotificationFilter();
+
+        app.SpiderlyUseOutboxRecurringJob<OutboxMessage>();
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
@@ -2275,12 +2475,17 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "GoogleClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+      "ExternalProviders": [
+        {
+          "Code": "google",
+          "ClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+        }
+      ],
       "EmailSender": {
         "email": "youremail@gmail.com",
         "name": ""
       },
-      "UnhandledExceptionRecipients": [
+      "AdminRecipients": [
         "youremail@gmail.com"
       ]
     },
@@ -2400,7 +2605,7 @@ namespace {{appName}}.WebAPI.Extensions
 
             services.AddTransient<AuthenticationService>();
             services.AddTransient<AuthorizationServiceBase>();
-            services.AddTransient<SecurityServiceBase<User>>();
+            services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
@@ -2411,7 +2616,7 @@ namespace {{appName}}.WebAPI.Extensions
 
             #region Business
 
-            services.AddTransient<SecurityService<User>>();
+            services.AddTransient<SecurityService<User, UserExternalLogin>>();
             services.AddEntityServices();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
             services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationService>());
@@ -2607,11 +2812,7 @@ namespace {{appName}}.Migrations
             optionsBuilder.UseLazyLoadingProxies();
             {{(dbProvider == DbProviderCodes.SQLServer ? "optionsBuilder.UseSqlServer(connectionString);" : "optionsBuilder.UseNpgsql(connectionString);")}}
 
-            // ExternalProviderOptions is consumed by OnModelCreating to shape the user model.
-            Spiderly.Shared.ExternalProviderOptions externalProviderOptions =
-                configuration.GetSection(Spiderly.Shared.Settings.ConfigurationSection).Get<Spiderly.Shared.ExternalProviderOptions>() ?? new();
-
-            return new {{appName}}ApplicationDbContext(optionsBuilder.Options, Microsoft.Extensions.Options.Options.Create(externalProviderOptions));
+            return new {{appName}}ApplicationDbContext(optionsBuilder.Options);
         }
     }
 }
@@ -2700,12 +2901,12 @@ namespace {{appName}}.Business.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
-        private readonly SecurityService<User> _securityService;
+        private readonly SecurityService<User, UserExternalLogin> _securityService;
 
         public AuthorizationService(
             IApplicationDbContext context,
             AuthenticationService authenticationService,
-            SecurityService<User> securityService,
+            SecurityService<User, UserExternalLogin> securityService,
             IStringLocalizer localizer
         )
             : base(context, authenticationService, localizer)
@@ -2738,9 +2939,6 @@ namespace {{appName}}.Business.Services
                 if (user.Email != userDTO.Email)
                     throw new SecurityViolationException($"No one can change {nameof(userDTO.Email)} from the main UI form.");
 
-                if (userDTO.HasLoggedInWithGoogleAsExternalProvider != user.HasLoggedInWithGoogleAsExternalProvider)
-                    throw new SecurityViolationException($"No one can change {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
-
                 bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(PermissionCodes.UpdateUser);
                 if (hasAdminUpdatePermission)
                     return;
@@ -2758,9 +2956,6 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                if (userDTO.HasLoggedInWithGoogleAsExternalProvider != null)
-                    throw new SecurityViolationException($"No one can init {nameof(userDTO.HasLoggedInWithGoogleAsExternalProvider)} from the main UI form.");
-
                 bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(PermissionCodes.InsertUser);
                 if (hasAdminInsertPermission)
                     return;
@@ -2780,6 +2975,7 @@ namespace {{appName}}.Business.Services
         {
             return $$"""
 using {{appName}}.Business.Entities;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
@@ -2788,11 +2984,14 @@ using Spiderly.Security;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
+using Spiderly.Shared.ExternalAuth;
 using Spiderly.Shared.Interfaces;
 
 namespace {{appName}}.Business.Services
 {
-    public class SecurityService<TUser> : SecurityServiceBase<TUser> where TUser : class, IUser, new()
+    public class SecurityService<TUser, TUserExternalLogin> : SecurityServiceBase<TUser, TUserExternalLogin>
+        where TUser : class, IUser, new()
+        where TUserExternalLogin : class, IUserExternalLogin, new()
     {
         private readonly IApplicationDbContext _context;
 
@@ -2804,9 +3003,12 @@ namespace {{appName}}.Business.Services
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
             IOptions<AuthPolicyOptions> authPolicyOptions,
-            IOptions<Spiderly.Shared.ExternalProviderOptions> externalProviderOptions
+            IExternalAuthProviderRegistry externalAuthProviderRegistry,
+            ExternalAuthCodeFlow externalAuthCodeFlow,
+            IDataProtectionProvider dataProtectionProvider,
+            IOptions<Spiderly.Shared.Settings> sharedSettings
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions, externalProviderOptions)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions, externalAuthProviderRegistry, externalAuthCodeFlow, dataProtectionProvider, sharedSettings)
         {
             _context = context;
         }
@@ -3135,7 +3337,6 @@ namespace {{appName}}.Business.DataMappers
 {{(isRunningFromNuget /* Note: Can't comment it out because it's json */ ? $$"""
         "spiderly": "{{version}}",
 """ : "")}}
-        "@abacritt/angularx-social-login": "2.2.0",
         "@angular/animations": "19.2.13",
         "@angular/common": "19.2.13",
         "@angular/compiler": "19.2.13",
@@ -3384,7 +3585,6 @@ export const environment = {
   production: false,
   apiUrl: 'http://localhost:5000/api',
   frontendUrl: 'http://localhost:4200',
-  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',
 };
 """;
@@ -3397,7 +3597,6 @@ export const environment = {
   production: true,
   apiUrl: 'https://your-production-api.com/api',
   frontendUrl: 'https://your-production-frontend.com',
-  GoogleClientId: 'xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
   companyName: '{{appName}}',
 };
 """;
@@ -3543,7 +3742,6 @@ export const ThemePreset = definePreset(Aura, {
   "Submit": "Confirm",
   "UserList": "Users",
   "SuperRoles": "Super roles",
-  "HasLoggedInWithGoogleAsExternalProvider": "Logged in with a Google account",
   "IsDisabled": "Account is disabled",
   "PartnerRoleList": "Roles",
   "Save": "Save",
@@ -3895,7 +4093,6 @@ export class ConfigService extends ConfigServiceBase
     override production: boolean = environment.production;
     override apiUrl: string = environment.apiUrl;
     override frontendUrl: string = environment.frontendUrl;
-    override GoogleClientId: string = environment.GoogleClientId;
     override companyName: string = environment.companyName;
 
     /* URLs */
@@ -3940,7 +4137,6 @@ import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { SocialAuthService } from '@abacritt/angularx-social-login';
 import { ConfigService } from '../config.service';
 import { AuthServiceBase } from 'spiderly';
 
@@ -3952,12 +4148,11 @@ export class AuthService extends AuthServiceBase implements OnDestroy {
   constructor(
     protected override router: Router,
     protected override http: HttpClient,
-    protected override externalAuthService: SocialAuthService,
     protected override apiService: ApiService,
     protected override config: ConfigService,
     @Inject(PLATFORM_ID) protected override platformId: Object,
   ) {
-    super(router, http, externalAuthService, apiService, config, platformId);
+    super(router, http, apiService, config, platformId);
   }
 
 }

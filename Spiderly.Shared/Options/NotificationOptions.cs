@@ -10,14 +10,9 @@ namespace Spiderly.Shared
         /// <summary>Application name, used as a prefix in notification subjects/messages.</summary>
         public string ApplicationName { get; set; }
 
-        /// <summary>Email recipients for unhandled-exception and security-event notifications.</summary>
-        public List<string> UnhandledExceptionRecipients { get; set; }
-
-        /// <summary>Telegram bot token; when set (with <see cref="TelegramChatId"/>) Telegram alerts are enabled.</summary>
-        public string TelegramBotToken { get; set; }
-
-        /// <summary>Telegram chat id alerts are sent to.</summary>
-        public string TelegramChatId { get; set; }
+        /// <summary>Email recipients for admin/operational notifications sent via <c>NotifyAdmins</c> — unhandled
+        /// exceptions and security events and failed jobs, but also any business notification routed to the admins.</summary>
+        public List<string> AdminRecipients { get; set; }
 
         /// <summary>Minimum minutes between duplicate notifications, to throttle alert storms.</summary>
         public int NotificationRateLimitMinutes { get; set; } = 5;

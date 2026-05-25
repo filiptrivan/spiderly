@@ -6,8 +6,6 @@ namespace Spiderly.Security.Interfaces
     {
         public string Email { get; set; }
 
-        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
-
         public bool? IsDisabled { get; set; }
 
         IReadOnlyCollection<IRole> Roles { get; }

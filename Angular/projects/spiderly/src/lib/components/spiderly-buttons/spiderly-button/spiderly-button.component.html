@@ -1,6 +1,6 @@
 <p-button
   (onClick)="handleClick($event)"
-  [label]="label"
+  [label]="iconUrl ? undefined : label"
   [icon]="icon"
   [outlined]="outlined"
   [styleClass]="styleClass"
@@ -12,5 +12,9 @@
   [size]="size"
   [type]="type"
 >
+  <ng-container *ngIf="iconUrl">
+    <img [src]="iconUrl" [alt]="label" style="height: 18px; width: 18px; margin-right: 8px" />
+    <span>{{ label }}</span>
+  </ng-container>
   <ng-content></ng-content>
 </p-button>

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -15,18 +16,20 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
     /// </summary>
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
     /// <typeparam name="TRole">The type of the role entity, which must implement the <see cref="IRole"/> interface.</typeparam>
-    public class SecurityBaseController<TUser, TRole> : SpiderlyBaseController
+    /// <typeparam name="TUserExternalLogin">The entity linking a user to an external provider login, implementing <see cref="IUserExternalLogin"/>.</typeparam>
+    public class SecurityBaseController<TUser, TRole, TUserExternalLogin> : SpiderlyBaseController
         where TUser : class, IUser, new()
         where TRole : class, IRole, new()
+        where TUserExternalLogin : class, IUserExternalLogin, new()
     {
-        private readonly SecurityServiceBase<TUser> _securityServiceBase;
+        private readonly SecurityServiceBase<TUser, TUserExternalLogin> _securityServiceBase;
         private readonly IJwtAuthManager _jwtAuthManagerService;
         private readonly IApplicationDbContext _context;
         private readonly AuthenticationService _authenticationService;
         private readonly AuthorizationServiceBase _authorizationServiceBase;
 
         public SecurityBaseController(
-            SecurityServiceBase<TUser> securityServiceBase,
+            SecurityServiceBase<TUser, TUserExternalLogin> securityServiceBase,
             IJwtAuthManager jwtAuthManagerService,
             IApplicationDbContext context,
             AuthenticationService authenticationService,
@@ -56,7 +59,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         [HttpPost]
         [UIDoNotGenerate]
-        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO) // TODO: Add enum for which external provider you should login user
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
             return await _securityServiceBase.LoginExternal(externalProviderDTO);
         }
@@ -72,6 +75,64 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
         {
             return await _securityServiceBase.LoginExternalWithCookies(externalProviderDTO);
+        }
+
+        /// <summary>
+        /// Public list of enabled external providers (code + OIDC authority + client id + button display),
+        /// so the frontend can render sign-in buttons and run the client OIDC flow. Anonymous — the values are
+        /// public by OIDC design.
+        /// </summary>
+        [HttpGet]
+        [UIDoNotGenerate]
+        public virtual List<ExternalProviderPublicDTO> GetExternalProviders()
+        {
+            return _securityServiceBase.GetExternalProviders();
+        }
+
+        private const string ExternalLoginStateCookieName = "spiderly_external_login_state";
+
+        /// <summary>
+        /// Server-side external-login step 1: redirects the browser to the provider's authorize endpoint.
+        /// The state/nonce/PKCE-verifier are stored in a short-lived, Data-Protection-signed HttpOnly cookie.
+        /// </summary>
+        [HttpGet]
+        [UIDoNotGenerate]
+        public virtual async Task<ActionResult> ExternalLoginChallenge(string provider, string returnUrl, string browserId)
+        {
+            // The provider redirects back here; this absolute URL must be registered as the provider's redirect URI.
+            string redirectUri = Url.Action(nameof(ExternalLoginCallback), null, null, Request.Scheme);
+
+            (string authorizeUrl, string protectedState) = await _securityServiceBase.BeginExternalLoginAsync(provider, returnUrl, browserId, redirectUri);
+
+            Response.Cookies.Append(ExternalLoginStateCookieName, protectedState, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax, // sent on the top-level GET navigation back from the provider
+                Path = "/",
+                MaxAge = TimeSpan.FromMinutes(10),
+            });
+
+            return Redirect(authorizeUrl);
+        }
+
+        /// <summary>
+        /// Server-side external-login step 2: the provider redirects here with the code. Exchanges it for the
+        /// id token (server-side), validates + links the user, issues the session as HttpOnly cookies, and
+        /// redirects back to the originating app (returnUrl).
+        /// </summary>
+        [HttpGet]
+        [UIDoNotGenerate]
+        public virtual async Task<ActionResult> ExternalLoginCallback(string code, string state)
+        {
+            string protectedState = Request.Cookies[ExternalLoginStateCookieName];
+
+            string returnUrl = await _securityServiceBase.CompleteExternalLoginAsync(code, state, protectedState);
+
+            Response.Cookies.Delete(ExternalLoginStateCookieName);
+
+            // returnUrl was validated against the configured frontend origin at challenge time (SanitizeReturnUrl).
+            return Redirect(returnUrl);
         }
 
         [HttpGet]

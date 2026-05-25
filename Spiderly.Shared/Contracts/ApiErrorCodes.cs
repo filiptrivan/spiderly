@@ -12,5 +12,7 @@ namespace Spiderly.Shared.Contracts
         public const string UniqueViolation = "unique_violation";
         public const string ForeignKeyViolation = "foreign_key_violation";
         public const string ConcurrencyConflict = "concurrency_conflict";
+        public const string EmailNotVerified = "email_not_verified";
+        public const string ExternalProviderNotConfigured = "external_provider_not_configured";
     }
 }

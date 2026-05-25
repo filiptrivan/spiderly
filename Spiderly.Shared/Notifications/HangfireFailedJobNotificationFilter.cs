@@ -1,72 +1,68 @@
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Notifications
 {
     /// <summary>
-    /// Sends a Telegram notification when a Hangfire job enters FailedState
-    /// after all retries are exhausted. Uses IApplyStateFilter so it only fires
-    /// on the final applied state (AutomaticRetryAttribute redirects intermediate
-    /// failures to ScheduledState before this filter runs).
-    /// Registered via <c>app.SpiderlyUseHangfireFailedJobNotificationFilter()</c> after the DI
-    /// container is built, so its dependencies can be resolved from the service provider.
+    /// Sends a <see cref="JobFailedNotification"/> when a Hangfire job enters <see cref="FailedState"/> after all
+    /// retries are exhausted (uses <see cref="IApplyStateFilter"/> so it only fires on the final applied state —
+    /// <c>AutomaticRetryAttribute</c> redirects intermediate failures to <see cref="ScheduledState"/> first).
+    /// Registered via <c>app.SpiderlyUseHangfireFailedJobNotificationFilter()</c> after the container is built.
+    ///
+    /// <para>The filter is a singleton, so it resolves the scoped <see cref="INotifier"/> from a fresh DI scope per
+    /// failure. Dedupe is handled by the notifier (via <see cref="JobFailedNotification.DedupeKey"/>). It skips
+    /// failures of <see cref="NotificationDeliveryJob"/> itself to avoid an alert loop when delivery is broken.</para>
     /// </summary>
     public class HangfireFailedJobNotificationFilter : IApplyStateFilter
     {
-        private readonly TelegramNotifier _telegramNotifier;
-        private readonly NotificationRateLimiter _rateLimiter;
-        private readonly NotificationOptions _notificationSettings;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<HangfireFailedJobNotificationFilter> _logger;
 
+        /// <summary>Creates the filter over the root service provider (scopes are created per failure).</summary>
         public HangfireFailedJobNotificationFilter(
-            TelegramNotifier telegramNotifier,
-            NotificationRateLimiter rateLimiter,
-            IOptions<NotificationOptions> notificationOptions,
+            IServiceProvider serviceProvider,
             ILogger<HangfireFailedJobNotificationFilter> logger)
         {
-            _telegramNotifier = telegramNotifier;
-            _rateLimiter = rateLimiter;
-            _notificationSettings = notificationOptions.Value;
+            _serviceProvider = serviceProvider;
             _logger = logger;
         }
 
+        /// <inheritdoc/>
         public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
         {
             if (context.NewState is not FailedState failedState)
                 return;
 
-            if (!_telegramNotifier.IsConfigured)
-                return;
-
-            if (!_rateLimiter.ShouldSend(failedState.Exception))
+            // Don't alert on the delivery job's own failures — that would loop (a broken Email channel would
+            // fail the delivery job, which would try to deliver another failure notification, and so on).
+            if (context.BackgroundJob.Job?.Type == typeof(NotificationDeliveryJob))
                 return;
 
             string jobType = context.BackgroundJob.Job?.Type?.Name ?? "Unknown";
             string jobMethod = context.BackgroundJob.Job?.Method?.Name ?? "Unknown";
             string jobId = context.BackgroundJob.Id;
+            string exceptionString = failedState.Exception?.ToString();
 
-            string text = $"""
-[{_notificationSettings.ApplicationName}] Hangfire Job Failed
-Job: {jobType}.{jobMethod} (ID: {jobId})
-{failedState.Exception}
-""";
-
-            _ = Task.Run(async () =>
+            _ = Task.Run(() =>
             {
                 try
                 {
-                    await _telegramNotifier.SendAsync(text);
+                    using IServiceScope scope = _serviceProvider.CreateScope();
+                    INotifier notifier = scope.ServiceProvider.GetService<INotifier>();
+                    notifier?.NotifyAdmins(new JobFailedNotification(jobType, jobMethod, jobId, exceptionString));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to send Telegram notification for Hangfire job {JobId}.", jobId);
+                    _logger.LogError(ex, "Failed to send Hangfire job-failed notification for job {JobId}.", jobId);
                 }
             });
         }
 
+        /// <inheritdoc/>
         public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
         {
         }

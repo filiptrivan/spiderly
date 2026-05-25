@@ -13,6 +13,8 @@ import { Router } from '@angular/router';
 })
 export class SpiderlyButtonBaseComponent {
   @Input() icon: string;
+  /** Optional image icon (URL) rendered before the label — for brand logos (e.g. Google) that aren't PrimeNG font icons. */
+  @Input() iconUrl: string;
   @Input() label: string;
   @Input() outlined: boolean = false;
   @Input() rounded: boolean = false;

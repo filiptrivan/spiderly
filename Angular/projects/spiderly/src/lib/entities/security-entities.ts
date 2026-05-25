@@ -111,27 +111,84 @@ export class VerificationTokenRequest extends BaseEntity {
 export class ExternalProvider extends BaseEntity {
   static readonly typeName = 'ExternalProvider' as const;
 
+  provider?: string;
   idToken?: string;
   browserId?: string;
 
   constructor({
+    provider,
     idToken,
     browserId,
   }: {
+    provider?: string;
     idToken?: string;
     browserId?: string;
   } = {}) {
     super();
 
+    this.provider = provider;
     this.idToken = idToken;
     this.browserId = browserId;
   }
 
   static readonly schema = {
+    provider: {
+      type: 'string',
+    },
     idToken: {
       type: 'string',
     },
     browserId: {
+      type: 'string',
+    },
+  } as const;
+}
+
+export class ExternalProviderPublic extends BaseEntity {
+  static readonly typeName = 'ExternalProviderPublic' as const;
+
+  code?: string;
+  authority?: string;
+  clientId?: string;
+  label?: string;
+  iconUrl?: string;
+
+  constructor({
+    code,
+    authority,
+    clientId,
+    label,
+    iconUrl,
+  }: {
+    code?: string;
+    authority?: string;
+    clientId?: string;
+    label?: string;
+    iconUrl?: string;
+  } = {}) {
+    super();
+
+    this.code = code;
+    this.authority = authority;
+    this.clientId = clientId;
+    this.label = label;
+    this.iconUrl = iconUrl;
+  }
+
+  static readonly schema = {
+    code: {
+      type: 'string',
+    },
+    authority: {
+      type: 'string',
+    },
+    clientId: {
+      type: 'string',
+    },
+    label: {
+      type: 'string',
+    },
+    iconUrl: {
       type: 'string',
     },
   } as const;

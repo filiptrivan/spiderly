@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using Google.Apis.Auth;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -10,12 +10,15 @@ using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.ValidationRules;
 using Spiderly.Shared;
+using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.ExternalAuth;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -27,7 +30,10 @@ namespace Spiderly.Security.Services
     /// email sending, and data access through Entity Framework Core.
     /// </summary>
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
-    public class SecurityServiceBase<TUser> where TUser : class, IUser, new()
+    /// <typeparam name="TUserExternalLogin">The entity linking a user to an external provider login, implementing <see cref="IUserExternalLogin"/>.</typeparam>
+    public class SecurityServiceBase<TUser, TUserExternalLogin>
+        where TUser : class, IUser, new()
+        where TUserExternalLogin : class, IUserExternalLogin, new()
     {
         private readonly IApplicationDbContext _context;
         private readonly IJwtAuthManager _jwtAuthManagerService;
@@ -36,7 +42,10 @@ namespace Spiderly.Security.Services
         private readonly IWebHostEnvironment _environment;
         private readonly IStringLocalizer _localizer;
         private readonly AuthPolicyOptions _authPolicySettings;
-        private readonly ExternalProviderOptions _externalProviderSettings;
+        private readonly IExternalAuthProviderRegistry _externalAuthProviderRegistry;
+        private readonly ExternalAuthCodeFlow _externalAuthCodeFlow;
+        private readonly IDataProtector _externalLoginProtector;
+        private readonly string _frontendUrl;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
@@ -46,7 +55,10 @@ namespace Spiderly.Security.Services
             IWebHostEnvironment environment,
             IStringLocalizer localizer,
             IOptions<AuthPolicyOptions> authPolicyOptions,
-            IOptions<ExternalProviderOptions> externalProviderOptions
+            IExternalAuthProviderRegistry externalAuthProviderRegistry,
+            ExternalAuthCodeFlow externalAuthCodeFlow,
+            IDataProtectionProvider dataProtectionProvider,
+            IOptions<Spiderly.Shared.Settings> sharedSettings
         )
         {
             _context = context;
@@ -56,7 +68,10 @@ namespace Spiderly.Security.Services
             _environment = environment;
             _localizer = localizer;
             _authPolicySettings = authPolicyOptions.Value;
-            _externalProviderSettings = externalProviderOptions.Value;
+            _externalAuthProviderRegistry = externalAuthProviderRegistry;
+            _externalAuthCodeFlow = externalAuthCodeFlow;
+            _externalLoginProtector = dataProtectionProvider.CreateProtector("Spiderly.Security.ExternalLogin");
+            _frontendUrl = sharedSettings.Value.FrontendUrl;
         }
 
         #region Authentication
@@ -172,40 +187,167 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
+        /// <summary>
+        /// Step 1 of the server-side external-login flow (Option B2): builds the provider's authorize URL
+        /// (PKCE + nonce + state) and returns a Data-Protection-signed state blob the caller stores in a
+        /// short-lived cookie. <paramref name="redirectUri"/> is the backend callback (must be registered with the provider).
+        /// </summary>
+        public virtual async Task<(string AuthorizeUrl, string ProtectedState)> BeginExternalLoginAsync(string provider, string returnUrl, string browserId, string redirectUri)
         {
-            string googleClientId = _externalProviderSettings.GoogleClientId;
+            ExternalProviderConfig config = _externalAuthCodeFlow.GetConfig(provider); // throws ExternalProviderNotConfigured if absent
 
-            GoogleJsonWebSignature.Payload payload = await ValidateGoogleToken(externalProviderDTO.IdToken, googleClientId);
+            // Sanitize here (before it's signed into the state) so the callback redirect can't be pointed off-site.
+            returnUrl = SanitizeReturnUrl(returnUrl);
+
+            string state = GenerateUrlToken();
+            string nonce = GenerateUrlToken();
+            string codeVerifier = GenerateUrlToken(64);
+            string codeChallenge = ComputeS256Challenge(codeVerifier);
+
+            string authorizeUrl = await _externalAuthCodeFlow.BuildAuthorizeUrlAsync(config, state, nonce, codeChallenge, redirectUri);
+
+            ExternalLoginState payload = new()
+            {
+                Provider = provider,
+                State = state,
+                Nonce = nonce,
+                CodeVerifier = codeVerifier,
+                ReturnUrl = returnUrl,
+                BrowserId = browserId,
+                RedirectUri = redirectUri,
+            };
+
+            string protectedState = _externalLoginProtector.Protect(JsonSerializer.Serialize(payload));
+
+            return (authorizeUrl, protectedState);
+        }
+
+        /// <summary>
+        /// Step 2: validates the signed state, exchanges the code for an id token server-side (with the client
+        /// secret), validates the id token + nonce, resolves/links the user, issues the session as HttpOnly
+        /// cookies, and returns the original returnUrl for the caller to redirect to.
+        /// </summary>
+        public virtual async Task<string> CompleteExternalLoginAsync(string code, string state, string protectedState)
+        {
+            ExternalLoginState payload = UnprotectExternalLoginState(protectedState);
+
+            if (payload == null || string.IsNullOrWhiteSpace(state) || payload.State != state)
+                throw new SecurityViolationException("External login state validation failed.");
+
+            if (string.IsNullOrWhiteSpace(code))
+                throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
+
+            ExternalProviderConfig config = _externalAuthCodeFlow.GetConfig(payload.Provider);
+
+            string idToken = await _externalAuthCodeFlow.ExchangeCodeForIdTokenAsync(config, code, payload.CodeVerifier, payload.RedirectUri);
+
+            ExternalIdentity externalIdentity = await _externalAuthProviderRegistry.Get(payload.Provider).ValidateAsync(idToken);
+
+            // Nonce binding: the id token must echo the nonce we generated (defeats token injection/replay).
+            string tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().ReadJsonWebToken(idToken).TryGetClaim("nonce", out Claim nonceClaim) ? nonceClaim.Value : null;
+            if (tokenNonce != payload.Nonce)
+                throw new SecurityViolationException("External login nonce mismatch.");
 
             return await _context.WithTransactionAsync(async () =>
             {
-                // Check if the user already exists in the database
-                TUser user = await GetUserByEmailAsync(payload.Email);
-                DbSet<TUser> userDbSet = _context.DbSet<TUser>();
+                TUser user = await ResolveExternalUser(externalIdentity);
 
-                if (user == null)
+                JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, payload.BrowserId);
+
+                AuthResultWithCookiesDTO authResultWithCookiesDTO = new()
                 {
-                    if (_authPolicySettings.OnlyAdminCanAddUsers)
-                        throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
+                    userId = user.Id,
+                    email = user.Email,
+                    accessTokenExpiresAt = jwtAuthResultDTO.AccessTokenDTO.ExpiresAt,
+                };
 
-                    user = new TUser
-                    {
-                        Email = payload.Email,
-                        HasLoggedInWithGoogleAsExternalProvider = true,
-                    };
+                _authenticationService.SetRefreshTokenCookie(jwtAuthResultDTO.RefreshTokenDTO.TokenString);
+                _authenticationService.SetAccessTokenCookie(jwtAuthResultDTO.AccessTokenDTO.TokenString);
+                _authenticationService.SetAuthResultCookie(authResultWithCookiesDTO);
 
-                    await userDbSet.AddAsync(user);
-                    await _context.SaveChangesAsync(); // Adding the new user which is logged in first time
-                }
-                else
+                return payload.ReturnUrl;
+            });
+        }
+
+        /// <summary>
+        /// Open-redirect guard for the external-login callback: a return URL is honored only when its origin
+        /// (scheme + host + port) exactly matches the configured frontend; anything else falls back to the
+        /// frontend root. A prefix/<c>StartsWith</c> check is deliberately avoided — it is bypassable by a
+        /// look-alike host such as <c>https://app.example.com.evil.com</c>, which starts with the allowed origin
+        /// but is a different site. Never echoes an unvalidated caller-supplied URL.
+        /// </summary>
+        private string SanitizeReturnUrl(string returnUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) &&
+                Uri.TryCreate(returnUrl, UriKind.Absolute, out Uri target) &&
+                Uri.TryCreate(_frontendUrl, UriKind.Absolute, out Uri allowed) &&
+                Uri.Compare(target, allowed, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                return returnUrl;
+            }
+
+            return _frontendUrl;
+        }
+
+        private static string GenerateUrlToken(int byteLength = 32) => Base64UrlEncode(RandomNumberGenerator.GetBytes(byteLength));
+
+        private static string ComputeS256Challenge(string codeVerifier) => Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
+
+        private static string Base64UrlEncode(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+        private ExternalLoginState UnprotectExternalLoginState(string protectedState)
+        {
+            if (string.IsNullOrWhiteSpace(protectedState))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ExternalLoginState>(_externalLoginProtector.Unprotect(protectedState));
+            }
+            catch
+            {
+                return null; // tampered / expired / wrong key → treated as no state
+            }
+        }
+
+        private sealed class ExternalLoginState
+        {
+            public string Provider { get; set; }
+            public string State { get; set; }
+            public string Nonce { get; set; }
+            public string CodeVerifier { get; set; }
+            public string ReturnUrl { get; set; }
+            public string BrowserId { get; set; }
+            public string RedirectUri { get; set; }
+        }
+
+        public virtual List<ExternalProviderPublicDTO> GetExternalProviders()
+        {
+            return _externalAuthProviderRegistry.GetPublicConfigs()
+                .Select(x => new ExternalProviderPublicDTO
                 {
-                    if (user.IsDisabled == true)
-                        throw new BusinessException(_localizer["DisabledAccountException"]);
+                    Code = x.Code,
+                    Authority = x.Authority,
+                    ClientId = x.ClientId,
+                    Label = x.Label,
+                    IconUrl = x.IconUrl,
+                })
+                .ToList();
+        }
 
-                    if (user.HasLoggedInWithGoogleAsExternalProvider != true)
-                        await userDbSet.ExecuteUpdateAsync(x => x.SetProperty(x => x.HasLoggedInWithGoogleAsExternalProvider, true)); // There is no need for SaveChangesAsync because we don't need to update the version of the user
-                }
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
+        {
+            // Localized guard here (the service has the localizer); the registry's own throw is an internal safety net.
+            if (_externalAuthProviderRegistry.IsConfigured(externalProviderDTO.Provider) == false)
+                throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
+
+            IExternalAuthProvider provider = _externalAuthProviderRegistry.Get(externalProviderDTO.Provider);
+
+            ExternalIdentity externalIdentity = await provider.ValidateAsync(externalProviderDTO.IdToken);
+
+            return await _context.WithTransactionAsync(async () =>
+            {
+                TUser user = await ResolveExternalUser(externalIdentity);
 
                 JwtAuthResultDTO jwtAuthResultDTO = await GenerateAccessAndRefreshTokens(user.Id, externalProviderDTO.BrowserId);
 
@@ -344,6 +486,73 @@ namespace Spiderly.Security.Services
             });
         }
 
+        /// <summary>
+        /// Resolves the application user for a validated external identity. Links by the provider's stable
+        /// subject first (rename-proof); for a first-time login it auto-links to an existing user with the
+        /// same provider-verified email, or creates one — gated by <see cref="AuthPolicyOptions.AutoLinkByVerifiedEmail"/>
+        /// and <see cref="AuthPolicyOptions.OnlyAdminCanAddUsers"/>. An unverified email is always rejected.
+        /// Runs inside the caller's transaction.
+        /// </summary>
+        protected virtual async Task<TUser> ResolveExternalUser(ExternalIdentity externalIdentity)
+        {
+            DbSet<TUser> userDbSet = _context.DbSet<TUser>();
+            DbSet<TUserExternalLogin> loginDbSet = _context.DbSet<TUserExternalLogin>();
+
+            // 1. Already linked by (provider, subject) — the stable, rename-proof key.
+            long? linkedUserId = await loginDbSet
+                .Where(x => x.Provider == externalIdentity.Provider && x.ProviderKey == externalIdentity.Subject)
+                .Select(x => (long?)x.UserId)
+                .SingleOrDefaultAsync();
+
+            if (linkedUserId != null)
+            {
+                TUser linkedUser = await userDbSet.Where(x => x.Id == linkedUserId.Value).SingleOrDefaultAsync();
+
+                if (linkedUser == null)
+                    throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
+
+                if (linkedUser.IsDisabled == true)
+                    throw new BusinessException(_localizer["DisabledAccountException"]);
+
+                return linkedUser;
+            }
+
+            // 2. Not linked yet — any auto-provisioning requires a provider-verified email.
+            if (externalIdentity.EmailVerified != true)
+                throw new BusinessException(_localizer["ExternalEmailNotVerifiedException"], ApiErrorCodes.EmailNotVerified);
+
+            TUser user = await userDbSet.Where(x => x.Email == externalIdentity.Email).SingleOrDefaultAsync();
+
+            if (user != null)
+            {
+                if (user.IsDisabled == true)
+                    throw new BusinessException(_localizer["DisabledAccountException"]);
+
+                if (_authPolicySettings.AutoLinkByVerifiedEmail == false)
+                    throw new BusinessException(_localizer["ExternalLinkingRequiresSignInException"]);
+            }
+            else
+            {
+                if (_authPolicySettings.OnlyAdminCanAddUsers)
+                    throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
+
+                user = new TUser { Email = externalIdentity.Email };
+                await userDbSet.AddAsync(user);
+                await _context.SaveChangesAsync(); // Persist so the new user has an Id to link against.
+            }
+
+            TUserExternalLogin externalLogin = new()
+            {
+                UserId = user.Id,
+                Provider = externalIdentity.Provider,
+                ProviderKey = externalIdentity.Subject,
+            };
+            await loginDbSet.AddAsync(externalLogin);
+            await _context.SaveChangesAsync();
+
+            return user;
+        }
+
         private async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokens(long userId, string browserId)
         {
             string ipAddress = _authenticationService.GetIPAddress();
@@ -369,17 +578,6 @@ namespace Spiderly.Security.Services
 
                 return currentUser;
             });
-        }
-
-        private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken(string idToken, string clientId)
-        {
-            GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings()
-            {
-                Audience = new List<string>() { clientId }
-            };
-
-            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings); // TODO: Try to pass the wrong token
-            return payload;
         }
 
         private bool ShouldShowVerificationCodeInNotification()

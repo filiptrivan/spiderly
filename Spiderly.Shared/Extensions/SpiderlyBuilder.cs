@@ -5,6 +5,7 @@ using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Notifications;
 
 namespace Spiderly.Shared.Extensions
 {
@@ -55,6 +56,12 @@ namespace Spiderly.Shared.Extensions
         internal bool EmailingEnabled { get; private set; }
         internal Type EmailingServiceType { get; private set; }
         internal bool BrevoHttpClientEnabled { get; private set; }
+
+        internal bool OutboxEnabled { get; private set; }
+        internal Type OutboxEntityType { get; private set; }
+
+        internal bool NotificationsEnabled { get; private set; }
+        internal NotificationRoutingMap NotificationRoutingMap { get; private set; }
 
         internal SpiderlyBuilder(IServiceCollection services, IConfiguration configuration)
         {
@@ -176,6 +183,56 @@ namespace Spiderly.Shared.Extensions
             EmailingEnabled = true;
             EmailingServiceType = typeof(BrevoEmailingService);
             BrevoHttpClientEnabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables the transactional outbox over the consumer's scaffolded outbox entity
+        /// <typeparamref name="TOutbox"/> (a <c>[SpiderlyEntity]</c> implementing <see cref="IOutboxMessage"/>).
+        /// Registers <see cref="IOutbox"/> and the generic dispatcher; schedule the sweep in the Configure phase
+        /// with <c>app.SpiderlyUseOutboxRecurringJob&lt;TOutbox&gt;()</c>. Register one <see cref="IOutboxHandler"/>
+        /// per <see cref="IOutboxMessage.HandlerCode"/> you enqueue.
+        /// <example>
+        /// <code>
+        /// spiderly.AddOutbox&lt;OutboxMessage&gt;();
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder AddOutbox<TOutbox>()
+            where TOutbox : class, IOutboxMessage, new()
+        {
+            OutboxEnabled = true;
+            OutboxEntityType = typeof(TOutbox);
+            return this;
+        }
+
+        /// <summary>
+        /// Enables the notification framework and configures routing (which channels each notification type uses).
+        /// Register channels (the built-in Email channel is registered automatically when emailing is enabled; add
+        /// others with <c>services.AddScoped&lt;INotificationChannel, MyChannel&gt;()</c>) and, for dynamic recipients,
+        /// an <see cref="INotificationRecipientResolver"/>. <c>Outbox</c>-level notifications also require <c>AddOutbox</c>.
+        /// <example>
+        /// <code>
+        /// spiderly.AddNotifications(r => r
+        ///     .Route&lt;OrderShippedNotification&gt;().To("Email").To("Telegram")
+        ///     .Route&lt;UnhandledExceptionNotification&gt;().To("Email"));
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder AddNotifications(Action<NotificationRoutingBuilder> configure)
+        {
+            NotificationRoutingBuilder routingBuilder = new();
+
+            // Framework defaults: route its own operational notifications to the built-in Email channel, so
+            // unhandled-exception / security-event alerts always reach admins without the consumer remembering.
+            // The consumer's configure can add more channels to these or route its own notifications.
+            routingBuilder.Route<UnhandledExceptionNotification>().To(EmailChannel.ChannelCode);
+            routingBuilder.Route<SecurityEventNotification>().To(EmailChannel.ChannelCode);
+            routingBuilder.Route<JobFailedNotification>().To(EmailChannel.ChannelCode);
+
+            configure?.Invoke(routingBuilder);
+            NotificationRoutingMap = routingBuilder.Build();
+            NotificationsEnabled = true;
             return this;
         }
 

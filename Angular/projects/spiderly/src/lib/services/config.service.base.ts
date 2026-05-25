@@ -8,8 +8,6 @@ export class ConfigServiceBase {
   production = false;
   apiUrl: string;
   frontendUrl = 'http://localhost:4200';
-  GoogleClientId: string;
-  showGoogleAuth = false;
   companyName = 'Company Name';
   primaryColor = '#111b2c';
 

@@ -1,18 +1,20 @@
+using System.Collections.Generic;
+
 namespace Spiderly.Shared
 {
     /// <summary>
     /// External-auth-provider options. Bound from the <c>AppSettings:Spiderly.Shared</c> configuration
-    /// section and injected as <see cref="Microsoft.Extensions.Options.IOptions{T}"/> — into the DbContext
-    /// (to shape the user model) and into the security services (to validate external-provider id tokens).
+    /// section and injected as <see cref="Microsoft.Extensions.Options.IOptions{T}"/> — into the security
+    /// services (to build the provider registry and validate id tokens) and into the DbContext (to shape
+    /// the user model).
     /// </summary>
     public class ExternalProviderOptions
     {
         /// <summary>
-        /// When <c>false</c>, the Google external-provider column is omitted from the user model.
+        /// The set of enabled external authentication providers. Each entry is validated by Spiderly's
+        /// generic OIDC validator (or a consumer-supplied <see cref="Spiderly.Shared.ExternalAuth.IExternalAuthProvider"/>
+        /// registered for the same <see cref="ExternalProviderConfig.Code"/>).
         /// </summary>
-        public bool UseGoogleAsExternalProvider { get; set; } = true;
-
-        /// <summary>Google OAuth client id used to validate external-provider id tokens at login.</summary>
-        public string GoogleClientId { get; set; }
+        public List<ExternalProviderConfig> ExternalProviders { get; set; } = new();
     }
 }

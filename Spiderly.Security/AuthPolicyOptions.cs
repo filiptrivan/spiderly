@@ -34,5 +34,14 @@ namespace Spiderly.Security
 
         /// <summary>When <c>true</c>, only an admin may provision new users (no self-registration on first login).</summary>
         public bool OnlyAdminCanAddUsers { get; set; } = false;
+
+        /// <summary>
+        /// When <c>true</c> (default), an external login whose provider asserts a verified email is automatically
+        /// linked to an existing user with that email (and a new user is created when none exists), with no
+        /// interstitial. Set <c>false</c> to require explicit linking while signed in — tighten this if the app
+        /// later adds password login. Auto-link only ever happens for a verified email; an unverified one is
+        /// always rejected regardless of this flag.
+        /// </summary>
+        public bool AutoLinkByVerifiedEmail { get; set; } = true;
     }
 }

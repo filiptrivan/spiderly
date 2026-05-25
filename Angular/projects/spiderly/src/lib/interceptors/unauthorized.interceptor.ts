@@ -49,7 +49,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       return of(err.message);
     } else if (err.status == 401) {
       if (errorResponse?.errorCode === ApiErrorCodes.InvalidToken) {
-        authService.clearLocalStorage();
+        authService.clearSession();
         return of(err.message);
       }
 

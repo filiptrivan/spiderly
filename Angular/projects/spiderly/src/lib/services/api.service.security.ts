@@ -5,6 +5,7 @@ import {
   AuthResult,
   AuthResultWithCookies,
   ExternalProvider,
+  ExternalProviderPublic,
   Login,
   RefreshTokenRequest,
   SendLoginVerificationEmailResult,
@@ -69,6 +70,13 @@ export class ApiSecurityService {
       `${this.config.apiUrl}/Security/LoginExternalWithCookies`,
       externalProviderDTO,
       this.config.httpOptions,
+    );
+  };
+
+  getExternalProviders = (): Observable<ExternalProviderPublic[]> => {
+    return this.http.get<ExternalProviderPublic[]>(
+      `${this.config.apiUrl}/Security/GetExternalProviders`,
+      this.config.httpSkipSpinnerOptions,
     );
   };
 

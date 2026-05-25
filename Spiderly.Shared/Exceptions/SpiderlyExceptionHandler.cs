@@ -15,6 +15,7 @@ using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Services;
 
 namespace Spiderly.Shared.Exceptions
@@ -55,7 +56,7 @@ namespace Spiderly.Shared.Exceptions
             if (ex is BusinessException businessEx)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                body = new ApiErrorDTO { Message = businessEx.Message };
+                body = new ApiErrorDTO { Message = businessEx.Message, ErrorCode = businessEx.ErrorCode };
                 logLevel = LogLevel.Information;
                 logException = false;
             }
@@ -98,8 +99,8 @@ namespace Spiderly.Shared.Exceptions
 
                 if (!_env.IsDevelopment())
                 {
-                    httpContext.RequestServices.GetService<INotificationDispatcher>()
-                        ?.DispatchSecurityEvent("SecurityViolation", securityViolationEx.Message, $"User {userId}: {securityViolationEx.Message}");
+                    httpContext.RequestServices.GetService<INotifier>()
+                        ?.NotifyAdmins(new SecurityEventNotification("SecurityViolation", securityViolationEx.Message, $"User {userId}: {securityViolationEx.Message}"));
                 }
             }
             else if (ex is SecurityTokenException)
@@ -149,8 +150,13 @@ namespace Spiderly.Shared.Exceptions
 
                 if (!_env.IsDevelopment())
                 {
-                    httpContext.RequestServices.GetService<INotificationDispatcher>()
-                        ?.DispatchUnhandledException(userId, ex);
+                    // Crash (500) exceptions go through the pluggable IExceptionReporter seam (email by default,
+                    // or Sentry/etc. per app). The SecurityViolation branch above intentionally stays on the
+                    // direct INotifier path — an always-on security signal, not a reporting-backend choice.
+                    ExceptionReporting.ReportAll(
+                        httpContext.RequestServices.GetServices<IExceptionReporter>(),
+                        new ExceptionReport(ex, userId),
+                        _logger);
                 }
             }
 

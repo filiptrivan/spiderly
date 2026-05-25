@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.CLI", "Spiderly.CL
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.SourceGenerators.Tests", "Spiderly.SourceGenerators.Tests\Spiderly.SourceGenerators.Tests.csproj", "{4490BD4F-0215-4660-BCD7-5BECFFF62EA9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.Shared.Tests", "Spiderly.Shared.Tests\Spiderly.Shared.Tests.csproj", "{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{4490BD4F-0215-4660-BCD7-5BECFFF62EA9}.Release|x64.Build.0 = Release|Any CPU
 		{4490BD4F-0215-4660-BCD7-5BECFFF62EA9}.Release|x86.ActiveCfg = Release|Any CPU
 		{4490BD4F-0215-4660-BCD7-5BECFFF62EA9}.Release|x86.Build.0 = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|x64.Build.0 = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Debug|x86.Build.0 = Debug|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x64.ActiveCfg = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x64.Build.0 = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x86.ActiveCfg = Release|Any CPU
+		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

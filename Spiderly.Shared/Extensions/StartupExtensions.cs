@@ -17,10 +17,12 @@ using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Constants;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
+using Spiderly.Shared.ExternalAuth;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
+using Spiderly.Shared.Outbox;
 using Spiderly.Shared.Services;
 using System.Globalization;
 using System.Net;
@@ -86,11 +88,19 @@ namespace Spiderly.Shared.Extensions
                 .ValidateOnStart();
             services.AddOptions<TokenKeyOptions>().Bind(section).ValidateOnStart();
             services.AddOptions<S3Options>().Bind(section).ValidateOnStart();
-            services.AddOptions<EmailOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<EmailOptions>().Bind(section)
+                .Validate(
+                    o => !builder.EmailingEnabled || !string.IsNullOrWhiteSpace(o.EmailSender?.Email),
+                    // Fail loud at boot rather than 500 on the first send. The 'string vs object' note is here
+                    // because a string-typed 'EmailSender' silently binds to an empty object (Email == null).
+                    $"Spiderly: '{Settings.ConfigurationSection}:EmailSender:Email' is required when emailing is enabled. " +
+                    $"'EmailSender' must be an OBJECT (e.g. {{ \"Email\": \"you@example.com\", \"Name\": \"...\" }}), not a string.")
+                .ValidateOnStart();
             services.AddOptions<NotificationOptions>().Bind(section).ValidateOnStart();
             services.AddOptions<CookieSettings>().Bind(section).ValidateOnStart();
             services.AddOptions<ExcelOptions>().Bind(section).ValidateOnStart();
             services.AddOptions<ExternalProviderOptions>().Bind(section).ValidateOnStart();
+            services.AddOptions<Settings>().Bind(section).ValidateOnStart();
 
             // Composition-time-only values (connection string, rate-limit/proxy tuning) plus the Email
             // snapshot the Brevo HttpClient setup needs before the container is built. JWT/auth options are
@@ -101,9 +111,7 @@ namespace Spiderly.Shared.Extensions
             // Core (always registered)
             services.AddSingleton<CookieManager>();
 
-            // Notification helpers (replace the former static Helper Telegram/rate-limit methods).
-            // Singletons: TelegramNotifier owns an HttpClient, NotificationRateLimiter owns the dedupe cache.
-            services.AddSingleton<TelegramNotifier>();
+            // Singleton so the dedupe cache is shared across all notification dispatches.
             services.AddSingleton<NotificationRateLimiter>();
 
             services.AddExceptionHandler<SpiderlyExceptionHandler>();
@@ -121,6 +129,15 @@ namespace Spiderly.Shared.Extensions
             {
                 services.SpiderlyAddAuthentication();
                 services.AddAuthorization();
+
+                // Resolves a provider code to its id-token validator. Built eagerly at first resolution from
+                // the configured providers (+ any consumer-registered custom IExternalAuthProvider), so the
+                // generic OIDC validator works config-only. Singleton: holds the per-provider discovery/JWKS caches.
+                services.AddSingleton<IExternalAuthProviderRegistry, ExternalAuthProviderRegistry>();
+
+                // Server-side OAuth code-flow helper (Option B2): discovery + authorize-URL + code→token exchange.
+                // Singleton: caches a ConfigurationManager per authority.
+                services.AddSingleton<ExternalAuthCodeFlow>();
             }
 
             if (builder.ExcelEnabled)
@@ -151,6 +168,53 @@ namespace Spiderly.Shared.Extensions
             if (builder.ForwardedHeadersEnabled)
             {
                 services.SpiderlyAddForwardedHeaders(settings);
+            }
+
+            if (builder.OutboxEnabled)
+            {
+                // Generic over the consumer's concrete outbox entity, so framework code can stage and
+                // sweep rows without a compile-time reference to the consumer assembly. Open generics are
+                // closed here with the runtime type captured by AddOutbox<TOutbox>().
+                Type outboxType = builder.OutboxEntityType;
+                services.AddScoped(typeof(IOutbox), typeof(Outbox<>).MakeGenericType(outboxType));
+                services.AddScoped(typeof(OutboxDispatcherJob<>).MakeGenericType(outboxType));
+            }
+
+            if (builder.NotificationsEnabled)
+            {
+                // Immutable config + the code→type registry are singletons (the registry is built eagerly here so
+                // duplicate [NotificationCode]s fail at boot). Everything else is scoped — channels may depend on
+                // scoped/transient services (e.g. EmailChannel → IEmailingService), so nothing here is a singleton
+                // holding a channel.
+                services.AddSingleton(builder.NotificationRoutingMap);
+
+                // Discover notification types from the assemblies of the routed types, not AppDomain.CurrentDomain —
+                // the latter only sees assemblies the CLR has already loaded at ConfigureServices time, so a consumer
+                // notification in a not-yet-JIT-loaded assembly would be missed (load-order-dependent). Every
+                // deliverable notification must be routed (an unrouted one is never dispatched), so the routed types'
+                // assemblies are exactly the set that can produce a delivery — and building the routing map already
+                // forced those assemblies to load.
+                var notificationAssemblies = builder.NotificationRoutingMap.Routes.Keys
+                    .Select(notificationType => notificationType.Assembly)
+                    .Distinct();
+                services.AddSingleton(NotificationTypeRegistry.Discover(notificationAssemblies));
+                services.AddScoped<INotificationRouter, DefaultNotificationRouter>();
+                services.AddScoped<NotificationDeliveryExecutor>();
+                services.AddScoped<NotificationDeliveryJob>();
+                services.AddScoped<INotifier, Notifier>();
+                services.AddScoped<IOutboxHandler, NotificationOutboxHandler>();
+                // Default exception reporter: emails admins on unhandled exceptions (self-disables when no operator
+                // recipients are configured). Apps add another IExceptionReporter (e.g. Sentry) or replace this.
+                services.AddScoped<IExceptionReporter, NotificationExceptionReporter>();
+
+                // Email is the one built-in channel; it needs the emailing service.
+                if (builder.EmailingEnabled)
+                    services.AddScoped<INotificationChannel, EmailChannel>();
+
+                // Fail fast at startup if a route points at a channel code with no registered channel (otherwise the
+                // notification is dropped silently). Runs after the container is built, so it sees channels registered
+                // after AddNotifications.
+                services.AddHostedService<NotificationRoutingValidator>();
             }
 
             if (builder.LocalizerType != null)
@@ -349,12 +413,12 @@ namespace Spiderly.Shared.Extensions
                         "Rate limit rejected: Policy={Policy}, IP={IP}, Method={Method}, Path={Path}",
                         policyName, ip, method, path);
 
-                    INotificationDispatcher dispatcher = httpContext.RequestServices
-                        .GetService<INotificationDispatcher>();
-                    dispatcher?.DispatchSecurityEvent(
+                    INotifier notifier = httpContext.RequestServices
+                        .GetService<INotifier>();
+                    notifier?.NotifyAdmins(new SecurityEventNotification(
                         "Rate Limit Rejection",
                         $"ratelimit:{policyName}",
-                        $"Policy: {policyName}\nIP: {ip}\nMethod: {method}\nPath: {path}\nTime: {DateTimeOffset.UtcNow:O}");
+                        $"Policy: {policyName}\nIP: {ip}\nMethod: {method}\nPath: {path}\nTime: {DateTimeOffset.UtcNow:O}"));
 
                     return ValueTask.CompletedTask;
                 };
@@ -445,10 +509,31 @@ namespace Spiderly.Shared.Extensions
         }
 
         /// <summary>
-        /// Registers the global Hangfire filter that sends a Telegram alert when a job lands in
-        /// FailedState. Call this in the Configure phase (after the DI container is built) so the
-        /// filter's dependencies (<see cref="TelegramNotifier"/>, <see cref="NotificationRateLimiter"/>)
-        /// can be resolved from <see cref="IApplicationBuilder.ApplicationServices"/>.
+        /// Schedules the recurring outbox sweep for the consumer's outbox entity <typeparamref name="TOutbox"/>.
+        /// Call in the Configure phase, after Hangfire is initialized. Requires <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c>
+        /// during service registration.
+        /// </summary>
+        /// <param name="app">The application builder (Configure phase marker; the schedule is registered globally via Hangfire).</param>
+        /// <param name="cronExpression">Sweep cadence. Defaults to once a minute; pass a faster (e.g. seconds-based) cron if your Hangfire is configured for it.</param>
+        /// <example>
+        /// <code>
+        /// app.SpiderlyUseOutboxRecurringJob&lt;OutboxMessage&gt;();
+        /// </code>
+        /// </example>
+        public static void SpiderlyUseOutboxRecurringJob<TOutbox>(this IApplicationBuilder app, string cronExpression = null)
+            where TOutbox : class, IOutboxMessage, new()
+        {
+            RecurringJob.AddOrUpdate<OutboxDispatcherJob<TOutbox>>(
+                "outbox-dispatcher",
+                job => job.ProcessAsync(),
+                cronExpression ?? Cron.Minutely());
+        }
+
+        /// <summary>
+        /// Registers the global Hangfire filter that sends a <c>JobFailedNotification</c> (via the notification
+        /// framework) when a job lands in FailedState. Call this in the Configure phase (after the DI container is
+        /// built) so the filter can resolve a scoped <c>INotifier</c> from <see cref="IApplicationBuilder.ApplicationServices"/>.
+        /// Requires <c>spiderly.AddNotifications(...)</c>.
         /// <example>
         /// <code>
         /// app.SpiderlyUseHangfireFailedJobNotificationFilter();
@@ -459,9 +544,7 @@ namespace Spiderly.Shared.Extensions
         {
             IServiceProvider services = app.ApplicationServices;
             GlobalJobFilters.Filters.Add(new HangfireFailedJobNotificationFilter(
-                services.GetRequiredService<TelegramNotifier>(),
-                services.GetRequiredService<NotificationRateLimiter>(),
-                services.GetRequiredService<IOptions<NotificationOptions>>(),
+                services,
                 services.GetRequiredService<ILoggerFactory>().CreateLogger<HangfireFailedJobNotificationFilter>()));
         }
 

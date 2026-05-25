@@ -4,6 +4,15 @@ Spiderly is a .NET 9 + Angular 19 code generator. It reads EF Core entity classe
 
 Spiderly is a fast-moving startup — no backward compatibility needed. Make breaking changes freely.
 
+## Config ↔ options binding is a reflective contract — guard it
+
+`appsettings` is bound to options classes (`EmailOptions`, `JwtOptions`, …) **reflectively at runtime**, with no compile-time link. So a shape mismatch between the documented config and the options type binds **silently** to a default/empty value and only fails much later at first use. This actually shipped: `EmailSender` became a `{ Email, Name }` object in code, but the JSON schema + an existing consumer's `appsettings` still had it as a **string** → bound to an empty `EmailSender` (`Email == null`) → 500 "sender is missing" on the first login email, latent for weeks.
+
+When you add/refactor an option:
+- Update **all** of: the options class, the `spiderly init` template's emitted `appsettings`, **`schemas/appsettings.schema.json`**, and any consumer config. The schema and existing configs are the ones that silently drift.
+- Add a **`ValidateOnStart` guard** in `StartupExtensions.AddSpiderly` for config that is *required when a feature is enabled* (mirror the `JwtKey` / `EmailSender.Email` checks) so a missing/empty value **fails loudly at boot**, not at first use. `ValidateOnStart` validates *values*, not *shape* — a wrong-shape binding produces an empty default and passes unless you assert the value.
+- Lock the shape with a binding test in `Spiderly.Shared.Tests/OptionsBindingTests.cs` (bind a representative `appsettings` to the options, assert required fields populate).
+
 ### Versioning
 
 `X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag, `Angular/projects/spiderly/package.json`, `spiderly-cli/package.json`, and `.claude-plugin/marketplace.json` (`plugins[0].version`). These are bumped together by `.github/workflows/release.yml` — do not hand-edit.

@@ -18,12 +18,13 @@ namespace __APP_NAME__.Business.Entities
         [Required]
         public string Email { get; set; }
 
-        public bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
-
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
         IReadOnlyCollection<IRole> IUser.Roles => Roles;
+
+        [UIDoNotGenerate]
+        public virtual List<UserExternalLogin> ExternalLogins { get; } = new();
 
         [UIDoNotGenerate]
         public virtual List<Project> Projects { get; } = new(); // M2M

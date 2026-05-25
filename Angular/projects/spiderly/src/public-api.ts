@@ -38,7 +38,6 @@ export * from './lib/components/layout/sidemenu-topbar/sidemenu-topbar.component
 export * from './lib/components/layout/topbar/topbar.component';
 export * from './lib/components/not-found/not-found.component';
 export * from './lib/components/required/required.component';
-export * from './lib/components/spiderly-buttons/google-button/google-button.component';
 export * from './lib/components/spiderly-buttons/return-button/return-button.component';
 export * from './lib/components/spiderly-buttons/spiderly-button-base/spiderly-button-base';
 export * from './lib/components/spiderly-buttons/spiderly-button/spiderly-button.component';

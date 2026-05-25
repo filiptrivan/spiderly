@@ -64,6 +64,14 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
             // ...\Backend\PlayertyLoyals.Business -> ...\Frontend\src\app\business\components\base-details.generated.ts
+
+            // Intentionally ONE fixed output file, not one file per entity.
+            // These generators StreamWriter to disk (not Roslyn AddSource), so output is NOT ephemeral:
+            // a per-entity scheme would leave an orphaned `{old-entity}.base-details.generated.ts` behind on
+            // every entity rename/delete, and users forget to clean those up. Overwriting a single fixed path
+            // is atomic and orphan-free by construction. The navigation cost of a large file is accepted in
+            // exchange for that guarantee. Do not split this per entity without first moving emission off the
+            // source generator onto a build step that owns (and can prune) the output directory.
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "components", "base-details.generated.ts");
 

@@ -325,32 +325,6 @@ export function kebabToTitleCase(input: string): string {
     .join(' ');
 }
 
-/**
- * Custom styling of the google button - https://medium.com/simform-engineering/implement-custom-google-sign-in-using-angular-16-9c93aeff6252
- */
-export function createFakeGoogleWrapper() {
-  const googleLoginWrapper = document.createElement('div');
-  googleLoginWrapper.style.display = 'none';
-  googleLoginWrapper.classList.add('custom-google-button');
-
-  document.body.appendChild(googleLoginWrapper);
-
-  window.google.accounts.id.renderButton(googleLoginWrapper, {
-    type: 'icon',
-    width: '200',
-  });
-
-  const googleLoginWrapperButton = googleLoginWrapper.querySelector(
-    'div[role=button]',
-  ) as HTMLElement;
-
-  return {
-    click: () => {
-      googleLoginWrapperButton?.click();
-    },
-  };
-}
-
 export const PROPS_KEY = Symbol('props');
 
 export function ReflectProp(target: any, propertyKey: string) {

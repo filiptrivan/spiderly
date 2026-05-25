@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Spiderly.Shared;
 using Spiderly.Shared.BaseEntities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spiderly.Shared.Interfaces;
@@ -22,19 +20,14 @@ namespace Spiderly.Infrastructure
     public class ApplicationDbContext<TUser> : DbContext, IApplicationDbContext
         where TUser : class, IUser, new()
     {
-
-        private readonly ExternalProviderOptions _externalProviderSettings;
-
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options, IOptions<ExternalProviderOptions> externalProviderOptions)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options)
                 : base(options)
         {
-            _externalProviderSettings = externalProviderOptions.Value;
         }
 
-        protected ApplicationDbContext(DbContextOptions options, IOptions<ExternalProviderOptions> externalProviderOptions)
+        protected ApplicationDbContext(DbContextOptions options)
             : base(options)
         {
-            _externalProviderSettings = externalProviderOptions.Value;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -53,11 +46,6 @@ namespace Spiderly.Infrastructure
                 {
                     modelBuilder.Entity(entityType).Property("Id").ValueGeneratedOnAdd();
                 }
-            }
-
-            if (_externalProviderSettings.UseGoogleAsExternalProvider == false)
-            {
-                modelBuilder.Entity<TUser>().Ignore(x => x.HasLoggedInWithGoogleAsExternalProvider);
             }
 
             mutableEntityTypes.ConfigureManyToManyRelationships(modelBuilder);
