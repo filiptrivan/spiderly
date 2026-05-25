@@ -60,12 +60,16 @@ namespace Spiderly.Shared.Tests
                 ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "noreply@example.com",
                 ["AppSettings:Spiderly.Shared:BrevoApiKey"] = "test-brevo-key",
                 ["AppSettings:Spiderly.Shared:AccessTokenKey"] = "access_token",
+                // AdminRecipients (renamed from UnhandledExceptionRecipients) — a stale key in consumer config
+                // binds to null and silently drops all admin/ops notifications.
+                ["AppSettings:Spiderly.Shared:AdminRecipients:0"] = "ops@example.com",
             });
 
             Assert.Equal("test-jwt-signing-key", section.Get<JwtOptions>().JwtKey);
             Assert.Equal("noreply@example.com", section.Get<EmailOptions>().EmailSender.Email);
             Assert.Equal("test-brevo-key", section.Get<EmailOptions>().BrevoApiKey);
             Assert.Equal("access_token", section.Get<TokenKeyOptions>().AccessTokenKey);
+            Assert.Equal("ops@example.com", Assert.Single(section.Get<NotificationOptions>().AdminRecipients));
         }
     }
 }
