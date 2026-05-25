@@ -1,4 +1,4 @@
-# External-provider icons on the frontend + login-page customization
+# External-provider icons on the frontend + login-component refactor & customization
 
 **Date:** 2026-05-25
 **Status:** Design — awaiting review
@@ -9,25 +9,42 @@
 
 The admin login page renders a "Sign in with Google" button whose icon URL currently comes from the **backend** (`appsettings.json` → `ExternalProviders[].IconUrl`), exposed via `GET Security/GetExternalProviders`. PACMS hotlinks Google's CDN (`https://developers.google.com/identity/images/g-logo.png`).
 
-Two problems:
+Three problems, surfaced while scoping the icon change:
 
 1. **Hotlinking a third-party CDN** for the icon is fragile (no stable URL contract), leaks the admin's IP/referrer to Google on every login load, needs a CSP allowance, and breaks offline. The icon is pure presentation and does not belong in backend config.
-2. **No consumer control over the login page.** A consumer routes `/login` to the lib's `LoginComponent` and gets it exactly as-is, or forks. The `AuthComponent` wrapper (logo + provider buttons + form slot) is not even exported, so a consumer cannot recompose their own login page from lib parts. There is no middle ground between "take everything" and "rebuild from scratch."
+2. **No consumer control over the login page.** A consumer routes `/login` to the lib's login component and gets it as-is, or forks. The auth wrapper is not even exported, so a consumer cannot recompose their own login page from lib parts. There is no middle ground between "take everything" and "rebuild from scratch."
+3. **`AuthComponent` violates single-responsibility.** It is simultaneously a layout shell (gradient card + logo), a company-branding fetcher, the entire external-provider feature (fetch + "or" separator + buttons + challenge redirect), a content host (`<ng-content>` for the form), and a back-channel that emits the company name up to the page (`onCompanyNameChange` — which the login template does not even consume). It cannot be named well because it has no single responsibility. The verification side of the module (`VerificationWrapperComponent` dumb UI + `LoginVerificationComponent` container) is, by contrast, cleanly factored — so this is an inconsistency to correct, not a module-wide rewrite.
+
+We are already making breaking changes (renames, new public exports) and these components are only now becoming public API. This is the cheapest moment to fix the factoring — exporting a mis-factored `AuthComponent` would lock the confusion into the public API.
 
 ## Goals
 
-- The provider icon lives on the **frontend**, mapped by provider `code`, overridable per provider (Google and any future provider).
-- Backend stops owning the icon — `IconUrl` is removed from config, the DTO, and the public endpoint.
-- A consumer gets graduated control over the login page (config → wrapper → full composition → slots) without forking.
-- The lib ships sensible defaults so an out-of-the-box app still shows the Google icon with zero config.
+- The provider icon lives on the **frontend**, mapped by provider `code`, overridable per provider; backend stops owning it.
+- Split the login UI into single-responsibility, well-named, individually-exported components, mirroring the already-clean verification side.
+- Give a consumer graduated control over the login page (defaults → wrapper → composition → content slots) without forking.
+- Ship sensible defaults so an out-of-the-box app still shows the Google icon with zero config.
 
 ## Non-goals
 
-- Moving the provider **`Label`** to the frontend. Label stays in backend config (it is short, locale-set text per consumer, and was not in scope). Revisit later if needed.
-- Storefront (React) Google login — that is the still-pending "slice 4" of the external-auth work. When it lands it will adopt the same frontend-icon-by-code approach (its own React-side map), which this design is consistent with.
-- Scaffolding/generating the login page into the consumer app. Considered and rejected as overkill (large framework change + ongoing sync burden when the auth flow evolves).
+- Moving the provider **`Label`** to the frontend. Label stays in backend config (short, locale-set per consumer; not in scope).
+- Extracting the email form into its own `LoginFormComponent`. The form stays inline in the login page template (placed as content, no longer projected through a shell). A standalone form component is a possible later refinement, out of scope here.
+- Touching the verification components beyond what the rename forces — they are already well-factored.
+- Storefront (React) Google login (pending external-auth "slice 4"). When it lands it adopts the same frontend-icon-by-code approach.
+- Scaffolding/generating the login page into the consumer app — considered and rejected as overkill.
 
-## Design
+## Architecture (from-scratch factoring)
+
+`<auth>` is used by exactly one template (`login.component.html`); no registration page consumes it, so the refactor is fully localized to the login flow. `AuthComponent` is **deleted** and its responsibilities split:
+
+| New component | Selector | Responsibility |
+| --- | --- | --- |
+| `AuthCardComponent` | `spiderly-auth-card` | Pure presentational shell: gradient card + logo + content slots. Fetches & displays company branding (logo/name) internally; **no output back-channel**. Hosts page content via `<ng-content>`. |
+| `ExternalLoginComponent` | `spiderly-external-login` | The whole external-login feature: fetches enabled providers (`GetExternalProviders`), renders the "or" separator + provider buttons, resolves icons, initiates the challenge redirect. Owns `@Input() providerIcons`. Self-contained — droppable into login, registration, or the storefront later. |
+| `SpiderlyLoginComponent` | `spiderly-login` | The page / route target (renamed from `LoginComponent`/`app-login`). Owns the email form + send-verification logic and the toggle to verification. Composes `<spiderly-auth-card>` with the email form and `<spiderly-external-login>` as its content. Exposes `@Input() providerIcons`, forwarded to `<spiderly-external-login>`. |
+| `LoginVerificationComponent` | `login-verification` | Unchanged (container wiring resend/submit to `authService`). |
+| `VerificationWrapperComponent` | `verification-wrapper` | Unchanged (dumb OTP UI with `@Output` events). |
+
+This removes the `onCompanyNameChange` back-channel (the card self-brands) and the inverted content ownership (the page now owns its primary content — the form — instead of projecting it into a shell that also owns the secondary provider buttons).
 
 ### Icon resolution (frontend, by `code`)
 
@@ -40,7 +57,7 @@ export const DEFAULT_EXTERNAL_PROVIDER_ICONS: Record<string, string> = {
 };
 ```
 
-`SpiderlyAuthComponent` (renamed from `AuthComponent`, see Decision D2) gains:
+`ExternalLoginComponent`:
 
 ```ts
 /** Map of provider code -> icon (asset path, URL, or data URI). Per-code override; unset codes fall back to defaults. */
@@ -51,33 +68,28 @@ iconFor(code: string): string | undefined {
 }
 ```
 
-Template change: `[iconUrl]="iconFor(provider.code)"` instead of `[iconUrl]="provider.iconUrl"`. When neither map has the code, `spiderly-button` already falls back to a label-only button.
+Template: `[iconUrl]="iconFor(provider.code)"`. When neither map has the code, `spiderly-button` already falls back to a label-only button. Resolution is per-code merge: `{ google: 'x' }` overrides only Google.
 
-Resolution is **per-code merge**: passing `{ google: 'x' }` overrides only Google; other providers keep their defaults.
+### Content slots (`AuthCardComponent`)
 
-### Backend: remove `IconUrl`
+Named content-projection slots with fallback to current defaults:
 
-Delete `IconUrl` from:
+- `[auth-logo]` — replaces the logo area (fallback: the company image the card fetches).
+- default `<ng-content>` — page content (the form + external-login).
+- `[auth-footer]` — below the content (fallback: nothing).
 
-- `Spiderly.Shared/Options/ExternalProviderConfig.cs:51`
-- `Spiderly.Shared/ExternalAuth/ExternalProviderPublicInfo.cs:23`
-- `Spiderly.Security/DTO/ExternalProviderPublicDTO.cs:26`
-- the projection in `Spiderly.Security/Services/SecurityServiceBase.cs:398`
-- `Spiderly.Shared/ExternalAuth/ExternalAuthProviderRegistry.cs:58` (the `_publicConfigs` projection)
-- `schemas/appsettings.schema.json` (the `ExternalProviders` item shape)
+Empty-slot detection via `@ContentChild` so defaults render only when nothing is projected. `SpiderlyLoginComponent` forwards `[auth-logo]`/`[auth-footer]` to its inner `<spiderly-auth-card>` via `ngProjectAs`, so the default page (and the Level 1.5 wrapper) can override logo/footer through projection.
 
-The `GetExternalProviders` endpoint continues to return `{ code, authority, clientId, label }` — it remains the source of truth for **which** providers are enabled and their identity config. Only the icon leaves.
-
-### Consumer control — the levels
+## Consumer control — the levels
 
 | Level | Who | How |
 | --- | --- | --- |
-| 1 | any consumer | route to lib `SpiderlyLoginComponent`; built-in default icons show, zero config |
+| 1 | any consumer | route to `SpiderlyLoginComponent`; built-in default icons show, zero config |
 | 1.5 | **PACMS** | thin owned wrapper renders `<spiderly-login [providerIcons]="…">` |
-| 2 | consumer needing a different form/layout | compose own page from `<spiderly-auth>` + lib parts |
+| 2 | consumer needing a different form/layout | compose own page from `<spiderly-auth-card>` + `<spiderly-external-login>` + own form |
 | 3 | any | named content slots `[auth-logo]` / `[auth-footer]` |
 
-**Level 1.5 (PACMS, the chosen primary path).** A tiny wrapper holds the icon map and passes it down — no inheritance, no logic duplication, no DI token, no route `data`:
+**Level 1.5 (PACMS, the chosen primary path)** — no inheritance, no logic duplication, no DI token, no route `data`:
 
 ```ts
 @Component({
@@ -90,56 +102,69 @@ export class LoginComponent {
 }
 ```
 
-`SpiderlyLoginComponent` gains `@Input() providerIcons` and forwards it to its inner `<spiderly-auth>`. The consumer is now free to name their own component `LoginComponent` and use selector `app-login` (Decision D1).
+The consumer is free to name their own component `LoginComponent` and use selector `app-login`.
 
-**Level 2 (full composition).** With `SpiderlyAuthComponent` exported, a consumer who needs to restructure the email form builds their own page from parts:
+**Level 2 (full composition)** — for a consumer who needs to restructure the form:
 
 ```ts
-import { SpiderlyAuthComponent, LoginVerificationComponent } from 'spiderly';
-// template: <spiderly-auth [providerIcons]="icons"><my-email-form /></spiderly-auth>
+import { AuthCardComponent, ExternalLoginComponent, LoginVerificationComponent } from 'spiderly';
+// template:
+// <spiderly-auth-card>
+//   <my-email-form />
+//   <spiderly-external-login [providerIcons]="icons" />
+// </spiderly-auth-card>
 ```
 
-**Level 3 (slots).** `SpiderlyAuthComponent` gets named content-projection slots with fallback to the current defaults:
+## Backend: remove `IconUrl`
 
-- `[auth-logo]` — replaces the logo area (fallback: existing company image from config)
-- default `<ng-content>` — the form (unchanged)
-- `[auth-footer]` — below the provider buttons (fallback: nothing)
+Delete `IconUrl` from:
 
-Empty-slot detection via `@ContentChild` so defaults render only when nothing is projected. `SpiderlyLoginComponent` forwards `[auth-logo]`/`[auth-footer]` to its inner `<spiderly-auth>` via `ngProjectAs`, so even the default page (and the Level 1.5 wrapper) can override logo/footer through projection without rebuilding.
+- `Spiderly.Shared/Options/ExternalProviderConfig.cs:51`
+- `Spiderly.Shared/ExternalAuth/ExternalProviderPublicInfo.cs:23`
+- `Spiderly.Security/DTO/ExternalProviderPublicDTO.cs:26`
+- the projection in `Spiderly.Security/Services/SecurityServiceBase.cs:398`
+- the `_publicConfigs` projection in `Spiderly.Shared/ExternalAuth/ExternalAuthProviderRegistry.cs:58`
+- `schemas/appsettings.schema.json` (the `ExternalProviders` item shape)
 
-### Renames
+`GetExternalProviders` continues to return `{ code, authority, clientId, label }` — still the source of truth for which providers are enabled and their identity config. Only the icon leaves.
 
-**D1 — `LoginComponent` → `SpiderlyLoginComponent`, selector `app-login` → `spiderly-login`.** Frees the conventional `LoginComponent` class name and `app-login` selector for the consumer's own component. Consistent with the existing Spiderly prefix convention (`SpiderlyButtonComponent`, `spiderly-textbox`, …), which `LoginComponent` currently violates.
+## File-level change list
 
-References to update:
-- `Angular/projects/spiderly/src/public-api.ts:24` (export)
-- `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs:1305` (init template route → `c.SpiderlyLoginComponent`)
-- `pa-cms` `app.routes.ts:330` (will route the new PACMS wrapper instead)
-- `spiderly-website` docs
+**Spiderly Angular lib**
+- New `components/auth/external-provider-icons.ts` (`DEFAULT_EXTERNAL_PROVIDER_ICONS`).
+- New `components/auth/auth-card/auth-card.component.{ts,html}` (`AuthCardComponent`, `spiderly-auth-card`) — branding fetch/display + slots, carved out of the old `AuthComponent`.
+- New `components/auth/external-login/external-login.component.{ts,html}` (`ExternalLoginComponent`, `spiderly-external-login`) — provider fetch + buttons + icon resolution + challenge redirect, carved out of the old `AuthComponent`.
+- Delete `components/auth/partials/auth.component.{ts,html}`.
+- `components/auth/login/login.component.{ts,html}` → rename class `LoginComponent` → `SpiderlyLoginComponent`, selector `app-login` → `spiderly-login`; template now composes `<spiderly-auth-card>` + inline email form + `<spiderly-external-login [providerIcons]>`; add `@Input() providerIcons`; forward slots via `ngProjectAs`.
+- `public-api.ts` — export `AuthCardComponent`, `ExternalLoginComponent`, `DEFAULT_EXTERNAL_PROVIDER_ICONS`, `SpiderlyLoginComponent` (replacing the `LoginComponent` export at line 24).
 
-**D2 — `AuthComponent` → `SpiderlyAuthComponent`, selector `auth` → `spiderly-auth` (recommended; confirm in review).** `AuthComponent` becomes part of the public composition API (Level 2). The bare `auth` selector and `AuthComponent` name are generic and likely to clash with a consumer's own. Prefixing them serves the same goal as D1. The user explicitly requested only the login rename, so this is flagged for confirmation — if vetoed, export `AuthComponent` under its current name/selector.
+**Spiderly backend** — `IconUrl` removals listed above.
 
-Spiderly makes breaking changes freely (per `spiderly/CLAUDE.md`), so the renames need no compatibility shim.
+**Spiderly init template** — `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs:1305` (login route → `c.SpiderlyLoginComponent`); audit the emitted `ExternalProviders` block for `IconUrl` and remove.
 
-### PACMS consumer changes
+**PACMS**
+- New `app/.../login.component.ts` wrapper (Level 1.5) + route `/login` to it (`app.routes.ts:330`).
+- `assets/icons/google.svg` (official Google mark, self-hosted).
+- Remove `IconUrl` from `Backend/PACMS.WebAPI/appsettings.json:106` (and the BA instance's appsettings if present).
 
-- Add `apps`-side `LoginComponent` wrapper (Level 1.5 above) and route `/login` to it (`app.routes.ts`).
-- Add `assets/icons/google.svg` (the official Google mark, self-hosted).
-- Remove `IconUrl` from `Backend/PACMS.WebAPI/appsettings.json:106` (and the BA instance's appsettings if it carries one).
+**spiderly-website** — update external-auth docs: icon-by-code on the frontend, the component split + rename, the control levels.
 
-### Docs & template
+## Decisions
 
-- Update `spiderly-website` external-auth docs: icon-by-code on the frontend, the rename, the three levels.
-- Audit `NetAndAngularFilesGenerator.cs` for any emitted `ExternalProviders` block carrying `IconUrl` and remove it; update the login route reference (D1).
+- **D1 — `LoginComponent` → `SpiderlyLoginComponent`, `app-login` → `spiderly-login`.** Frees the conventional name/selector for the consumer; consistent with the Spiderly prefix convention.
+- **D2 — split `AuthComponent` into `AuthCardComponent` + `ExternalLoginComponent` (supersedes the earlier "rename AuthComponent" question).** Resolves the SRP violation and the naming concern; `AuthComponent` ceases to exist.
+- **D3 — verification component selectors (`login-verification`, `verification-wrapper`) keep their current names** for now (well-factored, rarely rendered directly by consumers). Prefixing them is a possible later consistency pass, out of scope.
+
+Spiderly makes breaking changes freely (per `spiderly/CLAUDE.md`), so no compatibility shims.
 
 ## Testing
 
 - Lib: `cd spiderly/Angular && npm install && npx ng build spiderly` — compiles clean.
-- PACMS admin: with the local-dev `spiderly` paths map enabled in `pa-cms/Frontend/tsconfig.json`, `npm install && npx ng build` — compiles clean; new `LoginComponent` wrapper resolves `SpiderlyLoginComponent`.
+- PACMS admin: with the local-dev `spiderly` paths map enabled in `pa-cms/Frontend/tsconfig.json`, `npm install && npx ng build` — compiles clean; the new `LoginComponent` wrapper resolves `SpiderlyLoginComponent`.
 - Backend: `dotnet build PACMS.Business` — no `IconUrl` references remain.
-- Runtime (manual): login page renders the Google button with the self-hosted SVG; no request to Google's CDN; email-code login still works.
-- No new automated tests warranted (presentational wiring; integration covered by the existing auth flow). The external-auth `OptionsBindingTests` still pass with `IconUrl` removed (fewer fields).
+- Runtime (manual): login page renders the Google button with the self-hosted SVG; no request to Google's CDN; email-code login still works; logo/branding still render (card self-brands); slot overrides work.
+- No new automated tests warranted (presentational wiring; integration covered by the existing auth flow). The external-auth `OptionsBindingTests` still pass with `IconUrl` removed.
 
 ## Rollout
 
-This rides on the unpushed external-auth branch. Before pushing `spiderly`: the existing external-auth checklist still applies (e2e fixture / CI login helper, `spiderly-website` docs). PACMS admin consumes local `spiderly` source via the tsconfig paths toggle during dev; a real PACMS release needs the lib published + dep bump.
+Rides on the unpushed external-auth branch. Before pushing `spiderly`: the existing external-auth checklist still applies (e2e fixture / CI login helper — note the login selector changed `app-login` → `spiderly-login`, so the Playwright helper needs updating; `spiderly-website` docs). PACMS admin consumes local `spiderly` source via the tsconfig paths toggle during dev; a real PACMS release needs the lib published + dep bump.
