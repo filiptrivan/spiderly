@@ -107,6 +107,7 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("spiderly-autocomplete", country.ControlTag);
         Assert.Equal("countryId", country.FormControlName);
         Assert.Equal("countryOptions", country.OptionsFieldName);
+        Assert.False(country.OptionsIsInput);
         Assert.NotNull(country.Search);
         Assert.Equal("searchCountry", country.Search.MethodName);
         Assert.Equal("getCountryAutocompleteListForBrand", country.Search.ApiMethodName);
