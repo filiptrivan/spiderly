@@ -22,6 +22,7 @@ namespace Spiderly.SourceGenerators.Angular
                 ComponentClassName = $"{entity.Name}FieldsComponent",
                 SaveBodyTypeName = $"{entity.Name}SaveBody",
                 ConfigClassName = $"{entity.Name}FieldsConfig",
+                MainDtoAccess = $"formGroup.controls.{entity.Name.FirstCharToLower()}DTO",
             };
 
             foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity))

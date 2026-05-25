@@ -23,7 +23,7 @@ namespace Spiderly.SourceGenerators.Angular
     template: `
 <ng-container *transloco="let t">
     <ng-content select="[before]"></ng-content>
-{{string.Join("\n", model.Fields.Select(GetFieldBlock))}}
+{{string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)))}}
     <ng-content select="[after]"></ng-content>
 </ng-container>
     `,
@@ -42,7 +42,7 @@ export class {{model.ComponentClassName}} {
 """;
         }
 
-        private static string GetFieldBlock(FieldModel field)
+        private static string GetFieldBlock(FieldModel field, string mainDtoAccess)
         {
             string eventAttr = field.ChangeOutput != null
                 ? $" ({field.ChangeOutput.ControlEventName})=\"{field.ChangeOutput.OutputName}.next($event)\""
@@ -50,7 +50,7 @@ export class {{model.ComponentClassName}} {
 
             return $$"""
     <div *ngIf="config.{{field.ConfigShowFlagName}} !== false" class="{{field.Width}}">
-        <{{field.ControlTag}} [control]="formGroup.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
+        <{{field.ControlTag}} [control]="{{mainDtoAccess}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
         <ng-content select="[below{{field.PropertyName}}]"></ng-content>
     </div>
 """;

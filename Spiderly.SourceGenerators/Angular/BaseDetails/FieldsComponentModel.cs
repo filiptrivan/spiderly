@@ -15,6 +15,15 @@ namespace Spiderly.SourceGenerators.Angular
         public string ComponentClassName { get; set; }
         public string SaveBodyTypeName { get; set; }
         public string ConfigClassName { get; set; }
+
+        /// <summary>
+        /// Form-group access expression for the entity's editable fields, e.g. <c>formGroup.controls.brandDTO</c>.
+        /// The fragment's <c>formGroup</c> input is the {Entity}SaveBody group; its scalar/M2O/dropdown/autocomplete
+        /// controls live under the nested {entityCamel}DTO control. (Collection controls like multiselect bind
+        /// directly on <c>formGroup</c> and are handled in a later slice.)
+        /// </summary>
+        public string MainDtoAccess { get; set; }
+
         public List<FieldModel> Fields { get; set; } = new();
     }
 

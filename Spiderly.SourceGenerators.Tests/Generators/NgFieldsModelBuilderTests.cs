@@ -38,6 +38,7 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("BrandFieldsComponent", model.ComponentClassName);
         Assert.Equal("BrandSaveBody", model.SaveBodyTypeName);
         Assert.Equal("BrandFieldsConfig", model.ConfigClassName);
+        Assert.Equal("formGroup.controls.brandDTO", model.MainDtoAccess);
     }
 
     [Fact]
