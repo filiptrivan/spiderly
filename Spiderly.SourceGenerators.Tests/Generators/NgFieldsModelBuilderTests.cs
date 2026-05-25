@@ -5,9 +5,8 @@ using Spiderly.SourceGenerators.Models;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
 
-// Unit tests for the structured emission model builder. Validates that the per-field facts the fragment
-// and config emitters depend on (control tag, form-control name, config show-flag, width, change output)
-// are computed correctly for the data-free scalar controls covered by this slice.
+// Unit tests for the structured emission model builder. Validates per-field facts for scalar controls
+// (TextBox, Integer, Decimal, CheckBox) and M2O Autocomplete controls.
 public class NgFieldsModelBuilderTests
 {
     private static SpiderlyProperty Prop(string name, string type) =>

@@ -8,8 +8,9 @@ namespace Spiderly.SourceGenerators.Angular
     /// <summary>
     /// Builds a <see cref="FieldsComponentModel"/> from a <see cref="SpiderlyClass"/>, reusing the existing
     /// control-type / form-control-name / width source-of-truth helpers in
-    /// <see cref="NgDetailsPropertyBlockGenerator"/>. Slice 2 supports the data-free scalar controls
-    /// (TextBox, Number, CheckBox); <see cref="BuildField"/> returns null for control types added in later slices.
+    /// <see cref="NgDetailsPropertyBlockGenerator"/>. Currently handles scalar controls (TextBox, Integer,
+    /// Decimal, CheckBox) and M2O Autocomplete; <see cref="BuildField"/> returns null for control types
+    /// added in later slices (Calendar, Dropdown, MultiSelect, etc.).
     /// </summary>
     internal static class NgFieldsModelBuilder
     {
