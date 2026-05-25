@@ -41,6 +41,12 @@ namespace Spiderly.SourceGenerators.Angular
 
         /// <summary>Set for controls that emit a change event (e.g. CheckBox); null otherwise.</summary>
         public FieldOutputModel ChangeOutput { get; set; }
+
+        /// <summary>Self-owned options array field name for option-backed controls (e.g. "countryOptions"); null otherwise.</summary>
+        public string OptionsFieldName { get; set; }
+
+        /// <summary>On-demand autocomplete search method backing a M2O autocomplete control; null otherwise.</summary>
+        public FieldSearchModel Search { get; set; }
     }
 
     /// <summary>A control change event wired to a component <c>@Output()</c>.</summary>
@@ -49,5 +55,13 @@ namespace Spiderly.SourceGenerators.Angular
         public string ControlEventName { get; set; }
         public string OutputName { get; set; }
         public string EventType { get; set; }
+    }
+
+    /// <summary>An on-demand autocomplete search method backing a M2O autocomplete control.</summary>
+    internal sealed class FieldSearchModel
+    {
+        public string MethodName { get; set; }
+        public string ApiMethodName { get; set; }
+        public string OptionsFieldName { get; set; }
     }
 }

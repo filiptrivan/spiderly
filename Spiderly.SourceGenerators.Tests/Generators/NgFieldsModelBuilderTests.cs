@@ -25,6 +25,7 @@ public class NgFieldsModelBuilderTests
             Prop("Price", "decimal"),
             Prop("Stock", "int"),
             Prop("IsActive", "bool?"),
+            Prop("Country", "Country"),
         },
     };
 
@@ -87,5 +88,22 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("onIsActiveChange", isActive.ChangeOutput.OutputName);
         Assert.Equal("CheckboxChangeEvent", isActive.ChangeOutput.EventType);
         Assert.Equal("onChange", isActive.ChangeOutput.ControlEventName);
+    }
+
+    [Fact]
+    public void Build_M2OAutocomplete_HasOptionsFieldAndSearch()
+    {
+        FieldModel country = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Country");
+
+        Assert.Equal("spiderly-autocomplete", country.ControlTag);
+        Assert.Equal("countryId", country.FormControlName);
+        Assert.Equal("countryOptions", country.OptionsFieldName);
+        Assert.NotNull(country.Search);
+        Assert.Equal("searchCountry", country.Search.MethodName);
+        Assert.Equal("getCountryAutocompleteListForBrand", country.Search.ApiMethodName);
+        Assert.Equal("countryOptions", country.Search.OptionsFieldName);
+        Assert.Contains("[options]=\"countryOptions\"", country.ExtraControlAttributes);
+        Assert.Contains("[displayName]=\"formGroup.controls.brandDTO.controls.countryDisplayName.getRawValue()\"", country.ExtraControlAttributes);
+        Assert.Contains("(onTextInput)=\"searchCountry($event, formGroup.controls.brandDTO.controls.id.getRawValue())\"", country.ExtraControlAttributes);
     }
 }

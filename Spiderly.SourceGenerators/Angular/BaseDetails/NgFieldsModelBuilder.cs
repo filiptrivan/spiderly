@@ -27,7 +27,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity))
             {
-                FieldModel field = BuildField(property);
+                FieldModel field = BuildField(property, model.MainDtoAccess, entity.Name);
                 if (field != null)
                     model.Fields.Add(field);
             }
@@ -35,7 +35,7 @@ namespace Spiderly.SourceGenerators.Angular
             return model;
         }
 
-        private static FieldModel BuildField(SpiderlyProperty property)
+        private static FieldModel BuildField(SpiderlyProperty property, string mainDtoAccess, string entityName)
         {
             UIControlTypeCodes controlType = NgDetailsPropertyBlockGenerator.GetUIControlType(property);
 
@@ -68,8 +68,22 @@ namespace Spiderly.SourceGenerators.Angular
                         EventType = "CheckboxChangeEvent",
                     };
                     return field;
+                case UIControlTypeCodes.Autocomplete:
+                    field.ControlTag = "spiderly-autocomplete";
+                    field.OptionsFieldName = $"{property.Name.FirstCharToLower()}Options";
+                    field.Search = new FieldSearchModel
+                    {
+                        MethodName = $"search{property.Name}",
+                        ApiMethodName = $"get{property.Name}AutocompleteListFor{entityName}",
+                        OptionsFieldName = field.OptionsFieldName,
+                    };
+                    field.ExtraControlAttributes =
+                        $" [options]=\"{field.OptionsFieldName}\""
+                        + $" [displayName]=\"{mainDtoAccess}.controls.{property.Name.FirstCharToLower()}DisplayName.getRawValue()\""
+                        + $" (onTextInput)=\"{field.Search.MethodName}($event, {mainDtoAccess}.controls.id.getRawValue())\"";
+                    return field;
                 default:
-                    return null; // control types beyond Slice 2 are added in later slices
+                    return null; // control types beyond current slices are added in later slices
             }
         }
     }
