@@ -19,6 +19,21 @@
 > - **2b — done, destructive.** Removed the bool from `IUser`/`User`; the `ApplicationDbContext` `Ignore()` branch + its `IOptions<ExternalProviderOptions>` ctor params (both) + `ExternalProviderOptions.UseGoogleAsExternalProvider` + the schema entry; deleted the 2 `AuthorizationService` guards (update + insert — there were 2, not 3). Ripples fixed: `PACMSApplicationDbContext`, `MigrationsDbContextFactory`, `TestDbContextFactory` all lost the `ExternalProviderOptions` ctor arg; hand-written Angular `user-details.component.{ts,html}` lost the `showHasLoggedInWithGoogleAsExternalProvider` field/binding/`.disable()`. Migration `20260524155747_DropUserGoogleExternalProviderColumn` (drops the one column) applied. **Generated Angular files** (`base-details.generated.ts`, `entities.generated.ts`) + storefront `api.ts` still reference the field until the backend is restarted (regeneration) — backend builds were clean; the Angular admin won't compile until that regen.
 > - **2c — done, propagation.** Init template (`NetAndAngularFilesGenerator.cs`): User-entity template lost the bool + gained `ExternalLogins`; new `GetUserExternalLoginCsData` emitted as `UserExternalLogin.cs`; DbContext template + its design-time factory lost the `ExternalProviderOptions` ctor arg; `SecurityService<TUser>` → `SecurityService<TUser, TUserExternalLogin>`; `SecurityController`/`AuthorizationService`/DI registrations bumped to the new arity; the 2 AuthorizationService guard strings + the Angular `show…` template bits + the stale translation removed. E2e fixture `User.cs` lost the bool + gained `ExternalLogins`. **Verification gap:** `Spiderly.Shared` compiles (the generator's own C#), but the *generated app* is only verified by analogy to the PACMS changes that compile — the real gate is the CI e2e `init→build` job on push. GoogleClientId frontend template bits intentionally left for slice 3.
 
+## Two acquisition front-doors, one core — *do not collapse to one*
+
+External login deliberately has **two token-acquisition mechanisms**. They are **not** redundant and neither supersedes the other; they share a single validation + linking + session core (`IExternalAuthProviderRegistry` → `ResolveExternalUser` → cookie session). Only *how the id token is obtained* differs.
+
+| Surface | Mechanism | Endpoints | Why this one |
+|---|---|---|---|
+| **Admin** (Angular) | Server-side OAuth **code flow** (B2) | `ExternalLoginChallenge` / `ExternalLoginCallback` | Must support **arbitrary, config-driven OIDC providers**, including confidential / enterprise IdPs (Entra, Okta, Keycloak). A browser code+PKCE flow is impossible for Google's *confidential* web client (no `client_secret` in the browser), and GIS is Google-only — so only a backend-owned code flow is both generic **and** works for confidential clients. |
+| **Storefront** (Next.js) | Google Identity Services **id token** | `LoginExternal` / `LoginExternalWithCookies` | Only needs Google → GIS hands the browser an id token directly (no `client_secret`), with One-Tap UX a full-page redirect can't match. |
+
+**Consequences for anyone tempted to delete code:**
+
+- `LoginExternal` / `LoginExternalWithCookies` are **live and load-bearing** — the storefront's customer Google login depends on `LoginExternalWithCookies`. They are *not* "superseded by B2"; the `FINAL DIRECTION` note below describes the **admin's** migration only.
+- The two paths are kept at **security parity**: B2 binds a server-issued nonce (the state cookie); the id-token path does too via `GetExternalLoginNonce` — a server-issued nonce in a Data-Protection-signed HttpOnly cookie, echoed into the id token (`initialize({ nonce })`) and checked against the cookie on login, single-use. Don't add a third path at a lower posture, and don't drop the nonce from either.
+- `IExternalAuthProvider` (validation) and `ResolveExternalUser` (linking/provisioning) are **mechanism-agnostic** — a future provider or flow plugs into the same seam. If needs change, add behind the seam; don't fork a parallel core.
+
 ## Problem
 
 A Spiderly app needs to let users sign in with external identity providers. Spiderly ships **Google** built-in, but consumers must be able to **add their own provider** (Microsoft/Entra, Auth0, Keycloak, a corporate SSO, …) **without forking the framework**.

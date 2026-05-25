@@ -61,7 +61,15 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [UIDoNotGenerate]
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
-            return await _securityServiceBase.LoginExternal(externalProviderDTO);
+            string protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
+            try
+            {
+                return await _securityServiceBase.LoginExternal(externalProviderDTO, protectedNonce);
+            }
+            finally
+            {
+                ClearExternalLoginNonceCookie(); // single-use
+            }
         }
 
         [HttpPost]
@@ -74,7 +82,15 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [UIDoNotGenerate]
         public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
         {
-            return await _securityServiceBase.LoginExternalWithCookies(externalProviderDTO);
+            string protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
+            try
+            {
+                return await _securityServiceBase.LoginExternalWithCookies(externalProviderDTO, protectedNonce);
+            }
+            finally
+            {
+                ClearExternalLoginNonceCookie(); // single-use
+            }
         }
 
         /// <summary>
@@ -87,6 +103,44 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         public virtual List<ExternalProviderPublicDTO> GetExternalProviders()
         {
             return _securityServiceBase.GetExternalProviders();
+        }
+
+        private const string ExternalLoginNonceCookieName = "spiderly_external_login_nonce";
+
+        /// <summary>
+        /// Issues a one-time nonce for the client-side (GIS / id-token) external-login flow: returns the raw
+        /// nonce for the SPA to pass to the provider's sign-in call (so it is echoed into the id token), and
+        /// stores a signed copy in a short-lived HttpOnly cookie that <see cref="LoginExternal"/> /
+        /// <see cref="LoginExternalWithCookies"/> verify the returned id token against. Anonymous.
+        /// <c>SameSite=None</c> so the cookie rides the cross-site login POST.
+        /// </summary>
+        [HttpGet]
+        [UIDoNotGenerate]
+        public virtual ExternalLoginNonceDTO GetExternalLoginNonce()
+        {
+            (string nonce, string protectedNonce) = _securityServiceBase.CreateExternalLoginNonce();
+
+            Response.Cookies.Append(ExternalLoginNonceCookieName, protectedNonce, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, // sent on the cross-site fetch POST to LoginExternal(WithCookies)
+                Path = "/",
+                MaxAge = TimeSpan.FromMinutes(15),
+            });
+
+            return new ExternalLoginNonceDTO { Nonce = nonce };
+        }
+
+        private void ClearExternalLoginNonceCookie()
+        {
+            Response.Cookies.Delete(ExternalLoginNonceCookieName, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+            });
         }
 
         private const string ExternalLoginStateCookieName = "spiderly_external_login_state";

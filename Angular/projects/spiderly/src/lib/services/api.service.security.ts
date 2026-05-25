@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import {
   AuthResult,
   AuthResultWithCookies,
-  ExternalProvider,
   ExternalProviderPublic,
   Login,
   RefreshTokenRequest,
@@ -33,16 +32,6 @@ export class ApiSecurityService {
     );
   };
 
-  loginExternal = (
-    externalProviderDTO: ExternalProvider,
-  ): Observable<AuthResult> => {
-    return this.http.post<AuthResult>(
-      `${this.config.apiUrl}/Security/LoginExternal`,
-      externalProviderDTO,
-      this.config.httpOptions,
-    );
-  };
-
   sendLoginVerificationEmail = (
     loginDTO: Login,
   ): Observable<SendLoginVerificationEmailResult> => {
@@ -59,16 +48,6 @@ export class ApiSecurityService {
     return this.http.post<AuthResultWithCookies>(
       `${this.config.apiUrl}/Security/LoginWithCookies`,
       request,
-      this.config.httpOptions,
-    );
-  };
-
-  loginExternalWithCookies = (
-    externalProviderDTO: ExternalProvider,
-  ): Observable<AuthResultWithCookies> => {
-    return this.http.post<AuthResultWithCookies>(
-      `${this.config.apiUrl}/Security/LoginExternalWithCookies`,
-      externalProviderDTO,
       this.config.httpOptions,
     );
   };

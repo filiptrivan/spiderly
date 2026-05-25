@@ -120,8 +120,9 @@ export class AuthServiceBase implements OnDestroy {
     localStorage.setItem('logout-event', 'logout' + Math.random());
   }
 
-  // Called on app init and by the proactive timer. The refresh token is an HttpOnly cookie; a 401 simply
-  // means "no valid session" (not logged in / expired) — swallow it so app start doesn't error.
+  // Called on app init and by the proactive timer. The refresh token is an HttpOnly cookie; a 401 ("no valid
+  // session" — not logged in / expired) propagates from the interceptor and is handled by catchError below,
+  // resolving the session to anonymous (null). map runs only for a real result, so _user is never partial.
   refreshToken(): Observable<AuthResultWithCookies | null> {
     const browserId = this.getBrowserId();
     return this.apiService.refreshTokenWithCookies(browserId).pipe(
@@ -186,10 +187,6 @@ export class AuthServiceBase implements OnDestroy {
   navigateToDashboard() {
     this.router.navigate(['/']);
   }
-
-  onAfterLoginExternal = () => {
-    this.navigateToDashboard();
-  };
 
   initCompanyAuthDialogDetails =
     (): Observable<InitCompanyAuthDialogDetails> => {

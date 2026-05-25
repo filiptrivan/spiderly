@@ -45,6 +45,7 @@ namespace Spiderly.Security.Services
         private readonly IExternalAuthProviderRegistry _externalAuthProviderRegistry;
         private readonly ExternalAuthCodeFlow _externalAuthCodeFlow;
         private readonly IDataProtector _externalLoginProtector;
+        private readonly IDataProtector _externalLoginNonceProtector;
         private readonly string _frontendUrl;
 
         public SecurityServiceBase(
@@ -71,6 +72,7 @@ namespace Spiderly.Security.Services
             _externalAuthProviderRegistry = externalAuthProviderRegistry;
             _externalAuthCodeFlow = externalAuthCodeFlow;
             _externalLoginProtector = dataProtectionProvider.CreateProtector("Spiderly.Security.ExternalLogin");
+            _externalLoginNonceProtector = dataProtectionProvider.CreateProtector("Spiderly.Security.ExternalLoginNonce");
             _frontendUrl = sharedSettings.Value.FrontendUrl;
         }
 
@@ -321,6 +323,69 @@ namespace Spiderly.Security.Services
             public string RedirectUri { get; set; }
         }
 
+        private const int ExternalLoginNonceLifetimeMinutes = 15;
+
+        /// <summary>
+        /// Issues a one-time nonce for the client-side (GIS / id-token) external-login flow. Returns the raw
+        /// nonce — the SPA passes it to the provider's sign-in call so it is echoed into the id token's
+        /// <c>nonce</c> claim — and a Data-Protection-signed copy the caller stores in a short-lived HttpOnly
+        /// cookie. <see cref="VerifyExternalLoginNonce"/> then checks the echoed claim against the cookie,
+        /// binding the login to this browser and making the id token single-use (replay / login-CSRF guard).
+        /// </summary>
+        public virtual (string Nonce, string ProtectedNonce) CreateExternalLoginNonce()
+        {
+            string nonce = GenerateUrlToken();
+
+            ExternalLoginNonce payload = new()
+            {
+                Nonce = nonce,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(ExternalLoginNonceLifetimeMinutes),
+            };
+
+            string protectedNonce = _externalLoginNonceProtector.Protect(JsonSerializer.Serialize(payload));
+
+            return (nonce, protectedNonce);
+        }
+
+        /// <summary>
+        /// Verifies the id token echoes the server-issued, browser-bound nonce (see
+        /// <see cref="CreateExternalLoginNonce"/>). Throws <see cref="SecurityViolationException"/> when the
+        /// nonce is missing, tampered, expired, or doesn't match the token's <c>nonce</c> claim. This is the
+        /// id-token path's equivalent of the nonce check the B2 code flow does in <see cref="CompleteExternalLoginAsync"/>.
+        /// </summary>
+        private void VerifyExternalLoginNonce(string idToken, string protectedNonce)
+        {
+            ExternalLoginNonce payload = null;
+
+            if (string.IsNullOrWhiteSpace(protectedNonce) == false)
+            {
+                try
+                {
+                    payload = JsonSerializer.Deserialize<ExternalLoginNonce>(_externalLoginNonceProtector.Unprotect(protectedNonce));
+                }
+                catch
+                {
+                    payload = null; // tampered / expired / wrong key → treated as no nonce
+                }
+            }
+
+            if (payload == null || payload.ExpiresAt < DateTime.UtcNow)
+                throw new SecurityViolationException("External login nonce is missing or expired.");
+
+            string tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler()
+                .ReadJsonWebToken(idToken)
+                .TryGetClaim("nonce", out Claim nonceClaim) ? nonceClaim.Value : null;
+
+            if (string.IsNullOrWhiteSpace(tokenNonce) || tokenNonce != payload.Nonce)
+                throw new SecurityViolationException("External login nonce mismatch.");
+        }
+
+        private sealed class ExternalLoginNonce
+        {
+            public string Nonce { get; set; }
+            public DateTime ExpiresAt { get; set; }
+        }
+
         public virtual List<ExternalProviderPublicDTO> GetExternalProviders()
         {
             return _externalAuthProviderRegistry.GetPublicConfigs()
@@ -335,7 +400,7 @@ namespace Spiderly.Security.Services
                 .ToList();
         }
 
-        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string protectedNonce)
         {
             // Localized guard here (the service has the localizer); the registry's own throw is an internal safety net.
             if (_externalAuthProviderRegistry.IsConfigured(externalProviderDTO.Provider) == false)
@@ -344,6 +409,9 @@ namespace Spiderly.Security.Services
             IExternalAuthProvider provider = _externalAuthProviderRegistry.Get(externalProviderDTO.Provider);
 
             ExternalIdentity externalIdentity = await provider.ValidateAsync(externalProviderDTO.IdToken);
+
+            // Replay / login-CSRF guard: the id token must echo the server-issued, browser-bound nonce.
+            VerifyExternalLoginNonce(externalProviderDTO.IdToken, protectedNonce);
 
             return await _context.WithTransactionAsync(async () =>
             {
@@ -386,9 +454,9 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
+        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO, string protectedNonce)
         {
-            AuthResultDTO authResultDTO = await LoginExternal(externalProviderDTO);
+            AuthResultDTO authResultDTO = await LoginExternal(externalProviderDTO, protectedNonce);
 
             AuthResultWithCookiesDTO authResultWithCookiesDTO = new AuthResultWithCookiesDTO
             {

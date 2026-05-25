@@ -112,9 +112,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             {
                 "SendLoginVerificationEmail",
                 "Login",
-                "LoginExternal",
                 "LoginWithCookies",
-                "LoginExternalWithCookies",
                 "Logout",
                 "LogoutWithCookies",
                 "RefreshTokenWithHeaders",
