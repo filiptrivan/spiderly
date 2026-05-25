@@ -46,8 +46,5 @@ namespace Spiderly.Shared
 
         /// <summary>Optional display label for the provider's sign-in button (e.g. <c>"Continue with Google"</c>).</summary>
         public string Label { get; set; }
-
-        /// <summary>Optional icon URL for the provider's sign-in button.</summary>
-        public string IconUrl { get; set; }
     }
 }

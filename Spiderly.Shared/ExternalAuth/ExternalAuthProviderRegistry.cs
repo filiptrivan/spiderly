@@ -55,7 +55,6 @@ namespace Spiderly.Shared.ExternalAuth
                     Authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority),
                     ClientId = config.ClientId,
                     Label = config.Label,
-                    IconUrl = config.IconUrl,
                 });
 
                 // A custom provider registered for this code shadows the generic OIDC validator.

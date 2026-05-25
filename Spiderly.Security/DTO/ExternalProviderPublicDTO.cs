@@ -21,8 +21,5 @@ namespace Spiderly.Security.DTO
 
         /// <summary>Optional display label for the sign-in button.</summary>
         public string Label { get; set; }
-
-        /// <summary>Optional icon URL for the sign-in button.</summary>
-        public string IconUrl { get; set; }
     }
 }

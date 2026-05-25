@@ -395,7 +395,6 @@ namespace Spiderly.Security.Services
                     Authority = x.Authority,
                     ClientId = x.ClientId,
                     Label = x.Label,
-                    IconUrl = x.IconUrl,
                 })
                 .ToList();
         }
