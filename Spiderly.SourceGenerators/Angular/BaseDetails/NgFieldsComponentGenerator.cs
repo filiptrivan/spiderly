@@ -15,6 +15,7 @@ namespace Spiderly.SourceGenerators.Angular
             string outputs = string.Join("\n", model.Fields
                 .Where(f => f.ChangeOutput != null)
                 .Select(f => $"    @Output() {f.ChangeOutput.OutputName} = new EventEmitter<{f.ChangeOutput.EventType}>();"));
+            string outputsBlock = outputs.Length > 0 ? $"\n{outputs}" : "";
 
             return $$"""
 @Component({
@@ -36,8 +37,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};
-{{outputs}}
+    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}
 }
 """;
         }
@@ -59,12 +59,9 @@ export class {{model.ComponentClassName}} {
         internal static string BuildFieldsConfig(FieldsComponentModel model)
         {
             string flags = string.Join("\n", model.Fields.Select(f => $"    {f.ConfigShowFlagName}?: boolean;"));
+            string body = flags.Length > 0 ? $"\n{flags}\n" : "\n";
 
-            return $$"""
-export class {{model.ConfigClassName}} {
-{{flags}}
-}
-""";
+            return $"export class {model.ConfigClassName} {{{body}}}";
         }
     }
 }
