@@ -110,15 +110,19 @@ namespace Spiderly.SourceGenerators.Angular
                 });
             }
 
-            if (NgDetailsPropertyBlockGenerator.HasAnyUISection(entity.Properties.ToList(), entity, customDTOClasses))
+            // Distinct sections in first-appearance order over the SAME property set the fragment actually renders
+            // (entity.Properties — custom-DTO display fields aren't handled by the fragment yet). Only enable grouped
+            // mode (a non-empty SectionOrder) when at least one named section exists, so fully-unsectioned entities
+            // keep the flat path (byte-identical output).
+            List<string> sectionOrder = new();
+            foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity))
             {
-                foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity))
-                {
-                    string section = NgDetailsPropertyBlockGenerator.GetUISectionName(property);
-                    if (!model.SectionOrder.Contains(section))
-                        model.SectionOrder.Add(section);
-                }
+                string section = NgDetailsPropertyBlockGenerator.GetUISectionName(property);
+                if (!sectionOrder.Contains(section))
+                    sectionOrder.Add(section);
             }
+            if (sectionOrder.Any(s => s != null))
+                model.SectionOrder = sectionOrder;
 
             return model;
         }
