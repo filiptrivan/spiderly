@@ -417,6 +417,27 @@ public class NgFieldsComponentGeneratorTests
     // A single entity with BOTH a readonly and an editable table: cols-init covers both; selection fields,
     // handler methods, and the form wiring appear ONLY for the editable one.
     [Fact]
+    public Task EmitsSectionedFragment()
+    {
+        SpiderlyClass account = new()
+        {
+            Name = "Account", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Account", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "General" } } },
+                new() { Name = "Note", Type = "string", EntityName = "Account" },
+                new() { Name = "Code", Type = "string", EntityName = "Account", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "General" } } },
+                new() { Name = "Secret", Type = "string", EntityName = "Account", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "Security" } } },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(account, new() { account }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    [Fact]
     public Task EmitsReadonlyAndEditableTablesTogether()
     {
         SpiderlyClass role = new()

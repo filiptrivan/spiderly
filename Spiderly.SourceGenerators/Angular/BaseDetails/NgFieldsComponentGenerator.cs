@@ -105,18 +105,31 @@ namespace Spiderly.SourceGenerators.Angular
             string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
             string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
             string tableBlocks = string.Join("\n", model.Tables.Select(GetTableBlock));
-            // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
-            string bodyBlocks = string.Join("\n", new[] { fieldBlocks, orderedBlocks, tableBlocks }.Where(b => b.Length > 0));
+
+            string innerBody;
+            if (model.SectionOrder.Count == 0)
+            {
+                // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
+                string flat = string.Join("\n", new[] { fieldBlocks, orderedBlocks, tableBlocks }.Where(b => b.Length > 0));
+                innerBody = $"    <ng-content select=\"[before]\"></ng-content>\n{flat}\n    <ng-content select=\"[after]\"></ng-content>";
+            }
+            else
+            {
+                innerBody = string.Join("\n", model.SectionOrder.Select((section, i) => GetSectionPanel(model, section, i, model.SectionOrder.Count)));
+            }
 
             List<string> componentImports = new()
             {
                 "CommonModule", "FormsModule", "ReactiveFormsModule", "SpiderlyControlsModule", "TranslocoDirective",
             };
-            if (model.OrderedOneToManies.Count > 0)
+            if (model.OrderedOneToManies.Count > 0 || model.SectionOrder.Count > 0)
             {
                 componentImports.Add("SpiderlyPanelsModule");
-                componentImports.Add("IndexCardComponent");
-                componentImports.AddRange(model.OrderedOneToManies.Select(o => o.ChildFieldsComponentClassName).Distinct());
+                if (model.OrderedOneToManies.Count > 0)
+                {
+                    componentImports.Add("IndexCardComponent");
+                    componentImports.AddRange(model.OrderedOneToManies.Select(o => o.ChildFieldsComponentClassName).Distinct());
+                }
             }
             if (model.Tables.Count > 0)
                 componentImports.Add("SpiderlyDataTableComponent");
@@ -127,9 +140,7 @@ namespace Spiderly.SourceGenerators.Angular
     selector: '{{model.Selector}}',
     template: `
 <ng-container *transloco="let t">
-    <ng-content select="[before]"></ng-content>
-{{bodyBlocks}}
-    <ng-content select="[after]"></ng-content>
+{{innerBody}}
 </ng-container>
     `,
     imports: [
@@ -289,6 +300,39 @@ export class {{model.ComponentClassName}} {
             </panel-body>
         </spiderly-panel>
     </div>
+""";
+        }
+
+        private static string GetSectionPanel(FieldsComponentModel model, string section, int index, int count)
+        {
+            bool isOnly = count == 1;
+            bool isFirst = !isOnly && index == 0;
+            bool isLast = !isOnly && index == count - 1;
+            bool isMiddle = !isOnly && !isFirst && !isLast;
+            bool hasHeader = section != null;
+
+            string header = hasHeader
+                ? $"\n        <panel-header [title]=\"t('{section}')\" [showBigTitle]=\"false\"></panel-header>"
+                : "";
+
+            string sectionBlocks = string.Join("\n", new[]
+            {
+                string.Join("\n", model.Fields.Where(f => f.SectionName == section).Select(f => GetFieldBlock(f, model.MainDtoAccess))),
+                string.Join("\n", model.OrderedOneToManies.Where(o => o.SectionName == section).Select(GetOrderedOneToManyBlock)),
+                string.Join("\n", model.Tables.Where(t => t.SectionName == section).Select(GetTableBlock)),
+            }.Where(b => b.Length > 0));
+
+            string before = index == 0 ? "    <ng-content select=\"[before]\"></ng-content>\n" : "";
+            string after = index == count - 1 ? "\n    <ng-content select=\"[after]\"></ng-content>" : "";
+
+            return $$"""
+    <spiderly-panel [isFirstMultiplePanel]="{{isFirst.ToString().ToLower()}}" [isMiddleMultiplePanel]="{{isMiddle.ToString().ToLower()}}" [isLastMultiplePanel]="{{isLast.ToString().ToLower()}}" [showPanelHeader]="{{hasHeader.ToString().ToLower()}}">{{header}}
+        <panel-body>
+            <form class="spiderly-grid">
+{{before}}{{sectionBlocks}}{{after}}
+            </form>
+        </panel-body>
+    </spiderly-panel>
 """;
         }
 
