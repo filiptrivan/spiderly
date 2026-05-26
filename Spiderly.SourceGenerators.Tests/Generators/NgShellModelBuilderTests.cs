@@ -36,4 +36,35 @@ public class NgShellModelBuilderTests
         // A plain entity (no [DoNotAuthorize]) requires a permission to save -> default isAuthorizedForSave = false.
         Assert.False(NgShellModelBuilder.Build(Brand()).DefaultAuthorized);
     }
+
+    private static SpiderlyClass BrandWithExtraAuth() => new()
+    {
+        Name = "Brand",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute>
+        {
+            new() { Name = "SpiderlyEntity" },
+            new() { Name = "UIAdditionalPermissionCodeForInsert", Value = "ExtraInsert" },
+            new() { Name = "UIAdditionalPermissionCodeForUpdate", Value = "ExtraUpdate" },
+        },
+    };
+
+    [Fact]
+    public void Build_PopulatesAdditionalSavePermissionCodes()
+    {
+        ShellComponentModel model = NgShellModelBuilder.Build(BrandWithExtraAuth());
+
+        Assert.Equal(2, model.AdditionalSavePermissionCodes.Count);
+        Assert.Equal("ExtraInsert", model.AdditionalSavePermissionCodes[0].PermissionCode);
+        Assert.True(model.AdditionalSavePermissionCodes[0].ForInsert);
+        Assert.Equal("ExtraUpdate", model.AdditionalSavePermissionCodes[1].PermissionCode);
+        Assert.False(model.AdditionalSavePermissionCodes[1].ForInsert);
+    }
+
+    [Fact]
+    public void Build_NoExtraAuth_LeavesEmpty()
+    {
+        Assert.Empty(NgShellModelBuilder.Build(Brand()).AdditionalSavePermissionCodes);
+    }
 }

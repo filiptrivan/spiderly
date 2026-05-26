@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
@@ -10,6 +11,15 @@ namespace Spiderly.SourceGenerators.Angular
         {
             string kebab = entity.Name.FromPascalToKebabCase();
 
+            List<AdditionalSavePermissionCode> additionalSaveCodes = new();
+            foreach (SpiderlyAttribute attribute in entity.Attributes)
+            {
+                if (attribute.Name == "UIAdditionalPermissionCodeForInsert")
+                    additionalSaveCodes.Add(new AdditionalSavePermissionCode { PermissionCode = attribute.Value, ForInsert = true });
+                else if (attribute.Name == "UIAdditionalPermissionCodeForUpdate")
+                    additionalSaveCodes.Add(new AdditionalSavePermissionCode { PermissionCode = attribute.Value, ForInsert = false });
+            }
+
             return new ShellComponentModel
             {
                 EntityName = entity.Name,
@@ -21,6 +31,7 @@ namespace Spiderly.SourceGenerators.Angular
                 MainUIFormTypeName = $"{entity.Name}MainUIForm",
                 ConfigClassName = $"{entity.Name}FieldsConfig",
                 DefaultAuthorized = !Helpers.ShouldAuthorizeEntity(entity),
+                AdditionalSavePermissionCodes = additionalSaveCodes,
             };
         }
     }
