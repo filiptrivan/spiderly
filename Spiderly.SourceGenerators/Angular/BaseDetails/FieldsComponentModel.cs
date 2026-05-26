@@ -37,14 +37,34 @@ namespace Spiderly.SourceGenerators.Angular
     /// <summary>An [UIOrderedOneToMany] child collection rendered as a composed panel of index-cards.</summary>
     internal sealed class OrderedOneToManyModel
     {
+        /// <summary>The parent's collection property (e.g. <c>"SegmentationItems"</c>). Also the value passed to the
+        /// composed child fragment's <c>hiddenParentRelation</c> input to hide its back-ref M2O.</summary>
         public string PropertyName { get; set; }
+
+        /// <summary>Transloco key for the panel header (today equals <see cref="PropertyName"/>).</summary>
         public string TranslationKey { get; set; }
+
+        /// <summary>SpiderlyFormArray access expression, e.g. <c>formGroup.controls.orderedSegmentationItemsSaveBodyDTO</c>.</summary>
         public string FormArrayAccess { get; set; }
+
+        /// <summary>The <c>@for</c> loop variable for one child row, e.g. <c>segmentationItemFormGroup</c>.</summary>
         public string ChildRowVar { get; set; }
+
+        /// <summary>The composed child fragment's element selector, e.g. <c>segmentation-item-fields</c>.</summary>
         public string ChildFieldsSelector { get; set; }
+
+        /// <summary>The composed child fragment's class name (for the component <c>imports</c> array), e.g. <c>SegmentationItemFieldsComponent</c>.</summary>
         public string ChildFieldsComponentClassName { get; set; }
+
+        /// <summary>Transloco key for the add-row button, e.g. <c>AddNewSegmentationItem</c>.</summary>
         public string AddNewLabelKey { get; set; }
+
+        /// <summary>Panel-collapsed <c>@Input()</c> name. The legacy <c>For{Entity}</c> suffix is intentionally
+        /// dropped (the fragment is a standalone component, not a per-entity shell) — do not "restore" it.</summary>
         public string PanelCollapsedInputName { get; set; }
+
+        /// <summary>Per-row additional-content <c>TemplateRef</c> <c>@Input()</c> name. The legacy <c>For{Entity}</c>
+        /// suffix is intentionally dropped (see <see cref="PanelCollapsedInputName"/>).</summary>
         public string AdditionalContentTemplateInputName { get; set; }
     }
 

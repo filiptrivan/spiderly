@@ -33,8 +33,7 @@ namespace Spiderly.SourceGenerators.Angular
                     model.Fields.Add(field);
             }
 
-            foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity)
-                .Where(p => p.HasUIOrderedOneToManyAttribute()))
+            foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
                 string childType = Helpers.ExtractTypeFromGenericType(property.Type);
                 string childCamel = childType.FirstCharToLower();
