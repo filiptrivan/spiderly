@@ -324,7 +324,7 @@ namespace Spiderly.SourceGenerators.Angular
             return (forkJoinParams, formGroupInitialValues, newEntityInitValues);
         }
 
-        private static List<string> GetSimpleManyToManyTableLazyLoadCols(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        internal static List<string> GetSimpleManyToManyTableLazyLoadCols(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();
 

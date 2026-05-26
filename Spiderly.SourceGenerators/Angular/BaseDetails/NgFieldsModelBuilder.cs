@@ -54,6 +54,26 @@ namespace Spiderly.SourceGenerators.Angular
                 });
             }
 
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(p => p.IsIncludedInDetailsUi(entity) && p.HasComplexManyToManyReadonlyTableAttribute()))
+            {
+                string childType = Helpers.ExtractTypeFromGenericType(property.Type);
+                string propCamel = property.Name.FirstCharToLower();
+
+                model.Tables.Add(new TableModel
+                {
+                    TranslationKey = property.Name,
+                    ColsFieldName = $"{propCamel}TableCols",
+                    ColsTypeArgument = childType,
+                    ColumnDefs = NgDetailsDataGenerator.GetSimpleManyToManyTableLazyLoadCols(property, entity, allEntities, customDTOClasses),
+                    PaginatedListFieldName = $"getPaginated{property.Name}ListObservableMethod",
+                    PaginatedListApiCall = $"this.apiService.getPaginated{property.Name}ListFor{entity.Name}",
+                    ExportFieldName = $"export{property.Name}ListToExcelObservableMethod",
+                    ExportApiCall = $"this.apiService.export{property.Name}ListToExcelFor{entity.Name}",
+                    IsReadonly = true,
+                });
+            }
+
             return model;
         }
 

@@ -32,6 +32,12 @@ namespace Spiderly.SourceGenerators.Angular
         /// rather than flattening the child's controls.
         /// </summary>
         public List<OrderedOneToManyModel> OrderedOneToManies { get; set; } = new();
+
+        /// <summary>
+        /// Many-to-many tables this entity renders as a spiderly-data-table. Complex-readonly tables are display-only;
+        /// the editable lazy-load variant (added later) carries selection state. Columns are precomputed.
+        /// </summary>
+        public List<TableModel> Tables { get; set; } = new();
     }
 
     /// <summary>An [UIOrderedOneToMany] child collection rendered as a composed panel of index-cards.</summary>
@@ -66,6 +72,29 @@ namespace Spiderly.SourceGenerators.Angular
         /// <summary>Per-row additional-content <c>TemplateRef</c> <c>@Input()</c> name. The legacy <c>For{Entity}</c>
         /// suffix is intentionally dropped (see <see cref="PanelCollapsedInputName"/>).</summary>
         public string AdditionalContentTemplateInputName { get; set; }
+    }
+
+    /// <summary>A many-to-many spiderly-data-table (complex-readonly today; editable lazy-load later).</summary>
+    internal sealed class TableModel
+    {
+        /// <summary>Transloco key for [tableTitle] (the parent collection property name).</summary>
+        public string TranslationKey { get; set; }
+        /// <summary>Cols field name, e.g. <c>rolesTableCols</c>.</summary>
+        public string ColsFieldName { get; set; }
+        /// <summary>Child entity type for <c>Column&lt;T&gt;</c>, e.g. <c>Role</c>.</summary>
+        public string ColsTypeArgument { get; set; }
+        /// <summary>Precomputed column literals for the cols array (parity with the legacy table generator).</summary>
+        public List<string> ColumnDefs { get; set; } = new();
+        /// <summary>Paginated-list observable-method field name, e.g. <c>getPaginatedRolesListObservableMethod</c>.</summary>
+        public string PaginatedListFieldName { get; set; }
+        /// <summary>Its initializer call, e.g. <c>this.apiService.getPaginatedRolesListForUser</c>.</summary>
+        public string PaginatedListApiCall { get; set; }
+        /// <summary>Export observable-method field name, e.g. <c>exportRolesListToExcelObservableMethod</c>.</summary>
+        public string ExportFieldName { get; set; }
+        /// <summary>Its initializer call, e.g. <c>this.apiService.exportRolesListToExcelForUser</c>.</summary>
+        public string ExportApiCall { get; set; }
+        /// <summary>True for complex-readonly (no selection); the editable lazy-load variant sets false.</summary>
+        public bool IsReadonly { get; set; }
     }
 
     /// <summary>Per-property facts the fragment template and config class are built from.</summary>

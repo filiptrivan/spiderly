@@ -35,6 +35,36 @@ public class NgFieldsModelBuilderTests
         },
     };
 
+    private static SpiderlyClass Role() => new()
+    {
+        Name = "Role",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty> { Prop("Name", "string") },
+    };
+
+    private static SpiderlyClass User() => new()
+    {
+        Name = "User",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            Prop("Email", "string"),
+            new()
+            {
+                Name = "Roles", Type = "List<Role>", EntityName = "User",
+                Attributes = new List<SpiderlyAttribute>
+                {
+                    new() { Name = "ComplexManyToManyReadonlyTable" },
+                    new() { Name = "UITableColumn", Value = "Name" },
+                },
+            },
+        },
+    };
+
     private static SpiderlyClass Brand() => new()
     {
         Name = "Brand",
@@ -350,5 +380,38 @@ public class NgFieldsModelBuilderTests
     public void Build_NoOrderedOneToMany_LeavesEmptyList()
     {
         Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).OrderedOneToManies);
+    }
+
+    [Fact]
+    public void Build_ComplexReadonlyTable_PopulatesTableModel()
+    {
+        TableModel table = NgFieldsModelBuilder.Build(User(), new() { User(), Role() }, new()).Tables.Single();
+
+        Assert.Equal("Roles", table.TranslationKey);
+        Assert.Equal("rolesTableCols", table.ColsFieldName);
+        Assert.Equal("Role", table.ColsTypeArgument);
+        Assert.Equal("getPaginatedRolesListObservableMethod", table.PaginatedListFieldName);
+        Assert.Equal("this.apiService.getPaginatedRolesListForUser", table.PaginatedListApiCall);
+        Assert.Equal("exportRolesListToExcelObservableMethod", table.ExportFieldName);
+        Assert.Equal("this.apiService.exportRolesListToExcelForUser", table.ExportApiCall);
+        Assert.True(table.IsReadonly);
+        Assert.Single(table.ColumnDefs);
+        Assert.Contains("this.translocoService.translate('Name')", table.ColumnDefs[0]);
+        Assert.Contains("filterType: 'text'", table.ColumnDefs[0]);
+        Assert.Contains("field: 'name'", table.ColumnDefs[0]);
+    }
+
+    [Fact]
+    public void Build_Table_IsNotAddedToScalarFields()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(User(), new() { User(), Role() }, new());
+        Assert.DoesNotContain(model.Fields, f => f.PropertyName == "Roles");
+        Assert.Contains(model.Fields, f => f.PropertyName == "Email");
+    }
+
+    [Fact]
+    public void Build_NoTable_LeavesEmptyList()
+    {
+        Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Tables);
     }
 }
