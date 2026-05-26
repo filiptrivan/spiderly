@@ -414,8 +414,8 @@ public class NgFieldsComponentGeneratorTests
         return Verify(output);
     }
 
-    // A single entity with BOTH a readonly and an editable table: cols-init covers both; selection fields,
-    // handler methods, and the form wiring appear ONLY for the editable one.
+    // [UISection] grouping: the fragment owns stacked panels (one per section + a headerless one for
+    // unsectioned blocks), with isFirst/isMiddle/isLast chrome and [before]/[after] in the first/last panels.
     [Fact]
     public Task EmitsSectionedFragment()
     {
@@ -437,6 +437,29 @@ public class NgFieldsComponentGeneratorTests
         return Verify(output);
     }
 
+    // A single named [UISection] with no unsectioned blocks: one panel (isOnly), all multi-panel flags false,
+    // header shown — confirms a single section still triggers grouped mode (not the flat path).
+    [Fact]
+    public Task EmitsSingleSectionFragment()
+    {
+        SpiderlyClass account = new()
+        {
+            Name = "Account", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Account", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "General" } } },
+                new() { Name = "Code", Type = "string", EntityName = "Account", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "General" } } },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(account, new() { account }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    // A single entity with BOTH a readonly and an editable table: cols-init covers both; selection fields,
+    // handler methods, and the form wiring appear ONLY for the editable one.
     [Fact]
     public Task EmitsReadonlyAndEditableTablesTogether()
     {

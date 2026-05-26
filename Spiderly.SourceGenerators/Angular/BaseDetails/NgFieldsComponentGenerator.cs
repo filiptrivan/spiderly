@@ -102,19 +102,19 @@ namespace Spiderly.SourceGenerators.Angular
                 ? $"\n\n    async ngOnInit() {{\n{ngOnInitBody}\n    }}"
                 : "";
 
-            string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
-            string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
-            string tableBlocks = string.Join("\n", model.Tables.Select(GetTableBlock));
-
             string innerBody;
             if (model.SectionOrder.Count == 0)
             {
+                string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
+                string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
+                string tableBlocks = string.Join("\n", model.Tables.Select(GetTableBlock));
                 // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
                 string flat = string.Join("\n", new[] { fieldBlocks, orderedBlocks, tableBlocks }.Where(b => b.Length > 0));
                 innerBody = $"    <ng-content select=\"[before]\"></ng-content>\n{flat}\n    <ng-content select=\"[after]\"></ng-content>";
             }
             else
             {
+                // Sectioned: GetSectionPanel re-iterates the block collections per section, so the flat-mode joins above aren't needed here.
                 innerBody = string.Join("\n", model.SectionOrder.Select((section, i) => GetSectionPanel(model, section, i, model.SectionOrder.Count)));
             }
 
