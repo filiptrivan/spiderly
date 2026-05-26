@@ -413,4 +413,54 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    // A single entity with BOTH a readonly and an editable table: cols-init covers both; selection fields,
+    // handler methods, and the form wiring appear ONLY for the editable one.
+    [Fact]
+    public Task EmitsReadonlyAndEditableTablesTogether()
+    {
+        SpiderlyClass role = new()
+        {
+            Name = "Role", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Role" } },
+        };
+        SpiderlyClass permission = new()
+        {
+            Name = "Permission", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Permission" } },
+        };
+        SpiderlyClass user = new()
+        {
+            Name = "User", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Email", Type = "string", EntityName = "User" },
+                new()
+                {
+                    Name = "Roles", Type = "List<Role>", EntityName = "User",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "ComplexManyToManyReadonlyTable" },
+                        new() { Name = "UITableColumn", Value = "Name" },
+                    },
+                },
+                new()
+                {
+                    Name = "Permissions", Type = "List<Permission>", EntityName = "User",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "SimpleManyToManyTableLazyLoad" },
+                        new() { Name = "UITableColumn", Value = "Name" },
+                    },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(user, new() { user, role, permission }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }
