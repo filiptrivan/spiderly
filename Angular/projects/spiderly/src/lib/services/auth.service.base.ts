@@ -44,25 +44,8 @@ export class AuthServiceBase implements OnDestroy {
   ) {
     if (isPlatformBrowser(platformId)) {
       window.addEventListener('storage', this.storageEventListener);
-      window.addEventListener('pageshow', this.pageShowListener);
     }
   }
-
-  // Back/forward-cache guard. When the browser restores a page from bfcache (e.g. the user logs out,
-  // navigates away, then clicks Back), the whole document is restored with its in-memory session
-  // snapshot intact and route guards do NOT re-run — so a stale authenticated view can show even
-  // though the session is gone. Re-validate against the cookie session on restore; if it's gone,
-  // send the user to login (the same outcome a hard refresh already produces).
-  private pageShowListener = (event: PageTransitionEvent) => {
-    if (!event.persisted) {
-      return;
-    }
-    this.refreshToken().subscribe((result) => {
-      if (!result) {
-        this.router.navigate([this.config.loginSlug]);
-      }
-    });
-  };
 
   // Cross-tab sync. We store only marker values here (never tokens — those are HttpOnly cookies).
   private storageEventListener = (event: StorageEvent) => {
@@ -227,7 +210,6 @@ export class AuthServiceBase implements OnDestroy {
   ngOnDestroy(): void {
     if (isPlatformBrowser(this.platformId)) {
       window.removeEventListener('storage', this.storageEventListener);
-      window.removeEventListener('pageshow', this.pageShowListener);
     }
 
     this.onAfterNgOnDestroy();
