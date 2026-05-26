@@ -297,4 +297,29 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsBackReferenceGuardFragment()
+    {
+        SpiderlyClass segmentationItem = new()
+        {
+            Name = "SegmentationItem",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "SegmentationItem" },
+                new()
+                {
+                    Name = "Segmentation", Type = "Segmentation", EntityName = "SegmentationItem",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "WithMany", Value = "SegmentationItems" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentationItem);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }

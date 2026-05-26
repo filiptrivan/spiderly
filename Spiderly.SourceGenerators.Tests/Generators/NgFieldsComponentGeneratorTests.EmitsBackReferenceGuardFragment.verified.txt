@@ -1,0 +1,43 @@
+﻿@Component({
+    selector: 'segmentation-item-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showName !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.segmentationItemDTO.getControl('name')"></spiderly-textbox>
+        <ng-content select="[belowName]"></ng-content>
+    </div>
+    <div *ngIf="config.showSegmentation !== false && hiddenParentRelation !== 'SegmentationItems'" class="col-8 md:col-4">
+        <spiderly-autocomplete [control]="formGroup.controls.segmentationItemDTO.getControl('segmentationId')" [options]="segmentationOptions" [displayName]="formGroup.controls.segmentationItemDTO.controls.segmentationDisplayName.getRawValue()" (onTextInput)="searchSegmentation($event, formGroup.controls.segmentationItemDTO.controls.id.getRawValue())"></spiderly-autocomplete>
+        <ng-content select="[belowSegmentation]"></ng-content>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+    ]
+})
+export class SegmentationItemFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<SegmentationItemSaveBody>;
+    @Input() config: SegmentationItemFieldsConfig = {};
+    @Input() hiddenParentRelation: string;
+    segmentationOptions: Namebook[];
+
+    constructor(private apiService: ApiService) {}
+
+    searchSegmentation(event: AutoCompleteCompleteEvent, modelId: number = null) {
+        this.apiService.getSegmentationAutocompleteListForSegmentationItem(50, event?.query ?? '', modelId).subscribe(no => {
+            this.segmentationOptions = no;
+        });
+    }
+}
+
+export class SegmentationItemFieldsConfig {
+    showName?: boolean;
+    showSegmentation?: boolean;
+}

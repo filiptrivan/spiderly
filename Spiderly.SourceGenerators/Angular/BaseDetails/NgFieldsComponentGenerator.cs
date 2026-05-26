@@ -27,6 +27,10 @@ namespace Spiderly.SourceGenerators.Angular
                     : $"    {f.OptionsFieldName}: Namebook[];"));
             string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
 
+            string relationInputBlock = model.Fields.Any(f => f.ParentRelationName != null)
+                ? "\n    @Input() hiddenParentRelation: string;"
+                : "";
+
             string authInputBlock = model.Fields.Any(f => f.FileUpload != null)
                 ? "\n    @Input() isAuthorizedForSave: boolean = false;"
                 : "";
@@ -70,7 +74,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{authInputBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
 }
 """;
         }
@@ -119,8 +123,12 @@ export class {{model.ComponentClassName}} {
                 ? $" ({field.ChangeOutput.ControlEventName})=\"{field.ChangeOutput.OutputName}.next($event)\""
                 : "";
 
+            string relationGuard = field.ParentRelationName != null
+                ? $" && hiddenParentRelation !== '{field.ParentRelationName}'"
+                : "";
+
             return $$"""
-    <div *ngIf="config.{{field.ConfigShowFlagName}} !== false" class="{{field.Width}}">
+    <div *ngIf="config.{{field.ConfigShowFlagName}} !== false{{relationGuard}}" class="{{field.Width}}">
         <{{field.ControlTag}} [control]="{{controlBase}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
         <ng-content select="[below{{field.PropertyName}}]"></ng-content>
     </div>
