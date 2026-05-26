@@ -380,4 +380,37 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsSimpleLazyLoadTable()
+    {
+        SpiderlyClass permission = new()
+        {
+            Name = "Permission", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Permission" } },
+        };
+        SpiderlyClass user = new()
+        {
+            Name = "User", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Email", Type = "string", EntityName = "User" },
+                new()
+                {
+                    Name = "Permissions", Type = "List<Permission>", EntityName = "User",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "SimpleManyToManyTableLazyLoad" },
+                        new() { Name = "UITableColumn", Value = "Name" },
+                    },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(user, new() { user, permission }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }

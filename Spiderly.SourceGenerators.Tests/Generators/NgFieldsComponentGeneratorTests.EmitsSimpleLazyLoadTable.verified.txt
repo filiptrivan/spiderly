@@ -1,0 +1,81 @@
+﻿@Component({
+    selector: 'user-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showEmail !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.userDTO.getControl('email')"></spiderly-textbox>
+        <ng-content select="[belowEmail]"></ng-content>
+    </div>
+    <div class="col-8">
+        <spiderly-data-table
+            [tableTitle]="t('Permissions')"
+            [cols]="permissionsTableCols"
+            [getPaginatedListObservableMethod]="getPaginatedPermissionsListObservableMethod"
+            [exportListToExcelObservableMethod]="exportPermissionsListToExcelObservableMethod"
+            [showAddButton]="false"
+            [readonly]="!isAuthorizedForSave"
+            selectionMode="multiple"
+            [newlySelectedItems]="newlySelectedPermissionsIds"
+            [unselectedItems]="unselectedPermissionsIds"
+            [rows]="5"
+            (onLazyLoad)="onPermissionsLazyLoad($event)"
+            [selectedLazyLoadObservableMethod]="selectedPermissionsLazyLoadMethod"
+            (onIsAllSelectedChange)="areAllPermissionsSelectedChange($event)"></spiderly-data-table>
+        <ng-content select="[belowPermissions]"></ng-content>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        SpiderlyDataTableComponent,
+    ]
+})
+export class UserFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<UserSaveBody>;
+    @Input() config: UserFieldsConfig = {};
+    @Input() isAuthorizedForSave: boolean = false;
+    permissionsTableCols: Column<Permission>[];
+    getPaginatedPermissionsListObservableMethod = this.apiService.getPaginatedPermissionsListForUser;
+    exportPermissionsListToExcelObservableMethod = this.apiService.exportPermissionsListToExcelForUser;
+    newlySelectedPermissionsIds: number[] = [];
+    unselectedPermissionsIds: number[] = [];
+    areAllPermissionsSelected: boolean = null;
+    lastPermissionsLazyLoadTableFilter: Filter;
+
+    constructor(private apiService: ApiService, private translocoService: TranslocoService) {}
+
+    async ngOnInit() {
+        this.permissionsTableCols = [
+            {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'  }
+        ];
+        this.formGroup.controls.selectedPermissionsIds.setValue(this.newlySelectedPermissionsIds);
+        this.formGroup.controls.unselectedPermissionsIds.setValue(this.unselectedPermissionsIds);
+        this.formGroup.controls.areAllPermissionsSelected.setValue(this.areAllPermissionsSelected);
+        this.formGroup.controls.permissionsTableFilter.setValue(this.lastPermissionsLazyLoadTableFilter);
+    }
+
+    selectedPermissionsLazyLoadMethod = (event: Filter): Observable<LazyLoadSelectedIdsResult> => {
+        let filter: Filter = event;
+        filter.additionalFilterIdLong = this.formGroup.controls.userDTO.controls.id.getRawValue();
+
+        return this.apiService.lazyLoadSelectedPermissionsIdsForUser(filter);
+    }
+
+    areAllPermissionsSelectedChange(event: AllClickEvent){
+        this.areAllPermissionsSelected = event.checked;
+    }
+
+    onPermissionsLazyLoad(event: Filter){
+        this.lastPermissionsLazyLoadTableFilter = event;
+    }
+}
+
+export class UserFieldsConfig {
+    showEmail?: boolean;
+}

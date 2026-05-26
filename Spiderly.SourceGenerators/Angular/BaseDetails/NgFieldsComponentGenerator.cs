@@ -32,7 +32,9 @@ namespace Spiderly.SourceGenerators.Angular
                 ? "\n    @Input() hiddenParentRelation: string;"
                 : "";
 
-            string authInputBlock = (model.Fields.Any(f => f.FileUpload != null) || model.OrderedOneToManies.Count > 0)
+            string authInputBlock = (model.Fields.Any(f => f.FileUpload != null)
+                || model.OrderedOneToManies.Count > 0
+                || model.Tables.Any(t => !t.IsReadonly))
                 ? "\n    @Input() isAuthorizedForSave: boolean = false;"
                 : "";
 
@@ -64,6 +66,9 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(GetFileUploadMethod));
             string fileUploadMethodsBlock = fileUploadMethods.Length > 0 ? $"\n\n{fileUploadMethods}" : "";
 
+            string tableMethods = string.Join("\n\n", model.Tables.Where(t => !t.IsReadonly).Select(GetEditableTableMethods));
+            string tableMethodsBlock = tableMethods.Length > 0 ? $"\n\n{tableMethods}" : "";
+
             string tableFields = string.Join("\n", model.Tables.SelectMany(t => new[]
             {
                 $"    {t.ColsFieldName}: Column<{t.ColsTypeArgument}>[];",
@@ -72,12 +77,29 @@ namespace Spiderly.SourceGenerators.Angular
             }));
             string tableFieldsBlock = tableFields.Length > 0 ? $"\n{tableFields}" : "";
 
+            string tableSelectionFields = string.Join("\n", model.Tables.Where(t => !t.IsReadonly).SelectMany(t => new[]
+            {
+                $"    {t.NewlySelectedField}: number[] = [];",
+                $"    {t.UnselectedField}: number[] = [];",
+                $"    {t.AreAllSelectedField}: boolean = null;",
+                $"    {t.LastFilterField}: Filter;",
+            }));
+            string tableSelectionFieldsBlock = tableSelectionFields.Length > 0 ? $"\n{tableSelectionFields}" : "";
+
             // Re-indent the reused column literals (legacy emits them at 16 spaces for its deeper nesting) to one
             // level under this fragment's `async ngOnInit()` body. Content is preserved (TrimStart only).
             string colsInits = string.Join("\n", model.Tables.Select(t =>
                 $"        this.{t.ColsFieldName} = [\n{string.Join(",\n", t.ColumnDefs.Select(d => "            " + d.TrimStart()))}\n        ];"));
+            string formWiring = string.Join("\n", model.Tables.Where(t => !t.IsReadonly).SelectMany(t => new[]
+            {
+                $"        this.formGroup.controls.{t.SelectedFormControl}.setValue(this.{t.NewlySelectedField});",
+                $"        this.formGroup.controls.{t.UnselectedFormControl}.setValue(this.{t.UnselectedField});",
+                $"        this.formGroup.controls.{t.AreAllSelectedFormControl}.setValue(this.{t.AreAllSelectedField});",
+                $"        this.formGroup.controls.{t.TableFilterFormControl}.setValue(this.{t.LastFilterField});",
+            }));
+            string ngOnInitBody = string.Join("\n", new[] { colsInits, formWiring }.Where(s => s.Length > 0));
             string ngOnInitBlock = model.Tables.Count > 0
-                ? $"\n\n    async ngOnInit() {{\n{colsInits}\n    }}"
+                ? $"\n\n    async ngOnInit() {{\n{ngOnInitBody}\n    }}"
                 : "";
 
             string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
@@ -116,7 +138,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{tableFieldsBlock}}{{ctorBlock}}{{ngOnInitBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{tableFieldsBlock}}{{tableSelectionFieldsBlock}}{{ctorBlock}}{{ngOnInitBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}{{tableMethodsBlock}}
 }
 """;
         }
@@ -179,7 +201,9 @@ export class {{model.ComponentClassName}} {
 
         private static string GetTableBlock(TableModel t)
         {
-            return $$"""
+            if (t.IsReadonly)
+            {
+                return $$"""
     <div class="col-8">
         <spiderly-data-table
             [tableTitle]="t('{{t.TranslationKey}}')"
@@ -190,6 +214,47 @@ export class {{model.ComponentClassName}} {
             [readonly]="true"></spiderly-data-table>
         <ng-content select="[below{{t.TranslationKey}}]"></ng-content>
     </div>
+""";
+            }
+
+            return $$"""
+    <div class="col-8">
+        <spiderly-data-table
+            [tableTitle]="t('{{t.TranslationKey}}')"
+            [cols]="{{t.ColsFieldName}}"
+            [getPaginatedListObservableMethod]="{{t.PaginatedListFieldName}}"
+            [exportListToExcelObservableMethod]="{{t.ExportFieldName}}"
+            [showAddButton]="false"
+            [readonly]="!isAuthorizedForSave"
+            selectionMode="multiple"
+            [newlySelectedItems]="{{t.NewlySelectedField}}"
+            [unselectedItems]="{{t.UnselectedField}}"
+            [rows]="5"
+            (onLazyLoad)="{{t.OnLazyLoadMethodName}}($event)"
+            [selectedLazyLoadObservableMethod]="{{t.LazyLoadMethodName}}"
+            (onIsAllSelectedChange)="{{t.AreAllSelectedChangeMethodName}}($event)"></spiderly-data-table>
+        <ng-content select="[below{{t.TranslationKey}}]"></ng-content>
+    </div>
+""";
+        }
+
+        private static string GetEditableTableMethods(TableModel t)
+        {
+            return $$"""
+    {{t.LazyLoadMethodName}} = (event: Filter): Observable<LazyLoadSelectedIdsResult> => {
+        let filter: Filter = event;
+        filter.additionalFilterIdLong = {{t.ParentIdRawValueExpression}};
+
+        return {{t.LazyLoadApiCall}}(filter);
+    }
+
+    {{t.AreAllSelectedChangeMethodName}}(event: AllClickEvent){
+        this.{{t.AreAllSelectedField}} = event.checked;
+    }
+
+    {{t.OnLazyLoadMethodName}}(event: Filter){
+        this.{{t.LastFilterField}} = event;
+    }
 """;
         }
 
