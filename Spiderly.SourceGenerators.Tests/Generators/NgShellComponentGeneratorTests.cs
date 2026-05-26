@@ -24,4 +24,24 @@ public class NgShellComponentGeneratorTests
 
         return Verify(NgShellComponentGenerator.BuildShellComponent(model));
     }
+
+    [Fact]
+    public Task EmitsShellComponentWithAdditionalSaveAuth()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute>
+            {
+                new() { Name = "SpiderlyEntity" },
+                new() { Name = "UIAdditionalPermissionCodeForInsert", Value = "ExtraInsert" },
+                new() { Name = "UIAdditionalPermissionCodeForUpdate", Value = "ExtraUpdate" },
+            },
+        };
+
+        ShellComponentModel model = NgShellModelBuilder.Build(brand);
+        return Verify(NgShellComponentGenerator.BuildShellComponent(model));
+    }
 }

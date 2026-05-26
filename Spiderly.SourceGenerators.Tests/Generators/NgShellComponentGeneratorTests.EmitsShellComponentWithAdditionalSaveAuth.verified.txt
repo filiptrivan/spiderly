@@ -1,25 +1,5 @@
-using System.Linq;
-
-namespace Spiderly.SourceGenerators.Angular
-{
-    /// <summary>
-    /// Emits the <c>{Entity}BaseDetails</c> shell component: panel chrome, Save/auth/return footer, the
-    /// route -> modelId -> forkJoin(get MainUIFormDTO) -> mapMainUIFormToSaveBody -> initFormGroup lifecycle,
-    /// and an embedded <c>{Entity}Fields</c> fragment bound to <c>parentFormGroup</c> + <c>fieldConfig</c>.
-    /// Minimal single-panel scope; not yet wired into the generated output.
-    /// </summary>
-    internal static class NgShellComponentGenerator
-    {
-        internal static string BuildShellComponent(ShellComponentModel model)
-        {
-            string defaultAuthorized = model.DefaultAuthorized.ToString().ToLower();
-
-            string additionalSaveAuthorization = string.Join("", model.AdditionalSavePermissionCodes.Select(c =>
-                $"\n            (currentUserPermissionCodes.includes('{c.PermissionCode}') && this.modelId {(c.ForInsert ? "<= 0" : "> 0")}) ||"));
-
-            return $$"""
-@Component({
-    selector: '{{model.Selector}}',
+﻿@Component({
+    selector: 'brand-base-details',
     template: `
 <ng-container *transloco="let t">
     <spiderly-panel [isFirstMultiplePanel]="isFirstMultiplePanel" [isMiddleMultiplePanel]="isMiddleMultiplePanel" [isLastMultiplePanel]="isLastMultiplePanel" [showPanelHeader]="showPanelHeader" >
@@ -27,10 +7,10 @@ namespace Spiderly.SourceGenerators.Angular
 
         <panel-body>
             @defer (when loading === false) {
-                <{{model.FieldsSelector}} [formGroup]="parentFormGroup" [config]="fieldConfig">
+                <brand-fields [formGroup]="parentFormGroup" [config]="fieldConfig">
                     <ng-content select="[before]" ngProjectAs="[before]"></ng-content>
                     <ng-content select="[after]" ngProjectAs="[after]"></ng-content>
-                </{{model.FieldsSelector}}>
+                </brand-fields>
             } @placeholder {
                 <card-skeleton [height]="502"></card-skeleton>
             }
@@ -52,13 +32,13 @@ namespace Spiderly.SourceGenerators.Angular
         TranslocoDirective,
         CardSkeletonComponent,
         SpiderlyPanelsModule,
-        {{model.FieldsComponentClassName}},
+        BrandFieldsComponent,
     ]
 })
-export class {{model.ComponentClassName}} {
+export class BrandBaseDetailsComponent {
     @Output() onSave = new EventEmitter<void>();
     @Output() onAfterFormGroupInit = new EventEmitter<void>();
-    @Input() parentFormGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
+    @Input() parentFormGroup: SpiderlyFormGroup<BrandSaveBody>;
     @Input() isFirstMultiplePanel: boolean = false;
     @Input() isMiddleMultiplePanel: boolean = false;
     @Input() isLastMultiplePanel: boolean = false;
@@ -67,9 +47,9 @@ export class {{model.ComponentClassName}} {
     @Input() showBigPanelTitle: boolean = true;
     @Input() panelIcon: string;
     @Input() showReturnButton: boolean = true;
-    @Input() fieldConfig: {{model.ConfigClassName}} = {};
-    @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve({{defaultAuthorized}});
-    isAuthorizedForSave: boolean = {{defaultAuthorized}};
+    @Input() fieldConfig: BrandFieldsConfig = {};
+    @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve(false);
+    isAuthorizedForSave: boolean = false;
     @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>();
 
     modelId: number;
@@ -83,28 +63,28 @@ export class {{model.ComponentClassName}} {
     ) {}
 
     ngOnInit(){
-        this.parentFormGroup.saveObservableMethod = this.apiService.save{{model.EntityName}};
+        this.parentFormGroup.saveObservableMethod = this.apiService.saveBrand;
 
         this.route.params.subscribe(async (params) => {
             this.modelId = params['id'];
 
             if (this.modelId > 0) {
                 forkJoin({
-                    mainUIFormDTO: this.apiService.get{{model.EntityName}}MainUIFormDTO(this.modelId),
+                    mainUIFormDTO: this.apiService.getBrandMainUIFormDTO(this.modelId),
                 })
                 .subscribe(async (data) => {
                     const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
-                        {{model.MainUIFormTypeName}},
+                        BrandMainUIForm,
                         data.mainUIFormDTO,
                     );
-                    this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}}, saveBody);
+                    this.baseFormService.initFormGroup(this.parentFormGroup, BrandSaveBody, saveBody);
                     await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
             else {
-                this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}});
+                this.baseFormService.initFormGroup(this.parentFormGroup, BrandSaveBody);
                 await this.handleAuthorizationForSave();
                 this.loading = false;
                 this.onAfterFormGroupInit.next();
@@ -116,9 +96,11 @@ export class {{model.ComponentClassName}} {
         const currentUserPermissionCodes = await firstValueFrom(this.authService.currentUserPermissionCodes$);
         const isAdditionallyAuthorizedForSave = await this.handleAdditionalSaveAuthorization();
 
-        this.isAuthorizedForSave ={{additionalSaveAuthorization}}
-            (currentUserPermissionCodes.includes('Insert{{model.EntityName}}') && this.modelId <= 0) ||
-            (currentUserPermissionCodes.includes('Update{{model.EntityName}}') && this.modelId > 0) ||
+        this.isAuthorizedForSave =
+            (currentUserPermissionCodes.includes('ExtraInsert') && this.modelId <= 0) ||
+            (currentUserPermissionCodes.includes('ExtraUpdate') && this.modelId > 0) ||
+            (currentUserPermissionCodes.includes('InsertBrand') && this.modelId <= 0) ||
+            (currentUserPermissionCodes.includes('UpdateBrand') && this.modelId > 0) ||
             isAdditionallyAuthorizedForSave;
 
         if (this.isAuthorizedForSave) {
@@ -137,9 +119,5 @@ export class {{model.ComponentClassName}} {
 
     save(){
         this.onSave.next();
-    }
-}
-""";
-        }
     }
 }
