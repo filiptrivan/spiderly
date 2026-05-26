@@ -14,7 +14,10 @@ namespace Spiderly.SourceGenerators.Angular
         {
             string outputs = string.Join("\n", model.Fields
                 .Where(f => f.ChangeOutput != null)
-                .Select(f => $"    @Output() {f.ChangeOutput.OutputName} = new EventEmitter<{f.ChangeOutput.EventType}>();"));
+                .Select(f => $"    @Output() {f.ChangeOutput.OutputName} = new EventEmitter<{f.ChangeOutput.EventType}>();")
+                .Concat(model.Fields
+                    .Where(f => f.FileUpload != null)
+                    .Select(f => $"    @Output() {f.FileUpload.OutputName} = new EventEmitter<SpiderlyFileSelectEvent>();")));
             string outputsBlock = outputs.Length > 0 ? $"\n{outputs}" : "";
 
             string optionsFields = string.Join("\n", model.Fields
@@ -24,7 +27,7 @@ namespace Spiderly.SourceGenerators.Angular
                     : $"    {f.OptionsFieldName}: Namebook[];"));
             string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
 
-            string ctorBlock = model.Fields.Any(f => f.Search != null || f.EditorImageUpload != null)
+            string ctorBlock = model.Fields.Any(f => f.Search != null || f.EditorImageUpload != null || f.FileUpload != null)
                 ? "\n\n    constructor(private apiService: ApiService) {}"
                 : "";
 
@@ -37,6 +40,15 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(f => f.EditorImageUpload != null)
                 .Select(GetEditorImageUploadMethod));
             string uploadMethodsBlock = uploadMethods.Length > 0 ? $"\n\n{uploadMethods}" : "";
+
+            string authInputBlock = model.Fields.Any(f => f.FileUpload != null)
+                ? "\n    @Input() isAuthorizedForSave: boolean = false;"
+                : "";
+
+            string fileUploadMethods = string.Join("\n\n", model.Fields
+                .Where(f => f.FileUpload != null)
+                .Select(GetFileUploadMethod));
+            string fileUploadMethodsBlock = fileUploadMethods.Length > 0 ? $"\n\n{fileUploadMethods}" : "";
 
             return $$"""
 @Component({
@@ -58,7 +70,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{authInputBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
 }
 """;
         }
@@ -79,6 +91,18 @@ export class {{model.ComponentClassName}} {
             return $$"""
     {{field.EditorImageUpload.MethodName}} = (formData: FormData): Observable<EditorImageUploadResult> => {
         return this.apiService.{{field.EditorImageUpload.ApiMethodName}}(formData);
+    }
+""";
+        }
+
+        private static string GetFileUploadMethod(FieldModel field)
+        {
+            return $$"""
+    {{field.FileUpload.MethodName}}(event: SpiderlyFileSelectEvent, formGroup: SpiderlyFormGroup){
+        this.apiService.{{field.FileUpload.ApiMethodName}}(event.formData).subscribe((completeFileName: string) => {
+            formGroup.controls['{{field.FormControlName}}'].setValue(completeFileName);
+            this.{{field.FileUpload.OutputName}}.emit(event);
+        });
     }
 """;
         }

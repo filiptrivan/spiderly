@@ -240,4 +240,61 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsFileFragment()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new()
+                {
+                    Name = "Photo", Type = "string", EntityName = "Brand",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    [Fact]
+    public Task EmitsFileFragmentWithImageConstraints()
+    {
+        SpiderlyClass brand = new()
+        {
+            Name = "Brand",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Brand" },
+                new()
+                {
+                    Name = "Photo", Type = "string", EntityName = "Brand",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "UIControlType", Value = "File" },
+                        new() { Name = "ImageWidth", Value = "100" },
+                        new() { Name = "ImageHeight", Value = "80" },
+                        new() { Name = "AcceptedFileTypes", Value = ".jpg,.png" },
+                        new() { Name = "MaxFileSize", Value = "5000" },
+                    },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }
