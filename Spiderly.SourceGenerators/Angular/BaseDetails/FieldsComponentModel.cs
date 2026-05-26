@@ -79,7 +79,10 @@ namespace Spiderly.SourceGenerators.Angular
     {
         /// <summary>Transloco key for [tableTitle] (the parent collection property name).</summary>
         public string TranslationKey { get; set; }
-        /// <summary>Cols field name, e.g. <c>rolesTableCols</c>.</summary>
+        /// <summary>Cols field name, e.g. <c>rolesTableCols</c>. The legacy <c>For{Entity}</c> suffix is intentionally
+        /// dropped from this and the observable-method field names below (the fragment is a standalone component, not
+        /// a per-entity shell) — do not "restore" it. The reused column literals still call <c>For{Entity}</c>-suffixed
+        /// ApiService methods, which is correct.</summary>
         public string ColsFieldName { get; set; }
         /// <summary>Child entity type for <c>Column&lt;T&gt;</c>, e.g. <c>Role</c>.</summary>
         public string ColsTypeArgument { get; set; }
