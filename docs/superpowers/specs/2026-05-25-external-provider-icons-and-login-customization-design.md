@@ -78,7 +78,7 @@ Named content-projection slots with fallback to current defaults:
 - default `<ng-content>` — page content (the form + external-login).
 - `[auth-footer]` — below the content (fallback: nothing).
 
-Empty-slot detection via `@ContentChild` so defaults render only when nothing is projected. `SpiderlyLoginComponent` forwards `[auth-logo]`/`[auth-footer]` to its inner `<spiderly-auth-card>` via `ngProjectAs`, so the default page (and the Level 1.5 wrapper) can override logo/footer through projection.
+Empty-slot detection via `@ContentChild` so defaults render only when nothing is projected. These slots are available when you compose `<spiderly-auth-card>` directly (Level 2). The default `SpiderlyLoginComponent` page does **not** forward `[auth-logo]`/`[auth-footer]` — Angular has no native mechanism to re-project named content slots through an intermediate component (`ngProjectAs` on `<ng-content>` is not a supported pattern). Logo/footer customization therefore requires composing `<spiderly-auth-card>` yourself (Level 2).
 
 ## Consumer control — the levels
 
@@ -87,7 +87,7 @@ Empty-slot detection via `@ContentChild` so defaults render only when nothing is
 | 1 | any consumer | route to `SpiderlyLoginComponent`; built-in default icons show, zero config |
 | 1.5 | **PACMS** | thin owned wrapper renders `<spiderly-login [providerIcons]="…">` |
 | 2 | consumer needing a different form/layout | compose own page from `<spiderly-auth-card>` + `<spiderly-external-login>` + own form |
-| 3 | any | named content slots `[auth-logo]` / `[auth-footer]` |
+| 3 | any (requires Level 2) | named content slots `[auth-logo]` / `[auth-footer]` on `<spiderly-auth-card>` — only available when composing the card directly; NOT forwarded through `SpiderlyLoginComponent` |
 
 **Level 1.5 (PACMS, the chosen primary path)** — no inheritance, no logic duplication, no DI token, no route `data`:
 
@@ -135,7 +135,7 @@ Delete `IconUrl` from:
 - New `components/auth/auth-card/auth-card.component.{ts,html}` (`AuthCardComponent`, `spiderly-auth-card`) — branding fetch/display + slots, carved out of the old `AuthComponent`.
 - New `components/auth/external-login/external-login.component.{ts,html}` (`ExternalLoginComponent`, `spiderly-external-login`) — provider fetch + buttons + icon resolution + challenge redirect, carved out of the old `AuthComponent`.
 - Delete `components/auth/partials/auth.component.{ts,html}`.
-- `components/auth/login/login.component.{ts,html}` → rename class `LoginComponent` → `SpiderlyLoginComponent`, selector `app-login` → `spiderly-login`; template now composes `<spiderly-auth-card>` + inline email form + `<spiderly-external-login [providerIcons]>`; add `@Input() providerIcons`; forward slots via `ngProjectAs`.
+- `components/auth/login/login.component.{ts,html}` → rename class `LoginComponent` → `SpiderlyLoginComponent`, selector `app-login` → `spiderly-login`; template now composes `<spiderly-auth-card>` + inline email form + `<spiderly-external-login [providerIcons]>`; add `@Input() providerIcons`. Slots (`[auth-logo]`, `[auth-footer]`) are **not** forwarded — Angular has no native named-slot re-projection; logo/footer customization requires composing `<spiderly-auth-card>` at Level 2.
 - `public-api.ts` — export `AuthCardComponent`, `ExternalLoginComponent`, `DEFAULT_EXTERNAL_PROVIDER_ICONS`, `SpiderlyLoginComponent` (replacing the `LoginComponent` export at line 24).
 
 **Spiderly backend** — `IconUrl` removals listed above.

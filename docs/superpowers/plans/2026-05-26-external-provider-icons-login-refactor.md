@@ -492,14 +492,14 @@ export class SpiderlyLoginComponent extends BaseFormComponent implements OnInit 
 
 - [ ] **Step 2: Rewrite `login.component.html`**
 
-Replace `<auth>` with `<spiderly-auth-card>`, move the form in as default content, add `<spiderly-external-login [providerIcons]>`, and forward the two slots via `ngProjectAs`:
+Replace `<auth>` with `<spiderly-auth-card>`, move the form in as default content, add `<spiderly-external-login [providerIcons]>`. Slots are **not** forwarded — Angular has no native named-slot re-projection; the `ngProjectAs` approach was removed as unsupported. Logo/footer customization requires composing `<spiderly-auth-card>` directly at Level 2.
 
 ```html
 <ng-container *transloco="let t">
   @if (loginFormGroup != null) {
     @if (showEmailSentDialog == false) {
       <spiderly-auth-card>
-        <ng-content select="[auth-logo]" ngProjectAs="[auth-logo]"></ng-content>
+        <!-- [auth-logo] slot NOT forwarded: Angular has no native named-slot re-projection. Logo customization requires composing <spiderly-auth-card> at Level 2. -->
 
         <form [formGroup]="loginFormGroup" style="margin-bottom: 16px">
           <div>
@@ -540,7 +540,7 @@ Replace `<auth>` with `<spiderly-auth-card>`, move the form in as default conten
           [providerIcons]="providerIcons"
         ></spiderly-external-login>
 
-        <ng-content select="[auth-footer]" ngProjectAs="[auth-footer]"></ng-content>
+        <!-- [auth-footer] slot NOT forwarded: same reason as above. -->
       </spiderly-auth-card>
     } @else {
       <login-verification
@@ -600,7 +600,9 @@ git commit -m "refactor(auth)!: rename LoginComponent->SpiderlyLoginComponent, d
 
 LoginComponent (selector app-login) -> SpiderlyLoginComponent (spiderly-login),
 freeing the conventional name/selector for consumers. The page now composes
-AuthCardComponent + ExternalLoginComponent and forwards providerIcons + slots.
+AuthCardComponent + ExternalLoginComponent and forwards providerIcons.
+Slots ([auth-logo]/[auth-footer]) are NOT forwarded (Angular has no native
+named-slot re-projection); logo/footer customization requires Level-2 composition.
 Removes iconUrl from the ExternalProviderPublic frontend type.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
@@ -794,7 +796,7 @@ The user owns the backend / dev-server processes — **do not start or kill them
 - [ ] **Step 2:** The company logo/branding still renders at the top of the card (AuthCardComponent self-brands).
 - [ ] **Step 3:** Email-code login still works end-to-end (enter email → receive code → verify → dashboard).
 - [ ] **Step 4:** Clicking the Google button redirects to the backend `ExternalLoginChallenge` and completes Google login (rides on the existing external-auth flow).
-- [ ] **Step 5:** Report results. If the forwarded `[auth-logo]`/`[auth-footer]` slots misbehave through `ngProjectAs` re-projection, note it — the fallback is that slots work via direct Level-2 composition; default-page slot forwarding can be dropped if unreliable.
+- [ ] **Step 5:** Report results. Note: `[auth-logo]`/`[auth-footer]` slots are only available via Level-2 composition (`<spiderly-auth-card>` directly) — slot forwarding through `SpiderlyLoginComponent` was removed (Angular has no native named-slot re-projection).
 
 ---
 
