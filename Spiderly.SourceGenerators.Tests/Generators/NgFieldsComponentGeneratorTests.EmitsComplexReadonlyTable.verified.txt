@@ -40,7 +40,7 @@ export class UserFieldsComponent {
 
     async ngOnInit() {
         this.rolesTableCols = [
-                {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'  }
+            {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'  }
         ];
     }
 }

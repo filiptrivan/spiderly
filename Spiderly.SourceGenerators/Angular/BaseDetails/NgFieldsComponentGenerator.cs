@@ -72,8 +72,10 @@ namespace Spiderly.SourceGenerators.Angular
             }));
             string tableFieldsBlock = tableFields.Length > 0 ? $"\n{tableFields}" : "";
 
+            // Re-indent the reused column literals (legacy emits them at 16 spaces for its deeper nesting) to one
+            // level under this fragment's `async ngOnInit()` body. Content is preserved (TrimStart only).
             string colsInits = string.Join("\n", model.Tables.Select(t =>
-                $"        this.{t.ColsFieldName} = [\n{string.Join(",\n", t.ColumnDefs)}\n        ];"));
+                $"        this.{t.ColsFieldName} = [\n{string.Join(",\n", t.ColumnDefs.Select(d => "            " + d.TrimStart()))}\n        ];"));
             string ngOnInitBlock = model.Tables.Count > 0
                 ? $"\n\n    async ngOnInit() {{\n{colsInits}\n    }}"
                 : "";
