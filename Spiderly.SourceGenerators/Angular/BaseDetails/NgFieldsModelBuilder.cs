@@ -14,7 +14,9 @@ namespace Spiderly.SourceGenerators.Angular
     /// </summary>
     internal static class NgFieldsModelBuilder
     {
-        internal static FieldsComponentModel Build(SpiderlyClass entity)
+        // allEntities and customDTOClasses are reserved for M2M-table column filter type resolution
+        // (consumed in a later task) and are intentionally unused by the current field/ordered-O2M logic.
+        internal static FieldsComponentModel Build(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
         {
             FieldsComponentModel model = new()
             {

@@ -30,7 +30,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
 
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model)
             + "\n\n"
@@ -55,7 +55,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
 
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model)
             + "\n\n"
@@ -80,7 +80,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
 
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model)
             + "\n\n"
@@ -109,7 +109,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -134,7 +134,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -157,7 +157,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -182,7 +182,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -207,7 +207,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -236,7 +236,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -261,7 +261,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -293,7 +293,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(brand, new() { brand }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -318,7 +318,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentationItem);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentationItem, new() { segmentationItem }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
@@ -343,7 +343,7 @@ public class NgFieldsComponentGeneratorTests
             },
         };
 
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentation);
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentation, new() { segmentation }, new());
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }

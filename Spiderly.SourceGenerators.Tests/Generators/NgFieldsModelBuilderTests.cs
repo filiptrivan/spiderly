@@ -68,7 +68,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_SetsEntityLevelNames()
     {
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(Brand());
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new());
 
         Assert.Equal("Brand", model.EntityName);
         Assert.Equal("brand-fields", model.Selector);
@@ -81,7 +81,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_TextBoxField_HasNoSuffixedNamesAndNoOutput()
     {
-        FieldModel name = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Name");
+        FieldModel name = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Name");
 
         Assert.Equal("spiderly-textbox", name.ControlTag);
         Assert.Equal("name", name.FormControlName);
@@ -93,7 +93,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_DecimalField_AddsDecimalAttributes()
     {
-        FieldModel price = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Price");
+        FieldModel price = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Price");
 
         Assert.Equal("spiderly-number", price.ControlTag);
         Assert.Equal("price", price.FormControlName);
@@ -105,7 +105,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_IntegerField_HasNoExtraAttributes()
     {
-        FieldModel stock = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Stock");
+        FieldModel stock = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Stock");
 
         Assert.Equal("spiderly-number", stock.ControlTag);
         Assert.Equal("stock", stock.FormControlName);
@@ -116,7 +116,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_CheckBoxField_HasChangeOutput()
     {
-        FieldModel isActive = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "IsActive");
+        FieldModel isActive = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "IsActive");
 
         Assert.Equal("spiderly-checkbox", isActive.ControlTag);
         Assert.Equal("isActive", isActive.FormControlName);
@@ -129,7 +129,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_M2OAutocomplete_HasOptionsFieldAndSearch()
     {
-        FieldModel country = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Country");
+        FieldModel country = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Country");
 
         Assert.Equal("spiderly-autocomplete", country.ControlTag);
         Assert.Equal("countryId", country.FormControlName);
@@ -147,7 +147,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_Dropdown_HasInputOptionsAndChangeOutput()
     {
-        FieldModel status = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Status");
+        FieldModel status = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Status");
 
         Assert.Equal("spiderly-dropdown", status.ControlTag);
         Assert.Equal("status", status.FormControlName);
@@ -166,7 +166,7 @@ public class NgFieldsModelBuilderTests
     [InlineData("Info", "spiderly-textblock")]
     public void Build_SimpleScalarControls_MapToTag(string propertyName, string expectedTag)
     {
-        FieldModel field = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == propertyName);
+        FieldModel field = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == propertyName);
 
         Assert.Equal(expectedTag, field.ControlTag);
         Assert.Equal("", field.ExtraControlAttributes);
@@ -177,7 +177,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_MultiSelect_BindsOnSaveBodyWithInputOptionsAndLabel()
     {
-        FieldModel tags = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Tags");
+        FieldModel tags = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Tags");
 
         Assert.Equal("spiderly-multiselect", tags.ControlTag);
         Assert.Equal("selectedTagsIds", tags.FormControlName);
@@ -193,7 +193,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_MultiAutocomplete_BindsOnSaveBodyWithSelfOwnedSearchAndLabel()
     {
-        FieldModel authors = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Authors");
+        FieldModel authors = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Authors");
 
         Assert.Equal("spiderly-multiautocomplete", authors.ControlTag);
         Assert.Equal("selectedAuthorsNamebookDTOList", authors.FormControlName);
@@ -211,7 +211,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_CalendarDateTime_AddsShowTimeConfigFlagDefaultFalse()
     {
-        FieldModel publishedAt = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "PublishedAt");
+        FieldModel publishedAt = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "PublishedAt");
 
         Assert.Equal("spiderly-calendar", publishedAt.ControlTag);
         Assert.Equal("publishedAt", publishedAt.FormControlName);
@@ -222,7 +222,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_CalendarDateOnly_UsesStaticLiteralNoExtraFlag()
     {
-        FieldModel birthDate = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "BirthDate");
+        FieldModel birthDate = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "BirthDate");
 
         Assert.Equal("spiderly-calendar", birthDate.ControlTag);
         Assert.Equal(" [dateOnly]=\"true\"", birthDate.ExtraControlAttributes);
@@ -232,7 +232,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_CalendarTimeOnly_UsesStaticLiteralNoExtraFlag()
     {
-        FieldModel openTime = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "OpenTime");
+        FieldModel openTime = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "OpenTime");
 
         Assert.Equal("spiderly-calendar", openTime.ControlTag);
         Assert.Equal(" [timeOnly]=\"true\"", openTime.ExtraControlAttributes);
@@ -242,7 +242,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_ColorPicker_AddsShowTextFieldConfigFlagDefaultTrue()
     {
-        FieldModel color = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Color");
+        FieldModel color = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Color");
 
         Assert.Equal("spiderly-colorpicker", color.ControlTag);
         Assert.Equal("color", color.FormControlName);
@@ -253,7 +253,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_Editor_PlainHasNoUploadOrExtraAttributes()
     {
-        FieldModel content = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Content");
+        FieldModel content = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Content");
 
         Assert.Equal("spiderly-editor", content.ControlTag);
         Assert.Equal("content", content.FormControlName);
@@ -264,7 +264,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_EditorS3_HasUploadImageMethodAndObjectId()
     {
-        FieldModel bio = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Bio");
+        FieldModel bio = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Bio");
 
         Assert.Equal("spiderly-editor", bio.ControlTag);
         Assert.NotNull(bio.EditorImageUpload);
@@ -277,7 +277,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_File_HasUploadMethodOutputAndAttributeBundle()
     {
-        FieldModel photo = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Photo");
+        FieldModel photo = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Photo");
 
         Assert.Equal("spiderly-file", photo.ControlTag);
         Assert.Equal("photo", photo.FormControlName);
@@ -296,7 +296,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_File_OmitsOptionalAttributesWhenAbsent()
     {
-        FieldModel photo = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Photo");
+        FieldModel photo = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Photo");
 
         Assert.DoesNotContain("[imageWidth]", photo.ExtraControlAttributes);
         Assert.DoesNotContain("[acceptedFileTypes]", photo.ExtraControlAttributes);
@@ -306,7 +306,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_BackReferenceM2O_SetsParentRelationNameFromWithMany()
     {
-        FieldModel parentGroup = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "ParentGroup");
+        FieldModel parentGroup = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "ParentGroup");
 
         Assert.Equal("spiderly-autocomplete", parentGroup.ControlTag);
         Assert.Equal("parentGroupId", parentGroup.FormControlName);
@@ -316,7 +316,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_PlainM2O_HasNullParentRelationName()
     {
-        FieldModel country = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Country");
+        FieldModel country = NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Fields.Single(f => f.PropertyName == "Country");
 
         Assert.Null(country.ParentRelationName);
     }
@@ -324,7 +324,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_OrderedOneToMany_PopulatesCompositionModel()
     {
-        OrderedOneToManyModel block = NgFieldsModelBuilder.Build(Segmentation()).OrderedOneToManies.Single();
+        OrderedOneToManyModel block = NgFieldsModelBuilder.Build(Segmentation(), new() { Segmentation() }, new()).OrderedOneToManies.Single();
 
         Assert.Equal("SegmentationItems", block.PropertyName);
         Assert.Equal("SegmentationItems", block.TranslationKey);
@@ -340,7 +340,7 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_OrderedOneToMany_IsNotAddedToScalarFields()
     {
-        FieldsComponentModel model = NgFieldsModelBuilder.Build(Segmentation());
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(Segmentation(), new() { Segmentation() }, new());
 
         Assert.DoesNotContain(model.Fields, f => f.PropertyName == "SegmentationItems");
         Assert.Contains(model.Fields, f => f.PropertyName == "Name");
@@ -349,6 +349,6 @@ public class NgFieldsModelBuilderTests
     [Fact]
     public void Build_NoOrderedOneToMany_LeavesEmptyList()
     {
-        Assert.Empty(NgFieldsModelBuilder.Build(Brand()).OrderedOneToManies);
+        Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).OrderedOneToManies);
     }
 }
