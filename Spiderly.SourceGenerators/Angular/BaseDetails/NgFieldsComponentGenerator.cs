@@ -64,7 +64,8 @@ namespace Spiderly.SourceGenerators.Angular
 
             string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
             string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
-            string bodyBlocks = orderedBlocks.Length > 0 ? $"{fieldBlocks}\n{orderedBlocks}" : fieldBlocks;
+            // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
+            string bodyBlocks = string.Join("\n", new[] { fieldBlocks, orderedBlocks }.Where(b => b.Length > 0));
 
             List<string> componentImports = new()
             {
