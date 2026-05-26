@@ -322,4 +322,29 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsOrderedOneToManyComposition()
+    {
+        SpiderlyClass segmentation = new()
+        {
+            Name = "Segmentation",
+            Namespace = "TestApp.Business.Entities",
+            BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Segmentation" },
+                new()
+                {
+                    Name = "SegmentationItems", Type = "List<SegmentationItem>", EntityName = "Segmentation",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(segmentation);
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }

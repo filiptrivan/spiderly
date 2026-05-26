@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Spiderly.SourceGenerators.Angular
@@ -31,9 +32,16 @@ namespace Spiderly.SourceGenerators.Angular
                 ? "\n    @Input() hiddenParentRelation: string;"
                 : "";
 
-            string authInputBlock = model.Fields.Any(f => f.FileUpload != null)
+            string authInputBlock = (model.Fields.Any(f => f.FileUpload != null) || model.OrderedOneToManies.Count > 0)
                 ? "\n    @Input() isAuthorizedForSave: boolean = false;"
                 : "";
+
+            string orderedInputs = string.Join("\n", model.OrderedOneToManies.SelectMany(o => new[]
+            {
+                $"    @Input() {o.PanelCollapsedInputName}: boolean = false;",
+                $"    @Input() {o.AdditionalContentTemplateInputName}: TemplateRef<any> | undefined;",
+            }));
+            string orderedInputsBlock = orderedInputs.Length > 0 ? $"\n{orderedInputs}" : "";
 
             string ctorBlock = model.Fields.Any(RequiresApiService)
                 ? "\n\n    constructor(private apiService: ApiService) {}"
@@ -54,27 +62,39 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(GetFileUploadMethod));
             string fileUploadMethodsBlock = fileUploadMethods.Length > 0 ? $"\n\n{fileUploadMethods}" : "";
 
+            string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
+            string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
+            string bodyBlocks = orderedBlocks.Length > 0 ? $"{fieldBlocks}\n{orderedBlocks}" : fieldBlocks;
+
+            List<string> componentImports = new()
+            {
+                "CommonModule", "FormsModule", "ReactiveFormsModule", "SpiderlyControlsModule", "TranslocoDirective",
+            };
+            if (model.OrderedOneToManies.Count > 0)
+            {
+                componentImports.Add("SpiderlyPanelsModule");
+                componentImports.Add("IndexCardComponent");
+                componentImports.AddRange(model.OrderedOneToManies.Select(o => o.ChildFieldsComponentClassName).Distinct());
+            }
+            string importsBlock = string.Join("\n", componentImports.Select(i => $"        {i},"));
+
             return $$"""
 @Component({
     selector: '{{model.Selector}}',
     template: `
 <ng-container *transloco="let t">
     <ng-content select="[before]"></ng-content>
-{{string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)))}}
+{{bodyBlocks}}
     <ng-content select="[after]"></ng-content>
 </ng-container>
     `,
     imports: [
-        CommonModule,
-        FormsModule,
-        ReactiveFormsModule,
-        SpiderlyControlsModule,
-        TranslocoDirective,
+{{importsBlock}}
     ]
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
 }
 """;
         }
@@ -131,6 +151,40 @@ export class {{model.ComponentClassName}} {
     <div *ngIf="config.{{field.ConfigShowFlagName}} !== false{{relationGuard}}" class="{{field.Width}}">
         <{{field.ControlTag}} [control]="{{controlBase}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
         <ng-content select="[below{{field.PropertyName}}]"></ng-content>
+    </div>
+""";
+        }
+
+        private static string GetOrderedOneToManyBlock(OrderedOneToManyModel o)
+        {
+            return $$"""
+    <div class="col-8">
+        <spiderly-panel [toggleable]="true" [collapsed]="{{o.PanelCollapsedInputName}}">
+            <panel-header [title]="t('{{o.TranslationKey}}')" icon="pi pi-list"></panel-header>
+            <panel-body [normalBottomPadding]="true">
+                @for ({{o.ChildRowVar}} of {{o.FormArrayAccess}}.getFormGroups(); track {{o.ChildRowVar}}.trackingId; let index = $index; let last = $last) {
+                    <index-card
+                    [index]="index"
+                    [last]="false"
+                    [crudMenu]="{{o.FormArrayAccess}}.getCrudMenuForOrderedData()"
+                    [showCrudMenu]="isAuthorizedForSave"
+                    (onMenuIconClick)="{{o.FormArrayAccess}}.lastMenuIconIndexClicked = $event"
+                    >
+                        <form [formGroup]="{{o.ChildRowVar}}" class="spiderly-grid">
+                            <{{o.ChildFieldsSelector}} [formGroup]="{{o.ChildRowVar}}" [hiddenParentRelation]="'{{o.PropertyName}}'"></{{o.ChildFieldsSelector}}>
+                            <ng-container *ngIf="{{o.AdditionalContentTemplateInputName}}">
+                                <ng-container *ngTemplateOutlet="{{o.AdditionalContentTemplateInputName}}; context: { $implicit: {{o.ChildRowVar}}, formGroup: {{o.ChildRowVar}}, index: index, last: last }"></ng-container>
+                            </ng-container>
+                        </form>
+                    </index-card>
+                }
+
+                <div class="panel-add-button">
+                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="{{o.FormArrayAccess}}.addNewFormGroup(null)" [label]="t('{{o.AddNewLabelKey}}')" icon="pi pi-plus"></spiderly-button>
+                </div>
+
+            </panel-body>
+        </spiderly-panel>
     </div>
 """;
         }

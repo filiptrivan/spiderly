@@ -1,0 +1,62 @@
+﻿@Component({
+    selector: 'segmentation-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showName !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.segmentationDTO.getControl('name')"></spiderly-textbox>
+        <ng-content select="[belowName]"></ng-content>
+    </div>
+    <div class="col-8">
+        <spiderly-panel [toggleable]="true" [collapsed]="segmentationItemsPanelCollapsed">
+            <panel-header [title]="t('SegmentationItems')" icon="pi pi-list"></panel-header>
+            <panel-body [normalBottomPadding]="true">
+                @for (segmentationItemFormGroup of formGroup.controls.orderedSegmentationItemsSaveBodyDTO.getFormGroups(); track segmentationItemFormGroup.trackingId; let index = $index; let last = $last) {
+                    <index-card
+                    [index]="index"
+                    [last]="false"
+                    [crudMenu]="formGroup.controls.orderedSegmentationItemsSaveBodyDTO.getCrudMenuForOrderedData()"
+                    [showCrudMenu]="isAuthorizedForSave"
+                    (onMenuIconClick)="formGroup.controls.orderedSegmentationItemsSaveBodyDTO.lastMenuIconIndexClicked = $event"
+                    >
+                        <form [formGroup]="segmentationItemFormGroup" class="spiderly-grid">
+                            <segmentation-item-fields [formGroup]="segmentationItemFormGroup" [hiddenParentRelation]="'SegmentationItems'"></segmentation-item-fields>
+                            <ng-container *ngIf="additionalContentTemplateForSegmentationItems">
+                                <ng-container *ngTemplateOutlet="additionalContentTemplateForSegmentationItems; context: { $implicit: segmentationItemFormGroup, formGroup: segmentationItemFormGroup, index: index, last: last }"></ng-container>
+                            </ng-container>
+                        </form>
+                    </index-card>
+                }
+
+                <div class="panel-add-button">
+                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="formGroup.controls.orderedSegmentationItemsSaveBodyDTO.addNewFormGroup(null)" [label]="t('AddNewSegmentationItem')" icon="pi pi-plus"></spiderly-button>
+                </div>
+
+            </panel-body>
+        </spiderly-panel>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        IndexCardComponent,
+        SegmentationItemFieldsComponent,
+    ]
+})
+export class SegmentationFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<SegmentationSaveBody>;
+    @Input() config: SegmentationFieldsConfig = {};
+    @Input() isAuthorizedForSave: boolean = false;
+    @Input() segmentationItemsPanelCollapsed: boolean = false;
+    @Input() additionalContentTemplateForSegmentationItems: TemplateRef<any> | undefined;
+}
+
+export class SegmentationFieldsConfig {
+    showName?: boolean;
+}
