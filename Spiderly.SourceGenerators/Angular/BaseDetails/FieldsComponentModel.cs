@@ -83,6 +83,14 @@ namespace Spiderly.SourceGenerators.Angular
         /// <c>isAuthorizedForSave</c> input that the control's <c>[disabled]</c> binding reads.
         /// </summary>
         public FileUploadModel FileUpload { get; set; }
+
+        /// <summary>
+        /// The parent-collection relation name (this field's M2O <c>[WithMany]</c> value) when the field is a
+        /// back-reference to a parent; null otherwise. When a composing parent passes a matching
+        /// <c>hiddenParentRelation</c>, the field hides — the runtime, composition-friendly equivalent of the
+        /// legacy "filter out the back-ref" rule (the child fragment stays reusable and context-free).
+        /// </summary>
+        public string ParentRelationName { get; set; }
     }
 
     /// <summary>A control change event wired to a component <c>@Output()</c>.</summary>

@@ -46,6 +46,7 @@ namespace Spiderly.SourceGenerators.Angular
                 FormControlName = NgDetailsPropertyBlockGenerator.GetFormControlName(property),
                 ConfigShowFlagName = $"show{property.Name}",
                 Width = NgDetailsPropertyBlockGenerator.GetUIControlWidth(property, isFromOrderedOneToMany: false),
+                ParentRelationName = property.WithMany(),
             };
 
             switch (controlType)

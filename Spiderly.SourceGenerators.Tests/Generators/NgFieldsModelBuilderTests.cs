@@ -44,6 +44,7 @@ public class NgFieldsModelBuilderTests
             Prop("Content", "string", ("UIControlType", "Editor")),
             Prop("Bio", "string", ("UIControlType", "Editor"), ("S3PublicStorage", null)),
             Prop("Photo", "string", ("UIControlType", "File")),
+            Prop("ParentGroup", "Group", ("WithMany", "Brands")),
         },
     };
 
@@ -283,5 +284,23 @@ public class NgFieldsModelBuilderTests
         Assert.DoesNotContain("[imageWidth]", photo.ExtraControlAttributes);
         Assert.DoesNotContain("[acceptedFileTypes]", photo.ExtraControlAttributes);
         Assert.DoesNotContain("[maxFileSize]", photo.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_BackReferenceM2O_SetsParentRelationNameFromWithMany()
+    {
+        FieldModel parentGroup = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "ParentGroup");
+
+        Assert.Equal("spiderly-autocomplete", parentGroup.ControlTag);
+        Assert.Equal("parentGroupId", parentGroup.FormControlName);
+        Assert.Equal("Brands", parentGroup.ParentRelationName);
+    }
+
+    [Fact]
+    public void Build_PlainM2O_HasNullParentRelationName()
+    {
+        FieldModel country = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Country");
+
+        Assert.Null(country.ParentRelationName);
     }
 }
