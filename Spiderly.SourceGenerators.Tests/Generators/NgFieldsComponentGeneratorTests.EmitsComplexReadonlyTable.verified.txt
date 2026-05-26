@@ -1,0 +1,50 @@
+﻿@Component({
+    selector: 'user-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showEmail !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.userDTO.getControl('email')"></spiderly-textbox>
+        <ng-content select="[belowEmail]"></ng-content>
+    </div>
+    <div class="col-8">
+        <spiderly-data-table
+            [tableTitle]="t('Roles')"
+            [cols]="rolesTableCols"
+            [getPaginatedListObservableMethod]="getPaginatedRolesListObservableMethod"
+            [exportListToExcelObservableMethod]="exportRolesListToExcelObservableMethod"
+            [showAddButton]="false"
+            [readonly]="true"></spiderly-data-table>
+        <ng-content select="[belowRoles]"></ng-content>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        SpiderlyDataTableComponent,
+    ]
+})
+export class UserFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<UserSaveBody>;
+    @Input() config: UserFieldsConfig = {};
+    rolesTableCols: Column<Role>[];
+    getPaginatedRolesListObservableMethod = this.apiService.getPaginatedRolesListForUser;
+    exportRolesListToExcelObservableMethod = this.apiService.exportRolesListToExcelForUser;
+
+    constructor(private apiService: ApiService, private translocoService: TranslocoService) {}
+
+    async ngOnInit() {
+        this.rolesTableCols = [
+                {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'  }
+        ];
+    }
+}
+
+export class UserFieldsConfig {
+    showEmail?: boolean;
+}

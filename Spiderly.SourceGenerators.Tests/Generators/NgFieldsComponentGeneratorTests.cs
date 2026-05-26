@@ -347,4 +347,37 @@ public class NgFieldsComponentGeneratorTests
         string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
         return Verify(output);
     }
+
+    [Fact]
+    public Task EmitsComplexReadonlyTable()
+    {
+        SpiderlyClass role = new()
+        {
+            Name = "Role", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Role" } },
+        };
+        SpiderlyClass user = new()
+        {
+            Name = "User", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Email", Type = "string", EntityName = "User" },
+                new()
+                {
+                    Name = "Roles", Type = "List<Role>", EntityName = "User",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "ComplexManyToManyReadonlyTable" },
+                        new() { Name = "UITableColumn", Value = "Name" },
+                    },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(user, new() { user, role }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
 }

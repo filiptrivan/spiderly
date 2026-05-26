@@ -43,9 +43,11 @@ namespace Spiderly.SourceGenerators.Angular
             }));
             string orderedInputsBlock = orderedInputs.Length > 0 ? $"\n{orderedInputs}" : "";
 
-            string ctorBlock = model.Fields.Any(RequiresApiService)
-                ? "\n\n    constructor(private apiService: ApiService) {}"
-                : "";
+            bool needsApiService = model.Fields.Any(RequiresApiService) || model.Tables.Count > 0;
+            List<string> ctorParams = new();
+            if (needsApiService) ctorParams.Add("private apiService: ApiService");
+            if (model.Tables.Count > 0) ctorParams.Add("private translocoService: TranslocoService");
+            string ctorBlock = ctorParams.Count > 0 ? $"\n\n    constructor({string.Join(", ", ctorParams)}) {{}}" : "";
 
             string searchMethods = string.Join("\n\n", model.Fields
                 .Where(f => f.Search != null)
@@ -62,10 +64,25 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(GetFileUploadMethod));
             string fileUploadMethodsBlock = fileUploadMethods.Length > 0 ? $"\n\n{fileUploadMethods}" : "";
 
+            string tableFields = string.Join("\n", model.Tables.SelectMany(t => new[]
+            {
+                $"    {t.ColsFieldName}: Column<{t.ColsTypeArgument}>[];",
+                $"    {t.PaginatedListFieldName} = {t.PaginatedListApiCall};",
+                $"    {t.ExportFieldName} = {t.ExportApiCall};",
+            }));
+            string tableFieldsBlock = tableFields.Length > 0 ? $"\n{tableFields}" : "";
+
+            string colsInits = string.Join("\n", model.Tables.Select(t =>
+                $"        this.{t.ColsFieldName} = [\n{string.Join(",\n", t.ColumnDefs)}\n        ];"));
+            string ngOnInitBlock = model.Tables.Count > 0
+                ? $"\n\n    async ngOnInit() {{\n{colsInits}\n    }}"
+                : "";
+
             string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
             string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
+            string tableBlocks = string.Join("\n", model.Tables.Select(GetTableBlock));
             // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
-            string bodyBlocks = string.Join("\n", new[] { fieldBlocks, orderedBlocks }.Where(b => b.Length > 0));
+            string bodyBlocks = string.Join("\n", new[] { fieldBlocks, orderedBlocks, tableBlocks }.Where(b => b.Length > 0));
 
             List<string> componentImports = new()
             {
@@ -77,6 +94,8 @@ namespace Spiderly.SourceGenerators.Angular
                 componentImports.Add("IndexCardComponent");
                 componentImports.AddRange(model.OrderedOneToManies.Select(o => o.ChildFieldsComponentClassName).Distinct());
             }
+            if (model.Tables.Count > 0)
+                componentImports.Add("SpiderlyDataTableComponent");
             string importsBlock = string.Join("\n", componentImports.Select(i => $"        {i},"));
 
             return $$"""
@@ -95,7 +114,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{tableFieldsBlock}}{{ctorBlock}}{{ngOnInitBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}
 }
 """;
         }
@@ -152,6 +171,22 @@ export class {{model.ComponentClassName}} {
     <div *ngIf="config.{{field.ConfigShowFlagName}} !== false{{relationGuard}}" class="{{field.Width}}">
         <{{field.ControlTag}} [control]="{{controlBase}}.getControl('{{field.FormControlName}}')"{{field.ExtraControlAttributes}}{{eventAttr}}></{{field.ControlTag}}>
         <ng-content select="[below{{field.PropertyName}}]"></ng-content>
+    </div>
+""";
+        }
+
+        private static string GetTableBlock(TableModel t)
+        {
+            return $$"""
+    <div class="col-8">
+        <spiderly-data-table
+            [tableTitle]="t('{{t.TranslationKey}}')"
+            [cols]="{{t.ColsFieldName}}"
+            [getPaginatedListObservableMethod]="{{t.PaginatedListFieldName}}"
+            [exportListToExcelObservableMethod]="{{t.ExportFieldName}}"
+            [showAddButton]="false"
+            [readonly]="true"></spiderly-data-table>
+        <ng-content select="[below{{t.TranslationKey}}]"></ng-content>
     </div>
 """;
         }
