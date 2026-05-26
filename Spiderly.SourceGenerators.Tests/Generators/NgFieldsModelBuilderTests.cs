@@ -95,6 +95,21 @@ public class NgFieldsModelBuilderTests
         },
     };
 
+    private static SpiderlyClass SectionedEntity() => new()
+    {
+        Name = "Account",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            Prop("Name", "string", ("UISection", "General")),
+            Prop("Note", "string"),
+            Prop("Code", "string", ("UISection", "General")),
+            Prop("Secret", "string", ("UISection", "Security")),
+        },
+    };
+
     private static SpiderlyClass Brand() => new()
     {
         Name = "Brand",
@@ -475,5 +490,29 @@ public class NgFieldsModelBuilderTests
         Assert.True(table.IsReadonly);
         Assert.Null(table.NewlySelectedField);
         Assert.Null(table.LazyLoadMethodName);
+    }
+
+    [Fact]
+    public void Build_AssignsSectionNameToFields()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(SectionedEntity(), new() { SectionedEntity() }, new());
+
+        Assert.Equal("General", model.Fields.Single(f => f.PropertyName == "Name").SectionName);
+        Assert.Null(model.Fields.Single(f => f.PropertyName == "Note").SectionName);
+        Assert.Equal("Security", model.Fields.Single(f => f.PropertyName == "Secret").SectionName);
+    }
+
+    [Fact]
+    public void Build_SectionOrder_IsFirstAppearanceIncludingImplicitHeaderless()
+    {
+        List<string> order = NgFieldsModelBuilder.Build(SectionedEntity(), new() { SectionedEntity() }, new()).SectionOrder;
+
+        Assert.Equal(new string[] { "General", null, "Security" }, order);
+    }
+
+    [Fact]
+    public void Build_NoSection_LeavesSectionOrderEmpty()
+    {
+        Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).SectionOrder);
     }
 }

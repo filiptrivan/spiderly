@@ -51,6 +51,7 @@ namespace Spiderly.SourceGenerators.Angular
                     AddNewLabelKey = $"AddNew{childType}",
                     PanelCollapsedInputName = $"{property.Name.FirstCharToLower()}PanelCollapsed",
                     AdditionalContentTemplateInputName = $"additionalContentTemplateFor{property.Name}",
+                    SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
                 });
             }
 
@@ -71,6 +72,7 @@ namespace Spiderly.SourceGenerators.Angular
                     ExportFieldName = $"export{property.Name}ListToExcelObservableMethod",
                     ExportApiCall = $"this.apiService.export{property.Name}ListToExcelFor{entity.Name}",
                     IsReadonly = true,
+                    SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
                 });
             }
 
@@ -104,7 +106,18 @@ namespace Spiderly.SourceGenerators.Angular
                     AreAllSelectedChangeMethodName = $"areAll{property.Name}SelectedChange",
                     OnLazyLoadMethodName = $"on{property.Name}LazyLoad",
                     ParentIdRawValueExpression = $"this.{model.MainDtoAccess}.controls.id.getRawValue()",
+                    SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
                 });
+            }
+
+            if (NgDetailsPropertyBlockGenerator.HasAnyUISection(entity.Properties.ToList(), entity, customDTOClasses))
+            {
+                foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity))
+                {
+                    string section = NgDetailsPropertyBlockGenerator.GetUISectionName(property);
+                    if (!model.SectionOrder.Contains(section))
+                        model.SectionOrder.Add(section);
+                }
             }
 
             return model;
@@ -121,6 +134,7 @@ namespace Spiderly.SourceGenerators.Angular
                 ConfigShowFlagName = $"show{property.Name}",
                 Width = NgDetailsPropertyBlockGenerator.GetUIControlWidth(property, isFromOrderedOneToMany: false),
                 ParentRelationName = property.WithMany(),
+                SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
             };
 
             switch (controlType)

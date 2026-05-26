@@ -38,6 +38,13 @@ namespace Spiderly.SourceGenerators.Angular
         /// the editable lazy-load variant (added later) carries selection state. Columns are precomputed.
         /// </summary>
         public List<TableModel> Tables { get; set; } = new();
+
+        /// <summary>
+        /// Distinct [UISection] names in first-appearance order over the entity's ordered property blocks, including a
+        /// null entry for the implicit headerless section (unsectioned blocks). EMPTY when no property declares
+        /// [UISection] — the fragment then renders flat. Drives the fragment's stacked section panels.
+        /// </summary>
+        public List<string> SectionOrder { get; set; } = new();
     }
 
     /// <summary>An [UIOrderedOneToMany] child collection rendered as a composed panel of index-cards.</summary>
@@ -72,6 +79,9 @@ namespace Spiderly.SourceGenerators.Angular
         /// <summary>Per-row additional-content <c>TemplateRef</c> <c>@Input()</c> name. The legacy <c>For{Entity}</c>
         /// suffix is intentionally dropped (see <see cref="PanelCollapsedInputName"/>).</summary>
         public string AdditionalContentTemplateInputName { get; set; }
+
+        /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
+        public string SectionName { get; set; }
     }
 
     /// <summary>A many-to-many spiderly-data-table (complex-readonly today; editable lazy-load later).</summary>
@@ -126,6 +136,9 @@ namespace Spiderly.SourceGenerators.Angular
         public string OnLazyLoadMethodName { get; set; }
         /// <summary>Parent-id raw-value expression for the lazy-load filter, e.g. <c>this.formGroup.controls.userDTO.controls.id.getRawValue()</c> (the fragment has no modelId).</summary>
         public string ParentIdRawValueExpression { get; set; }
+
+        /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
+        public string SectionName { get; set; }
     }
 
     /// <summary>Per-property facts the fragment template and config class are built from.</summary>
@@ -192,6 +205,9 @@ namespace Spiderly.SourceGenerators.Angular
         /// legacy "filter out the back-ref" rule (the child fragment stays reusable and context-free).
         /// </summary>
         public string ParentRelationName { get; set; }
+
+        /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
+        public string SectionName { get; set; }
     }
 
     /// <summary>A control change event wired to a component <c>@Output()</c>.</summary>
