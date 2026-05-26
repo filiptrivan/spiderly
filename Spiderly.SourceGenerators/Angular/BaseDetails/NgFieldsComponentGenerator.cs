@@ -27,7 +27,11 @@ namespace Spiderly.SourceGenerators.Angular
                     : $"    {f.OptionsFieldName}: Namebook[];"));
             string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
 
-            string ctorBlock = model.Fields.Any(f => f.Search != null || f.EditorImageUpload != null || f.FileUpload != null)
+            string authInputBlock = model.Fields.Any(f => f.FileUpload != null)
+                ? "\n    @Input() isAuthorizedForSave: boolean = false;"
+                : "";
+
+            string ctorBlock = model.Fields.Any(RequiresApiService)
                 ? "\n\n    constructor(private apiService: ApiService) {}"
                 : "";
 
@@ -40,10 +44,6 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(f => f.EditorImageUpload != null)
                 .Select(GetEditorImageUploadMethod));
             string uploadMethodsBlock = uploadMethods.Length > 0 ? $"\n\n{uploadMethods}" : "";
-
-            string authInputBlock = model.Fields.Any(f => f.FileUpload != null)
-                ? "\n    @Input() isAuthorizedForSave: boolean = false;"
-                : "";
 
             string fileUploadMethods = string.Join("\n\n", model.Fields
                 .Where(f => f.FileUpload != null)
@@ -74,6 +74,10 @@ export class {{model.ComponentClassName}} {
 }
 """;
         }
+
+        /// <summary>True when a field needs the injected ApiService (autocomplete search or a blob/image upload).</summary>
+        private static bool RequiresApiService(FieldModel field) =>
+            field.Search != null || field.EditorImageUpload != null || field.FileUpload != null;
 
         private static string GetSearchMethod(FieldModel field)
         {
