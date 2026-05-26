@@ -607,7 +607,7 @@ namespace Spiderly.SourceGenerators.Angular
 """;
         }
 
-        private static string GetImageDimensionsHtmlAttributes(SpiderlyProperty property)
+        internal static string GetImageDimensionsHtmlAttributes(SpiderlyProperty property)
         {
             int imageWidth = property.GetImageWidth();
             int imageHeight = property.GetImageHeight();
@@ -625,7 +625,7 @@ namespace Spiderly.SourceGenerators.Angular
             return string.Join(" ", attributes);
         }
 
-        private static string GetAcceptedFileTypesHtmlAttribute(SpiderlyProperty property)
+        internal static string GetAcceptedFileTypesHtmlAttribute(SpiderlyProperty property)
         {
             List<string> fileTypes = property.GetAcceptedFileTypes();
 
@@ -636,7 +636,7 @@ namespace Spiderly.SourceGenerators.Angular
             return $"[acceptedFileTypes]=\"{arrayLiteral}\"";
         }
 
-        private static string GetMaxFileSizeHtmlAttribute(SpiderlyProperty property)
+        internal static string GetMaxFileSizeHtmlAttribute(SpiderlyProperty property)
         {
             int maxFileSize = property.GetMaxFileSize();
 

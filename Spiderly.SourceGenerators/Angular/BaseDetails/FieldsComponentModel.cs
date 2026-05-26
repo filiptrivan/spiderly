@@ -75,6 +75,14 @@ namespace Spiderly.SourceGenerators.Angular
         /// fragment declares an arrow-fn <c>{MethodName}</c> that delegates to <c>ApiService.{ApiMethodName}</c>.
         /// </summary>
         public EditorImageUploadModel EditorImageUpload { get; set; }
+
+        /// <summary>
+        /// File blob-upload method backing a File control; null otherwise. The fragment declares a void
+        /// <c>{MethodName}</c> that uploads via <c>ApiService.{ApiMethodName}</c>, writes the returned filename into
+        /// the field's form control, and emits <c>{OutputName}</c>. A File field also makes the fragment expose an
+        /// <c>isAuthorizedForSave</c> input that the control's <c>[disabled]</c> binding reads.
+        /// </summary>
+        public FileUploadModel FileUpload { get; set; }
     }
 
     /// <summary>A control change event wired to a component <c>@Output()</c>.</summary>
@@ -98,5 +106,13 @@ namespace Spiderly.SourceGenerators.Angular
     {
         public string MethodName { get; set; }
         public string ApiMethodName { get; set; }
+    }
+
+    /// <summary>A File control's blob-upload method and its uploaded-event output.</summary>
+    internal sealed class FileUploadModel
+    {
+        public string MethodName { get; set; }
+        public string ApiMethodName { get; set; }
+        public string OutputName { get; set; }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -164,6 +165,36 @@ namespace Spiderly.SourceGenerators.Angular
                             + $" [objectId]=\"{mainDtoAccess}.controls.id.getRawValue()\"";
                     }
                     return field;
+                case UIControlTypeCodes.File:
+                {
+                    field.ControlTag = "spiderly-file";
+                    field.FileUpload = new FileUploadModel
+                    {
+                        MethodName = $"upload{property.Name}",
+                        ApiMethodName = $"upload{property.Name}For{entityName}",
+                        OutputName = $"on{property.Name}Uploaded",
+                    };
+
+                    string propCamel = property.Name.FirstCharToLower();
+                    List<string> fileAttrs = new()
+                    {
+                        $"[fileData]=\"{mainDtoAccess}.controls.{propCamel}Data.getRawValue()\"",
+                        $"[objectId]=\"{mainDtoAccess}.controls.id.getRawValue()\"",
+                        $"(onFileSelected)=\"{field.FileUpload.MethodName}($event, {mainDtoAccess})\"",
+                        "[disabled]=\"!isAuthorizedForSave\"",
+                        $"[isUrlFileData]=\"{property.IsPublicUrl().ToString().ToLower()}\"",
+                    };
+
+                    string dims = NgDetailsPropertyBlockGenerator.GetImageDimensionsHtmlAttributes(property);
+                    if (dims.Length > 0) fileAttrs.Add(dims);
+                    string acceptedTypes = NgDetailsPropertyBlockGenerator.GetAcceptedFileTypesHtmlAttribute(property);
+                    if (acceptedTypes.Length > 0) fileAttrs.Add(acceptedTypes);
+                    string maxSize = NgDetailsPropertyBlockGenerator.GetMaxFileSizeHtmlAttribute(property);
+                    if (maxSize.Length > 0) fileAttrs.Add(maxSize);
+
+                    field.ExtraControlAttributes = " " + string.Join(" ", fileAttrs);
+                    return field;
+                }
                 default:
                     return null; // control types beyond current slices are added in later slices
             }

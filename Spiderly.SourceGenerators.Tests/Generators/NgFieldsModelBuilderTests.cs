@@ -43,6 +43,7 @@ public class NgFieldsModelBuilderTests
             Prop("Color", "string", ("UIControlType", "ColorPicker")),
             Prop("Content", "string", ("UIControlType", "Editor")),
             Prop("Bio", "string", ("UIControlType", "Editor"), ("S3PublicStorage", null)),
+            Prop("Photo", "string", ("UIControlType", "File")),
         },
     };
 
@@ -253,5 +254,34 @@ public class NgFieldsModelBuilderTests
         Assert.Equal("uploadBioImageForBrand", bio.EditorImageUpload.ApiMethodName);
         Assert.Contains("[uploadImageMethod]=\"uploadBioImage\"", bio.ExtraControlAttributes);
         Assert.Contains("[objectId]=\"formGroup.controls.brandDTO.controls.id.getRawValue()\"", bio.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_File_HasUploadMethodOutputAndAttributeBundle()
+    {
+        FieldModel photo = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Photo");
+
+        Assert.Equal("spiderly-file", photo.ControlTag);
+        Assert.Equal("photo", photo.FormControlName);
+        Assert.NotNull(photo.FileUpload);
+        Assert.Equal("uploadPhoto", photo.FileUpload.MethodName);
+        Assert.Equal("uploadPhotoForBrand", photo.FileUpload.ApiMethodName);
+        Assert.Equal("onPhotoUploaded", photo.FileUpload.OutputName);
+
+        Assert.Contains("[fileData]=\"formGroup.controls.brandDTO.controls.photoData.getRawValue()\"", photo.ExtraControlAttributes);
+        Assert.Contains("[objectId]=\"formGroup.controls.brandDTO.controls.id.getRawValue()\"", photo.ExtraControlAttributes);
+        Assert.Contains("(onFileSelected)=\"uploadPhoto($event, formGroup.controls.brandDTO)\"", photo.ExtraControlAttributes);
+        Assert.Contains("[disabled]=\"!isAuthorizedForSave\"", photo.ExtraControlAttributes);
+        Assert.Contains("[isUrlFileData]=\"false\"", photo.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_File_OmitsOptionalAttributesWhenAbsent()
+    {
+        FieldModel photo = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Photo");
+
+        Assert.DoesNotContain("[imageWidth]", photo.ExtraControlAttributes);
+        Assert.DoesNotContain("[acceptedFileTypes]", photo.ExtraControlAttributes);
+        Assert.DoesNotContain("[maxFileSize]", photo.ExtraControlAttributes);
     }
 }
