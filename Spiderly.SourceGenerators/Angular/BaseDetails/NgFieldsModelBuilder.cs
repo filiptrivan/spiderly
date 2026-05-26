@@ -74,6 +74,39 @@ namespace Spiderly.SourceGenerators.Angular
                 });
             }
 
+            foreach (SpiderlyProperty property in entity.Properties
+                .Where(p => p.IsIncludedInDetailsUi(entity) && p.HasSimpleManyToManyTableLazyLoadAttribute()))
+            {
+                string childType = Helpers.ExtractTypeFromGenericType(property.Type);
+                string propCamel = property.Name.FirstCharToLower();
+
+                model.Tables.Add(new TableModel
+                {
+                    TranslationKey = property.Name,
+                    ColsFieldName = $"{propCamel}TableCols",
+                    ColsTypeArgument = childType,
+                    ColumnDefs = NgDetailsDataGenerator.GetSimpleManyToManyTableLazyLoadCols(property, entity, allEntities, customDTOClasses),
+                    PaginatedListFieldName = $"getPaginated{property.Name}ListObservableMethod",
+                    PaginatedListApiCall = $"this.apiService.getPaginated{property.Name}ListFor{entity.Name}",
+                    ExportFieldName = $"export{property.Name}ListToExcelObservableMethod",
+                    ExportApiCall = $"this.apiService.export{property.Name}ListToExcelFor{entity.Name}",
+                    IsReadonly = false,
+                    NewlySelectedField = $"newlySelected{property.Name}Ids",
+                    UnselectedField = $"unselected{property.Name}Ids",
+                    AreAllSelectedField = $"areAll{property.Name}Selected",
+                    LastFilterField = $"last{property.Name}LazyLoadTableFilter",
+                    SelectedFormControl = $"selected{property.Name}Ids",
+                    UnselectedFormControl = $"unselected{property.Name}Ids",
+                    AreAllSelectedFormControl = $"areAll{property.Name}Selected",
+                    TableFilterFormControl = $"{propCamel}TableFilter",
+                    LazyLoadMethodName = $"selected{property.Name}LazyLoadMethod",
+                    LazyLoadApiCall = $"this.apiService.lazyLoadSelected{property.Name}IdsFor{entity.Name}",
+                    AreAllSelectedChangeMethodName = $"areAll{property.Name}SelectedChange",
+                    OnLazyLoadMethodName = $"on{property.Name}LazyLoad",
+                    ParentIdRawValueExpression = $"this.{model.MainDtoAccess}.controls.id.getRawValue()",
+                });
+            }
+
             return model;
         }
 

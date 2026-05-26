@@ -65,6 +65,36 @@ public class NgFieldsModelBuilderTests
         },
     };
 
+    private static SpiderlyClass Permission() => new()
+    {
+        Name = "Permission",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty> { Prop("Name", "string") },
+    };
+
+    private static SpiderlyClass UserWithEditableTable() => new()
+    {
+        Name = "User",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            Prop("Email", "string"),
+            new()
+            {
+                Name = "Permissions", Type = "List<Permission>", EntityName = "User",
+                Attributes = new List<SpiderlyAttribute>
+                {
+                    new() { Name = "SimpleManyToManyTableLazyLoad" },
+                    new() { Name = "UITableColumn", Value = "Name" },
+                },
+            },
+        },
+    };
+
     private static SpiderlyClass Brand() => new()
     {
         Name = "Brand",
@@ -413,5 +443,37 @@ public class NgFieldsModelBuilderTests
     public void Build_NoTable_LeavesEmptyList()
     {
         Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).Tables);
+    }
+
+    [Fact]
+    public void Build_SimpleLazyLoadTable_PopulatesEditableTableModel()
+    {
+        TableModel table = NgFieldsModelBuilder.Build(UserWithEditableTable(), new() { UserWithEditableTable(), Permission() }, new()).Tables.Single();
+
+        Assert.False(table.IsReadonly);
+        Assert.Equal("permissionsTableCols", table.ColsFieldName);
+        Assert.Equal("Permission", table.ColsTypeArgument);
+        Assert.Equal("newlySelectedPermissionsIds", table.NewlySelectedField);
+        Assert.Equal("unselectedPermissionsIds", table.UnselectedField);
+        Assert.Equal("areAllPermissionsSelected", table.AreAllSelectedField);
+        Assert.Equal("lastPermissionsLazyLoadTableFilter", table.LastFilterField);
+        Assert.Equal("selectedPermissionsIds", table.SelectedFormControl);
+        Assert.Equal("unselectedPermissionsIds", table.UnselectedFormControl);
+        Assert.Equal("areAllPermissionsSelected", table.AreAllSelectedFormControl);
+        Assert.Equal("permissionsTableFilter", table.TableFilterFormControl);
+        Assert.Equal("selectedPermissionsLazyLoadMethod", table.LazyLoadMethodName);
+        Assert.Equal("this.apiService.lazyLoadSelectedPermissionsIdsForUser", table.LazyLoadApiCall);
+        Assert.Equal("areAllPermissionsSelectedChange", table.AreAllSelectedChangeMethodName);
+        Assert.Equal("onPermissionsLazyLoad", table.OnLazyLoadMethodName);
+        Assert.Equal("this.formGroup.controls.userDTO.controls.id.getRawValue()", table.ParentIdRawValueExpression);
+    }
+
+    [Fact]
+    public void Build_ComplexReadonlyTable_HasNoEditableFacts()
+    {
+        TableModel table = NgFieldsModelBuilder.Build(User(), new() { User(), Role() }, new()).Tables.Single();
+        Assert.True(table.IsReadonly);
+        Assert.Null(table.NewlySelectedField);
+        Assert.Null(table.LazyLoadMethodName);
     }
 }

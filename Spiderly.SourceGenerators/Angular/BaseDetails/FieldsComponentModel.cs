@@ -98,6 +98,34 @@ namespace Spiderly.SourceGenerators.Angular
         public string ExportApiCall { get; set; }
         /// <summary>True for complex-readonly (no selection); the editable lazy-load variant sets false.</summary>
         public bool IsReadonly { get; set; }
+
+        // --- editable lazy-load only (null/empty when IsReadonly) ---
+        /// <summary>Mutable component field the data-table pushes newly-selected ids into, e.g. <c>newlySelectedRolesIds</c>.</summary>
+        public string NewlySelectedField { get; set; }
+        /// <summary>Mutable component field for unselected ids, e.g. <c>unselectedRolesIds</c>.</summary>
+        public string UnselectedField { get; set; }
+        /// <summary>Mutable component field for the select-all flag, e.g. <c>areAllRolesSelected</c>.</summary>
+        public string AreAllSelectedField { get; set; }
+        /// <summary>Mutable component field holding the last lazy-load filter, e.g. <c>lastRolesLazyLoadTableFilter</c>.</summary>
+        public string LastFilterField { get; set; }
+        /// <summary>SaveBody control name for selected ids, e.g. <c>selectedRolesIds</c> (no For{Entity}; backend contract).</summary>
+        public string SelectedFormControl { get; set; }
+        /// <summary>SaveBody control name for unselected ids, e.g. <c>unselectedRolesIds</c>.</summary>
+        public string UnselectedFormControl { get; set; }
+        /// <summary>SaveBody control name for the select-all flag, e.g. <c>areAllRolesSelected</c>.</summary>
+        public string AreAllSelectedFormControl { get; set; }
+        /// <summary>SaveBody control name for the table filter, e.g. <c>rolesTableFilter</c>.</summary>
+        public string TableFilterFormControl { get; set; }
+        /// <summary>Lazy-load arrow-fn name, e.g. <c>selectedRolesLazyLoadMethod</c>.</summary>
+        public string LazyLoadMethodName { get; set; }
+        /// <summary>Its ApiService call, e.g. <c>this.apiService.lazyLoadSelectedRolesIdsForUser</c>.</summary>
+        public string LazyLoadApiCall { get; set; }
+        /// <summary>Select-all-change handler name, e.g. <c>areAllRolesSelectedChange</c>.</summary>
+        public string AreAllSelectedChangeMethodName { get; set; }
+        /// <summary>On-lazy-load handler name, e.g. <c>onRolesLazyLoad</c>.</summary>
+        public string OnLazyLoadMethodName { get; set; }
+        /// <summary>Parent-id raw-value expression for the lazy-load filter, e.g. <c>this.formGroup.controls.userDTO.controls.id.getRawValue()</c> (the fragment has no modelId).</summary>
+        public string ParentIdRawValueExpression { get; set; }
     }
 
     /// <summary>Per-property facts the fragment template and config class are built from.</summary>
