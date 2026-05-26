@@ -18,6 +18,23 @@ public class NgFieldsModelBuilderTests
             Attributes = attributes.Select(a => new SpiderlyAttribute { Name = a.Name, Value = a.Value }).ToList(),
         };
 
+    private static SpiderlyClass Segmentation() => new()
+    {
+        Name = "Segmentation",
+        Namespace = "TestApp.Business.Entities",
+        BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            Prop("Name", "string"),
+            new()
+            {
+                Name = "SegmentationItems", Type = "List<SegmentationItem>", EntityName = "Segmentation",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } },
+            },
+        },
+    };
+
     private static SpiderlyClass Brand() => new()
     {
         Name = "Brand",
@@ -302,5 +319,36 @@ public class NgFieldsModelBuilderTests
         FieldModel country = NgFieldsModelBuilder.Build(Brand()).Fields.Single(f => f.PropertyName == "Country");
 
         Assert.Null(country.ParentRelationName);
+    }
+
+    [Fact]
+    public void Build_OrderedOneToMany_PopulatesCompositionModel()
+    {
+        OrderedOneToManyModel block = NgFieldsModelBuilder.Build(Segmentation()).OrderedOneToManies.Single();
+
+        Assert.Equal("SegmentationItems", block.PropertyName);
+        Assert.Equal("SegmentationItems", block.TranslationKey);
+        Assert.Equal("formGroup.controls.orderedSegmentationItemsSaveBodyDTO", block.FormArrayAccess);
+        Assert.Equal("segmentationItemFormGroup", block.ChildRowVar);
+        Assert.Equal("segmentation-item-fields", block.ChildFieldsSelector);
+        Assert.Equal("SegmentationItemFieldsComponent", block.ChildFieldsComponentClassName);
+        Assert.Equal("AddNewSegmentationItem", block.AddNewLabelKey);
+        Assert.Equal("segmentationItemsPanelCollapsed", block.PanelCollapsedInputName);
+        Assert.Equal("additionalContentTemplateForSegmentationItems", block.AdditionalContentTemplateInputName);
+    }
+
+    [Fact]
+    public void Build_OrderedOneToMany_IsNotAddedToScalarFields()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(Segmentation());
+
+        Assert.DoesNotContain(model.Fields, f => f.PropertyName == "SegmentationItems");
+        Assert.Contains(model.Fields, f => f.PropertyName == "Name");
+    }
+
+    [Fact]
+    public void Build_NoOrderedOneToMany_LeavesEmptyList()
+    {
+        Assert.Empty(NgFieldsModelBuilder.Build(Brand()).OrderedOneToManies);
     }
 }

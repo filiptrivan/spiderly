@@ -25,6 +25,27 @@ namespace Spiderly.SourceGenerators.Angular
         public string MainDtoAccess { get; set; }
 
         public List<FieldModel> Fields { get; set; } = new();
+
+        /// <summary>
+        /// Ordered-one-to-many child collections this entity owns ([UIOrderedOneToMany]). Each renders as a panel of
+        /// index-cards that COMPOSE the child's own fragment (passing hiddenParentRelation to hide the back-ref),
+        /// rather than flattening the child's controls.
+        /// </summary>
+        public List<OrderedOneToManyModel> OrderedOneToManies { get; set; } = new();
+    }
+
+    /// <summary>An [UIOrderedOneToMany] child collection rendered as a composed panel of index-cards.</summary>
+    internal sealed class OrderedOneToManyModel
+    {
+        public string PropertyName { get; set; }
+        public string TranslationKey { get; set; }
+        public string FormArrayAccess { get; set; }
+        public string ChildRowVar { get; set; }
+        public string ChildFieldsSelector { get; set; }
+        public string ChildFieldsComponentClassName { get; set; }
+        public string AddNewLabelKey { get; set; }
+        public string PanelCollapsedInputName { get; set; }
+        public string AdditionalContentTemplateInputName { get; set; }
     }
 
     /// <summary>Per-property facts the fragment template and config class are built from.</summary>

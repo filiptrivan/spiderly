@@ -33,6 +33,26 @@ namespace Spiderly.SourceGenerators.Angular
                     model.Fields.Add(field);
             }
 
+            foreach (SpiderlyProperty property in NgDetailsPropertyBlockGenerator.GetOrderedPropertiesForUIBlocks(entity.Properties.ToList(), entity)
+                .Where(p => p.HasUIOrderedOneToManyAttribute()))
+            {
+                string childType = Helpers.ExtractTypeFromGenericType(property.Type);
+                string childCamel = childType.FirstCharToLower();
+
+                model.OrderedOneToManies.Add(new OrderedOneToManyModel
+                {
+                    PropertyName = property.Name,
+                    TranslationKey = property.Name,
+                    FormArrayAccess = $"formGroup.controls.ordered{property.Name}SaveBodyDTO",
+                    ChildRowVar = $"{childCamel}FormGroup",
+                    ChildFieldsSelector = $"{childType.FromPascalToKebabCase()}-fields",
+                    ChildFieldsComponentClassName = $"{childType}FieldsComponent",
+                    AddNewLabelKey = $"AddNew{childType}",
+                    PanelCollapsedInputName = $"{property.Name.FirstCharToLower()}PanelCollapsed",
+                    AdditionalContentTemplateInputName = $"additionalContentTemplateFor{property.Name}",
+                });
+            }
+
             return model;
         }
 
