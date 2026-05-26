@@ -24,7 +24,7 @@ namespace Spiderly.SourceGenerators.Angular
                     : $"    {f.OptionsFieldName}: Namebook[];"));
             string optionsBlock = optionsFields.Length > 0 ? $"\n{optionsFields}" : "";
 
-            string ctorBlock = model.Fields.Any(f => f.Search != null)
+            string ctorBlock = model.Fields.Any(f => f.Search != null || f.EditorImageUpload != null)
                 ? "\n\n    constructor(private apiService: ApiService) {}"
                 : "";
 
@@ -32,6 +32,11 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(f => f.Search != null)
                 .Select(GetSearchMethod));
             string searchMethodsBlock = searchMethods.Length > 0 ? $"\n\n{searchMethods}" : "";
+
+            string uploadMethods = string.Join("\n\n", model.Fields
+                .Where(f => f.EditorImageUpload != null)
+                .Select(GetEditorImageUploadMethod));
+            string uploadMethodsBlock = uploadMethods.Length > 0 ? $"\n\n{uploadMethods}" : "";
 
             return $$"""
 @Component({
@@ -53,7 +58,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{outputsBlock}}{{optionsBlock}}{{ctorBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}
 }
 """;
         }
@@ -65,6 +70,15 @@ export class {{model.ComponentClassName}} {
         this.apiService.{{field.Search.ApiMethodName}}(50, event?.query ?? '', modelId).subscribe(no => {
             this.{{field.Search.OptionsFieldName}} = no;
         });
+    }
+""";
+        }
+
+        private static string GetEditorImageUploadMethod(FieldModel field)
+        {
+            return $$"""
+    {{field.EditorImageUpload.MethodName}} = (formData: FormData): Observable<EditorImageUploadResult> => {
+        return this.apiService.{{field.EditorImageUpload.ApiMethodName}}(formData);
     }
 """;
         }
