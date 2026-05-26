@@ -27,8 +27,15 @@ export class ExternalLoginComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.apiService.getExternalProviders().subscribe((providers) => {
-      this.externalProviders = providers ?? [];
+    this.apiService.getExternalProviders().subscribe({
+      next: (providers) => {
+        this.externalProviders = providers ?? [];
+      },
+      // The global unauthorized interceptor already surfaces the HTTP error to the user; here we just
+      // leave the provider buttons hidden instead of letting the error reach the global error handler.
+      error: () => {
+        this.externalProviders = [];
+      },
     });
   }
 
