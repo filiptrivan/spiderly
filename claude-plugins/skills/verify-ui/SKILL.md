@@ -35,6 +35,8 @@ Flags: `--email` (required — must have the **Admin role**, see gotcha below), 
 >
 > The backend's actually-bound port is in **`Backend/<App>.WebAPI/Properties/launchSettings.json`** → `applicationUrl`. If a connection fails or the project looks non-standard, read those files first instead of assuming the defaults below.
 
+> **CORS origin must match.** The backend allows one origin (`appsettings.json` → `Spiderly.Shared:FrontendUrl`). Serving the admin on a different port blocks every API call and surfaces as a misleading **"Connection Lost"** toast + bounce to `/login` (looks like an auth failure).
+
 ## Prerequisites — validate before doing anything
 
 The token script already fails loudly on the first two. Confirm all four up front so you don't burn a turn on a half-running stack:

@@ -50,6 +50,10 @@ export async function authenticateBrowser(page: Page, request: APIRequestContext
 
 The two conditions above are the only levers — `ShouldShowVerificationCodeInNotification()` is `private`, so you can't override it on your `SecurityService`. To **get** the code in the response (tests, local dev): run with `ASPNETCORE_ENVIRONMENT=Development` and no complete SMTP config. To **turn it off** (production, or any environment that must send real emails): run a non-Development environment, or fully configure SMTP. Without `ASPNETCORE_ENVIRONMENT=Development` the code is never returned, regardless of SMTP config.
 
+## CORS origin mismatch looks like an auth failure
+
+The backend allows one CORS origin — `Spiderly.Shared:FrontendUrl` in `appsettings.json` (default `:4200`). If the admin is served on a different port, the browser blocks every API call as `status 0`, which surfaces as a **"Connection Lost"** toast + redirect to `/login` — looking like an auth failure. If the API login helper works but the browser session bounces to `/login`, check the served port matches `FrontendUrl` before suspecting tokens or roles.
+
 ## PrimeNG v19 selector pitfalls
 
 Spiderly's admin UI is built on PrimeNG v19. A few selectors that look obvious from the docs do not work — match what's actually rendered.
