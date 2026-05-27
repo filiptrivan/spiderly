@@ -20,7 +20,7 @@ public class NgShellComponentGeneratorTests
             Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
         };
 
-        ShellComponentModel model = NgShellModelBuilder.Build(brand);
+        ShellComponentModel model = NgShellModelBuilder.Build(brand, new() { brand });
 
         return Verify(NgShellComponentGenerator.BuildShellComponent(model));
     }
@@ -41,7 +41,7 @@ public class NgShellComponentGeneratorTests
             },
         };
 
-        ShellComponentModel model = NgShellModelBuilder.Build(brand);
+        ShellComponentModel model = NgShellModelBuilder.Build(brand, new() { brand });
         return Verify(NgShellComponentGenerator.BuildShellComponent(model));
     }
 }
