@@ -29,11 +29,8 @@ namespace Spiderly.Security.Services
 
         public virtual async Task AuthorizeAndThrowAsync<TUser>(TUser user, string permissionCode) where TUser : class, IUser, new()
         {
-            if (user == null)
-                throw new ArgumentNullException("The user is not provided.");
-
-            if (permissionCode == null)
-                throw new ArgumentNullException("Permission code is not provided.");
+            ArgumentNullException.ThrowIfNull(user);
+            ArgumentNullException.ThrowIfNull(permissionCode);
 
             bool result = false;
 
@@ -48,8 +45,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
         {
-            if (permissionCode == null)
-                throw new ArgumentNullException("Permission code is not provided.");
+            ArgumentNullException.ThrowIfNull(permissionCode);
 
             bool result = false;
             long userId = _authenticationService.GetCurrentUserId();
@@ -69,8 +65,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task AuthorizeAndThrowAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
         {
-            if (permissionCode == null)
-                throw new ArgumentNullException("Permission code is not provided.");
+            ArgumentNullException.ThrowIfNull(permissionCode);
 
             bool result = false;
             long userId = _authenticationService.GetCurrentUserId();
@@ -98,8 +93,7 @@ namespace Spiderly.Security.Services
         /// </summary>
         public virtual async Task<bool> IsAuthorizedAsync(string permissionCode)
         {
-            if (permissionCode == null)
-                throw new ArgumentNullException("Permission code is not provided.");
+            ArgumentNullException.ThrowIfNull(permissionCode);
 
             // No principal kinds registered is a developer misconfiguration — fail loud at the framework level.
             if (_principalRegistry.IsEmpty)

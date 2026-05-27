@@ -77,8 +77,7 @@ namespace Spiderly.Shared.Services
 
         public virtual async Task DeleteEntitiesAsync<T, ID>(List<ID> ids) where T : class, IBusinessObject<ID> where ID : struct
         {
-            if (ids == null)
-                throw new ArgumentNullException("You need to pass a list of ids to delete.");
+            ArgumentNullException.ThrowIfNull(ids);
 
             if (ids.Count == 0)
                 return; // FT: Early return, don't make db call
