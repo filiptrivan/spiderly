@@ -132,6 +132,36 @@ public class NgShellComponentGeneratorTests
         return Verify(NgShellComponentGenerator.BuildShellComponent(model));
     }
 
+    [Fact]
+    public Task EmitsShellWithForwardedFileOutputs()
+    {
+        SpiderlyClass media = new()
+        {
+            Name = "ProductMedia", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Alt", Type = "string", EntityName = "ProductMedia" },
+                new() { Name = "Url", Type = "string", EntityName = "ProductMedia",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+            },
+        };
+        SpiderlyClass product = new()
+        {
+            Name = "Product", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Product" },
+                new() { Name = "ProductMedia", Type = "List<ProductMedia>", EntityName = "Product",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+            },
+        };
+
+        ShellComponentModel model = NgShellModelBuilder.Build(product, new() { product, media });
+        return Verify(NgShellComponentGenerator.BuildShellComponent(model));
+    }
+
     // Combined: an entity with BOTH its own top-level [ComplexManyToManyList] AND an ordered-O2M child that also has
     // one. The create-path initFormGroup carries the own seed object AND is followed by the child formGroupInitialValues
     // assignment — verifies the two seed mechanisms coexist on the same route-load.

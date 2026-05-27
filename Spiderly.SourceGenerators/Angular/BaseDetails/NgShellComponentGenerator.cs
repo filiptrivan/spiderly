@@ -23,6 +23,11 @@ namespace Spiderly.SourceGenerators.Angular
             string orderedSeedAssignmentLines = string.Join("", model.OrderedChildSeedAssignments
                 .Select(a => $"\n                    {a}"));
 
+            string forwardedFileOutputsBlock = string.Join("", model.ForwardedFileOutputs
+                .Select(name => $"\n    @Output() {name} = new EventEmitter<{{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }}>();"));
+            string forwardedFileOutputBindings = string.Join("", model.ForwardedFileOutputs
+                .Select(name => $" ({name})=\"{name}.emit($event)\""));
+
             string newEntityBranch;
             if (model.SeedForkJoinParams.Count == 0)
             {
@@ -63,7 +68,7 @@ namespace Spiderly.SourceGenerators.Angular
 
         <panel-body>
             @defer (when loading === false) {
-                <{{model.FieldsSelector}} [formGroup]="parentFormGroup" [config]="fieldConfig">
+                <{{model.FieldsSelector}} [formGroup]="parentFormGroup" [config]="fieldConfig"{{forwardedFileOutputBindings}}>
                     <ng-content select="[before]" ngProjectAs="[before]"></ng-content>
                     <ng-content select="[after]" ngProjectAs="[after]"></ng-content>
                 </{{model.FieldsSelector}}>
@@ -106,7 +111,7 @@ export class {{model.ComponentClassName}} {
     @Input() fieldConfig: {{model.ConfigClassName}} = {};
     @Input() handleAdditionalSaveAuthorization: () => Promise<boolean> = () => Promise.resolve({{defaultAuthorized}});
     isAuthorizedForSave: boolean = {{defaultAuthorized}};
-    @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>();
+    @Output() onIsAuthorizedForSaveChange = new EventEmitter<IsAuthorizedForSaveEvent>();{{forwardedFileOutputsBlock}}
 
     modelId: number;
     loading: boolean = true;
