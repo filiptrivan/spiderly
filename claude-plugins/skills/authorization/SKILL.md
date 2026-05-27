@@ -9,15 +9,29 @@ description: Set up permission-based authorization in Spiderly. Use when impleme
 
 Implement these on your User, Role, and Permission entities:
 
-### IUser
+### ISecurityPrincipal
+
+The authorization root — anything that can hold roles and be permission-checked (a human `User`, a
+machine/service account, an AI agent). Authorization resolves permissions against this contract, not a
+concrete user type, so an app may have **one** principal kind (just `User`) or **many**.
 
 ```csharp
-public interface IUser : IBusinessObject<long>
+public interface ISecurityPrincipal : IBusinessObject<long>
 {
-    string Email { get; set; }
-    bool? HasLoggedInWithGoogleAsExternalProvider { get; set; }
     bool? IsDisabled { get; set; }
     IReadOnlyCollection<IRole> Roles { get; }
+}
+```
+
+### IUser
+
+A human principal that authenticates by email. Inherits identity, disabled-state, and roles from
+`ISecurityPrincipal`; adds only `Email`.
+
+```csharp
+public interface IUser : ISecurityPrincipal
+{
+    string Email { get; set; }
 }
 ```
 
@@ -61,7 +75,7 @@ public class User : BusinessObject<long>, IUser
     public bool? IsDisabled { get; set; }
 
     public virtual List<Role> Roles { get; } = new();
-    IReadOnlyCollection<IRole> IUser.Roles => Roles;
+    IReadOnlyCollection<IRole> ISecurityPrincipal.Roles => Roles; // Roles moved to the principal base
 }
 
 public class Role : BusinessObject<int>, IRole
@@ -199,36 +213,56 @@ Validates JWT from `Authorization: Bearer {token}` header. Returns 401 if invali
 `AuthorizationServicesGenerator` creates per-entity authorization methods:
 
 ```csharp
-// Generated — override in your AuthorizationService to customize
+// Generated — override in your AuthorizationService to customize.
+// The call is principal-kind-agnostic: it authorizes the current principal (whatever kind) by
+// resolving it through the principal registry — no compile-time user type.
 public virtual async Task AuthorizeProductReadAndThrow(long? productIdToRead)
 {
-    await AuthorizeAndThrowAsync<User>(PermissionCodes.ReadProduct);
+    await AuthorizeAndThrowAsync(PermissionCodes.ReadProduct);
 }
 
 public virtual async Task AuthorizeProductUpdateAndThrow(ProductDTO dto)
 {
-    await AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateProduct);
+    await AuthorizeAndThrowAsync(PermissionCodes.UpdateProduct);
 }
 
 public virtual async Task AuthorizeProductInsertAndThrow(ProductDTO dto)
 {
-    await AuthorizeAndThrowAsync<User>(PermissionCodes.InsertProduct);
+    await AuthorizeAndThrowAsync(PermissionCodes.InsertProduct);
 }
 
 public virtual async Task AuthorizeProductDeleteAndThrow(long id)
 {
-    await AuthorizeAndThrowAsync<User>(PermissionCodes.DeleteProduct);
+    await AuthorizeAndThrowAsync(PermissionCodes.DeleteProduct);
 }
 ```
+
+## Registering Principal Kinds
+
+Register each principal kind in `AddAppServices` so authorization can resolve the current principal.
+A single-principal app registers just `User`; the kind-dispatched authorization then resolves it
+without a `principal_kind` claim (it is the sole, default kind):
+
+```csharp
+services.AddSpiderlyPrincipal<User>("User");
+// Add a line per additional principal kind, e.g.:
+// services.AddSpiderlyPrincipal<ServiceAccount>("ServiceAccount");
+```
+
+Each kind is any entity implementing `ISecurityPrincipal` with its own `Roles` into the shared
+Role/Permission catalog. (`spiderly init` scaffolds the `User` registration for you.)
 
 ## Checking Permissions in Custom Code
 
 ```csharp
-// In an entity service or custom service:
-await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.ExportReports);
+// Preferred — authorizes the current principal whatever its kind:
+await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.ExportReports);
 
-// Check without throwing
-bool canExport = await _authorizationService.IsAuthorizedAsync<User>(PermissionCodes.ExportReports);
+// Check without throwing:
+bool canExport = await _authorizationService.IsAuthorizedAsync(PermissionCodes.ExportReports);
+
+// The generic overload still exists for an explicit single-type check (e.g. a User-only admin path):
+await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.ExportReports);
 ```
 
 ## Authentication Flow
