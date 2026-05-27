@@ -9,6 +9,7 @@ using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Services;
+using System.Linq;
 using System.Text.Json;
 
 namespace Spiderly.Security.Services
@@ -50,6 +51,17 @@ namespace Spiderly.Security.Services
         public virtual long? GetCurrentUserIdOrDefault()
         {
             return Helper.GetCurrentUserIdOrDefault(_httpContextAccessor.HttpContext);
+        }
+
+        /// <summary>
+        /// The kind of the current principal, read from the <c>principal_kind</c> claim, or <c>null</c> when
+        /// the claim is absent (the single-principal case). The authorization core's registry resolves a
+        /// <c>null</c> kind to the single registered kind, so single-principal applications carry no claim ceremony.
+        /// </summary>
+        public virtual string GetCurrentPrincipalKind()
+        {
+            return _httpContextAccessor.HttpContext?.User?.Claims
+                .FirstOrDefault(c => c.Type == PrincipalClaims.PrincipalKind)?.Value;
         }
 
         public virtual async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()

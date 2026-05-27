@@ -66,9 +66,10 @@ namespace {{basePartOfNamespace}}.Services
         public AuthorizationServiceGenerated(
             IApplicationDbContext context,
             AuthenticationService authenticationService,
-            IStringLocalizer localizer
+            IStringLocalizer localizer,
+            IPrincipalRegistry principalRegistry
         )
-            : base(context, authenticationService, localizer)
+            : base(context, authenticationService, localizer, principalRegistry)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -173,7 +174,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                await AuthorizeAndThrowAsync<User>(PermissionCodes.{{permissionCodePrefix}}{{entity.Name}});
+                await AuthorizeAndThrowAsync(PermissionCodes.{{permissionCodePrefix}}{{entity.Name}});
             });
         }
 """;
@@ -188,6 +189,7 @@ using {{basePartOfTheNamespace}}.DTO;
 using Microsoft.Extensions.Localization;
 using Spiderly.Security.Services;
 using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Helpers;

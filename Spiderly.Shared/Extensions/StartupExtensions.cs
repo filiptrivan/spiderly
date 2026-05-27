@@ -8,12 +8,14 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Constants;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
@@ -110,6 +112,12 @@ namespace Spiderly.Shared.Extensions
 
             // Core (always registered)
             services.AddSingleton<CookieManager>();
+
+            // Empty-safe principal registry, built from any AddSpiderlyPrincipal<T>() registrations (none →
+            // resolves to nothing). Registered unconditionally so authorization resolves even if a consumer
+            // wires authz services without enabling the full authentication module. TryAdd lets a consumer
+            // override it with a custom implementation.
+            services.TryAddSingleton<IPrincipalRegistry, PrincipalRegistry>();
 
             // Singleton so the dedupe cache is shared across all notification dispatches.
             services.AddSingleton<NotificationRateLimiter>();

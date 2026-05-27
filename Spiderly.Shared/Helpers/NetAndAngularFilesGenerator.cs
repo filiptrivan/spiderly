@@ -1614,7 +1614,7 @@ namespace {{appName}}.Business.Entities
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
-        IReadOnlyCollection<IRole> IUser.Roles => Roles;
+        IReadOnlyCollection<IRole> ISecurityPrincipal.Roles => Roles; // Roles moved to the principal base
 
         [UIDoNotGenerate]
         public virtual List<UserExternalLogin> ExternalLogins { get; } = new();
@@ -2612,8 +2612,10 @@ namespace {{appName}}.WebAPI.Extensions
             services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
 
             // Register the application's principal kind(s). A single-principal app registers just User; the
-            // kind-dispatched authorization then resolves it (the JWT/API-key flows stamp PrincipalKinds.User
-            // to match). Add a line per additional principal kind (e.g. a machine/service account).
+            // kind-dispatched authorization resolves it even without a principal_kind claim (single kind = the
+            // default). The login flow stamps PrincipalKinds.User onto issued tokens so authorization still
+            // dispatches correctly once a second principal kind is added.
+            // Add a line per additional principal kind (e.g. a machine/service account).
             services.AddSpiderlyPrincipal<User>(PrincipalKinds.User);
 
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();

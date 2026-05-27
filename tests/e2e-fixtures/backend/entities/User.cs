@@ -21,7 +21,7 @@ namespace __APP_NAME__.Business.Entities
         public bool? IsDisabled { get; set; }
 
         public virtual List<Role> Roles { get; } = new(); // M2M
-        IReadOnlyCollection<IRole> IUser.Roles => Roles;
+        IReadOnlyCollection<IRole> ISecurityPrincipal.Roles => Roles; // Roles moved to the principal base
 
         [UIDoNotGenerate]
         public virtual List<UserExternalLogin> ExternalLogins { get; } = new();

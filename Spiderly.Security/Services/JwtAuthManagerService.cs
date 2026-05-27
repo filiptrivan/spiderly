@@ -174,12 +174,16 @@ namespace Spiderly.Security.Services
         /// <see cref="ClaimTypes.NameIdentifier"/> after the bearer middleware's default inbound map;
         /// code reading raw <see cref="JsonWebToken"/> claims (e.g. the refresh flow) must look up
         /// <see cref="JwtRegisteredClaimNames.Sub"/> instead, because no middleware mapping applies there.
+        /// Also stamps the <see cref="PrincipalClaims.PrincipalKind"/> claim: the email-login flow only ever
+        /// issues tokens for the built-in human principal, so the kind is always <see cref="PrincipalKinds.User"/>.
+        /// This is what lets authorization dispatch to the right principal kind once an app has more than one.
         /// </summary>
         public virtual List<Claim> GenerateClaims(long userId)
         {
             return new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(PrincipalClaims.PrincipalKind, PrincipalKinds.User),
             };
         }
 
