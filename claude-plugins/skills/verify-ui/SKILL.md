@@ -12,7 +12,7 @@ The Spiderly admin panel sits entirely behind a passwordless **email-code** logi
 
 ## The core idea (driver-agnostic)
 
-In development, `SecurityService.SendLoginVerificationEmail` returns the verification code **in the response body** (when `ShouldShowVerificationCodeInNotification()` is true — default: `IWebHostEnvironment.IsDevelopment()`). So no email inbox is needed. The flow is always:
+In development, `SecurityService.SendLoginVerificationEmail` returns the verification code **in the response body** (when `ShouldShowVerificationCodeInNotification()` is true — i.e. `IWebHostEnvironment.IsDevelopment()` **and** SMTP is not fully configured, so `emailingService.IsConfigured()` is false). So no email inbox is needed. The flow is always:
 
 1. `POST /api/Security/SendLoginVerificationEmail` `{ email, browserId }` → read `verificationCode`.
 2. `POST /api/Security/Login` `{ verificationCode, email, browserId }` → get `accessToken` + `refreshToken`.
@@ -42,7 +42,7 @@ The token script already fails loudly on the first two. Confirm all four up fron
 | Requirement | How to confirm | If it fails |
 |---|---|---|
 | Backend reachable | the script's first POST succeeds (port from `launchSettings.json` → `applicationUrl`) | start the backend (`dotnet run` in the WebAPI project) |
-| Dev-mode code exposure on | response contains `verificationCode` | run backend in Development, or override `ShouldShowVerificationCodeInNotification()` |
+| Dev-mode code exposure on | response contains `verificationCode` | run backend with `ASPNETCORE_ENVIRONMENT=Development` **and** SMTP unconfigured (`IsConfigured()` false) — a fully-configured SMTP setup does a real send even in Development |
 | Admin SPA running | `frontendUrl` (from `environment.ts`, default `:4200`) responds | start the admin (`npm start` in `Frontend/`) |
 | Account has Admin role | login lands on a populated sidebar, not an empty shell | use an Admin-roled email (see gotcha) |
 

@@ -803,7 +803,7 @@ export class Action {
     icon?: string;
     style?: string;
     styleClass?: string;
-    onClick?: () => void;
+    onClick?: (id: number) => void;
   } = {}) {
     this.name = name;
     this.field = field;

@@ -2,7 +2,7 @@ import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, Subscription } from 'rxjs';
-import { catchError, delay, finalize, map, tap } from 'rxjs/operators';
+import { catchError, delay, filter, finalize, map, tap } from 'rxjs/operators';
 import {
   AuthResultWithCookies,
   Login,
@@ -34,7 +34,13 @@ export class AuthServiceBase implements OnDestroy {
   protected _currentUserPermissionCodes = new BehaviorSubject<string[] | null>(
     undefined,
   );
-  currentUserPermissionCodes$ = this._currentUserPermissionCodes.asObservable();
+  // The subject seeds with `undefined` (not yet loaded) and emits `null` on logout. Consumers only ever care
+  // about a real code list, so filter both out here — subscribers get a clean `string[]`, and `firstValueFrom`
+  // waits for the first loaded value instead of grabbing the `undefined` seed in a load race.
+  currentUserPermissionCodes$: Observable<string[]> =
+    this._currentUserPermissionCodes
+      .asObservable()
+      .pipe(filter((codes): codes is string[] => codes != null));
 
   protected _user = new BehaviorSubject<UserBase | null>(undefined);
   user$ = this._user.asObservable();

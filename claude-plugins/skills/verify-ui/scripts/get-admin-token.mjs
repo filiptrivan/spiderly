@@ -102,8 +102,9 @@ if (!verificationCode) {
   fail(
     "SendLoginVerificationEmail did not return a verificationCode.\n" +
       "  This means dev-mode code exposure is OFF (ShouldShowVerificationCodeInNotification() returned false).\n" +
-      "  It defaults to IWebHostEnvironment.IsDevelopment(). Run the backend in Development, or override\n" +
-      "  ShouldShowVerificationCodeInNotification() on your SecurityService for this environment."
+      "  The gate is IsDevelopment() && !IsConfigured(): run the backend with ASPNETCORE_ENVIRONMENT=Development\n" +
+      "  AND with SMTP left unconfigured. A fully-configured SMTP setup (EmailSender.Email + EmailSenderPassword\n" +
+      "  + SmtpHost + SmtpPort) does a real email send instead, even in Development."
   );
 }
 

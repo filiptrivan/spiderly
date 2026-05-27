@@ -7,7 +7,7 @@ description: End-to-end testing a Spiderly app with Playwright — log in via th
 
 ## Logging in from a test (no SMTP needed)
 
-Spiderly's `SendLoginVerificationEmail` endpoint returns the verification code in the response body when `ShouldShowVerificationCodeInNotification()` returns true — by default this is on in development. That lets a test complete the 2FA flow without ever sending an email.
+Spiderly's `SendLoginVerificationEmail` endpoint returns the verification code in the response body when `ShouldShowVerificationCodeInNotification()` returns true. The gate is `IWebHostEnvironment.IsDevelopment() && !emailingService.IsConfigured()` — it's on **only** when the backend runs in the Development environment **and** SMTP is not fully configured. `IsConfigured()` requires all four of `EmailSender.Email`, `EmailSenderPassword`, `SmtpHost`, and `SmtpPort > 0`; if all four are present, the backend does a **real email send** instead — even in Development — and `verificationCode` is absent from the response. So run the test backend with `ASPNETCORE_ENVIRONMENT=Development` and SMTP left unconfigured. That lets a test complete the 2FA flow without ever sending an email.
 
 ```ts
 import { APIRequestContext, Page, expect } from '@playwright/test';
@@ -48,7 +48,7 @@ export async function authenticateBrowser(page: Page, request: APIRequestContext
 }
 ```
 
-To **keep** this dev behavior in another environment (e.g. an internal staging instance), override `ShouldShowVerificationCodeInNotification()` on your `SecurityService`. To **turn it off** in production, leave the default — it's tied to `IWebHostEnvironment.IsDevelopment()`.
+The two conditions above are the only levers — `ShouldShowVerificationCodeInNotification()` is `private`, so you can't override it on your `SecurityService`. To **get** the code in the response (tests, local dev): run with `ASPNETCORE_ENVIRONMENT=Development` and no complete SMTP config. To **turn it off** (production, or any environment that must send real emails): run a non-Development environment, or fully configure SMTP. Without `ASPNETCORE_ENVIRONMENT=Development` the code is never returned, regardless of SMTP config.
 
 ## PrimeNG v19 selector pitfalls
 
