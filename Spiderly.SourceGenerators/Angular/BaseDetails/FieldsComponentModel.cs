@@ -40,6 +40,14 @@ namespace Spiderly.SourceGenerators.Angular
         public List<TableModel> Tables { get; set; } = new();
 
         /// <summary>
+        /// [ComplexManyToManyList] junction collections this entity renders as a card panel of index-cards. Each card
+        /// shows the related (other-side) entity's display name as its header and the junction's payload fields inline
+        /// (no CRUD menu / add-button — rows are a fixed, default-seeded set). Distinct from <see cref="Tables"/> (a
+        /// data-table) and <see cref="OrderedOneToManies"/> (composed child-entity forms).
+        /// </summary>
+        public List<ComplexManyToManyListModel> ComplexManyToManyLists { get; set; } = new();
+
+        /// <summary>
         /// Distinct [UISection] names in first-appearance order over the entity's ordered property blocks, including a
         /// null entry for the implicit headerless section (unsectioned blocks). EMPTY when no property declares
         /// [UISection] — the fragment then renders flat. Drives the fragment's stacked section panels.
@@ -82,6 +90,47 @@ namespace Spiderly.SourceGenerators.Angular
 
         /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
         public string SectionName { get; set; }
+    }
+
+    /// <summary>A [ComplexManyToManyList] junction collection rendered as a card panel of index-cards (one per row).</summary>
+    internal sealed class ComplexManyToManyListModel
+    {
+        /// <summary>The parent's junction collection property (e.g. <c>"ProductVariantWarehouses"</c>).</summary>
+        public string PropertyName { get; set; }
+
+        /// <summary>Transloco key for the panel header (today equals <see cref="PropertyName"/>).</summary>
+        public string TranslationKey { get; set; }
+
+        /// <summary>SpiderlyFormArray access expression for the junction rows, e.g. <c>formGroup.controls.productVariantWarehouses</c>.</summary>
+        public string FormArrayAccess { get; set; }
+
+        /// <summary>The <c>@for</c> loop variable for one junction row, e.g. <c>productVariantWarehouseFormGroup</c>.</summary>
+        public string JunctionRowVar { get; set; }
+
+        /// <summary>Index-card header expression — the other-side entity's display name, e.g.
+        /// <c>productVariantWarehouseFormGroup.getControl('warehouseDisplayName')?.getRawValue()</c>.</summary>
+        public string HeaderExpression { get; set; }
+
+        /// <summary>Panel-collapsed <c>@Input()</c> name. The legacy <c>For{Entity}</c> suffix is intentionally dropped
+        /// (the fragment is a standalone component, not a per-entity shell) — do not "restore" it.</summary>
+        public string PanelCollapsedInputName { get; set; }
+
+        /// <summary>The junction's payload (non-relation, non-collection, generated) fields rendered inline in each card.</summary>
+        public List<ComplexM2MJunctionFieldModel> JunctionFields { get; set; } = new();
+
+        /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
+        public string SectionName { get; set; }
+    }
+
+    /// <summary>One inline payload control inside a <see cref="ComplexManyToManyListModel"/> card.</summary>
+    internal sealed class ComplexM2MJunctionFieldModel
+    {
+        /// <summary>Control element tag, e.g. <c>spiderly-number</c>.</summary>
+        public string ControlTag { get; set; }
+        /// <summary>Junction form-control name, e.g. <c>stock</c>.</summary>
+        public string FormControlName { get; set; }
+        /// <summary>Extra control attributes (with a leading space), e.g. <c> [decimal]="true" [maxFractionDigits]="2"</c>. Empty when none.</summary>
+        public string ExtraControlAttributes { get; set; } = "";
     }
 
     /// <summary>A many-to-many spiderly-data-table (complex-readonly today; editable lazy-load later).</summary>
