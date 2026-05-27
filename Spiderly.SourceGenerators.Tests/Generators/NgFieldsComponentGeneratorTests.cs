@@ -522,6 +522,8 @@ public class NgFieldsComponentGeneratorTests
                 new() { Name = "Alt", Type = "string", EntityName = "ProductMedia" },
                 new() { Name = "Url", Type = "string", EntityName = "ProductMedia",
                     Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+                new() { Name = "ThumbnailUrl", Type = "string", EntityName = "ProductMedia",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
             },
         };
         SpiderlyClass product = new()

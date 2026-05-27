@@ -39,6 +39,7 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 string childType = Helpers.ExtractTypeFromGenericType(property.Type);
                 string childCamel = childType.FirstCharToLower();
+                string childRowVar = $"{childCamel}FormGroup";
 
                 SpiderlyClass orderedChildEntity = Helpers.GetEntityByPropertyType(property, allEntities);
                 List<OrderedChildFileOutputModel> fileOutputs = new();
@@ -52,7 +53,7 @@ namespace Spiderly.SourceGenerators.Angular
                         {
                             ParentOutputName = $"on{childProp.Name}For{childType}Uploaded",
                             ChildUploadOutputName = $"on{childProp.Name}Uploaded",
-                            RowDtoAccess = $"{childCamel}FormGroup.controls.{childCamel}DTO",
+                            RowDtoAccess = $"{childRowVar}.controls.{childCamel}DTO",
                         });
                     }
                 }
@@ -62,7 +63,7 @@ namespace Spiderly.SourceGenerators.Angular
                     PropertyName = property.Name,
                     TranslationKey = property.Name,
                     FormArrayAccess = $"formGroup.controls.ordered{property.Name}SaveBodyDTO",
-                    ChildRowVar = $"{childCamel}FormGroup",
+                    ChildRowVar = childRowVar,
                     ChildFieldsSelector = $"{childType.FromPascalToKebabCase()}-fields",
                     ChildFieldsComponentClassName = $"{childType}FieldsComponent",
                     AddNewLabelKey = $"AddNew{childType}",

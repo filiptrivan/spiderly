@@ -20,7 +20,7 @@
                     (onMenuIconClick)="formGroup.controls.orderedProductMediaSaveBodyDTO.lastMenuIconIndexClicked = $event"
                     >
                         <form [formGroup]="productMediaFormGroup" class="spiderly-grid">
-                            <product-media-fields [formGroup]="productMediaFormGroup" [hiddenParentRelation]="'ProductMedia'" (onUrlUploaded)="onUrlForProductMediaUploaded.emit({ event: $event, formGroup: productMediaFormGroup.controls.productMediaDTO })"></product-media-fields>
+                            <product-media-fields [formGroup]="productMediaFormGroup" [hiddenParentRelation]="'ProductMedia'" (onUrlUploaded)="onUrlForProductMediaUploaded.emit({ event: $event, formGroup: productMediaFormGroup.controls.productMediaDTO })" (onThumbnailUrlUploaded)="onThumbnailUrlForProductMediaUploaded.emit({ event: $event, formGroup: productMediaFormGroup.controls.productMediaDTO })"></product-media-fields>
                             <ng-container *ngIf="additionalContentTemplateForProductMedia">
                                 <ng-container *ngTemplateOutlet="additionalContentTemplateForProductMedia; context: { $implicit: productMediaFormGroup, formGroup: productMediaFormGroup, index: index, last: last }"></ng-container>
                             </ng-container>
@@ -56,6 +56,7 @@ export class ProductFieldsComponent {
     @Input() productMediaPanelCollapsed: boolean = false;
     @Input() additionalContentTemplateForProductMedia: TemplateRef<any> | undefined;
     @Output() onUrlForProductMediaUploaded = new EventEmitter<{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }>();
+    @Output() onThumbnailUrlForProductMediaUploaded = new EventEmitter<{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }>();
 }
 
 export class ProductFieldsConfig {
