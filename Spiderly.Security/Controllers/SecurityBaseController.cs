@@ -17,6 +17,11 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
     /// <typeparam name="TRole">The type of the role entity, which must implement the <see cref="IRole"/> interface.</typeparam>
     /// <typeparam name="TUserExternalLogin">The entity linking a user to an external provider login, implementing <see cref="IUserExternalLogin"/>.</typeparam>
+    // Auth/session responses carry per-session identity + tokens and MUST never be cached. Without this,
+    // browsers cache the GET responses (e.g. RefreshTokenWithCookies) and replay a stale "logged-in" body
+    // on back/forward + soft reloads — showing a phantom dashboard after logout until a hard revalidation
+    // reveals the 401. NoStore + Location.None emits "Cache-Control: no-store, no-cache" + "Pragma: no-cache".
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class SecurityBaseController<TUser, TRole, TUserExternalLogin> : SpiderlyBaseController
         where TUser : class, IUser, new()
         where TRole : class, IRole, new()
@@ -223,10 +228,13 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         }
 
         /// <summary>
-        /// Refreshes the access token using the refresh token stored in an HttpOnly cookie.
+        /// Refreshes the access token using the refresh token stored in an HttpOnly cookie. POST (not GET)
+        /// because it mutates server state — it rotates the single-use refresh token. A safe/idempotent GET
+        /// was cacheable, so browsers replayed a stale "logged-in" body on back/forward navigations (phantom
+        /// dashboard after logout); POST is never cached, and the controller-level no-store is belt-and-braces.
         /// </summary>
-        [HttpGet]
-        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        [HttpPost]
+        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies([FromQuery] string browserId)
         {
             return await _securityServiceBase.RefreshTokenWithCookies(browserId);
         }

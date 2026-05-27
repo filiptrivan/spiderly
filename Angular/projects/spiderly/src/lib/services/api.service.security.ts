@@ -80,8 +80,11 @@ export class ApiSecurityService {
   };
 
   refreshTokenWithCookies = (browserId: string): Observable<AuthResultWithCookies> => {
-    return this.http.get<AuthResultWithCookies>(
+    // POST, not GET: refresh rotates the single-use token (a state mutation), and a cacheable GET let
+    // browsers replay a stale logged-in response on back/forward navigation (phantom dashboard after logout).
+    return this.http.post<AuthResultWithCookies>(
       `${this.config.apiUrl}/Security/RefreshTokenWithCookies?browserId=${browserId}`,
+      null,
     );
   };
 
