@@ -131,4 +131,39 @@ public class NgShellComponentGeneratorTests
         ShellComponentModel model = NgShellModelBuilder.Build(product, new() { product, productVariant, junction, warehouse });
         return Verify(NgShellComponentGenerator.BuildShellComponent(model));
     }
+
+    // Combined: an entity with BOTH its own top-level [ComplexManyToManyList] AND an ordered-O2M child that also has
+    // one. The create-path initFormGroup carries the own seed object AND is followed by the child formGroupInitialValues
+    // assignment — verifies the two seed mechanisms coexist on the same route-load.
+    [Fact]
+    public Task EmitsShellWithOwnAndOrderedChildComplexManyToManySeeding()
+    {
+        SpiderlyClass productVariant = new()
+        {
+            Name = "ProductVariant", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "ProductVariant" },
+                new() { Name = "ProductVariantWarehouses", Type = "List<ProductVariantWarehouse>", EntityName = "ProductVariant",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "ComplexManyToManyList" } } },
+            },
+        };
+        SpiderlyClass bundle = new()
+        {
+            Name = "Bundle", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Bundle" },
+                new() { Name = "BundleTags", Type = "List<BundleTag>", EntityName = "Bundle",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "ComplexManyToManyList" } } },
+                new() { Name = "ProductVariants", Type = "List<ProductVariant>", EntityName = "Bundle",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+            },
+        };
+
+        ShellComponentModel model = NgShellModelBuilder.Build(bundle, new() { bundle, productVariant });
+        return Verify(NgShellComponentGenerator.BuildShellComponent(model));
+    }
 }
