@@ -110,6 +110,44 @@ namespace Spiderly.SourceGenerators.Angular
                 });
             }
 
+            foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
+            {
+                var (junctionEntity, _, otherSideM2MProperty, _) =
+                    NgDetailsPropertyBlockGenerator.ResolveComplexManyToManyListInfo(entity, property, allEntities);
+
+                string junctionCamel = junctionEntity.Name.FirstCharToLower();
+                string junctionRowVar = $"{junctionCamel}FormGroup";
+
+                List<ComplexM2MJunctionFieldModel> junctionFields = junctionEntity.Properties
+                    .Where(p => !p.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
+                    .Select(p =>
+                    {
+                        UIControlTypeCodes ct = NgDetailsPropertyBlockGenerator.GetUIControlType(p);
+                        string extra = ct == UIControlTypeCodes.Decimal
+                            ? $" [decimal]=\"true\" [maxFractionDigits]=\"{p.GetDecimalScale()}\""
+                            : "";
+                        return new ComplexM2MJunctionFieldModel
+                        {
+                            ControlTag = NgDetailsPropertyBlockGenerator.GetUIStringControlType(ct),
+                            FormControlName = p.Name.FirstCharToLower(),
+                            ExtraControlAttributes = extra,
+                        };
+                    })
+                    .ToList();
+
+                model.ComplexManyToManyLists.Add(new ComplexManyToManyListModel
+                {
+                    PropertyName = property.Name,
+                    TranslationKey = property.Name,
+                    FormArrayAccess = $"formGroup.controls.{property.Name.FirstCharToLower()}",
+                    JunctionRowVar = junctionRowVar,
+                    HeaderExpression = $"{junctionRowVar}.getControl('{otherSideM2MProperty.Name.FirstCharToLower()}DisplayName')?.getRawValue()",
+                    PanelCollapsedInputName = $"{property.Name.FirstCharToLower()}PanelCollapsed",
+                    JunctionFields = junctionFields,
+                    SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
+                });
+            }
+
             // Distinct sections in first-appearance order over the SAME property set the fragment actually renders
             // (entity.Properties — custom-DTO display fields aren't handled by the fragment yet). Only enable grouped
             // mode (a non-empty SectionOrder) when at least one named section exists, so fully-unsectioned entities

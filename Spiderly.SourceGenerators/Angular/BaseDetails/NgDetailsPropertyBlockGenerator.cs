@@ -386,7 +386,7 @@ namespace Spiderly.SourceGenerators.Angular
 """;
         }
 
-        private static (SpiderlyClass JunctionEntity, SpiderlyProperty CurrentSideM2MProperty, SpiderlyProperty OtherSideM2MProperty, SpiderlyClass OtherSideEntity) ResolveComplexManyToManyListInfo(
+        internal static (SpiderlyClass JunctionEntity, SpiderlyProperty CurrentSideM2MProperty, SpiderlyProperty OtherSideM2MProperty, SpiderlyClass OtherSideEntity) ResolveComplexManyToManyListInfo(
             SpiderlyClass entity,
             SpiderlyProperty property,
             List<SpiderlyClass> allEntities

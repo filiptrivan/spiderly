@@ -110,6 +110,48 @@ public class NgFieldsModelBuilderTests
         },
     };
 
+    private static SpiderlyClass Warehouse() => new()
+    {
+        Name = "Warehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Warehouse" } },
+    };
+
+    private static SpiderlyClass ProductVariantWarehouse() => new()
+    {
+        Name = "ProductVariantWarehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" }, new() { Name = "M2M" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new()
+            {
+                Name = "ProductVariant", Type = "ProductVariant", EntityName = "ProductVariantWarehouse",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+            },
+            new()
+            {
+                Name = "Warehouse", Type = "Warehouse", EntityName = "ProductVariantWarehouse",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+            },
+            new() { Name = "Stock", Type = "int", EntityName = "ProductVariantWarehouse" },
+        },
+    };
+
+    private static SpiderlyClass ProductVariantWithWarehouses() => new()
+    {
+        Name = "ProductVariant", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Name", Type = "string", EntityName = "ProductVariant" },
+            new()
+            {
+                Name = "ProductVariantWarehouses", Type = "List<ProductVariantWarehouse>", EntityName = "ProductVariant",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "ComplexManyToManyList" } },
+            },
+        },
+    };
+
     private static SpiderlyClass Brand() => new()
     {
         Name = "Brand",
@@ -514,5 +556,54 @@ public class NgFieldsModelBuilderTests
     public void Build_NoSection_LeavesSectionOrderEmpty()
     {
         Assert.Empty(NgFieldsModelBuilder.Build(Brand(), new() { Brand() }, new()).SectionOrder);
+    }
+
+    [Fact]
+    public void Build_ComplexManyToManyList_SetsPanelAndFormArray()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductVariantWithWarehouses(),
+            new() { ProductVariantWithWarehouses(), ProductVariantWarehouse(), Warehouse() },
+            new());
+
+        ComplexManyToManyListModel c = Assert.Single(model.ComplexManyToManyLists);
+        Assert.Equal("ProductVariantWarehouses", c.PropertyName);
+        Assert.Equal("ProductVariantWarehouses", c.TranslationKey);
+        Assert.Equal("formGroup.controls.productVariantWarehouses", c.FormArrayAccess);
+        Assert.Equal("productVariantWarehouseFormGroup", c.JunctionRowVar);
+        Assert.Equal(
+            "productVariantWarehouseFormGroup.getControl('warehouseDisplayName')?.getRawValue()",
+            c.HeaderExpression);
+        Assert.Equal("productVariantWarehousesPanelCollapsed", c.PanelCollapsedInputName);
+        Assert.Null(c.SectionName);
+    }
+
+    [Fact]
+    public void Build_ComplexManyToManyList_RendersOnlyPayloadFieldsInline()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductVariantWithWarehouses(),
+            new() { ProductVariantWithWarehouses(), ProductVariantWarehouse(), Warehouse() },
+            new());
+
+        ComplexManyToManyListModel c = Assert.Single(model.ComplexManyToManyLists);
+
+        // The two [M2MWithMany] relation props are excluded (IsManyToOneType); only the Stock payload field renders.
+        ComplexM2MJunctionFieldModel field = Assert.Single(c.JunctionFields);
+        Assert.Equal("spiderly-number", field.ControlTag);
+        Assert.Equal("stock", field.FormControlName);
+        Assert.Equal("", field.ExtraControlAttributes);
+    }
+
+    [Fact]
+    public void Build_ComplexManyToManyList_NotTreatedAsFieldOrTable()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductVariantWithWarehouses(),
+            new() { ProductVariantWithWarehouses(), ProductVariantWarehouse(), Warehouse() },
+            new());
+
+        Assert.DoesNotContain(model.Fields, f => f.PropertyName == "ProductVariantWarehouses");
+        Assert.Empty(model.Tables);
     }
 }
