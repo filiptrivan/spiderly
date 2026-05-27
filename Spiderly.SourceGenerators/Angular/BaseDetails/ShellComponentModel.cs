@@ -26,6 +26,30 @@ namespace Spiderly.SourceGenerators.Angular
         /// Insert{Entity}/Update{Entity} checks. Empty when the entity declares none.
         /// </summary>
         public List<AdditionalSavePermissionCode> AdditionalSavePermissionCodes { get; set; } = new();
+
+        /// <summary>
+        /// ComplexManyToManyList default-seed forkJoin params for the route-load, e.g.
+        /// <c>"defaultProductVariantWarehousesForProductVariant: this.apiService.getDefaultProductVariantWarehousesForProductVariant()"</c>
+        /// (no indent, no trailing comma — the emitter lays them out). Covers the entity's own top-level
+        /// [ComplexManyToManyList] props plus the [ComplexManyToManyList] props of its DIRECT [UIOrderedOneToMany]
+        /// children. Empty when none — the route-load then stays byte-identical to the no-seed shell.
+        /// </summary>
+        public List<string> SeedForkJoinParams { get; set; } = new();
+
+        /// <summary>
+        /// New-entity initial values for the entity's OWN top-level [ComplexManyToManyList] props, e.g.
+        /// <c>"productVariantWarehouses: data.defaultProductVariantWarehousesForProductVariant"</c>. Applied as the
+        /// initFormGroup seed object on the create (modelId &lt;= 0) path so a new entity pre-populates its fixed junction rows.
+        /// </summary>
+        public List<string> NewEntitySeedInits { get; set; } = new();
+
+        /// <summary>
+        /// formGroupInitialValues assignment statements that seed default junction rows for an ordered-O2M child's
+        /// [ComplexManyToManyList] props (so a newly-added child row pre-populates them), e.g.
+        /// <c>"this.parentFormGroup.controls.orderedProductVariantsSaveBodyDTO.formGroupInitialValues = { ...this.parentFormGroup.controls.orderedProductVariantsSaveBodyDTO.formGroupInitialValues, productVariantWarehouses: data.defaultProductVariantWarehousesForProductVariant };"</c>.
+        /// Applied (indented by the emitter) in both the existing and new route-load paths. Empty when none.
+        /// </summary>
+        public List<string> OrderedChildSeedAssignments { get; set; } = new();
     }
 
     /// <summary>One [UIAdditionalPermissionCodeFor*] save-authorization grant.</summary>
