@@ -27,6 +27,10 @@ export class AuthServiceBase implements OnDestroy {
   private timer?: Subscription;
   private accessTokenExpiresAt?: Date;
 
+  // External-login error code captured from the bootstrap URL (?externalAuthError=expired|failed) set by the
+  // backend's OAuth callback on failure. Captured before routing can strip it, surfaced once by the login page.
+  externalAuthErrorCode: string | null = null;
+
   protected _currentUserPermissionCodes = new BehaviorSubject<string[] | null>(
     undefined,
   );
@@ -128,6 +132,9 @@ export class AuthServiceBase implements OnDestroy {
     return this.apiService.refreshTokenWithCookies(browserId).pipe(
       map((result: AuthResultWithCookies) => {
         if (result) {
+          // A re-established session makes any pending external-login error moot — drop it so it can't
+          // surface as a stale toast on a later /login visit (e.g. after a subsequent logout).
+          this.externalAuthErrorCode = null;
           this._user.next({ id: result.userId, email: result.email });
           this.accessTokenExpiresAt = result.accessTokenExpiresAt
             ? new Date(result.accessTokenExpiresAt)
@@ -147,6 +154,28 @@ export class AuthServiceBase implements OnDestroy {
   onAfterRefreshToken = () => {
     this.setCurrentUserPermissionCodes().subscribe(); // after the session is re-established
   };
+
+  // Reads ?externalAuthError= from the bootstrap URL (set by the backend OAuth callback on failure) and
+  // strips it so a manual refresh won't re-trigger the message. Called from the app initializer, before the
+  // router runs — otherwise an unauthenticated landing on "/" redirects to /login and drops the param.
+  captureExternalAuthError() {
+    if (isPlatformBrowser(this.platformId) === false) {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('externalAuthError');
+    if (!code) {
+      return;
+    }
+    this.externalAuthErrorCode = code;
+    params.delete('externalAuthError');
+    const query = params.toString();
+    history.replaceState(
+      history.state,
+      '',
+      window.location.pathname + (query ? `?${query}` : '') + window.location.hash,
+    );
+  }
 
   getBrowserId(): string {
     let browserId = localStorage.getItem(this.config.browserIdKey); // not a token — a stable per-browser id

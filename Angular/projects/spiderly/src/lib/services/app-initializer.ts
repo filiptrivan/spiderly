@@ -9,6 +9,7 @@ export function authInitializer(
 ): () => Observable<AuthResult> {
   if (isPlatformBrowser(platformId)) {
     return () => {
+      authService.captureExternalAuthError(); // before the router can strip ?externalAuthError on the /login redirect
       return authService.refreshToken();
     };
   }

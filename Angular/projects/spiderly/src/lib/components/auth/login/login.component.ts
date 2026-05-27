@@ -66,6 +66,20 @@ export class SpiderlyLoginComponent extends BaseFormComponent implements OnInit 
 
   override ngOnInit() {
     this.initLoginFormGroup(new Login({}));
+    this.showExternalAuthErrorIfPresent();
+  }
+
+  // Surface a friendly message when the server-side external login bounced back with an error (captured from
+  // the URL at bootstrap by AuthServiceBase). "expired" = the user lingered on the provider's account picker.
+  private showExternalAuthErrorIfPresent() {
+    const code = this.authService.externalAuthErrorCode;
+    if (!code) {
+      return;
+    }
+    this.authService.externalAuthErrorCode = null; // show once
+    const messageKey =
+      code === 'expired' ? 'ExternalLoginExpiredDetails' : 'ExternalLoginFailedDetails';
+    this.messageService.warningMessage(this.translocoService.translate(messageKey));
   }
 
   initLoginFormGroup(model: Login) {

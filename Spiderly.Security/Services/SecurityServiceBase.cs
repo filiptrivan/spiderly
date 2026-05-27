@@ -278,6 +278,18 @@ namespace Spiderly.Security.Services
         /// look-alike host such as <c>https://app.example.com.evil.com</c>, which starts with the allowed origin
         /// but is a different site. Never echoes an unvalidated caller-supplied URL.
         /// </summary>
+        /// <summary>
+        /// Builds the redirect used when the server-side external-login callback can't complete (e.g. the state
+        /// cookie expired because the user lingered on the provider's account picker). Always targets the
+        /// configured frontend origin — never an untrusted return URL — with an <c>externalAuthError</c> hint
+        /// the SPA surfaces as a friendly message. <paramref name="code"/> is <c>expired</c> (took too long) or
+        /// <c>failed</c> (invalid state/nonce, failed code exchange, or denied consent).
+        /// </summary>
+        public virtual string BuildExternalAuthErrorRedirectUrl(string code)
+        {
+            return $"{_frontendUrl.TrimEnd('/')}/?externalAuthError={Uri.EscapeDataString(code)}";
+        }
+
         private string SanitizeReturnUrl(string returnUrl)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) &&

@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity.UI;
+using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -169,7 +172,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
                 Secure = true,
                 SameSite = SameSiteMode.Lax, // sent on the top-level GET navigation back from the provider
                 Path = "/",
-                MaxAge = TimeSpan.FromMinutes(10),
+                MaxAge = TimeSpan.FromMinutes(15), // matches the nonce lifetime; grace for the provider's account picker
             });
 
             return Redirect(authorizeUrl);
@@ -179,19 +182,52 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// Server-side external-login step 2: the provider redirects here with the code. Exchanges it for the
         /// id token (server-side), validates + links the user, issues the session as HttpOnly cookies, and
         /// redirects back to the originating app (returnUrl).
+        /// <para>
+        /// This is a top-level browser navigation, so failures must <b>redirect back to the app</b> (never
+        /// render a JSON error onto the API origin). The app surfaces a friendly message via the
+        /// <c>externalAuthError</c> hint: <c>expired</c> (the state cookie lapsed — the user lingered on the
+        /// provider's picker) or <c>failed</c> (invalid state/nonce, failed code exchange, or denied consent).
+        /// </para>
         /// </summary>
         [HttpGet]
         [UIDoNotGenerate]
         public virtual async Task<ActionResult> ExternalLoginCallback(string code, string state)
         {
             string protectedState = Request.Cookies[ExternalLoginStateCookieName];
+            Response.Cookies.Delete(ExternalLoginStateCookieName); // single-use — clear regardless of outcome
 
-            string returnUrl = await _securityServiceBase.CompleteExternalLoginAsync(code, state, protectedState);
+            // No state cookie => it expired (almost always because the user took too long on the provider's
+            // account picker). Benign: bounce back with an "expired" hint instead of throwing a security error.
+            if (string.IsNullOrEmpty(protectedState))
+                return Redirect(_securityServiceBase.BuildExternalAuthErrorRedirectUrl("expired"));
 
-            Response.Cookies.Delete(ExternalLoginStateCookieName);
+            try
+            {
+                string returnUrl = await _securityServiceBase.CompleteExternalLoginAsync(code, state, protectedState);
+                // returnUrl was validated against the configured frontend origin at challenge time (SanitizeReturnUrl).
+                return Redirect(returnUrl);
+            }
+            catch (Exception ex)
+            {
+                ILogger logger = HttpContext.RequestServices
+                    .GetService<ILogger<SecurityBaseController<TUser, TRole, TUserExternalLogin>>>();
 
-            // returnUrl was validated against the configured frontend origin at challenge time (SanitizeReturnUrl).
-            return Redirect(returnUrl);
+                if (ex is BusinessException || ex is SecurityViolationException)
+                {
+                    // Expected, caller-driven outcome: denied consent, unverified email, missing code, or a
+                    // tampered/expired state/nonce. A single failed attempt is logged for traceability, not
+                    // treated as a server fault.
+                    logger?.LogWarning(ex, "External login callback rejected.");
+                }
+                else
+                {
+                    // Unexpected server fault (e.g. data-store failure while resolving the user). Surface at
+                    // Error so it isn't hidden behind the friendly redirect.
+                    logger?.LogError(ex, "External login callback failed unexpectedly.");
+                }
+
+                return Redirect(_securityServiceBase.BuildExternalAuthErrorRedirectUrl("failed"));
+            }
         }
 
         [HttpGet]
