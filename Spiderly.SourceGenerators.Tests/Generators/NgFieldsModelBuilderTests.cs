@@ -487,11 +487,44 @@ public class NgFieldsModelBuilderTests
     }
 
     [Fact]
-    public void Build_OrderedChildWithoutFileControls_HasNoFileOutputs()
+    public void Build_OrderedChildNotInAllEntities_HasNoFileOutputs()
     {
-        // Segmentation's ordered child (SegmentationItem) isn't in allEntities here, so it can't be resolved →
-        // FileOutputs stays empty (the resolution is null-guarded). That's the behavior to lock.
+        // Segmentation's ordered child (SegmentationItem) is absent from allEntities, so the child entity cannot be
+        // resolved — the null-guard path fires, the foreach is never entered, and FileOutputs stays empty.
         FieldsComponentModel model = NgFieldsModelBuilder.Build(Segmentation(), new() { Segmentation() }, new());
+
+        OrderedOneToManyModel ordered = Assert.Single(model.OrderedOneToManies);
+        Assert.Empty(ordered.FileOutputs);
+    }
+
+    private static SpiderlyClass ScalarOnlyChild() => new()
+    {
+        Name = "ProductTag", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Label", Type = "string", EntityName = "ProductTag" },
+        },
+    };
+
+    private static SpiderlyClass ProductWithScalarChild() => new()
+    {
+        Name = "Product", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Name", Type = "string", EntityName = "Product" },
+            new() { Name = "ProductTags", Type = "List<ProductTag>", EntityName = "Product",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+        },
+    };
+
+    [Fact]
+    public void Build_OrderedChildResolvedWithNoFileControls_HasNoFileOutputs()
+    {
+        // Child IS in allEntities (resolves) but has only a scalar control — the File filter matches nothing.
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductWithScalarChild(), new() { ProductWithScalarChild(), ScalarOnlyChild() }, new());
 
         OrderedOneToManyModel ordered = Assert.Single(model.OrderedOneToManies);
         Assert.Empty(ordered.FileOutputs);
