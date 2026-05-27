@@ -1,0 +1,63 @@
+﻿@Component({
+    selector: 'product-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showName !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.productDTO.getControl('name')"></spiderly-textbox>
+        <ng-content select="[belowName]"></ng-content>
+    </div>
+    <div class="col-8">
+        <spiderly-panel [toggleable]="true" [collapsed]="productMediaPanelCollapsed">
+            <panel-header [title]="t('ProductMedia')" icon="pi pi-list"></panel-header>
+            <panel-body [normalBottomPadding]="true">
+                @for (productMediaFormGroup of formGroup.controls.orderedProductMediaSaveBodyDTO.getFormGroups(); track productMediaFormGroup.trackingId; let index = $index; let last = $last) {
+                    <index-card
+                    [index]="index"
+                    [last]="false"
+                    [crudMenu]="formGroup.controls.orderedProductMediaSaveBodyDTO.getCrudMenuForOrderedData()"
+                    [showCrudMenu]="isAuthorizedForSave"
+                    (onMenuIconClick)="formGroup.controls.orderedProductMediaSaveBodyDTO.lastMenuIconIndexClicked = $event"
+                    >
+                        <form [formGroup]="productMediaFormGroup" class="spiderly-grid">
+                            <product-media-fields [formGroup]="productMediaFormGroup" [hiddenParentRelation]="'ProductMedia'" (onUrlUploaded)="onUrlForProductMediaUploaded.emit({ event: $event, formGroup: productMediaFormGroup.controls.productMediaDTO })"></product-media-fields>
+                            <ng-container *ngIf="additionalContentTemplateForProductMedia">
+                                <ng-container *ngTemplateOutlet="additionalContentTemplateForProductMedia; context: { $implicit: productMediaFormGroup, formGroup: productMediaFormGroup, index: index, last: last }"></ng-container>
+                            </ng-container>
+                        </form>
+                    </index-card>
+                }
+
+                <div class="panel-add-button">
+                    <spiderly-button [disabled]="!isAuthorizedForSave" (onClick)="formGroup.controls.orderedProductMediaSaveBodyDTO.addNewFormGroup(null)" [label]="t('AddNewProductMedia')" icon="pi pi-plus"></spiderly-button>
+                </div>
+
+            </panel-body>
+        </spiderly-panel>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        IndexCardComponent,
+        ProductMediaFieldsComponent,
+    ]
+})
+export class ProductFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<ProductSaveBody>;
+    @Input() config: ProductFieldsConfig = {};
+    @Input() isAuthorizedForSave: boolean = false;
+    @Input() productMediaPanelCollapsed: boolean = false;
+    @Input() additionalContentTemplateForProductMedia: TemplateRef<any> | undefined;
+    @Output() onUrlForProductMediaUploaded = new EventEmitter<{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }>();
+}
+
+export class ProductFieldsConfig {
+    showName?: boolean;
+}

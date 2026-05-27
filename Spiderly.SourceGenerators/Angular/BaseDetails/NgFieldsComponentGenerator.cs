@@ -18,7 +18,10 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(f => $"    @Output() {f.ChangeOutput.OutputName} = new EventEmitter<{f.ChangeOutput.EventType}>();")
                 .Concat(model.Fields
                     .Where(f => f.FileUpload != null)
-                    .Select(f => $"    @Output() {f.FileUpload.OutputName} = new EventEmitter<SpiderlyFileSelectEvent>();")));
+                    .Select(f => $"    @Output() {f.FileUpload.OutputName} = new EventEmitter<SpiderlyFileSelectEvent>();"))
+                .Concat(model.OrderedOneToManies
+                    .SelectMany(o => o.FileOutputs)
+                    .Select(fo => $"    @Output() {fo.ParentOutputName} = new EventEmitter<{{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }}>();")));
             string outputsBlock = outputs.Length > 0 ? $"\n{outputs}" : "";
 
             string optionsFields = string.Join("\n", model.Fields
@@ -275,6 +278,9 @@ export class {{model.ComponentClassName}} {
 
         private static string GetOrderedOneToManyBlock(OrderedOneToManyModel o)
         {
+            string fileOutputBindings = string.Join("", o.FileOutputs
+                .Select(fo => $" ({fo.ChildUploadOutputName})=\"{fo.ParentOutputName}.emit({{ event: $event, formGroup: {fo.RowDtoAccess} }})\""));
+
             return $$"""
     <div class="col-8">
         <spiderly-panel [toggleable]="true" [collapsed]="{{o.PanelCollapsedInputName}}">
@@ -289,7 +295,7 @@ export class {{model.ComponentClassName}} {
                     (onMenuIconClick)="{{o.FormArrayAccess}}.lastMenuIconIndexClicked = $event"
                     >
                         <form [formGroup]="{{o.ChildRowVar}}" class="spiderly-grid">
-                            <{{o.ChildFieldsSelector}} [formGroup]="{{o.ChildRowVar}}" [hiddenParentRelation]="'{{o.PropertyName}}'"></{{o.ChildFieldsSelector}}>
+                            <{{o.ChildFieldsSelector}} [formGroup]="{{o.ChildRowVar}}" [hiddenParentRelation]="'{{o.PropertyName}}'"{{fileOutputBindings}}></{{o.ChildFieldsSelector}}>
                             <ng-container *ngIf="{{o.AdditionalContentTemplateInputName}}">
                                 <ng-container *ngTemplateOutlet="{{o.AdditionalContentTemplateInputName}}; context: { $implicit: {{o.ChildRowVar}}, formGroup: {{o.ChildRowVar}}, index: index, last: last }"></ng-container>
                             </ng-container>

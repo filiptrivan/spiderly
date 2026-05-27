@@ -508,6 +508,39 @@ public class NgFieldsComponentGeneratorTests
         return Verify(output);
     }
 
+    // An ordered-O2M child with File controls: the parent fragment re-exposes each as its own @Output and wires the
+    // child fragment's on{Prop}Uploaded in the @for row to re-emit { event, formGroup } with the row's DTO group.
+    [Fact]
+    public Task EmitsOrderedOneToManyFileOutputs()
+    {
+        SpiderlyClass media = new()
+        {
+            Name = "ProductMedia", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Alt", Type = "string", EntityName = "ProductMedia" },
+                new() { Name = "Url", Type = "string", EntityName = "ProductMedia",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+            },
+        };
+        SpiderlyClass product = new()
+        {
+            Name = "Product", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "Product" },
+                new() { Name = "ProductMedia", Type = "List<ProductMedia>", EntityName = "Product",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(product, new() { product, media }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
     // A [ComplexManyToManyList] property carrying a [UISection] renders inside that section's panel (grouped mode).
     [Fact]
     public Task EmitsComplexManyToManyListInSection()
