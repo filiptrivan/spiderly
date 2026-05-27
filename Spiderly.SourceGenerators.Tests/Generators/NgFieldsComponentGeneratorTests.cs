@@ -458,6 +458,109 @@ public class NgFieldsComponentGeneratorTests
         return Verify(output);
     }
 
+    // [ComplexManyToManyList]: a collapsible card panel, one index-card per junction row, header = the related
+    // (other-side) entity's display name, junction payload fields rendered inline. No CRUD menu / add-button.
+    [Fact]
+    public Task EmitsComplexManyToManyListPanel()
+    {
+        SpiderlyClass warehouse = new()
+        {
+            Name = "Warehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Warehouse" } },
+        };
+        SpiderlyClass junction = new()
+        {
+            Name = "ProductVariantWarehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" }, new() { Name = "M2M" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new()
+                {
+                    Name = "ProductVariant", Type = "ProductVariant", EntityName = "ProductVariantWarehouse",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+                },
+                new()
+                {
+                    Name = "Warehouse", Type = "Warehouse", EntityName = "ProductVariantWarehouse",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+                },
+                new() { Name = "Stock", Type = "int", EntityName = "ProductVariantWarehouse" },
+            },
+        };
+        SpiderlyClass productVariant = new()
+        {
+            Name = "ProductVariant", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "ProductVariant" },
+                new()
+                {
+                    Name = "ProductVariantWarehouses", Type = "List<ProductVariantWarehouse>", EntityName = "ProductVariant",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "ComplexManyToManyList" } },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(productVariant, new() { productVariant, junction, warehouse }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
+    // A [ComplexManyToManyList] property carrying a [UISection] renders inside that section's panel (grouped mode).
+    [Fact]
+    public Task EmitsComplexManyToManyListInSection()
+    {
+        SpiderlyClass warehouse = new()
+        {
+            Name = "Warehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Warehouse" } },
+        };
+        SpiderlyClass junction = new()
+        {
+            Name = "ProductVariantWarehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" }, new() { Name = "M2M" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new()
+                {
+                    Name = "ProductVariant", Type = "ProductVariant", EntityName = "ProductVariantWarehouse",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+                },
+                new()
+                {
+                    Name = "Warehouse", Type = "Warehouse", EntityName = "ProductVariantWarehouse",
+                    Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+                },
+                new() { Name = "Stock", Type = "int", EntityName = "ProductVariantWarehouse" },
+            },
+        };
+        SpiderlyClass productVariant = new()
+        {
+            Name = "ProductVariant", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+            Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+            Properties = new List<SpiderlyProperty>
+            {
+                new() { Name = "Name", Type = "string", EntityName = "ProductVariant", Attributes = new List<SpiderlyAttribute> { new() { Name = "UISection", Value = "General" } } },
+                new()
+                {
+                    Name = "ProductVariantWarehouses", Type = "List<ProductVariantWarehouse>", EntityName = "ProductVariant",
+                    Attributes = new List<SpiderlyAttribute>
+                    {
+                        new() { Name = "ComplexManyToManyList" },
+                        new() { Name = "UISection", Value = "Stock" },
+                    },
+                },
+            },
+        };
+
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(productVariant, new() { productVariant, junction, warehouse }, new());
+        string output = NgFieldsComponentGenerator.BuildFieldsComponent(model) + "\n\n" + NgFieldsComponentGenerator.BuildFieldsConfig(model);
+        return Verify(output);
+    }
+
     // A single entity with BOTH a readonly and an editable table: cols-init covers both; selection fields,
     // handler methods, and the form wiring appear ONLY for the editable one.
     [Fact]

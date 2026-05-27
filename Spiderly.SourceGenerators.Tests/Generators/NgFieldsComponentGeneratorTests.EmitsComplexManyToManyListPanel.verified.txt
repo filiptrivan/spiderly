@@ -1,0 +1,53 @@
+﻿@Component({
+    selector: 'product-variant-fields',
+    template: `
+<ng-container *transloco="let t">
+    <ng-content select="[before]"></ng-content>
+    <div *ngIf="config.showName !== false" class="col-8 md:col-4">
+        <spiderly-textbox [control]="formGroup.controls.productVariantDTO.getControl('name')"></spiderly-textbox>
+        <ng-content select="[belowName]"></ng-content>
+    </div>
+    <div class="col-8">
+        <spiderly-panel [toggleable]="true" [collapsed]="productVariantWarehousesPanelCollapsed">
+            <panel-header [title]="t('ProductVariantWarehouses')" icon="pi pi-list"></panel-header>
+            <panel-body [normalBottomPadding]="true">
+                @for (productVariantWarehouseFormGroup of formGroup.controls.productVariantWarehouses.getFormGroups(); track productVariantWarehouseFormGroup.trackingId; let index = $index) {
+                    <index-card
+                    [index]="index"
+                    [last]="false"
+                    [header]="productVariantWarehouseFormGroup.getControl('warehouseDisplayName')?.getRawValue()"
+                    [showCrudMenu]="false"
+                    >
+                        <form [formGroup]="productVariantWarehouseFormGroup" class="spiderly-grid">
+                            <div class="col-8">
+                                <spiderly-number [control]="productVariantWarehouseFormGroup.getControl('stock')"></spiderly-number>
+                            </div>
+                        </form>
+                    </index-card>
+                }
+
+            </panel-body>
+        </spiderly-panel>
+    </div>
+    <ng-content select="[after]"></ng-content>
+</ng-container>
+    `,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        SpiderlyControlsModule,
+        TranslocoDirective,
+        SpiderlyPanelsModule,
+        IndexCardComponent,
+    ]
+})
+export class ProductVariantFieldsComponent {
+    @Input() formGroup: SpiderlyFormGroup<ProductVariantSaveBody>;
+    @Input() config: ProductVariantFieldsConfig = {};
+    @Input() productVariantWarehousesPanelCollapsed: boolean = false;
+}
+
+export class ProductVariantFieldsConfig {
+    showName?: boolean;
+}

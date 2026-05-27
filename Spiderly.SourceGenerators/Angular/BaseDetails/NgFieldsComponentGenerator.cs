@@ -45,6 +45,10 @@ namespace Spiderly.SourceGenerators.Angular
             }));
             string orderedInputsBlock = orderedInputs.Length > 0 ? $"\n{orderedInputs}" : "";
 
+            string complexInputs = string.Join("\n", model.ComplexManyToManyLists
+                .Select(c => $"    @Input() {c.PanelCollapsedInputName}: boolean = false;"));
+            string complexInputsBlock = complexInputs.Length > 0 ? $"\n{complexInputs}" : "";
+
             bool needsApiService = model.Fields.Any(RequiresApiService) || model.Tables.Count > 0;
             List<string> ctorParams = new();
             if (needsApiService) ctorParams.Add("private apiService: ApiService");
@@ -107,9 +111,10 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 string fieldBlocks = string.Join("\n", model.Fields.Select(f => GetFieldBlock(f, model.MainDtoAccess)));
                 string orderedBlocks = string.Join("\n", model.OrderedOneToManies.Select(GetOrderedOneToManyBlock));
+                string complexBlocks = string.Join("\n", model.ComplexManyToManyLists.Select(GetComplexManyToManyListBlock));
                 string tableBlocks = string.Join("\n", model.Tables.Select(GetTableBlock));
                 // Join only the non-empty parts so an entity with no scalar fields (only ordered-O2M) doesn't emit a stray leading newline.
-                string flat = string.Join("\n", new[] { fieldBlocks, orderedBlocks, tableBlocks }.Where(b => b.Length > 0));
+                string flat = string.Join("\n", new[] { fieldBlocks, orderedBlocks, complexBlocks, tableBlocks }.Where(b => b.Length > 0));
                 innerBody = $"    <ng-content select=\"[before]\"></ng-content>\n{flat}\n    <ng-content select=\"[after]\"></ng-content>";
             }
             else
@@ -122,14 +127,13 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 "CommonModule", "FormsModule", "ReactiveFormsModule", "SpiderlyControlsModule", "TranslocoDirective",
             };
-            if (model.OrderedOneToManies.Count > 0 || model.SectionOrder.Count > 0)
+            if (model.OrderedOneToManies.Count > 0 || model.SectionOrder.Count > 0 || model.ComplexManyToManyLists.Count > 0)
             {
                 componentImports.Add("SpiderlyPanelsModule");
-                if (model.OrderedOneToManies.Count > 0)
-                {
+                if (model.OrderedOneToManies.Count > 0 || model.ComplexManyToManyLists.Count > 0)
                     componentImports.Add("IndexCardComponent");
+                if (model.OrderedOneToManies.Count > 0)
                     componentImports.AddRange(model.OrderedOneToManies.Select(o => o.ChildFieldsComponentClassName).Distinct());
-                }
             }
             if (model.Tables.Count > 0)
                 componentImports.Add("SpiderlyDataTableComponent");
@@ -149,7 +153,7 @@ namespace Spiderly.SourceGenerators.Angular
 })
 export class {{model.ComponentClassName}} {
     @Input() formGroup: SpiderlyFormGroup<{{model.SaveBodyTypeName}}>;
-    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{tableFieldsBlock}}{{tableSelectionFieldsBlock}}{{ctorBlock}}{{ngOnInitBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}{{tableMethodsBlock}}
+    @Input() config: {{model.ConfigClassName}} = {};{{relationInputBlock}}{{authInputBlock}}{{orderedInputsBlock}}{{complexInputsBlock}}{{outputsBlock}}{{optionsBlock}}{{tableFieldsBlock}}{{tableSelectionFieldsBlock}}{{ctorBlock}}{{ngOnInitBlock}}{{searchMethodsBlock}}{{uploadMethodsBlock}}{{fileUploadMethodsBlock}}{{tableMethodsBlock}}
 }
 """;
         }
@@ -303,6 +307,38 @@ export class {{model.ComponentClassName}} {
 """;
         }
 
+        private static string GetComplexManyToManyListBlock(ComplexManyToManyListModel c)
+        {
+            string fieldsBlock = string.Join("\n", c.JunctionFields.Select(f => $$"""
+                            <div class="col-8">
+                                <{{f.ControlTag}} [control]="{{c.JunctionRowVar}}.getControl('{{f.FormControlName}}')"{{f.ExtraControlAttributes}}></{{f.ControlTag}}>
+                            </div>
+"""));
+
+            return $$"""
+    <div class="col-8">
+        <spiderly-panel [toggleable]="true" [collapsed]="{{c.PanelCollapsedInputName}}">
+            <panel-header [title]="t('{{c.TranslationKey}}')" icon="pi pi-list"></panel-header>
+            <panel-body [normalBottomPadding]="true">
+                @for ({{c.JunctionRowVar}} of {{c.FormArrayAccess}}.getFormGroups(); track {{c.JunctionRowVar}}.trackingId; let index = $index) {
+                    <index-card
+                    [index]="index"
+                    [last]="false"
+                    [header]="{{c.HeaderExpression}}"
+                    [showCrudMenu]="false"
+                    >
+                        <form [formGroup]="{{c.JunctionRowVar}}" class="spiderly-grid">
+{{fieldsBlock}}
+                        </form>
+                    </index-card>
+                }
+
+            </panel-body>
+        </spiderly-panel>
+    </div>
+""";
+        }
+
         private static string GetSectionPanel(FieldsComponentModel model, string section, int index, int count)
         {
             bool isOnly = count == 1;
@@ -319,6 +355,7 @@ export class {{model.ComponentClassName}} {
             {
                 string.Join("\n", model.Fields.Where(f => f.SectionName == section).Select(f => GetFieldBlock(f, model.MainDtoAccess))),
                 string.Join("\n", model.OrderedOneToManies.Where(o => o.SectionName == section).Select(GetOrderedOneToManyBlock)),
+                string.Join("\n", model.ComplexManyToManyLists.Where(c => c.SectionName == section).Select(GetComplexManyToManyListBlock)),
                 string.Join("\n", model.Tables.Where(t => t.SectionName == section).Select(GetTableBlock)),
             }.Where(b => b.Length > 0));
 
