@@ -68,27 +68,6 @@ public class NgShellModelBuilderTests
         Assert.Empty(NgShellModelBuilder.Build(Brand(), new() { Brand() }).AdditionalSavePermissionCodes);
     }
 
-    private static SpiderlyClass SeedWarehouse() => new()
-    {
-        Name = "Warehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
-        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
-        Properties = new List<SpiderlyProperty> { new() { Name = "Name", Type = "string", EntityName = "Warehouse" } },
-    };
-
-    private static SpiderlyClass SeedJunction() => new()
-    {
-        Name = "ProductVariantWarehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
-        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" }, new() { Name = "M2M" } },
-        Properties = new List<SpiderlyProperty>
-        {
-            new() { Name = "ProductVariant", Type = "ProductVariant", EntityName = "ProductVariantWarehouse",
-                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } } },
-            new() { Name = "Warehouse", Type = "Warehouse", EntityName = "ProductVariantWarehouse",
-                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } } },
-            new() { Name = "Stock", Type = "int", EntityName = "ProductVariantWarehouse" },
-        },
-    };
-
     private static SpiderlyClass SeedProductVariant() => new()
     {
         Name = "ProductVariant", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
