@@ -131,4 +131,48 @@ public class NgShellModelBuilderTests
         Assert.Empty(model.NewEntitySeedInits);
         Assert.Empty(model.OrderedChildSeedAssignments);
     }
+
+    private static SpiderlyClass FwdMediaChild() => new()
+    {
+        Name = "ProductMedia", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Alt", Type = "string", EntityName = "ProductMedia" },
+            new() { Name = "Url", Type = "string", EntityName = "ProductMedia",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+            new() { Name = "ThumbnailUrl", Type = "string", EntityName = "ProductMedia",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+        },
+    };
+
+    private static SpiderlyClass FwdProduct() => new()
+    {
+        Name = "Product", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Name", Type = "string", EntityName = "Product" },
+            new() { Name = "ProductMedia", Type = "List<ProductMedia>", EntityName = "Product",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+        },
+    };
+
+    [Fact]
+    public void Build_OrderedChildWithFileControls_ForwardsUploadOutputs()
+    {
+        ShellComponentModel model = NgShellModelBuilder.Build(FwdProduct(), new() { FwdProduct(), FwdMediaChild() });
+
+        Assert.Equal(
+            new[] { "onUrlForProductMediaUploaded", "onThumbnailUrlForProductMediaUploaded" },
+            model.ForwardedFileOutputs.ToArray());
+    }
+
+    [Fact]
+    public void Build_NoOrderedChildFileControls_HasNoForwardedOutputs()
+    {
+        ShellComponentModel model = NgShellModelBuilder.Build(Brand(), new() { Brand() });
+
+        Assert.Empty(model.ForwardedFileOutputs);
+    }
 }

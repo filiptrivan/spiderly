@@ -51,6 +51,17 @@ namespace Spiderly.SourceGenerators.Angular
                 }
             }
 
+            List<string> forwardedFileOutputs = new();
+            foreach (SpiderlyProperty orderedProp in entity.GetOrderedOneToManyProperties())
+            {
+                SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(orderedProp, allEntities);
+                if (childEntity == null)
+                    continue;
+
+                foreach (SpiderlyProperty childProp in NgDetailsPropertyBlockGenerator.GetDetailsUiFileProperties(childEntity))
+                    forwardedFileOutputs.Add($"on{childProp.Name}For{childEntity.Name}Uploaded");
+            }
+
             return new ShellComponentModel
             {
                 EntityName = entity.Name,
@@ -66,6 +77,7 @@ namespace Spiderly.SourceGenerators.Angular
                 SeedForkJoinParams = seedForkJoinParams,
                 NewEntitySeedInits = newEntitySeedInits,
                 OrderedChildSeedAssignments = orderedChildSeedAssignments,
+                ForwardedFileOutputs = forwardedFileOutputs,
             };
         }
     }

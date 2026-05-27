@@ -45,9 +45,7 @@ namespace Spiderly.SourceGenerators.Angular
                 List<OrderedChildFileOutputModel> fileOutputs = new();
                 if (orderedChildEntity != null)
                 {
-                    foreach (SpiderlyProperty childProp in orderedChildEntity.Properties
-                        .Where(p => p.IsIncludedInDetailsUi(orderedChildEntity)
-                            && NgDetailsPropertyBlockGenerator.GetUIControlType(p) == UIControlTypeCodes.File))
+                    foreach (SpiderlyProperty childProp in NgDetailsPropertyBlockGenerator.GetDetailsUiFileProperties(orderedChildEntity))
                     {
                         fileOutputs.Add(new OrderedChildFileOutputModel
                         {
