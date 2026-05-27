@@ -127,8 +127,10 @@ namespace Spiderly.SourceGenerators.Angular
     {
         /// <summary>Control element tag, e.g. <c>spiderly-number</c>.</summary>
         public string ControlTag { get; set; }
+
         /// <summary>Junction form-control name, e.g. <c>stock</c>.</summary>
         public string FormControlName { get; set; }
+
         /// <summary>Extra control attributes (with a leading space), e.g. <c> [decimal]="true" [maxFractionDigits]="2"</c>. Empty when none.</summary>
         public string ExtraControlAttributes { get; set; } = "";
     }
