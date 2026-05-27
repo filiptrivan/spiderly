@@ -50,6 +50,16 @@ namespace Spiderly.SourceGenerators.Angular
         /// Applied (indented by the emitter) in both the existing and new route-load paths. Empty when none.
         /// </summary>
         public List<string> OrderedChildSeedAssignments { get; set; } = new();
+
+        /// <summary>
+        /// Ordered-O2M File-upload output names the shell re-declares and forwards from the embedded fragment, e.g.
+        /// <c>"onUrlForProductMediaUploaded"</c>. One per File control on a DIRECT [UIOrderedOneToMany] child — matching
+        /// the {Entity}Fields fragment's re-exposed on{Prop}For{ChildEntity}Uploaded outputs. Each is declared as
+        /// <c>@Output() {name} = new EventEmitter&lt;{ event: SpiderlyFileSelectEvent; formGroup: SpiderlyFormGroup }&gt;()</c>
+        /// and wired on the embedded fragment as <c>({name})="{name}.emit($event)"</c>. Empty when none — the shell
+        /// then stays byte-identical to the no-forward shell.
+        /// </summary>
+        public List<string> ForwardedFileOutputs { get; set; } = new();
     }
 
     /// <summary>One [UIAdditionalPermissionCodeFor*] save-authorization grant.</summary>
