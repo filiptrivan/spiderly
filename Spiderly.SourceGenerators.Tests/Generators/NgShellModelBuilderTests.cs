@@ -117,7 +117,7 @@ public class NgShellModelBuilderTests
     public void Build_OwnComplexManyToManyList_SeedsForkJoinAndNewEntityInit()
     {
         ShellComponentModel model = NgShellModelBuilder.Build(
-            SeedProductVariant(), new() { SeedProductVariant(), SeedJunction(), SeedWarehouse() });
+            SeedProductVariant(), new() { SeedProductVariant() });
 
         Assert.Equal(
             new[] { "defaultProductVariantWarehousesForProductVariant: this.apiService.getDefaultProductVariantWarehousesForProductVariant()" },
@@ -132,7 +132,7 @@ public class NgShellModelBuilderTests
     public void Build_OrderedChildComplexManyToManyList_SeedsForkJoinAndFormArrayAssignment()
     {
         ShellComponentModel model = NgShellModelBuilder.Build(
-            SeedProduct(), new() { SeedProduct(), SeedProductVariant(), SeedJunction(), SeedWarehouse() });
+            SeedProduct(), new() { SeedProduct(), SeedProductVariant() });
 
         Assert.Equal(
             new[] { "defaultProductVariantWarehousesForProductVariant: this.apiService.getDefaultProductVariantWarehousesForProductVariant()" },
