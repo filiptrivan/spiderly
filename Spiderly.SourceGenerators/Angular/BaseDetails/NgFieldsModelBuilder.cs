@@ -123,14 +123,14 @@ namespace Spiderly.SourceGenerators.Angular
                     .Select(p =>
                     {
                         UIControlTypeCodes ct = NgDetailsPropertyBlockGenerator.GetUIControlType(p);
-                        string extra = ct == UIControlTypeCodes.Decimal
+                        string extraDecimalAttrs = ct == UIControlTypeCodes.Decimal
                             ? $" [decimal]=\"true\" [maxFractionDigits]=\"{p.GetDecimalScale()}\""
                             : "";
                         return new ComplexM2MJunctionFieldModel
                         {
                             ControlTag = NgDetailsPropertyBlockGenerator.GetUIStringControlType(ct),
                             FormControlName = p.Name.FirstCharToLower(),
-                            ExtraControlAttributes = extra,
+                            ExtraControlAttributes = extraDecimalAttrs,
                         };
                     })
                     .ToList();

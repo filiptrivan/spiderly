@@ -606,4 +606,39 @@ public class NgFieldsModelBuilderTests
         Assert.DoesNotContain(model.Fields, f => f.PropertyName == "ProductVariantWarehouses");
         Assert.Empty(model.Tables);
     }
+
+    private static SpiderlyClass ProductVariantWarehouseWithDecimal() => new()
+    {
+        Name = "ProductVariantWarehouse", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" }, new() { Name = "M2M" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new()
+            {
+                Name = "ProductVariant", Type = "ProductVariant", EntityName = "ProductVariantWarehouse",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+            },
+            new()
+            {
+                Name = "Warehouse", Type = "Warehouse", EntityName = "ProductVariantWarehouse",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "M2MWithMany", Value = "ProductVariantWarehouses" } },
+            },
+            new() { Name = "UnitPrice", Type = "decimal", EntityName = "ProductVariantWarehouse" },
+        },
+    };
+
+    [Fact]
+    public void Build_ComplexManyToManyList_DecimalPayloadField_AddsDecimalAttributes()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductVariantWithWarehouses(),
+            new() { ProductVariantWithWarehouses(), ProductVariantWarehouseWithDecimal(), Warehouse() },
+            new());
+
+        ComplexManyToManyListModel c = Assert.Single(model.ComplexManyToManyLists);
+        ComplexM2MJunctionFieldModel field = Assert.Single(c.JunctionFields);
+        Assert.Equal("spiderly-number", field.ControlTag);
+        Assert.Equal("unitPrice", field.FormControlName);
+        Assert.Equal(" [decimal]=\"true\" [maxFractionDigits]=\"\"", field.ExtraControlAttributes);
+    }
 }
