@@ -186,15 +186,6 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
-        /// <summary>
-        /// The File-control properties of an entity that are rendered in the details UI — the set whose uploads get a
-        /// re-exposed/forwarded output. Mirrors the legacy ordered-child File selection
-        /// (<c>IsIncludedInDetailsUi</c> + <c>GetUIControlType == File</c>); shared by the fragment and shell builders
-        /// so the filter cannot drift between them.
-        /// </summary>
-        internal static IEnumerable<SpiderlyProperty> GetDetailsUiFileProperties(SpiderlyClass entity) =>
-            entity.Properties.Where(p => p.IsIncludedInDetailsUi(entity) && GetUIControlType(p) == UIControlTypeCodes.File);
-
         internal static UIControlTypeCodes GetUIControlType(SpiderlyProperty property)
         {
             SpiderlyAttribute uiControlTypeAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlType");

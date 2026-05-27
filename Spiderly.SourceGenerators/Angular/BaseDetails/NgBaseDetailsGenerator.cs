@@ -17,6 +17,30 @@ namespace Spiderly.SourceGenerators.Angular
     /// This generator targets C# entity and DTO classes (marked within 'Entities' or 'DTO' namespaces)
     /// and produces a TypeScript file (`{your-app-name}\Frontend\src\app\business\components\base-details.generated.ts`).
     /// </summary>
+    //
+    // ---------------------------------------------------------------------------
+    // REDESIGN ATTEMPT — paused 2026-05 (the experimental code was removed; see git history).
+    // We tried replacing this flattened mega-component generator with a bare {Entity}Fields
+    // fragment (own fields, config-driven visibility) + an {Entity}BaseDetails shell that
+    // COMPOSES child fragments instead of flattening nested entities, built inert behind a
+    // characterization-snapshot net.
+    //
+    // Why we paused (lessons):
+    //  - Framework-internal refactor with only LATERAL payoff for the consuming app (same admin
+    //    screens, cleaner internals — no user/revenue impact).
+    //  - The remaining switchover was the riskiest part (removes the net, spans two repos,
+    //    touches ~23 consumer pages) for that lateral gain.
+    //  - The shell-drives-fragment surface kept growing past scope: dropdown/multiselect option
+    //    loading, [isAuthorizedForSave] binding, below-slot forwarding (ng-content can't reach
+    //    @for rows -> needs TemplateRef), sectioned-shell double-panel coordination. "Almost
+    //    done" was repeatedly unreliable.
+    //  - Net result was MORE generator code/concepts (model+builder+emitter x2) — justified for
+    //    testability, but not obviously simpler than this.
+    //
+    // The architecture (compose > flatten, config-driven, snapshot-tested) is sound. Revisit only
+    // with a concrete driver: a Spiderly release, or real maintenance pain in the flattened output
+    // for large entities (e.g. Product).
+    // ---------------------------------------------------------------------------
     [Generator]
     public class NgBaseDetailsGenerator : IIncrementalGenerator
     {
@@ -75,27 +99,13 @@ namespace Spiderly.SourceGenerators.Angular
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "components", "base-details.generated.ts");
 
-            string result = BuildBaseDetailsOutput(customDTOClasses, currentProjectEntities, allEntities);
-
-            Helpers.WriteToTheFile(result, outputPath);
-        }
-
-        /// <summary>
-        /// Builds the full <c>base-details.generated.ts</c> contents (imports + every entity component) as a string.
-        /// Pure and side-effect-free so it can be snapshot-tested directly — the generator itself writes to disk via
-        /// <see cref="Helpers.WriteToTheFile(string, string)"/> rather than <c>context.AddSource</c>, so the standard
-        /// driver snapshot never sees this output.
-        /// </summary>
-        internal static string BuildBaseDetailsOutput(
-            List<SpiderlyClass> customDTOClasses,
-            List<SpiderlyClass> currentProjectEntities,
-            List<SpiderlyClass> allEntities)
-        {
-            return $$"""
+            string result = $$"""
 {{NgDetailsImportGenerator.GetImports(customDTOClasses, allEntities)}}
 
 {{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
 """;
+
+            Helpers.WriteToTheFile(result, outputPath);
         }
 
         private static List<string> GetAngularBaseDetailsComponents(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
