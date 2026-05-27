@@ -207,7 +207,7 @@ namespace Spiderly.SourceGenerators.Angular
 """);
                     }
                 }
-                else if (controlType == UIControlTypeCodes.Editor && property.HasS3PublicStorageAttribute())
+                else if ((controlType == UIControlTypeCodes.Editor || controlType == UIControlTypeCodes.Markdown) && property.HasS3PublicStorageAttribute())
                 {
                     result.Add($$"""
     upload{{property.Name}}ImageFor{{entity.Name}} = (formData: FormData): Observable<EditorImageUploadResult> => {

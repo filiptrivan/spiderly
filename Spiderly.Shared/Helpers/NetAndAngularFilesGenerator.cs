@@ -1409,12 +1409,14 @@ import { LayoutService } from './business/services/layout/layout.service';
 import { provideTransloco } from '@jsverse/transloco';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
+import { provideMarkdown } from 'ngx-markdown';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideAnimationsAsync(),
     provideHttpClient(withFetch()),
+    provideMarkdown(),
     provideTransloco({
       config: {
         availableLangs: ['en'],
@@ -3357,6 +3359,8 @@ namespace {{appName}}.Business.DataMappers
         "@angular/router": "19.2.13",
         "@jsverse/transloco": "7.5.0",
         "file-saver": "2.0.5",
+        "marked": "15.0.12",
+        "ngx-markdown": "19.1.1",
         "ngx-spinner": "19.0.0",
         "primeicons": "7.0.0",
         "primeng": "19.1.3",
@@ -3790,6 +3794,10 @@ export const ThemePreset = definePreset(Aura, {
   "Cancel": "Cancel",
   "Confirm": "Confirm",
   "Clear": "Clear",
+  "Write": "Write",
+  "Preview": "Preview",
+  "UploadingImage": "Uploading image…",
+  "ImageUploadFailed": "Image upload failed.",
   "ExportToExcel": "Export to Excel",
   "Select": "Select",
   "SyncDiscountProductGroups": "Sync discount product groups",

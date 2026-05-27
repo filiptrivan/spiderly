@@ -206,10 +206,16 @@ namespace Spiderly.SourceGenerators.Shared
             return properties.Where(x => x.IsBlob()).ToList();
         }
 
+        /// <summary>
+        /// Properties that need the inline image-upload backend (upload endpoint, authorization,
+        /// validate/optimize hooks, and the typed <c>EditorImageUploadResult</c> API method).
+        /// Both <see cref="UIControlTypeCodes.Editor"/> and <see cref="UIControlTypeCodes.Markdown"/>
+        /// reuse this same pipeline; Markdown inserts the returned URL as <c>![](url)</c>.
+        /// </summary>
         public static List<SpiderlyProperty> GetEditorImageProperties(List<SpiderlyProperty> properties)
         {
             return properties
-                .Where(x => x.IsEditorControlType() && x.HasS3PublicStorageAttribute())
+                .Where(x => (x.IsEditorControlType() || x.IsMarkdownControlType()) && x.HasS3PublicStorageAttribute())
                 .ToList();
         }
 

@@ -1,0 +1,41 @@
+<div style="display: flex; flex-direction: column; gap: 0.5rem">
+  <div *ngIf="getTranslatedLabel() != '' && getTranslatedLabel() != null">
+    <label>{{ getTranslatedLabel() }}</label>
+    <required *ngIf="control?.required && showRequired"></required>
+  </div>
+
+  <ng-container *transloco="let t">
+    <p-tabs *ngIf="control" value="write">
+      <p-tablist>
+        <p-tab value="write">{{ t('Write') }}</p-tab>
+        <p-tab value="preview">{{ t('Preview') }}</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="write">
+          <textarea
+            #textarea
+            pTextarea
+            [formControl]="control"
+            [id]="control.label"
+            (blur)="control.markAsDirty()"
+            (paste)="onPaste($event)"
+            [autoResize]="true"
+            [class]="control.disabled ? 'disabled' : ''"
+            [style]="{ width: '100%', minHeight: '320px' }"
+          ></textarea>
+          <small *ngIf="pendingImageUploads > 0">{{ t('UploadingImage') }}</small>
+          <small *ngIf="imageUploadFailed" class="spiderly-error-message">{{ t('ImageUploadFailed') }}</small>
+        </p-tabpanel>
+        <p-tabpanel value="preview">
+          <div class="spiderly-markdown-preview" style="min-height: 320px">
+            <markdown [data]="control.value"></markdown>
+          </div>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </ng-container>
+
+  <small *ngIf="control?.errors && control?.dirty" class="spiderly-error-message">
+    {{ getValidationErrrorMessages() }}
+  </small>
+</div>

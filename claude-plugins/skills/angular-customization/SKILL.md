@@ -369,6 +369,7 @@ export class MyValidatorService extends ValidatorAbstractService {
 | Autocomplete      | `spiderly-autocomplete`      | `control`, `onTextInput`         |
 | MultiAutocomplete | `spiderly-multiautocomplete` | `control`, `onTextInput`         |
 | Editor            | `spiderly-editor`            | `control`                        |
+| Markdown          | `spiderly-markdown`          | `control`, `uploadImageMethod`   |
 | File              | `spiderly-file`              | `control`                        |
 | ColorPicker       | `spiderly-colorpicker`       | `control`                        |
 | Password          | `spiderly-password`          | `control`                        |

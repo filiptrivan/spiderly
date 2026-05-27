@@ -37,6 +37,8 @@
     "@angular/router": "^19.2.0",
     "@jsverse/transloco": "7.5.0",
     "file-saver": "2.0.5",
+    "marked": "^15.0.0",
+    "ngx-markdown": "^19.1.1",
     "ngx-spinner": "19.0.0",
     "primeicons": "7.0.0",
     "primeng": "19.1.3",

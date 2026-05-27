@@ -13,6 +13,7 @@ export * from './lib/controls/spiderly-colorpicker/spiderly-colorpicker.componen
 export * from './lib/controls/spiderly-controls.module';
 export * from './lib/controls/spiderly-dropdown/spiderly-dropdown.component';
 export * from './lib/controls/spiderly-editor/spiderly-editor.component';
+export * from './lib/controls/spiderly-markdown/spiderly-markdown.component';
 export * from './lib/controls/spiderly-file/spiderly-file.component';
 export * from './lib/controls/spiderly-multiautocomplete/spiderly-multiautocomplete.component';
 export * from './lib/controls/spiderly-multiselect/spiderly-multiselect.component';

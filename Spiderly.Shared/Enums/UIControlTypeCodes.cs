@@ -164,6 +164,23 @@ namespace Spiderly.Shared.Enums
         Editor,
 
         /// <summary>
+        /// Markdown editor. Renders <c>spiderly-markdown</c> at full width — a plain textarea with a
+        /// live "Preview" tab. The value is stored as raw Markdown text.
+        /// <para>Must be set explicitly via attribute. Pasting an image uploads it (when the property
+        /// has an <c>[S3PublicStorage]</c> attribute) and inserts a standard <c>![](url)</c> link; the
+        /// preview is rendered with marked and is approximate vs. a consuming storefront's renderer.</para>
+        /// <example>
+        /// Example:
+        /// <code>
+        /// [UIControlType(nameof(UIControlTypeCodes.Markdown))]
+        /// [StringLength(10000, MinimumLength = 1)]
+        /// public string Readme { get; set; }
+        /// </code>
+        /// </example>
+        /// </summary>
+        Markdown,
+
+        /// <summary>
         /// Multi-selection with search/autocomplete capability. Renders <c>spiderly-multiautocomplete</c> at full width.
         /// <para>Used for many-to-many relationships where items are selected via search.</para>
         /// <example>

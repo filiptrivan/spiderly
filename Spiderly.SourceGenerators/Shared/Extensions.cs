@@ -724,6 +724,11 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "UIControlType" && x.Value == UIControlTypeCodes.Editor.ToString());
         }
 
+        public static bool IsMarkdownControlType(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "UIControlType" && x.Value == UIControlTypeCodes.Markdown.ToString());
+        }
+
         #endregion
 
         #endregion

@@ -35,6 +35,10 @@ namespace __APP_NAME__.Business.Entities
         [StringLength(10000, MinimumLength = 1)]
         public string Documentation { get; set; }
 
+        [UIControlType(nameof(UIControlTypeCodes.Markdown))]
+        [StringLength(10000, MinimumLength = 1)]
+        public string Readme { get; set; }
+
         [UIControlType(nameof(UIControlTypeCodes.CheckBox))]
         public bool? IsArchived { get; set; }
 

@@ -90,6 +90,30 @@ test.describe('Project CRUD Operations', () => {
     await expectSeededCategories(taskCommentCard, 'Feature');
   });
 
+  // Regression: the Markdown control (spiderly-markdown) must render and preview in a real
+  // app. Browser-driven because the risks here are invisible to API tests and the build — a
+  // missing provideMarkdown() provider or a broken Write/Preview tab only surfaces at runtime.
+  test('should render the markdown control with a live preview', async ({ page, request }) => {
+    if (!projectId) test.skip();
+    await authenticateBrowser(page, request);
+    await page.goto(`/project-list/${projectId}`);
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+
+    const markdown = page.locator('spiderly-markdown');
+    await expect(markdown).toBeVisible({ timeout: 5000 });
+
+    // Write tab: enter markdown source.
+    await markdown.locator('textarea').fill('# Heading\n\nSome **bold** text');
+
+    // Switch to Preview (also blurs the textarea so the blur-updated control value commits).
+    await markdown.locator('p-tab:has-text("Preview")').click();
+
+    // ngx-markdown should have rendered the source to HTML.
+    const preview = markdown.locator('markdown');
+    await expect(preview.locator('h1')).toHaveText('Heading');
+    await expect(preview.locator('strong')).toHaveText('bold');
+  });
+
   test('should update project via API', async ({ request }) => {
     if (!projectId) test.skip();
     const response = await request.put(

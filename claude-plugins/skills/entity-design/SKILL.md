@@ -184,7 +184,7 @@ Child **must** have `[UIDoNotGenerate] [Required] public int OrderNumber { get; 
 
 | C# Type         | Default Control | Override With                                                            |
 | --------------- | --------------- | ------------------------------------------------------------------------ |
-| `string`        | TextBox         | `[UIControlType(nameof(UIControlTypeCodes.TextArea))]`, `Editor`, `File` |
+| `string`        | TextBox         | `[UIControlType(nameof(UIControlTypeCodes.TextArea))]`, `Editor`, `Markdown`, `File` |
 | `int`, `long`   | Number          | —                                                                        |
 | `decimal`       | Decimal         | —                                                                        |
 | `bool`          | CheckBox        | —                                                                        |
@@ -193,7 +193,9 @@ Child **must** have `[UIDoNotGenerate] [Required] public int OrderNumber { get; 
 
 Other `UIControlTypeCodes`: `ColorPicker`, `MultiAutocomplete`, `MultiSelect`, `Password`, `TextBlock`, `Table`.
 
-Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor default to `"col-8"`.
+Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor/Markdown default to `"col-8"`.
+
+`Editor` stores HTML (Quill WYSIWYG); `Markdown` stores raw Markdown (textarea + live preview). Both support inline image upload (paste, in Markdown's case) when combined with `[S3PublicStorage]`.
 
 ## Key Attributes Checklist
 

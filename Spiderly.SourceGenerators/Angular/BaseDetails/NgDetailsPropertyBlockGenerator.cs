@@ -250,6 +250,8 @@ namespace Spiderly.SourceGenerators.Angular
                     return "spiderly-dropdown";
                 case UIControlTypeCodes.Editor:
                     return "spiderly-editor";
+                case UIControlTypeCodes.Markdown:
+                    return "spiderly-markdown";
                 case UIControlTypeCodes.File:
                     return "spiderly-file";
                 case UIControlTypeCodes.MultiAutocomplete:
@@ -316,6 +318,7 @@ namespace Spiderly.SourceGenerators.Angular
                     x.IsBlob() ? 0 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.Editor.ToString()) ? 3 :
+                    x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.Markdown.ToString()) ? 3 :
                     x.Attributes.Any(attr => attr.Name == "UIOrderedOneToMany") ? 4 :
                     x.Attributes.Any(attr => attr.Name == "SimpleManyToManyTableLazyLoad") ? 5 :
                     x.Attributes.Any(attr => attr.Name == "ComplexManyToManyList") ? 6
@@ -554,7 +557,7 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [showInputTextField]=\"show{property.Name}TextFieldFor{entity.Name}\"";
             }
-            else if (controlType == UIControlTypeCodes.Editor)
+            else if (controlType == UIControlTypeCodes.Editor || controlType == UIControlTypeCodes.Markdown)
             {
                 if (property.HasS3PublicStorageAttribute())
                 {
@@ -586,7 +589,8 @@ namespace Spiderly.SourceGenerators.Angular
                 controlType == UIControlTypeCodes.MultiSelect ||
                 controlType == UIControlTypeCodes.MultiAutocomplete ||
                 controlType == UIControlTypeCodes.Table ||
-                controlType == UIControlTypeCodes.Editor)
+                controlType == UIControlTypeCodes.Editor ||
+                controlType == UIControlTypeCodes.Markdown)
             {
                 return "col-8";
             }

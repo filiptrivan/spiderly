@@ -8,6 +8,7 @@ import { SpiderlyTextareaComponent } from './spiderly-textarea/spiderly-textarea
 import { SpiderlyNumberComponent } from './spiderly-number/spiderly-number.component';
 import { SpiderlyDropdownComponent } from './spiderly-dropdown/spiderly-dropdown.component';
 import { SpiderlyEditorComponent } from './spiderly-editor/spiderly-editor.component';
+import { SpiderlyMarkdownComponent } from './spiderly-markdown/spiderly-markdown.component';
 import { SpiderlyColorPickerComponent } from './spiderly-colorpicker/spiderly-colorpicker.component';
 import { SpiderlyFileComponent } from './spiderly-file/spiderly-file.component';
 import { SpiderlyCalendarComponent } from './spiderly-calendar/spiderly-calendar.component';
@@ -30,6 +31,7 @@ import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/re
     SpiderlyNumberComponent,
     SpiderlyDropdownComponent,
     SpiderlyEditorComponent,
+    SpiderlyMarkdownComponent,
     SpiderlyColorPickerComponent,
     SpiderlyFileComponent,
   ],
@@ -47,6 +49,7 @@ import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/re
     SpiderlyNumberComponent,
     SpiderlyDropdownComponent,
     SpiderlyEditorComponent,
+    SpiderlyMarkdownComponent,
     SpiderlyColorPickerComponent,
     SpiderlyFileComponent,
   ],

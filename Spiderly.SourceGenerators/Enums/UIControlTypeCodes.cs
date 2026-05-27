@@ -17,6 +17,7 @@ namespace Spiderly.SourceGenerators.Enums
         Integer,
         ColorPicker,
         Editor,
+        Markdown,
         MultiAutocomplete,
         MultiSelect,
         Password,
