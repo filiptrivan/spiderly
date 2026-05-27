@@ -2588,6 +2588,8 @@ namespace {{appName}}.WebAPI
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Spiderly.Security;
+using Spiderly.Security.Extensions;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Services;
@@ -2606,6 +2608,12 @@ namespace {{appName}}.WebAPI.Extensions
             services.AddTransient<AuthenticationService>();
             services.AddTransient<AuthorizationServiceBase>();
             services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
+
+            // Register the application's principal kind(s). A single-principal app registers just User; the
+            // kind-dispatched authorization then resolves it (the JWT/API-key flows stamp PrincipalKinds.User
+            // to match). Add a line per additional principal kind (e.g. a machine/service account).
+            services.AddSpiderlyPrincipal<User>(PrincipalKinds.User);
+
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
             services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
@@ -2890,6 +2898,7 @@ using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Attributes;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Interfaces;
@@ -2907,9 +2916,10 @@ namespace {{appName}}.Business.Services
             IApplicationDbContext context,
             AuthenticationService authenticationService,
             SecurityService<User, UserExternalLogin> securityService,
-            IStringLocalizer localizer
+            IStringLocalizer localizer,
+            IPrincipalRegistry principalRegistry
         )
-            : base(context, authenticationService, localizer)
+            : base(context, authenticationService, localizer, principalRegistry)
         {
             _context = context;
             _authenticationService = authenticationService;
@@ -3821,6 +3831,8 @@ export const ThemePreset = definePreset(Aura, {
   "SuccessfulAction": "Operation successful",
   "Warning": "Warning",
   "Error": "Error",
+  "ExternalLoginExpiredDetails": "Your sign-in took too long and expired. Please try again.",
+  "ExternalLoginFailedDetails": "Sign-in failed. Please try again.",
   "ServerLostConnectionDetails": "Connection lost. Please check your internet connection. If the problem persists, please contact our support team.",
   "ServerLostConnectionTitle": "Connection Lost",
   "PermissionErrorDetails": "You do not have permission for this operation.",
