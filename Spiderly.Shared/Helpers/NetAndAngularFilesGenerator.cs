@@ -1961,6 +1961,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using {{appName}}.Business.Entities;
 using {{appName}}.Business.Enums;
+using {{appName}}.Business.Services;
 using Spiderly.Security.Services;
 using Spiderly.Shared.Attributes;
 using Spiderly.Shared.Attributes.Entity.UI;
