@@ -40,6 +40,23 @@ namespace Spiderly.SourceGenerators.Angular
                 string childType = Helpers.ExtractTypeFromGenericType(property.Type);
                 string childCamel = childType.FirstCharToLower();
 
+                SpiderlyClass orderedChildEntity = Helpers.GetEntityByPropertyType(property, allEntities);
+                List<OrderedChildFileOutputModel> fileOutputs = new();
+                if (orderedChildEntity != null)
+                {
+                    foreach (SpiderlyProperty childProp in orderedChildEntity.Properties
+                        .Where(p => p.IsIncludedInDetailsUi(orderedChildEntity)
+                            && NgDetailsPropertyBlockGenerator.GetUIControlType(p) == UIControlTypeCodes.File))
+                    {
+                        fileOutputs.Add(new OrderedChildFileOutputModel
+                        {
+                            ParentOutputName = $"on{childProp.Name}For{childType}Uploaded",
+                            ChildUploadOutputName = $"on{childProp.Name}Uploaded",
+                            RowDtoAccess = $"{childCamel}FormGroup.controls.{childCamel}DTO",
+                        });
+                    }
+                }
+
                 model.OrderedOneToManies.Add(new OrderedOneToManyModel
                 {
                     PropertyName = property.Name,
@@ -52,6 +69,7 @@ namespace Spiderly.SourceGenerators.Angular
                     PanelCollapsedInputName = $"{property.Name.FirstCharToLower()}PanelCollapsed",
                     AdditionalContentTemplateInputName = $"additionalContentTemplateFor{property.Name}",
                     SectionName = NgDetailsPropertyBlockGenerator.GetUISectionName(property),
+                    FileOutputs = fileOutputs,
                 });
             }
 

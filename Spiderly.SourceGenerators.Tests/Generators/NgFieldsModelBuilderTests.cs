@@ -438,6 +438,65 @@ public class NgFieldsModelBuilderTests
         Assert.Null(country.ParentRelationName);
     }
 
+    private static SpiderlyClass MediaChild() => new()
+    {
+        Name = "ProductMedia", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Alt", Type = "string", EntityName = "ProductMedia" },
+            new() { Name = "Url", Type = "string", EntityName = "ProductMedia",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+            new() { Name = "ThumbnailUrl", Type = "string", EntityName = "ProductMedia",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIControlType", Value = "File" } } },
+        },
+    };
+
+    private static SpiderlyClass ProductWithMedia() => new()
+    {
+        Name = "Product", Namespace = "TestApp.Business.Entities", BaseType = "BusinessObject<long>",
+        Attributes = new List<SpiderlyAttribute> { new() { Name = "SpiderlyEntity" } },
+        Properties = new List<SpiderlyProperty>
+        {
+            new() { Name = "Name", Type = "string", EntityName = "Product" },
+            new() { Name = "ProductMedia", Type = "List<ProductMedia>", EntityName = "Product",
+                Attributes = new List<SpiderlyAttribute> { new() { Name = "UIOrderedOneToMany" } } },
+        },
+    };
+
+    [Fact]
+    public void Build_OrderedChildWithFileControls_ReExposesUploadOutputs()
+    {
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(
+            ProductWithMedia(), new() { ProductWithMedia(), MediaChild() }, new());
+
+        OrderedOneToManyModel ordered = Assert.Single(model.OrderedOneToManies);
+        Assert.Collection(ordered.FileOutputs,
+            f =>
+            {
+                Assert.Equal("onUrlForProductMediaUploaded", f.ParentOutputName);
+                Assert.Equal("onUrlUploaded", f.ChildUploadOutputName);
+                Assert.Equal("productMediaFormGroup.controls.productMediaDTO", f.RowDtoAccess);
+            },
+            f =>
+            {
+                Assert.Equal("onThumbnailUrlForProductMediaUploaded", f.ParentOutputName);
+                Assert.Equal("onThumbnailUrlUploaded", f.ChildUploadOutputName);
+                Assert.Equal("productMediaFormGroup.controls.productMediaDTO", f.RowDtoAccess);
+            });
+    }
+
+    [Fact]
+    public void Build_OrderedChildWithoutFileControls_HasNoFileOutputs()
+    {
+        // Segmentation's ordered child (SegmentationItem) isn't in allEntities here, so it can't be resolved →
+        // FileOutputs stays empty (the resolution is null-guarded). That's the behavior to lock.
+        FieldsComponentModel model = NgFieldsModelBuilder.Build(Segmentation(), new() { Segmentation() }, new());
+
+        OrderedOneToManyModel ordered = Assert.Single(model.OrderedOneToManies);
+        Assert.Empty(ordered.FileOutputs);
+    }
+
     [Fact]
     public void Build_OrderedOneToMany_PopulatesCompositionModel()
     {
