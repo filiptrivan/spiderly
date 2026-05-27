@@ -17,6 +17,42 @@ namespace Spiderly.SourceGenerators.Angular
             string additionalSaveAuthorization = string.Join("", model.AdditionalSavePermissionCodes.Select(c =>
                 $"\n            (currentUserPermissionCodes.includes('{c.PermissionCode}') && this.modelId {(c.ForInsert ? "<= 0" : "> 0")}) ||"));
 
+            // Existing-branch injection points (empty => byte-identical to the no-seed shell).
+            string existingSeedForkJoinLines = string.Join("", model.SeedForkJoinParams
+                .Select(p => $"\n                    {p},"));
+            string orderedSeedAssignmentLines = string.Join("", model.OrderedChildSeedAssignments
+                .Select(a => $"\n                    {a}"));
+
+            string newEntityBranch;
+            if (model.SeedForkJoinParams.Count == 0)
+            {
+                newEntityBranch = $$"""
+                this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}});
+                await this.handleAuthorizationForSave();
+                this.loading = false;
+                this.onAfterFormGroupInit.next();
+""";
+            }
+            else
+            {
+                string newSeedForkJoinParams = string.Join("\n", model.SeedForkJoinParams
+                    .Select(p => $"                    {p},"));
+                string newEntityInitArg = model.NewEntitySeedInits.Count > 0
+                    ? ", {\n" + string.Join(",\n", model.NewEntitySeedInits.Select(i => $"                        {i}")) + "\n                    }"
+                    : "";
+                newEntityBranch = $$"""
+                forkJoin({
+{{newSeedForkJoinParams}}
+                })
+                .subscribe(async (data) => {
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}}{{newEntityInitArg}});{{orderedSeedAssignmentLines}}
+                    await this.handleAuthorizationForSave();
+                    this.loading = false;
+                    this.onAfterFormGroupInit.next();
+                });
+""";
+            }
+
             return $$"""
 @Component({
     selector: '{{model.Selector}}',
@@ -90,24 +126,21 @@ export class {{model.ComponentClassName}} {
 
             if (this.modelId > 0) {
                 forkJoin({
-                    mainUIFormDTO: this.apiService.get{{model.EntityName}}MainUIFormDTO(this.modelId),
+                    mainUIFormDTO: this.apiService.get{{model.EntityName}}MainUIFormDTO(this.modelId),{{existingSeedForkJoinLines}}
                 })
                 .subscribe(async (data) => {
                     const saveBody = this.baseFormService.mapMainUIFormToSaveBody(
                         {{model.MainUIFormTypeName}},
                         data.mainUIFormDTO,
                     );
-                    this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}}, saveBody);
+                    this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}}, saveBody);{{orderedSeedAssignmentLines}}
                     await this.handleAuthorizationForSave();
                     this.loading = false;
                     this.onAfterFormGroupInit.next();
                 });
             }
             else {
-                this.baseFormService.initFormGroup(this.parentFormGroup, {{model.SaveBodyTypeName}});
-                await this.handleAuthorizationForSave();
-                this.loading = false;
-                this.onAfterFormGroupInit.next();
+{{newEntityBranch}}
             }
         });
     }
