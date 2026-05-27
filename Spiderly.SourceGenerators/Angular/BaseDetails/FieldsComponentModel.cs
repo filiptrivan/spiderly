@@ -90,6 +90,29 @@ namespace Spiderly.SourceGenerators.Angular
 
         /// <summary>The [UISection] this block belongs to (null = the implicit headerless section).</summary>
         public string SectionName { get; set; }
+
+        /// <summary>
+        /// File-upload outputs re-exposed from the composed child fragment — one per File control on the child entity.
+        /// The parent fragment declares each as its own @Output and, in the @for row, listens to the child's
+        /// on{Prop}Uploaded and re-emits { event, formGroup } carrying the row's child DTO group (so a consumer can
+        /// react to that row's upload, e.g. set sibling fields). The ordered-O2M equivalent of the legacy
+        /// on{Prop}For{ChildEntity}Uploaded output. Empty when the child has no File control.
+        /// </summary>
+        public List<OrderedChildFileOutputModel> FileOutputs { get; set; } = new();
+    }
+
+    /// <summary>One File-upload output re-exposed by the parent fragment from a composed ordered-O2M child fragment.</summary>
+    internal sealed class OrderedChildFileOutputModel
+    {
+        /// <summary>The parent fragment's @Output name, e.g. <c>onUrlForProductMediaUploaded</c>.</summary>
+        public string ParentOutputName { get; set; }
+
+        /// <summary>The composed child fragment's flat upload output to listen on, e.g. <c>onUrlUploaded</c>.</summary>
+        public string ChildUploadOutputName { get; set; }
+
+        /// <summary>The row's child DTO form-group access expression emitted as the event's <c>formGroup</c>, e.g.
+        /// <c>productMediaFormGroup.controls.productMediaDTO</c> (scalar controls live on the DTO sub-group).</summary>
+        public string RowDtoAccess { get; set; }
     }
 
     /// <summary>A [ComplexManyToManyList] junction collection rendered as a card panel of index-cards (one per row).</summary>
