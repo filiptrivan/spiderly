@@ -78,7 +78,8 @@ export class BasePage {
   }
 
   // --- Spiderly data-table helpers ---
-  // PrimeNG v19 DOM (verified from primeng-table.mjs + live CI trace):
+  // PrimeNG v19 DOM (verified from primeng-table source + live CI trace):
+  //   .p-datatable-mask                  — loading overlay (z-index 3, covers headers too)
   //   .p-datatable-column-filter-button  — filter icon in the column header
   //   .p-datatable-filter-overlay        — popup containing the filter form
   //   .p-paginator-page-selected         — selected pager page
@@ -92,7 +93,18 @@ export class BasePage {
     return this.page.locator('thead th').filter({ has: this.page.locator('span', { hasText: pattern }) });
   }
 
+  // PrimeNG v19 renders <div class="p-datatable-mask p-overlay-mask"> over the
+  // ENTIRE table (including thead) at z-index 3 while [loading]="true". The mask
+  // intercepts pointer events, so a click on the filter button times out on the
+  // visibility/stability gate until the lazy data load resolves. `toBeHidden`
+  // passes both when the mask is hidden AND when it never appeared, so it stays
+  // correct on tables that load synchronously.
+  private async waitForTableLoad() {
+    await expect(this.page.locator('.p-datatable-mask')).toBeHidden({ timeout: 15000 });
+  }
+
   private async openColumnFilter(columnLabel: string) {
+    await this.waitForTableLoad();
     await this.columnHeader(columnLabel).locator('.p-datatable-column-filter-button').first().click();
     await expect(this.page.locator('.p-datatable-filter-overlay')).toBeVisible();
   }
@@ -139,11 +151,15 @@ export class BasePage {
   }
 
   async sortByColumn(columnLabel: string, opts: { multi?: boolean } = {}) {
+    // Same loading-mask block as openColumnFilter — each prior filter/sort
+    // triggers a reload, and the mask covers headers until it resolves.
+    await this.waitForTableLoad();
     const header = this.columnHeader(columnLabel).first();
     await (opts.multi ? header.click({ modifiers: ['Control'] }) : header.click());
   }
 
   async gotoTablePage(pageNumber: number) {
+    await this.waitForTableLoad();
     await this.page.locator('.p-paginator-page', { hasText: String(pageNumber) }).click();
   }
 
