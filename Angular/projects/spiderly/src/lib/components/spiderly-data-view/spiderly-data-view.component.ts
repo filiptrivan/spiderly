@@ -69,12 +69,14 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   totalRecords: number;
   @Output() onLazyLoad: EventEmitter<Filter> = new EventEmitter();
 
+  /** Whether the data view is wrapped in a card container. Defaults to `true`. */
   @Input() showCardWrapper: boolean = true;
   /**
    * Whether to display additional data on the right side of the paginator.
    * Defaults to `false`.
    */
   @Input() showPaginatorRightData: boolean = false;
+  /** Whether the total records count is shown. Defaults to `false`. */
   @Input() showTotalRecordsNumber: boolean = false;
   @Input() applyFiltersIcon: string = 'pi pi-filter';
   @Input() clearFiltersIcon: string = 'pi pi-filter-slash';

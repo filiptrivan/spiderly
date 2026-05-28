@@ -14,7 +14,9 @@ export class IndexCardComponent {
   @Input() index: number;
   @Input() header: string = '';
   @Input() description: string;
+  /** Whether a remove/delete icon is shown. */
   @Input() showRemoveIcon: boolean;
+  /** Whether the CRUD context-menu icon is shown. Defaults to `true`. */
   @Input() showCrudMenu: boolean = true;
 
   @Input() crudMenu: MenuItem[];

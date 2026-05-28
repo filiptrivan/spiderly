@@ -11,6 +11,7 @@ import { SpiderlyPanelsModule } from '../spiderly-panels/spiderly-panels.module'
 })
 export class InfoCardComponent {
   @Input() header = '';
+  /** Whether the small icon variant is shown. Defaults to `true`. */
   @Input() showSmallIcon = true;
   @Input() icon = 'pi pi-info-circle';
   @Input() textColor = '';

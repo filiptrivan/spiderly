@@ -24,6 +24,7 @@ export class SpiderlyColorPickerComponent
   extends BaseControl
   implements OnInit
 {
+  /** Whether a hex text input is shown alongside the color swatch. Defaults to `true`. */
   @Input() showInputTextField: boolean = true;
 
   constructor(protected override translocoService: TranslocoService) {

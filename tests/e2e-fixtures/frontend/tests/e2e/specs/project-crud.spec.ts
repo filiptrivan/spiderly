@@ -85,29 +85,7 @@ test.describe('Project CRUD Operations', () => {
     await expect(page.locator('spiderly-textbox input').first()).toHaveValue(TEST_PROJECT_BODY.projectDTO.name, { timeout: 10000 });
 
     const expectSeededCategories = async (card: Locator, expectedOption: string) => {
-      try {
-        await card.locator('spiderly-dropdown p-select').click({ timeout: 10000 });
-      } catch (err) {
-        // DIAGNOSTIC: the test fails consistently on this click — dump the DOM
-        // so we can see whether spiderly-dropdown is in the card, whether
-        // p-select is inside it, and what selectors actually match. Remove
-        // once the root cause is understood.
-        const cardCount = await page.locator('index-card').count();
-        const dropdownCount = await card.locator('spiderly-dropdown').count();
-        const pselectCount = await card.locator('p-select').count();
-        const innerLen = (await card.innerHTML()).length;
-        const tags = await card.evaluate((el) =>
-          [...el.querySelectorAll('*')]
-            .map((e) => e.tagName.toLowerCase())
-            .filter((t) => t.startsWith('spiderly-') || t.startsWith('p-'))
-            .join(',')
-        );
-        console.log(`[diag] cards=${cardCount} dropdowns=${dropdownCount} pselects=${pselectCount} innerHTMLlen=${innerLen}`);
-        console.log(`[diag] tags=${tags}`);
-        const html = await card.innerHTML();
-        console.log(`[diag] cardHTML(first 3000ch):\n${html.slice(0, 3000)}`);
-        throw err;
-      }
+      await card.locator('spiderly-dropdown p-select').click();
       const overlay = page.locator('.p-select-overlay');
       await expect(overlay).toBeVisible({ timeout: 5000 });
       await expect(overlay.locator('.p-select-option')).toHaveCount(5);

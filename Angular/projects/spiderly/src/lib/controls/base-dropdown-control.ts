@@ -12,6 +12,7 @@ import { Namebook } from '../entities/namebook';
 })
 export class BaseDropdownControl extends BaseControl {
   @Input() options: Namebook[];
+  /** Whether an addon button is shown next to the dropdown. Defaults to `false`. */
   @Input() showAddon: boolean = false;
   @Input() addonIcon: string = 'pi pi-ellipsis-h';
   @Input() override placeholder: string =

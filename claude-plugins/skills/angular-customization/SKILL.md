@@ -112,6 +112,24 @@ SpiderlyFormArray<T> extends FormArray
 - `baseFormService.mapMainUIFormToSaveBody()` handles conversion automatically
 - Naming convention: `orderedItemsMainUIFormDTO` → `orderedItemsSaveBodyDTO`
 
+### Conditional visibility (`show*` inputs)
+
+Every property block the generator emits into `{Entity}BaseDetailsComponent` is wrapped in `*ngIf="show{PropertyName}For{EntityName}"`, and each is exposed as an `@Input()` defaulting to `true`. Bind it from your `{Entity}DetailsComponent` template to show/hide a field — conditionally or statically — without editing generated code:
+
+```html
+<user-base-details
+  [parentFormGroup]="parentFormGroup"
+  [showIsDisabledForUser]="isAdmin"          <!-- show a field only when a condition holds -->
+  [showEmailForUser]="false"                 <!-- hide a field outright -->
+  [showTimeOnBirthDateForUser]="true"        <!-- calendar control: also render the time picker -->
+  (onSave)="onSave()"
+></user-base-details>
+```
+
+Names are PascalCase: `show{PropertyName}For{EntityName}` (plus `showTimeOn{PropertyName}For{EntityName}` for calendar controls).
+
+Library components/controls also expose their own `show*` `@Input()`s (e.g. `showLabel` on every control, `showAddButton` on the data table, `showPanelHeader` on the panel) — each a plain boolean, bound the same way: `[showAddButton]="canCreate"`. See the *UI Controls Reference* and *Presentational & Layout Components* tables below for the available inputs.
+
 ## Data Table
 
 ### Lazy Load Mode (server-side pagination, default)

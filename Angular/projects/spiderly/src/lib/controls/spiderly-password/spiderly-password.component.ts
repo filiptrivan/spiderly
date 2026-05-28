@@ -18,6 +18,7 @@ import { PasswordModule } from 'primeng/password';
   ],
 })
 export class SpiderlyPasswordComponent extends BaseControl implements OnInit {
+  /** Whether a password-strength meter is shown below the field. Defaults to `false`. */
   @Input() showPasswordStrength: boolean = false;
 
   constructor(protected override translocoService: TranslocoService) {

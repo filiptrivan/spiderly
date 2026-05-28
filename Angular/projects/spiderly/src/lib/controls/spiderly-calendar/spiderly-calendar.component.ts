@@ -23,6 +23,7 @@ import { parseDateOnlyLocal } from '../../services/helper-functions';
   ],
 })
 export class SpiderlyCalendarComponent extends BaseControl implements OnInit, OnDestroy {
+  /** Whether the time picker is shown in addition to the date. Defaults to `false`. */
   @Input() showTime: boolean = false;
   @Input() dateOnly: boolean = false;
   @Input() timeOnly: boolean = false;

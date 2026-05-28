@@ -32,6 +32,7 @@ import { ConfigServiceBase } from '../../../services/config.service.base';
 export class ProfileAvatarComponent {
   @Input() isSideMenuLayout = true;
   @Input() routeOnLargeProfileAvatarClick = true;
+  /** Whether the login button is shown when no user is signed in. Defaults to `true`. */
   @Input() showLoginButton = true;
   @Input() routeToLoginPage = true;
   @Input() loginButtonOutlined = false;

@@ -11,11 +11,14 @@ import { SpiderlyFormControl } from '../components/spiderly-form-control/spiderl
 export class BaseControl {
   @Input() control: SpiderlyFormControl<any>; // If you name it formControl: https://stackoverflow.com/a/54755671/21209982
   @Input() disabled: boolean = false;
+  /** Whether the field's label is rendered. Defaults to `true`. */
   @Input() showLabel: boolean = true;
+  /** Whether the required (*) indicator is shown next to the label. Defaults to `true`. */
   @Input() showRequired: boolean = true;
   @Input() label: string = null; // NgModel/Want custom translation
   @Input() controlValid: boolean = true; // NgModel
   @Input() placeholder: string = '';
+  /** Whether the info tooltip icon is shown next to the label. Defaults to `false`. */
   @Input() showTooltip: boolean = false;
   @Input() tooltipText: string = null;
   @Input() tooltipIcon: string = 'pi pi-info-circle';

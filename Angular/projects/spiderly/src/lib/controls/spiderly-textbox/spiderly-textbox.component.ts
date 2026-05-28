@@ -19,6 +19,7 @@ import { InputTextModule } from 'primeng/inputtext';
   ],
 })
 export class SpiderlyTextboxComponent extends BaseControl implements OnInit {
+  /** Whether an icon button is appended to the input. Defaults to `false`. */
   @Input() showButton: boolean = false;
   @Input() buttonIcon: string;
   @Output() onButtonClick = new EventEmitter();

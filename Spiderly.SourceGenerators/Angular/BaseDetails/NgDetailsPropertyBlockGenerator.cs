@@ -350,9 +350,16 @@ namespace Spiderly.SourceGenerators.Angular
         {
             SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities); // eg. SegmentationItem
 
-            // Every property of SegmentationItem without the many to one reference (Segmentation)
+            // Drop the child's M2O navigation that points back to the parent (we render that
+            // inline form INSIDE the parent's details page, so the back-reference would be
+            // redundant). Match BOTH WithMany() == parent collection name AND the property's
+            // type == parent entity name — the WithMany name alone collides whenever any other
+            // M2O on the child happens to use the same collection name on its own side
+            // (e.g. ProjectTask.Project has WithMany("ProjectTasks"); ProjectTask.TaskCategory
+            // also has WithMany("ProjectTasks") because TaskCategory has its own ProjectTasks
+            // collection — checking name alone silently dropped TaskCategory's dropdown).
             List<SpiderlyProperty> propertyBlocks = extractedEntity.Properties
-                .Where(x => x.WithMany() != property.Name)
+                .Where(x => !(x.WithMany() == property.Name && x.Type.Raw == entity.Name))
                 .ToList();
 
             return $$"""

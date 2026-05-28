@@ -19,6 +19,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 })
 export class SpiderlyNumberComponent extends BaseControl implements OnInit {
   @Input() prefix: string;
+  /** Whether increment/decrement spinner buttons are shown. Defaults to `true`. */
   @Input() showButtons: boolean = true;
   @Input() decimal: boolean;
   @Input() maxFractionDigits: number = 0;

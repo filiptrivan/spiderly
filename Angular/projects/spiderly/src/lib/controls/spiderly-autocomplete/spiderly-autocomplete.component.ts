@@ -34,6 +34,7 @@ export class SpiderlyAutocompleteComponent
   implements OnInit
 {
   @Input() appendTo: any = 'body';
+  /** Whether a clear button is shown. Defaults to `true`. */
   @Input() showClear: boolean = true;
   @Input() emptyMessage: string;
   @Input() displayName: string; // Added because when we initialize the object options are null

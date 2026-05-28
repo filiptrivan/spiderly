@@ -76,7 +76,9 @@ export class SpiderlyDataTableComponent
   @Input() items: any[]; // Pass only when hasLazyLoad === false
   @Input() rows: number;
   @Input() cols: Column[];
-  @Input() showPaginator: boolean = true; // Pass only when hasLazyLoad === false
+  /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
+  @Input() showPaginator: boolean = true;
+  /** Whether the table is wrapped in a card container. Defaults to `false`. */
   @Input() showCardWrapper: boolean = false;
   @Input() readonly: boolean = false;
   @Input() idField = 'id';
@@ -118,8 +120,11 @@ export class SpiderlyDataTableComponent
 
   matchModeDateOptions: SelectItem[] = [];
   matchModeNumberOptions: SelectItem[] = [];
+  /** Whether the "Add" button is shown. Defaults to `true`. */
   @Input() showAddButton: boolean = true;
+  /** Whether the "Export to Excel" button is shown. Defaults to `true`. */
   @Input() showExportToExcelButton: boolean = true;
+  /** Whether the reload-table button is shown. Defaults to `false`. */
   @Input() showReloadTableButton: boolean = false;
 
   deleteRef: DynamicDialogRef;

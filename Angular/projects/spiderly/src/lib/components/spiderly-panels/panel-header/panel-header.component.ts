@@ -15,7 +15,9 @@ import { Component, OnInit, Input } from '@angular/core';
 })
 export class PanelHeaderComponent implements OnInit {
   @Input() title: string;
+  /** Whether the title is rendered in the large style. */
   @Input() showBigTitle: boolean;
+  /** Whether the header icon is shown. Defaults to `true`. */
   @Input() showIcon: boolean = true;
   @Input() icon: string;
   @Input() index: number;
