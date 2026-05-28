@@ -1,6 +1,21 @@
 import { test, expect, Locator } from '@playwright/test';
 import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
+// Shared seed body for SaveProject — used by beforeAll (pre-seed for browser
+// tests) and by the explicit "create via API" test. Single source of truth so
+// schema additions / value changes land in one place.
+const TEST_PROJECT_BODY = {
+  projectDTO: {
+    name: 'E2E Test Project',
+    description: 'Created by Playwright E2E test',
+    budget: 50000.50,
+    maxMembers: 10,
+    isArchived: false,
+  },
+  selectedMembersNamebookDTOList: [],
+  orderedProjectTasksSaveBodyDTO: [],
+};
+
 test.describe('Project CRUD Operations', () => {
   let accessToken: string;
   let projectId: number;
@@ -9,31 +24,14 @@ test.describe('Project CRUD Operations', () => {
     const tokens = await login(request);
     accessToken = tokens.accessToken;
 
-    // Pre-seed a project so projectId survives Playwright retries. Setting
-    // projectId from a regular test() loses it on retry (the failing test
-    // re-runs without re-running prior tests, and describe-scope closures
-    // can be reset between attempts) — that previously masked a real
-    // dropdown-test failure as "1 flaky" (retry got `-` skipped via the
-    // `if (!projectId) test.skip()` guards, and Playwright counts skipped
-    // retries as "flaky" → exit 0 → CI looked green while the test was
-    // actually consistently failing). beforeAll runs once per worker and
-    // its closure is preserved across retries.
+    // Pre-seed a project so projectId survives Playwright retries. Closures
+    // set in a regular test() can be reset on retry (the failing test re-runs
+    // without re-running prior tests), which previously masked a real dropdown
+    // failure as "1 flaky" via the `if (!projectId) test.skip()` guards and
+    // exit 0. beforeAll runs once per worker and its closure is preserved.
     const seedResponse = await request.put(
       `${API_BASE_URL}/api/Project/SaveProject`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          projectDTO: {
-            name: 'E2E Test Project',
-            description: 'Created by Playwright E2E test',
-            budget: 50000.50,
-            maxMembers: 10,
-            isArchived: false,
-          },
-          selectedMembersNamebookDTOList: [],
-          orderedProjectTasksSaveBodyDTO: [],
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: TEST_PROJECT_BODY }
     );
     expect(seedResponse.ok()).toBeTruthy();
     projectId = (await seedResponse.json()).projectDTO.id;
@@ -42,27 +40,14 @@ test.describe('Project CRUD Operations', () => {
   test('should create a new project via API', async ({ request }) => {
     const response = await request.put(
       `${API_BASE_URL}/api/Project/SaveProject`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          projectDTO: {
-            name: 'E2E Test Project',
-            description: 'Created by Playwright E2E test',
-            budget: 50000.50,
-            maxMembers: 10,
-            isArchived: false,
-          },
-          selectedMembersNamebookDTOList: [],
-          orderedProjectTasksSaveBodyDTO: [],
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: TEST_PROJECT_BODY }
     );
     expect(response.ok()).toBeTruthy();
     const result = await response.json();
     expect(result.projectDTO.id).toBeDefined();
-    expect(result.projectDTO.name).toBe('E2E Test Project');
-    expect(result.projectDTO.budget).toBe(50000.50);
-    expect(result.projectDTO.maxMembers).toBe(10);
+    expect(result.projectDTO.name).toBe(TEST_PROJECT_BODY.projectDTO.name);
+    expect(result.projectDTO.budget).toBe(TEST_PROJECT_BODY.projectDTO.budget);
+    expect(result.projectDTO.maxMembers).toBe(TEST_PROJECT_BODY.projectDTO.maxMembers);
     projectId = result.projectDTO.id;
   });
 
@@ -88,7 +73,7 @@ test.describe('Project CRUD Operations', () => {
   test('should open project details page', async ({ page, request }) => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue(TEST_PROJECT_BODY.projectDTO.name, { timeout: 10000 });
   });
 
   // Regression: nested [UIOrderedOneToMany] dropdowns must have options fetched in
@@ -97,7 +82,7 @@ test.describe('Project CRUD Operations', () => {
   test('should populate dropdowns at every UIOrderedOneToMany nesting depth', async ({ page, request }) => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue(TEST_PROJECT_BODY.projectDTO.name, { timeout: 10000 });
 
     const expectSeededCategories = async (card: Locator, expectedOption: string) => {
       await card.locator('spiderly-dropdown p-select').click();
@@ -124,7 +109,7 @@ test.describe('Project CRUD Operations', () => {
   test('should render the markdown control with a live preview', async ({ page, request }) => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
+    await expect(page.locator('spiderly-textbox input').first()).toHaveValue(TEST_PROJECT_BODY.projectDTO.name, { timeout: 10000 });
 
     const markdown = page.locator('spiderly-markdown');
     await expect(markdown).toBeVisible({ timeout: 5000 });

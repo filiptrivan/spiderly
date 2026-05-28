@@ -19,11 +19,10 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const isApiUrl = req.url.startsWith(config.apiUrl);
   if (isApiUrl) {
     const isStateChanging = !SAFE_HTTP_METHODS.has(req.method.toUpperCase());
-    req = req.clone(
-      isStateChanging
-        ? { withCredentials: true, setHeaders: { 'X-CSRF': '1' } }
-        : { withCredentials: true }
-    );
+    req = req.clone({
+      withCredentials: true,
+      ...(isStateChanging && { setHeaders: { 'X-CSRF': '1' } }),
+    });
   }
 
   return next(req);

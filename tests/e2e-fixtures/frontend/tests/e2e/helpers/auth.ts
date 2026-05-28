@@ -35,9 +35,9 @@ export async function login(request: APIRequestContext): Promise<{ accessToken: 
     { data: { email: TEST_EMAIL, browserId: TEST_BROWSER_ID, verificationCode } }
   );
   expect(loginResponse.ok()).toBeTruthy();
-  const body = await loginResponse.json();
-  expect(body.accessToken).toBeTruthy();
-  return { accessToken: body.accessToken, refreshToken: body.refreshToken };
+  const { accessToken, refreshToken } = await loginResponse.json();
+  expect(accessToken).toBeTruthy();
+  return { accessToken, refreshToken };
 }
 
 /**
