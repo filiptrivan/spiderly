@@ -8,6 +8,35 @@ test.describe('Project CRUD Operations', () => {
   test.beforeAll(async ({ request }) => {
     const tokens = await login(request);
     accessToken = tokens.accessToken;
+
+    // Pre-seed a project so projectId survives Playwright retries. Setting
+    // projectId from a regular test() loses it on retry (the failing test
+    // re-runs without re-running prior tests, and describe-scope closures
+    // can be reset between attempts) — that previously masked a real
+    // dropdown-test failure as "1 flaky" (retry got `-` skipped via the
+    // `if (!projectId) test.skip()` guards, and Playwright counts skipped
+    // retries as "flaky" → exit 0 → CI looked green while the test was
+    // actually consistently failing). beforeAll runs once per worker and
+    // its closure is preserved across retries.
+    const seedResponse = await request.put(
+      `${API_BASE_URL}/api/Project/SaveProject`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: {
+          projectDTO: {
+            name: 'E2E Test Project',
+            description: 'Created by Playwright E2E test',
+            budget: 50000.50,
+            maxMembers: 10,
+            isArchived: false,
+          },
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [],
+        },
+      }
+    );
+    expect(seedResponse.ok()).toBeTruthy();
+    projectId = (await seedResponse.json()).projectDTO.id;
   });
 
   test('should create a new project via API', async ({ request }) => {
@@ -66,7 +95,6 @@ test.describe('Project CRUD Operations', () => {
   // the parent component's ngOnInit — browser-driven because the bug (empty options)
   // doesn't affect the API contract and is invisible to API tests.
   test('should populate dropdowns at every UIOrderedOneToMany nesting depth', async ({ page, request }) => {
-    if (!projectId) test.skip();
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
     await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
@@ -94,7 +122,6 @@ test.describe('Project CRUD Operations', () => {
   // app. Browser-driven because the risks here are invisible to API tests and the build — a
   // missing provideMarkdown() provider or a broken Write/Preview tab only surfaces at runtime.
   test('should render the markdown control with a live preview', async ({ page, request }) => {
-    if (!projectId) test.skip();
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
     await expect(page.locator('spiderly-textbox input').first()).toHaveValue('E2E Test Project', { timeout: 10000 });
@@ -115,7 +142,6 @@ test.describe('Project CRUD Operations', () => {
   });
 
   test('should update project via API', async ({ request }) => {
-    if (!projectId) test.skip();
     const response = await request.put(
       `${API_BASE_URL}/api/Project/SaveProject`,
       {
@@ -141,7 +167,6 @@ test.describe('Project CRUD Operations', () => {
   });
 
   test('should delete project via API', async ({ request }) => {
-    if (!projectId) test.skip();
     const response = await request.delete(
       `${API_BASE_URL}/api/Project/DeleteProject?id=${projectId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
