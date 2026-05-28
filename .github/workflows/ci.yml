@@ -63,6 +63,20 @@ jobs:
           cache: npm
           cache-dependency-path: Angular/package-lock.json
 
+      # Fast-fail lockfile-integrity gate. `npm ci` is the strict variant that
+      # cross-checks package.json against package-lock.json — `npm install` is
+      # lenient and won't catch a partial/inconsistent lock (npm has a known
+      # habit of dropping optional-dep entries when the lock is regenerated on
+      # one platform and consumed on another). `--dry-run` does the validation
+      # without writing node_modules (the later "Build Spiderly Angular
+      # library" step does the real install). This surfaces lock drift in
+      # seconds with the clear "Missing X from lock file" message, instead of
+      # burying it 10 minutes later mid-build (see commit 62f9070).
+      - name: Verify Angular lockfile integrity
+        run: |
+          cd Angular
+          npm ci --dry-run --ignore-scripts
+
       - name: Setup PostgreSQL
         run: |
           sudo systemctl start postgresql

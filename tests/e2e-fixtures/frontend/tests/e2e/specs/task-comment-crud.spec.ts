@@ -49,6 +49,25 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
     );
     expect(taskResponse.ok()).toBeTruthy();
     taskId = (await taskResponse.json()).projectTaskDTO.id;
+
+    // Pre-seed comment so commentId survives retries — same rationale as
+    // project-crud.spec.ts. The "should create a task comment via API" test
+    // below independently re-creates one for explicit endpoint verification.
+    const commentResponse = await request.put(
+      `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: {
+          taskCommentDTO: {
+            content: 'E2E test comment content',
+            orderNumber: 1,
+            projectTaskId: taskId,
+          },
+        },
+      }
+    );
+    expect(commentResponse.ok()).toBeTruthy();
+    commentId = (await commentResponse.json()).taskCommentDTO.id;
   });
 
   test('should create a task comment via API', async ({ request }) => {
@@ -92,7 +111,6 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
   });
 
   test('should update task comment via API', async ({ request }) => {
-    if (!commentId) test.skip();
     const response = await request.put(
       `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       {

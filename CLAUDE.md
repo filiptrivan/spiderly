@@ -55,6 +55,12 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 
 `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` holds the full project template emitted by `spiderly init` — `Startup.cs`, `AppServiceExtensions.cs`, the entity scaffolding, package.json, etc. — as raw string literals. When you change a framework public API (DI registration shape, `SpiderlyBuilder` methods, generated service constructor signature, new built-in service that needs registering), audit the relevant template strings in this file and update them too. CI's e2e job catches the worst regressions, but only for code paths the fixture exercises (commit `96ad6b9` removed the global `IFileManager` slot but missed adding `services.AddTransient<DiskStorageService>()` to the template — every freshly-init'd app crashed on the first save of a `[DiskStorage]` property).
 
+## Regression tests must fail on the commit that adds them
+
+If you write a regression test for a bug, that test **must demonstrably fail on its commit and pass on the immediately-following fix commit** — never the reverse, never both in one commit. A green-on-its-own-commit regression test is a placebo: it codifies the bug's existence without proving the suite actually catches it. The nested-O2M dropdown regression test (`8a2714f`) was authored aspirationally — added without the matching generator fix — and a separate `if (!setupVar) test.skip()` retry-mask kept CI green for a month while the underlying bug existed. The discipline: add the test, watch it fail in CI, then push the fix.
+
+Corollary: never write `if (!setupVar) test.skip()` guards. Either seed the variable in a `beforeAll` (which is preserved across Playwright retries) or let the test fail loudly with a clear assertion error. Skip guards on missing setup state silently convert consistent failures into "flaky → exit 0" CI passes.
+
 ## AI-Agentic Philosophy
 
 Spiderly is an AI-agentic framework. Every feature must be drivable by an AI agent without human intervention. See the `ai-agentic-design` skill (`.claude/skills/ai-agentic-design/SKILL.md` — contributor-only, intentionally kept out of the consumer-shipped `claude-plugins/skills/`) for the complete design principles. Key rules: non-interactive by default, fail loudly with non-zero exit codes, validate prerequisites upfront, Docker-first for infrastructure in non-interactive mode.

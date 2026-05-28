@@ -14,6 +14,29 @@ test.describe('Product CRUD Operations', () => {
   test.beforeAll(async ({ request }) => {
     const tokens = await login(request);
     accessToken = tokens.accessToken;
+
+    // Pre-seed product so productId survives Playwright retries — same
+    // rationale as project-crud.spec.ts beforeAll: an id set in a regular
+    // test() doesn't always survive a retry, and the `if (!productId)
+    // test.skip()` guards then silently masquerade consistent failures as
+    // "flaky" with CI exit 0.
+    const seedResponse = await request.put(
+      `${API_BASE_URL}/api/Product/SaveProduct`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: {
+          productDTO: {
+            name: 'E2E Test Product',
+            description: 'Created by Playwright E2E test',
+            price: 99.99,
+            stock: 100,
+            isActive: true,
+          },
+        },
+      }
+    );
+    expect(seedResponse.ok()).toBeTruthy();
+    productId = (await seedResponse.json()).productDTO.id;
   });
 
   test('should create a new product via API', async ({ request }) => {
@@ -63,7 +86,6 @@ test.describe('Product CRUD Operations', () => {
   });
 
   test('should update product via API', async ({ request }) => {
-    if (!productId) test.skip();
     const response = await request.put(
       `${API_BASE_URL}/api/Product/SaveProduct`,
       {
@@ -120,7 +142,6 @@ test.describe('Product CRUD Operations', () => {
   });
 
   test('should delete product via API', async ({ request }) => {
-    if (!productId) test.skip();
     const response = await request.delete(
       `${API_BASE_URL}/api/Product/DeleteProduct?id=${productId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }

@@ -29,6 +29,30 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     expect(projectResponse.ok()).toBeTruthy();
     const projectResult = await projectResponse.json();
     projectId = projectResult.projectDTO.id;
+
+    // Pre-seed task so taskId survives retries — same rationale as
+    // project-crud.spec.ts. The "should create a project task via API" test
+    // below independently re-creates one for explicit endpoint verification.
+    const taskResponse = await request.put(
+      `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: {
+          projectTaskDTO: {
+            title: 'E2E Test Task',
+            description: 'A task created by E2E test',
+            estimatedHours: 8.5,
+            isCompleted: false,
+            orderNumber: 1,
+            projectId: projectId,
+            taskCategoryId: 1,
+          },
+          orderedTaskCommentsSaveBodyDTO: [],
+        },
+      }
+    );
+    expect(taskResponse.ok()).toBeTruthy();
+    taskId = (await taskResponse.json()).projectTaskDTO.id;
   });
 
   test.afterAll(async ({ request }) => {
@@ -79,7 +103,6 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   });
 
   test('should update project task via API', async ({ request }) => {
-    if (!taskId) test.skip();
     const response = await request.put(
       `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
       {
@@ -113,7 +136,6 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   });
 
   test('should delete project task via API', async ({ request }) => {
-    if (!taskId) test.skip();
     const response = await request.delete(
       `${API_BASE_URL}/api/ProjectTask/DeleteProjectTask?id=${taskId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
