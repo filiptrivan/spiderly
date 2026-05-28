@@ -191,7 +191,7 @@ Child **must** have `[UIDoNotGenerate] [Required] public int OrderNumber { get; 
 | `DateTime`      | Calendar        | —                                                                        |
 | Navigation prop | Autocomplete    | `[UIControlType(nameof(UIControlTypeCodes.Dropdown))]`                   |
 
-Other `UIControlTypeCodes`: `ColorPicker`, `MultiAutocomplete`, `MultiSelect`, `Password`, `TextBlock`, `Table`.
+Other `UIControlTypeCodes`: `ColorPicker`, `MultiAutocomplete`, `MultiSelect`, `Password`, `Table`.
 
 Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor/Markdown default to `"col-8"`.
 

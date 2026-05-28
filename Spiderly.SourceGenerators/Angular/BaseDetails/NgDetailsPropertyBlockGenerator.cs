@@ -265,8 +265,6 @@ namespace Spiderly.SourceGenerators.Angular
                     return "spiderly-password";
                 case UIControlTypeCodes.TextArea:
                     return "spiderly-textarea";
-                case UIControlTypeCodes.TextBlock:
-                    return "spiderly-textblock";
                 case UIControlTypeCodes.TextBox:
                     return "spiderly-textbox";
                 case UIControlTypeCodes.Table:

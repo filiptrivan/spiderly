@@ -35,7 +35,6 @@ namespace __APP_NAME__.Business.Entities
         [UIControlType(nameof(UIControlTypeCodes.CheckBox))]
         public bool? IsCompleted { get; set; }
 
-        [UIControlType(nameof(UIControlTypeCodes.TextBlock))]
         [StringLength(70, MinimumLength = 1)]
         public string CreatedByUserEmail { get; set; }
 

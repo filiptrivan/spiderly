@@ -218,20 +218,7 @@ namespace Spiderly.Shared.Enums
         /// </code>
         /// </example>
         /// </summary>
-        Password,
-
-        /// <summary>
-        /// Read-only text display. Renders <c>spiderly-textblock</c> (non-editable).
-        /// <para>Must be set explicitly via attribute. Use for fields that should be visible but not editable.</para>
-        /// <example>
-        /// Example:
-        /// <code>
-        /// [UIControlType(nameof(UIControlTypeCodes.TextBlock))]
-        /// public string CreatedByUser { get; set; }
-        /// </code>
-        /// </example>
-        /// </summary>
-        TextBlock
+        Password
     }
 }
 
