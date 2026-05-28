@@ -3378,7 +3378,7 @@ namespace {{appName}}.Business.DataMappers
         "@angular/cli": "19.2.13",
         "@angular/compiler-cli": "19.2.13",
         "@jsverse/transloco-keys-manager": "6.2.2",
-        "@playwright/test": "1.49.1",
+        "@playwright/test": "1.60.0",
         "@types/jasmine": "5.1.0",
         "@types/node": "22.10.5",
         "jasmine-core": "5.1.0",

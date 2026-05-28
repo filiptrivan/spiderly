@@ -201,8 +201,11 @@ jobs:
           FRONTEND_PATH="${{ env.APP_FOLDER }}/Frontend"
           cd "$FRONTEND_PATH"
 
-          echo "Installing Playwright..."
-          npm install -D @playwright/test
+          echo "Installing Playwright browser..."
+          # @playwright/test is already installed at the version pinned in the
+          # generated Frontend package.json (spiderly init runs npm install).
+          # Do NOT install it unpinned here — that pulls a floating version and
+          # decouples the browser download host from the pinned Playwright.
           npx playwright install chromium --with-deps
 
       - name: Create Playwright config
