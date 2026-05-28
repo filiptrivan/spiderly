@@ -6,6 +6,18 @@ import { BasePage } from '../page-objects/base-page';
 
 const mp4Fixture = readFileSync(join(__dirname, '..', 'fixtures', 'test.mp4'));
 
+// Shared SaveProduct body — used by beforeAll's seed and by the "should
+// create" test. Single source of truth so a Product schema change lands once.
+const TEST_PRODUCT_BODY = {
+  productDTO: {
+    name: 'E2E Test Product',
+    description: 'Created by Playwright E2E test',
+    price: 99.99,
+    stock: 100,
+    isActive: true,
+  },
+};
+
 test.describe('Product CRUD Operations', () => {
   let accessToken: string;
   let productId: number;
@@ -22,18 +34,7 @@ test.describe('Product CRUD Operations', () => {
     // "flaky" with CI exit 0.
     const seedResponse = await request.put(
       `${API_BASE_URL}/api/Product/SaveProduct`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          productDTO: {
-            name: 'E2E Test Product',
-            description: 'Created by Playwright E2E test',
-            price: 99.99,
-            stock: 100,
-            isActive: true,
-          },
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: TEST_PRODUCT_BODY }
     );
     expect(seedResponse.ok()).toBeTruthy();
     productId = (await seedResponse.json()).productDTO.id;
@@ -42,23 +43,12 @@ test.describe('Product CRUD Operations', () => {
   test('should create a new product via API', async ({ request }) => {
     const response = await request.put(
       `${API_BASE_URL}/api/Product/SaveProduct`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          productDTO: {
-            name: 'E2E Test Product',
-            description: 'Created by Playwright E2E test',
-            price: 99.99,
-            stock: 100,
-            isActive: true,
-          },
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: TEST_PRODUCT_BODY }
     );
     expect(response.ok()).toBeTruthy();
     const result = await response.json();
     expect(result.productDTO.id).toBeDefined();
-    expect(result.productDTO.name).toBe('E2E Test Product');
+    expect(result.productDTO.name).toBe(TEST_PRODUCT_BODY.productDTO.name);
     productId = result.productDTO.id;
   });
 

@@ -1,6 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
+// Shared SaveProjectTask body builder — used by beforeAll's seed and by the
+// "should create" test. projectId is injected at call time because it's only
+// known after the project seed runs.
+const taskBodyFor = (projectId: number) => ({
+  projectTaskDTO: {
+    title: 'E2E Test Task',
+    description: 'A task created by E2E test',
+    estimatedHours: 8.5,
+    isCompleted: false,
+    orderNumber: 1,
+    projectId,
+    taskCategoryId: 1,
+  },
+  orderedTaskCommentsSaveBodyDTO: [],
+});
+
 test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   let accessToken: string;
   let projectId: number;
@@ -35,21 +51,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     // below independently re-creates one for explicit endpoint verification.
     const taskResponse = await request.put(
       `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          projectTaskDTO: {
-            title: 'E2E Test Task',
-            description: 'A task created by E2E test',
-            estimatedHours: 8.5,
-            isCompleted: false,
-            orderNumber: 1,
-            projectId: projectId,
-            taskCategoryId: 1,
-          },
-          orderedTaskCommentsSaveBodyDTO: [],
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: taskBodyFor(projectId) }
     );
     expect(taskResponse.ok()).toBeTruthy();
     taskId = (await taskResponse.json()).projectTaskDTO.id;
@@ -65,30 +67,17 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   });
 
   test('should create a project task via API', async ({ request }) => {
+    const body = taskBodyFor(projectId);
     const response = await request.put(
       `${API_BASE_URL}/api/ProjectTask/SaveProjectTask`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          projectTaskDTO: {
-            title: 'E2E Test Task',
-            description: 'A task created by E2E test',
-            estimatedHours: 8.5,
-            isCompleted: false,
-            orderNumber: 1,
-            projectId: projectId,
-            taskCategoryId: 1,
-          },
-          orderedTaskCommentsSaveBodyDTO: [],
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: body }
     );
     expect(response.ok()).toBeTruthy();
     const result = await response.json();
     expect(result.projectTaskDTO.id).toBeDefined();
-    expect(result.projectTaskDTO.title).toBe('E2E Test Task');
-    expect(result.projectTaskDTO.estimatedHours).toBe(8.5);
-    expect(result.projectTaskDTO.taskCategoryId).toBe(1);
+    expect(result.projectTaskDTO.title).toBe(body.projectTaskDTO.title);
+    expect(result.projectTaskDTO.estimatedHours).toBe(body.projectTaskDTO.estimatedHours);
+    expect(result.projectTaskDTO.taskCategoryId).toBe(body.projectTaskDTO.taskCategoryId);
     taskId = result.projectTaskDTO.id;
   });
 

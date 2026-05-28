@@ -1,6 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { login, authenticateBrowser, API_BASE_URL } from '../helpers/auth';
 
+// Shared SaveTaskComment body builder — used by beforeAll's seed and by the
+// "should create" test. taskId is injected at call time because it's only
+// known after the task seed runs.
+const commentBodyFor = (taskId: number) => ({
+  taskCommentDTO: {
+    content: 'E2E test comment content',
+    orderNumber: 1,
+    projectTaskId: taskId,
+  },
+});
+
 test.describe('TaskComment CRUD + Cascade Delete', () => {
   let accessToken: string;
   let projectId: number;
@@ -55,39 +66,22 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
     // below independently re-creates one for explicit endpoint verification.
     const commentResponse = await request.put(
       `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          taskCommentDTO: {
-            content: 'E2E test comment content',
-            orderNumber: 1,
-            projectTaskId: taskId,
-          },
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: commentBodyFor(taskId) }
     );
     expect(commentResponse.ok()).toBeTruthy();
     commentId = (await commentResponse.json()).taskCommentDTO.id;
   });
 
   test('should create a task comment via API', async ({ request }) => {
+    const body = commentBodyFor(taskId);
     const response = await request.put(
       `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: {
-          taskCommentDTO: {
-            content: 'E2E test comment content',
-            orderNumber: 1,
-            projectTaskId: taskId,
-          },
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}` }, data: body }
     );
     expect(response.ok()).toBeTruthy();
     const result = await response.json();
     expect(result.taskCommentDTO.id).toBeDefined();
-    expect(result.taskCommentDTO.content).toBe('E2E test comment content');
+    expect(result.taskCommentDTO.content).toBe(body.taskCommentDTO.content);
     commentId = result.taskCommentDTO.id;
   });
 
