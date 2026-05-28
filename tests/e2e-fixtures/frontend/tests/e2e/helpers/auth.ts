@@ -2,76 +2,85 @@ import { Page, expect, APIRequestContext } from '@playwright/test';
 
 export const API_BASE_URL = 'http://localhost:5000';
 
-/**
- * Shared 2FA dance: request a verification code (returned inline in the
- * Development response body when SMTP is unconfigured) and POST it to the
- * given login endpoint. `endpoint` selects between `Login` (tokens-only,
- * body response) and `LoginWithCookies` (sets the refresh token as an
- * HttpOnly cookie via SetAuthResultCookie on the response).
- */
-async function requestLogin(request: APIRequestContext, endpoint: 'Login' | 'LoginWithCookies') {
-  const sendCodeResponse = await request.post(
-    `${API_BASE_URL}/api/Security/SendLoginVerificationEmail`,
-    { data: { email: 'test@e2e.com', browserId: 'e2e-browser' } }
-  );
-  expect(sendCodeResponse.ok()).toBeTruthy();
-  const { verificationCode } = await sendCodeResponse.json();
-  expect(verificationCode).toBeTruthy();
+const TEST_EMAIL = 'test@e2e.com';
+const TEST_BROWSER_ID = 'e2e-browser';
 
+/**
+ * Shared 2FA dance: requests a verification code and returns it. In the
+ * Development environment with no SMTP configured the backend returns the
+ * code inline in the response body (no email is actually sent).
+ */
+async function sendVerificationCode(request: APIRequestContext): Promise<string> {
+  const response = await request.post(
+    `${API_BASE_URL}/api/Security/SendLoginVerificationEmail`,
+    { data: { email: TEST_EMAIL, browserId: TEST_BROWSER_ID } }
+  );
+  expect(response.ok()).toBeTruthy();
+  const { verificationCode } = await response.json();
+  expect(verificationCode).toBeTruthy();
+  return verificationCode;
+}
+
+/**
+ * API-only login: hits /Security/Login and returns the access/refresh tokens
+ * in the response body. Use for tests that exercise the backend with an
+ * Authorization header and never touch the browser. Browser tests must use
+ * {@link authenticateBrowser} — the admin's session restoration is
+ * cookie-based and ignores body tokens.
+ */
+export async function login(request: APIRequestContext): Promise<{ accessToken: string; refreshToken: string }> {
+  const verificationCode = await sendVerificationCode(request);
   const loginResponse = await request.post(
-    `${API_BASE_URL}/api/Security/${endpoint}`,
-    { data: { email: 'test@e2e.com', browserId: 'e2e-browser', verificationCode } }
+    `${API_BASE_URL}/api/Security/Login`,
+    { data: { email: TEST_EMAIL, browserId: TEST_BROWSER_ID, verificationCode } }
   );
   expect(loginResponse.ok()).toBeTruthy();
   const body = await loginResponse.json();
   expect(body.accessToken).toBeTruthy();
-  return body;
-}
-
-/**
- * API-only login: returns access/refresh tokens in the body. Use for tests
- * that hit the backend directly with an Authorization header and never touch
- * the browser. Browser tests must use {@link authenticateBrowser} instead —
- * the refresh token now lives in an HttpOnly cookie, not a body field.
- */
-export async function login(request: APIRequestContext): Promise<{ accessToken: string; refreshToken: string }> {
-  const tokens = await requestLogin(request, 'Login');
-  return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+  return { accessToken: body.accessToken, refreshToken: body.refreshToken };
 }
 
 /**
  * Browser login: drives the cookie-based session the Spiderly admin uses at
- * bootstrap. The app calls /Security/RefreshTokenWithCookies on init, which
- * reads the refresh token from an HttpOnly cookie and uses ?browserId=X as
- * the binding key. Three things must hold before the first navigation:
+ * bootstrap. /Security/LoginWithCookies sets THREE cookies on the response —
+ * access_token (HttpOnly), refresh_token (HttpOnly), and AuthResult
+ * (JS-readable, holds { userId, email, accessTokenExpiresAt }). The response
+ * body is just the AuthResult payload; the tokens are in cookies, not body.
+ *
+ * Three things must hold before the first navigation:
  *
  *   1. Hit /Security/LoginWithCookies (not /Security/Login) so the backend
- *      issues Set-Cookie for the refresh token.
- *   2. Issue it through `page.request`, not the standalone `request` fixture —
- *      `request` has its own cookie jar that the page does not see.
- *   3. Seed `browser_id` into localStorage via addInitScript so the very first
+ *      sets the three cookies (only the WithCookies variant does this).
+ *   2. Issue it via page.request so Set-Cookie lands in the BrowserContext
+ *      jar the page actually uses — the standalone `request` fixture has its
+ *      own jar.
+ *   3. Seed browser_id into localStorage via addInitScript so the very first
  *      bootstrap call to RefreshTokenWithCookies sends ?browserId=e2e-browser
- *      (matching what the cookie was issued for, not a freshly-generated GUID).
+ *      (matching what the cookies were issued for; otherwise the app generates
+ *      a fresh GUID and the server rejects the refresh as bound to nothing).
  *
- * NOTE: The unused `_request` parameter is kept for call-site compatibility —
- * existing specs pass the standalone `request` fixture; we ignore it because
- * its cookie jar is the wrong one.
+ * The unused `_request` param is kept for call-site stability with existing
+ * specs that pass the standalone `request` fixture — it has the wrong cookie
+ * jar so we deliberately ignore it.
  */
-export async function authenticateBrowser(page: Page, _request: APIRequestContext): Promise<{ accessToken: string }> {
+export async function authenticateBrowser(page: Page, _request: APIRequestContext): Promise<void> {
   // (3) Seed browser_id before any page bootstrap.
-  await page.addInitScript(() => {
-    localStorage.setItem('browser_id', 'e2e-browser');
-  });
+  await page.addInitScript((browserId: string) => {
+    localStorage.setItem('browser_id', browserId);
+  }, TEST_BROWSER_ID);
 
   // (1) + (2) LoginWithCookies through page.request so Set-Cookie lands in
-  // the BrowserContext jar that the page uses on subsequent navigations.
-  const tokens = await requestLogin(page.request, 'LoginWithCookies');
+  // the BrowserContext jar.
+  const verificationCode = await sendVerificationCode(page.request);
+  const loginResponse = await page.request.post(
+    `${API_BASE_URL}/api/Security/LoginWithCookies`,
+    { data: { email: TEST_EMAIL, browserId: TEST_BROWSER_ID, verificationCode } }
+  );
+  expect(loginResponse.ok()).toBeTruthy();
 
-  // App bootstrap now: addInitScript seeds browser_id → app calls
-  // RefreshTokenWithCookies?browserId=e2e-browser with the refresh cookie →
-  // backend returns fresh tokens → authenticated layout renders.
+  // App bootstrap now: addInitScript seeds browser_id → app reads the
+  // AuthResult cookie + sends the refresh cookie on RefreshTokenWithCookies →
+  // authenticated layout renders.
   await page.goto('/');
   await page.locator('sidebar-menu').waitFor({ state: 'visible', timeout: 15000 });
-
-  return { accessToken: tokens.accessToken };
 }
