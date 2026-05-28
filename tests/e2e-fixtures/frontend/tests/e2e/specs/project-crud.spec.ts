@@ -86,10 +86,18 @@ test.describe('Project CRUD Operations', () => {
 
     const expectSeededCategories = async (card: Locator, expectedOption: string) => {
       await card.locator('spiderly-dropdown p-select').click();
+      // PrimeNG appendTo="body" — the overlay is outside the card DOM so we
+      // match it at page scope. We open one dropdown per call; the first call's
+      // overlay must be closed before the second opens, otherwise the strict
+      // `locator('.p-select-overlay')` matches two elements (the second
+      // p-select doesn't auto-dismiss the first when invoked while another
+      // overlay is open).
       const overlay = page.locator('.p-select-overlay');
       await expect(overlay).toBeVisible({ timeout: 5000 });
       await expect(overlay.locator('.p-select-option')).toHaveCount(5);
       await expect(overlay.getByText(expectedOption, { exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(overlay).toBeHidden({ timeout: 2000 });
     };
 
     await page.locator('.panel-add-button spiderly-button button').click();
