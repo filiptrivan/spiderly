@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Spiderly.Infrastructure\Spiderly.Infrastructure.csproj" />
     <ProjectReference Include="..\Spiderly.Shared\Spiderly.Shared.csproj" />
   </ItemGroup>
 

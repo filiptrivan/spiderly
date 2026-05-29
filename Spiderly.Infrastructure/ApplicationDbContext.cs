@@ -50,6 +50,7 @@ namespace Spiderly.Infrastructure
 
             mutableEntityTypes.ConfigureManyToManyRelationships(modelBuilder);
             mutableEntityTypes.ConfigureManyToOneRelationships(modelBuilder);
+            mutableEntityTypes.ConfigureOneToOneRelationships(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }

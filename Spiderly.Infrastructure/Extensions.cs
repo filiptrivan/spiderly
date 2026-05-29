@@ -128,6 +128,60 @@ namespace Spiderly.Infrastructure
         }
 
         /// <summary>
+        /// Configures one-to-one relationships declared with <c>[WithOne]</c> on the dependent
+        /// (foreign-key-holding) side. Emits <c>HasOne().WithOne().HasForeignKey()</c> plus a
+        /// declarative unique index on the FK column.
+        /// <para>
+        /// Delete behavior is app-layer only — <c>NoAction</c> by default, <c>SetNull</c> when
+        /// <c>[SetNull]</c> is present. We never emit a DB-level <c>ON DELETE CASCADE</c>; cascades
+        /// are handled in the generated delete pipeline.
+        /// </para>
+        /// <para>
+        /// The unique index is declarative (<c>HasIndex(fk).IsUnique()</c>) so provider conventions
+        /// handle NULLs — PostgreSQL emits <c>NULLS DISTINCT</c>, SQL Server adds an automatic
+        /// <c>IS NOT NULL</c> filter — which lets an optional 1-1 keep many NULL FKs. Never raw SQL,
+        /// never <c>HasFilter(null)</c>.
+        /// </para>
+        /// </summary>
+        public static void ConfigureOneToOneRelationships(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)
+        {
+            foreach (IMutableEntityType entityType in mutableEntityTypes)
+            {
+                Type clrType = entityType.ClrType;
+
+                foreach (PropertyInfo property in clrType.GetProperties())
+                {
+                    WithOneAttribute withOneAttribute = property.GetCustomAttribute<WithOneAttribute>();
+                    if (withOneAttribute == null)
+                        continue;
+
+                    RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
+
+                    SetNullAttribute setNullAttribute = property.GetCustomAttribute<SetNullAttribute>();
+
+                    DeleteBehavior deleteBehavior;
+                    if (setNullAttribute == null)
+                        deleteBehavior = DeleteBehavior.NoAction;
+                    else
+                        deleteBehavior = DeleteBehavior.SetNull;
+
+                    string foreignKeyName = ResolveForeignKeyName(property, clrType);
+
+                    modelBuilder.Entity(clrType)
+                        .HasOne(property.PropertyType, property.Name)
+                        .WithOne(withOneAttribute.WithOne) // null => unidirectional inverse
+                        .HasForeignKey(clrType, foreignKeyName) // dependent type must be specified for reference-to-reference
+                        .OnDelete(deleteBehavior)
+                        .IsRequired(requiredAttribute != null);
+
+                    modelBuilder.Entity(clrType)
+                        .HasIndex(foreignKeyName)
+                        .IsUnique();
+                }
+            }
+        }
+
+        /// <summary>
         /// Resolves the FK column name for a many-to-one navigation. EF Core's
         /// HasForeignKey(string) overload automatically picks up a CLR property with that
         /// name if one exists on the entity; otherwise it creates a shadow property.
