@@ -121,7 +121,12 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   test('should navigate to project and see tasks inline', async ({ page, request }) => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    await expect(page.locator('index-card input').first()).toHaveValue('Updated E2E Task', { timeout: 10000 });
+    // Match the input by its current display value, not by position. beforeAll
+    // pre-seeds an additional ProjectTask (so taskId survives retries) — that
+    // pre-seed sits at index 0 with the unchanged title, while the updated
+    // task is at a later index. Asserting on `.first()` would pick the wrong
+    // one; `getByDisplayValue` finds the input regardless of position.
+    await expect(page.getByDisplayValue('Updated E2E Task')).toBeVisible({ timeout: 10000 });
   });
 
   test('should delete project task via API', async ({ request }) => {
