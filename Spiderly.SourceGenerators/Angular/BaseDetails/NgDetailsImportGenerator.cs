@@ -7,7 +7,7 @@ namespace Spiderly.SourceGenerators.Angular
 {
     internal static class NgDetailsImportGenerator
     {
-        internal static string GetImports(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> entities)
+        internal static string GetImports(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> entities, List<SpiderlyClass> currentProjectEntities)
         {
             List<AngularImport> customDTOImports = customDTOClasses
                 .Select(x => new AngularImport
@@ -44,6 +44,7 @@ namespace Spiderly.SourceGenerators.Angular
             List<AngularImport> imports = customDTOImports.Concat(entityImports).Concat(saveBodyImports).Concat(mainUIFormImports).ToList();
 
             return $$"""
+{{string.Join("\n", GetEnumNamebookListImports(currentProjectEntities, entities, customDTOClasses))}}
 import { ValidatorService } from 'src/app/business/services/validators/validators';
 import { DropdownChangeEvent } from 'primeng/dropdown';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
@@ -60,6 +61,24 @@ import { AuthService } from '../services/auth/auth.service';
 import { SpiderlyControlsModule, CardSkeletonComponent, IndexCardComponent, IsAuthorizedForSaveEvent, SpiderlyDataTableComponent, SpiderlyFormArray, BaseEntity, LastMenuIconIndexClicked, SpiderlyFormGroup, SpiderlyButton, nameof, BaseFormService, Column, Filter, LazyLoadSelectedIdsResult, AllClickEvent, SpiderlyFileSelectEvent, getPrimengDropdownNamebookOptions, PrimengOption, SpiderlyFormControl, getPrimengAutocompleteNamebookOptions, SpiderlyPanelsModule, Namebook, EditorImageUploadResult } from 'spiderly';
 {{string.Join("\n", GetDynamicNgImports(imports))}}
 """;
+        }
+
+        /// <summary>
+        /// Imports the generated <c>get{Enum}NamebookList</c> builder for every enum that renders as a dropdown on
+        /// a generated entity component. Scoped to exactly the enums actually called (so no unused imports), using
+        /// the same per-entity dropdown walk as the option-population emitter (<see cref="NgDetailsPropertyBlockGenerator.GetEnumDropdownContexts"/>)
+        /// and the same <see cref="Extensions.GeneratesDetailsComponent"/> entity filter as the component emitter.
+        /// </summary>
+        internal static List<string> GetEnumNamebookListImports(List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        {
+            return currentProjectEntities
+                .Where(x => x.GeneratesDetailsComponent())
+                .SelectMany(entity => NgDetailsPropertyBlockGenerator.GetEnumDropdownContexts(entity, entities, customDTOClasses))
+                .Select(context => context.Property.Type.CoreName)
+                .Distinct()
+                .OrderBy(x => x)
+                .Select(enumName => $$"""import { get{{enumName}}NamebookList } from '../enums/enums.generated';""")
+                .ToList();
         }
 
         /// <summary>

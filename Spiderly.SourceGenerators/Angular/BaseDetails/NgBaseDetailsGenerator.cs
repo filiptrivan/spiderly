@@ -100,7 +100,7 @@ namespace Spiderly.SourceGenerators.Angular
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "components", "base-details.generated.ts");
 
             string result = $$"""
-{{NgDetailsImportGenerator.GetImports(customDTOClasses, allEntities)}}
+{{NgDetailsImportGenerator.GetImports(customDTOClasses, allEntities, currentProjectEntities)}}
 
 {{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
 """;
@@ -112,13 +112,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            foreach (SpiderlyClass entity in currentProjectEntities
-                .Where(x =>
-                    x.HasUIDoNotGenerateAttribute() == false &&
-                    x.IsReadonlyObject() == false &&
-                    x.IsManyToMany() == false
-                )
-            )
+            foreach (SpiderlyClass entity in currentProjectEntities.Where(x => x.GeneratesDetailsComponent()))
             {
                 result.Add($$"""
 @Component({
@@ -192,6 +186,7 @@ export class {{entity.Name}}BaseDetailsComponent {
             this.modelId = params['id'];
 
 {{string.Join("\n", NgDetailsDataGenerator.GetManyToManyMultiSelectListForDropdownMethods(entity, allEntities))}}
+{{string.Join("\n", NgDetailsDataGenerator.GetEnumDropdownOptionsInitializations(entity, allEntities, customDTOClasses))}}
 {{string.Join("\n", NgDetailsDataGenerator.GetManyToManyTableColsInitializations(entity, allEntities, customDTOClasses))}}
 
 {{NgDetailsDataGenerator.GetEntityInitBlock(entity, allEntities)}}

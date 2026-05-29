@@ -302,6 +302,19 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
+        /// True when this entity gets a generated base-details component. The component emitter
+        /// (<c>NgBaseDetailsGenerator</c>) and anything that imports/binds into that component (e.g. the enum-helper
+        /// import emitter) must agree on this set, so the filter lives here as a single source of truth rather than
+        /// being copy-pasted — a drift between the two silently ships a missing or unused import.
+        /// </summary>
+        public static bool GeneratesDetailsComponent(this SpiderlyClass entity)
+        {
+            return entity.HasUIDoNotGenerateAttribute() == false
+                && entity.IsReadonlyObject() == false
+                && entity.IsManyToMany() == false;
+        }
+
+        /// <summary>
         /// Strips the trailing nullability marker from a stringified type name.
         /// <c>"int?"</c> -> <c>"int"</c>; <c>"OrderStatusCodes"</c> -> <c>"OrderStatusCodes"</c>.
         /// Tolerates trailing whitespace from upstream type-syntax stringification.

@@ -102,6 +102,31 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
+        /// <summary>
+        /// Emits the client-side option population for enum dropdown properties (e.g.
+        /// <c>this.severityOptionsForAnnouncement = getAnnouncementSeverityCodesNamebookList(this.translocoService);</c>).
+        /// Enums render as a dropdown via <see cref="NgDetailsPropertyBlockGenerator.GetUIControlType"/> and get an
+        /// <c>optionsFor{Entity}</c> variable, but — unlike FK dropdowns — they have no backend list endpoint; their
+        /// options come from the generated TS enum, so they need their own population path (FK populate gates on the
+        /// explicit <c>[UIControlType("Dropdown")]</c> attribute, which an enum never carries).
+        /// </summary>
+        internal static List<string> GetEnumDropdownOptionsInitializations(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        {
+            List<string> result = new();
+
+            // No explicit ordered-O2M recursion here (unlike the FK populate): GetEnumDropdownContexts already
+            // flattens nested properties, and an enum's option list is scope-independent (the same global list
+            // regardless of which nested form group binds it), so there's nothing per-scope to recurse for.
+            foreach (PropertyWithContext context in NgDetailsPropertyBlockGenerator.GetEnumDropdownContexts(entity, entities, customDTOClasses))
+            {
+                result.Add($$"""
+            this.{{context.Property.Name.FirstCharToLower()}}OptionsFor{{context.Entity.Name}} = get{{context.Property.Type.CoreName}}NamebookList(this.translocoService);
+""");
+            }
+
+            return result;
+        }
+
         internal static List<string> GetAutocompleteSearchMethods(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
         {
             List<string> result = new();

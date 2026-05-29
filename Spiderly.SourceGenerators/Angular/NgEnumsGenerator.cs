@@ -94,8 +94,20 @@ namespace Spiderly.SourceGenerators.Angular
             List<SpiderlyClass> currentProjectClassEnums,
             List<SpiderlyClass> currentProjectEntities)
         {
+            // C# enums emit a get{Enum}NamebookList(translocoService) builder that returns Namebook[],
+            // so the file needs those imports. Class-based enums don't (they only emit the enum itself).
+            string imports = currentProjectEnums.Count > 0
+                ? """
+import { Namebook } from 'spiderly';
+import { TranslocoService } from '@jsverse/transloco';
+import { marker } from '@jsverse/transloco-keys-manager/marker';
+
+
+"""
+                : "";
+
             return $$"""
-{{GetAngularEnumsFromCurrentProjectEnums(currentProjectEnums)}}
+{{imports}}{{GetAngularEnumsFromCurrentProjectEnums(currentProjectEnums)}}
 {{GetAngularEnumsFromCurrentProjectClassEnums(currentProjectClassEnums, currentProjectEntities)}}
 """;
         }
@@ -115,10 +127,38 @@ export enum {{enume.Identifier.Text}}
     {{string.Join("\n\t", angularEnumItemNameValuePairs)}}
 }
 
+{{GetEnumNamebookListFunction(enume.Identifier.Text, enumItems)}}
+
 """);
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Emits a per-enum builder that returns the dropdown options as a <c>Namebook[]</c>, built client-side
+        /// from the TS enum (no API round-trip). Each member becomes a literal
+        /// <c>translocoService.translate(marker('Member'))</c> call so transloco-keys-manager's static extraction
+        /// records the key; the translation key is the member name. Reused by the entity form dropdown and any
+        /// list-table enum column filter.
+        /// </summary>
+        internal static string GetEnumNamebookListFunction(string enumName, List<SpiderlyEnumItem> enumItems)
+        {
+            // marker('X') is transloco-keys-manager's static-extraction hook: it returns its argument unchanged
+            // (so translate() still localizes at runtime) but lets `i18n:extract` discover the key from inside this
+            // standalone builder. A plain translocoService.translate('X') here is NOT extracted — the keys manager
+            // only scans component/injectable classes + templates + marker() calls, not exported helper functions.
+            List<string> options = enumItems
+                .Select(item => $$"""        { id: {{enumName}}.{{item.Name}}, displayName: translocoService.translate(marker('{{item.Name}}')) },""")
+                .ToList();
+
+            return $$"""
+export function get{{enumName}}NamebookList(translocoService: TranslocoService): Namebook[] {
+    return [
+{{string.Join("\n", options)}}
+    ];
+}
+""";
         }
 
         private static List<string> GetAngularEnumItemNameValuePairs(List<SpiderlyEnumItem> enumItems)

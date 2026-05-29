@@ -186,6 +186,22 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
+        /// <summary>
+        /// The properties of <paramref name="entity"/> (including flattened nested ones) that render as an
+        /// <b>enum</b> dropdown — i.e. <c>IsEnum</c> and resolving to <see cref="UIControlTypeCodes.Dropdown"/>.
+        /// These get an <c>optionsFor{Entity}</c> variable but, unlike FK dropdowns, no backend list endpoint;
+        /// their options are populated client-side from the generated TS enum. Single source of truth shared by
+        /// the option-population emitter and the enum-helper import emitter so the two can't drift.
+        /// </summary>
+        internal static List<PropertyWithContext> GetEnumDropdownContexts(SpiderlyClass entity, List<SpiderlyClass> entities, List<SpiderlyClass> customDTOClasses)
+        {
+            return GetAllPropertiesWithContext(entity, entities, customDTOClasses)
+                .Where(x => x.FormControlName != null
+                         && x.Property.IsEnum
+                         && GetUIControlType(x.Property) == UIControlTypeCodes.Dropdown)
+                .ToList();
+        }
+
         internal static UIControlTypeCodes GetUIControlType(SpiderlyProperty property)
         {
             SpiderlyAttribute uiControlTypeAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlType");

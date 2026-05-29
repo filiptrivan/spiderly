@@ -189,6 +189,7 @@ Child **must** have `[UIDoNotGenerate] [Required] public int OrderNumber { get; 
 | `decimal`       | Decimal         | —                                                                        |
 | `bool`          | CheckBox        | —                                                                        |
 | `DateTime`      | Calendar        | —                                                                        |
+| `[SpiderlyEnum]` enum | Dropdown (translated, auto-populated) | model the value as `int`/`byte`/`long` instead if you do **not** want a dropdown |
 | Navigation prop | Autocomplete    | `[UIControlType(nameof(UIControlTypeCodes.Dropdown))]`                   |
 
 Other `UIControlTypeCodes`: `ColorPicker`, `MultiAutocomplete`, `MultiSelect`, `Password`, `Table`.
@@ -197,7 +198,36 @@ Width: `[UIControlWidth("col-8 md:col-4")]` (default). TextArea/Editor/Markdown 
 
 `Editor` stores HTML (Quill WYSIWYG); `Markdown` stores raw Markdown (textarea + live preview). Both support inline image upload (paste, in Markdown's case) when combined with `[S3PublicStorage]`.
 
+### Enum properties → translated dropdown
+
+A property typed as a C# `enum` marked `[SpiderlyEnum]` auto-renders as a **dropdown**, populated client-side from the generated TS enum (no API round-trip) and labeled through Transloco.
+
+```csharp
+[SpiderlyEnum]
+public enum AnnouncementSeverityCodes { Info = 1, Warning = 2, Critical = 3 }
+
+public class Announcement : BusinessObject<long>
+{
+    public AnnouncementSeverityCodes Severity { get; set; } // -> translated dropdown
+}
+```
+
+Rule of thumb: **a fixed set the user picks from → `[SpiderlyEnum]` enum** (you get a translated dropdown for free). **A coded value never shown as a choice → a raw numeric** (`int`/`byte`/`long`), which renders as a number field, or hide it with `[UIDoNotGenerate]`.
+
+- **Translation key = the enum member name** (`Info`, `Warning`, `Critical`). The generator emits a `get{Enum}NamebookList(translocoService)` builder in `enums.generated.ts`; run `npm run i18n:extract` and fill each locale's value (e.g. `"Critical": "Kritično"`). A missing value renders the raw key, so don't skip this.
+- **Break a label collision by renaming the member.** Two enums that both have `Pending` share one `Pending` key; if they need different wording, rename one member (e.g. `PendingReview`). The key follows the member name — no attribute required.
+- **List-table enum column filter** reuses the same builder, wrapped in the `spiderly` helper `getPrimengNamebookOptions` (`Namebook[]` → the table's `{ label, code }[]`):
+  ```ts
+  { name: t('Severity'), filterType: 'multiselect', field: 'severity',
+    dropdownOrMultiselectValues:
+      getPrimengNamebookOptions(getAnnouncementSeverityCodesNamebookList(this.translocoService)) }
+  ```
+
+> Class-based enums (a `static class` of string constants, like `PermissionCodes`) are **not** usable as a dropdown property type — you can't type a property as a static class, so the field would be a bare `string` the generator can't recognize. Use a real `enum` for dropdown fields.
+
 ## Key Attributes Checklist
+
+The complete list of every Spiderly attribute and its valid target is generated from the attribute classes themselves: see [references/attributes.generated.md](references/attributes.generated.md). The curated highlights below are the ones you'll reach for most.
 
 | Attribute                               | Level          | Purpose                                                                                              |
 | --------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |

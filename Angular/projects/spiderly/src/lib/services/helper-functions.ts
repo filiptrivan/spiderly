@@ -231,6 +231,12 @@ export function exportListToExcel(
   });
 }
 
+export function getPrimengNamebookOptions(
+  namebookList: Namebook[],
+): PrimengOption[] {
+  return namebookList.map((x) => ({ label: x.displayName, code: x.id }));
+}
+
 export function getPrimengDropdownNamebookOptions(
   getDropdownListObservable: (
     parentEntityId?: number,
@@ -238,9 +244,7 @@ export function getPrimengDropdownNamebookOptions(
   parentEntityId?: number,
 ): Observable<PrimengOption[]> {
   return getDropdownListObservable(parentEntityId ?? 0).pipe(
-    map((res) => {
-      return res.map((x) => ({ label: x.displayName, code: x.id }));
-    }),
+    map((res) => getPrimengNamebookOptions(res)),
   );
 }
 
