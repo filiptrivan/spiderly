@@ -182,6 +182,9 @@ namespace Spiderly.SourceGenerators.Shared
             if (property.IsEnum)
                 return false;
 
+            if (property.HasWithOneAttribute()) // one-to-one dependent is NOT many-to-one
+                return false;
+
             return property.Type.Raw.IsManyToOneType();
         }
 
@@ -537,6 +540,36 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool HasWithManyAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "WithMany");
+        }
+
+        /// <summary>True when the property carries [WithOne] — i.e. it is the dependent side of a one-to-one.</summary>
+        public static bool HasWithOneAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "WithOne");
+        }
+
+        /// <summary>
+        /// True when the property is the dependent side of a one-to-one: a single reference nav (not enum,
+        /// not base type, not collection) carrying [WithOne].
+        /// </summary>
+        public static bool IsOneToOneType(this SpiderlyProperty property)
+        {
+            if (property.HasWithOneAttribute() == false)
+                return false;
+
+            if (property.IsEnum)
+                return false;
+
+            return property.Type.Raw.IsManyToOneType(); // string overload: not enumerable, not base type
+        }
+
+        /// <summary>
+        /// The inverse-nav name from [WithOne("...")], or null for a unidirectional 1-1.
+        /// Mirrors <see cref="WithMany"/>'s reading of the [WithMany] ctor argument.
+        /// </summary>
+        public static string GetWithOneInverseName(this SpiderlyProperty property)
+        {
+            return property.Attributes.Where(x => x.Name == "WithOne").Select(x => x.Value).SingleOrDefault();
         }
 
         public static bool HasGenerateCommaSeparatedDisplayNameAttribute(this SpiderlyProperty property)

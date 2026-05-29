@@ -417,4 +417,81 @@ public class ExtensionsTests
     }
 
     #endregion
+
+    #region OneToOne detection ([WithOne])
+
+    private static SpiderlyProperty WithOneNav(string type = "TaskItem", string? inverseName = null) => new()
+    {
+        Name = "OwningTaskItem",
+        Type = type,
+        IsEnum = false,
+        Attributes = new() { new SpiderlyAttribute { Name = "WithOne", Value = inverseName } },
+    };
+
+    private static SpiderlyProperty WithManyNav(string type = "Gender") => new()
+    {
+        Name = "Gender",
+        Type = type,
+        IsEnum = false,
+        Attributes = new() { new SpiderlyAttribute { Name = "WithMany", Value = "Users" } },
+    };
+
+    [Fact]
+    public void HasWithOneAttribute_WithOneNav_ReturnsTrue()
+    {
+        Assert.True(WithOneNav().HasWithOneAttribute());
+    }
+
+    [Fact]
+    public void HasWithOneAttribute_WithManyNav_ReturnsFalse()
+    {
+        Assert.False(WithManyNav().HasWithOneAttribute());
+    }
+
+    [Fact]
+    public void IsOneToOneType_WithOneNav_ReturnsTrue()
+    {
+        Assert.True(WithOneNav().IsOneToOneType());
+    }
+
+    [Fact]
+    public void IsOneToOneType_WithManyNav_ReturnsFalse()
+    {
+        Assert.False(WithManyNav().IsOneToOneType());
+    }
+
+    [Fact]
+    public void IsOneToOneType_WithOneOnBaseType_ReturnsFalse()
+    {
+        // [WithOne] on a non-navigation (base data) type is not a 1-1 dependent.
+        Assert.False(WithOneNav(type: "string").IsOneToOneType());
+    }
+
+    [Fact]
+    public void IsManyToOneType_WithOneNav_ReturnsFalse()
+    {
+        // The carve-out: a [WithOne] dependent must NOT be classified as many-to-one.
+        Assert.False(WithOneNav().IsManyToOneType());
+    }
+
+    [Fact]
+    public void IsManyToOneType_WithManyNav_ReturnsTrue()
+    {
+        // Unchanged: a plain reference nav with [WithMany] is still many-to-one.
+        Assert.True(WithManyNav().IsManyToOneType());
+    }
+
+    [Fact]
+    public void GetWithOneInverseName_Bidirectional_ReturnsInverseName()
+    {
+        Assert.Equal("Conversation", WithOneNav(inverseName: "Conversation").GetWithOneInverseName());
+    }
+
+    [Fact]
+    public void GetWithOneInverseName_Unidirectional_ReturnsNull()
+    {
+        Assert.Null(WithOneNav(inverseName: null).GetWithOneInverseName());
+    }
+
+    #endregion
 }

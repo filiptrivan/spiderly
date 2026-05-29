@@ -183,5 +183,37 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor OneToOneOnBothSides = new(
+            id: "SPIDERLY019",
+            title: "[WithOne] declared on both sides of a one-to-one",
+            messageFormat: "Both '{0}.{1}' and '{2}.{3}' carry [WithOne]. Exactly one side (the dependent / FK holder) may carry it; remove [WithOne] from the principal and declare a plain single-valued navigation there.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor OneToOneInverseNavNotFound = new(
+            id: "SPIDERLY020",
+            title: "[WithOne] inverse navigation does not exist on the principal entity",
+            messageFormat: "[WithOne(\"{0}\")] on '{1}.{2}' requires '{3}' to declare a single-valued 'public virtual {1} {0}' navigation. Add it to '{3}', or use the parameterless [WithOne] for a unidirectional 1-1.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor OneToOneRequiredOnPrincipal = new(
+            id: "SPIDERLY021",
+            title: "[Required] on the principal navigation of a one-to-one is unenforceable",
+            messageFormat: "[Required] on principal navigation '{0}.{1}' is unenforceable: a unique FK index guarantees at most one dependent, never at least one. Configure requiredness on the dependent ([WithOne]) side instead, or enforce it in an OnAfterInsert hook.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor OneToOneSelfReferential = new(
+            id: "SPIDERLY022",
+            title: "Self-referential one-to-one is not supported",
+            messageFormat: "[WithOne] on '{0}.{1}' targets the declaring entity '{0}'. Self-referential 1-1 is not supported in this version.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }
