@@ -1,0 +1,564 @@
+﻿//HintName: OrgService.generated.cs
+using TestApp.Business.ValidationRules;
+using TestApp.Business.DataMappers;
+using TestApp.Business.DTO;
+using TestApp.Business.Entities;
+using TestApp.Business.Enums;
+using TestApp.Business.ExcelProperties;
+using TestApp.Business.Filtering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using System.Data;
+using FluentValidation;
+using Spiderly.Security.Services;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Mapster;
+using Microsoft.AspNetCore.Http;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Generated service for the Org entity. Override lifecycle hooks
+    /// by creating a <c>OrgService</c> class that inherits from this class.
+    /// </summary>
+    public class OrgServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+
+
+        public OrgServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
+        {
+            _deps = deps;
+
+        }
+
+        #region Read
+
+        /// <summary>
+        /// Retrieves the complete MainUIFormDTO for Org, including the entity DTO and all related collections (one-to-many, many-to-many).
+        /// </summary>
+        /// <param name="id">The ID of the Org entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>OrgMainUIFormDTO containing the entity DTO and related data</returns>
+        public async virtual Task<OrgMainUIFormDTO> GetOrgMainUIFormDTO(long id, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
+                }
+
+                var result = new OrgMainUIFormDTO
+                {
+                    OrgDTO = await GetOrgDTO(id, false),
+                };
+
+                await OnAfterGetOrgMainUIFormDTO(result);
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called after retrieving Org MainUIFormDTO.
+        /// Override this method to enrich the MainUIFormDTO with additional data (e.g., computed fields, extra queries).
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <example>
+        /// protected override async Task OnAfterGetOrgMainUIFormDTO(OrgMainUIFormDTO mainUIFormDTO)
+        /// {
+        ///     mainUIFormDTO.CustomProperty = await _deps.Context.DbSet&lt;OtherEntity&gt;().Where(x => x.OrgId == mainUIFormDTO.OrgDTO.Id).CountAsync();
+        /// }
+        /// </example>
+        /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
+        protected virtual async Task OnAfterGetOrgMainUIFormDTO(OrgMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Retrieves a single Org entity as a DTO with blob data populated.
+        /// </summary>
+        /// <param name="id">The ID of the Org entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>OrgDTO with all blob properties populated</returns>
+        public async virtual Task<OrgDTO> GetOrgDTO(long id, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
+                }
+
+                var dto = await _deps.Context.DbSet<Org>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == id).ProjectToType<OrgDTO>(Mapper.OrgProjectToConfig())
+                    .SingleOrDefaultAsync();
+
+                if (dto == null)
+                    throw new BusinessException(_deps.Localizer["EntityDoesNotExistInDatabase"]);
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of Org entities.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResult containing the query and total record count</returns>
+        public async virtual Task<PaginatedResult<Org>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of Org DTOs with blob data populated.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>PaginatedResultDTO containing OrgDTO list and total record count</returns>
+        public async virtual Task<PaginatedResultDTO<OrgDTO>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query, bool authorize)
+        {
+            PaginatedResult<Org> paginationResult = new();
+            List<OrgDTO> dtoList = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                paginationResult = await GetPaginatedOrgList(filterDTO, query);
+
+                dtoList = await paginationResult.Query
+                    .Skip(filterDTO.First)
+                    .Take(filterDTO.Rows)
+                    .ProjectToType<OrgDTO>(Mapper.OrgProjectToConfig())
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(dtoList.Select(x => x.Id).ToList());
+                }
+
+
+            });
+
+            return new PaginatedResultDTO<OrgDTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
+        }
+
+        /// <summary>
+        /// Exports a filtered list of Org entities to Excel format.
+        /// </summary>
+        /// <param name="filterDTO">Filter parameters for the export</param>
+        /// <param name="query">The base query to export</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Excel file as byte array</returns>
+        public async virtual Task<byte[]> ExportOrgListToExcel(FilterDTO filterDTO, IQueryable<Org> query, bool authorize, CancellationToken cancellationToken = default)
+        {
+            IQueryable<OrgDTO> exportQuery = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                PaginatedResult<Org> paginationResult = await GetPaginatedOrgList(filterDTO, query);
+                int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
+                exportQuery = paginationResult.Query
+                    .OrderBy(x => x.Id)
+                    .Take(maxRows)
+                    .ProjectToType<OrgDTO>(Mapper.OrgExcelProjectToConfig());
+            });
+
+            string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new OrgDTO());
+            return await _deps.ExcelService.FillReportTemplateAsync(
+                exportQuery.AsAsyncEnumerable(),
+                excelPropertiesToExclude,
+                _deps.Localizer,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Retrieves a list of Org entities without pagination.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of Org entities</returns>
+        public async virtual Task<List<Org>> GetOrgList(IQueryable<Org> query, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var result = await query
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(result.Select(x => x.Id).ToList());
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a list of Org DTOs without pagination, with blob data populated.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of OrgDTO with blob properties populated</returns>
+        public async virtual Task<List<OrgDTO>> GetOrgDTOList(IQueryable<Org> query, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var dtoList = await query
+                    .AsNoTracking()
+                    .ProjectToType<OrgDTO>(Mapper.OrgToDTOConfig())
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(dtoList.Select(x => x.Id).ToList());
+                }
+
+
+
+                return dtoList;
+            });
+        }
+
+
+
+        #endregion
+
+        #region Save
+
+        /// <summary>
+        /// Saves a Org entity and returns the complete MainUIFormDTO including all related collections.
+        /// Handles insert/update logic, many-to-many relationships, and ordered one-to-many collections.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity data and related selections</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>OrgMainUIFormDTO with saved data and updated collections</returns>
+        public virtual async Task<OrgMainUIFormDTO> SaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            new OrgSaveBodyDTOValidationRules().ValidateAndThrow(saveBodyDTO);
+
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeSaveOrgAndReturnMainUIFormDTO(saveBodyDTO);
+
+                var savedDTO = await SaveOrgAndReturnDTO(saveBodyDTO.OrgDTO, authorizeUpdate, authorizeInsert);
+
+
+
+
+
+
+                var result = new OrgMainUIFormDTO
+                {
+                    OrgDTO = savedDTO,
+
+
+
+                };
+
+                await OnAfterSaveOrgAndReturnMainUIFormDTO(saveBodyDTO, result);
+
+                return result;
+            });
+        }
+
+
+
+
+        /// <summary>
+        /// Lifecycle hook called before saving Org with MainUIFormDTO.
+        /// Override this method to add custom validation or modify the SaveBodyDTO.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
+        protected virtual async Task OnBeforeSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called after saving Org and after updating related collections.
+        /// Override this method to add custom business logic after the main entity is saved.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
+        /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
+        protected virtual async Task OnAfterSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO, OrgMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Saves a Org entity and returns the DTO with blob data populated.
+        /// </summary>
+        /// <param name="saveDTO">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved OrgDTO with blob properties populated</returns>
+        public async virtual Task<OrgDTO> SaveOrgAndReturnDTO(OrgDTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var poco = await SaveOrg(saveDTO, authorizeUpdate, authorizeInsert);
+
+                var dto = poco.Adapt<OrgDTO>(Mapper.OrgToDTOConfig());
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Core save method that handles both insert and update operations for Org.
+        /// Validates the DTO, maps to entity, handles many-to-one relationships, and manages blob deletion.
+        /// </summary>
+        /// <param name="dto">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved Org entity</returns>
+        public async virtual Task<Org> SaveOrg(OrgDTO dto, bool authorizeUpdate, bool authorizeInsert)
+        {
+            OrgDTOValidationRules validationRules = new OrgDTOValidationRules();
+            validationRules.ValidateAndThrow(dto);
+
+            Org poco = null;
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeOrgIsMapped(dto);
+                DbSet<Org> dbSet = _deps.Context.DbSet<Org>();
+
+                if (dto.Id > 0)
+                {
+                    if (authorizeUpdate)
+                    {
+                        await _deps.AuthorizationService.AuthorizeOrgUpdateAndThrow(dto);
+                    }
+
+                    poco = await GetInstanceAsync<Org, long>(dto.Id, dto.Version);
+                    await OnBeforeOrgUpdate(poco, dto);
+                    dto.Adapt(poco, Mapper.OrgDTOToEntityConfig());
+                    dbSet.Update(poco);
+                }
+                else
+                {
+                    if (authorizeInsert)
+                    {
+                        await _deps.AuthorizationService.AuthorizeOrgInsertAndThrow(dto);
+                    }
+
+                    poco = dto.Adapt<Org>(Mapper.OrgDTOToEntityConfig());
+                    await OnBeforeOrgInsert(poco, dto);
+                    await dbSet.AddAsync(poco);
+                }
+
+
+
+                await _deps.Context.SaveChangesAsync();
+
+
+
+
+
+
+            });
+
+            return poco;
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before the OrgDTO is mapped to the entity.
+        /// Override this method to add custom validation or modify the DTO before mapping.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="orgDTO">The DTO about to be mapped</param>
+        protected virtual async Task OnBeforeOrgIsMapped(OrgDTO orgDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before updating an existing Org entity.
+        /// Override this method to add custom business logic during updates.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="org">The existing entity being updated</param>
+        /// <param name="orgDTO">The DTO containing new data</param>
+        protected virtual async Task OnBeforeOrgUpdate(Org org, OrgDTO orgDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before inserting a new Org entity.
+        /// Override this method to add custom business logic during inserts.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="org">The new entity being inserted</param>
+        /// <param name="orgDTO">The DTO containing the data</param>
+        protected virtual async Task OnBeforeOrgInsert(Org org, OrgDTO orgDTO) { }
+
+
+
+
+
+        #endregion
+
+        #region Delete
+
+        /// <summary>
+        /// Per-id variant of the pre-delete hook. By default forwards to
+        /// <see cref="OnBeforeOrgListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity being deleted</param>
+        public virtual Task OnBeforeOrgDelete(long id) =>
+            OnBeforeOrgListDelete(id.StructToList());
+
+        /// <summary>
+        /// Deletes a single Org entity with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="id">The ID of the entity to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task DeleteOrg(long id, bool authorize)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeOrgDelete(id);
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgDeleteAndThrow(id);
+                }
+
+                List<long> listForDelete_1 = id.StructToList();
+
+                var teamListForDeleteBecauseOrg_2 = await _deps.Context.DbSet<Team>()
+                    .AsNoTracking()
+                    .Where(x => listForDelete_1.Contains(EF.Property<long>(x, "OrgId")))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                var memberListForDeleteBecauseTeam_3 = await _deps.Context.DbSet<Member>()
+                    .AsNoTracking()
+                    .Where(x => teamListForDeleteBecauseOrg_2.Contains(EF.Property<long>(x, "TeamId")))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                await _deps.Context.DbSet<Member>()
+                    .Where(x => memberListForDeleteBecauseTeam_3.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await _deps.Context.DbSet<Team>()
+                    .Where(x => teamListForDeleteBecauseOrg_2.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await DeleteEntityAsync<Org, long>(id);
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before deleting a list of Org entities.
+        /// Override this to add custom validation or business logic before batch deletion.
+        /// </summary>
+        /// <param name="listForDelete">The list of entity IDs being deleted</param>
+        public virtual async Task OnBeforeOrgListDelete(List<long> listForDelete) { }
+
+        /// <summary>
+        /// Deletes multiple Org entities with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="listForDelete_1">The list of entity IDs to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task DeleteOrgList(List<long> listForDelete_1, bool authorize)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeOrgListDelete(listForDelete_1);
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgDeleteAndThrow(listForDelete_1);
+                }
+
+                var teamListForDeleteBecauseOrg_2 = await _deps.Context.DbSet<Team>()
+                    .AsNoTracking()
+                    .Where(x => listForDelete_1.Contains(EF.Property<long>(x, "OrgId")))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                var memberListForDeleteBecauseTeam_3 = await _deps.Context.DbSet<Member>()
+                    .AsNoTracking()
+                    .Where(x => teamListForDeleteBecauseOrg_2.Contains(EF.Property<long>(x, "TeamId")))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                await _deps.Context.DbSet<Member>()
+                    .Where(x => memberListForDeleteBecauseTeam_3.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await _deps.Context.DbSet<Team>()
+                    .Where(x => teamListForDeleteBecauseOrg_2.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await DeleteEntitiesAsync<Org, long>(listForDelete_1);
+            });
+        }
+
+        #endregion
+
+        #region One To Many
+
+        /// <summary>
+        /// Retrieves namebook DTOs for Team entities related to a Org.
+        /// </summary>
+        /// <param name="id">The ID of the Org entity</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
+        public async virtual Task<List<NamebookDTO<long>>> GetTeamsNamebookListForOrg(long id, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
+                }
+
+                return await _deps.Context.DbSet<Team>()
+                    .AsNoTracking()
+                    .Where(x => EF.Property<long>(x, "OrgId") == id)
+                    .Select(x => new NamebookDTO<long>
+                    {
+                        Id = x.Id,
+                        DisplayName = x.Name,
+                    })
+                    .ToListAsync();
+            });
+        }
+
+        /// <summary>
+        /// Retrieves all Team entities related to a Org via the Teams one-to-many relationship.
+        /// </summary>
+        /// <param name="id">The ID of the Org entity</param>
+        /// <returns>List of Team entities</returns>
+        public async virtual Task<List<Team>> GetTeamsForOrg(long id)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                return await _deps.Context.DbSet<Team>()
+                    .Where(x => EF.Property<long>(x, "OrgId") == id)
+                    .ToListAsync();
+            });
+        }
+
+
+
+        #endregion
+
+    }
+}
