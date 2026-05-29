@@ -121,12 +121,19 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   test('should navigate to project and see tasks inline', async ({ page, request }) => {
     await authenticateBrowser(page, request);
     await page.goto(`/project-list/${projectId}`);
-    // Match the input by its current display value, not by position. beforeAll
-    // pre-seeds an additional ProjectTask (so taskId survives retries) — that
-    // pre-seed sits at index 0 with the unchanged title, while the updated
-    // task is at a later index. Asserting on `.first()` would pick the wrong
-    // one; `getByDisplayValue` finds the input regardless of position.
-    await expect(page.getByDisplayValue('Updated E2E Task')).toBeVisible({ timeout: 10000 });
+    // beforeAll pre-seeds an additional ProjectTask (so taskId survives
+    // retries), so two task cards now exist. Asserting `.first()` would pick
+    // the pre-seed (unchanged title); the updated card sits at a later
+    // position. Playwright has no `getByDisplayValue` (that's React Testing
+    // Library) and Angular reactive forms don't sync to the `value` attribute,
+    // so CSS selectors don't help — scan input values via evaluateAll and
+    // poll until the updated title appears.
+    await expect.poll(
+      () => page.locator('index-card spiderly-textbox input').evaluateAll(
+        (inputs) => (inputs as HTMLInputElement[]).map((i) => i.value)
+      ),
+      { timeout: 10000 }
+    ).toContain('Updated E2E Task');
   });
 
   test('should delete project task via API', async ({ request }) => {
