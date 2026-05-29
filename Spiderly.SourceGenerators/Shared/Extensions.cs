@@ -660,7 +660,10 @@ namespace Spiderly.SourceGenerators.Shared
         /// </example>
         public static string ResolveExplicitForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
         {
-            if (navigation.IsManyToOneType() == false)
+            // FK resolution is identical for many-to-one and one-to-one ([WithOne]) navigations
+            // ([ForeignKey] → scalar [ForeignKey] → {Nav}Id convention). Since [WithOne] navs are
+            // deliberately not many-to-one, accept either to resolve their FK as well.
+            if (navigation.IsManyToOneType() == false && navigation.IsOneToOneType() == false)
                 return null;
 
             string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();

@@ -212,6 +212,7 @@ namespace {{basePartOfNamespace}}.DataMappers
         public static List<string> GetConfigForManyToOneClass(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             ForeignKeyValidator.ValidateEntity(entity, entities);
+            OneToOneValidator.ValidateEntity(entity, entities);
 
             List<string> manyToOneAttributeMappers = new();
 
