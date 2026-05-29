@@ -1,6 +1,6 @@
 ---
 name: angular-customization
-description: Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, adding validators, or working with translations.
+description: Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, or adding validators. For translating UI strings (Transloco, assets/i18n), use the frontend-localization skill.
 ---
 
 # Angular Customization
@@ -23,7 +23,6 @@ Frontend/src/app/business/
 ├── services/api/api.service.generated.ts  # Typed API methods
 ├── components/base-details.generated.ts   # Entity form components
 ├── services/validators/validators.generated.ts
-├── services/translates/translates.generated.ts
 └── enums/enums.generated.ts
 ```
 
@@ -353,25 +352,7 @@ export class MyValidatorService extends ValidatorAbstractService {
 
 ## Translations
 
-### Adding Custom Keys
-
-1. Add to `Frontend/src/assets/i18n/en.json`:
-
-   ```json
-   { "MyCustomKey": "Custom text" }
-   ```
-
-2. Use in TypeScript: `this.translocoService.translate('MyCustomKey')`
-
-3. Use in template: `{{ t('MyCustomKey') }}` (inside `*transloco="let t"`)
-
-### Label Auto-Translation
-
-`BaseFormService.getTranslatedLabel()` converts camelCase property names:
-
-- `productId` → looks up `Product` key
-- `displayName` → empty string (stripped)
-- `name` → looks up `Name` key
+UI string translation — Transloco setup, `assets/i18n/{lang}.json` files, `translocoService.translate` / the `*transloco` template directive, and form label auto-translation (`getTranslatedLabel`) — is covered by the dedicated **frontend-localization** skill. For server-side (.NET) strings, see **backend-localization**.
 
 ## UI Controls Reference
 
