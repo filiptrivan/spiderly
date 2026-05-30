@@ -473,6 +473,11 @@
       "name": "WithMany",
       "target": "Property",
       "summary": "Specifies the collection navigation property name in a related entity for establishing a bidirectional relationship in Entity Framework. Purpose: This attribute is used to define the inverse navigation property in a relationship, enabling proper relationship configuration and navigation in both directions."
+    },
+    {
+      "name": "WithOne",
+      "target": "Property",
+      "summary": "Declares a one-to-one relationship. Place on the dependent (foreign-key-holding) side's single-valued reference navigation. Its presence designates this side as the dependent; the other side is the principal. Required vs optional: add [Required] to make the dependent's FK non-nullable (\"dependent must have a principal\"). Omit it for an optional 1-1 (nullable FK, many NULLs allowed). The schema cannot enforce \"principal must have a dependent\" — that direction is always 0..1. Unidirectional: use the parameterless constructor when the principal has no back-navigation."
     }
   ],
   "helpers": [
