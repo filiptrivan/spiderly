@@ -48,5 +48,10 @@ namespace __APP_NAME__.Business.Entities
 
         [UIOrderedOneToMany]
         public virtual List<ProjectTask> ProjectTasks { get; } = new();
+
+        // Principal inverse of the optional one-to-one with ProjectCharter (the FK + [WithOne] live on
+        // ProjectCharter). A plain single-valued nav with no attribute — the 1-1 principal-inverse rule
+        // excludes it from Project's generated DTO/UI, so project-crud.spec.ts is unaffected.
+        public virtual ProjectCharter ProjectCharter { get; set; }
     }
 }

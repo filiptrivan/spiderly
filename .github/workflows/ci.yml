@@ -185,6 +185,7 @@ jobs:
           spiderly add-new-entity --name Product
           spiderly add-new-entity --name Project
           spiderly add-new-entity --name TaskComment
+          spiderly add-new-entity --name ProjectCharter
           echo "✓ Added test entities via CLI (entity files + Angular pages + routes + menu items)"
 
       - name: Copy test fixtures
