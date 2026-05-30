@@ -572,6 +572,27 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Where(x => x.Name == "WithOne").Select(x => x.Value).SingleOrDefault();
         }
 
+        /// <summary>
+        /// True when this bare reference nav is the principal-side inverse of a one-to-one — i.e. its target
+        /// entity declares a [WithOne] nav pointing back at <paramref name="declaringEntity"/> with this
+        /// property as its named inverse. Requires the full entity list (cross-entity). Distinguishes a valid
+        /// 1-1 principal inverse from a genuine many-to-one that merely forgot [WithMany].
+        /// </summary>
+        public static bool IsOneToOnePrincipalInverse(this SpiderlyProperty nav, SpiderlyClass declaringEntity, List<SpiderlyClass> allEntities)
+        {
+            if (nav.HasWithManyAttribute() || nav.HasWithOneAttribute())
+                return false; // dependent side or a real M2O — not a principal inverse
+
+            SpiderlyClass target = allEntities.FirstOrDefault(c => c.Name == nav.Type.Raw);
+            if (target == null)
+                return false;
+
+            return target.Properties.Any(d =>
+                d.HasWithOneAttribute()
+                && d.Type.Raw == declaringEntity.Name
+                && d.GetWithOneInverseName() == nav.Name);
+        }
+
         public static bool HasGenerateCommaSeparatedDisplayNameAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "GenerateCommaSeparatedDisplayName");

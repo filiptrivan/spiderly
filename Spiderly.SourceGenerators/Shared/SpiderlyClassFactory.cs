@@ -251,6 +251,12 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static IEnumerable<SpiderlyDTOColumn> GetDTOColumns(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
+            // The principal side of a 1-1 is excluded from the read DTO by default: the FK lives on the
+            // dependent, so flattening it here would emit a bogus {Nav}Id / {Nav}DisplayName referencing a
+            // column that doesn't exist on this entity. Carve it out before the M2O branch claims it.
+            if (property.IsOneToOnePrincipalInverse(entity, entities))
+                yield break;
+
             if (property.IsManyToOneType())
             {
                 SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);

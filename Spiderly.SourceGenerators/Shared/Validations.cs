@@ -98,6 +98,13 @@ namespace Spiderly.SourceGenerators.Shared
                     if (navigation.HasM2MWithManyAttribute())
                         continue;
 
+                    // The principal-side inverse of a valid 1-1 is a bare reference nav (no [WithMany], no
+                    // [WithOne]) — M2O-shaped but legal. The matching [WithOne] back-nav on the target is what
+                    // distinguishes it from a real M2O that simply forgot [WithMany], so this must NOT suppress
+                    // the genuine SPIDERLY015 for a forgotten-[WithMany] mistake.
+                    if (navigation.IsOneToOnePrincipalInverse(entity, allEntities))
+                        continue;
+
                     string withManyValue = navigation.WithMany();
 
                     if (withManyValue == null)

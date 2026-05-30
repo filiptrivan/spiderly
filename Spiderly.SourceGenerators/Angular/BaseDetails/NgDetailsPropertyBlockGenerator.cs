@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
 
-            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties, entity))
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(properties, entity, allEntities))
             {
                 result.Add(GetSinglePropertyBlock(property, entity, allEntities, customDTOClasses, isFromOrderedOneToMany));
             }
@@ -77,6 +77,7 @@ namespace Spiderly.SourceGenerators.Angular
         internal static bool HasAnyUISection(
             List<SpiderlyProperty> properties,
             SpiderlyClass entity,
+            List<SpiderlyClass> allEntities,
             List<SpiderlyClass> customDTOClasses
         )
         {
@@ -85,7 +86,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (customDTOClass != null)
                 allProperties.AddRange(customDTOClass.Properties);
 
-            return GetOrderedPropertiesForUIBlocks(allProperties, entity).Any(x => GetUISectionName(x) != null);
+            return GetOrderedPropertiesForUIBlocks(allProperties, entity, allEntities).Any(x => GetUISectionName(x) != null);
         }
 
         /// <summary>
@@ -107,7 +108,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             List<DetailsFieldGroup> groups = new();
 
-            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(allProperties, entity))
+            foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(allProperties, entity, allEntities))
             {
                 string groupKey = GetUISectionName(property);
 
@@ -137,7 +138,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (customDTOClass != null)
                 properties = properties.Concat(customDTOClass.Properties).ToList();
 
-            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties, entity);
+            List<SpiderlyProperty> orderedProperties = GetOrderedPropertiesForUIBlocks(properties, entity, allEntities);
 
             foreach (SpiderlyProperty property in orderedProperties)
             {
@@ -324,10 +325,13 @@ namespace Spiderly.SourceGenerators.Angular
             return $"{formGroup}.controls.{entity.Name.FirstCharToLower()}DTO";
         }
 
-        internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties, SpiderlyClass entity)
+        internal static List<SpiderlyProperty> GetOrderedPropertiesForUIBlocks(List<SpiderlyProperty> properties, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             List<SpiderlyProperty> orderedProperties = properties
-                .Where(x => x.IsIncludedInDetailsUi(entity))
+                // The principal side of a 1-1 is a bare M2O-shaped nav that would otherwise render as an
+                // Autocomplete bound to a {Nav}Id control the DTO never carries. Excluded here (and in
+                // GetAllPropertiesWithContext) — the only two chokepoints that emit bare reference navs.
+                .Where(x => x.IsIncludedInDetailsUi(entity) && !x.IsOneToOnePrincipalInverse(entity, allEntities))
                 .OrderBy(x =>
                     x.IsBlob() ? 0 :
                     x.Attributes.Any(attr => attr.Value == UIControlTypeCodes.TextArea.ToString()) ? 2 :

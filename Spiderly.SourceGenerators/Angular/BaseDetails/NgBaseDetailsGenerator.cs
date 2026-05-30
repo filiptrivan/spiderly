@@ -241,7 +241,7 @@ export class {{entity.Name}}BaseDetailsComponent {
         /// </summary>
         private static string GetDetailsPanels(SpiderlyClass entity, List<SpiderlyClass> allEntities, List<SpiderlyClass> customDTOClasses)
         {
-            if (NgDetailsPropertyBlockGenerator.HasAnyUISection(entity.Properties.ToList(), entity, customDTOClasses) == false)
+            if (NgDetailsPropertyBlockGenerator.HasAnyUISection(entity.Properties.ToList(), entity, allEntities, customDTOClasses) == false)
                 return GetSingleDetailsPanel(entity, allEntities, customDTOClasses);
 
             return GetGroupedDetailsPanels(entity, allEntities, customDTOClasses);

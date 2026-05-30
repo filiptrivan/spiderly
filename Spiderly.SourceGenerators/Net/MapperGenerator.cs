@@ -218,6 +218,11 @@ namespace {{basePartOfNamespace}}.DataMappers
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
+                // The principal side of a 1-1 has no FK/DisplayName columns on its own DTO (the FK lives on
+                // the dependent), so it gets no Mapster .Map(...) here — skip it before the M2O branch.
+                if (property.IsOneToOnePrincipalInverse(entity, entities))
+                    continue;
+
                 if (property.IsManyToOneType())
                 {
                     SpiderlyClass manyToOneEntity = entities
