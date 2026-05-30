@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Disables authorization checks for CRUD operations on the decorated entity.
-    /// By default, all entities require authorization for CRUD operations. <br/> <br/>
+    /// Disables generated authorization checks for CRUD operations on the decorated entity. By default,
+    /// Spiderly protects generated entity operations with authorization requirements.
+    /// <br/> <br/>
     /// 
     /// <b>Warning:</b> This attribute bypasses security checks and should be used with extreme caution.
     /// It is primarily intended for testing purposes and should generally be avoided in production environments.

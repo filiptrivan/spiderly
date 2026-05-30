@@ -7,7 +7,9 @@ using Spiderly.Shared.Helpers;
 namespace Spiderly.Shared.Attributes
 {
     /// <summary>
-    /// <b>Usage:</b> Provides authentication protection for API endpoints by validating JWT tokens in the request.
+    /// Requires an authenticated request before the decorated controller action runs. The filter accepts
+    /// the standard Spiderly JWT token locations and, when a state-changing request is authenticated by
+    /// cookie, also requires the <c>X-CSRF</c> header to protect cookie-based calls from CSRF.
     /// </summary>
     public class AuthGuardAttribute : ActionFilterAttribute
     {

@@ -1,8 +1,8 @@
 ﻿namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies that the property should be set to <i>null</i> when the parent entity is deleted. <br/>
-    /// Apply this attribute to a <i>many-to-one</i> relationship property.
+    /// Configures a many-to-one relationship so the decorated navigation is cleared when the referenced
+    /// parent entity is deleted. Use it when child records may remain valid without their previous parent.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class SetNullAttribute : Attribute

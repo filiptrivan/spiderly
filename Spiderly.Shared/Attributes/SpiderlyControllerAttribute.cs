@@ -3,7 +3,10 @@ using System;
 namespace Spiderly.Shared.Attributes
 {
     /// <summary>
-    /// <b>Usage:</b> Marks a class as a Spiderly custom controller. Source generators only enroll classes carrying this attribute. <br/> <br/>
+    /// Enrolls a hand-written ASP.NET Core controller in the Spiderly pipeline so the framework can discover
+    /// its actions and expose them to generated client/UI code. Use it on custom controllers that should be
+    /// treated as part of the Spiderly API surface.
+    /// <br/> <br/>
     ///
     /// <b>Example:</b>
     /// <code>

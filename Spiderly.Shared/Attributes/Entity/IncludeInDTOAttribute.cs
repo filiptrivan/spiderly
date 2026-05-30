@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies that a property should be included in the generated DTO.
-    /// This attribute is particularly useful for enumerable properties, which are not included in DTOs by default. <br/> <br/>
+    /// Forces the decorated property to be included in generated DTO classes. This is mainly useful for
+    /// enumerable or otherwise skipped properties that Spiderly does not include in DTOs by default.
+    /// <br/> <br/>
     /// 
     /// <b>Note:</b> This attribute only affects DTO generation and does not influence the mapping behavior (Entity to DTO and vice versa).
     /// </summary>

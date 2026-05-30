@@ -1,7 +1,9 @@
 ﻿namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Just showing the complex (with additional fields) M2M relationship in a table form
+    /// Renders a complex many-to-many relationship as a read-only table in the generated UI. Use this for
+    /// junction entities that have additional fields when the parent form should display the related rows
+    /// without allowing edits from that screen.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class ComplexManyToManyReadonlyTableAttribute : Attribute

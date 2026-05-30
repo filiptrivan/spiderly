@@ -3,8 +3,9 @@ using System;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Validates that a string property value is a valid email address.
-    /// This attribute provides both <i>server-side</i> and <i>client-side</i> validation.
+    /// Adds email-address validation to the decorated string property. Spiderly emits matching server-side
+    /// FluentValidation rules and Angular form validation so the generated API and UI enforce the same email
+    /// format requirement.
     /// <br/><br/>
     /// <b>Example:</b>
     /// <code>

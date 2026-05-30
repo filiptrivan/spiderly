@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Validates that a numeric property value is greater than or equal to a specified number.
-    /// This attribute provides both <i>server-side</i> and <i>client-side</i> validation.
+    /// Adds a minimum numeric value rule to the decorated property. Spiderly emits matching server-side
+    /// FluentValidation rules and Angular form validation so the generated API and UI both require the value
+    /// to be greater than or equal to the configured number.
     /// <br/><br/>
     /// <b>Example:</b>
     /// <code>
@@ -23,7 +24,7 @@ namespace Spiderly.Shared.Attributes.Entity
     [AttributeUsage(AttributeTargets.Property)]
     public class GreaterThanOrEqualToAttribute : Attribute
     {
-        /// <param name="number">The minimum allowed value. The property value must be greater than or equal to this number.</param>
+        /// <param name="number">The inclusive minimum value allowed for the decorated numeric property.</param>
         public GreaterThanOrEqualToAttribute(int number) { }
     }
 }

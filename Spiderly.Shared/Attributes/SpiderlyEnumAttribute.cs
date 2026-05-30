@@ -3,8 +3,10 @@ using System;
 namespace Spiderly.Shared.Attributes
 {
     /// <summary>
-    /// <b>Usage:</b> Marks a C# enum or a class-based enum (static class of string constants) as a Spiderly enum.
-    /// Source generators enroll enums carrying this attribute when emitting Angular enum definitions. <br/> <br/>
+    /// Enrolls a C# enum, or a static class that represents string enum values, for Spiderly enum generation.
+    /// Decorated types are exported to the generated Angular contracts so client code can use the same named
+    /// values as the backend.
+    /// <br/> <br/>
     ///
     /// <b>Example:</b>
     /// <code>

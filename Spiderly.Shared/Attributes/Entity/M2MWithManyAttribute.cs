@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Marks a property in a <i>many-to-many</i> (M2M) relationship. <br/> <br/>
+    /// Identifies one side of a many-to-many junction entity and names the inverse collection on the related
+    /// entity. Use it on the two reference navigation properties inside a class marked with
+    /// <see cref="M2MAttribute"/>.
+    /// <br/> <br/>
     /// 
     /// <b>Example:</b>
     /// <code>
@@ -26,7 +29,7 @@ namespace Spiderly.Shared.Attributes.Entity
     {
         public string WithManyProperty { get; set; }
 
-        /// <param name="withManyProperty">The name of the collection property in the related entity.</param>
+        /// <param name="withManyProperty">The collection navigation property name on the related entity.</param>
         public M2MWithManyAttribute(string withManyProperty)
         {
             WithManyProperty = withManyProperty;

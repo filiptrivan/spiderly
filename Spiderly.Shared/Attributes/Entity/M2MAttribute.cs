@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Indicates that the entity represents a helper table for a <i>many-to-many</i> (M2M) relationship. <br/> <br/>
+    /// Marks an entity as the junction/helper table for a many-to-many relationship. Decorated classes are
+    /// interpreted by Spiderly relationship generation as linking two aggregate entities through their
+    /// <see cref="M2MWithManyAttribute"/> navigation properties.
+    /// <br/> <br/>
     /// <b>Example:</b>
     /// <code>
     /// [M2M]

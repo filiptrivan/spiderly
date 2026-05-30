@@ -1,8 +1,9 @@
 ﻿namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies that a table items for the <i>many-to-many</i> relationship administration 
-    /// should be loaded lazily (on-demand) rather than eagerly.
+    /// Loads the generated simple many-to-many administration table on demand instead of embedding all table
+    /// rows in the initial form payload. Use it for relationship tables where eager loading would make the
+    /// generated UI too heavy.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class SimpleManyToManyTableLazyLoadAttribute : Attribute

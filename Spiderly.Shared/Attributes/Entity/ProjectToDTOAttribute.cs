@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 namespace Spiderly.Shared.Attributes.Entity
 {
     /// <summary>
-    /// <b>Usage:</b> Specifies custom mapping configuration when projecting an entity to its DTO. <br/> <br/>
+    /// Adds a custom Mapster projection expression to the generated entity-to-DTO mapping. Use it when a DTO
+    /// property must be populated from a nested value, computed expression, or other projection that Spiderly
+    /// cannot infer from the entity shape alone.
+    /// <br/> <br/>
     /// 
     /// <b>Example:</b>
     /// <code>
@@ -21,7 +24,7 @@ namespace Spiderly.Shared.Attributes.Entity
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class ProjectToDTOAttribute : Attribute
     {
-        /// <param name="customMapper">The custom mapping expression, e.g., <i>".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)"</i></param>
+        /// <param name="customMapper">The Mapster projection expression appended to the generated mapping configuration.</param>
         public ProjectToDTOAttribute(string customMapper) { }
     }
 }
