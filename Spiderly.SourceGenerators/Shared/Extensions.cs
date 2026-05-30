@@ -758,7 +758,17 @@ namespace Spiderly.SourceGenerators.Shared
         {
             string fkName = navigation.ResolveExplicitForeignKeyName(entity);
             if (fkName != null)
-                return $"{parameterName}.{fkName}";
+            {
+                // A nullable explicit FK (long?) breaks List<long>.Contains(...) overload resolution in the
+                // cascade walker; .Value keeps it long. EF still translates .Value to a column predicate —
+                // NULL cells return false, so rows with no parent are correctly excluded — mirroring the
+                // non-nullable generic on the shadow branch below. Optional-1-1 + [CascadeDelete] is the
+                // first case to declare a nullable cascade FK (M2O [CascadeDelete] FKs are always required).
+                SpiderlyProperty fkProperty = entity.Properties.FirstOrDefault(p => p.Name == fkName);
+                return fkProperty?.Type.IsNullable == true
+                    ? $"{parameterName}.{fkName}.Value"
+                    : $"{parameterName}.{fkName}";
+            }
 
             SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type.Raw);
             string idType = target != null ? target.GetIdType(entities) : "long";
