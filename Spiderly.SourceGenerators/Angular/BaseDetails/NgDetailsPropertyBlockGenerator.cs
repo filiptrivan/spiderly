@@ -221,7 +221,10 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.IsEnum)
                 return UIControlTypeCodes.Dropdown;
 
-            if (property.IsManyToOneType())
+            // The 1-1 dependent ([WithOne]) is treated as an M2O nav (D4): its DTO flattens to
+            // {Nav}Id + {Nav}DisplayName, so it renders the same Autocomplete. IsManyToOneType() is
+            // false for the dependent by design, hence the explicit || IsOneToOneType().
+            if (property.IsManyToOneType() || property.IsOneToOneType())
                 return UIControlTypeCodes.Autocomplete;
 
             if (property.HasSimpleManyToManyTableLazyLoadAttribute())
@@ -298,7 +301,9 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.IsEnum)
                 return property.Name.FirstCharToLower();
 
-            if (property.IsManyToOneType())
+            // M2O and the 1-1 dependent ([WithOne]) both bind to the flattened {Nav}Id the DTO carries,
+            // not the raw nav name.
+            if (property.IsManyToOneType() || property.IsOneToOneType())
                 return $"{property.Name.FirstCharToLower()}Id";
 
             if (property.IsMultiSelectControlType())

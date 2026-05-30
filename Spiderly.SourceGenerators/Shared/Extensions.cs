@@ -432,8 +432,10 @@ namespace Spiderly.SourceGenerators.Shared
         {
             // Enum-typed properties get a static client-side dropdown bound to the TS enum,
             // so the backend doesn't need to expose an autocomplete endpoint for them.
+            // The 1-1 dependent ([WithOne]) is treated as an M2O nav (D4) and renders the same
+            // Autocomplete, so it needs the matching Get{Nav}AutocompleteListFor{Entity} endpoint too.
             if (
-                property.IsManyToOneType() &&
+                (property.IsManyToOneType() || property.IsOneToOneType()) &&
                 property.Attributes.Any(x => x.Name == "UIControlType") == false
             )
             {

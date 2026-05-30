@@ -237,6 +237,46 @@ namespace TestApp.Business.Services
             });
         }
 
+        /// <summary>
+        /// Retrieves autocomplete suggestions for the OwningTaskItem many-to-one relationship in Conversation.
+        /// </summary>
+        /// <param name="limit">Maximum number of results to return</param>
+        /// <param name="filter">Text filter for Title</param>
+        /// <param name="query">Base query for TaskItem entities</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <param name="conversationId">Optional Conversation ID for context-specific authorization</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
+        public async virtual Task<List<NamebookDTO<long>>> GetOwningTaskItemAutocompleteListForConversation(
+            int limit,
+            string filter,
+            IQueryable<TaskItem> query,
+            bool authorize,
+            long? conversationId = null
+        )
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(conversationId);
+                }
+
+                if (!string.IsNullOrEmpty(filter))
+                    query = query.Where(x => x.Title.ToLower().Contains(filter.ToLower()));
+
+                var result = await query
+                    .AsNoTracking()
+                    .Take(limit)
+                    .Select(x => new NamebookDTO<long>
+                    {
+                        Id = x.Id,
+                        DisplayName = x.Title,
+                    })
+                    .ToListAsync();
+
+                return result;
+            });
+        }
 
 
         #endregion
@@ -364,7 +404,15 @@ namespace TestApp.Business.Services
                     await dbSet.AddAsync(poco);
                 }
 
-
+                if (dto.OwningTaskItemId > 0)
+                {
+                    poco.OwningTaskItem = await GetInstanceAsync<TaskItem, long>(dto.OwningTaskItemId.Value, null);
+                }
+                else
+                {
+                    var _ = poco.OwningTaskItem; // HACK
+                    poco.OwningTaskItem = null;
+                }
 
                 await _deps.Context.SaveChangesAsync();
 

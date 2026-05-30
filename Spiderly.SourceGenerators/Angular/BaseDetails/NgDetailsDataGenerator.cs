@@ -405,7 +405,9 @@ namespace Spiderly.SourceGenerators.Angular
             if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 return "multiselect";
 
-            if (property.IsManyToOneType())
+            // M2O and the 1-1 dependent ([WithOne]) both filter their grid column on the flattened
+            // {Nav}DisplayName string, so both use the text filter.
+            if (property.IsManyToOneType() || property.IsOneToOneType())
                 return "text";
 
             switch (property.Type.ScalarKind)

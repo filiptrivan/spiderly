@@ -62,7 +62,11 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static string GetRulePropertyName(SpiderlyProperty property, SpiderlyClass entity)
         {
-            if (property.HasWithManyAttribute() && property.IsManyToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
+            // M2O ([WithMany]) and the 1-1 dependent ([WithOne]) both validate against the flattened
+            // {Nav}Id the DTO carries — a required reference nav means "the FK must be set". The
+            // dependent has [WithOne] (not [WithMany]) and IsManyToOneType() is false for it by design,
+            // so it's mapped here via IsOneToOneType().
+            if ((property.HasWithManyAttribute() && property.IsManyToOneType()) || property.IsOneToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
                 return property.ResolveExplicitForeignKeyName(entity) ?? $"{property.Name}Id";
 
             if (property.HasUIOrderedOneToManyAttribute())
