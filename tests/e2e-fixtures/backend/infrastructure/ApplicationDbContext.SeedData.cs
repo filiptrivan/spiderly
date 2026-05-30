@@ -36,7 +36,11 @@ namespace __APP_NAME__.Infrastructure
                 new Permission { Id = 21, Name = "View task comments", Code = "ReadTaskComment" },
                 new Permission { Id = 22, Name = "Edit existing task comments", Code = "UpdateTaskComment" },
                 new Permission { Id = 23, Name = "Add new task comments", Code = "InsertTaskComment" },
-                new Permission { Id = 24, Name = "Delete task comments", Code = "DeleteTaskComment" }
+                new Permission { Id = 24, Name = "Delete task comments", Code = "DeleteTaskComment" },
+                new Permission { Id = 25, Name = "View project charters", Code = "ReadProjectCharter" },
+                new Permission { Id = 26, Name = "Edit existing project charters", Code = "UpdateProjectCharter" },
+                new Permission { Id = 27, Name = "Add new project charters", Code = "InsertProjectCharter" },
+                new Permission { Id = 28, Name = "Delete project charters", Code = "DeleteProjectCharter" }
             ];
 
             modelBuilder.Entity<Permission>().HasData(permissions);
@@ -86,7 +90,11 @@ namespace __APP_NAME__.Infrastructure
                     new { RoleId = 1, PermissionId = 21 },
                     new { RoleId = 1, PermissionId = 22 },
                     new { RoleId = 1, PermissionId = 23 },
-                    new { RoleId = 1, PermissionId = 24 }
+                    new { RoleId = 1, PermissionId = 24 },
+                    new { RoleId = 1, PermissionId = 25 },
+                    new { RoleId = 1, PermissionId = 26 },
+                    new { RoleId = 1, PermissionId = 27 },
+                    new { RoleId = 1, PermissionId = 28 }
                 ));
         }
     }
