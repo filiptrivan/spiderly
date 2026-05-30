@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.SourceGenerators.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.Shared.Tests", "Spiderly.Shared.Tests\Spiderly.Shared.Tests.csproj", "{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.MetadataExporter", "Spiderly.MetadataExporter\Spiderly.MetadataExporter.csproj", "{D3ABB43B-FF51-4F76-95B9-EB2048A57577}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x64.Build.0 = Release|Any CPU
 		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x86.ActiveCfg = Release|Any CPU
 		{5D7D6420-172F-4DF1-95D5-55A5E7EA1EDB}.Release|x86.Build.0 = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|x64.Build.0 = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Debug|x86.Build.0 = Debug|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|x64.ActiveCfg = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|x64.Build.0 = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|x86.ActiveCfg = Release|Any CPU
+		{D3ABB43B-FF51-4F76-95B9-EB2048A57577}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

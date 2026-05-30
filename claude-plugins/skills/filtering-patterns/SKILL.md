@@ -27,7 +27,7 @@ public class FilterRuleDTO
 }
 ```
 
-**Match modes (string constants in `MatchModeCodes`):** `"startsWith"`, `"contains"`, `"equals"`, `"lessThan"`, `"greaterThan"`, `"in"`
+**Match modes** — the `MatchMode` values a filter rule can use, generated from the `MatchModeCodes` contract: see [references/match-mode-codes.generated.md](references/match-mode-codes.generated.md).
 
 Filter dictionary keys are **camelCase DTO property names**. The generated `PaginatedResultGenerator` auto-resolves them to entity paths (e.g., `categoryDisplayName` → `x.Category.Name`).
 

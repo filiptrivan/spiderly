@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Internal build tool. NOT packed or shipped (no GeneratePackageOnBuild).
+    Reflects the shipped Spiderly assemblies + reads their compiler-emitted XML
+    doc files and emits framework-metadata.json — the single source of truth that
+    the skill reference docs (and, later, the spiderly-website docs) are generated
+    from. See docs/framework-metadata-ssot.md.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reflect the public contracts from Spiderly.Shared + Spiderly.Security. Their .xml doc
+         files are copied to this tool's output dir (GenerateDocumentationFile is on in both)
+         and read at runtime for member/endpoint summaries. Security references Shared
+         transitively; both are listed for clarity. -->
+    <ProjectReference Include="..\Spiderly.Shared\Spiderly.Shared.csproj" />
+    <ProjectReference Include="..\Spiderly.Security\Spiderly.Security.csproj" />
+  </ItemGroup>
+
+  <!-- Spiderly.Shared pulls in Microsoft.AspNetCore.App; mirror the framework
+       reference so the runtime resolves the same shared framework. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

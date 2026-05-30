@@ -1,0 +1,750 @@
+{
+  "enums": [
+    {
+      "name": "ApiErrorCodes",
+      "kind": "constStringClass",
+      "namespace": "Spiderly.Shared.Contracts",
+      "summary": "Machine-readable error codes returned in ErrorCode. Treat as a public contract — clients (Angular interceptor, storefront middleware, external API consumers) switch on these values.",
+      "members": [
+        {
+          "name": "ConcurrencyConflict",
+          "value": "concurrency_conflict",
+          "summary": "An optimistic-concurrency check failed — the row was modified by someone else after it was loaded. The client should reload the latest data and retry."
+        },
+        {
+          "name": "EmailNotVerified",
+          "value": "email_not_verified",
+          "summary": "Login or auto-provisioning was blocked because the account's email address is not verified (e.g. an external provider returned an unverified email)."
+        },
+        {
+          "name": "ExternalProviderNotConfigured",
+          "value": "external_provider_not_configured",
+          "summary": "An external (OAuth) login was attempted for a provider that is not configured on the server, or that provider's token exchange failed."
+        },
+        {
+          "name": "ForeignKeyViolation",
+          "value": "foreign_key_violation",
+          "summary": "A database foreign-key constraint was violated — e.g. referencing a row that does not exist, or deleting a row that is still referenced by dependent rows."
+        },
+        {
+          "name": "InvalidToken",
+          "value": "invalid_token",
+          "summary": "The JWT bearer token is missing, malformed, or expired. Returned with HTTP 401 (also surfaced in the WWW-Authenticate header); the client should refresh the token or re-authenticate."
+        },
+        {
+          "name": "UniqueViolation",
+          "value": "unique_violation",
+          "summary": "A database unique constraint (or unique index) was violated — e.g. saving a duplicate value for a column that must be unique."
+        },
+        {
+          "name": "ValidationFailed",
+          "value": "validation_failed",
+          "summary": "One or more request fields failed server-side validation. Returned with HTTP 400; the per-field messages are carried in ApiErrorDTO.FieldErrors."
+        }
+      ]
+    },
+    {
+      "name": "MatchModeCodes",
+      "kind": "constStringClass",
+      "namespace": "Spiderly.Shared.Enums",
+      "summary": "String constants for the comparison operators a filter rule can use (carried on FilterRuleDTO.MatchMode). The values mirror PrimeNG's table filter match modes, so the same code drives both the Angular UI and the server-side query translation in the generated paginated-list logic.",
+      "members": [
+        {
+          "name": "Contains",
+          "value": "contains",
+          "summary": "String substring match, case-insensitive (value.Contains(...))."
+        },
+        {
+          "name": "Equals",
+          "value": "equals",
+          "summary": "Equality match. For strings it is case-insensitive; for bool, number, and date/time properties it is an exact == comparison."
+        },
+        {
+          "name": "GreaterThan",
+          "value": "greaterThan",
+          "summary": "Greater-than comparison (>), for number and date/time properties."
+        },
+        {
+          "name": "In",
+          "value": "in",
+          "summary": "Membership match against a JSON array of values (value IN [...]), for number and id properties."
+        },
+        {
+          "name": "LessThan",
+          "value": "lessThan",
+          "summary": "Less-than comparison (<), for number and date/time properties."
+        },
+        {
+          "name": "StartsWith",
+          "value": "startsWith",
+          "summary": "String prefix match, case-insensitive (value.StartsWith(...))."
+        }
+      ]
+    },
+    {
+      "name": "UIControlTypeCodes",
+      "kind": "enum",
+      "namespace": "Spiderly.Shared.Enums",
+      "summary": "Defines the UI control types used by the Angular code generator to render form fields. Each value maps to a spiderly-* Angular component built on PrimeNG. Most types are automatically picked based on the property type, but you can override them with the [UIControlType] attribute:",
+      "members": [
+        {
+          "name": "Decimal",
+          "summary": "Numeric input for decimal/floating-point values. Renders spiderly-number with fraction digits enabled. Auto-detected for: decimal, decimal?, float, float?, double, double?"
+        },
+        {
+          "name": "File",
+          "summary": "File upload control. Renders spiderly-file with support for image preview and dimension validation. Auto-detected for: properties decorated with any subclass of StorageAttribute (e.g. [DiskStorage], [S3PublicStorage], [S3PrivateStorage])."
+        },
+        {
+          "name": "Dropdown",
+          "summary": "Single-selection dropdown list. Renders spiderly-dropdown. Must be set explicitly via attribute. Commonly used for many-to-one navigation properties when you want a dropdown instead of the default autocomplete."
+        },
+        {
+          "name": "TextArea",
+          "summary": "Multi-line text input. Renders spiderly-textarea at full width. Must be set explicitly via attribute. Useful for longer plain-text content."
+        },
+        {
+          "name": "Autocomplete",
+          "summary": "Single-selection with search/autocomplete capability. Renders spiderly-autocomplete. Auto-detected for: many-to-one navigation properties (the generator creates a search method for this field)."
+        },
+        {
+          "name": "TextBox",
+          "summary": "Single-line text input. Renders spiderly-textbox. Auto-detected for: string properties (default for strings)."
+        },
+        {
+          "name": "CheckBox",
+          "summary": "Boolean toggle control. Renders spiderly-checkbox. Auto-detected for: bool, bool?"
+        },
+        {
+          "name": "Calendar",
+          "summary": "Date/time picker. Renders spiderly-calendar with optional time selection. Auto-detected for: DateTime, DateTime?"
+        },
+        {
+          "name": "Integer",
+          "summary": "Numeric input for whole numbers. Renders spiderly-number without fraction digits. Auto-detected for: int, int?, long, long?, byte, byte?"
+        },
+        {
+          "name": "ColorPicker",
+          "summary": "Visual color picker. Renders spiderly-colorpicker with optional hex text input. Must be set explicitly via attribute. Stores the color as a hex string."
+        },
+        {
+          "name": "Editor",
+          "summary": "Rich text HTML editor. Renders spiderly-editor (Quill-based) at full width. Must be set explicitly via attribute. The value is stored as HTML."
+        },
+        {
+          "name": "Markdown",
+          "summary": "Markdown editor. Renders spiderly-markdown at full width — a plain textarea with a live \"Preview\" tab. The value is stored as raw Markdown text. Must be set explicitly via attribute. Pasting an image uploads it (when the property has an [S3PublicStorage] attribute) and inserts a standard ![](url) link; the preview is rendered with marked and is approximate vs. a consuming storefront's renderer."
+        },
+        {
+          "name": "MultiAutocomplete",
+          "summary": "Multi-selection with search/autocomplete capability. Renders spiderly-multiautocomplete at full width. Used for many-to-many relationships where items are selected via search."
+        },
+        {
+          "name": "MultiSelect",
+          "summary": "Multi-selection dropdown list. Renders spiderly-multiselect at full width. Used for many-to-many relationships where all options are shown in a dropdown."
+        },
+        {
+          "name": "Password",
+          "summary": "Masked password input. Renders spiderly-password with optional strength indicator. Must be set explicitly via attribute."
+        }
+      ]
+    }
+  ],
+  "controllers": [
+    {
+      "name": "SecurityBaseController",
+      "summary": "A base controller providing core security functionalities such as authentication, user management, and role-based access control. It leverages various services for handling user authentication (login, registration, logout, token refresh). This controller is designed to be extended for specific user types.",
+      "endpoints": [
+        {
+          "name": "ExternalLoginCallback",
+          "verb": "GET",
+          "auth": false,
+          "summary": "Server-side external-login step 2: the provider redirects here with the code. Exchanges it for the id token (server-side), validates + links the user, issues the session as HttpOnly cookies, and redirects back to the originating app (returnUrl). This is a top-level browser navigation, so failures must redirect back to the app (never render a JSON error onto the API origin). The app surfaces a friendly message via the externalAuthError hint: expired (the state cookie lapsed — the user lingered on the provider's picker) or failed (invalid state/nonce, failed code exchange, or denied consent)."
+        },
+        {
+          "name": "ExternalLoginChallenge",
+          "verb": "GET",
+          "auth": false,
+          "summary": "Server-side external-login step 1: redirects the browser to the provider's authorize endpoint. The state/nonce/PKCE-verifier are stored in a short-lived, Data-Protection-signed HttpOnly cookie."
+        },
+        {
+          "name": "GetCurrentUserBase",
+          "verb": "GET",
+          "auth": true,
+          "summary": "Returns the authenticated user's base profile (id, email, core fields). Requires a valid access token."
+        },
+        {
+          "name": "GetCurrentUserPermissionCodes",
+          "verb": "GET",
+          "auth": true,
+          "summary": "Returns the permission codes granted to the authenticated user via their roles. Requires a valid access token."
+        },
+        {
+          "name": "GetExternalLoginNonce",
+          "verb": "GET",
+          "auth": false,
+          "summary": "Issues a one-time nonce for the client-side (GIS / id-token) external-login flow: returns the raw nonce for the SPA to pass to the provider's sign-in call (so it is echoed into the id token), and stores a signed copy in a short-lived HttpOnly cookie that LoginExternal / LoginExternalWithCookies verify the returned id token against. Anonymous. SameSite=None so the cookie rides the cross-site login POST."
+        },
+        {
+          "name": "GetExternalProviders",
+          "verb": "GET",
+          "auth": false,
+          "summary": "Public list of enabled external providers (code + OIDC authority + client id + button display), so the frontend can render sign-in buttons and run the client OIDC flow. Anonymous — the values are public by OIDC design."
+        },
+        {
+          "name": "Login",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Passwordless login step 2: verifies the emailed code and, on success, returns the access + refresh tokens in the response body. Anonymous."
+        },
+        {
+          "name": "LoginExternal",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Client-side external (OIDC) login: validates the provider id token against the single-use nonce cookie and returns the access + refresh tokens in the response body. Anonymous."
+        },
+        {
+          "name": "LoginExternalWithCookies",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Like LoginExternal, but issues the session as HttpOnly cookies instead of returning the tokens in the response body. Anonymous."
+        },
+        {
+          "name": "LoginWithCookies",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Like Login, but issues the session as HttpOnly cookies instead of returning the tokens in the response body. Anonymous."
+        },
+        {
+          "name": "Logout",
+          "verb": "GET",
+          "auth": true,
+          "summary": "Invalidates the current user's refresh token for the given browser session. Requires a valid access token."
+        },
+        {
+          "name": "LogoutWithCookies",
+          "verb": "GET",
+          "auth": true,
+          "summary": "Like Logout, and additionally clears the auth HttpOnly cookies. Requires a valid access token."
+        },
+        {
+          "name": "RefreshTokenWithCookies",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Refreshes the access token using the refresh token stored in an HttpOnly cookie. POST (not GET) because it mutates server state — it rotates the single-use refresh token. A safe/idempotent GET was cacheable, so browsers replayed a stale \"logged-in\" body on back/forward navigations (phantom dashboard after logout); POST is never cached, and the controller-level no-store is belt-and-braces."
+        },
+        {
+          "name": "RefreshTokenWithHeaders",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Refreshes the access token using the refresh token supplied in the request body, returning a new access + refresh token pair. Anonymous — the refresh token is itself the credential."
+        },
+        {
+          "name": "SendLoginVerificationEmail",
+          "verb": "POST",
+          "auth": false,
+          "summary": "Passwordless login step 1: sends a short-lived numeric verification code to the user's email. Anonymous."
+        }
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "name": "AcceptedFileTypes",
+      "target": "Property",
+      "summary": "Specifies the accepted file types for a blob property. When not applied, the file upload defaults to accepting images only (image/*). Use this attribute alongside any StorageAttribute subclass (e.g. [S3PublicStorage]) for non-image uploads (PDFs, Excel files, etc.)."
+    },
+    {
+      "name": "AuthGuard",
+      "target": "Class, Method",
+      "summary": "Provides authentication protection for API endpoints by validating JWT tokens in the request."
+    },
+    {
+      "name": "CascadeDelete",
+      "target": "Property",
+      "summary": "Implements cascade delete behavior in many-to-one relationships. When the referenced entity is deleted, all entities that reference it will automatically be deleted as well. This attribute is useful when: - Child entities should not exist without their parent"
+    },
+    {
+      "name": "ComplexManyToManyList",
+      "target": "Property",
+      "summary": "Generates an editable list UI for complex many-to-many relationships (junction tables with additional fields). Shows ALL entities from the \"other side\" with editable junction fields. No add/remove/reorder controls. Warning: This loads all \"other side\" entities into the form. Suitable for small sets (e.g., 3 warehouses), not for large sets (e.g., thousands of entities)."
+    },
+    {
+      "name": "ComplexManyToManyReadonlyTable",
+      "target": "Property",
+      "summary": "Just showing the complex (with additional fields) M2M relationship in a table form"
+    },
+    {
+      "name": "Controller",
+      "target": "Class",
+      "summary": "Specifies a custom controller name for an entity, overriding the default naming convention. This attribute allows grouping multiple related entities under a single controller. Default behavior without 'Controller' attribute: Controllers are named as '{EntityName}Controller'"
+    },
+    {
+      "name": "DiskStorage",
+      "target": "Property",
+      "summary": "Routes upload/delete operations for the decorated string property through DiskStorageService, storing files under the local filesystem. Intended for local development; not recommended for production deployments where the host filesystem is ephemeral or shared across replicas."
+    },
+    {
+      "name": "DisplayName",
+      "target": "Class, Property",
+      "summary": "Specifies which property should be used as the display name for an entity in UI elements: - When applied to a property: The property's value will be used to represent the entity - When applied to a class: The specified property's value will be used to represent the entity - If no property or class is marked with this attribute: The entity's 'Id' will be used"
+    },
+    {
+      "name": "DoNotAuthorize",
+      "target": "Class",
+      "summary": "Disables authorization checks for CRUD operations on the decorated entity. By default, all entities require authorization for CRUD operations. Warning: This attribute bypasses security checks and should be used with extreme caution. It is primarily intended for testing purposes and should generally be avoided in production environments."
+    },
+    {
+      "name": "Email",
+      "target": "Property",
+      "summary": "Validates that a string property value is a valid email address. This attribute provides both server-side and client-side validation."
+    },
+    {
+      "name": "ExcludeFromDTO",
+      "target": "Property",
+      "summary": "Specifies that a property should be excluded from the generated DTO."
+    },
+    {
+      "name": "ExcludeFromExcelExport",
+      "target": "Property",
+      "summary": "Specifies that a property should be excluded from the generated Excel export (the Export{Entity}ListToExcel column set), while remaining present in the DTO and the rest of the API/UI. Use it for internal/technical columns that are noise in a human-readable sheet (raw foreign-key ids, gateway correlation data, sync plumbing, etc.). Place it on the property that produces the column: a scalar property excludes the matching DTO column; a many-to-one navigation property excludes the generated {Nav}DisplayName (and the synthesized {Nav}Id when there is no explicit foreign-key scalar). Differs from ExcludeFromDTOAttribute, which removes the property from the DTO entirely (no API exposure at all). This one only hides the column from the Excel export. Placement controls which column disappears, so for a many-to-one you can drop just the raw id while keeping the human-readable name (or vice-versa): Putting it on the navigation property instead (OrderStatus) hides OrderStatusDisplayName, and also OrderStatusId only when no explicit foreign-key scalar like the one above is declared."
+    },
+    {
+      "name": "ExcludeServiceMethodsFromGeneration",
+      "target": "Property",
+      "summary": "Prevents the generation of standard service methods for the decorated property in the {Entity}ServiceGenerated class. Use this attribute when you want to: - Implement custom business logic instead of using generated methods - Override the default generated behavior with your own implementation - Exclude specific properties from the standard service method generation Note: The property will still be part of the entity, but no service methods will be generated for it in the {Entity}ServiceGenerated class."
+    },
+    {
+      "name": "GenerateCommaSeparatedDisplayName",
+      "target": "Property",
+      "summary": "Generates a string property in the DTO containing comma-separated display names for a collection property in the entity."
+    },
+    {
+      "name": "GreaterThanOrEqualTo",
+      "target": "Property",
+      "summary": "Validates that a numeric property value is greater than or equal to a specified number. This attribute provides both server-side and client-side validation."
+    },
+    {
+      "name": "ImageHeight",
+      "target": "Property",
+      "summary": "Validates exact image height for a blob property. This attribute provides both server-side and client-side validation. Use this attribute alongside any StorageAttribute subclass for image uploads."
+    },
+    {
+      "name": "ImageWidth",
+      "target": "Property",
+      "summary": "Validates exact image width for a blob property. This attribute provides both server-side and client-side validation. Use this attribute alongside any StorageAttribute subclass for image uploads."
+    },
+    {
+      "name": "IncludeInDTO",
+      "target": "Property",
+      "summary": "Specifies that a property should be included in the generated DTO. This attribute is particularly useful for enumerable properties, which are not included in DTOs by default. Note: This attribute only affects DTO generation and does not influence the mapping behavior (Entity to DTO and vice versa)."
+    },
+    {
+      "name": "M2M",
+      "target": "Class",
+      "summary": "Indicates that the entity represents a helper table for a many-to-many (M2M) relationship."
+    },
+    {
+      "name": "M2MWithMany",
+      "target": "Property",
+      "summary": "Marks a property in a many-to-many (M2M) relationship."
+    },
+    {
+      "name": "MaxFileSize",
+      "target": "Property",
+      "summary": "Specifies the maximum allowed file size (in bytes) for a blob property. When not applied, the file upload defaults to 20 MB (20,000,000 bytes). Use this attribute alongside any StorageAttribute subclass for file uploads."
+    },
+    {
+      "name": "Output",
+      "target": "All",
+      "summary": "Specifies the output configuration for the Source Generator. Note: This is a temporary solution and may be replaced in future versions."
+    },
+    {
+      "name": "ProjectToDTO",
+      "target": "Class",
+      "summary": "Specifies custom mapping configuration when projecting an entity to its DTO."
+    },
+    {
+      "name": "S3PrivateStorage",
+      "target": "Property",
+      "summary": "Routes upload/delete operations for the decorated string property through S3PrivateStorageService. The column stores an opaque S3 key; access is expected to be mediated via signed URLs or a backend proxy rather than direct CDN retrieval. Intended for files that contain personal or compliance-sensitive data (warranty receipts, ID documents, customer-uploaded invoices)."
+    },
+    {
+      "name": "S3PublicStorage",
+      "target": "Property",
+      "summary": "Routes upload/delete operations for the decorated string property through S3PublicStorageService. The bucket is configured for public access and the column stores a fully-qualified CDN URL; objects are uploaded with Cache-Control: public, max-age=31536000, immutable."
+    },
+    {
+      "name": "SetNull",
+      "target": "Property",
+      "summary": "Specifies that the property should be set to null when the parent entity is deleted. Apply this attribute to a many-to-one relationship property."
+    },
+    {
+      "name": "ShowSpinner",
+      "target": "All",
+      "summary": "Forces the global full-screen loading spinner ON for the decorated controller method, overriding the generator's auto-skip inference. The explicit attribute always wins over inference. You rarely need this. The spinner is shown by default; you only reach for this attribute to re-enable it on a call the generator would otherwise auto-skip — namely a deliberately slow HttpGet that returns a bare scalar (which is auto-skipped because such reads are normally instant). If your endpoint does real work, it is usually a POST — and POSTs keep the spinner without any attribute, so prefer the correct verb over this. Do not put this on the read-shaped responses (NamebookDTO, CodebookDTO, PaginatedResultDTO, LazyLoadSelectedIdsResultDTO): those power autocomplete, dropdowns and table pagination, where a full-screen blackout on every keystroke / page change is a regression. (The attribute still wins there if you insist — it just shouldn't be used that way.) Example (a slow scalar read where the blocking overlay is wanted):"
+    },
+    {
+      "name": "SimpleManyToManyTableLazyLoad",
+      "target": "Property",
+      "summary": "Specifies that a table items for the many-to-many relationship administration should be loaded lazily (on-demand) rather than eagerly."
+    },
+    {
+      "name": "SkipSpinner",
+      "target": "All",
+      "summary": "Indicates that the global full-screen loading spinner should be skipped for the decorated controller method. You usually don't need this. The generator already skips the spinner automatically for read-shaped responses (NamebookDTO, CodebookDTO, PaginatedResultDTO, LazyLoadSelectedIdsResultDTO) and for any HttpGet that returns a bare scalar (int, long, bool, decimal, DateTime, …). Reach for this attribute only when the inference can't see your intent. For the inverse — forcing the spinner back ON for a call the inference auto-skips — use ShowSpinnerAttribute. Use when: - A GET returns a full DTO but is polled / refreshed on a timer (e.g. a dashboard fetched every minute) - You want to implement custom loading behavior - The operation runs in the background Example (a polled DTO — a bare-scalar count GET like GetUnreadNotificationsCountForCurrentUser would be auto-skipped without this):"
+    },
+    {
+      "name": "SpiderlyController",
+      "target": "Class",
+      "summary": "Marks a class as a Spiderly custom controller. Source generators only enroll classes carrying this attribute."
+    },
+    {
+      "name": "SpiderlyDTO",
+      "target": "Class",
+      "summary": "Marks a hand-written DTO class for inclusion in the Spiderly pipeline. Generated DTOs ({Entity}DTO, {Entity}SaveBodyDTO, {Entity}MainUIFormDTO) do not need this attribute."
+    },
+    {
+      "name": "SpiderlyDataMapper",
+      "target": "Class",
+      "summary": "Marks a class as a hand-written Spiderly data mapper. Source generators enroll classes carrying this attribute when composing Mapster configuration with user-provided overrides."
+    },
+    {
+      "name": "SpiderlyEntity",
+      "target": "Class",
+      "summary": "Marks a class as a Spiderly entity. Source generators only enroll classes carrying this attribute."
+    },
+    {
+      "name": "SpiderlyEnum",
+      "target": "Class, Enum",
+      "summary": "Marks a C# enum or a class-based enum (static class of string constants) as a Spiderly enum. Source generators enroll enums carrying this attribute when emitting Angular enum definitions."
+    },
+    {
+      "name": "SpiderlyService",
+      "target": "Class",
+      "summary": "Marks a hand-written entity service as a Spiderly service. Source generators enroll classes carrying this attribute when composing DI registration and dependency lookups. The class is still expected to extend the generated {Entity}ServiceGenerated base."
+    },
+    {
+      "name": "UIAdditionalPermissionCodeForInsert",
+      "target": "Class",
+      "summary": "Specifies additional permission requirements for inserting entities in the UI. The user must have ONE of the specified permissions to perform the insert operation. Multiple instances of this attribute can be applied to a single entity."
+    },
+    {
+      "name": "UIAdditionalPermissionCodeForUpdate",
+      "target": "Class",
+      "summary": "Specifies additional permission requirements for updating entities in the UI. The user must have ONE of the specified permissions to perform the update operation. Multiple instances of this attribute can be applied to a single entity."
+    },
+    {
+      "name": "UIControlType",
+      "target": "Property",
+      "summary": "Specifies the UI control type for a property. If not specified, the control type is automatically determined based on the property type: - string: TextBox (or TextArea if [StringLength] value is large) - int/long: Number - decimal: Decimal - bool: CheckBox - DateTime: Calendar - many-to-one: Autocomplete"
+    },
+    {
+      "name": "UIControlWidth",
+      "target": "Property",
+      "summary": "Specifies the width of a UI field using Spiderly column classes (from spiderly-grid). Default values: - \"col-8\" for TextArea and Editor controls - \"col-8 md:col-4\" for all other controls"
+    },
+    {
+      "name": "UIDoNotGenerate",
+      "target": "Class, Method, Property",
+      "summary": "Apply to a property to exclude it from the UI form. Apply to an entity to exclude the entire UI form generation. Apply to a controller method to exclude the UI controller method generation."
+    },
+    {
+      "name": "UIOrderedOneToMany",
+      "target": "Property",
+      "summary": "Enables management of child entities through an ordered list in the parent entity's main UI form component."
+    },
+    {
+      "name": "UIPropertyBlockOrder",
+      "target": "Property",
+      "summary": "Specifies the display order of UI controls. Controls are displayed in the order of property declaration, except for: 'file', 'text-area', 'editor', and 'table' controls, which are always displayed last in their declaration order."
+    },
+    {
+      "name": "UISection",
+      "target": "Property",
+      "summary": "Groups the property into a named section (card) on the generated details page. All properties sharing the same section name render together inside one panel, in the order the properties are declared; sections themselves are ordered by first appearance (the position of the first property that declares the section). Properties without this attribute collapse into a single implicit, headerless section positioned by the same first-appearance rule — so a newly added property always shows up automatically, either in its declared section or the implicit one. The argument is a Transloco translation key used as the section header (e.g. \"Security\" resolves through t('Security')), matching how other generated panel titles are translated. Backward compatibility: if no property on the entity declares this attribute, the details page renders as before (a single panel with one grid). Sectioning activates only when at least one property is annotated."
+    },
+    {
+      "name": "UITableColumn",
+      "target": "Property",
+      "summary": "Specifies which columns should be displayed in a table view for a many-to-many relationship. Must be used in combination with [SimpleManyToManyTableLazyLoad] attribute."
+    },
+    {
+      "name": "WithMany",
+      "target": "Property",
+      "summary": "Specifies the collection navigation property name in a related entity for establishing a bidirectional relationship in Entity Framework. Purpose: This attribute is used to define the inverse navigation property in a relationship, enabling proper relationship configuration and navigation in both directions."
+    }
+  ],
+  "helpers": [
+    {
+      "name": "ReflectProp",
+      "signature": "ReflectProp(target: any, propertyKey: string)"
+    },
+    {
+      "name": "adjustColor",
+      "signature": "adjustColor(color: string, percent: number): string"
+    },
+    {
+      "name": "capitalizeFirstChar",
+      "signature": "capitalizeFirstChar(str: string): string"
+    },
+    {
+      "name": "deleteAction",
+      "signature": "deleteAction(cols: Column[], actionField: string): void"
+    },
+    {
+      "name": "exportListToExcel",
+      "signature": "exportListToExcel(exportListToExcelObservableMethod: (filter: Filter) => Observable<any>, filter: Filter)"
+    },
+    {
+      "name": "firstCharToUpper",
+      "signature": "firstCharToUpper(input: string): string"
+    },
+    {
+      "name": "getFileNameFromContentDisposition",
+      "signature": "getFileNameFromContentDisposition(resp: HttpResponse<Blob>, defaultName: string): string"
+    },
+    {
+      "name": "getHtmlImgDisplayString64",
+      "signature": "getHtmlImgDisplayString64(base64String: string)"
+    },
+    {
+      "name": "getImageDimensions",
+      "signature": "getImageDimensions(file: File): Promise<{ width: number; height: number }>"
+    },
+    {
+      "name": "getMimeTypeForFileName",
+      "signature": "getMimeTypeForFileName(fileName: string): string"
+    },
+    {
+      "name": "getMonth",
+      "signature": "getMonth(numberOfTheMonth: number): string"
+    },
+    {
+      "name": "getParentUrl",
+      "signature": "getParentUrl(currentUrl: string)"
+    },
+    {
+      "name": "getPrimengAutocompleteCodebookOptions",
+      "signature": "getPrimengAutocompleteCodebookOptions(getAutocompleteListObservable: ( limit: number, query: string, ) => Observable<Codebook[]>, limit: number, query: string): Observable<PrimengOption[]>"
+    },
+    {
+      "name": "getPrimengAutocompleteNamebookOptions",
+      "signature": "getPrimengAutocompleteNamebookOptions(getAutocompleteListObservable: ( limit: number, query: string, parentEntityId?: number, ) => Observable<Namebook[]>, limit: number, query: string, parentEntityId?: number): Observable<PrimengOption[]>"
+    },
+    {
+      "name": "getPrimengDropdownCodebookOptions",
+      "signature": "getPrimengDropdownCodebookOptions(getDropdownListObservable: () => Observable<Codebook[]>): Observable<PrimengOption[]>"
+    },
+    {
+      "name": "getPrimengDropdownNamebookOptions",
+      "signature": "getPrimengDropdownNamebookOptions(getDropdownListObservable: ( parentEntityId?: number, ) => Observable<Namebook[]>, parentEntityId?: number): Observable<PrimengOption[]>"
+    },
+    {
+      "name": "getPrimengNamebookOptions",
+      "signature": "getPrimengNamebookOptions(namebookList: Namebook[]): PrimengOption[]"
+    },
+    {
+      "name": "isExcelFileType",
+      "signature": "isExcelFileType(mimeType: string): boolean"
+    },
+    {
+      "name": "isFileImageType",
+      "signature": "isFileImageType(mimeType: string): boolean"
+    },
+    {
+      "name": "isNullOrEmpty",
+      "signature": "isNullOrEmpty(input: string)"
+    },
+    {
+      "name": "kebabToTitleCase",
+      "signature": "kebabToTitleCase(input: string): string"
+    },
+    {
+      "name": "nameOf",
+      "signature": "nameOf<TObject extends { name: S }, S extends string>(funcOrClass: TObject): S"
+    },
+    {
+      "name": "nameof",
+      "signature": "nameof(key1: any, key2?: any): any"
+    },
+    {
+      "name": "parseDateOnlyLocal",
+      "signature": "parseDateOnlyLocal(s: string): Date | null"
+    },
+    {
+      "name": "pushAction",
+      "signature": "pushAction(cols: Column[], action: Action)"
+    },
+    {
+      "name": "selectedTab",
+      "signature": "selectedTab(tabs: SpiderlyTab[]): number"
+    },
+    {
+      "name": "singleOrDefault",
+      "signature": "singleOrDefault<T>(array: T[], predicate: (item: T) => boolean): T | undefined"
+    },
+    {
+      "name": "splitPascalCase",
+      "signature": "splitPascalCase(input: string)"
+    },
+    {
+      "name": "toCommaSeparatedString",
+      "signature": "toCommaSeparatedString<T>(input: T[]): string"
+    },
+    {
+      "name": "validatePrecisionScale",
+      "signature": "validatePrecisionScale(value: any, precision: number, scale: number, ignoreTrailingZeros: boolean): boolean"
+    }
+  ],
+  "validators": [
+    {
+      "name": "isArrayEmpty",
+      "signature": "isArrayEmpty(control: SpiderlyFormControl): SpiderlyValidatorFn",
+      "description": "Validates that a SpiderlyFormControl holding an array value (e.g., multi-select dropdown) is not empty."
+    },
+    {
+      "name": "isFormArrayEmpty",
+      "signature": "isFormArrayEmpty(control: SpiderlyFormArray): void",
+      "description": "Validates that a SpiderlyFormArray (collection of form controls/groups) is not empty."
+    },
+    {
+      "name": "notEmpty",
+      "signature": "notEmpty(control: SpiderlyFormControl): void"
+    },
+    {
+      "name": "validateImageDimensions",
+      "signature": "validateImageDimensions(file: File, imageWidth: number, imageHeight: number): Promise<ImageDimensionsValidationResult>"
+    }
+  ],
+  "controls": {
+    "baseInputs": [
+      "control",
+      "controlValid",
+      "disabled",
+      "label",
+      "placeholder",
+      "showLabel",
+      "showRequired",
+      "showTooltip",
+      "tooltipIcon",
+      "tooltipText"
+    ],
+    "components": [
+      {
+        "selector": "spiderly-autocomplete",
+        "component": "SpiderlyAutocompleteComponent",
+        "inputs": [
+          "appendTo",
+          "showClear",
+          "emptyMessage",
+          "displayName"
+        ]
+      },
+      {
+        "selector": "spiderly-calendar",
+        "component": "SpiderlyCalendarComponent",
+        "inputs": [
+          "showTime",
+          "dateOnly",
+          "timeOnly"
+        ]
+      },
+      {
+        "selector": "spiderly-checkbox",
+        "component": "SpiderlyCheckboxComponent",
+        "inputs": [
+          "fakeLabel",
+          "initializeToFalse",
+          "inlineLabel"
+        ]
+      },
+      {
+        "selector": "spiderly-colorpicker",
+        "component": "SpiderlyColorPickerComponent",
+        "inputs": [
+          "showInputTextField"
+        ]
+      },
+      {
+        "selector": "spiderly-dropdown",
+        "component": "SpiderlyDropdownComponent",
+        "inputs": [
+          "isBooleanPicker"
+        ]
+      },
+      {
+        "selector": "spiderly-editor",
+        "component": "SpiderlyEditorComponent",
+        "inputs": [
+          "uploadImageMethod",
+          "objectId"
+        ]
+      },
+      {
+        "selector": "spiderly-file",
+        "component": "SpiderlyFileComponent",
+        "inputs": [
+          "objectId",
+          "fileData",
+          "acceptedFileTypes",
+          "required",
+          "multiple",
+          "isUrlFileData",
+          "imageWidth",
+          "imageHeight",
+          "maxFileSize",
+          "files"
+        ]
+      },
+      {
+        "selector": "spiderly-markdown",
+        "component": "SpiderlyMarkdownComponent",
+        "inputs": [
+          "uploadImageMethod",
+          "objectId"
+        ]
+      },
+      {
+        "selector": "spiderly-multiautocomplete",
+        "component": "SpiderlyMultiAutocompleteComponent",
+        "inputs": []
+      },
+      {
+        "selector": "spiderly-multiselect",
+        "component": "SpiderlyMultiSelectComponent",
+        "inputs": []
+      },
+      {
+        "selector": "spiderly-number",
+        "component": "SpiderlyNumberComponent",
+        "inputs": [
+          "prefix",
+          "showButtons",
+          "decimal",
+          "maxFractionDigits"
+        ]
+      },
+      {
+        "selector": "spiderly-password",
+        "component": "SpiderlyPasswordComponent",
+        "inputs": [
+          "showPasswordStrength"
+        ]
+      },
+      {
+        "selector": "spiderly-textarea",
+        "component": "SpiderlyTextareaComponent",
+        "inputs": []
+      },
+      {
+        "selector": "spiderly-textbox",
+        "component": "SpiderlyTextboxComponent",
+        "inputs": [
+          "showButton",
+          "buttonIcon"
+        ]
+      }
+    ]
+  }
+}

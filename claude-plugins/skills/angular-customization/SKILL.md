@@ -13,6 +13,8 @@ Before building or restyling any admin UI, check for an existing component first
 
 **Look before you build — don't force-fit a component you'd have to hack.** Raw Tailwind/HTML is correct for pure layout/spacing, one-off widgets with no component analog, or when forcing a component means fighting it. When you hand-roll, state in one line why no component fit.
 
+**Same rule for utility functions.** Before writing a formatting / date / file / dropdown-option helper, check the shared catalog — see [references/helper-functions.generated.md](references/helper-functions.generated.md) (from `helper-functions.ts`). Re-implementing `exportListToExcel`, `getPrimengDropdownNamebookOptions`, `kebabToTitleCase`, and friends is a common, avoidable duplication.
+
 Keep admin UI **responsive and mobile-first**, matching the layout/grid conventions of surrounding pages rather than inventing a new one.
 
 ## Generated File Structure
@@ -343,12 +345,7 @@ export class MyValidatorService extends ValidatorAbstractService {
 
 ### Built-in Validators
 
-| Method                                         | Purpose                                         |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `notEmpty(control)`                            | Required field (sets `control.required = true`) |
-| `isFormArrayEmpty(formArray)`                  | Array must have items                           |
-| `isArrayEmpty(control)`                        | Multi-select must have selections               |
-| `validateImageDimensions(file, width, height)` | Async image dimension check (client-side)       |
+The built-in validators on `ValidatorAbstractService` (with signatures) are generated from the class: see [references/validators.generated.md](references/validators.generated.md).
 
 ## Translations
 
@@ -356,24 +353,10 @@ UI string translation — Transloco setup, `assets/i18n/{lang}.json` files, `tra
 
 ## UI Controls Reference
 
-| Component         | Selector                     | Key Inputs                       |
-| ----------------- | ---------------------------- | -------------------------------- |
-| TextBox           | `spiderly-textbox`           | `control`                        |
-| Number            | `spiderly-number`            | `control`                        |
-| TextArea          | `spiderly-textarea`          | `control`                        |
-| CheckBox          | `spiderly-checkbox`          | `control`                        |
-| Calendar          | `spiderly-calendar`          | `control`, `showTime`            |
-| Dropdown          | `spiderly-dropdown`          | `control`, `options: Namebook[]` |
-| MultiSelect       | `spiderly-multiselect`       | `control`, `options`             |
-| Autocomplete      | `spiderly-autocomplete`      | `control`, `onTextInput`         |
-| MultiAutocomplete | `spiderly-multiautocomplete` | `control`, `onTextInput`         |
-| Editor            | `spiderly-editor`            | `control`                        |
-| Markdown          | `spiderly-markdown`          | `control`, `uploadImageMethod`   |
-| File              | `spiderly-file`              | `control`                        |
-| ColorPicker       | `spiderly-colorpicker`       | `control`                        |
-| Password          | `spiderly-password`          | `control`                        |
+Two generated references cover the controls:
 
-All controls share base inputs: `label`, `disabled`, `showLabel`, `showRequired`, `placeholder`, `showTooltip`, `tooltipText`.
+- **Control type codes** — what you pass to `[UIControlType(nameof(UIControlTypeCodes.X))]`, and the property type each is auto-selected for: [references/ui-control-types.generated.md](references/ui-control-types.generated.md).
+- **Control components** — each `spiderly-*` selector, its component class, control-specific `@Input()`s, and the shared `BaseControl` inputs: [references/controls.generated.md](references/controls.generated.md).
 
 ## Presentational & Layout Components
 

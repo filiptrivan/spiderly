@@ -15,7 +15,8 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 {
     /// <summary>
     /// A base controller providing core security functionalities such as authentication, user management, and role-based access control.
-    /// It leverages various services for handling user authentication (login, registration, logout, token refresh).    /// This controller is designed to be extended for specific user types.
+    /// It leverages various services for handling user authentication (login, registration, logout, token refresh).
+    /// This controller is designed to be extended for specific user types.
     /// </summary>
     /// <typeparam name="TUser">The type of the user entity, which must implement the <see cref="IUser"/> interface.</typeparam>
     /// <typeparam name="TRole">The type of the role entity, which must implement the <see cref="IRole"/> interface.</typeparam>
@@ -53,18 +54,29 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         #region Authentication
 
+        /// <summary>
+        /// Passwordless login step 1: sends a short-lived numeric verification code to the user's email. Anonymous.
+        /// </summary>
         [HttpPost]
         public virtual async Task<SendLoginVerificationEmailResultDTO> SendLoginVerificationEmail(LoginDTO loginDTO)
         {
             return await _securityServiceBase.SendLoginVerificationEmail(loginDTO);
         }
 
+        /// <summary>
+        /// Passwordless login step 2: verifies the emailed code and, on success, returns the access +
+        /// refresh tokens in the response body. Anonymous.
+        /// </summary>
         [HttpPost]
         public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO request)
         {
             return await _securityServiceBase.Login(request);
         }
 
+        /// <summary>
+        /// Client-side external (OIDC) login: validates the provider id token against the single-use nonce
+        /// cookie and returns the access + refresh tokens in the response body. Anonymous.
+        /// </summary>
         [HttpPost]
         [UIDoNotGenerate]
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
@@ -80,12 +92,20 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             }
         }
 
+        /// <summary>
+        /// Like <see cref="Login"/>, but issues the session as HttpOnly cookies instead of returning the
+        /// tokens in the response body. Anonymous.
+        /// </summary>
         [HttpPost]
         public virtual async Task<AuthResultWithCookiesDTO> LoginWithCookies(VerificationTokenRequestDTO request)
         {
             return await _securityServiceBase.LoginWithCookies(request);
         }
 
+        /// <summary>
+        /// Like <see cref="LoginExternal"/>, but issues the session as HttpOnly cookies instead of returning
+        /// the tokens in the response body. Anonymous.
+        /// </summary>
         [HttpPost]
         [UIDoNotGenerate]
         public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
@@ -230,6 +250,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             }
         }
 
+        /// <summary>
+        /// Invalidates the current user's refresh token for the given browser session. Requires a valid access token.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<ActionResult> Logout(string browserId)
@@ -240,6 +263,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             return Ok();
         }
 
+        /// <summary>
+        /// Like <see cref="Logout"/>, and additionally clears the auth HttpOnly cookies. Requires a valid access token.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         public virtual async Task<ActionResult> LogoutWithCookies(string browserId)
@@ -255,8 +281,11 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         }
 
         /// <summary>
-        /// Here we would put [Authorize] attribute, because we don't validate life time of the access token, but we are not because deeper in the method we are validating it without life time also.
+        /// Refreshes the access token using the refresh token supplied in the request body, returning a new
+        /// access + refresh token pair. Anonymous — the refresh token is itself the credential.
         /// </summary>
+        // No [Authorize] here: the access token's lifetime is intentionally not validated at the filter level —
+        // it is re-validated (without the lifetime check) deeper in the method.
         [HttpPost]
         public virtual async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO request)
         {
@@ -279,6 +308,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
 
         #region User
 
+        /// <summary>
+        /// Returns the authenticated user's base profile (id, email, core fields). Requires a valid access token.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         [SkipSpinner]
@@ -287,6 +319,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             return await _authenticationService.GetCurrentUserBaseDTO<TUser>();
         }
 
+        /// <summary>
+        /// Returns the permission codes granted to the authenticated user via their roles. Requires a valid access token.
+        /// </summary>
         [HttpGet]
         [AuthGuard]
         [UIDoNotGenerate]

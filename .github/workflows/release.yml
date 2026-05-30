@@ -608,6 +608,38 @@ jobs:
 
           echo "Successfully fast-forwarded main"
 
+      # Push the single-source-of-truth metadata into the docs site so it can render the framework
+      # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master merge
+      # below so it ships in the same release. continue-on-error: a docs-sync hiccup must not fail the
+      # release. The committed framework-metadata.json is release-accurate as-is (it carries no version
+      # field), so no regeneration is needed here.
+      - name: Sync framework-metadata.json to spiderly-website
+        if: needs.validate.outputs.is_prerelease == 'false'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          REPO="filiptrivan/spiderly-website"
+          TARGET="src/lib/framework-metadata.json"
+          echo "Syncing framework-metadata.json to $REPO ($TARGET)..."
+
+          tmp=$(mktemp -d)
+          git clone --depth 1 --branch develop "https://x-access-token:${GH_TOKEN}@github.com/$REPO.git" "$tmp"
+          mkdir -p "$(dirname "$tmp/$TARGET")"
+          cp framework-metadata.json "$tmp/$TARGET"
+
+          cd "$tmp"
+          if git diff --quiet -- "$TARGET"; then
+            echo "framework-metadata.json already up to date in $REPO"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "$TARGET"
+            git commit -m "chore: sync framework-metadata.json for v${{ needs.validate.outputs.new_version }}"
+            git push origin develop
+            echo "Pushed framework-metadata.json to $REPO develop"
+          fi
+
       - name: Merge spiderly-website develop into master
         if: needs.validate.outputs.is_prerelease == 'false'
         continue-on-error: true

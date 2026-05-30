@@ -291,15 +291,11 @@ public class SecurityService : SecurityServiceBase<User>
 
 ### SecurityBaseController Endpoints
 
-| Endpoint | Method | Auth | Purpose |
-|---|---|---|---|
-| `SendLoginVerificationEmail` | POST | No | Send 6-digit code |
-| `Login` | POST | No | Verify code, get tokens |
-| `LoginExternal` | POST | No | Google OAuth login |
-| `RefreshTokenWithHeaders` | POST | No | Refresh access token |
-| `Logout` | GET | Yes | Invalidate refresh token |
-| `GetCurrentUserBase` | GET | Yes | Get current user info |
-| `GetCurrentUserPermissionCodes` | GET | Yes | Get permission code list |
+The full auth API surface — every endpoint, its HTTP method, whether it needs a valid access token, and what it does — is generated from `SecurityBaseController`: see [references/security-endpoints.generated.md](references/security-endpoints.generated.md).
+
+## API error codes
+
+Failed requests return an `ApiErrorDTO` whose machine-readable `errorCode` clients switch on (the Angular interceptor, storefront middleware, external API consumers). The full list — names, wire values, and when each is returned — is generated from the `ApiErrorCodes` contract: see [references/api-error-codes.generated.md](references/api-error-codes.generated.md).
 
 ## Google OAuth Setup
 

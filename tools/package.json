@@ -1,0 +1,13 @@
+{
+  "name": "spiderly-tools",
+  "private": true,
+  "type": "module",
+  "description": "Repo tooling for the framework-metadata SSOT: extracts TypeScript facts and renders skill reference docs. See ../docs/framework-metadata-ssot.md.",
+  "scripts": {
+    "extract-ts": "node extract-ts-metadata.mjs",
+    "gen-docs": "node gen-skill-docs.mjs"
+  },
+  "devDependencies": {
+    "ts-morph": "^28.0.0"
+  }
+}
