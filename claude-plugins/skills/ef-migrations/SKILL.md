@@ -22,6 +22,10 @@ dotnet ef migrations add AddOrderNumberToProduct --project MyApp.Infrastructure 
 
 Always review the generated migration file before proceeding.
 
+## Relationship schema is declarative — let the migration reflect it
+
+Schema produced by relationship attributes (`[WithMany]` FKs, `[M2M]` join tables, `[WithOne]` one-to-one) is configured in the model (`OnModelCreating` extensions), so the migration just **reflects** it — you don't hand-write that DDL. In particular, a **one-to-one (`[WithOne]`) auto-emits a unique index on the FK**: do **not** add `[Index(IsUnique = true)]` yourself, and don't hand-write a `CREATE UNIQUE INDEX`. For an *optional* 1-1 (nullable FK) the index must allow many NULLs — that's left to provider conventions (Postgres `NULLS DISTINCT`, SQL Server's auto `IS NOT NULL` filter), so never add a `HasFilter`. If the generated migration shows a filtered/NULL-collapsing unique index on a nullable 1-1 FK, something is wrong — investigate rather than editing the migration by hand.
+
 ## Applying locally
 
 After creating a migration, always apply it to your local database:

@@ -1,6 +1,6 @@
 ---
 name: entity-design
-description: Design Spiderly entities with correct attributes, relationships, and UI mappings. Use when creating or modifying entity classes, choosing entity attributes, setting up relationships (M2O, M2M, ordered O2M), configuring file uploads on entities, or asking about UI control mapping.
+description: Design Spiderly entities with correct attributes, relationships, and UI mappings. Use when creating or modifying entity classes, choosing entity attributes, setting up relationships (M2O, 1-1 via [WithOne], M2M, ordered O2M), configuring file uploads on entities, or asking about UI control mapping.
 ---
 
 # Entity Design
@@ -126,6 +126,47 @@ The target entity **must** have a back-collection matching the `[WithMany(nameof
 **Collection-side placement is a no-op.** The generator only scans many-to-one navigations on the child side; `[CascadeDelete]` on a parent's `List<Child>` collection does nothing — it must go on `Child.ParentNav`.
 
 **Intentional omission** requires an inline `// no cascade because …` comment on the FK and a manual `ExecuteDeleteAsync` in the entity's `OnBefore{Entity}Delete` hook. Use this only when a dependent must outlive its parent (e.g. an audit or loyalty row that should survive the order it references), so future readers don't flag it as a bug.
+
+### One-to-One
+
+Use `[WithOne]` for a true 1-1 between **two independent aggregate roots** (each is queried and edited on its own). For a value object that only ever lives inside its parent (an address, a money amount), don't use 1-1 — either inline the fields on the parent or model an EF owned type; a separate `[SpiderlyEntity]` is overkill.
+
+`[WithOne(nameof(Principal.InverseNav))]` goes on the **dependent** (foreign-key-holding) side's single-valued reference nav. Its *presence* designates that side as the dependent; the other side is the principal and is a plain nav with no attribute.
+
+```csharp
+public class Conversation : BusinessObject<long>   // dependent — owns the FK
+{
+    public long? OwningTaskItemId { get; set; }     // explicit FK; nullable => optional 1-1
+    [WithOne(nameof(TaskItem.Conversation))]
+    [CascadeDelete]                                  // delete the TaskItem => delete its Conversation
+    public virtual TaskItem OwningTaskItem { get; set; }
+}
+
+public class TaskItem : BusinessObject<long>        // principal
+{
+    public virtual Conversation Conversation { get; set; }   // inverse nav, no attribute
+}
+```
+
+This generates: single-valued navs both ways, an automatic **unique index** on the FK, the correct EF `HasOne().WithOne().HasForeignKey()` mapping, dependent-side DTO flattening (`{Nav}Id` + `{Nav}DisplayName`, same as M2O), and an autocomplete control + endpoint on the dependent's page.
+
+**Required vs optional — dependent-FK nullability only.**
+
+| Declaration | Meaning | DB |
+| --- | --- | --- |
+| `[Required]` on the `[WithOne]` nav (non-nullable FK) | the dependent must have a principal | plain unique index |
+| no `[Required]` (nullable FK) | optional; the dependent may have no principal | unique index that **allows many NULLs** (Postgres `NULLS DISTINCT` / SQL Server auto `IS NOT NULL` filter — handled by provider conventions, no manual work) |
+
+The schema **cannot** enforce "every principal has a dependent" — that direction is always 0..1. `[Required]` on the **principal**-side nav is a hard build error (**SPIDERLY021**); if you truly need that invariant, create the dependent in the principal's `OnAfter{Entity}Insert` hook.
+
+**Other rules & diagnostics:**
+
+- **Explicit FK recommended for code-managed 1-1s.** Shadow FK is allowed (symmetric with `[WithMany]`), but if you create the dependent in hand-written code (`new Conversation { OwningTaskItemId = taskId }`) you need the explicit scalar — there's no scalar to set on a shadow FK.
+- **Cascade is app-layer**, exactly like M2O: `[CascadeDelete]` (deleted with the principal, walker-ordered), `[SetNull]` (nullable FK), or neither. No DB-level `ON DELETE CASCADE` is emitted.
+- **Unidirectional**: parameterless `[WithOne]` when the principal has no back-nav.
+- **Self-referential 1-1 is unsupported** → **SPIDERLY022**. Both-sides `[WithOne]` → **SPIDERLY019**; a `[WithOne]` inverse-nav name that doesn't exist → **SPIDERLY020**.
+- **Duplicate guard for free**: a second dependent pointing at an already-taken principal violates the unique index and surfaces as a clean localized 409 (the generic constraint handler), not a 500.
+- **The principal inverse renders nothing by default** — it's excluded from the principal's DTO and UI automatically (the FK lives on the dependent). For a fully code-managed 1-1 (the dependent is created/edited in code, never picked in the admin), put `[UIDoNotGenerate]` on the dependent's `[WithOne]` nav to suppress the autocomplete too.
 
 ### Simple Many-to-Many
 
