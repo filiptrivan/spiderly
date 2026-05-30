@@ -14,12 +14,9 @@ namespace Spiderly.SourceGenerators.Shared
     {
         public static void ValidateEntity(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            // The 1-1 dependent ([WithOne]) carries an FK just like an M2O (D4), so its FK must also be
-            // type/nullability-checked (SPIDERLY004/006). IsManyToOneType() is false for the dependent
-            // by design, hence the explicit || IsOneToOneType(). FK resolution (ResolveExplicitForeignKeyName)
-            // already handles [WithOne], and these checks are disjoint from OneToOneValidator's
-            // SPIDERLY019-022 structural diagnostics — no double-reporting on a valid 1-1.
-            foreach (SpiderlyProperty navigation in entity.Properties.Where(p => p.IsManyToOneType() || p.IsOneToOneType()))
+            // Type/nullability-check every FK-bearing reference nav (M2O + 1-1 dependent) — SPIDERLY004/006.
+            // Disjoint from OneToOneValidator's SPIDERLY019-022, so no double-reporting on a valid 1-1.
+            foreach (SpiderlyProperty navigation in entity.Properties.Where(p => p.IsForeignKeyReferenceNav()))
             {
                 ValidateForeignKeyAttributeTargets(navigation, entity);
                 ValidateConventionAmbiguity(navigation, entity);

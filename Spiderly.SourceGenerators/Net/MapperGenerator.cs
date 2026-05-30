@@ -223,11 +223,8 @@ namespace {{basePartOfNamespace}}.DataMappers
                 if (property.IsOneToOnePrincipalInverse(entity, entities))
                     continue;
 
-                // The dependent side of a 1-1 ([WithOne] + FK) is mapped identically to an M2O nav (D4):
-                // .Map(...Id) + .Map(...DisplayName). It carves itself out of IsManyToOneType(), but the
-                // Mapster mapping is the same shape, so reuse this branch for both. (The principal inverse
-                // was already skipped above.)
-                if (property.IsManyToOneType() || property.IsOneToOneType())
+                // The principal inverse was skipped above; this branch maps M2O navs and the 1-1 dependent.
+                if (property.IsForeignKeyReferenceNav())
                 {
                     SpiderlyClass manyToOneEntity = entities
                         .Where(x => x.Name == property.Type.Raw)

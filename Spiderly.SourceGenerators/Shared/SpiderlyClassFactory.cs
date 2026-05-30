@@ -273,11 +273,9 @@ namespace Spiderly.SourceGenerators.Shared
             if (property.IsOneToOnePrincipalInverse(entity, entities))
                 yield break;
 
-            // The dependent side of a 1-1 ([WithOne] + FK) is flattened identically to an M2O nav (D4):
-            // {Nav}Id + {Nav}DisplayName. It carves itself out of IsManyToOneType() (so it doesn't get the
-            // M2O autocomplete/validation machinery), but the read-DTO column shape is the same, so reuse
-            // this branch — and the ManyToOneId/ManyToOneDisplayName column kinds — for both.
-            if (property.IsManyToOneType() || property.IsOneToOneType())
+            // FK-bearing reference navs (M2O + 1-1 dependent) flatten to the same read-DTO columns —
+            // ManyToOneId + ManyToOneDisplayName. (The principal inverse was skipped above.)
+            if (property.IsForeignKeyReferenceNav())
             {
                 SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);
 

@@ -433,12 +433,12 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool ShouldGenerateAutocompleteControllerMethod(this SpiderlyProperty property)
         {
-            // Enum-typed properties get a static client-side dropdown bound to the TS enum,
-            // so the backend doesn't need to expose an autocomplete endpoint for them.
-            // The 1-1 dependent ([WithOne]) is treated as an M2O nav (D4) and renders the same
-            // Autocomplete, so it needs the matching Get{Nav}AutocompleteListFor{Entity} endpoint too.
+            // Every FK-bearing reference nav (M2O + 1-1 dependent) gets the matching
+            // Get{Nav}AutocompleteListFor{Entity} endpoint, unless its UIControlType is overridden.
+            // (Enum-typed properties are excluded — IsForeignKeyReferenceNav() is false for them — since
+            // they bind to a static client-side dropdown over the TS enum, no backend endpoint needed.)
             if (
-                (property.IsManyToOneType() || property.IsOneToOneType()) &&
+                property.IsForeignKeyReferenceNav() &&
                 property.Attributes.Any(x => x.Name == "UIControlType") == false
             )
             {
@@ -567,6 +567,19 @@ namespace Spiderly.SourceGenerators.Shared
 
             return property.Type.Raw.IsManyToOneType(); // string overload: not enumerable, not base type
         }
+
+        /// <summary>
+        /// True for an FK-bearing reference navigation that flattens to <c>{Nav}Id</c> + <c>{Nav}DisplayName</c>
+        /// and is treated like a many-to-one across the generators — DTO column, Mapster mapping, save
+        /// hydration, FK type/nullability validation, the autocomplete control + endpoint, and cascade
+        /// teardown. That is: a genuine many-to-one nav, or the dependent (<c>[WithOne]</c>) side of a
+        /// one-to-one. The principal inverse is excluded for free — <see cref="IsManyToOneType(SpiderlyProperty)"/>
+        /// returns false for it (via <c>IsOneToOnePrincipalInverseNav</c>) and it carries no <c>[WithOne]</c>.
+        /// Use this instead of repeating <c>IsManyToOneType() || IsOneToOneType()</c> so a new call site
+        /// can't silently forget the one-to-one dependent.
+        /// </summary>
+        public static bool IsForeignKeyReferenceNav(this SpiderlyProperty property)
+            => property.IsManyToOneType() || property.IsOneToOneType();
 
         /// <summary>
         /// The inverse-nav name from [WithOne("...")], or null for a unidirectional 1-1.

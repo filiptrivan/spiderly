@@ -113,13 +113,7 @@ namespace Spiderly.Infrastructure
 
                     RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 
-                    SetNullAttribute setNullAttribute = property.GetCustomAttribute<SetNullAttribute>();
-
-                    DeleteBehavior deleteBehavior;
-                    if (setNullAttribute == null)
-                        deleteBehavior = DeleteBehavior.NoAction;
-                    else
-                        deleteBehavior = DeleteBehavior.SetNull;
+                    DeleteBehavior deleteBehavior = ResolveDeleteBehavior(property);
 
                     string foreignKeyName = ResolveForeignKeyName(property, clrType);
 
@@ -163,13 +157,7 @@ namespace Spiderly.Infrastructure
 
                     RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 
-                    SetNullAttribute setNullAttribute = property.GetCustomAttribute<SetNullAttribute>();
-
-                    DeleteBehavior deleteBehavior;
-                    if (setNullAttribute == null)
-                        deleteBehavior = DeleteBehavior.NoAction;
-                    else
-                        deleteBehavior = DeleteBehavior.SetNull;
+                    DeleteBehavior deleteBehavior = ResolveDeleteBehavior(property);
 
                     string foreignKeyName = ResolveForeignKeyName(property, clrType);
 
@@ -186,6 +174,17 @@ namespace Spiderly.Infrastructure
                 }
             }
         }
+
+        /// <summary>
+        /// App-layer delete behavior for a relationship navigation: <c>SetNull</c> when it carries
+        /// <c>[SetNull]</c> (nullable FK), otherwise <c>NoAction</c>. Shared by the many-to-one and
+        /// one-to-one configurators. We never emit a DB-level cascade — cascades run in the generated
+        /// delete pipeline.
+        /// </summary>
+        private static DeleteBehavior ResolveDeleteBehavior(PropertyInfo property)
+            => property.GetCustomAttribute<SetNullAttribute>() == null
+                ? DeleteBehavior.NoAction
+                : DeleteBehavior.SetNull;
 
         /// <summary>
         /// Resolves the FK column name for a many-to-one navigation. EF Core's

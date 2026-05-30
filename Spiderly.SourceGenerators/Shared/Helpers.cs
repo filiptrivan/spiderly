@@ -65,11 +65,8 @@ namespace Spiderly.SourceGenerators.Shared
             return entities
                 .SelectMany(x => x.Properties)
                 .Where(prop =>
-                    // A [WithOne] one-to-one dependent nav is deliberately NOT many-to-one, but it carries
-                    // an explicit FK ({Nav}Id) just like a M2O nav, so its [CascadeDelete] edge must be
-                    // collected too. GetForeignKeyAccessExpression resolves the FK for both via
-                    // ResolveExplicitForeignKeyName, so the downstream delete query generates identically.
-                    (prop.IsManyToOneType() || prop.IsOneToOneType()) &&
+                    // Collect the [CascadeDelete] edge of every FK-bearing reference nav (M2O + 1-1 dependent).
+                    prop.IsForeignKeyReferenceNav() &&
                     prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
                     prop.Type.Raw == entityName
                 )

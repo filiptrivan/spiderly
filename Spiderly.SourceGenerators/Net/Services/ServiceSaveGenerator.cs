@@ -425,13 +425,10 @@ namespace Spiderly.SourceGenerators.Net
         {
             List<string> result = new();
 
-            // The 1-1 dependent ([WithOne]) is treated as an M2O nav (D4): its DTO carries the
-            // flattened {Nav}Id, and the nav must be hydrated from dto.{Nav}Id exactly like an M2O.
-            // Critical for a shadow-FK dependent (no {Nav}Id scalar on the entity) — without this the
-            // FK is silently dropped on insert/update. IsManyToOneType() is false for the dependent by
-            // design, hence the explicit || IsOneToOneType().
+            // Hydrate each FK-bearing reference nav (M2O + 1-1 dependent) from dto.{Nav}Id. Critical for a
+            // shadow-FK 1-1 dependent (no {Nav}Id scalar) — otherwise the FK is dropped on insert/update.
             List<SpiderlyProperty> properties = entityClass.Properties
-                .Where(prop => prop.IsManyToOneType() || prop.IsOneToOneType())
+                .Where(prop => prop.IsForeignKeyReferenceNav())
                 .ToList();
 
             foreach (SpiderlyProperty prop in properties)
