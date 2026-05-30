@@ -98,7 +98,11 @@ namespace Spiderly.Shared.ExternalAuth
                     "External provider '{Provider}' token exchange failed ({StatusCode}): {Body}",
                     config.Code, (int)response.StatusCode, body);
 
-                throw new BusinessException($"External provider token exchange failed ({(int)response.StatusCode}).", ApiErrorCodes.ExternalProviderNotConfigured);
+                // A failure HERE is a server-side fault, not a user error: the user already authenticated at
+                // the provider, so the auth code is valid — a rejected exchange means OUR config is wrong
+                // (bad/empty client secret, redirect mismatch). Throw a non-BusinessException so it maps to
+                // 500 (SpiderlyExceptionHandler) and is logged at Error, not dressed up as a 4xx outcome.
+                throw new InvalidOperationException($"External provider '{config.Code}' token exchange failed ({(int)response.StatusCode}); see the preceding log for the provider error body.");
             }
 
             using JsonDocument json = JsonDocument.Parse(body);
