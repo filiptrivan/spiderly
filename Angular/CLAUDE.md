@@ -2,6 +2,16 @@
 
 This workspace builds the published `spiderly` Angular library (`projects/spiderly`). Build it with `npx ng build spiderly`.
 
+## Regenerating `package-lock.json`
+
+**Never hand-edit `package-lock.json`.** CI's `Verify Angular lockfile integrity` gate (`npm ci --dry-run`) rejects any drift — hand-edits are what broke CI repeatedly.
+
+**Regenerate only under the `.nvmrc` node/npm** (run `nvm use` first, or `npx npm@<x>` matching the npm that node `.nvmrc` ships — currently node `24.16.0` → npm `11.13.0`, also pinned via `packageManager`). Older npm (e.g. `11.6.2`) **silently drops** the optional `cytoscape` / `d3-selection` nodes — the `mermaid` subtree pulled in via `ngx-markdown`'s `optionalDependencies` — producing a lock its own `npm ci` accepts but CI's npm rejects as `Missing: cytoscape ... from lock file`. A "passing" local gate under the wrong npm is a **false positive** — verify in a fresh, no-`node_modules` dir under the pinned npm.
+
+All runtime `@angular/*` are pinned **exact `19.2.13`** (matching the init template in `NetAndAngularFilesGenerator.cs`) so the lock regenerates deterministically. Don't reintroduce caret ranges on them — a from-scratch `npm install` then floats to a newer patch and dies on an ERESOLVE peer conflict against the pinned compiler.
+
+To change a dep: edit `package.json`, run `npm install` under the pinned toolchain, commit `package.json` + `package-lock.json` together.
+
 ## Always translate static UI text in library templates
 
 Any user-facing string baked into a control/component template here (button labels, tab labels, placeholders, headings) **must** go through Transloco — never hardcode English. The admin app this library powers is fully localized (e.g. PACMS runs Serbian), so a hardcoded English word would be the one untranslated thing on the screen.
