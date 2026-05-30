@@ -95,15 +95,21 @@ namespace Spiderly.Infrastructure
 
                 foreach (PropertyInfo property in clrType.GetProperties())
                 {
+                    WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
+
                     if (
                         property.IsManyToOneType() == false ||
-                        property.GetCustomAttribute<M2MWithManyAttribute>() != null
+                        property.GetCustomAttribute<M2MWithManyAttribute>() != null ||
+                        // This pass only configures navigations that declare a back-collection via [WithMany].
+                        // A [WithMany]-less reference nav here is one side of a one-to-one — the [WithOne]
+                        // dependent or the principal inverse — both of which ConfigureOneToOneRelationships
+                        // owns. Skipping avoids dereferencing a null withManyAttribute below (the NRE that
+                        // otherwise breaks model creation for any bidirectional 1-1).
+                        withManyAttribute == null
                     )
                     {
                         continue;
                     }
-
-                    WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
 
                     RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 

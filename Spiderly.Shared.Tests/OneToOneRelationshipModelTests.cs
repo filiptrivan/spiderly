@@ -33,8 +33,11 @@ namespace Spiderly.Shared.Tests
         }
 
         /// <summary>
-        /// Minimal context that registers the test pair and runs only the one-to-one configuration pass,
-        /// so the assertions isolate <see cref="Extensions.ConfigureOneToOneRelationships"/>.
+        /// Registers the test pair and runs the relationship passes in the same order as the real
+        /// <c>ApplicationDbContext.OnModelCreating</c> (many-to-one then one-to-one). Running the M2O pass
+        /// is load-bearing: a bidirectional 1-1's navs are [WithMany]-less reference navs that the M2O pass
+        /// must skip — configuring it in isolation hid a NullReferenceException that only surfaced when the
+        /// full pipeline ran against a real database.
         /// </summary>
         private class OneToOneTestDbContext : DbContext
         {
@@ -46,6 +49,7 @@ namespace Spiderly.Shared.Tests
                 modelBuilder.Entity<Conversation>();
 
                 List<IMutableEntityType> mutableEntityTypes = modelBuilder.Model.GetEntityTypes().ToList();
+                mutableEntityTypes.ConfigureManyToOneRelationships(modelBuilder);
                 mutableEntityTypes.ConfigureOneToOneRelationships(modelBuilder);
 
                 base.OnModelCreating(modelBuilder);
