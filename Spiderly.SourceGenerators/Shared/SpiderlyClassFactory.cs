@@ -43,8 +43,13 @@ namespace Spiderly.SourceGenerators.Shared
             // locally at every call site (it can't otherwise — the principal inverse is M2O-shaped and the local
             // predicate has no view of the other entity's [WithOne]). Genuine M2O navs carry [WithMany], so this
             // is always false for them and never perturbs M2O output. Cheap-guarded inside IsOneToOnePrincipalInverse.
+            //
+            // Flag BOTH current and referenced classes: generators that run in the .WebAPI project (e.g.
+            // ControllerGenerator) iterate entities as *referenced* (the entities live in the .Business project),
+            // so flagging only the current set would leave the controller's view unflagged and inconsistent with
+            // the service's. These are the same instances those generators consume, so the flag propagates.
             List<SpiderlyClass> allClasses = result.Concat(referencedProjectsClasses).ToList();
-            foreach (SpiderlyClass cls in result)
+            foreach (SpiderlyClass cls in allClasses)
                 foreach (SpiderlyProperty prop in cls.Properties)
                     prop.IsOneToOnePrincipalInverseNav = prop.IsOneToOnePrincipalInverse(cls, allClasses);
 
