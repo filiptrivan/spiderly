@@ -185,6 +185,9 @@ namespace Spiderly.SourceGenerators.Shared
             if (property.HasWithOneAttribute()) // one-to-one dependent is NOT many-to-one
                 return false;
 
+            if (property.IsOneToOnePrincipalInverseNav) // one-to-one principal inverse owns no FK — not many-to-one
+                return false;
+
             return property.Type.Raw.IsManyToOneType();
         }
 

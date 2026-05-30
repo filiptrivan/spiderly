@@ -39,6 +39,16 @@ namespace Spiderly.SourceGenerators.Models
         /// </summary>
         public bool IsEnum { get; set; }
 
+        /// <summary>
+        /// True when this property is the principal-side inverse navigation of a one-to-one — a bare reference
+        /// nav whose target entity declares a <c>[WithOne]</c> pointing back at it. Computed once (cross-entity)
+        /// when the class graph is built; defaults to false. Generators consult it via
+        /// <c>IsManyToOneType()</c>, which returns false for it: the principal inverse is M2O-shaped by accident
+        /// of classification but owns no FK / DTO column (the FK lives on the dependent side), so it must produce
+        /// no M2O save / mapper / autocomplete / FK-validation code.
+        /// </summary>
+        public bool IsOneToOnePrincipalInverseNav { get; set; }
+
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
     }
 }

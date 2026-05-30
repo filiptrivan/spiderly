@@ -237,46 +237,6 @@ namespace TestApp.Business.Services
             });
         }
 
-        /// <summary>
-        /// Retrieves autocomplete suggestions for the Conversation many-to-one relationship in TaskItem.
-        /// </summary>
-        /// <param name="limit">Maximum number of results to return</param>
-        /// <param name="filter">Text filter for Id.ToString()</param>
-        /// <param name="query">Base query for Conversation entities</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
-        /// <param name="taskItemId">Optional TaskItem ID for context-specific authorization</param>
-        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
-        public async virtual Task<List<NamebookDTO<long>>> GetConversationAutocompleteListForTaskItem(
-            int limit,
-            string filter,
-            IQueryable<Conversation> query,
-            bool authorize,
-            long? taskItemId = null
-        )
-        {
-            return await _deps.Context.WithTransactionAsync(async () =>
-            {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(taskItemId);
-                }
-
-                if (!string.IsNullOrEmpty(filter))
-                    query = query.Where(x => x.Id.ToString().ToLower().Contains(filter.ToLower()));
-
-                var result = await query
-                    .AsNoTracking()
-                    .Take(limit)
-                    .Select(x => new NamebookDTO<long>
-                    {
-                        Id = x.Id,
-                        DisplayName = x.Id.ToString(),
-                    })
-                    .ToListAsync();
-
-                return result;
-            });
-        }
 
 
         #endregion
@@ -404,15 +364,7 @@ namespace TestApp.Business.Services
                     await dbSet.AddAsync(poco);
                 }
 
-                if (dto.ConversationId > 0)
-                {
-                    poco.Conversation = await GetInstanceAsync<Conversation, long>(dto.ConversationId.Value, null);
-                }
-                else
-                {
-                    var _ = poco.Conversation; // HACK
-                    poco.Conversation = null;
-                }
+
 
                 await _deps.Context.SaveChangesAsync();
 

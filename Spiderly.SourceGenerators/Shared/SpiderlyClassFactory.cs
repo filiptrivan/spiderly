@@ -18,7 +18,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
         {
-            return currentProjectClasses
+            List<SpiderlyClass> result = currentProjectClasses
                 .Select(x =>
                 {
                     return new SpiderlyClass
@@ -38,6 +38,17 @@ namespace Spiderly.SourceGenerators.Shared
                 })
                 .OrderBy(x => x.Name)
                 .ToList();
+
+            // Tag one-to-one principal-inverse navs once, cross-entity, so IsManyToOneType() can exclude them
+            // locally at every call site (it can't otherwise — the principal inverse is M2O-shaped and the local
+            // predicate has no view of the other entity's [WithOne]). Genuine M2O navs carry [WithMany], so this
+            // is always false for them and never perturbs M2O output. Cheap-guarded inside IsOneToOnePrincipalInverse.
+            List<SpiderlyClass> allClasses = result.Concat(referencedProjectsClasses).ToList();
+            foreach (SpiderlyClass cls in result)
+                foreach (SpiderlyProperty prop in cls.Properties)
+                    prop.IsOneToOnePrincipalInverseNav = prop.IsOneToOnePrincipalInverse(cls, allClasses);
+
+            return result;
         }
 
         #region DTO
