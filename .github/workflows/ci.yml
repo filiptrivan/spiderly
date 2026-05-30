@@ -13,7 +13,6 @@ concurrency:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  NODE_VERSION: "24"
   TEST_APP_NAME: "TestApp"
 
 jobs:
@@ -40,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Install metadata tooling deps
         working-directory: tools
@@ -82,7 +81,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: npm
           cache-dependency-path: Angular/package-lock.json
 
@@ -259,7 +258,7 @@ jobs:
             forbidOnly: !!process.env.CI,
             retries: process.env.CI ? 2 : 0,
             workers: 1,
-            reporter: [['list'], ['html', { open: 'never' }]],
+            reporter: [['github'], ['list'], ['html', { open: 'never' }]],
             use: {
               baseURL: 'http://localhost:4200',
               trace: 'retain-on-failure',

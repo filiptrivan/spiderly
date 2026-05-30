@@ -65,7 +65,6 @@ on:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  NODE_VERSION: "24"
 
 jobs:
   validate:
@@ -294,7 +293,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: "npm"
           cache-dependency-path: Angular/package-lock.json
 
@@ -420,7 +419,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           registry-url: "https://registry.npmjs.org"
 
       - name: Download npm package
