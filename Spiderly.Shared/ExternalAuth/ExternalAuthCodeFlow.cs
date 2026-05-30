@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -23,12 +24,14 @@ namespace Spiderly.Shared.ExternalAuth
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ExternalProviderOptions _options;
+        private readonly ILogger<ExternalAuthCodeFlow> _logger;
         private readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>> _configManagers = new(StringComparer.OrdinalIgnoreCase);
 
-        public ExternalAuthCodeFlow(IHttpClientFactory httpClientFactory, IOptions<ExternalProviderOptions> options)
+        public ExternalAuthCodeFlow(IHttpClientFactory httpClientFactory, IOptions<ExternalProviderOptions> options, ILogger<ExternalAuthCodeFlow> logger)
         {
             _httpClientFactory = httpClientFactory;
             _options = options.Value;
+            _logger = logger;
         }
 
         /// <summary>
@@ -87,7 +90,16 @@ namespace Spiderly.Shared.ExternalAuth
             string body = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode == false)
+            {
+                // Surface the provider's error body (e.g. {"error":"invalid_client"}) — it's an OAuth
+                // error payload, not a token, so it's safe to log and turns an opaque "400" into a
+                // one-line diagnosis. The thrown message stays generic for the client.
+                _logger.LogWarning(
+                    "External provider '{Provider}' token exchange failed ({StatusCode}): {Body}",
+                    config.Code, (int)response.StatusCode, body);
+
                 throw new BusinessException($"External provider token exchange failed ({(int)response.StatusCode}).", ApiErrorCodes.ExternalProviderNotConfigured);
+            }
 
             using JsonDocument json = JsonDocument.Parse(body);
             if (json.RootElement.TryGetProperty("id_token", out JsonElement idTokenElement) == false)
