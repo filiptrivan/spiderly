@@ -1,0 +1,550 @@
+﻿//HintName: TaskItemService.generated.cs
+using TestApp.Business.ValidationRules;
+using TestApp.Business.DataMappers;
+using TestApp.Business.DTO;
+using TestApp.Business.Entities;
+using TestApp.Business.Enums;
+using TestApp.Business.ExcelProperties;
+using TestApp.Business.Filtering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using System.Data;
+using FluentValidation;
+using Spiderly.Security.Services;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Mapster;
+using Microsoft.AspNetCore.Http;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Generated service for the TaskItem entity. Override lifecycle hooks
+    /// by creating a <c>TaskItemService</c> class that inherits from this class.
+    /// </summary>
+    public class TaskItemServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+
+
+        public TaskItemServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
+        {
+            _deps = deps;
+
+        }
+
+        #region Read
+
+        /// <summary>
+        /// Retrieves the complete MainUIFormDTO for TaskItem, including the entity DTO and all related collections (one-to-many, many-to-many).
+        /// </summary>
+        /// <param name="id">The ID of the TaskItem entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>TaskItemMainUIFormDTO containing the entity DTO and related data</returns>
+        public async virtual Task<TaskItemMainUIFormDTO> GetTaskItemMainUIFormDTO(long id, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(id);
+                }
+
+                var result = new TaskItemMainUIFormDTO
+                {
+                    TaskItemDTO = await GetTaskItemDTO(id, false),
+                };
+
+                await OnAfterGetTaskItemMainUIFormDTO(result);
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called after retrieving TaskItem MainUIFormDTO.
+        /// Override this method to enrich the MainUIFormDTO with additional data (e.g., computed fields, extra queries).
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <example>
+        /// protected override async Task OnAfterGetTaskItemMainUIFormDTO(TaskItemMainUIFormDTO mainUIFormDTO)
+        /// {
+        ///     mainUIFormDTO.CustomProperty = await _deps.Context.DbSet&lt;OtherEntity&gt;().Where(x => x.TaskItemId == mainUIFormDTO.TaskItemDTO.Id).CountAsync();
+        /// }
+        /// </example>
+        /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
+        protected virtual async Task OnAfterGetTaskItemMainUIFormDTO(TaskItemMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Retrieves a single TaskItem entity as a DTO with blob data populated.
+        /// </summary>
+        /// <param name="id">The ID of the TaskItem entity</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>TaskItemDTO with all blob properties populated</returns>
+        public async virtual Task<TaskItemDTO> GetTaskItemDTO(long id, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(id);
+                }
+
+                var dto = await _deps.Context.DbSet<TaskItem>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == id).ProjectToType<TaskItemDTO>(Mapper.TaskItemProjectToConfig())
+                    .SingleOrDefaultAsync();
+
+                if (dto == null)
+                    throw new BusinessException(_deps.Localizer["EntityDoesNotExistInDatabase"]);
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of TaskItem entities.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResult containing the query and total record count</returns>
+        public async virtual Task<PaginatedResult<TaskItem>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of TaskItem DTOs with blob data populated.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>PaginatedResultDTO containing TaskItemDTO list and total record count</returns>
+        public async virtual Task<PaginatedResultDTO<TaskItemDTO>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query, bool authorize)
+        {
+            PaginatedResult<TaskItem> paginationResult = new();
+            List<TaskItemDTO> dtoList = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                paginationResult = await GetPaginatedTaskItemList(filterDTO, query);
+
+                dtoList = await paginationResult.Query
+                    .Skip(filterDTO.First)
+                    .Take(filterDTO.Rows)
+                    .ProjectToType<TaskItemDTO>(Mapper.TaskItemProjectToConfig())
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(dtoList.Select(x => x.Id).ToList());
+                }
+
+
+            });
+
+            return new PaginatedResultDTO<TaskItemDTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
+        }
+
+        /// <summary>
+        /// Exports a filtered list of TaskItem entities to Excel format.
+        /// </summary>
+        /// <param name="filterDTO">Filter parameters for the export</param>
+        /// <param name="query">The base query to export</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Excel file as byte array</returns>
+        public async virtual Task<byte[]> ExportTaskItemListToExcel(FilterDTO filterDTO, IQueryable<TaskItem> query, bool authorize, CancellationToken cancellationToken = default)
+        {
+            IQueryable<TaskItemDTO> exportQuery = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                PaginatedResult<TaskItem> paginationResult = await GetPaginatedTaskItemList(filterDTO, query);
+                int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
+                exportQuery = paginationResult.Query
+                    .OrderBy(x => x.Id)
+                    .Take(maxRows)
+                    .ProjectToType<TaskItemDTO>(Mapper.TaskItemExcelProjectToConfig());
+            });
+
+            string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new TaskItemDTO());
+            return await _deps.ExcelService.FillReportTemplateAsync(
+                exportQuery.AsAsyncEnumerable(),
+                excelPropertiesToExclude,
+                _deps.Localizer,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Retrieves a list of TaskItem entities without pagination.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of TaskItem entities</returns>
+        public async virtual Task<List<TaskItem>> GetTaskItemList(IQueryable<TaskItem> query, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var result = await query
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(result.Select(x => x.Id).ToList());
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a list of TaskItem DTOs without pagination, with blob data populated.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
+        /// <returns>List of TaskItemDTO with blob properties populated</returns>
+        public async virtual Task<List<TaskItemDTO>> GetTaskItemDTOList(IQueryable<TaskItem> query, bool authorize)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var dtoList = await query
+                    .AsNoTracking()
+                    .ProjectToType<TaskItemDTO>(Mapper.TaskItemToDTOConfig())
+                    .ToListAsync();
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(dtoList.Select(x => x.Id).ToList());
+                }
+
+
+
+                return dtoList;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves autocomplete suggestions for the Conversation many-to-one relationship in TaskItem.
+        /// </summary>
+        /// <param name="limit">Maximum number of results to return</param>
+        /// <param name="filter">Text filter for Id.ToString()</param>
+        /// <param name="query">Base query for Conversation entities</param>
+        /// <param name="authorize">Whether to perform authorization check</param>
+        /// <param name="taskItemId">Optional TaskItem ID for context-specific authorization</param>
+        /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
+        public async virtual Task<List<NamebookDTO<long>>> GetConversationAutocompleteListForTaskItem(
+            int limit,
+            string filter,
+            IQueryable<Conversation> query,
+            bool authorize,
+            long? taskItemId = null
+        )
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(taskItemId);
+                }
+
+                if (!string.IsNullOrEmpty(filter))
+                    query = query.Where(x => x.Id.ToString().ToLower().Contains(filter.ToLower()));
+
+                var result = await query
+                    .AsNoTracking()
+                    .Take(limit)
+                    .Select(x => new NamebookDTO<long>
+                    {
+                        Id = x.Id,
+                        DisplayName = x.Id.ToString(),
+                    })
+                    .ToListAsync();
+
+                return result;
+            });
+        }
+
+
+        #endregion
+
+        #region Save
+
+        /// <summary>
+        /// Saves a TaskItem entity and returns the complete MainUIFormDTO including all related collections.
+        /// Handles insert/update logic, many-to-many relationships, and ordered one-to-many collections.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity data and related selections</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>TaskItemMainUIFormDTO with saved data and updated collections</returns>
+        public virtual async Task<TaskItemMainUIFormDTO> SaveTaskItemAndReturnMainUIFormDTO(TaskItemSaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            new TaskItemSaveBodyDTOValidationRules().ValidateAndThrow(saveBodyDTO);
+
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeSaveTaskItemAndReturnMainUIFormDTO(saveBodyDTO);
+
+                var savedDTO = await SaveTaskItemAndReturnDTO(saveBodyDTO.TaskItemDTO, authorizeUpdate, authorizeInsert);
+
+
+
+
+
+
+                var result = new TaskItemMainUIFormDTO
+                {
+                    TaskItemDTO = savedDTO,
+
+
+
+                };
+
+                await OnAfterSaveTaskItemAndReturnMainUIFormDTO(saveBodyDTO, result);
+
+                return result;
+            });
+        }
+
+
+
+
+        /// <summary>
+        /// Lifecycle hook called before saving TaskItem with MainUIFormDTO.
+        /// Override this method to add custom validation or modify the SaveBodyDTO.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
+        protected virtual async Task OnBeforeSaveTaskItemAndReturnMainUIFormDTO(TaskItemSaveBodyDTO saveBodyDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called after saving TaskItem and after updating related collections.
+        /// Override this method to add custom business logic after the main entity is saved.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
+        /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
+        protected virtual async Task OnAfterSaveTaskItemAndReturnMainUIFormDTO(TaskItemSaveBodyDTO saveBodyDTO, TaskItemMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Saves a TaskItem entity and returns the DTO with blob data populated.
+        /// </summary>
+        /// <param name="saveDTO">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved TaskItemDTO with blob properties populated</returns>
+        public async virtual Task<TaskItemDTO> SaveTaskItemAndReturnDTO(TaskItemDTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var poco = await SaveTaskItem(saveDTO, authorizeUpdate, authorizeInsert);
+
+                var dto = poco.Adapt<TaskItemDTO>(Mapper.TaskItemToDTOConfig());
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Core save method that handles both insert and update operations for TaskItem.
+        /// Validates the DTO, maps to entity, handles many-to-one relationships, and manages blob deletion.
+        /// </summary>
+        /// <param name="dto">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved TaskItem entity</returns>
+        public async virtual Task<TaskItem> SaveTaskItem(TaskItemDTO dto, bool authorizeUpdate, bool authorizeInsert)
+        {
+            TaskItemDTOValidationRules validationRules = new TaskItemDTOValidationRules();
+            validationRules.ValidateAndThrow(dto);
+
+            TaskItem poco = null;
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeTaskItemIsMapped(dto);
+                DbSet<TaskItem> dbSet = _deps.Context.DbSet<TaskItem>();
+
+                if (dto.Id > 0)
+                {
+                    if (authorizeUpdate)
+                    {
+                        await _deps.AuthorizationService.AuthorizeTaskItemUpdateAndThrow(dto);
+                    }
+
+                    poco = await GetInstanceAsync<TaskItem, long>(dto.Id, dto.Version);
+                    await OnBeforeTaskItemUpdate(poco, dto);
+                    dto.Adapt(poco, Mapper.TaskItemDTOToEntityConfig());
+                    dbSet.Update(poco);
+                }
+                else
+                {
+                    if (authorizeInsert)
+                    {
+                        await _deps.AuthorizationService.AuthorizeTaskItemInsertAndThrow(dto);
+                    }
+
+                    poco = dto.Adapt<TaskItem>(Mapper.TaskItemDTOToEntityConfig());
+                    await OnBeforeTaskItemInsert(poco, dto);
+                    await dbSet.AddAsync(poco);
+                }
+
+                if (dto.ConversationId > 0)
+                {
+                    poco.Conversation = await GetInstanceAsync<Conversation, long>(dto.ConversationId.Value, null);
+                }
+                else
+                {
+                    var _ = poco.Conversation; // HACK
+                    poco.Conversation = null;
+                }
+
+                await _deps.Context.SaveChangesAsync();
+
+
+
+
+
+
+            });
+
+            return poco;
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before the TaskItemDTO is mapped to the entity.
+        /// Override this method to add custom validation or modify the DTO before mapping.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="taskItemDTO">The DTO about to be mapped</param>
+        protected virtual async Task OnBeforeTaskItemIsMapped(TaskItemDTO taskItemDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before updating an existing TaskItem entity.
+        /// Override this method to add custom business logic during updates.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="taskItem">The existing entity being updated</param>
+        /// <param name="taskItemDTO">The DTO containing new data</param>
+        protected virtual async Task OnBeforeTaskItemUpdate(TaskItem taskItem, TaskItemDTO taskItemDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before inserting a new TaskItem entity.
+        /// Override this method to add custom business logic during inserts.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="taskItem">The new entity being inserted</param>
+        /// <param name="taskItemDTO">The DTO containing the data</param>
+        protected virtual async Task OnBeforeTaskItemInsert(TaskItem taskItem, TaskItemDTO taskItemDTO) { }
+
+
+
+
+
+        #endregion
+
+        #region Delete
+
+        /// <summary>
+        /// Per-id variant of the pre-delete hook. By default forwards to
+        /// <see cref="OnBeforeTaskItemListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity being deleted</param>
+        public virtual Task OnBeforeTaskItemDelete(long id) =>
+            OnBeforeTaskItemListDelete(id.StructToList());
+
+        /// <summary>
+        /// Deletes a single TaskItem entity with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="id">The ID of the entity to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task DeleteTaskItem(long id, bool authorize)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeTaskItemDelete(id);
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemDeleteAndThrow(id);
+                }
+
+                List<long> listForDelete_1 = id.StructToList();
+
+                var conversationListForDeleteBecauseOwningTaskItem_2 = await _deps.Context.DbSet<Conversation>()
+                    .AsNoTracking()
+                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                await _deps.Context.DbSet<Conversation>()
+                    .Where(x => conversationListForDeleteBecauseOwningTaskItem_2.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await DeleteEntityAsync<TaskItem, long>(id);
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before deleting a list of TaskItem entities.
+        /// Override this to add custom validation or business logic before batch deletion.
+        /// </summary>
+        /// <param name="listForDelete">The list of entity IDs being deleted</param>
+        public virtual async Task OnBeforeTaskItemListDelete(List<long> listForDelete) { }
+
+        /// <summary>
+        /// Deletes multiple TaskItem entities with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="listForDelete_1">The list of entity IDs to delete</param>
+        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
+        public async virtual Task DeleteTaskItemList(List<long> listForDelete_1, bool authorize)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeTaskItemListDelete(listForDelete_1);
+
+                if (authorize)
+                {
+                    await _deps.AuthorizationService.AuthorizeTaskItemDeleteAndThrow(listForDelete_1);
+                }
+
+                var conversationListForDeleteBecauseOwningTaskItem_2 = await _deps.Context.DbSet<Conversation>()
+                    .AsNoTracking()
+                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+
+                await _deps.Context.DbSet<Conversation>()
+                    .Where(x => conversationListForDeleteBecauseOwningTaskItem_2.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+
+                await DeleteEntitiesAsync<TaskItem, long>(listForDelete_1);
+            });
+        }
+
+        #endregion
+
+        #region One To Many
+
+
+
+        #endregion
+
+    }
+}
