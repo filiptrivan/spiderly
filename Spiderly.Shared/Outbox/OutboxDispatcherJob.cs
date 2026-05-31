@@ -84,6 +84,12 @@ namespace Spiderly.Shared.Outbox
                     // dispatcher's — a failed attempt that mutated entities must not have those writes flushed
                     // by the dispatcher's bookkeeping save below.
                     using IServiceScope scope = _scopeFactory.CreateScope();
+
+                    // Rebuilt per row by design, not an "hoist it out of the loop" miss: handlers are scoped to this
+                    // per-row scope (which isolates each attempt's DbContext), so their instances can't be reused
+                    // across rows. The cost — resolving a tiny, fixed handler set (one per kind of deferred work, not
+                    // per row) plus a few-entry dictionary — is microseconds, dwarfed by the per-row DB round-trips
+                    // this loop already pays (the handler's work + the bookkeeping SaveChanges below).
                     Dictionary<string, IOutboxHandler> handlersByCode =
                         BuildHandlerLookup(scope.ServiceProvider.GetServices<IOutboxHandler>());
 
