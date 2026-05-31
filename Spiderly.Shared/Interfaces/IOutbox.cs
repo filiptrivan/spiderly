@@ -2,7 +2,9 @@ namespace Spiderly.Shared.Interfaces
 {
     /// <summary>
     /// Enqueues transactional-outbox rows. The row is added to the current <see cref="IApplicationDbContext"/>
-    /// change tracker, so it commits (or rolls back) atomically with the surrounding entity write.
+    /// change tracker, so it commits (or rolls back) atomically with the surrounding entity write. The
+    /// generated CRUD operation flushes the tracker before commit — in both save and delete hooks — so no
+    /// manual <c>SaveChangesAsync</c> is needed when enqueuing from a hook.
     ///
     /// <para><b>INVARIANT</b> — call <see cref="Enqueue"/> inside a <c>WithTransactionAsync</c> block, after the
     /// entity write it depends on. Called outside a transaction, the row commits in its own implicit transaction

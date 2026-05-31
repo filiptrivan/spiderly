@@ -432,6 +432,12 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeOrgDelete(id);
 
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
+
                 if (authorize)
                 {
                     await _deps.AuthorizationService.AuthorizeOrgDeleteAndThrow(id);
@@ -480,6 +486,12 @@ namespace TestApp.Business.Services
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeOrgListDelete(listForDelete_1);
+
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
 
                 if (authorize)
                 {

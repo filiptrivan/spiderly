@@ -8,6 +8,18 @@ namespace Spiderly.SourceGenerators.Net
 {
     internal static class ServiceDeleteGenerator
     {
+        // Emitted after the OnBefore...Delete hook in both generated delete methods: flushes any
+        // tracked write the hook staged (e.g. IOutbox.Enqueue) before the untracked ExecuteDeleteAsync
+        // cascade, so WithTransactionAsync's clean-tracker-at-commit guard doesn't throw. Interpolated
+        // at column 0 (like GetManyToOneDeleteQueries) — the snippet carries its own indentation.
+        private const string FlushStagedHookWritesSnippet = """
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
+""";
+
         internal static List<string> GetDeletingData(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             if (entity.IsAbstract || entity.IsReadonlyObject())
@@ -48,6 +60,8 @@ namespace Spiderly.SourceGenerators.Net
             {
                 await OnBefore{{entity.Name}}Delete(id);
 
+{{FlushStagedHookWritesSnippet}}
+
                 if (authorize)
                 {
                     {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Delete, "id")}}
@@ -86,6 +100,8 @@ namespace Spiderly.SourceGenerators.Net
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}ListDelete(listForDelete_{{deleteIterator}});
+
+{{FlushStagedHookWritesSnippet}}
 
                 if (authorize)
                 {

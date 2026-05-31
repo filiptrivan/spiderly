@@ -117,6 +117,8 @@ The target entity **must** have a back-collection matching the `[WithMany(nameof
 
 `[CascadeDelete]` is **application-layer**, not EF Core `OnDelete(Cascade)`. The source generator scans many-to-one navigations marked with it and emits explicit `ExecuteDeleteAsync()` calls inside the generated `Delete{Entity}` / `Delete{Entity}List` methods, recursing through dependents in child→parent order inside a single transaction.
 
+Although the cascade is untracked bulk `ExecuteDeleteAsync`, the generated delete still **flushes the change tracker right after `OnBefore{Entity}Delete`** — so a delete hook can stage tracked writes (e.g. `IOutbox.Enqueue`) and they persist atomically with the delete, no manual `SaveChangesAsync`. See the `backend-hooks` skill.
+
 **Why app-layer instead of `OnDelete(Cascade)`.** SQL Server refuses cascading FKs whenever the schema has any potential cycle or multiple cascade paths. App-layer cascade sidesteps that entirely and gives transaction control, `OnBefore{Entity}Delete` hooks, authorization checks, and audit visibility — so it stays the idiom even on Postgres.
 
 **Placement vs. semantics gotcha.** The attribute sits on the **child's** FK navigation but fires on **parent** deletion. `[CascadeDelete] public virtual Post Post` on `Comment` means *"when the `Post` is deleted, this `Comment` is deleted with it"* — not the other direction.

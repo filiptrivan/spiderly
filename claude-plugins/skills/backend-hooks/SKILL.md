@@ -124,6 +124,8 @@ protected virtual async Task<IQueryable<{Related}>> GetAll{Property}QueryFor{Ent
 
 Every generated method wraps its logic in `_context.WithTransactionAsync(...)`. Nested calls reuse the existing transaction. You do **not** need to start your own transaction in hooks.
 
+**Generated CRUD operations flush the change tracker before commit**, so you can stage tracked writes — an entity `Add`/`Update`, or `IOutbox.Enqueue` — inside any `OnBefore...` hook (including `OnBefore{Entity}Delete`) and they persist atomically with the operation; no manual `SaveChangesAsync`. This holds even though the delete path deletes via untracked bulk `ExecuteDeleteAsync` — the operation still flushes whatever the hook staged. The catch: `WithTransactionAsync`'s clean-tracker-at-commit guard is a backstop, so if you stage a tracked write in a **custom** (non-hook) `WithTransactionAsync` block, you must `SaveChangesAsync` it yourself or the guard throws.
+
 If you need a transaction in **custom** (non-hook) methods:
 
 ```csharp
