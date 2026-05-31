@@ -46,5 +46,14 @@
         [email]="loginFormGroup.controls.email.getRawValue()"
       ></login-verification>
     }
+
+    <!--
+      General projection slot for consumer-supplied login extras (a bot-challenge widget, a notice,
+      an extra field, …). Rendered in BOTH the email-entry and code-verification states — outside the
+      showEmailSentDialog toggle — so projected content survives the email → resend flow (e.g. a
+      single-use challenge widget that must stay mounted to issue a fresh token on resend).
+      Project with the `loginExtra` attribute: <spiderly-login><my-widget loginExtra/></spiderly-login>.
+    -->
+    <ng-content select="[loginExtra]"></ng-content>
   }
 </ng-container>
