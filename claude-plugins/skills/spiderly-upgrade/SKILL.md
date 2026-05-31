@@ -109,7 +109,7 @@ In this order. A failure at any step is a hard stop until the recovery procedure
 
 1. **Code edits.** Apply each plan item via Edit. Read each target file first.
 2. **Version bumps.** Iterate the csproj list cached in Step 1: rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />` to the new version. Rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
-3. **Skills pin.** If a `.claude/settings.json` exists with `extraKnownMarketplaces.spiderly.source.ref`, rewrite that `ref` to `v{target}` so the Claude Code skills track the upgraded framework version instead of staying frozen at the version that originally scaffolded the app.
+3. **Skills pin.** If `.claude/settings.json` has an `extraKnownMarketplaces.spiderly.source`, ensure its `ref` is `v{target}` — rewrite if present, **add if missing** (ref-less sources track the default branch instead of the pinned version). No settings file or no spiderly source → skip; don't fabricate one.
 4. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
 5. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
 
