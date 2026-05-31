@@ -364,16 +364,59 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId)
         {
+            DateTime now = DateTime.UtcNow;
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {
                 Email = userEmail,
                 BrowserId = browserId,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(_authPolicySettings.VerificationTokenExpiration),
+                CreatedAt = now,
+                ExpiresAt = now.AddMinutes(_authPolicySettings.VerificationTokenExpiration),
             };
 
             string code = GenerateVerificationCodeKey();
             await _usersLoginVerificationTokens.AddOrUpdateAsync(code, loginVerificationTokenDTO);
             return code;
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> when a new login-verification email to <paramref name="email"/> should be
+        /// suppressed by the per-address resend policy — either because the most recent code was issued
+        /// within <see cref="AuthPolicyOptions.VerificationCodeResendCooldownSeconds"/>, or because the
+        /// number of currently-valid codes has reached
+        /// <see cref="AuthPolicyOptions.MaxActiveVerificationCodesPerEmail"/>. Both limits are per-address
+        /// and IP-independent, so they hold against a distributed sender that the per-IP rate limiter
+        /// cannot stop. Expired codes are ignored. Callers should silently report success when this returns
+        /// <c>true</c> (the caller already holds a fresh code), so the endpoint leaks neither whether an
+        /// address exists nor that it is being targeted.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// if (await _jwtAuthManagerService.IsLoginVerificationSendBlockedAsync(userEmail))
+        ///     return new SendLoginVerificationEmailResultDTO { Message = string.Empty };
+        /// </code>
+        /// </example>
+        public virtual async Task<bool> IsLoginVerificationSendBlockedAsync(string email)
+        {
+            DateTime now = DateTime.UtcNow;
+
+            List<LoginVerificationTokenDTO> activeTokens =
+                (await _usersLoginVerificationTokens.GetByIndexAsync(LoginVerificationTokenDTO.EmailIndex, email))
+                .Select(x => x.Value)
+                .Where(x => x.ExpiresAt > now)
+                .ToList();
+
+            if (activeTokens.Count == 0)
+                return false;
+
+            int cooldownSeconds = _authPolicySettings.VerificationCodeResendCooldownSeconds;
+            if (cooldownSeconds > 0 && activeTokens.Max(x => x.CreatedAt) > now.AddSeconds(-cooldownSeconds))
+                return true;
+
+            int maxActive = _authPolicySettings.MaxActiveVerificationCodesPerEmail;
+            if (maxActive > 0 && activeTokens.Count >= maxActive)
+                return true;
+
+            return false;
         }
 
         #endregion

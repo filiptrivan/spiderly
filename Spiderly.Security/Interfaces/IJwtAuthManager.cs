@@ -28,6 +28,7 @@ namespace Spiderly.Security.Interfaces
         Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationToken, string browserId, string email);
         Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId);
         Task RemoveLoginVerificationTokensByEmailAsync(string email);
+        Task<bool> IsLoginVerificationSendBlockedAsync(string email);
 
         #endregion
 

@@ -43,5 +43,22 @@ namespace Spiderly.Security
         /// always rejected regardless of this flag.
         /// </summary>
         public bool AutoLinkByVerifiedEmail { get; set; } = true;
+
+        /// <summary>
+        /// Minimum number of seconds between two login-verification emails to the same address. A request
+        /// inside this window is silently accepted but sends nothing — the caller already has a fresh code —
+        /// so the endpoint cannot be driven to flood an inbox or burn the email provider's quota. The limit
+        /// is per-address and IP-independent, so it holds against a distributed sender that the per-IP rate
+        /// limiter cannot stop. Set to <c>0</c> to disable the cooldown.
+        /// </summary>
+        public int VerificationCodeResendCooldownSeconds { get; set; } = 60;
+
+        /// <summary>
+        /// Maximum number of simultaneously-valid (unexpired) login-verification codes per address. Once this
+        /// many are outstanding, further requests are silently accepted but send nothing until some expire,
+        /// bounding how many emails one address can be made to receive within a single
+        /// <see cref="VerificationTokenExpiration"/> window. Set to <c>0</c> to disable the cap.
+        /// </summary>
+        public int MaxActiveVerificationCodesPerEmail { get; set; } = 3;
     }
 }

@@ -100,6 +100,17 @@ namespace Spiderly.Security.Services
                 userEmail = user.Email;
             }
 
+            // Per-recipient guard against inbox-flooding / email-quota abuse on this (storefront-and-admin
+            // shared) endpoint — see IsLoginVerificationSendBlockedAsync. Only applied when emailing is
+            // configured, i.e. a real email would actually be sent; the dev inline-code path sends none, so
+            // local/e2e logins are unaffected. Silently report success — never an error — so the endpoint
+            // leaks neither whether the address exists nor that it's being targeted.
+            if (_emailingService.IsConfigured()
+                && await _jwtAuthManagerService.IsLoginVerificationSendBlockedAsync(userEmail))
+            {
+                return new SendLoginVerificationEmailResultDTO { Message = string.Empty };
+            }
+
             string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, loginDTO.BrowserId);
 
             if (ShouldShowVerificationCodeInNotification())
