@@ -275,6 +275,52 @@ public class HelpersTests
 
     #endregion
 
+    #region WriteToTheFile
+
+    [Fact]
+    public void WriteToTheFile_SameContent_DoesNotTouchExistingFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+        DateTime originalWriteTime = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        try
+        {
+            File.WriteAllText(path, "same content");
+            File.SetLastWriteTimeUtc(path, originalWriteTime);
+
+            Helpers.WriteToTheFile("same content", path);
+
+            Assert.Equal(originalWriteTime, File.GetLastWriteTimeUtc(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void WriteToTheFile_DifferentContent_UpdatesExistingFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            File.WriteAllText(path, "old content");
+
+            Helpers.WriteToTheFile("new content", path);
+
+            Assert.Equal("new content", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    #endregion
+
     #region Static Properties
 
     [Fact]

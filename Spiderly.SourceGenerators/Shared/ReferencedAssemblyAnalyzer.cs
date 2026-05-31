@@ -44,7 +44,8 @@ namespace Spiderly.SourceGenerators.Shared
         public static IncrementalValueProvider<List<SpiderlyClass>> GetIncrementalValueProviderClassesFromReferencedAssemblies(IncrementalGeneratorInitializationContext context, List<ClassCategoryCodes> categories)
         {
             return context.CompilationProvider
-                .Select((compilation, _) => GetClassesFromCompilation(compilation, categories));
+                .Select((compilation, _) => GetClassesFromCompilation(compilation, categories))
+                .WithComparer(ReferencedSpiderlyClassListComparer.Instance);
         }
 
         /// <summary>

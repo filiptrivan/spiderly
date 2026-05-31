@@ -86,4 +86,16 @@ public class ReferencedAssemblyAnalyzerTests
 
         Assert.Equal("long", brand.GetIdType(entities));
     }
+
+    [Fact]
+    public void ReferencedAssemblyComparer_TreatsEquivalentMetadataAsEqual()
+    {
+        List<SpiderlyClass> first = GetReferencedEntities();
+        List<SpiderlyClass> second = GetReferencedEntities();
+
+        Assert.True(ReferencedSpiderlyClassListComparer.Instance.Equals(first, second));
+        Assert.Equal(
+            ReferencedSpiderlyClassListComparer.Instance.GetHashCode(first),
+            ReferencedSpiderlyClassListComparer.Instance.GetHashCode(second));
+    }
 }
