@@ -272,6 +272,10 @@ namespace Spiderly.SourceGenerators.Shared
             if (data != null)
             {
                 data = data.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
+
+                if (File.Exists(path) && File.ReadAllText(path) == data)
+                    return;
+
                 using StreamWriter sw = new StreamWriter(path, false);
                 sw.Write(data);
             }
