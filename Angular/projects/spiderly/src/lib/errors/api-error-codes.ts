@@ -10,6 +10,7 @@ export const ApiErrorCodes = {
   ConcurrencyConflict: 'concurrency_conflict',
   EmailNotVerified: 'email_not_verified',
   ExternalProviderNotConfigured: 'external_provider_not_configured',
+  ExternalEmailMissing: 'external_email_missing',
 } as const;
 
 export type ApiErrorCode = (typeof ApiErrorCodes)[keyof typeof ApiErrorCodes];

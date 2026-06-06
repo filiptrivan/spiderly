@@ -607,7 +607,14 @@ namespace Spiderly.Security.Services
                 return linkedUser;
             }
 
-            // 2. Not linked yet — any auto-provisioning requires a provider-verified email.
+            // 2. Not linked yet — auto-provisioning keys the account on the email, so the provider must
+            // return one. Some providers (e.g. Facebook) can complete a login with no email (the user
+            // declined the email permission, or a phone-only account).
+            if (string.IsNullOrWhiteSpace(externalIdentity.Email))
+                throw new BusinessException(_localizer["ExternalEmailMissingException"], ApiErrorCodes.ExternalEmailMissing);
+
+            // 3. An email is present — it must be provider-verified (or the provider trusted via
+            // TrustEmailVerified) before we link or create an account from it.
             if (externalIdentity.EmailVerified != true)
                 throw new BusinessException(_localizer["ExternalEmailNotVerifiedException"], ApiErrorCodes.EmailNotVerified);
 

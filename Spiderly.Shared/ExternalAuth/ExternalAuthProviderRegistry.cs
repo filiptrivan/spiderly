@@ -48,14 +48,19 @@ namespace Spiderly.Shared.ExternalAuth
                 if (seenCodes.Add(config.Code) == false)
                     throw new InvalidOperationException($"Spiderly: duplicate external provider code '{config.Code}' in 'AppSettings:Spiderly.Shared:ExternalProviders'.");
 
-                // Captured once for the frontend regardless of whether a custom provider shadows the generic one.
-                _publicConfigs.Add(new ExternalProviderPublicInfo
+                // Advertised via GetExternalProviders (the list a frontend renders dynamic sign-in buttons
+                // from), unless the provider opts out because its button is hardcoded in a specific frontend
+                // (e.g. a storefront-only id-token provider). Validation below is unaffected either way.
+                if (config.ShowInProviderList)
                 {
-                    Code = config.Code,
-                    Authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority),
-                    ClientId = config.ClientId,
-                    Label = config.Label,
-                });
+                    _publicConfigs.Add(new ExternalProviderPublicInfo
+                    {
+                        Code = config.Code,
+                        Authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority),
+                        ClientId = config.ClientId,
+                        Label = config.Label,
+                    });
+                }
 
                 // A custom provider registered for this code shadows the generic OIDC validator.
                 if (customByCode.TryGetValue(config.Code, out IExternalAuthProvider custom))
@@ -127,7 +132,7 @@ namespace Spiderly.Shared.ExternalAuth
             if (string.IsNullOrWhiteSpace(config.ClientId))
                 throw new InvalidOperationException($"Spiderly: external provider '{config.Code}' is missing 'ClientId'.");
 
-            return new GenericOidcExternalAuthProvider(config.Code, authority, config.ClientId, httpClientFactory.CreateClient());
+            return new GenericOidcExternalAuthProvider(config.Code, authority, config.ClientId, config.TrustEmailVerified, httpClientFactory.CreateClient());
         }
     }
 }

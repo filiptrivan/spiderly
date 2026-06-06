@@ -25,6 +25,31 @@ External login deliberately has **two token-acquisition mechanisms**. They are *
 - The two paths are kept at **security parity**: B2 binds a server-issued nonce (the state cookie); the id-token path does too via `GetExternalLoginNonce` — a server-issued nonce in a Data-Protection-signed HttpOnly cookie, echoed into the id token (`initialize({ nonce })`) and checked against the cookie on login, single-use. Don't add a third path at a lower posture, and don't drop the nonce from either.
 - `IExternalAuthProvider` (validation) and `ResolveExternalUser` (linking/provisioning) are **mechanism-agnostic** — a future provider or flow plugs into the same seam. If needs change, add behind the seam; don't fork a parallel core.
 
+## Findings — Facebook on the web is standard OIDC (research 2026-06-04, for PACMS storefront)
+
+> Captured while designing customer Facebook login for the PACMS storefront. **This corrects decision 2's framing** of Facebook as a "non-OIDC oddball (Facebook's `debug_token`)" — that holds only for the *classic JS-SDK access-token* path, not the web OIDC path below. Everything except the front-door choice is still **OPEN**.
+
+Verified directly against Facebook's live endpoints:
+
+- **Facebook publishes a standard OIDC discovery document** at `https://www.facebook.com/.well-known/openid-configuration/`:
+  - `issuer`: `https://www.facebook.com`
+  - `jwks_uri`: `https://www.facebook.com/.well-known/oauth/openid/jwks/` (RS256, rotating keys — handled automatically by the generic validator's `ConfigurationManager`).
+  - `authorization_endpoint`: `https://facebook.com/dialog/oauth/`
+  - `response_types_supported`: `["id_token", "token id_token"]` — the **implicit `id_token` flow is available on the web**. A browser redirect with `response_type=id_token&scope=openid email&nonce=…` returns a nonce-bearing JWT in the URL fragment, exactly like Google Identity Services hands one over.
+  - `claims_supported`: `iss, aud, sub, iat, exp, jti, nonce, at_hash, name, given_name, middle_name, family_name, email, picture, …` — **note: no `email_verified`.**
+  - **No `token_endpoint`** in discovery (it describes only the implicit surface). A separate Facebook doc documents a `response_type=code` + backend exchange at `graph.facebook.com/oauth/access_token`, but that path is *not* advertised in discovery, so the generic OIDC **code flow** (`ExternalAuthCodeFlow`, which needs `token_endpoint`) does **not** transparently reuse for Facebook.
+
+**Consequences:**
+
+1. **Facebook reuses the storefront's existing id-token front door — it is NOT a new mechanism.** Add a preset (`["facebook"] = "https://www.facebook.com"`) + a config entry `{ "Code": "facebook", "ClientId": "<appId>" }`, and `GenericOidcExternalAuthProvider` validates the token (discovery + JWKS + iss/aud/exp) with the **existing nonce guard working unchanged** (the token carries a `nonce` claim). No `debug_token` provider, no `client_secret` for the implicit flow.
+2. **The one real gap: the missing `email_verified` claim.** `GenericOidcExternalAuthProvider` sets `EmailVerified = GetBool(claims, "email_verified")` → `false` for every Facebook token → `ResolveExternalUser` throws `EmailNotVerified` → **every Facebook login fails**. **Decided:** add a per-provider `bool TrustEmailVerified` to `ExternalProviderConfig`; the generic validator becomes `EmailVerified = TrustEmailVerified ? Email != null : GetBool(claims, "email_verified")`. Consumers set it only on providers they vouch verify the emails they return (Facebook); the strict claim check stays the default for everyone else. Rationale: Spiderly is passwordless email-code, so the `email_verified` gate only guards against a *misconfigured* IdP returning unverified emails — Facebook verifies them, it just omits the claim. *(Framework change — not yet implemented.)*
+3. **No-email accounts.** Facebook can return a valid login with **no email** (user unchecked the email permission, or a phone-only account). Even with `TrustEmailVerified`, `Email == null` must not reach provisioning — `new TUser { Email = null }` would violate the required/unique `Email`. **Decided:** branch `ResolveExternalUser` to throw a new `ApiErrorCodes.ExternalEmailMissing` (distinct from `EmailNotVerified`; 3 mirrors per the contract rule) *before* the create path, so the consumer UI can route the user to another method. *(Framework change — not yet implemented.)*
+4. Residual risk: the implicit `id_token` response type is *advertised* in discovery but Facebook may gate it per app — **confirm against a real app config during the implementation spike.**
+
+**Decided direction (framework):** implicit `response_type=id_token` via full-page redirect → consumer callback parses the `#id_token` fragment (and strips it via `history.replaceState`) → POST to `LoginExternalWithCookies` (session cookie lands on the POST response, so no cross-site redirect-cookie bounce). Facebook is a **second provider on the same storefront id-token front door as Google** — *not* a new mechanism, and *not* the `debug_token` custom provider that decision 2 once implied. Framework deltas: the `["facebook"] = "https://www.facebook.com"` preset, `ExternalProviderConfig.TrustEmailVerified`, `ExternalProviderConfig.ShowInProviderList` (a storefront-only provider with a hardcoded button opts out of the admin-facing `GetExternalProviders` list while still being validated), and `ApiErrorCodes.ExternalEmailMissing`.
+
+The **PACMS-consumer** specifics (markets, storefront button + `provider` plumbing, Facebook app + go-live checklist) live in `pa-storefront` → `apps/rs/docs/superpowers/specs/2026-06-06-facebook-login-design.md`.
+
 ## Problem
 
 A Spiderly app needs to let users sign in with external identity providers. Spiderly ships **Google** built-in, but consumers must be able to **add their own provider** (Microsoft/Entra, Auth0, Keycloak, a corporate SSO, …) **without forking the framework**.

@@ -18,6 +18,7 @@ namespace Spiderly.Shared.ExternalAuth
     public class GenericOidcExternalAuthProvider : IExternalAuthProvider
     {
         private readonly string _clientId;
+        private readonly bool _trustEmailVerified;
         private readonly ConfigurationManager<OpenIdConnectConfiguration> _configurationManager;
         private static readonly JsonWebTokenHandler _tokenHandler = new();
 
@@ -30,11 +31,13 @@ namespace Spiderly.Shared.ExternalAuth
         /// <param name="code">The provider code (e.g. <c>"google"</c>).</param>
         /// <param name="authority">The OIDC authority / issuer base URL.</param>
         /// <param name="clientId">The client id, validated as the token audience.</param>
+        /// <param name="trustEmailVerified">When <c>true</c>, treat a returned email as verified even if the token carries no <c>email_verified</c> claim (for providers like Facebook that verify emails but omit the claim).</param>
         /// <param name="httpClient">HTTP client used to fetch the discovery document and JWKS.</param>
-        public GenericOidcExternalAuthProvider(string code, string authority, string clientId, HttpClient httpClient)
+        public GenericOidcExternalAuthProvider(string code, string authority, string clientId, bool trustEmailVerified, HttpClient httpClient)
         {
             Code = code;
             _clientId = clientId;
+            _trustEmailVerified = trustEmailVerified;
 
             string metadataAddress = $"{authority.TrimEnd('/')}/.well-known/openid-configuration";
             _configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
@@ -67,12 +70,16 @@ namespace Spiderly.Shared.ExternalAuth
             if (result.IsValid == false)
                 throw result.Exception ?? new SecurityTokenException("External provider id token validation failed.");
 
+            string email = GetString(result.Claims, "email");
+
             return new ExternalIdentity
             {
                 Provider = Code,
                 Subject = GetString(result.Claims, "sub"),
-                Email = GetString(result.Claims, "email"),
-                EmailVerified = GetBool(result.Claims, "email_verified"),
+                Email = email,
+                // Providers that verify emails but omit the email_verified claim (e.g. Facebook) opt in via
+                // TrustEmailVerified; for everyone else the strict claim check stands.
+                EmailVerified = _trustEmailVerified ? string.IsNullOrWhiteSpace(email) == false : GetBool(result.Claims, "email_verified"),
                 Name = GetString(result.Claims, "name"),
             };
         }

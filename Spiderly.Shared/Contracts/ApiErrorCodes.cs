@@ -49,5 +49,14 @@ namespace Spiderly.Shared.Contracts
         /// server, or that provider's token exchange failed.
         /// </summary>
         public const string ExternalProviderNotConfigured = "external_provider_not_configured";
+
+        /// <summary>
+        /// An external (OAuth/OIDC) login was validated but the provider returned no email address
+        /// (e.g. the user declined the email permission, or a phone-only Facebook account). Auto-provisioning
+        /// needs an email to key the account on, so login is rejected with this code and the client should route
+        /// the user to another sign-in method. Distinct from <see cref="EmailNotVerified"/>, which means an
+        /// email was returned but not verified.
+        /// </summary>
+        public const string ExternalEmailMissing = "external_email_missing";
     }
 }

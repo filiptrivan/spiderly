@@ -14,6 +14,7 @@ namespace Spiderly.Shared.ExternalAuth
         private static readonly Dictionary<string, string> AuthorityByCode = new(StringComparer.OrdinalIgnoreCase)
         {
             ["google"] = "https://accounts.google.com",
+            ["facebook"] = "https://www.facebook.com",
         };
 
         /// <summary>

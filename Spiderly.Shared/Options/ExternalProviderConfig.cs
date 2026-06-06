@@ -46,5 +46,26 @@ namespace Spiderly.Shared
 
         /// <summary>Optional display label for the provider's sign-in button (e.g. <c>"Continue with Google"</c>).</summary>
         public string Label { get; set; }
+
+        /// <summary>
+        /// When <c>true</c>, the provider's returned email is treated as verified even if the id token carries
+        /// no <c>email_verified</c> claim — the generic validator sets
+        /// <see cref="Spiderly.Shared.ExternalAuth.ExternalIdentity.EmailVerified"/> to <c>true</c> whenever an
+        /// email is present. Set this <b>only</b> for providers you trust to verify the emails they return but
+        /// which omit the claim (e.g. Facebook). Defaults to <c>false</c>, keeping the strict
+        /// <c>email_verified</c> check. The security layer's auto-link/provision gate relies on this flag, so
+        /// enabling it for an IdP that does not actually verify emails would weaken account-takeover protection.
+        /// </summary>
+        public bool TrustEmailVerified { get; set; }
+
+        /// <summary>
+        /// Whether this provider is advertised via <c>GET /api/security/GetExternalProviders</c> — the list a
+        /// frontend renders its dynamic, config-driven sign-in buttons from (e.g. an authorization-code-flow
+        /// admin UI). Defaults to <c>true</c>. Set to <c>false</c> for a provider whose sign-in button is
+        /// hardcoded in a specific frontend (e.g. a storefront-only id-token provider): the provider is still
+        /// registered and its tokens are still validated, it simply does not appear in the public providers
+        /// list — so a frontend driven by that list won't render an unusable button for it.
+        /// </summary>
+        public bool ShowInProviderList { get; set; } = true;
     }
 }
