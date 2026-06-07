@@ -2478,12 +2478,7 @@ namespace {{appName}}.WebAPI
     },
     "Spiderly.Shared": {
       "ApplicationName": "{{appName}}",
-      "ExternalProviders": [
-        {
-          "Code": "google",
-          "ClientId": "xxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
-        }
-      ],
+      "ExternalProviders": [],
       "EmailSender": {
         "email": "youremail@gmail.com",
         "name": ""
@@ -3777,7 +3772,6 @@ export const ThemePreset = definePreset(Aura, {
   "and": "and",
   "CookiePolicy": "cookie policy",
   "AgreeAndJoin": "Agree and Join",
-  "ContinueWithGoogle": "Continue with Google account",
   "or": "or",
   "All": "All",
   "AccountVerificationHeader": "Profile Verification",
