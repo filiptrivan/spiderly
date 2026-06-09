@@ -91,7 +91,12 @@ GitHub returns **414 URI Too Long** around **8 KB**, and URL-encoding inflates t
 
 ## One-time setup — the `agent-reported` label
 
-The pre-filled `&labels=agent-reported` only sticks if that label **exists** in the repo — GitHub silently drops unknown labels (you'd still get `enhancement`). Create it once (maintainer, authenticated `gh`):
+The pre-filled `&labels=agent-reported` only sticks if that label **exists** in the repo — GitHub silently drops unknown labels (you'd still get `enhancement`).
+
+For `filiptrivan/spiderly`, the `agent-reported` label already exists, so no setup is required.
+
+If you're using a fork or another repository that does not already contain this label, create it once:
+
 
 ```bash
 gh label create agent-reported \
