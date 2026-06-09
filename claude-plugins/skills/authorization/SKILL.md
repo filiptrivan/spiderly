@@ -183,6 +183,56 @@ private static void SeedData(ModelBuilder modelBuilder)
 
 After adding new permissions: `spiderly add-migration AddNewPermissions` → `spiderly update-database`.
 
+## First-User Bootstrap
+
+Two mechanisms work together so a fresh empty-DB deploy needs **no manual admin bootstrap** — the first user to sign in automatically becomes an admin.
+
+### 1. Permissions + Role Seed Data
+
+`spiderly init` generates `{AppName}ApplicationDbContext.SeedData()` which uses EF Core `HasData()` to seed:
+
+- All CRUD permissions (`ReadUser`, `UpdateUser`, `InsertUser`, `DeleteUser`, etc.) — one set per entity
+- An "Admin" role linked to every permission
+- The role-permission join table
+
+This data ships inside an EF migration (`spiderly add-migration` / `spiderly update-database`) and exists in the database before any user logs in.
+
+### 2. First-Login Admin Elevation
+
+The generated `SecurityService` (not `SecurityServiceBase`) overrides `OnAfterLogin` to promote the first user:
+
+```csharp
+public override async Task OnAfterLogin(AuthResultDTO authResultDTO)
+{
+    bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
+    if (isFirstUserEver)
+    {
+        Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+        if (adminRole != null)
+        {
+            User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
+            if (user != null && !user.Roles.Any())
+            {
+                user.Roles.Add(adminRole);
+                await _context.SaveChangesAsync();
+            }
+        }
+    }
+}
+```
+
+The generated code includes this comment: *"Delete this method once the first user has admin permissions."* It's a performance bottleneck (`CountAsync` on every login) meant only for the bootstrap phase.
+
+### 3. Result
+
+| Scenario | Behavior |
+|---|---|
+| First user ever signs in (email or Google) | Auto-granted the Admin role — full access |
+| Subsequent users sign in | No roles assigned; an admin must grant them via the UI |
+| `OnlyAdminCanAddUsers = true` | Login is still possible for existing users; the first user still auto-elevates because the check runs after user creation/resolution |
+
+No manual SQL, no seeding script, no env-var override is needed on a fresh prod deploy.
+
 ## Attributes
 
 ### `[DoNotAuthorize]`
