@@ -114,12 +114,12 @@ public class Permission : ReadonlyObject<int>, IPermission
 
 Auto-generated per entity (via `PermissionCodesGenerator`):
 
-| Code | Purpose |
-|---|---|
-| `Read{Entity}` | View list/details |
-| `Update{Entity}` | Modify existing |
-| `Insert{Entity}` | Create new |
-| `Delete{Entity}` | Remove |
+| Code             | Purpose           |
+| ---------------- | ----------------- |
+| `Read{Entity}`   | View list/details |
+| `Update{Entity}` | Modify existing   |
+| `Insert{Entity}` | Create new        |
+| `Delete{Entity}` | Remove            |
 
 Generated as a partial class:
 
@@ -221,15 +221,17 @@ public override async Task OnAfterLogin(AuthResultDTO authResultDTO)
 }
 ```
 
-The generated code includes this comment: *"Delete this method once the first user has admin permissions."* It's a performance bottleneck (`CountAsync` on every login) meant only for the bootstrap phase.
+The generated code includes this comment: _"Delete this method once the first user has admin permissions."_ It's a performance bottleneck (`CountAsync` on every login) meant only for the bootstrap phase.
+
+> **Concurrency Caveat:** The `CountAsync() == 1` check is vulnerable to a race condition if multiple users register simultaneously on a completely fresh deployment. If two users' `OnAfterLogin` hooks execute concurrently before either has saved the role assignment, both see a count of 1 — but after both complete, the database has 2 users. Neither subsequent login triggers the block (count is never 1 again), leaving the deployment without an auto-elevated admin. The mitigation: ensure only one user signs in first during initial setup, or manually grant Admin to a user via SQL if the race is hit.
 
 ### 3. Result
 
-| Scenario | Behavior |
-|---|---|
-| First user ever signs in (email or Google) | Auto-granted the Admin role — full access |
-| Subsequent users sign in | No roles assigned; an admin must grant them via the UI |
-| `OnlyAdminCanAddUsers = true` | Login is still possible for existing users; the first user still auto-elevates because the check runs after user creation/resolution |
+| Scenario                                   | Behavior                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| First user ever signs in (email or Google) | Auto-granted the Admin role — full access                                                                                            |
+| Subsequent users sign in                   | No roles assigned; an admin must grant them via the UI                                                                               |
+| `OnlyAdminCanAddUsers = true`              | Login is still possible for existing users; the first user still auto-elevates because the check runs after user creation/resolution |
 
 No manual SQL, no seeding script, no env-var override is needed on a fresh prod deploy.
 
@@ -356,7 +358,7 @@ Failed requests return an `ApiErrorDTO` whose machine-readable `errorCode` clien
    ```
 3. Set in `Frontend/src/environments/environment.ts`:
    ```typescript
-   GoogleClientId: '...'
+   GoogleClientId: "...";
    ```
 4. Enable in config service:
    ```typescript
@@ -372,8 +374,8 @@ Flow: Google returns JWT → `LoginExternal` validates → auto-creates user if 
 Key observables:
 
 ```typescript
-user$: Observable<UserBase | null>                    // Current user
-currentUserPermissionCodes$: Observable<string[]>     // Permission codes
+user$: Observable<UserBase | null>; // Current user
+currentUserPermissionCodes$: Observable<string[]>; // Permission codes
 ```
 
 Key methods:
