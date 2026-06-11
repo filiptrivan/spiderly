@@ -185,55 +185,7 @@ After adding new permissions: `spiderly add-migration AddNewPermissions` → `sp
 
 ## First-User Bootstrap
 
-Two mechanisms work together so a fresh empty-DB deploy needs **no manual admin bootstrap** — the first user to sign in automatically becomes an admin.
-
-### 1. Permissions + Role Seed Data
-
-`spiderly init` generates `{AppName}ApplicationDbContext.SeedData()` which uses EF Core `HasData()` to seed:
-
-- All CRUD permissions (`ReadUser`, `UpdateUser`, `InsertUser`, `DeleteUser`, etc.) — one set per entity
-- An "Admin" role linked to every permission
-- The role-permission join table
-
-This data ships inside an EF migration (`spiderly add-migration` / `spiderly update-database`) and exists in the database before any user logs in.
-
-### 2. First-Login Admin Elevation
-
-The generated `SecurityService` (not `SecurityServiceBase`) overrides `OnAfterLogin` to promote the first user:
-
-```csharp
-public override async Task OnAfterLogin(AuthResultDTO authResultDTO)
-{
-    bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
-    if (isFirstUserEver)
-    {
-        Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
-        if (adminRole != null)
-        {
-            User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
-            if (user != null && !user.Roles.Any())
-            {
-                user.Roles.Add(adminRole);
-                await _context.SaveChangesAsync();
-            }
-        }
-    }
-}
-```
-
-The generated code includes this comment: _"Delete this method once the first user has admin permissions."_ It's a performance bottleneck (`CountAsync` on every login) meant only for the bootstrap phase.
-
-> **Concurrency Caveat:** The `CountAsync() == 1` check is vulnerable to a race condition if multiple users register simultaneously on a completely fresh deployment. If two users' `OnAfterLogin` hooks execute concurrently before either has saved the role assignment, both see a count of 1 — but after both complete, the database has 2 users. Neither subsequent login triggers the block (count is never 1 again), leaving the deployment without an auto-elevated admin. The mitigation: ensure only one user signs in first during initial setup, or manually grant Admin to a user via SQL if the race is hit.
-
-### 3. Result
-
-| Scenario                                   | Behavior                                                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| First user ever signs in (email or Google) | Auto-granted the Admin role — full access                                                                                            |
-| Subsequent users sign in                   | No roles assigned; an admin must grant them via the UI                                                                               |
-| `OnlyAdminCanAddUsers = true`              | Login is still possible for existing users; the first user still auto-elevates because the check runs after user creation/resolution |
-
-No manual SQL, no seeding script, no env-var override is needed on a fresh prod deploy.
+Permissions and an "Admin" role are seeded via `HasData()` in the generated `ApplicationDbContext` (applied through EF migrations). On first login, `SecurityService.OnAfterLogin` auto-grants Admin to the user — no manual bootstrap needed on a fresh deploy.
 
 ## Attributes
 
