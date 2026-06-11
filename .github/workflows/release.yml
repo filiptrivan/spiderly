@@ -609,10 +609,13 @@ jobs:
 
       # Push the single-source-of-truth metadata into the docs site so it can render the framework
       # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master merge
-      # below so it ships in the same release. continue-on-error: a docs-sync hiccup must not fail the
-      # release. The committed framework-metadata.json is release-accurate as-is (it carries no version
-      # field), so no regeneration is needed here.
+      # below so it ships in the same release. continue-on-error: a docs-sync hiccup must not block
+      # the merge step below — but the trailing "Fail release run if website sync failed" step still
+      # turns any website-step failure into a red run so it can't go unnoticed. The committed
+      # framework-metadata.json is release-accurate as-is (it carries no version field), so no
+      # regeneration is needed here.
       - name: Sync framework-metadata.json to spiderly-website
+        id: website_metadata
         if: needs.validate.outputs.is_prerelease == 'false'
         continue-on-error: true
         env:
@@ -640,6 +643,7 @@ jobs:
           fi
 
       - name: Merge spiderly-website develop into master
+        id: website_merge
         if: needs.validate.outputs.is_prerelease == 'false'
         continue-on-error: true
         env:
@@ -668,7 +672,32 @@ jobs:
                 --body "Automated PR created by the Spiderly release pipeline because the automatic merge failed (likely due to conflicts). Please resolve conflicts and merge manually."
               echo "PR created. Resolve conflicts and merge manually."
             fi
+
+            # The fallback PR is authored by the owner's PAT, and GitHub never notifies you about
+            # your own actions — so without a failing outcome here, a merge conflict ships a PR
+            # nobody ever hears about (happened with spiderly-website#75, open for a month).
+            # exit 1 marks this step failed; continue-on-error lets the job continue to the
+            # notification step below.
+            exit 1
           fi
+
+      # Both website steps are continue-on-error so a docs-site hiccup can't abort the release —
+      # all artifacts are published by this point. But a green run sends no notification at all,
+      # so this step turns any website-step failure into a red run, which makes GitHub email the
+      # release actor. Purely a notification mechanism: the release itself has already succeeded.
+      - name: Fail release run if website sync failed
+        if: needs.validate.outputs.is_prerelease == 'false'
+        run: |
+          FAIL=""
+          if [ "${{ steps.website_metadata.outcome }}" = "failure" ]; then
+            echo "::error::framework-metadata.json sync to spiderly-website failed — sync it manually."
+            FAIL=1
+          fi
+          if [ "${{ steps.website_merge.outcome }}" = "failure" ]; then
+            echo "::error::spiderly-website develop→master merge failed — resolve the fallback PR (gh pr list --repo filiptrivan/spiderly-website)."
+            FAIL=1
+          fi
+          [ -z "$FAIL" ] || exit 1
 
   dry-run-summary:
     name: Dry Run Summary
