@@ -101,7 +101,10 @@ namespace Spiderly.Shared.Extensions
             services.AddOptions<NotificationOptions>().Bind(section).ValidateOnStart();
             services.AddOptions<CookieSettings>().Bind(section).ValidateOnStart();
             services.AddOptions<ExcelOptions>().Bind(section).ValidateOnStart();
+            // External-provider config is validated at boot (aggregated) by ExternalProviderOptionsValidator, so a
+            // misconfig fails startup rather than lazily from the registry ctor. See docs → "Operational lessons".
             services.AddOptions<ExternalProviderOptions>().Bind(section).ValidateOnStart();
+            services.AddSingleton<IValidateOptions<ExternalProviderOptions>, ExternalProviderOptionsValidator>();
             services.AddOptions<Settings>().Bind(section).ValidateOnStart();
 
             // Composition-time-only values (connection string, rate-limit/proxy tuning) plus the Email

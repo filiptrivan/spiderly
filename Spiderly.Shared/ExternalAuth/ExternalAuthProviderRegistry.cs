@@ -12,8 +12,12 @@ namespace Spiderly.Shared.ExternalAuth
     /// Default <see cref="IExternalAuthProviderRegistry"/>. For each configured provider it uses a
     /// consumer-registered <see cref="IExternalAuthProvider"/> with a matching <see cref="IExternalAuthProvider.Code"/>
     /// if one exists, otherwise it builds a <see cref="GenericOidcExternalAuthProvider"/> from the config.
-    /// The map is built eagerly in the constructor so misconfiguration (duplicate codes, missing authority/client id)
-    /// fails at startup rather than on the first login.
+    /// <para>
+    /// Config validity (codes present + unique, authority resolvable or a custom provider present, client id present,
+    /// custom-provider codes present + unique) is enforced at <b>boot</b> by <see cref="ExternalProviderOptionsValidator"/>
+    /// via <c>ValidateOnStart</c>. This ctor therefore <b>trusts</b> the options and is a pure builder — it does not
+    /// re-validate or throw. See docs/external-auth-providers.md → "Operational lessons".
+    /// </para>
     /// </summary>
     public class ExternalAuthProviderRegistry : IExternalAuthProviderRegistry
     {
@@ -38,16 +42,8 @@ namespace Spiderly.Shared.ExternalAuth
 
             List<ExternalProviderConfig> configs = options.Value.ExternalProviders ?? new();
 
-            HashSet<string> seenCodes = new(StringComparer.OrdinalIgnoreCase);
-
             foreach (ExternalProviderConfig config in configs)
             {
-                if (string.IsNullOrWhiteSpace(config.Code))
-                    throw new InvalidOperationException("Spiderly: an entry in 'AppSettings:Spiderly.Shared:ExternalProviders' is missing a 'Code'.");
-
-                if (seenCodes.Add(config.Code) == false)
-                    throw new InvalidOperationException($"Spiderly: duplicate external provider code '{config.Code}' in 'AppSettings:Spiderly.Shared:ExternalProviders'.");
-
                 // Advertised via GetExternalProviders (the list a frontend renders dynamic sign-in buttons
                 // from), unless the provider opts out because its button is hardcoded in a specific frontend
                 // (e.g. a storefront-only id-token provider). Validation below is unaffected either way.
@@ -85,7 +81,7 @@ namespace Spiderly.Shared.ExternalAuth
         {
             // A missing/unknown code comes from the client request, so it's a bad request (400 with a
             // machine-readable code) rather than a server fault. Misconfiguration (duplicate codes, missing
-            // authority/client id) is caught earlier in the constructor and throws at startup.
+            // authority/client id) is caught at boot by ExternalProviderOptionsValidator, never here.
             if (string.IsNullOrWhiteSpace(code))
                 throw new BusinessException("External login request is missing a provider code.", ApiErrorCodes.ExternalProviderNotConfigured);
 
@@ -106,32 +102,18 @@ namespace Spiderly.Shared.ExternalAuth
         {
             Dictionary<string, IExternalAuthProvider> map = new(StringComparer.OrdinalIgnoreCase);
 
+            // The generic validator is created per-config below, never registered in DI, so anything arriving here is
+            // a consumer's own implementation. Non-empty + unique codes are guaranteed by ExternalProviderOptionsValidator.
             foreach (IExternalAuthProvider provider in customProviders ?? Enumerable.Empty<IExternalAuthProvider>())
-            {
-                // The generic validator is created per-config below, never registered in DI, so anything
-                // arriving here is a consumer's own implementation.
-                if (string.IsNullOrWhiteSpace(provider.Code))
-                    throw new InvalidOperationException($"Spiderly: external auth provider '{provider.GetType().Name}' returns an empty Code.");
-
-                if (map.ContainsKey(provider.Code))
-                    throw new InvalidOperationException($"Spiderly: more than one IExternalAuthProvider registered for code '{provider.Code}'.");
-
                 map[provider.Code] = provider;
-            }
 
             return map;
         }
 
         private static GenericOidcExternalAuthProvider BuildGenericProvider(ExternalProviderConfig config, IHttpClientFactory httpClientFactory)
         {
+            // Authority resolvability + ClientId presence are guaranteed by ExternalProviderOptionsValidator at boot.
             string authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority);
-
-            if (string.IsNullOrWhiteSpace(authority))
-                throw new InvalidOperationException($"Spiderly: external provider '{config.Code}' has no 'Authority' and no known preset. Set 'Authority' or register a custom IExternalAuthProvider for it.");
-
-            if (string.IsNullOrWhiteSpace(config.ClientId))
-                throw new InvalidOperationException($"Spiderly: external provider '{config.Code}' is missing 'ClientId'.");
-
             return new GenericOidcExternalAuthProvider(config.Code, authority, config.ClientId, config.TrustEmailVerified, httpClientFactory.CreateClient());
         }
     }
