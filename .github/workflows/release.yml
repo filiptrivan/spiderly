@@ -608,12 +608,12 @@ jobs:
           echo "Successfully fast-forwarded main"
 
       # Push the single-source-of-truth metadata into the docs site so it can render the framework
-      # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master merge
-      # below so it ships in the same release. continue-on-error: a docs-sync hiccup must not block
-      # the merge step below — but the trailing "Fail release run if website sync failed" step still
-      # turns any website-step failure into a red run so it can't go unnoticed. The committed
-      # framework-metadata.json is release-accurate as-is (it carries no version field), so no
-      # regeneration is needed here.
+      # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master
+      # fast-forward below so it ships in the same release. continue-on-error: a docs-sync hiccup
+      # must not block the fast-forward step below — but the trailing "Fail release run if website
+      # sync failed" step still turns any website-step failure into a red run so it can't go
+      # unnoticed. The committed framework-metadata.json is release-accurate as-is (it carries no
+      # version field), so no regeneration is needed here.
       - name: Sync framework-metadata.json to spiderly-website
         id: website_metadata
         if: needs.validate.outputs.is_prerelease == 'false'
@@ -642,7 +642,13 @@ jobs:
             echo "Pushed framework-metadata.json to $REPO develop"
           fi
 
-      - name: Merge spiderly-website develop into master
+      # The website mirrors this repo's linear model: master must always be an ancestor of develop,
+      # and a release just fast-forwards master's ref to develop. A non-force ref update is rejected
+      # by GitHub unless it is a fast-forward, so a broken invariant fails loudly here instead of
+      # producing a merge conflict (the merge-based predecessor of this step silently filed
+      # spiderly-website#75 and nobody heard about it for a month). Hotfix flow that preserves the
+      # invariant: commit on master, rebase develop onto master, push --force-with-lease.
+      - name: Fast-forward spiderly-website master to develop
         id: website_merge
         if: needs.validate.outputs.is_prerelease == 'false'
         continue-on-error: true
@@ -650,34 +656,16 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           REPO="filiptrivan/spiderly-website"
-          echo "Merging spiderly-website develop into master..."
+          echo "Fast-forwarding $REPO master to develop..."
 
-          if gh api "repos/$REPO/merges" \
-            -f base=master \
-            -f head=develop \
-            -f commit_message="chore: merge develop into master (automated)" \
-            --silent; then
-            echo "Successfully merged develop into master (or already up to date)"
+          DEVELOP_SHA=$(gh api "repos/$REPO/git/refs/heads/develop" --jq '.object.sha')
+
+          if gh api -X PATCH "repos/$REPO/git/refs/heads/master" \
+            -f sha="$DEVELOP_SHA" -F force=false --silent; then
+            echo "Fast-forwarded master to $DEVELOP_SHA"
           else
-            echo "::warning::Merge failed. Creating a PR instead..."
-
-            EXISTING_PR=$(gh pr list --repo "$REPO" --head develop --base master --state open --json number --jq '.[0].number')
-
-            if [ -n "$EXISTING_PR" ]; then
-              echo "PR #$EXISTING_PR already exists: https://github.com/$REPO/pull/$EXISTING_PR"
-            else
-              gh pr create --repo "$REPO" \
-                --base master --head develop \
-                --title "chore: merge develop into master" \
-                --body "Automated PR created by the Spiderly release pipeline because the automatic merge failed (likely due to conflicts). Please resolve conflicts and merge manually."
-              echo "PR created. Resolve conflicts and merge manually."
-            fi
-
-            # The fallback PR is authored by the owner's PAT, and GitHub never notifies you about
-            # your own actions — so without a failing outcome here, a merge conflict ships a PR
-            # nobody ever hears about (happened with spiderly-website#75, open for a month).
-            # exit 1 marks this step failed; continue-on-error lets the job continue to the
-            # notification step below.
+            echo "::warning::Fast-forward failed — master is not an ancestor of develop."
+            echo "::warning::Rebase develop onto master (git rebase origin/master && git push --force-with-lease), then fast-forward master to develop manually."
             exit 1
           fi
 
@@ -694,7 +682,7 @@ jobs:
             FAIL=1
           fi
           if [ "${{ steps.website_merge.outcome }}" = "failure" ]; then
-            echo "::error::spiderly-website develop→master merge failed — resolve the fallback PR (gh pr list --repo filiptrivan/spiderly-website)."
+            echo "::error::spiderly-website master fast-forward failed — master is not an ancestor of develop; rebase develop onto master and fast-forward manually (see step log)."
             FAIL=1
           fi
           [ -z "$FAIL" ] || exit 1
