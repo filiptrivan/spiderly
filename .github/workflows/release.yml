@@ -610,10 +610,9 @@ jobs:
       # Push the single-source-of-truth metadata into the docs site so it can render the framework
       # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master
       # fast-forward below so it ships in the same release. continue-on-error: a docs-sync hiccup
-      # must not block the fast-forward step below — but the trailing "Fail release run if website
-      # sync failed" step still turns any website-step failure into a red run so it can't go
-      # unnoticed. The committed framework-metadata.json is release-accurate as-is (it carries no
-      # version field), so no regeneration is needed here.
+      # must not block the fast-forward below (the trailing notification step reports it). The
+      # committed framework-metadata.json is release-accurate as-is (it carries no version field),
+      # so no regeneration is needed here.
       - name: Sync framework-metadata.json to spiderly-website
         id: website_metadata
         if: needs.validate.outputs.is_prerelease == 'false'
@@ -669,10 +668,9 @@ jobs:
             exit 1
           fi
 
-      # Both website steps are continue-on-error so a docs-site hiccup can't abort the release —
-      # all artifacts are published by this point. But a green run sends no notification at all,
-      # so this step turns any website-step failure into a red run, which makes GitHub email the
-      # release actor. Purely a notification mechanism: the release itself has already succeeded.
+      # The website steps are continue-on-error so they can't abort the release (artifacts are
+      # already published), but a green run sends no notification at all — this step turns any
+      # website-step failure into a red run so GitHub emails the release actor.
       - name: Fail release run if website sync failed
         if: needs.validate.outputs.is_prerelease == 'false'
         run: |
