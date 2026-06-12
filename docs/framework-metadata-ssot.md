@@ -55,6 +55,16 @@ node tools/gen-skill-docs.mjs                                                   
 
 `.github/workflows/ci.yml` → `unit-test` job installs `tools/` deps, regenerates all three artifacts, and runs `git diff --exit-code`. A contract changed in code without regenerating turns CI red, naming the regenerate command.
 
+## Local pre-commit guard
+
+`.githooks/pre-commit` mirrors the CI check so staleness fails at commit time instead of after a CI round-trip. It is gated: it inspects the staged file list and only runs the (dotnet-build-backed) regeneration when SSOT sources, pipeline files, or the artifacts themselves are touched — unrelated commits pay zero overhead. On staleness it regenerates and **auto-stages the artifacts into the commit** (the output is deterministic and derived, so there is nothing to review). It blocks instead in one case: when SSOT sources have unstaged or untracked changes, because the regen runs against the working tree and auto-staging would commit artifacts derived from sources outside the commit. It also runs `TsContractMirrorTests` when the hand-maintained C#↔TS mirror files are staged, catching `ApiErrorCodes`/`MatchModeCodes` divergence locally. Activate once per clone (git does not auto-install hooks):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Bypass for emergencies with `git commit --no-verify` — CI remains the backstop.
+
 ## Adding a new contract
 
 **C# (enum / const class / controller / attribute):** add the type to the relevant list in `Spiderly.MetadataExporter/Program.cs`. Every exported member must have a `/// <summary>` or the exporter fails (listing all gaps).

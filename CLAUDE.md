@@ -49,6 +49,12 @@ node tools/gen-skill-docs.mjs
 
 (`npm ci` in `tools/` once beforehand.) Never hand-edit the JSON or `.generated.md` files. Details: `docs/framework-metadata-ssot.md`.
 
+A pre-commit hook (`.githooks/pre-commit`) runs this same check locally, but only when staged files touch SSOT sources. If artifacts are stale it regenerates and **auto-stages them into the commit** (blocking instead only when SSOT sources have unstaged/untracked changes, since regen output would then not match the commit). It also runs `TsContractMirrorTests` when the hand-maintained C#↔TS mirror files (`ApiErrorCodes`, `MatchModeCodes`) are staged. Activate it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Coding conventions
 
 - Prefer raw string literals (`$$""" """`) for multiline strings in C#
