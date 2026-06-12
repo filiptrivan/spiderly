@@ -1,6 +1,6 @@
 ---
 name: deployment
-description: Deploy a Spiderly project to your own infrastructure with Docker, Caddy, and Terraform. Use when setting up production hosting for the .NET backend and Angular admin, configuring CI/CD, managing TLS with Cloudflare origin certificates, or laying out infrastructure-as-code for a Spiderly app.
+description: Deploy a Spiderly project to your own infrastructure with Docker, Caddy, and Terraform. Use when deploying, redeploying, shipping, releasing, or rolling out the .NET backend or Angular admin to production — first-time setup or an ongoing deploy — and when diagnosing a down or erroring production origin (502/521, container crash-loop, failed deploy workflow). Also covers CI/CD pipelines, TLS with Cloudflare origin certificates, database backups and restores, and infrastructure-as-code layout for a Spiderly app.
 ---
 
 # Deployment
