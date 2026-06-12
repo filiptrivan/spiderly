@@ -89,13 +89,13 @@ It prints the encoded `https://github.com/filiptrivan/spiderly/issues/new?...` U
 
 GitHub returns **414 URI Too Long** around **8 KB**, and URL-encoding inflates the body ~3×. A code snippet in the body blows past this fast. So the snippet **never goes in the URL** — show it in chat and have the user paste it as a single comment. The script warns on stderr if the URL crosses ~7500 chars; if you see that warning, you wrote too much — **cut the prose down**, don't move it to comments.
 
-## One-time setup — the `agent-reported` label
+## The `agent-reported` label
 
-The pre-filled `&labels=agent-reported` only sticks if that label **exists** in the repo — GitHub silently drops unknown labels (you'd still get `enhancement`). Create it once (maintainer, authenticated `gh`):
+The pre-filled `&labels=agent-reported` only sticks if that label **exists** in the repo — GitHub silently drops unknown labels (you'd still get `enhancement`). **In `filiptrivan/spiderly` the label already exists — there is no setup left to do, so never prompt the maintainer to create it.** Only when targeting a fork that lacks it, create it once (authenticated `gh`):
 
 ```bash
 gh label create agent-reported \
-  --repo filiptrivan/spiderly \
+  --repo <owner>/<fork> \
   --color BFD4F2 \
   --description "Gap surfaced by a coding agent forced into a Spiderly workaround"
 ```
