@@ -1,20 +1,29 @@
 ---
 name: report-gap
-description: Use the moment you're forced into a workaround because the clean Spiderly-native path didn't exist — you looked for a lifecycle hook, an override, an entity attribute, or a generator option and it was structurally missing, so you had to bypass or copy generated code, or reach into framework internals. Turns that gap into a pre-filled GitHub issue URL against filiptrivan/spiderly that the user copies and submits. Also invoke manually to report a Spiderly limitation. NOT for hacks in the consumer's own business logic, NOT for ordinary bugs in your own code.
+description: Use the moment you're forced into a workaround because the clean Spiderly-native path didn't exist — you looked for a lifecycle hook, an override, an entity attribute, or a generator option and it was structurally missing, so you had to bypass or copy generated code, or reach into framework internals. Also use when the gap is in Spiderly's own skills, plugins, or docs — a skill that should have fired but didn't, or skill/doc content that was missing, stale, or wrong for the case you hit. Turns that gap into a pre-filled GitHub issue URL against filiptrivan/spiderly that the user copies and submits. Also invoke manually to report a Spiderly limitation. NOT for hacks in the consumer's own business logic, NOT for ordinary bugs in your own code.
 allowed-tools: Bash(node:*)
 ---
 
 # Report a Spiderly gap
 
-When Spiderly forces you into a workaround, that's signal the maintainer needs. This skill captures the gap as a **pre-filled GitHub issue URL** against `filiptrivan/spiderly`. It does **not** file anything — it prints a URL the user opens, reviews, and submits themselves.
+When Spiderly forces you into a workaround — or its own guidance lets you down — that's signal the maintainer needs. This skill captures the gap as a **pre-filled GitHub issue URL** against `filiptrivan/spiderly`. It does **not** file anything — it prints a URL the user opens, reviews, and submits themselves.
 
 ## When this fires (and when it doesn't)
 
-The trigger is sharp on purpose: **the clean Spiderly path didn't exist.** Use it only when *all* of these are true:
+The trigger is sharp on purpose. Two shapes of gap qualify:
+
+**A framework-code gap** — *all* of these are true:
 
 - You wanted to do something the Spiderly way (a hook, an override, an entity attribute, a generator/CLI option).
 - You looked for that clean path and it was **structurally missing** — not just unfamiliar.
 - So you fell back to a hack: bypassing or **copying generated code to edit it**, reaching into framework internals, or duplicating logic Spiderly should own.
+
+**A gap in Spiderly's own skills, plugins, or docs** — the guidance layer itself failed you:
+
+- A Spiderly skill should have fired for your task but its description didn't match, so you worked blind until someone pointed you at it.
+- Skill or doc content you followed was **missing the case you hit, stale** against current Spiderly behavior, **or outright wrong** — and following it cost you a wrong turn.
+
+For these, use `--labels "agent-reported,documentation"` and name the skill/doc file in the body. The same sharpness applies: "the docs could say more about X" is not a gap; "the docs told me the wrong thing / the skill never fired" is.
 
 Do **NOT** use it for:
 
