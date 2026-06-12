@@ -327,10 +327,14 @@ jobs:
           path: Angular/projects/spiderly/package.json
           retention-days: 1
 
+  # dry_run gates the push command inside the step, not the job — dry runs must rehearse
+  # the full publish path (artifact download, file enumeration) so a broken step fails in
+  # rehearsal instead of mid-release. Keep it that way; the v1.x .nvmrc incident happened
+  # because publish jobs were skipped entirely on dry runs and first ran on a real release.
   publish-nuget:
     name: Publish to NuGet
     needs: [validate, build-dotnet, test-dotnet]
-    if: inputs.dry_run != true && needs.validate.outputs.has_dotnet_packages == 'true' && github.ref == 'refs/heads/develop'
+    if: needs.validate.outputs.has_dotnet_packages == 'true' && (inputs.dry_run == true || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     outputs:
       published_packages: ${{ steps.publish.outputs.published_packages }}
@@ -359,6 +363,13 @@ jobs:
             fi
 
             package_name=$(basename "$package" .nupkg | sed 's/\.[0-9].*//')
+
+            if [ "${{ inputs.dry_run }}" == "true" ]; then
+              echo "[dry-run] Would publish $package_name"
+              published+=("$package_name")
+              continue
+            fi
+
             echo "Publishing $package..."
 
             push_output=$(dotnet nuget push "$package" \
@@ -405,8 +416,7 @@ jobs:
     needs: [validate, build-angular, publish-nuget]
     if: |
       always() &&
-      inputs.dry_run != true &&
-      github.ref == 'refs/heads/develop' &&
+      (inputs.dry_run == true || github.ref == 'refs/heads/develop') &&
       needs.validate.result == 'success' &&
       needs.validate.outputs.publish_angular == 'true' &&
       needs.build-angular.result == 'success' &&
@@ -416,6 +426,15 @@ jobs:
       published: ${{ steps.publish.outputs.success }}
 
     steps:
+      # This job is deliberately artifact-only — a full checkout here would fetch current
+      # develop HEAD, which may be newer than the commit the artifact was built from. But
+      # setup-node reads .nvmrc from the workspace, so fetch just that one file.
+      - name: Checkout .nvmrc
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -435,11 +454,21 @@ jobs:
         run: |
           cd dist
 
+          args=(--access public)
           if [ "${{ needs.validate.outputs.is_prerelease }}" = "true" ]; then
-            npm publish --access public --tag ${{ inputs.preview_label }}
+            args+=(--tag "${{ inputs.preview_label }}")
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          npm publish "${args[@]}"
+
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Dry run: package packed and validated, nothing uploaded"
+          elif [ "${{ needs.validate.outputs.is_prerelease }}" = "true" ]; then
             echo "Published as preview with tag: ${{ inputs.preview_label }}"
           else
-            npm publish --access public
             echo "Published as latest stable"
           fi
 
@@ -687,7 +716,7 @@ jobs:
 
   dry-run-summary:
     name: Dry Run Summary
-    needs: [validate, build-dotnet, build-angular, test-dotnet]
+    needs: [validate, build-dotnet, build-angular, test-dotnet, publish-nuget, publish-npm]
     if: |
       always() &&
       inputs.dry_run == true &&
@@ -705,6 +734,8 @@ jobs:
             echo "- .NET Build: ${{ needs.build-dotnet.result || 'skipped' }}"
             echo "- .NET Tests: ${{ needs.test-dotnet.result || 'skipped' }}"
             echo "- Angular Build: ${{ needs.build-angular.result || 'skipped' }}"
+            echo "- NuGet Publish (rehearsal, no upload): ${{ needs.publish-nuget.result || 'skipped' }}"
+            echo "- npm Publish (rehearsal, no upload): ${{ needs.publish-npm.result || 'skipped' }}"
             echo ""
-            echo "Packages built successfully but NOT published (dry run mode)"
+            echo "Packages built and publish path rehearsed, but NOTHING was uploaded (dry run mode)"
           } >> $GITHUB_STEP_SUMMARY
