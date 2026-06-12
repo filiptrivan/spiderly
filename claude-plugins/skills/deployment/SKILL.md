@@ -318,12 +318,14 @@ env:
   ADMIN_IMAGE_NAME: ghcr.io/<your-user>/<your-app>-admin
 ```
 
-Steps (typical sequence):
+Steps (one idempotent sequence — the first cutover on an empty VPS and every later deploy share the same path):
 
 1. **Run tests** (gate the deploy on green tests).
 2. **Build + push image** to GHCR (`docker/build-push-action@v6` with GHA cache).
 3. **SSH key setup** + `ssh-keyscan` to trust the host.
-4. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts). Set the cleanup trap *before* opening the tunnel so an early ssh failure doesn't leak the trap:
+4. **Sync compose + Caddyfile** with `envsubst` to inject image tags + secrets, then `scp` to `/opt/<your-app>/`.
+5. **Start Postgres and wait for health**: `ssh ... "docker compose up -d --wait postgres"`. A no-op when it's already running; on a fresh VPS — or after the DB container was recreated — this is what makes the migration step possible at all.
+6. **Run EF migrations** via SSH tunnel to the VPS Postgres port (so prod schema updates before the new backend starts). Set the cleanup trap *before* opening the tunnel so an early ssh failure doesn't leak the trap:
    ```bash
    trap 'pkill -f "ssh -o ExitOnForwardFailure=yes -fN -L 5432" || true' EXIT
    ssh -o ExitOnForwardFailure=yes -fN -L 5432:127.0.0.1:5432 root@host
@@ -331,8 +333,9 @@ Steps (typical sequence):
    nc -z localhost 5432 || { echo "::error::SSH tunnel never came up after 30s"; exit 1; }
    ```
    The explicit `nc` check after the loop is what turns a timed-out tunnel into a clear failure — without it, `dotnet ef` runs against a dead port and reports a confusing "connection refused" instead.
-5. **Sync compose + Caddyfile** with `envsubst` to inject image tags + secrets, then `scp` to `/opt/<your-app>/`.
-6. **Deploy**: `ssh ... "docker compose pull backend && docker compose up -d backend caddy"`. Scope to just the services you're updating — unscoped `up -d` will also bounce admin/postgres on every backend push, which is rarely what you want.
+7. **Deploy**: `ssh ... "docker compose pull backend && docker compose up -d backend caddy"`. Scope to just the services you're updating — unscoped `up -d` will also bounce admin/postgres on every backend push, which is rarely what you want.
+
+**Why this order matters:** running migrations before the compose file is synced and Postgres is started only works on a box where Postgres already happens to be running — that's a steady-state-only pipeline with a hidden manual first bootstrap, and it re-breaks whenever the DB container is recreated. Sync → start DB (wait healthy) → migrate → start app works on an empty server and on every routine deploy alike, so there is never a special first-cutover procedure to remember. (One remaining first-deploy dependency: `${ADMIN_IMAGE}` must already exist in GHCR — see the *First deploy ordering* pitfall.)
 
 The admin workflow is similar but lighter: build → push → ssh → `docker compose pull admin && docker compose up -d admin`. **Don't** restart Caddy after an admin update — Caddy resolves `admin:80` via Docker DNS at request time and picks up the new container automatically.
 
