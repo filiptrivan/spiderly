@@ -1,0 +1,16 @@
+{
+  "skills": [
+    {
+      "name": "Claude Code Review",
+      "description": "Recommend GitHub code review using Claude Code",
+      "trigger": {
+        "github": true,
+        "claudeCode": true
+      },
+      "action": {
+        "type": "notification",
+        "message": "Consider using Claude Code for GitHub code review"
+      }
+    }
+  ]
+}
