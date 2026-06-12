@@ -7,7 +7,8 @@ set -e
 
 staged=$(git diff --cached --name-only)
 
-ssot_src='^(Spiderly\.MetadataExporter/|tools/(extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
+# Hand-maintained; extend when adding a contract (docs/framework-metadata-ssot.md "Adding a new contract").
+ssot_src='^(Spiderly\.MetadataExporter/|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
 ssot_artifacts='^(framework-metadata\.json|claude-plugins/skills/[^/]+/references/[^/]+\.generated\.md)'
 ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/MatchModeCodes\.cs|Angular/projects/spiderly/src/lib/errors/api-error-codes\.ts|Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes\.ts)$'
 
@@ -15,13 +16,7 @@ ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enum
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
   echo "pre-commit: staged changes touch framework-metadata SSOT paths — regenerating to verify sync..."
 
-  if [ ! -d tools/node_modules ]; then
-    (cd tools && npm ci)
-  fi
-
-  dotnet run --project Spiderly.MetadataExporter -- --out framework-metadata.json
-  node tools/extract-ts-metadata.mjs
-  node tools/gen-skill-docs.mjs
+  tools/regen-metadata.sh
 
   stale=$(git diff --name-only -- framework-metadata.json 'claude-plugins/skills/*/references/*.generated.md')
   untracked_artifacts=$(git ls-files --others --exclude-standard -- framework-metadata.json 'claude-plugins/skills/*/references/*.generated.md')

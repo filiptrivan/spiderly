@@ -44,12 +44,10 @@ The C# exporter reads `UIControlTypeCodes` from **`Spiderly.Shared`** (the publi
 ## Regenerate
 
 ```bash
-dotnet run --project Spiderly.MetadataExporter -- --out framework-metadata.json   # C# facts (writes the file)
-node tools/extract-ts-metadata.mjs                                                # TS facts (merges into the file)
-node tools/gen-skill-docs.mjs                                                      # render *.generated.md
+tools/regen-metadata.sh   # optional arg: build configuration (defaults to Debug; CI passes Release)
 ```
 
-`tools/` has its own `package.json` (ts-morph). Run `npm ci` in `tools/` once before the TS step. Output is deterministic (members sorted ordinally; LF line endings) so re-running is byte-identical — required for the diff guard.
+The script runs the three hops in order — the C# exporter (writes the JSON), `tools/extract-ts-metadata.mjs` (merges TS facts), `tools/gen-skill-docs.mjs` (renders `*.generated.md`) — running `npm ci` in `tools/` first if `node_modules` is missing (ts-morph). Output is deterministic (members sorted ordinally; LF line endings) so re-running is byte-identical — required for the diff guard.
 
 ## CI self-guard
 
@@ -71,7 +69,7 @@ Bypass for emergencies with `git commit --no-verify` — CI remains the backstop
 
 **TypeScript:** add extraction to `tools/extract-ts-metadata.mjs` (ts-morph).
 
-Either way: add the skill placement in `tools/gen-skill-docs.mjs` (it fails loud if a contract has no placement), add a one-line pointer from the host `SKILL.md`, then regenerate + commit.
+Either way: add the skill placement in `tools/gen-skill-docs.mjs` (it fails loud if a contract has no placement), add a one-line pointer from the host `SKILL.md`, extend the `ssot_src` trigger regex in `.githooks/pre-commit` with the new source path, then regenerate + commit.
 
 ## Cross-language mirrors
 

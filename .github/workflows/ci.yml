@@ -41,21 +41,15 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Install metadata tooling deps
-        working-directory: tools
-        run: npm ci
-
       # Single-source-of-truth guard: framework-metadata.json (emitted by the C# exporter, then
       # augmented by the TS extractor) and the generated skill reference docs must match the committed
       # copies. If a contract changed in code without regenerating, this fails — see docs/framework-metadata-ssot.md.
       - name: Verify framework-metadata + generated docs are in sync
         run: |
-          dotnet run --project Spiderly.MetadataExporter -c Release -- --out framework-metadata.json
-          node tools/extract-ts-metadata.mjs
-          node tools/gen-skill-docs.mjs
+          tools/regen-metadata.sh Release
           if ! git diff --exit-code -- framework-metadata.json 'claude-plugins/skills/*/references/*.generated.md'; then
             echo "::error::framework-metadata.json or generated skill docs are stale. Regenerate and commit:"
-            echo "::error::  dotnet run --project Spiderly.MetadataExporter -- --out framework-metadata.json && node tools/extract-ts-metadata.mjs && node tools/gen-skill-docs.mjs"
+            echo "::error::  tools/regen-metadata.sh"
             exit 1
           fi
 

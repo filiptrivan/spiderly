@@ -42,14 +42,12 @@ Changing `ApiErrorCodes` also changes the framework-metadata SSOT — regenerate
 `framework-metadata.json` (repo root) and `claude-plugins/skills/*/references/*.generated.md` are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
 
 ```bash
-dotnet run --project Spiderly.MetadataExporter -- --out framework-metadata.json
-node tools/extract-ts-metadata.mjs
-node tools/gen-skill-docs.mjs
+tools/regen-metadata.sh
 ```
 
-(`npm ci` in `tools/` once beforehand.) Never hand-edit the JSON or `.generated.md` files. Details: `docs/framework-metadata-ssot.md`.
+Never hand-edit the JSON or `.generated.md` files. Details: `docs/framework-metadata-ssot.md`.
 
-A pre-commit hook (`.githooks/pre-commit`) runs this same check locally, but only when staged files touch SSOT sources. If artifacts are stale it regenerates and **auto-stages them into the commit** (blocking instead only when SSOT sources have unstaged/untracked changes, since regen output would then not match the commit). It also runs `TsContractMirrorTests` when the hand-maintained C#↔TS mirror files (`ApiErrorCodes`, `MatchModeCodes`) are staged. Activate it once per clone:
+A gated pre-commit hook (`.githooks/pre-commit`) automates this: when staged files touch SSOT sources it regenerates and auto-stages the artifacts, and it runs `TsContractMirrorTests` when the hand-maintained C#↔TS mirror files (`ApiErrorCodes`, `MatchModeCodes`) are staged. Behavior details: `docs/framework-metadata-ssot.md`. Activate it once per clone:
 
 ```bash
 git config core.hooksPath .githooks
