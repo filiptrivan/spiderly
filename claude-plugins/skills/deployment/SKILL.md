@@ -81,7 +81,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes: [postgres_data:/var/lib/postgresql/data]
+    volumes: [postgres_data:/var/lib/postgresql] # 18+ layout — see Key points
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -97,6 +97,7 @@ volumes:
 - Only `caddy` binds host ports. `backend` and `admin` are reachable only on the internal Docker network — Caddy reverse-proxies to them by service name.
 - `caddy.depends_on` uses `condition: service_healthy` for the admin container (so Caddy doesn't 502 before the inner Caddy has bound port 80) but `condition: service_started` for the backend — the backend's `/health` endpoint only goes green after EF migrations and warmup, and gating Caddy on that would block all traffic for 20–30 s on every restart.
 - Image tags come from CI via envsubst (`${BACKEND_IMAGE}`, `${ADMIN_IMAGE}`).
+- **postgres:18+ mounts at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.** The 18 image moved data into a major-version subdirectory (`PGDATA=/var/lib/postgresql/18/docker`). With the pre-18 mount path the entrypoint hard-errors ("there appears to be PostgreSQL data in /var/lib/postgresql/data") and the container crash-loops — and even when it starts, data lands in an anonymous volume and does not survive container recreation.
 
 ## Caddy site blocks
 
@@ -543,5 +544,5 @@ To make `/app/logs` writable under `USER app`:
 - **`docker compose up -d` scoping.** Always scope to the services you're updating: `docker compose up -d backend caddy` for backend deploys, `docker compose up -d admin` for admin deploys. Unscoped `up -d` bounces every service that's currently down or has a config change — including admin and postgres on a backend-only commit. The healthcheck-gated `depends_on` makes the unscoped form *safe* but not *desirable*.
 - **Static assets caching.** Hashed Angular bundles (e.g. `main.abc123.js`) can be cached forever; `index.html` must never cache, or users will get a stale shell after a deploy. The Caddyfile in this skill already handles both cases.
 - **`tls_private_key` lives in Terraform state in cleartext.** R2 encryption-at-rest is bucket-level; anyone with R2 API access (or a leaked state file) can read the key. Scope the R2 token tightly, audit who can pull state, and never copy `terraform.tfstate` to laptops or shared drives. Rotating the cert means a fresh `terraform apply` followed by re-pasting the new outputs into GitHub Secrets — plan a maintenance window. Add `lifecycle { prevent_destroy = true }` to the `tls_private_key` and `cloudflare_origin_ca_certificate` resources so accidental config changes can't trigger a silent rotation. Also add `ignore_changes = [hostnames, csr]` on the cert — Cloudflare normalizes hostname/CSR ordering server-side, otherwise every plan would show a phantom recreate.
-- **Postgres data on Docker named volumes is not durable across server replacement.** If the VPS itself is Terraform-managed (`hcloud_server`) and gets recreated for any reason — image change, server_type change, accidental destroy — the local Docker named volume `postgres_data` goes with it. Add `lifecycle { prevent_destroy = true }` to the `hcloud_server` resource. For genuine durability, attach an `hcloud_volume` and bind-mount it into postgres (`/var/lib/postgresql/data`); volumes survive server destruction and snapshot independently.
+- **Postgres data on Docker named volumes is not durable across server replacement.** If the VPS itself is Terraform-managed (`hcloud_server`) and gets recreated for any reason — image change, server_type change, accidental destroy — the local Docker named volume `postgres_data` goes with it. Add `lifecycle { prevent_destroy = true }` to the `hcloud_server` resource. For genuine durability, attach an `hcloud_volume` and bind-mount it into postgres (`/var/lib/postgresql` on the 18+ image); volumes survive server destruction and snapshot independently.
 - **Cloudflare in front of Vercel must stay "DNS only".** When the Next.js storefront (or a Vercel-hosted admin) deploys to Vercel and DNS is on Cloudflare, those records must be **DNS only** (grey cloud), not proxied. Vercel terminates TLS and runs its own edge — CDN, image optimization, ISR, PPR — so adding the Cloudflare proxy on top breaks the TLS handshake and double-caches/conflicts with Vercel's edge features. Cloudflare's WAF/cache/analytics/Turnstile belong on the **Hetzner-served** records (`api.*`, `admin.*`) where the orange cloud stays on. If you want Cloudflare features in front of Vercel anyway, that's an advanced setup ("Full (strict)" SSL + custom hostnames) that Vercel does not officially recommend.
