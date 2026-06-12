@@ -17,6 +17,11 @@
           "summary": "Login or auto-provisioning was blocked because the account's email address is not verified (e.g. an external provider returned an unverified email)."
         },
         {
+          "name": "ExternalEmailMissing",
+          "value": "external_email_missing",
+          "summary": "An external (OAuth/OIDC) login was validated but the provider returned no email address (e.g. the user declined the email permission, or a phone-only Facebook account). Auto-provisioning needs an email to key the account on, so login is rejected with this code and the client should route the user to another sign-in method. Distinct from EmailNotVerified, which means an email was returned but not verified."
+        },
+        {
           "name": "ExternalProviderNotConfigured",
           "value": "external_provider_not_configured",
           "summary": "An external (OAuth) login was attempted for a provider that is not configured on the server, or that provider's token exchange failed."
