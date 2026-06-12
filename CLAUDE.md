@@ -35,6 +35,20 @@ When Spiderly code changes affect public API, attributes, generated output, or b
 
 `ApiErrorCodes` lives under `Spiderly.Shared.Contracts` because it is a static constants class, not a DTO.
 
+Changing `ApiErrorCodes` also changes the framework-metadata SSOT — regenerate it (see below) or CI fails.
+
+## Framework metadata SSOT — regenerate after contract changes
+
+`framework-metadata.json` (repo root) and `claude-plugins/skills/*/references/*.generated.md` are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
+
+```bash
+dotnet run --project Spiderly.MetadataExporter -- --out framework-metadata.json
+node tools/extract-ts-metadata.mjs
+node tools/gen-skill-docs.mjs
+```
+
+(`npm ci` in `tools/` once beforehand.) Never hand-edit the JSON or `.generated.md` files. Details: `docs/framework-metadata-ssot.md`.
+
 ## Coding conventions
 
 - Prefer raw string literals (`$$""" """`) for multiline strings in C#
