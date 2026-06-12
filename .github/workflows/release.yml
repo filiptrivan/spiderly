@@ -716,6 +716,9 @@ jobs:
 
   dry-run-summary:
     name: Dry Run Summary
+    # publish-nuget/publish-npm must stay in needs even though they look summary-irrelevant:
+    # the needs context only exposes declared dependencies, so removing them blanks the
+    # rehearsal result lines below.
     needs: [validate, build-dotnet, build-angular, test-dotnet, publish-nuget, publish-npm]
     if: |
       always() &&
