@@ -75,6 +75,10 @@ public class StorefrontController : ControllerBase
 }
 ```
 
+### Decide spinner behavior for every new endpoint
+
+The global blocking spinner is inferred automatically — POSTs and full-DTO GETs keep it; read-shaped returns (`Namebook`/`Codebook`/`PaginatedResult`) and bare-scalar GETs skip it. When adding an endpoint, ask whether the inference matches the UX: a full-DTO GET that is polled on a timer, runs in the background, or feeds a lightweight popover/inline panel (e.g. a row-level "show order items" popover on a list page) should be marked `[SkipSpinner]` — blacking out the whole screen there is disproportionate. See [Key Attributes](#key-attributes) for `[SkipSpinner]`/`[ShowSpinner]` details.
+
 ### `[Controller("Name")]` — Grouping Entities
 
 Multiple entities under one controller:
@@ -330,7 +334,7 @@ if (paymentMethod == null)
 |---|---|
 | `[AuthGuard]` | Require valid JWT |
 | `[UIDoNotGenerate]` | Hide from Swagger / skip Angular UI generation |
-| `[SkipSpinner]` | Skip the global full-screen blocking spinner. **Usually unnecessary** — auto-applied to `Namebook`/`Codebook`/`PaginatedResult`/`LazyLoadSelectedIds` returns and to any `HttpGet` returning a bare scalar (`int`/`bool`/`decimal`/`DateTime`/…). Add it manually only when the inference can't see your intent: a GET that returns a **full DTO but is polled/refreshed on a timer**, or a background submit. |
+| `[SkipSpinner]` | Skip the global full-screen blocking spinner. **Usually unnecessary** — auto-applied to `Namebook`/`Codebook`/`PaginatedResult`/`LazyLoadSelectedIds` returns and to any `HttpGet` returning a bare scalar (`int`/`bool`/`decimal`/`DateTime`/…). Add it manually only when the inference can't see your intent: a GET that returns a **full DTO but is polled/refreshed on a timer**, a background submit, or a fetch feeding a **lightweight popover/inline panel** where a full-screen block is disproportionate. |
 | `[ShowSpinner]` | Force the spinner back ON, overriding the auto-skip. **Rarely needed** — a slow user-triggered operation is usually a `POST` (which keeps the spinner without any attribute). Use only for a deliberately slow `HttpGet` returning a bare scalar where you still want the blocking overlay. |
 | `[ApiExplorerSettings(GroupName = "...")]` | Swagger grouping |
 | `[FromForm]` | Bind file uploads |
@@ -383,6 +387,8 @@ public class StorefrontProductDTO
 ```
 
 Use `[Required]` on non-nullable fields for correct Swagger/TypeScript generation.
+
+**Validation attributes belong on input DTOs only.** On a DTO that accepts data (a request body you `ValidateAndThrow` and persist), `[StringLength]`, `[GreaterThanOrEqualTo]`, etc. produce FluentValidation + Angular rules that actually run. On a readonly/output-only DTO — something you only return, like the example above — skip them: nothing ever validates data the server itself produced, so the rules are dead weight. The one attribute to keep on output DTOs is `[Required]`, because it also drives Swagger nullability and therefore the generated TypeScript types. (A render-only `[SpiderlyDTO]` currently still emits unused Angular form-validators — harmless noise; tracked as filiptrivan/spiderly#242.)
 
 ## Extending PermissionCodes
 
