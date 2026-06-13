@@ -17,6 +17,13 @@ Before building or restyling any admin UI, check for an existing component first
 
 Keep admin UI **responsive and mobile-first**, matching the layout/grid conventions of surrounding pages rather than inventing a new one.
 
+## Global loading & error handling — don't hand-roll either
+
+Two cross-cutting behaviors ship with every Spiderly admin and cover **every** generated-client call automatically. Re-implementing them per call is the most common needless boilerplate in admin code:
+
+- **Loading:** an HTTP interceptor shows the global full-screen blocking spinner for every request and hides it when the request settles. Read-shaped responses (autocomplete, dropdowns, table pagination, bare-scalar GETs) are exempted server-side via `[SkipSpinner]` inference — see the `custom-endpoints` skill to tune that per endpoint. Don't add per-component spinners around API calls; for layout placeholders use `card-skeleton` (catalog below).
+- **Errors:** an HTTP interceptor toasts every failed request — server-unreachable warning, the server's `BusinessException` message on 400, login/permission/not-found messages on 401/403/404, a generic error toast for the rest — then **rethrows**, so callers only ever run their success path. Uncaught non-HTTP runtime errors get a generic toast from the global `ErrorHandler`. So: **subscribe to the success path only** — no per-call `catchError` toasts, no `try/catch` around generated client calls. Add `catchError` only when you need to *react* to a specific failure (e.g. roll back optimistic UI state); the user-facing message has already been shown by the time your handler runs.
+
 ## Generated File Structure
 
 ```

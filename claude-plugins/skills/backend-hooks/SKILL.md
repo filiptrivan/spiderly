@@ -147,6 +147,8 @@ throw new BusinessException("Sale price must be less than regular price.");
 throw new SecurityViolationException(); // logs detailed message server-side, returns generic error
 ```
 
+Both surface in the admin UI automatically — the global HTTP-error interceptor toasts the `BusinessException` message (and a safe generic message for everything else). Throw and return; don't build a parallel error channel or per-call frontend handling.
+
 ## PostgreSQL MARS Pitfall
 
 EF Core on PostgreSQL does **not** support Multiple Active Result Sets. You'll get a `NpgsqlOperationInProgressException` if you enumerate two queries concurrently.
