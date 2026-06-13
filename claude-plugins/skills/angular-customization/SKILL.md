@@ -172,13 +172,15 @@ cols: Column<ProductDTO>[] = [
     dropdownOrMultiselectValues: this.categoryOptions }),
   new Column({
     actions: [
-      new Action({ field: 'Details', icon: 'pi pi-pencil', onClick: (id) => this.editProduct(id) }),
+      new Action({ field: 'Details', icon: 'pi pi-pencil' }),
       new Action({ field: 'Delete' }),
-      new Action({ field: 'custom', name: 'Clone', icon: 'pi pi-copy', onClick: (id) => this.clone(id) }),
+      new Action({ field: 'custom', name: 'Clone', icon: 'pi pi-copy', onClick: (e) => this.clone(e.id) }),
     ]
   }),
 ];
 ```
+
+The `onClick` callback receives an `ActionClickEvent` — `{ id, row, element, originalEvent }`. Use `element` (or `originalEvent`) to anchor an overlay/popover to the clicked action; `row` gives you the full row object. It fires only for custom `field` values (never `'Details'` / `'Delete'`).
 
 ### Key Inputs
 

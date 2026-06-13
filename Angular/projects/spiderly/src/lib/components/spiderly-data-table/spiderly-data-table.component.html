@@ -189,7 +189,7 @@
                     [pTooltip]="action.name"
                     [class]="getClassForAction(action)"
                     [style]="getStyleForAction(action)"
-                    (click)="getMethodForAction(action, rowData)"
+                    (click)="getMethodForAction(action, rowData, $event)"
                   ></span>
                 </ng-container>
               </div>

@@ -579,14 +579,19 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  getMethodForAction(action: Action, rowData: any) {
+  getMethodForAction(action: Action, rowData: any, event: MouseEvent) {
     switch (action.field) {
       case 'Details':
         return this.navigateToDetails(rowData[this.idField]);
       case 'Delete':
         return this.deleteObject(rowData[this.idField]);
       default:
-        return action.onClick(rowData[this.idField]);
+        return action.onClick({
+          id: rowData[this.idField],
+          row: rowData,
+          element: event.currentTarget as HTMLElement,
+          originalEvent: event,
+        });
     }
   }
 
@@ -793,7 +798,15 @@ export class Action {
   icon?: string;
   style?: string;
   styleClass?: string;
-  onClick?: (id: number) => void;
+  /**
+   * Fired when a custom action is clicked. Receives an {@link ActionClickEvent} with the
+   * row id, the full row object, the clicked DOM element (use it to anchor an overlay/popover),
+   * and the original `MouseEvent`.
+   *
+   * Only fires for custom actions — the built-in `field` values `'Details'` and `'Delete'`
+   * are handled internally and never invoke `onClick`.
+   */
+  onClick?: (event: ActionClickEvent) => void;
 
   constructor({
     name,
@@ -808,7 +821,7 @@ export class Action {
     icon?: string;
     style?: string;
     styleClass?: string;
-    onClick?: (id: number) => void;
+    onClick?: (event: ActionClickEvent) => void;
   } = {}) {
     this.name = name;
     this.field = field;
@@ -877,6 +890,25 @@ export class Column<T = any> {
     this.decimalPlaces = decimalPlaces;
     this.sortable = sortable;
   }
+}
+
+/**
+ * Payload passed to {@link Action.onClick} when a custom row action is clicked.
+ * Every field is populated by the data table, so consumers can rely on them being present.
+ */
+export interface ActionClickEvent {
+  /** The clicked row's id (`row[idField]`). */
+  id: number;
+  /** The full row object the action belongs to. */
+  row: any;
+  /**
+   * The clicked action element — pass it as the anchor when opening an overlay/popover.
+   * Captured at click time on purpose: `originalEvent.currentTarget` is reset to null once
+   * dispatch ends, so it would already be null inside an async handler.
+   */
+  element: HTMLElement;
+  /** The original DOM click event. */
+  originalEvent: MouseEvent;
 }
 
 export class RowClickEvent {
