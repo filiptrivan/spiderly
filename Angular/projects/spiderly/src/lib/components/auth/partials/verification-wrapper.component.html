@@ -23,11 +23,20 @@
                 {{ t("AccountVerificationDescription", { email: email }) }}
               </div>
               <div class="col-8">
+                <!--
+                  PrimeNG's InputOtp calls event.preventDefault() on the Enter keydown
+                  (Enter is a non-digit while integerOnly is on, and once all tokens are
+                  filled it blocks every key but Delete), which kills the browser's
+                  implicit submit via the type="submit" button. Wire Enter straight to
+                  codeSubmit() so "paste the code + Enter" still submits. preventDefault
+                  doesn't stop propagation, so this bubbled keydown listener still fires.
+                -->
                 <p-inputOtp
                   [formControl]="verificationTokenRequestFormGroup.getControl('verificationCode')"
                   [length]="6"
                   [integerOnly]="true"
                   [autofocus]="true"
+                  (keydown.enter)="codeSubmit()"
                 ></p-inputOtp>
               </div>
               <div class="col-8">
