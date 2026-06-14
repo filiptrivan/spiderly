@@ -1,0 +1,190 @@
+name: Agent Evals
+
+# Out-of-band, manual-only. Real agent runs cost money and are non-deterministic, so this is NEVER
+# wired into a per-PR/per-release gate (see docs/superpowers/specs/2026-06-14-agent-eval-harness-
+# design.md -> "Validation strategy"). The cheap, deterministic harness self-test runs in ci.yml's
+# unit-test job instead.
+#
+# NOTE: untested first draft — it mirrors ci.yml's proven integration-test scaffold, but the
+# fixture build + Claude CLI install must be validated by a first `workflow_dispatch` run. The
+# `claude` agent authenticates with a Claude Pro/Max subscription via the `CLAUDE_CODE_OAUTH_TOKEN`
+# repo secret (generate locally with `claude setup-token`; valid ~1 year — regenerate before it
+# lapses). Run `oracle,noop` for a free dry run that needs no token. To bill a per-use API key
+# instead, swap the env var below for `ANTHROPIC_API_KEY` — set only one, never both.
+#
+# TODO (after the first green dispatch):
+#  - Extract the shared build->pack->Verdaccio->`spiderly init` scaffold (duplicated from ci.yml's
+#    integration-test job) into a composite action both workflows call.
+#  - The atomic tier keeps only Backend, yet still builds the Angular lib + publishes to Verdaccio
+#    for `spiderly init`. If init can scaffold backend-only, gate those steps to skip them here.
+on:
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: "Comma-separated agents (e.g. `claude`, or `oracle,noop` for a free self-test)"
+        type: string
+        default: claude
+      reps:
+        description: "Reps per task (bump to 5-10 before trusting a delta between bundle versions)"
+        type: string
+        default: "3"
+      tier:
+        description: "Task tier to run"
+        type: choice
+        options: [atomic, feature, full-app]
+        default: atomic
+
+concurrency:
+  group: agent-evals-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  TEST_APP_NAME: "TestApp"
+
+jobs:
+  agent-evals:
+    name: Run agent evals (out-of-band)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment paths
+        run: echo "APP_FOLDER=$(dirname "$GITHUB_WORKSPACE")/test-app" >> $GITHUB_ENV
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: Angular/package-lock.json
+
+      # --- Deterministic harness self-test (cheap, no toolchain, no cost) ---
+      # Same gate as ci.yml; runs first so a broken harness fails fast before any paid agent run.
+      - name: Harness self-test
+        run: cd tools && npm run test:evals
+
+      # --- Build the `spiderly-app` fixture in CI (the pre-task state) ---
+      # Mirrors ci.yml's integration-test scaffold: build+pack packages, publish the Angular lib to a
+      # local Verdaccio, install the CLI, then `spiderly init`. Only the BACKEND is kept as the
+      # fixture — the add-validator verifier is dotnet-build-only (no Postgres, no Angular, no boot).
+      - name: Build and pack all Spiderly packages
+        run: |
+          dotnet restore
+          dotnet build -c Release
+          # --no-build breaks SourceGenerators packaging; let pack build.
+          dotnet pack -c Release -o ./nupkg
+
+      - name: Install Spiderly.CLI
+        run: dotnet tool install --global Spiderly.CLI --add-source ./nupkg --prerelease
+
+      - name: Add local NuGet source
+        run: dotnet nuget add source "$(pwd)/nupkg" --name local-spiderly
+
+      - name: Build Spiderly Angular library
+        run: |
+          cd Angular
+          npm ci
+          npm run build -- spiderly --configuration production
+
+      - name: Setup Verdaccio and publish spiderly package
+        run: |
+          npm install -g verdaccio
+          mkdir -p ~/.config/verdaccio
+          cat > ~/.config/verdaccio/config.yaml << 'EOF'
+          storage: ./storage
+          uplinks:
+            npmjs:
+              url: https://registry.npmjs.org/
+          packages:
+            'spiderly':
+              access: $all
+              publish: $anonymous
+            '@*/*':
+              access: $all
+              proxy: npmjs
+            '**':
+              access: $all
+              proxy: npmjs
+          log: { type: stdout, format: pretty, level: warn }
+          EOF
+          verdaccio --config ~/.config/verdaccio/config.yaml &
+          timeout 30 bash -c 'until curl -sf http://localhost:4873/-/ping > /dev/null 2>&1; do sleep 0.5; done'
+          npm config set registry http://localhost:4873/
+          npm config set //localhost:4873/:_authToken "fake-token"
+          cd Angular/dist/spiderly
+          npm publish --registry http://localhost:4873/ --tag latest
+
+      - name: Run Spiderly init
+        run: |
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          cd ..
+          spiderly init --name "${{ env.TEST_APP_NAME }}" --db postgresql
+
+      # Apply the eval overlay: the add-validator PRE-task Product (Name present, NO validation).
+      # We deliberately do NOT run tests/e2e-fixtures/setup.sh — that overlay's Product.Name already
+      # has [Required]/[MaxLength(100)], which would make the task pre-satisfied (a no-op would pass).
+      - name: Apply eval fixture overlay
+        run: |
+          ENTITIES="${{ env.APP_FOLDER }}/Backend/${{ env.TEST_APP_NAME }}.Business/Entities"
+          mkdir -p "$ENTITIES"
+          cp "$GITHUB_WORKSPACE/tools/agent-evals/tasks/atomic/add-validator/fixture/Product.cs" "$ENTITIES/Product.cs"
+          sed -i "s/__APP_NAME__/${{ env.TEST_APP_NAME }}/g" "$ENTITIES/Product.cs"
+
+      # Warm the build AND assert the pre-task state compiles — a broken baseline would make the
+      # `compiles` check fail for reasons unrelated to the agent's work.
+      - name: Build backend (warm + baseline sanity)
+        run: |
+          cd "${{ env.APP_FOLDER }}/Backend"
+          dotnet restore
+          dotnet build -c Release --no-restore
+
+      - name: Stage fixture (Backend only, no bin/obj)
+        run: |
+          DEST="$GITHUB_WORKSPACE/tools/agent-evals/fixtures/spiderly-app"
+          mkdir -p "$DEST"
+          rsync -a --exclude bin --exclude obj "${{ env.APP_FOLDER }}/Backend" "$DEST/"
+
+      # --- Run the agents ---
+      - name: Install Claude Code CLI
+        if: contains(inputs.agents, 'claude')
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run evals
+        env:
+          # Claude Pro/Max subscription token (headless `claude` reads this directly). Swap for
+          # ANTHROPIC_API_KEY to bill a per-use API key instead — set only one, never both.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          cd tools
+          node agent-evals/cli.mjs run \
+            --agents "${{ inputs.agents }}" \
+            --track agnostic \
+            --tier "${{ inputs.tier }}" \
+            --reps "${{ inputs.reps }}"
+
+      - name: Append report to job summary
+        if: always()
+        run: |
+          latest=$(ls -dt tools/agent-evals/results/*/ 2>/dev/null | head -1)
+          if [ -n "$latest" ] && [ -f "${latest}report.md" ]; then
+            cat "${latest}report.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-eval-results
+          path: |
+            tools/agent-evals/results/**/matrix.json
+            tools/agent-evals/results/**/report.md
+          retention-days: 30

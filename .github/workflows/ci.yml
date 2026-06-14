@@ -67,6 +67,12 @@ jobs:
             exit 1
           fi
 
+      # Agent-eval harness self-test: the deterministic oracle-100% / no-op-0% gate (node:test,
+      # zero deps, no toolchain, no cost). The REAL, paid agent runs live out-of-band in
+      # .github/workflows/agent-evals.yml — never in this per-PR gate.
+      - name: Agent-eval harness self-test
+        run: cd tools && npm run test:evals
+
   integration-test:
     name: Test CLI Generated Application
     needs: unit-test
