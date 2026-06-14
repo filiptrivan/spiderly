@@ -11,17 +11,27 @@ import claude from './agents/claude.mjs';
 
 const agentsByName = { noop, oracle, claude };
 
+function die(msg) {
+  console.error(`agent-evals: ${msg}`);
+  process.exit(1);
+}
+
 function parseArgs(argv) {
   if (argv[0] === 'run') argv = argv.slice(1); // optional `run` subcommand
   const a = { agents: ['claude'], track: 'agnostic', tier: undefined, reps: 3 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i].startsWith('--') ? argv[i].slice(2) : null;
+    if (!k) die(`unexpected argument: ${argv[i]}`);
     const v = argv[i + 1];
-    if (k === 'agents') { a.agents = v.split(','); i++; }
+    if (v === undefined || v.startsWith('--')) die(`--${k} needs a value`);
+    if (k === 'agents') { a.agents = v.split(',').filter(Boolean); i++; }
     else if (k === 'track') { a.track = v; i++; }
     else if (k === 'tier') { a.tier = v; i++; }
     else if (k === 'reps') { a.reps = Number(v); i++; }
+    else die(`unknown flag: --${k}`);
   }
+  if (!a.agents.length) die('--agents needs at least one agent');
+  if (!Number.isInteger(a.reps) || a.reps < 1) die('--reps must be a positive integer');
   return a;
 }
 

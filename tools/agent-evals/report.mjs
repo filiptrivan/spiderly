@@ -19,7 +19,9 @@ export function renderReport(matrix) {
     '|---|---|---|---|',
   ];
   for (const g of [...groups.values()].sort((a, b) => (a.agent + a.taskId).localeCompare(b.agent + b.taskId))) {
-    lines.push(`| ${g.agent} | ${g.taskId} | ${g.pass}/${g.total} | ${g.infra} |`);
+    // total===0 means no scored reps (all infra errors) — render '—' so it reads distinctly from a real 0/N.
+    const rate = g.total === 0 ? '—' : `${g.pass}/${g.total}`;
+    lines.push(`| ${g.agent} | ${g.taskId} | ${rate} | ${g.infra} |`);
   }
 
   const fails = matrix.rows.filter((r) => r.pass === false);
