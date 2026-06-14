@@ -53,6 +53,18 @@ A gated pre-commit hook (`.githooks/pre-commit`) automates this: when staged fil
 git config core.hooksPath .githooks
 ```
 
+## Agent guidance bundle — regenerate after skill changes
+
+`Angular/projects/spiderly/agent/` (`manifest.json` + `skills/**`) is a **committed build artifact** that ships *inside* the `spiderly` npm package (via `ng-package.json` assets) so it lands version-pinned at `node_modules/spiderly/agent/` in consumer apps. `Spiderly.CLI agent-sync` reads it to project version-matched AI-agent guidance into a consumer (writes an `AGENTS.md` index, makes `CLAUDE.md` import it, and — later — junctions `skill`-surface skills into `.claude/skills`). Design: `docs/agent-guidance-distribution.md`.
+
+The bundle is derived from `claude-plugins/skills/**` (the authoring source) + `tools/agent-surface.json` (each skill → `doc` | `skill`). After changing any skill, its `*.generated.md` references, or the surface map, regenerate and commit the bundle in the same commit:
+
+```bash
+node tools/build-agent-bundle.mjs
+```
+
+Never hand-edit anything under `agent/`. The generator fails loud if a skill folder isn't categorized in `agent-surface.json` or its frontmatter `name` ≠ folder name (catches half-done renames). CI and the gated `.githooks/pre-commit` regenerate it and fail on any diff/untracked change, same model as the framework-metadata SSOT. Run the bundle regen **after** `tools/regen-metadata.sh` (it copies the freshly-generated reference tables).
+
 ## Coding conventions
 
 - Prefer raw string literals (`$$""" """`) for multiline strings in C#

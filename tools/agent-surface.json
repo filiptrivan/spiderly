@@ -1,0 +1,22 @@
+{
+  "$comment": "Surface categorization for the agent bundle. Each key is a folder name under claude-plugins/skills/. 'doc' = always-on reference, indexed into the consumer's AGENTS.md (no reliable trigger). 'skill' = explicit triggered workflow, junctioned into .claude/skills/spiderly-<name>. See docs/agent-guidance-distribution.md. Edited by hand; build-agent-bundle.mjs fails if a skill folder is missing here or an entry has no folder.",
+  "surfaces": {
+    "angular-customization": "doc",
+    "authorization": "doc",
+    "backend-hooks": "doc",
+    "backend-localization": "doc",
+    "custom-endpoints": "doc",
+    "entity-design": "doc",
+    "file-storage": "doc",
+    "filtering-patterns": "doc",
+    "frontend-localization": "doc",
+    "mapper-customization": "doc",
+    "backend-testing": "skill",
+    "deployment": "skill",
+    "e2e-testing": "skill",
+    "ef-migrations": "skill",
+    "report-gap": "skill",
+    "spiderly-upgrade": "skill",
+    "verify-ui": "skill"
+  }
+}

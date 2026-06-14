@@ -112,6 +112,15 @@ namespace Spiderly.CLI.Commands
                     {
                         "spiderly list-migrations"
                     }
+                },
+                new CommandInfo
+                {
+                    Name = "agent-sync",
+                    Description = "Sync version-matched Spiderly AI-agent guidance from the installed npm package into this project (writes an AGENTS.md index and makes CLAUDE.md import it). Idempotent; safe to re-run after upgrades.",
+                    Examples = new List<string>
+                    {
+                        "spiderly agent-sync"
+                    }
                 }
             };
 

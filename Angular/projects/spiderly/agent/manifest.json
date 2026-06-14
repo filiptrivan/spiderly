@@ -1,0 +1,89 @@
+{
+  "skills": [
+    {
+      "name": "angular-customization",
+      "surface": "doc",
+      "description": "Build, compose, or style any Spiderly Angular admin-panel UI — pages, cards, panels, dashboards, buttons, tables, dialogs, empty/loading states. Use to reuse existing Spiderly/PrimeNG components instead of hand-writing Tailwind/HTML, and when extending generated components, overriding form save behavior, configuring data tables, customizing layout/theme, or adding validators. For translating UI strings (Transloco, assets/i18n), use the frontend-localization skill."
+    },
+    {
+      "name": "authorization",
+      "surface": "doc",
+      "description": "Set up permission-based authorization in Spiderly. Use when implementing user/role/permission entities, seeding permissions, using DoNotAuthorize or AuthGuard attributes, checking permissions in custom code, configuring frontend auth guards, or setting up Google OAuth."
+    },
+    {
+      "name": "backend-hooks",
+      "surface": "doc",
+      "description": "Override Spiderly lifecycle hooks to customize generated CRUD behavior. Use when overriding lifecycle hooks, customizing generated CRUD logic, adding business logic to save/delete/get operations, handling MARS exceptions or transaction issues, or throwing business/security-violation exceptions."
+    },
+    {
+      "name": "backend-localization",
+      "surface": "doc",
+      "description": "How Spiderly localizes backend (.NET) strings — error messages, Excel export names, any server-side text. Spiderly uses a JSON file localizer (flat {culture}.json files), NOT .resx. Use whenever you add or translate a backend string, hit a raw translation key leaking to the user, wonder where backend translations live or why there are no .resx files, localize a BusinessException message, register a custom (e.g. DB-backed) IStringLocalizer, or set up UseTranslations / UseCulture. For Angular admin UI strings (Transloco, assets/i18n/*.json), use the frontend-localization skill instead."
+    },
+    {
+      "name": "backend-testing",
+      "surface": "skill",
+      "description": "Unit-test a Spiderly backend service against an EF Core InMemory database — covers the two InMemory pitfalls that silently corrupt assertions (the change tracker masking a missing SaveChanges, and WithTransactionAsync throwing TransactionIgnoredWarning). Use when writing xUnit/NUnit tests for entity services, business logic, or save/delete hooks against an InMemory DbContext, or when an InMemory-backed test passes/throws for reasons that don't match production."
+    },
+    {
+      "name": "custom-endpoints",
+      "surface": "doc",
+      "description": "Add custom (non-CRUD) API endpoints to a Spiderly project. Use when creating custom controllers, adding new service methods beyond generated CRUD, building storefront or webhook endpoints, calling generated services from custom code, or choosing between return types."
+    },
+    {
+      "name": "deployment",
+      "surface": "skill",
+      "description": "Deploy a Spiderly project to your own infrastructure with Docker, Caddy, and Terraform. Use when deploying, redeploying, shipping, releasing, or rolling out the .NET backend or Angular admin to production — first-time setup or an ongoing deploy — and when diagnosing a down or erroring production origin (502/521, container crash-loop, failed deploy workflow). Also covers CI/CD pipelines, TLS with Cloudflare origin certificates, database backups and restores, and infrastructure-as-code layout for a Spiderly app."
+    },
+    {
+      "name": "e2e-testing",
+      "surface": "skill",
+      "description": "End-to-end testing a Spiderly app with Playwright — log in via the dev-mode verification-code helper, navigate PrimeNG v19 selector quirks, debug failing CI runs from trace artifacts, and seed/clean test data. Use when writing Playwright tests against a Spiderly app, automating login from tests, debugging selectors that won't match, or pulling trace screenshots from a failed CI run."
+    },
+    {
+      "name": "ef-migrations",
+      "surface": "skill",
+      "description": "Create and apply EF Core migrations in Spiderly projects. Use when adding, modifying, or removing entity properties, changing column types, renaming columns, or any database schema change that requires a migration."
+    },
+    {
+      "name": "entity-design",
+      "surface": "doc",
+      "description": "Design Spiderly entities with correct attributes, relationships, and UI mappings. Use when creating or modifying entity classes, choosing entity attributes, setting up relationships (M2O, 1-1 via [WithOne], M2M, ordered O2M), configuring file uploads on entities, or asking about UI control mapping."
+    },
+    {
+      "name": "file-storage",
+      "surface": "doc",
+      "description": "Configure file storage providers and blob upload behavior in Spiderly. Use when setting up storage for entity blob properties, choosing a built-in adapter, writing a custom adapter, or troubleshooting file upload issues."
+    },
+    {
+      "name": "filtering-patterns",
+      "surface": "doc",
+      "description": "Customize server-side filtering, pagination, and paginated list overrides. Use when doing custom server-side filtering, overriding paginated lists, working with FilterDTO, using AdditionalFilterId for parent-child filtering, or building programmatic filters."
+    },
+    {
+      "name": "frontend-localization",
+      "surface": "doc",
+      "description": "How Spiderly localizes Angular admin-panel UI strings — labels, buttons, menu items, validation messages, any user-facing text. Spiderly uses Transloco with flat assets/i18n/{lang}.json files loaded by SpiderlyTranslocoLoader. Use whenever you add or translate a UI string, hit a raw translation key rendering on screen, set up or change languages (provideTransloco / availableLangs), use translocoService.translate or the *transloco template directive, run i18n:extract, or wonder how form labels get auto-translated. For .NET backend strings (error messages, Excel names, IStringLocalizer), use the backend-localization skill instead."
+    },
+    {
+      "name": "mapper-customization",
+      "surface": "doc",
+      "description": "Customize Spiderly-generated Mapster mappers. Use when overriding DTO-to-entity or entity-to-DTO mapping, adding computed fields to DTOs, customizing query projections, or using the ProjectToDTO attribute."
+    },
+    {
+      "name": "report-gap",
+      "surface": "skill",
+      "description": "Use the moment you're forced into a workaround because the clean Spiderly-native path didn't exist — you looked for a lifecycle hook, an override, an entity attribute, or a generator option and it was structurally missing, so you had to bypass or copy generated code, or reach into framework internals. Also use when the gap is in Spiderly's own skills, plugins, or docs — a skill that should have fired but didn't, or skill/doc content that was missing, stale, or wrong for the case you hit. Turns that gap into a pre-filled GitHub issue URL against filiptrivan/spiderly that the user copies and submits. Also invoke manually to report a Spiderly limitation. NOT for hacks in the consumer's own business logic, NOT for ordinary bugs in your own code."
+    },
+    {
+      "name": "spiderly-upgrade",
+      "surface": "skill",
+      "description": "Upgrade a Spiderly consumer app's package version (NuGet + npm) to a newer Spiderly release. Use when the user asks to upgrade Spiderly, bump the Spiderly version, jump to a newer Spiderly release, or migrate to a newer Spiderly package version. Do NOT use for EF Core schema migrations (see ef-migrations skill)."
+    },
+    {
+      "name": "verify-ui",
+      "surface": "skill",
+      "description": "Log past Spiderly's email-code auth wall to visually verify the running Angular admin panel — screenshot a page, click through a flow, or dogfood a UI change without writing a test. Use when asked to \"verify the admin UI\", \"check this page renders\", \"screenshot the admin panel\", \"does this screen look right\", or to eyeball a change in the live app. For authoring Playwright test suites or debugging CI traces, use the e2e-testing skill instead."
+    }
+  ]
+}

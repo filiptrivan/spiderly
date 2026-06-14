@@ -208,6 +208,14 @@ namespace Spiderly.CLI.Commands
                 hasPmInstallErrors = true;
             }
 
+            // Project the version-matched AI-agent guidance shipped in the installed spiderly npm
+            // package into the new app (AGENTS.md index + .claude/skills junctions). Non-fatal: the
+            // package may be older or, in --dev mode, referenced from local source instead of node_modules.
+            if (!hasPmInstallErrors)
+            {
+                AgentSyncCommand.Execute(rootPath, failIfMissing: false);
+            }
+
             if (hasNetAndAngularInitErrors || hasLocalDevSecretsErrors || hasRestoreErrors || hasBuildErrors || hasEfMigrationErrors || hasDatabaseUpdateErrors || hasPmInstallErrors)
             {
                 if (hasNetAndAngularInitErrors)

@@ -11,6 +11,8 @@ staged=$(git diff --cached --name-only)
 ssot_src='^(Spiderly\.MetadataExporter/|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
 ssot_artifacts='^(framework-metadata\.json|claude-plugins/skills/[^/]+/references/[^/]+\.generated\.md)'
 ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/MatchModeCodes\.cs|Angular/projects/spiderly/src/lib/errors/api-error-codes\.ts|Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes\.ts)$'
+bundle_src='^(claude-plugins/skills/|tools/(build-agent-bundle\.mjs|agent-surface\.json))'
+bundle_artifacts='^Angular/projects/spiderly/agent/'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
@@ -39,6 +41,36 @@ if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
     printf '%s\n' $stale $untracked_artifacts | sed 's/^/  /'
   else
     echo "pre-commit: framework-metadata SSOT is in sync."
+  fi
+fi
+
+# --- Agent guidance bundle: regenerate, auto-stage when safe ----------------------------------
+# Runs after the framework-metadata block so the bundle copies freshly-regenerated *.generated.md.
+# Also triggers on SSOT changes (they ripple into the generated refs the bundle copies).
+if echo "$staged" | grep -qE "$bundle_src|$bundle_artifacts|$ssot_src|$ssot_artifacts"; then
+  echo "pre-commit: staged changes affect the agent bundle — regenerating to verify sync..."
+
+  node tools/build-agent-bundle.mjs
+
+  bundle_changes=$(git status --porcelain -- Angular/projects/spiderly/agent)
+
+  if [ -n "$bundle_changes" ]; then
+    # Same safety rule as the SSOT block: only auto-stage when the regen input (working tree)
+    # matches the index. Unstaged/untracked bundle sources mean the bundle would encode source
+    # changes this commit does not contain.
+    dirty_src=$({ git diff --name-only; git ls-files --others --exclude-standard; } | grep -E "$bundle_src" || true)
+    if [ -n "$dirty_src" ]; then
+      echo ""
+      echo "pre-commit: agent bundle was stale AND these bundle sources have unstaged/untracked changes:"
+      echo "$dirty_src" | sed 's/^/  /'
+      echo "pre-commit: auto-staging would commit content derived from sources outside this commit."
+      echo "pre-commit: stage (or stash) those sources, then retry the commit."
+      exit 1
+    fi
+    git add Angular/projects/spiderly/agent
+    echo "pre-commit: agent bundle was stale — regenerated and auto-staged into this commit."
+  else
+    echo "pre-commit: agent bundle is in sync."
   fi
 fi
 

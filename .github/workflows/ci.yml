@@ -53,6 +53,20 @@ jobs:
             exit 1
           fi
 
+      # Agent bundle guard: the committed bundle shipped inside the npm package (Angular/projects/
+      # spiderly/agent) must match what build-agent-bundle.mjs produces from claude-plugins/skills +
+      # agent-surface.json. Runs after the metadata step so it copies fresh *.generated.md. Uses
+      # `git status --porcelain` so a new skill folder (untracked) also fails. See docs/agent-guidance-distribution.md.
+      - name: Verify agent bundle is in sync
+        run: |
+          node tools/build-agent-bundle.mjs
+          if [ -n "$(git status --porcelain -- Angular/projects/spiderly/agent)" ]; then
+            echo "::error::Agent bundle is stale. Regenerate and commit:"
+            echo "::error::  node tools/build-agent-bundle.mjs"
+            git status --porcelain -- Angular/projects/spiderly/agent
+            exit 1
+          fi
+
   integration-test:
     name: Test CLI Generated Application
     needs: unit-test

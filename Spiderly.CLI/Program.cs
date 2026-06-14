@@ -59,6 +59,10 @@ namespace Spiderly.CLI
             {
                 return await MigrationCommand.ListMigrations();
             }
+            else if (args.HasArg("agent-sync"))
+            {
+                return AgentSyncCommand.Execute();
+            }
             else if (args.Length == 0)
             {
                 AnsiConsole.WriteLine($$"""

@@ -3,3 +3,8 @@
 # Windows checkout and make the git-diff guard misfire. See docs/framework-metadata-ssot.md.
 framework-metadata.json text eol=lf
 claude-plugins/skills/**/references/*.generated.md text eol=lf
+
+# Committed agent bundle (built by tools/build-agent-bundle.mjs, shipped in the npm package).
+# Same reason as above: the CI/pre-commit bundle guard byte-compares a fresh regeneration, so
+# pin LF to keep core.autocrlf from misfiring it on a Windows checkout. See docs/agent-guidance-distribution.md.
+Angular/projects/spiderly/agent/** text eol=lf
