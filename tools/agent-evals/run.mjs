@@ -1,16 +1,15 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { resultsRoot } from './lib/paths.mjs';
-import { provision as agnostic } from './tracks/agnostic.mjs';
 import { runVerify } from './verify.mjs';
 import { scoreRow } from './score.mjs';
 
-const TRACKS = { agnostic };
-
 // Run the full (agent × track × task × rep) grid. Each cell gets an isolated workspace.
 // A thrown error is an INFRA failure (pass:null) — never counted as an agent green/red.
-export async function runEval({ agents, agentsByName, track, tasks, reps, runId, meta = {} }) {
-  const provisionFn = TRACKS[track];
+// Both `agentsByName` and `tracksByName` are injected by the caller (the composition root),
+// so adding a track or an agent never edits this orchestrator.
+export async function runEval({ agents, agentsByName, tracksByName, track, tasks, reps, runId, meta = {} }) {
+  const provisionFn = tracksByName[track];
   if (!provisionFn) throw new Error(`unknown track: ${track}`);
 
   const rows = [];

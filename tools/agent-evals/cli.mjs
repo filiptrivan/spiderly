@@ -8,8 +8,10 @@ import { resultsRoot } from './lib/paths.mjs';
 import noop from './agents/noop.mjs';
 import oracle from './agents/oracle.mjs';
 import claude from './agents/claude.mjs';
+import { provision as agnostic } from './tracks/agnostic.mjs';
 
 const agentsByName = { noop, oracle, claude };
+const tracksByName = { agnostic };
 
 function die(msg) {
   console.error(`agent-evals: ${msg}`);
@@ -40,7 +42,7 @@ const runId = new Date().toISOString().replace(/[:.]/g, '-');
 const tasks = loadTasks({ tier: args.tier });
 if (!tasks.length) { console.error('No tasks found'); process.exit(1); }
 
-const matrix = await runEval({ ...args, agentsByName, tasks, runId });
+const matrix = await runEval({ ...args, agentsByName, tracksByName, tasks, runId });
 
 mkdirSync(join(resultsRoot, runId), { recursive: true });
 writeFileSync(join(resultsRoot, runId, 'matrix.json'), JSON.stringify(matrix, null, 2));
