@@ -1,0 +1,66 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    # Skip drafts, and (public repo) skip fork PRs: forks don't receive the
+    # OAuth secret and must never auto-spend tokens. A maintainer reviews an
+    # external PR on demand with `@claude review` (handled by claude.yml).
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Opus for precision on the "cite or don't post" bar. If every-push reviews
+          # start hitting your Max weekly usage cap, change `--model opus` to `--model sonnet`.
+          claude_args: '--model opus --max-turns 20 --allowed-tools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            REVIEW ROUND: ${{ (github.event.action == 'opened' || github.event.action == 'ready_for_review') && 'first' || 'subsequent' }}
+
+            Review this pull request. Follow the conventions in CLAUDE.md (root and any nested CLAUDE.md).
+
+            ## What to flag
+            - Logic errors and bugs
+            - Security issues
+            - C# <-> TypeScript contract mirrors broken or out of sync (ApiErrorCodes, MatchModeCodes, UIControlTypeCodes) — every mirror must change together
+            - Source-generator or public-API changes not reflected in the init template (Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs) that would break a freshly-init'd app
+            - Public members in shipped packages (Spiderly.Shared, Spiderly.Security, Spiderly.Infrastructure) missing /// <summary> XML docs
+            - Dead code left behind by deletions
+
+            ## Severity & output discipline
+            - Tag every finding 🔴 Important (should be fixed before merge) or 🟡 Nit (minor, non-blocking).
+            - Post at most 5 🟡 Nits inline. If there are more, give a "+N more nits" count in the summary instead of posting them.
+            - Open the summary with a one-line tally like "2 important, 4 nits", and lead with "No blocking issues" when there are no Important findings.
+            - If REVIEW ROUND is "subsequent": post 🔴 Important findings ONLY — suppress all 🟡 Nits and note "(nits suppressed on re-review)" in the summary. This stops iterative pushes from re-nitpicking.
+
+            ## Verification bar — post only what you can prove
+            - Every behavior or bug claim must cite the concrete file:line that proves it, not an inference from a name or convention.
+            - If you cannot verify a finding against the actual code, do NOT post it inline; at most raise it as an open question in the summary.
+
+            ## Skip entirely
+            framework-metadata.json, any *.generated.md, Angular/projects/spiderly/agent/**, and anything under obj/, bin/, node_modules/, or .source/.
+
+            Use `mcp__github_inline_comment__create_inline_comment` for inline comments on specific lines and `gh pr comment` for the summary. Only post GitHub comments — do not return review text as a regular message.
