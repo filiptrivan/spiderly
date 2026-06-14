@@ -63,3 +63,4 @@
 
 # Agent-eval ephemeral run workspaces (results committed in later phases go elsewhere)
 tools/agent-evals/results/
+tools/agent-evals/fixtures/spiderly-app/

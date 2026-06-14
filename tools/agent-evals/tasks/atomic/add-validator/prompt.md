@@ -1,0 +1,1 @@
+In the Spiderly application in this workspace, add a validation rule for the `Product` entity so that its `Name` property is required (non-empty) and at most 100 characters long. Use Spiderly's built-in validation mechanism — do not hand-roll validation outside the framework's conventions.
