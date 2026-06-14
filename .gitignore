@@ -60,3 +60,6 @@
 # Verify (snapshot testing): .received.* are unaccepted snapshots, .swp are stale lockfiles
 **/*.received.*
 **/.*.swp
+
+# Agent-eval ephemeral run workspaces (results committed in later phases go elsewhere)
+tools/agent-evals/results/
