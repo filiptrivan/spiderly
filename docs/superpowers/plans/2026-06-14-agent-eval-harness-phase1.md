@@ -167,8 +167,10 @@ test('run reports a non-zero exit code without throwing', () => {
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `cd tools && node --test agent-evals/lib/`
+Run: `cd tools && node --test agent-evals/lib/exec.test.mjs`
 Expected: PASS, 2 tests passing. (Implementation already written in Step 3 — this confirms the helper.)
+
+> **Node test-runner note (verified on Node v24):** the directory form `node --test agent-evals/lib/` does NOT work on Node 24 (it treats the dir path as a failing test). Use an **explicit file path** (as above) for a single file, or the **glob** `node --test "agent-evals/**/*.test.mjs"` to run all eval tests. All later per-task commands in this plan already use explicit file paths.
 
 - [ ] **Step 6: Create the trivial fixture**
 
@@ -187,7 +189,7 @@ Modify `tools/package.json` — add to the `"scripts"` object:
 
 ```json
     "eval": "node agent-evals/cli.mjs",
-    "test:evals": "node --test agent-evals/"
+    "test:evals": "node --test \"agent-evals/**/*.test.mjs\""
 ```
 
 - [ ] **Step 8: Ignore ephemeral results**
@@ -1038,7 +1040,7 @@ git commit -m "feat(agent-evals): first real task add-validator (dotnet-build ve
 
 ## Final verification
 
-- [ ] **Run the full deterministic suite** — Run: `cd tools && node --test agent-evals/` · Expected: all tests pass (exec, tasks-loader, agnostic, verify, agents, run-gate, report). The `add-validator` real task is NOT exercised here (no `*.test.mjs`), by design.
+- [ ] **Run the full deterministic suite** — Run: `cd tools && npm run test:evals` (equivalently `node --test "agent-evals/**/*.test.mjs"`) · Expected: all tests pass (exec, tasks-loader, agnostic, verify, agents, run-gate, report). The `add-validator` real task is NOT exercised here (no `*.test.mjs`), by design.
 - [ ] **Confirm the gate** — the `run.test.mjs` GATE test is green (oracle 100%, no-op 0%). If it ever goes red, the harness has stopped discriminating — treat as a release blocker for the harness itself.
 
 ---

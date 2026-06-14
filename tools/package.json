@@ -7,7 +7,7 @@
     "extract-ts": "node extract-ts-metadata.mjs",
     "gen-docs": "node gen-skill-docs.mjs",
     "eval": "node agent-evals/cli.mjs",
-    "test:evals": "node --test agent-evals/"
+    "test:evals": "node --test \"agent-evals/**/*.test.mjs\""
   },
   "devDependencies": {
     "ts-morph": "^28.0.0"
