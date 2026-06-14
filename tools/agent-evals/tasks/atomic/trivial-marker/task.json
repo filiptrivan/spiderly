@@ -1,0 +1,8 @@
+{
+  "id": "trivial-marker",
+  "tier": "atomic",
+  "targets": ["self-test"],
+  "fixture": "trivial",
+  "maxTurns": 1,
+  "required": ["marker-present"]
+}
