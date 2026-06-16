@@ -29,7 +29,7 @@ The docs-surface choice is further reinforced by **cross-agent reach** (Cursor/C
 
 The only mechanism that guarantees version-match with zero extra install/fetch is shipping guidance **inside the versioned artifact the consumer already depends on**. That is the real reason Next.js puts docs at `node_modules/next/dist/docs/` — not magic, just version-pinning ([next-16-2-ai](https://nextjs.org/blog/next-16-2-ai)). For a code generator this force is *stronger* than for a normal library.
 
-## Proposed design
+## Design
 
 ### Source of truth: the versioned `spiderly` npm package
 
@@ -41,13 +41,13 @@ Packaging detail to verify: the published tarball must actually include the new 
 
 ### Docs vs. skills split
 
-**Rule: declares allowed-tools / runs a command ⇒ skill; pure reference ⇒ doc.**
+**Rule: declares allowed-tools or runs a command ⇒ skill; pure reference ⇒ doc.**
 
 | → **Bundled docs** (always-on, indexed in `AGENTS.md`) | → **Skill** (explicit user trigger, junctioned into `.claude/skills`) |
 |---|---|
 | entity-design, angular-customization (control/validator maps), filtering-patterns, mapper-customization, custom-endpoints, backend-hooks, authorization, file-storage, backend-localization, frontend-localization, backend-testing, e2e-testing | add-entity, ef-migrations, spiderly-upgrade, deployment, verify-ui, report-gap |
 
-`backend-testing` and `e2e-testing` are pure reference (patterns, not runnable workflows) → docs. `backend-hooks` and `authorization` are reference-shaped but reached for mid-task → docs (no reliable trigger). `add-entity` declares allowed-tools and drives a workflow → skill.
+`backend-testing` and `e2e-testing` are pure reference (patterns, not runnable workflows) → docs. `backend-hooks` and `authorization` are reference-shaped but reached for mid-task → docs (no reliable trigger). `add-entity` runs the `spiderly add-new-entity` scaffold workflow → skill.
 
 ### Surfacing — two channels, one source
 
@@ -132,7 +132,6 @@ This composes with the existing SSOT diff-guard model (cheap deterministic CI ch
 
 1. **Unify the doc source first.** Skill bodies live in `claude-plugins/skills/`; website prose lives in `spiderly-website`. Best practice is one canonical source generated/packaged into both; otherwise the new system bakes in drift. **Recommend: unify before shipping.**
 2. **Anchor when the npm package isn't installed.** The npm package lands in `Frontend/node_modules` — but a consumer doing backend-only work in a fresh clone may not have run `npm install`. Options: (a) accept the dependency (every Spiderly app has the Angular admin); (b) have `Spiderly.CLI agent-sync` **vendor** a version-stamped copy into a repo dir (e.g. `.spiderly/agent/`) read from the pinned package, independent of `node_modules`. **Recommend: npm-package-primary, with CLI fallback that resolves the version-pinned package.**
-3. **The split itself** — confirm the borderline placements (decision above).
 
 ## Phased rollout
 

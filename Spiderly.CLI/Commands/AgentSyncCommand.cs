@@ -12,9 +12,10 @@ namespace Spiderly.CLI.Commands
     /// get accurate, version-matched Spiderly docs without a floating GitHub plugin install.
     ///
     /// Reconcile (not append): every run rewrites the marker-delimited Spiderly block in
-    /// <c>AGENTS.md</c> from the bundle's <c>doc</c>-surface entries, ensures <c>CLAUDE.md</c>
-    /// imports it, and makes <c>.claude/skills/spiderly-*</c> match the <c>skill</c>-surface
-    /// entries (creating directory links and pruning stale ones — so rename/delete self-heal).
+    /// <c>AGENTS.md</c> as a static pointer to the bundle's <c>docs/</c> directory, ensures
+    /// <c>CLAUDE.md</c> imports it, and makes <c>.claude/skills/spiderly-*</c> match the
+    /// manifest's skill entries (creating directory links and pruning stale ones — so
+    /// rename/delete self-heal).
     /// See <c>docs/agent-guidance-distribution.md</c>.
     /// </summary>
     internal static class AgentSyncCommand
@@ -33,7 +34,7 @@ namespace Spiderly.CLI.Commands
         private sealed class SkillEntry
         {
             public string Name { get; set; }
-            public string Surface { get; set; }
+            public string Surface { get; set; } // retained: manifest JSON still carries this key
             public string Description { get; set; }
         }
 
