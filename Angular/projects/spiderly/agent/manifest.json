@@ -1,19 +1,14 @@
 {
   "skills": [
     {
-      "name": "backend-testing",
+      "name": "add-entity",
       "surface": "skill",
-      "description": "Unit-test a Spiderly backend service against an EF Core InMemory database — covers the two InMemory pitfalls that silently corrupt assertions (the change tracker masking a missing SaveChanges, and WithTransactionAsync throwing TransactionIgnoredWarning). Use when writing xUnit/NUnit tests for entity services, business logic, or save/delete hooks against an InMemory DbContext, or when an InMemory-backed test passes/throws for reasons that don't match production."
+      "description": "Scaffold a new Spiderly entity end-to-end (entity class, Angular pages, routes, menu, migration)"
     },
     {
       "name": "deployment",
       "surface": "skill",
       "description": "Deploy a Spiderly project to your own infrastructure with Docker, Caddy, and Terraform. Use when deploying, redeploying, shipping, releasing, or rolling out the .NET backend or Angular admin to production — first-time setup or an ongoing deploy — and when diagnosing a down or erroring production origin (502/521, container crash-loop, failed deploy workflow). Also covers CI/CD pipelines, TLS with Cloudflare origin certificates, database backups and restores, and infrastructure-as-code layout for a Spiderly app."
-    },
-    {
-      "name": "e2e-testing",
-      "surface": "skill",
-      "description": "End-to-end testing a Spiderly app with Playwright — log in via the dev-mode verification-code helper, navigate PrimeNG v19 selector quirks, debug failing CI runs from trace artifacts, and seed/clean test data. Use when writing Playwright tests against a Spiderly app, automating login from tests, debugging selectors that won't match, or pulling trace screenshots from a failed CI run."
     },
     {
       "name": "ef-migrations",
