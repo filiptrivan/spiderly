@@ -83,17 +83,18 @@ namespace Spiderly.CLI.Commands
             }
 
             string agentDir = Path.GetDirectoryName(manifestPath);
+            string docsDir = Path.Combine(agentDir, "docs");
             string skillsDir = Path.Combine(agentDir, "skills");
-            string relSkills = Path.GetRelativePath(cwd, skillsDir).Replace('\\', '/');
+            string relDocs = Path.GetRelativePath(cwd, docsDir).Replace('\\', '/');
             string version = ReadPackageVersion(agentDir);
 
-            List<SkillEntry> docs = Surface(manifest, "doc");
-            List<SkillEntry> skillLinks = Surface(manifest, "skill");
+            // manifest.json now lists skill-surface entries only — every entry is junctioned.
+            List<SkillEntry> skillLinks = manifest.Skills;
 
             int created, pruned;
             try
             {
-                WriteAgentsBlock(cwd, BuildBlock(docs, relSkills, version));
+                WriteAgentsBlock(cwd, BuildBlock(relDocs));
                 EnsureClaudeImport(cwd);
                 (created, pruned) = ReconcileSkillJunctions(cwd, skillsDir, skillLinks);
             }
@@ -104,7 +105,7 @@ namespace Spiderly.CLI.Commands
             }
 
             ConsoleHelper.MarkupLineOK(
-                $"Synced {docs.Count} doc(s) into AGENTS.md, {skillLinks.Count} skill junction(s)" +
+                $"Synced AGENTS.md docs pointer + {skillLinks.Count} skill junction(s)" +
                 (pruned > 0 ? $" ({pruned} stale pruned)" : "") +
                 $", and ensured CLAUDE.md imports it" + (version != null ? $" (v{version})." : "."));
             return 0;
@@ -136,19 +137,16 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static string BuildBlock(List<SkillEntry> docs, string relSkills, string version)
+        private static string BuildBlock(string relDocs)
         {
-            var sb = new StringBuilder();
-            sb.Append(BeginMarker).Append('\n');
-            sb.Append("# Spiderly — read the docs before coding").Append(version != null ? $" (v{version})" : "").Append('\n');
-            sb.Append('\n');
-            sb.Append("Your training data is stale. Before any Spiderly work, read the matching reference at\n");
-            sb.Append($"`{relSkills}/<name>/SKILL.md` (version-matched to the installed package):\n");
-            sb.Append('\n');
-            foreach (SkillEntry d in docs)
-                sb.Append($"- **{d.Name}** — {d.Description}\n");
-            sb.Append(EndMarker);
-            return sb.ToString();
+            return
+                BeginMarker + "\n" +
+                "# Spiderly\n" +
+                "\n" +
+                "Your training data for Spiderly is stale. Before writing any Spiderly code, browse\n" +
+                $"`{relDocs}/` and read the `SKILL.md` for the topic you're working on — these docs are\n" +
+                "version-matched to the installed Spiderly package.\n" +
+                EndMarker;
         }
 
         /// <summary>Rewrites the marker-delimited Spiderly block in AGENTS.md, preserving any content outside it.</summary>
@@ -204,12 +202,6 @@ namespace Spiderly.CLI.Commands
         {
             File.WriteAllText(path, content, new UTF8Encoding(false));
         }
-
-        private static List<SkillEntry> Surface(Manifest manifest, string surface) =>
-            manifest.Skills
-                .Where(s => string.Equals(s.Surface, surface, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(s => s.Name, StringComparer.Ordinal)
-                .ToList();
 
         /// <summary>
         /// Makes .claude/skills/spiderly-* match the manifest's skill-surface entries: creates/refreshes
