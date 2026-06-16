@@ -5,8 +5,9 @@
 // Categorization:  tools/agent-surface.json (each skill -> "doc" | "skill").
 //
 // Output (committed build artifact, like the framework-metadata SSOT):
-//   Angular/projects/spiderly/agent/manifest.json   — machine-readable contract the CLI reads
-//   Angular/projects/spiderly/agent/skills/**        — copy of the skills tree
+//   Angular/projects/spiderly/agent/manifest.json   — machine-readable contract (skill-surface only)
+//   Angular/projects/spiderly/agent/docs/**          — reference docs (browsed via AGENTS.md pointer)
+//   Angular/projects/spiderly/agent/skills/**        — workflow skills (junctioned into .claude/skills)
 //
 // ng-packagr copies agent/** into dist/spiderly/agent during `ng build spiderly`, so it lands
 // at node_modules/spiderly/agent in consumer apps — version-pinned. `Spiderly.CLI agent-sync`
@@ -87,12 +88,21 @@ if (errors.length) fail(`bundle validation failed (${errors.length})`, errors);
 
 // --- Write the bundle (clean rebuild so renames/deletes propagate) ------------------------------
 rmSync(bundleRoot, { recursive: true, force: true });
-mkdirSync(bundleRoot, { recursive: true });
+mkdirSync(join(bundleRoot, 'docs'), { recursive: true });
+mkdirSync(join(bundleRoot, 'skills'), { recursive: true });
 
-cpSync(skillsRoot, join(bundleRoot, 'skills'), { recursive: true });
+// Split by surface so each skill has exactly ONE discovery channel:
+//   agent/docs/<name>   — reference, browsed via the always-on AGENTS.md pointer
+//   agent/skills/<name> — workflow, junctioned into .claude/skills/spiderly-*
+for (const s of skills) {
+  const dest = s.surface === 'doc' ? 'docs' : 'skills';
+  cpSync(join(skillsRoot, s.name), join(bundleRoot, dest, s.name), { recursive: true });
+}
 
-const manifest = { skills }; // no version field — kept SSOT-stable across release bumps
+// Manifest lists ONLY skill-surface entries — the CLI junctions these by name and prunes the
+// rest. Doc-surface skills need no enumeration; they're found by browsing agent/docs/.
+const manifest = { skills: skills.filter((s) => s.surface === 'skill') };
 writeFileSync(join(bundleRoot, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-const docs = skills.filter((s) => s.surface === 'doc').length;
-console.log(`build-agent-bundle: wrote manifest (${skills.length} skills: ${docs} doc, ${skills.length - docs} skill) + skills tree to agent/`);
+const docCount = skills.filter((s) => s.surface === 'doc').length;
+console.log(`build-agent-bundle: wrote ${docCount} doc(s) to agent/docs, ${skills.length - docCount} skill(s) to agent/skills + manifest`);
