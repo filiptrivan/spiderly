@@ -609,13 +609,11 @@ jobs:
             git add "Angular/projects/spiderly/package.json"
           fi
 
-          # Bump marketplace.json + spiderly-cli/package.json in lockstep with the framework.
-          # These live in finalize (not a build matrix lane) because they produce no artifact.
-          # TODO: sed assumes exactly one "version" key per file; switch to `jq` if either grows a second.
+          # Bump spiderly-cli/package.json in lockstep with the framework.
+          # (lives in finalize, not a build matrix lane — produces no artifact)
           new_version="${{ needs.validate.outputs.new_version }}"
-          sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$new_version\"|" .claude-plugin/marketplace.json
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$new_version\"|" spiderly-cli/package.json
-          git add .claude-plugin/marketplace.json spiderly-cli/package.json
+          git add spiderly-cli/package.json
 
           if ! git diff --staged --quiet; then
             git commit -m "chore: bump version to ${{ needs.validate.outputs.new_version }}"

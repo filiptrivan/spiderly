@@ -4393,8 +4393,8 @@ Spiderly is a code generator. You define EF Core entities as C# classes decorate
 
 Spiderly's AI-agent guidance is **version-matched to your installed package**. The `spiderly` npm package ships docs + skills under `Frontend/node_modules/spiderly/agent/`, and `spiderly agent-sync` (run automatically by `spiderly init`) projects them into this project:
 
-- **`AGENTS.md`** — an always-on index of Spiderly reference docs (entity design, filtering, authorization, hooks, mapper/Angular customization, localization, file storage). `CLAUDE.md` imports it via `@AGENTS.md`, so the guidance is always in context. Cross-agent (Cursor, Copilot, Codex too).
-- **`.claude/skills/spiderly-*`** — on-demand, trigger-based skills for deeper workflows (EF migrations, deployment, testing, upgrade). Run `/skills` to list.
+- **`AGENTS.md`** — an always-on pointer telling agents to read version-matched Spiderly reference docs from `Frontend/node_modules/spiderly/agent/docs/`. `CLAUDE.md` imports it via `@AGENTS.md`, so it's always in context. Cross-agent (Cursor, Copilot, Codex too).
+- **`.claude/skills/spiderly-*`** — on-demand, trigger-based skills for deeper workflows (scaffold an entity, EF migrations, deployment, upgrade). Run `/skills` to list.
 
 Re-run **`spiderly agent-sync`** anytime to refresh both after upgrading the package — it's idempotent and reconciles renamed/removed skills automatically.
 """;
