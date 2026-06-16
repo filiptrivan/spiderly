@@ -15,7 +15,7 @@ When you add/refactor an option:
 
 ### Versioning
 
-`X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag, `Angular/projects/spiderly/package.json`, `spiderly-cli/package.json`, and `.claude-plugin/marketplace.json` (`plugins[0].version`). These are bumped together by `.github/workflows/release.yml` — do not hand-edit.
+`X.Y.Z` (stable) or `X.Y.Z-preview.N` (preview). All packages share the same version. Stored in each `.csproj` `<Version>` tag, `Angular/projects/spiderly/package.json`, and `spiderly-cli/package.json`. These are bumped together by `.github/workflows/release.yml` — do not hand-edit.
 
 **Version bumps happen at publish time, not during refactors.** Don't bump the version as part of a feature or refactor PR — even for breaking changes. The human owns release cadence and decides when to cut a new version.
 

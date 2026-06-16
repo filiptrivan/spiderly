@@ -1,7 +1,7 @@
 # Agent guidance distribution — Design
 
-> Status: **DECIDED — implementation in progress.** Tracking: [filiptrivan/spiderly#250](https://github.com/filiptrivan/spiderly/issues/250).
-> Decisions locked: source of truth = the versioned `spiderly` npm package; bundle wiring = **committed + guarded** (SSOT-style); projection = a new `Spiderly.CLI agent-sync` command that **reconciles** (see below). Phase 1 (docs) is being built first.
+> Status: **DONE.** Tracking: [filiptrivan/spiderly#250](https://github.com/filiptrivan/spiderly/issues/250).
+> Decisions locked: source of truth = the versioned `spiderly` npm package; bundle wiring = **committed + guarded** (SSOT-style); projection = a new `Spiderly.CLI agent-sync` command that **reconciles** (see below).
 > This doc proposes *where* Spiderly's agent guidance (skills + docs) should live and *how* it reaches a consumer app. It deliberately builds on the existing SSOT pipeline (`docs/framework-metadata-ssot.md`) rather than replacing it — that pipeline already solves "don't hand-duplicate reference *tables*"; this doc solves "ship the guidance version-matched and make agents actually use it."
 
 ## Problem
@@ -18,10 +18,12 @@ Two — and only two — forces determine the right design.
 
 ### Force 1 — Trigger reliability → decides docs vs. skills
 
-Vercel's published eval: bundled docs + `AGENTS.md` scored **100%**, skills-with-explicit-instructions **79%**, and skills **failed to even trigger 56% of the time** by default ([eval writeup](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)). Mechanism: a skill requires the agent to *decide* "should I look this up?" — and an agent doesn't know what it doesn't know.
+The core issue: a skill requires the agent to *decide* "should I look this up?" — and an agent doesn't know what it doesn't know. Vercel's published eval ([eval writeup](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)) quantifies this for their context, but the **underlying mechanism** is the deciding factor here, not the headline numbers: passive reference knowledge has no reliable trigger; explicit user-invoked workflows do.
 
 - **Passive knowledge** ("how filtering works", "what attributes exist") has **no reliable trigger** → must be always-on context.
 - **A workflow the user explicitly asks for** ("scaffold an entity", "upgrade Spiderly") **is** its own trigger → a skill works.
+
+The docs-surface choice is further reinforced by **cross-agent reach** (Cursor/Copilot/Codex have no skill registry but do read `AGENTS.md`) and by Force 2 below. Vercel's inlined-prose evaluation pattern does not translate directly — our `AGENTS.md` block is a **pointer** to versioned files, not inlined content, so the surface choice rests on trigger reliability and version-pin, not on reproducing their specific eval setup.
 
 ### Force 2 — Version coupling → decides where it lives
 
@@ -37,19 +39,23 @@ Packaging detail to verify: the published tarball must actually include the new 
 
 > ⚠️ **NuGet is the wrong vehicle.** NuGet packages unpack to the global `~/.nuget/packages` store and content files land unpredictably under `obj/`; there is no clean, readable in-repo path for an agent to read. npm's flat, readable `node_modules` layout is what makes the Next.js pattern work.
 
-### Docs vs. skills split (needs sign-off)
+### Docs vs. skills split
 
-| → **Bundled docs** (always-on, indexed in `AGENTS.md`) | → **Skill** (explicit user trigger, linked into `.claude/skills`) |
+**Rule: declares allowed-tools / runs a command ⇒ skill; pure reference ⇒ doc.**
+
+| → **Bundled docs** (always-on, indexed in `AGENTS.md`) | → **Skill** (explicit user trigger, junctioned into `.claude/skills`) |
 |---|---|
-| entity-design, angular-customization (control/validator maps), filtering-patterns, mapper-customization, custom-endpoints, backend-hooks, authorization, file-storage, backend-localization, frontend-localization | add-entity, ef-migrations, spiderly-upgrade, deployment, backend-testing, e2e-testing, verify-ui, report-gap |
+| entity-design, angular-customization (control/validator maps), filtering-patterns, mapper-customization, custom-endpoints, backend-hooks, authorization, file-storage, backend-localization, frontend-localization, backend-testing, e2e-testing | add-entity, ef-migrations, spiderly-upgrade, deployment, verify-ui, report-gap |
 
-Borderline (confirm): `backend-hooks`, `authorization` are reference-shaped but reached for mid-task. Default them to docs (no reliable trigger), revisit if evals say otherwise.
+`backend-testing` and `e2e-testing` are pure reference (patterns, not runnable workflows) → docs. `backend-hooks` and `authorization` are reference-shaped but reached for mid-task → docs (no reliable trigger). `add-entity` declares allowed-tools and drives a workflow → skill.
 
 ### Surfacing — two channels, one source
 
-- **Docs** → a **compressed index** written into the consumer's repo-root `AGENTS.md`, pointing at `Frontend/node_modules/spiderly/docs/*.md`, with `CLAUDE.md` including it via `@AGENTS.md`. The index is the always-on routing layer (Vercel compressed 40KB→8KB); the agent reads individual doc files on demand. `AGENTS.md` is the cross-agent standard (Cursor/Copilot/Codex/Claude), so one file reaches every agent.
+The bundle is **physically split** in the npm package: `agent/docs/**` holds the browsable reference files; `agent/skills/**` holds the skill files that are junctioned into the consumer's `.claude/skills`. This split makes the two surfaces mechanically distinct — docs are read in place, skills are linked.
+
+- **Docs** → a **static directory pointer** written into the consumer's repo-root `AGENTS.md`, pointing at `Frontend/node_modules/spiderly/agent/docs/`, with `CLAUDE.md` including it via `@AGENTS.md`. The pointer is **static** (no file enumeration, no version stamp) — enumerating skills into the block would cache a point-in-time manifest into the consumer's tracked file, going stale on every upgrade until `agent-sync` reruns. A bare directory pointer avoids that; the agent browses the directory on demand. `AGENTS.md` is the cross-agent standard (Cursor/Copilot/Codex/Claude), so one file reaches every agent.
   - The Spiderly-managed region is **marker-delimited** (`<!-- BEGIN:spiderly … -->` / `<!-- END:spiderly -->`), so a refresh replaces only that block and the consumer's own instructions survive — same pattern Next.js uses.
-- **Skills** → **linked**, not copied: a junction/symlink from `node_modules/spiderly/agent/skills/*` into the consumer's `.claude/skills/spiderly-*`. **Claude Code does not auto-discover skills inside `node_modules`** — it scans `~/.claude/skills`, project `.claude/skills`, and installed plugins only. The link step is mandatory; handle Windows junction + POSIX symlink.
+- **Skills** → **junctioned**, not copied: a junction/symlink from `node_modules/spiderly/agent/skills/*` into the consumer's `.claude/skills/spiderly-*`. **Claude Code does not auto-discover skills inside `node_modules`** — it scans `~/.claude/skills`, project `.claude/skills`, and installed plugins only. The link step is mandatory; handle Windows junction + POSIX symlink.
 
 ### The manifest contract + reconcile semantics
 
@@ -132,7 +138,7 @@ This composes with the existing SSOT diff-guard model (cheap deterministic CI ch
 
 1. **Phase 1 — docs. ✅ DONE.** Bundle (`tools/build-agent-bundle.mjs` → `Angular/projects/spiderly/agent/`, shipped via ng-packagr assets); `spiderly agent-sync` reconciles the `AGENTS.md` index + `@AGENTS.md`. Drift guard (CI + pre-commit) extended.
 2. **Phase 2 — skills. ✅ DONE.** `agent-sync` creates/prunes `.claude/skills/spiderly-*` junctions (Windows `mklink /J`, POSIX symlink) reconciled against the manifest.
-3. **Phase 3 — adopt + deprecate (remaining).** Wire `agent-sync` into `InitCommand` and the `spiderly-upgrade` skill; switch the scaffold (`NetAndAngularFilesGenerator` README + `.claude/settings.json`) off the `spiderly@spiderly` plugin auto-enable and onto `@AGENTS.md` + junctions. **Recommended as a dual-run deprecation:** ship the new path additively and keep the plugin published for one release so existing consumers can migrate, then remove `.claude-plugin/marketplace.json` + the plugin manifests (and stop `release.yml` bumping the marketplace version). NOTE: `claude-plugins/skills/` stays — it's now the bundle's authoring source; only the *plugin packaging* is removed (a later, separate change can rename the dir to drop the `claude-plugins` connotation).
+3. **Phase 3 — adopt + deprecate. ✅ DONE.** Wired `agent-sync` into `InitCommand` and the `spiderly-upgrade` skill; switched the scaffold (`NetAndAngularFilesGenerator` README + `.claude/settings.json`) off the `spiderly@spiderly` plugin auto-enable and onto `@AGENTS.md` + junctions. Removed `.claude-plugin/marketplace.json` + the plugin manifests; `release.yml` no longer bumps the marketplace version. NOTE: `claude-plugins/skills/` stays — it's the bundle's authoring source; only the *plugin packaging* was removed.
 
 ## References
 
