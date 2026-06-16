@@ -1,0 +1,18 @@
+# Owner-reserved paths — changes here break downstream consumers or freshly-generated apps.
+# CODEOWNERS auto-requests the owner as reviewer; with the develop ruleset's
+# require_code_owner_review, owned-path PRs need owner sign-off before merge.
+
+# Public cross-language contracts (C# <-> TS mirrors must change together)
+/Spiderly.Shared/Contracts/                                   @filiptrivan
+/Angular/projects/spiderly/src/lib/errors/api-error-codes.ts  @filiptrivan
+
+# Source generators + init template (a wrong change breaks freshly-init'd apps)
+/Spiderly.SourceGenerators/                                   @filiptrivan
+/Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs       @filiptrivan
+
+# Security package (shipped, auth-critical)
+/Spiderly.Security/                                           @filiptrivan
+
+# Release pipeline + framework-metadata SSOT
+/.github/workflows/release.yml                                @filiptrivan
+/framework-metadata.json                                      @filiptrivan
