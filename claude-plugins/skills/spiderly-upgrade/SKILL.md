@@ -149,6 +149,16 @@ Print summary:
 
 Do **not** auto-commit. The user reviews the diff and commits themselves.
 
+## Refresh AI-agent guidance
+
+After the new `spiderly` package is installed, project the version-matched guidance:
+
+```bash
+spiderly agent-sync
+```
+
+This is idempotent and reconciling: it rewrites the static `AGENTS.md` docs pointer, ensures `CLAUDE.md` imports it (`@AGENTS.md`), and adds/refreshes/prunes `.claude/skills/spiderly-*` junctions so renamed or removed skills self-heal. Re-running it is always safe.
+
 ## Rules
 
 - **Never auto-revert.** Leave the in-progress state in the working tree so the user can see what was attempted; they roll back with `git restore .`
