@@ -25,7 +25,7 @@
     <None Remove="ValidationRules\**" />
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
-    <AdditionalFiles Include="spiderly.json" />
+    <AdditionalFiles Include=".spiderly/config.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
