@@ -127,7 +127,10 @@ jobs:
         run: |
           export PATH="$HOME/.dotnet/tools:$PATH"
           cd ..
-          spiderly init --name "${{ env.TEST_APP_NAME }}" --db postgresql
+          # --db skip: the eval only runs `dotnet build` (no DB / migrations / running app), so we
+          # skip DB provisioning entirely. That's why this workflow needs no Postgres service —
+          # unlike ci.yml's integration-test, which boots the app and so sets up Postgres first.
+          spiderly init --name "${{ env.TEST_APP_NAME }}" --db skip
 
       # Apply the eval overlay: the add-validator PRE-task Product (Name present, NO validation).
       # We deliberately do NOT run tests/e2e-fixtures/setup.sh — that overlay's Product.Name already
