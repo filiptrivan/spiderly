@@ -82,7 +82,15 @@ jobs:
         run: |
           npm install -g @anthropic-ai/claude-code
           claude --version
-          claude auth status
+          # `claude auth status` only confirms a token is PRESENT — it returns loggedIn:true even for
+          # an invalid/expired token. A tiny real call validates it against the API; is_error catches a
+          # 401 here (seconds) instead of after the ~8-min fixture build.
+          probe=$(claude -p "Reply with exactly: OK" --max-turns 1 --output-format json || true)
+          echo "$probe"
+          if echo "$probe" | grep -q '"is_error":true'; then
+            echo "::error::Claude auth probe failed — invalid/expired CLAUDE_CODE_OAUTH_TOKEN. Regenerate with 'claude setup-token' and update the repo secret."
+            exit 1
+          fi
 
       # --- Build the `spiderly-app` fixture in CI (the pre-task state) ---
       # Mirrors ci.yml's integration-test scaffold: build+pack packages, publish the Angular lib to a
