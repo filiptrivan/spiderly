@@ -116,10 +116,12 @@ namespace Spiderly.CLI.Commands
                 new CommandInfo
                 {
                     Name = "agent-sync",
-                    Description = "Sync version-matched Spiderly AI-agent guidance from the installed npm package into this project (writes an AGENTS.md index and makes CLAUDE.md import it). Idempotent; safe to re-run after upgrades.",
+                    Description = "Sync version-matched Spiderly AI-agent guidance from the installed npm package into this project (writes an AGENTS.md index, makes CLAUDE.md import it, and junctions .claude/skills/spiderly-*). Idempotent; safe to re-run after upgrades. Use --agent-root to project the guidance into an outer workspace/umbrella root that nests this app (persist it with --save to .spiderly/config.local.json), or --project-root to read the bundle from a nested app.",
                     Examples = new List<string>
                     {
-                        "spiderly agent-sync"
+                        "spiderly agent-sync",
+                        "spiderly agent-sync --agent-root .. --save",
+                        "spiderly agent-sync --project-root pa-cms"
                     }
                 }
             };

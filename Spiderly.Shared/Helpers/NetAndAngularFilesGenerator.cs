@@ -4331,6 +4331,9 @@ export class LayoutComponent {
 # (AGENTS.md is committed; these links point at absolute node_modules paths, so they're per-machine)
 **/.claude/skills/spiderly-*
 
+# Spiderly machine-local config (e.g. agent-sync workspace target); committed config is .spiderly/config.json
+**/.spiderly/*.local.json
+
 # System files
 **/.DS_Store
 **/Thumbs.db
