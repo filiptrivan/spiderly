@@ -903,13 +903,13 @@ namespace Spiderly.SourceGenerators.Shared
                 });
         }
 
-        /// <summary>Gets the parsed spiderly.json configuration.</summary>
+        /// <summary>Gets the parsed .spiderly/config.json configuration.</summary>
         /// <param name="context">The context of the Generator's initialization.</param>
         /// <returns>The parsed <see cref="SpiderlyConfig"/> instance.</returns>
         public static IncrementalValueProvider<SpiderlyConfig> GetSpiderlyConfig(this IncrementalGeneratorInitializationContext context)
         {
             return context.AdditionalTextsProvider
-                .Where(file => file.Path.EndsWith("spiderly.json"))
+                .Where(file => file.Path.Replace('\\', '/').EndsWith(".spiderly/config.json"))
                 .Select((text, cancellationToken) => text.GetText(cancellationToken)?.ToString() ?? string.Empty)
                 .Collect()
                 .Select((texts, _) => SpiderlyConfig.Parse(texts.FirstOrDefault()));

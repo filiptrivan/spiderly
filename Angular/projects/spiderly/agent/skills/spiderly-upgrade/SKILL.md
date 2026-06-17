@@ -96,7 +96,7 @@ Manual steps after upgrade:
 
 Version bumps: Spiderly.*  19.5.0 → 21.2.0  (4 csproj + Frontend/package.json[ + .claude/settings.json legacy-plugin removal])
 
-After approval: apply → bump → migrate guidance → restore + install (parallel) → build → agent-sync. Up to 2 build-fix retries on failure.
+After approval: apply → bump → migrate guidance + config → restore + install (parallel) → build → agent-sync. Up to 2 build-fix retries on failure.
 ```
 
 ## Step 5 — Single approval gate
@@ -109,10 +109,11 @@ In this order. A failure at any step is a hard stop until the recovery procedure
 
 1. **Code edits.** Apply each plan item via Edit. Read each target file first.
 2. **Version bumps.** Iterate the csproj list cached in Step 1: rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />` to the new version. Rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
-3. **Migrate agent guidance off the legacy plugin.** Spiderly's AI-agent guidance now ships *inside* the `spiderly` npm package (projected by `spiderly agent-sync` in item 6 below), replacing the old `spiderly@spiderly` Claude Code plugin. If `.claude/settings.json` contains `extraKnownMarketplaces.spiderly` and/or `enabledPlugins."spiderly@spiderly"`, remove just those keys (leave any other settings intact; delete the file only if it becomes an empty `{}`). No settings file or no spiderly entries → skip.
-4. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
-5. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
-6. **Sync agent guidance.** Run `spiderly agent-sync` from the app root. It reads the freshly-installed `Frontend/node_modules/spiderly/agent` bundle and reconciles `AGENTS.md` (doc index + `@AGENTS.md` in `CLAUDE.md`) and `.claude/skills/spiderly-*` (junctions, pruning any renamed/removed skill). Idempotent; non-fatal if it warns the bundle is missing (an older package predating the bundle).
+3. **Migrate agent guidance off the legacy plugin.** Spiderly's AI-agent guidance now ships *inside* the `spiderly` npm package (projected by `spiderly agent-sync` in item 7 below), replacing the old `spiderly@spiderly` Claude Code plugin. If `.claude/settings.json` contains `extraKnownMarketplaces.spiderly` and/or `enabledPlugins."spiderly@spiderly"`, remove just those keys (leave any other settings intact; delete the file only if it becomes an empty `{}`). No settings file or no spiderly entries → skip.
+4. **Migrate `spiderly.json` → `.spiderly/config.json`.** Recent Spiderly moved the generator/api config out of a root `spiderly.json` into `.spiderly/config.json`. If the app has a `spiderly.json` registered via `<AdditionalFiles Include="spiderly.json" />`, `git mv` it to `.spiderly/config.json` and rewrite that csproj line to `<AdditionalFiles Include=".spiderly/config.json" />`. No `spiderly.json` → skip.
+5. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
+6. **`dotnet build`** from the Backend dir. On failure, go to Step 7.
+7. **Sync agent guidance.** Run `spiderly agent-sync` from the app root. It reads the freshly-installed `Frontend/node_modules/spiderly/agent` bundle and reconciles `AGENTS.md` (doc index + `@AGENTS.md` in `CLAUDE.md`) and `.claude/skills/spiderly-*` (junctions, pruning any renamed/removed skill). Idempotent; non-fatal if it warns the bundle is missing (an older package predating the bundle).
 
 ## Step 7 — Build-failure recovery (max 2 retries)
 
