@@ -104,5 +104,5 @@ for (const s of skills) {
 const manifest = { skills: skills.filter((s) => s.surface === 'skill') };
 writeFileSync(join(bundleRoot, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-const docCount = skills.filter((s) => s.surface === 'doc').length;
+const docCount = skills.length - manifest.skills.length;
 console.log(`build-agent-bundle: wrote ${docCount} doc(s) to agent/docs, ${skills.length - docCount} skill(s) to agent/skills + manifest`);

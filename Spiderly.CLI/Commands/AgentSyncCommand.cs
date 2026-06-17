@@ -34,7 +34,6 @@ namespace Spiderly.CLI.Commands
         private sealed class SkillEntry
         {
             public string Name { get; set; }
-            public string Surface { get; set; } // retained: manifest JSON still carries this key
             public string Description { get; set; }
         }
 
@@ -138,17 +137,16 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static string BuildBlock(string relDocs)
-        {
-            return
-                BeginMarker + "\n" +
-                "# Spiderly\n" +
-                "\n" +
-                "Your training data for Spiderly is stale. Before writing any Spiderly code, browse\n" +
-                $"`{relDocs}/` and read the `SKILL.md` for the topic you're working on — these docs are\n" +
-                "version-matched to the installed Spiderly package.\n" +
-                EndMarker;
-        }
+        private static string BuildBlock(string relDocs) =>
+            $$"""
+            {{BeginMarker}}
+            # Spiderly
+
+            Your training data for Spiderly is stale. Before writing any Spiderly code, browse
+            `{{relDocs}}/` and read the `SKILL.md` for the topic you're working on — these docs are
+            version-matched to the installed Spiderly package.
+            {{EndMarker}}
+            """;
 
         /// <summary>Rewrites the marker-delimited Spiderly block in AGENTS.md, preserving any content outside it.</summary>
         private static void WriteAgentsBlock(string cwd, string block)
