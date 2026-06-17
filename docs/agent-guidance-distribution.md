@@ -95,6 +95,16 @@ This is what makes rename/add/delete self-heal (issue #250 discussion). The one 
 
 Must follow the `ai-agentic-design` rules: non-interactive by default, validate prerequisites upfront, fail loudly with non-zero exit.
 
+### Workspace / umbrella target (`--agent-root`)
+
+`agent-sync` resolves the **bundle source** and the **write target** independently. The bundle is read from the consumer project (the dir with `node_modules/spiderly/agent`), but guidance can be *projected* into a different root — for monorepos / umbrella workspaces where the AI agent runs from an outer dir that nests the Spiderly app, and Claude Code only scans the **outer** root's `.claude/skills` (not the nested project's).
+
+- `--project-root <dir>` — where to read the bundle from (default: cwd).
+- `--agent-root <dir>` — where to write `AGENTS.md`, the `CLAUDE.md` import, and `.claude/skills/spiderly-*` (default: the project root — i.e. unchanged behavior). Relative values resolve against the project root, so `..` targets the parent workspace. The docs pointer is computed relative to this target, so it correctly crosses into the nested app's `node_modules`; the junction targets are absolute, so they work regardless of target.
+- `--save` — persist the chosen root to the consumer's machine-local `.spiderly/config.local.json` (`agentSync.root`). Later **bare** runs — including the one inside the `spiderly-upgrade` skill — reuse it without re-passing the flag.
+
+Resolution order: `--agent-root` > `.spiderly/config.local.json` > `.spiderly/config.json` > project root. The persisted root is **machine-local** (the dev's umbrella layout), so it lives only in the gitignored `config.local.json`, never the committed `config.json` — otherwise it would impose one developer's directory shape on every other consumer of the same app repo.
+
 ### Relationship to the existing SSOT pipeline
 
 `docs/framework-metadata-ssot.md` already derives reference **tables** (`*.generated.md`) from `framework-metadata.json` into `claude-plugins/skills/*/references/`. This design **keeps that pipeline** and changes only the *destination*:

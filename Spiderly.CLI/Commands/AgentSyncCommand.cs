@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Spiderly.CLI.Services;
 
 namespace Spiderly.CLI.Commands
@@ -37,17 +38,28 @@ namespace Spiderly.CLI.Commands
             public string Description { get; set; }
         }
 
-        /// <param name="projectRoot">Consumer project root; defaults to the current directory.</param>
+        /// <param name="projectRoot">Consumer project root (where the npm bundle is resolved); defaults to the current directory.</param>
+        /// <param name="agentRoot">
+        /// Where the agent guidance is *written* (AGENTS.md, the CLAUDE.md import, and
+        /// .claude/skills/spiderly-*). Defaults to <paramref name="projectRoot"/>; set it (via
+        /// <c>--agent-root</c>) to an outer workspace/umbrella root that nests the consumer project.
+        /// Relative values resolve against <paramref name="projectRoot"/>. When not passed, falls back
+        /// to <c>agentSync.root</c> in <c>.spiderly/config.local.json</c> then <c>.spiderly/config.json</c>.
+        /// </param>
+        /// <param name="saveAgentRoot">
+        /// When true and <paramref name="agentRoot"/> is set, persists it to the machine-local
+        /// <c>.spiderly/config.local.json</c> (gitignored) so later bare runs reuse it.
+        /// </param>
         /// <param name="failIfMissing">
         /// When true (standalone <c>spiderly agent-sync</c>), a missing bundle is an error (exit 1).
         /// When false (called from <c>init</c>), it's a soft skip — the package may be older or, in
         /// <c>--dev</c> mode, referenced from local source rather than node_modules.
         /// </param>
-        public static int Execute(string projectRoot = null, bool failIfMissing = true)
+        public static int Execute(string projectRoot = null, string agentRoot = null, bool saveAgentRoot = false, bool failIfMissing = true)
         {
-            string cwd = projectRoot ?? Environment.CurrentDirectory;
+            string source = projectRoot ?? Environment.CurrentDirectory;
 
-            string manifestPath = ResolveManifestPath(cwd);
+            string manifestPath = ResolveManifestPath(source);
             if (manifestPath == null)
             {
                 const string where = "the Spiderly agent bundle (node_modules/spiderly/agent/manifest.json under the current directory or 'Frontend/')";
@@ -82,10 +94,20 @@ namespace Spiderly.CLI.Commands
                 return 1;
             }
 
+            // The bundle is resolved from `source` (the consumer project that has node_modules), but
+            // agent guidance is *projected* into `target`. These differ when the AI agent runs from an
+            // outer workspace/umbrella root that nests the consumer project. Resolution: --agent-root >
+            // .spiderly/config.local.json (agentSync.root, machine-local) > .spiderly/config.json >
+            // `source` itself (the original, same-directory behavior).
+            string target = ResolveAgentRoot(source, agentRoot);
+
+            if (saveAgentRoot && !string.IsNullOrWhiteSpace(agentRoot))
+                SaveAgentRoot(source, agentRoot);
+
             string agentDir = Path.GetDirectoryName(manifestPath);
             string docsDir = Path.Combine(agentDir, "docs");
             string skillsDir = Path.Combine(agentDir, "skills");
-            string relDocs = Path.GetRelativePath(cwd, docsDir).Replace('\\', '/');
+            string relDocs = Path.GetRelativePath(target, docsDir).Replace('\\', '/');
             string version = ReadPackageVersion(agentDir);
 
             // manifest.json now lists skill-surface entries only — every entry is junctioned.
@@ -94,9 +116,9 @@ namespace Spiderly.CLI.Commands
             int created, pruned;
             try
             {
-                WriteAgentsBlock(cwd, BuildBlock(relDocs));
-                EnsureClaudeImport(cwd);
-                (created, pruned) = ReconcileSkillJunctions(cwd, skillsDir, skillLinks);
+                WriteAgentsBlock(target, BuildBlock(relDocs));
+                EnsureClaudeImport(target);
+                (created, pruned) = ReconcileSkillJunctions(target, skillsDir, skillLinks);
             }
             catch (Exception ex)
             {
@@ -108,6 +130,8 @@ namespace Spiderly.CLI.Commands
                 $"Synced AGENTS.md docs pointer + {skillLinks.Count} skill junction(s)" +
                 (pruned > 0 ? $" ({pruned} stale pruned)" : "") +
                 $", and ensured CLAUDE.md imports it" + (version != null ? $" (v{version})." : "."));
+            if (!PathsEqual(source, target))
+                ConsoleHelper.MarkupLineOK($"Projected into workspace root: {Path.GetFullPath(target)}");
             return 0;
         }
 
@@ -120,6 +144,106 @@ namespace Spiderly.CLI.Commands
                 Path.Combine(cwd, "node_modules", "spiderly", "agent", "manifest.json"),
             };
             return Array.Find(candidates, File.Exists);
+        }
+
+        /// <summary>
+        /// Resolves where agent guidance is written: explicit <paramref name="explicitAgentRoot"/> >
+        /// <c>.spiderly/config.local.json</c> (agentSync.root) > <c>.spiderly/config.json</c> >
+        /// <paramref name="source"/> itself. Relative values resolve against the source project, so
+        /// <c>".."</c> targets the parent workspace. Returns an absolute path.
+        /// </summary>
+        private static string ResolveAgentRoot(string source, string explicitAgentRoot)
+        {
+            string value = !string.IsNullOrWhiteSpace(explicitAgentRoot)
+                ? explicitAgentRoot
+                : ReadAgentRootFromConfig(source);
+
+            if (string.IsNullOrWhiteSpace(value))
+                return Path.GetFullPath(source);
+
+            return Path.GetFullPath(Path.IsPathRooted(value) ? value : Path.Combine(source, value));
+        }
+
+        /// <summary>
+        /// Reads <c>agentSync.root</c> from <c>.spiderly/config.local.json</c> (machine-local) then
+        /// <c>.spiderly/config.json</c> (committed) under <paramref name="source"/>; local overrides
+        /// committed. Returns null when neither sets it.
+        /// </summary>
+        private static string ReadAgentRootFromConfig(string source)
+        {
+            foreach (string fileName in new[] { "config.local.json", "config.json" })
+            {
+                string path = Path.Combine(source, ".spiderly", fileName);
+                if (!File.Exists(path))
+                    continue;
+                try
+                {
+                    using JsonDocument doc = JsonDocument.Parse(
+                        File.ReadAllText(path),
+                        new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                    if (doc.RootElement.TryGetProperty("agentSync", out JsonElement agentSync) &&
+                        agentSync.TryGetProperty("root", out JsonElement root) &&
+                        root.ValueKind == JsonValueKind.String)
+                    {
+                        string value = root.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                            return value;
+                    }
+                }
+                catch
+                {
+                    // Malformed config — ignore and fall through to the next candidate / default.
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Persists <c>agentSync.root</c> into <c>.spiderly/config.local.json</c> (machine-local) under
+        /// <paramref name="source"/>, merging with any existing content, and ensures it is gitignored.
+        /// </summary>
+        private static void SaveAgentRoot(string source, string agentRoot)
+        {
+            string dir = Path.Combine(source, ".spiderly");
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, "config.local.json");
+
+            JsonObject root;
+            try
+            {
+                root = File.Exists(path)
+                    ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? new JsonObject()
+                    : new JsonObject();
+            }
+            catch
+            {
+                root = new JsonObject();
+            }
+
+            JsonObject agentSync = root["agentSync"] as JsonObject ?? new JsonObject();
+            agentSync["root"] = agentRoot;
+            root["agentSync"] = agentSync;
+
+            File.WriteAllText(
+                path,
+                root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n",
+                new UTF8Encoding(false));
+
+            EnsureLocalConfigIgnored(source);
+        }
+
+        /// <summary>Ensures <paramref name="source"/>'s .gitignore excludes machine-local <c>.spiderly/*.local.json</c>.</summary>
+        private static void EnsureLocalConfigIgnored(string source)
+        {
+            const string pattern = ".spiderly/*.local.json";
+            string path = Path.Combine(source, ".gitignore");
+            string existing = File.Exists(path) ? File.ReadAllText(path).Replace("\r\n", "\n") : "";
+
+            if (existing.Split('\n').Select(l => l.Trim()).Any(t => t == pattern || t == "**/" + pattern))
+                return;
+
+            string sep = existing.Length == 0 || existing.EndsWith("\n") ? "" : "\n";
+            File.AppendAllText(path, $"{sep}\n# Spiderly machine-local config (agent-sync workspace target, etc.)\n{pattern}\n");
         }
 
         private static string ReadPackageVersion(string agentDir)

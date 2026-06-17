@@ -61,7 +61,10 @@ namespace Spiderly.CLI
             }
             else if (args.HasArg("agent-sync"))
             {
-                return AgentSyncCommand.Execute();
+                string agentSyncProjectRoot = args.GetArgValue("--project-root");
+                string agentSyncAgentRoot = args.GetArgValue("--agent-root");
+                bool saveAgentRoot = args.HasArg("--save");
+                return AgentSyncCommand.Execute(agentSyncProjectRoot, agentSyncAgentRoot, saveAgentRoot: saveAgentRoot);
             }
             else if (args.Length == 0)
             {

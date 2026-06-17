@@ -85,6 +85,13 @@ Never hand-edit anything under `agent/`. The generator fails loud if a skill fol
 
 `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` holds the full project template emitted by `spiderly init` — `Startup.cs`, `AppServiceExtensions.cs`, the entity scaffolding, package.json, etc. — as raw string literals. When you change a framework public API (DI registration shape, `SpiderlyBuilder` methods, generated service constructor signature, new built-in service that needs registering), audit the relevant template strings in this file and update them too. CI's e2e job catches the worst regressions, but only for code paths the fixture exercises (commit `96ad6b9` removed the global `IFileManager` slot but missed adding `services.AddTransient<DiskStorageService>()` to the template — every freshly-init'd app crashed on the first save of a `[DiskStorage]` property).
 
+## `.spiderly/` project config
+
+Spiderly's per-project config lives under `.spiderly/` at the app root (replaces the former root-level `spiderly.json`; `spiderly-upgrade` migrates existing apps):
+
+- **`.spiderly/config.json`** (committed) — the `SpiderlyConfig` read by the source generators via `AdditionalFiles`: `generators` (per-generator enable/disable, default on via `IsGeneratorEnabled`) and `api.routePrefix`. Register it in the generating project's csproj: `<AdditionalFiles Include=".spiderly/config.json" />`. The matcher (`Extensions.GetSpiderlyConfig`) keys on a path ending in `.spiderly/config.json` (separator-normalized for Windows + POSIX).
+- **`.spiderly/config.local.json`** (gitignored via `**/.spiderly/*.local.json`) — machine-local overrides. Today: `agentSync.root`, the workspace/umbrella dir `spiderly agent-sync` projects guidance into when the AI agent runs from a root that nests this app. Set it with `spiderly agent-sync --agent-root <dir> --save`; bare runs (including the one inside `spiderly-upgrade`) then reuse it. Machine-local because it encodes one developer's directory layout — committing it would impose that layout on every other consumer of the app repo.
+
 ## Regression tests must fail on the commit that adds them
 
 If you write a regression test for a bug, that test **must demonstrably fail on its commit and pass on the immediately-following fix commit** — never the reverse, never both in one commit. A green-on-its-own-commit regression test is a placebo: it codifies the bug's existence without proving the suite actually catches it. The nested-O2M dropdown regression test (`8a2714f`) was authored aspirationally — added without the matching generator fix — and a separate `if (!setupVar) test.skip()` retry-mask kept CI green for a month while the underlying bug existed. The discipline: add the test, watch it fail in CI, then push the fix.
