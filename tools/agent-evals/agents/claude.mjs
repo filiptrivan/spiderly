@@ -29,10 +29,11 @@ export default {
       };
     } catch { /* non-JSON stdout (e.g. startup crash) — keep defaults; the error is on stderr, below */ }
 
-    // claude prints its run JSON to stdout but startup errors (bad auth/flags) to stderr — surface
-    // those so a failed run is diagnosable instead of a silent 0-turns no-op.
-    if (res.code !== 0 && res.stderr.trim()) {
-      console.error(`[claude] exit ${res.code}: ${res.stderr.trim().slice(-1500)}`);
+    // On failure, surface BOTH streams: claude reports run/usage errors in the stdout result JSON
+    // (e.g. auth/quota) and startup errors on stderr. matrix.json keeps only agentMeta, so this log
+    // is the only place the cause is visible — without it a failure looks like a silent 0-turn no-op.
+    if (res.code !== 0) {
+      console.error(`[claude] exit ${res.code}\n[stdout] ${res.stdout.trim().slice(-1500)}\n[stderr] ${res.stderr.trim().slice(-800)}`);
     }
     const transcript = res.stdout + (res.stderr.trim() ? `\n[stderr]\n${res.stderr.trim()}` : '');
 
