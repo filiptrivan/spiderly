@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Interfaces;
 using Microsoft.IdentityModel.JsonWebTokens;

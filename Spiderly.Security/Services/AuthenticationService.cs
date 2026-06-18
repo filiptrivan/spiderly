@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
@@ -21,6 +22,7 @@ namespace Spiderly.Security.Services
     public class AuthenticationService : ServiceBase
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ISpiderlyPrincipalAccessor _principalAccessor;
         private readonly IApplicationDbContext _context;
         private readonly AuthPolicyOptions _authPolicySettings;
         private readonly TokenKeyOptions _tokenKeySettings;
@@ -28,6 +30,7 @@ namespace Spiderly.Security.Services
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor,
+            ISpiderlyPrincipalAccessor principalAccessor,
             IApplicationDbContext context,
             IStringLocalizer localizer,
             IOptions<AuthPolicyOptions> authPolicyOptions,
@@ -37,31 +40,38 @@ namespace Spiderly.Security.Services
             : base(context, localizer)
         {
             _httpContextAccessor = httpContextAccessor;
+            _principalAccessor = principalAccessor;
             _context = context;
             _authPolicySettings = authPolicyOptions.Value;
             _tokenKeySettings = tokenKeyOptions.Value;
             _cookieManager = cookieManager;
         }
 
+        /// <summary>
+        /// The current principal's user id. Throws <see cref="System.InvalidOperationException"/> when there is
+        /// no authenticated principal in the current execution context — call <see cref="GetCurrentUserIdOrDefault"/>
+        /// on paths that may run anonymously or outside an HTTP request (e.g. background jobs).
+        /// </summary>
         public virtual long GetCurrentUserId()
         {
-            return Helper.GetCurrentUserId(_httpContextAccessor.HttpContext);
+            return _principalAccessor.Current.UserId
+                ?? throw new System.InvalidOperationException("There is no authenticated principal in the current execution context.");
         }
 
+        /// <summary>The current principal's user id, or <c>null</c> when the context is anonymous (no authenticated caller).</summary>
         public virtual long? GetCurrentUserIdOrDefault()
         {
-            return Helper.GetCurrentUserIdOrDefault(_httpContextAccessor.HttpContext);
+            return _principalAccessor.Current.UserId;
         }
 
         /// <summary>
-        /// The kind of the current principal, read from the <c>principal_kind</c> claim, or <c>null</c> when
+        /// The kind of the current principal, from the <c>principal_kind</c> claim, or <c>null</c> when
         /// the claim is absent (the single-principal case). The authorization core's registry resolves a
         /// <c>null</c> kind to the single registered kind, so single-principal applications carry no claim ceremony.
         /// </summary>
         public virtual string GetCurrentPrincipalKind()
         {
-            return _httpContextAccessor.HttpContext?.User?.Claims
-                .FirstOrDefault(c => c.Type == PrincipalClaims.PrincipalKind)?.Value;
+            return _principalAccessor.Current.Kind;
         }
 
         public virtual async Task<string> GetCurrentUserEmail<TUser>() where TUser : class, IUser, new()

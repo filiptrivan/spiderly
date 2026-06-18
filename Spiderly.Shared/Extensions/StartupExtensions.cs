@@ -122,6 +122,12 @@ namespace Spiderly.Shared.Extensions
             // override it with a custom implementation.
             services.TryAddSingleton<IPrincipalRegistry, PrincipalRegistry>();
 
+            // Transport-agnostic current-principal accessor. Singleton: the per-flow value lives in an
+            // AsyncLocal, not the instance (mirrors IHttpContextAccessor). Falls back to the ambient HTTP
+            // request when nothing is pushed, so HTTP apps work without extra wiring; background-job filters
+            // and tests push an explicit principal. TryAdd lets a consumer override with a custom accessor.
+            services.TryAddSingleton<ISpiderlyPrincipalAccessor, SpiderlyPrincipalAccessor>();
+
             // Singleton so the dedupe cache is shared across all notification dispatches.
             services.AddSingleton<NotificationRateLimiter>();
 
