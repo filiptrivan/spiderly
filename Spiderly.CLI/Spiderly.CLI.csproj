@@ -23,6 +23,9 @@
     <PackageReference Include="Spectre.Console" Version="0.54.0" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Spiderly.CLI.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Spiderly.Shared\Spiderly.Shared.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="spiderly-logo.png" Pack="true" PackagePath="\" />
