@@ -1,5 +1,6 @@
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -146,6 +147,13 @@ namespace Spiderly.Shared.Extensions
             {
                 services.SpiderlyAddAuthentication();
                 services.AddAuthorization();
+
+                // Permission-as-policy: this dynamic provider materializes a `perm:<Code>` policy on demand, so an
+                // endpoint can declare [Authorize(SpiderlyAuthorizationPolicies.ForPermission(code))] without
+                // pre-registering each policy. Falls through to the default provider for every other policy name.
+                // The matching PermissionAuthorizationHandler (which delegates to the consumer's AuthorizationService
+                // so its override/API-key cap applies) is wired alongside the security services.
+                services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
                 // Resolves a provider code to its id-token validator. Built eagerly at first resolution from
                 // the configured providers (+ any consumer-registered custom IExternalAuthProvider), so the
