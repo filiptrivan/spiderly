@@ -87,6 +87,7 @@ using Spiderly.Shared.Constants;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Extensions;
 using Spiderly.Shared.Attributes;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Localization;
 using Spiderly.Shared.DTO;
@@ -169,6 +170,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 {
                     string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
                     string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
+                    string readPermissionAttribute = Helpers.GetPermissionAttribute(controllerEntity, "Read");
 
                     entityRegion = $$"""
         #region {{controllerEntity.Name}}
@@ -180,7 +182,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
-        public virtual async Task<PaginatedResultDTO<{{controllerEntity.Name}}DTO>> GetPaginated{{controllerEntity.Name}}List(FilterDTO filterDTO)
+        {{readPermissionAttribute}}public virtual async Task<PaginatedResultDTO<{{controllerEntity.Name}}DTO>> GetPaginated{{controllerEntity.Name}}List(FilterDTO filterDTO)
         {
             return await {{entityServiceField}}.GetPaginated{{controllerEntity.Name}}List(filterDTO, _context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
@@ -190,7 +192,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
-        public virtual async Task<IActionResult> Export{{controllerEntity.Name}}ListToExcel(FilterDTO filterDTO)
+        {{readPermissionAttribute}}public virtual async Task<IActionResult> Export{{controllerEntity.Name}}ListToExcel(FilterDTO filterDTO)
         {
             byte[] fileContent = await {{entityServiceField}}.Export{{controllerEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
             return File(
@@ -205,7 +207,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<List<{{controllerEntity.Name}}DTO>> Get{{controllerEntity.Name}}List()
+        {{readPermissionAttribute}}public virtual async Task<List<{{controllerEntity.Name}}DTO>> Get{{controllerEntity.Name}}List()
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}DTOList(_context.DbSet<{{controllerEntity.Name}}>(), {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
@@ -215,7 +217,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<{{controllerEntity.Name}}MainUIFormDTO> Get{{controllerEntity.Name}}MainUIFormDTO({{referencedProjectEntityClassIdType}} id)
+        {{readPermissionAttribute}}public virtual async Task<{{controllerEntity.Name}}MainUIFormDTO> Get{{controllerEntity.Name}}MainUIFormDTO({{referencedProjectEntityClassIdType}} id)
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}MainUIFormDTO(id, {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
@@ -225,7 +227,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<{{controllerEntity.Name}}DTO> Get{{controllerEntity.Name}}({{referencedProjectEntityClassIdType}} id)
+        {{readPermissionAttribute}}public virtual async Task<{{controllerEntity.Name}}DTO> Get{{controllerEntity.Name}}({{referencedProjectEntityClassIdType}} id)
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}DTO(id, {{Helpers.GetShouldAuthorizeEntityString(controllerEntity)}});
         }
@@ -551,6 +553,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 return null;
 
             string entityIdType = entity.GetIdType(entities);
+            string deletePermissionAttribute = Helpers.GetPermissionAttribute(entity, "Delete");
 
             return $$"""
         /// <summary>
@@ -558,7 +561,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpDelete]
         [AuthGuard]
-        public virtual async Task Delete{{entity.Name}}({{entityIdType}} id)
+        {{deletePermissionAttribute}}public virtual async Task Delete{{entity.Name}}({{entityIdType}} id)
         {
             await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}(id, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }
@@ -568,7 +571,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
-        public virtual async Task Delete{{entity.Name}}List([FromBody] List<{{entityIdType}}> ids)
+        {{deletePermissionAttribute}}public virtual async Task Delete{{entity.Name}}List([FromBody] List<{{entityIdType}}> ids)
         {
             await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}List(ids, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
         }

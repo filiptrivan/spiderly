@@ -184,6 +184,21 @@ namespace Spiderly.SourceGenerators.Shared
             return ShouldAuthorizeEntity(entity).ToString().ToLower();
         }
 
+        /// <summary>
+        /// Returns the boundary authorization attribute for a CRUD operation on <paramref name="entity"/> —
+        /// e.g. <c>[HasPermission("ReadProduct")]</c> — with a trailing newline + indent so it can be emitted
+        /// inline before a generated action, or an empty string when the entity opts out via [DoNotAuthorize].
+        /// <paramref name="crudPrefix"/> is the permission-code prefix ("Read" / "Delete" / …), matching the
+        /// codes emitted by the permission-codes generator.
+        /// </summary>
+        public static string GetPermissionAttribute(SpiderlyClass entity, string crudPrefix)
+        {
+            if (ShouldAuthorizeEntity(entity) == false)
+                return "";
+
+            return $"[HasPermission(\"{crudPrefix}{entity.Name}\")]\n        ";
+        }
+
         #endregion
 
         #region Mapper

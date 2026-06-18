@@ -2577,10 +2577,12 @@ namespace {{appName}}.WebAPI
         private static string GetAppServiceExtensionsCsData(string appName)
         {
             return $$"""
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Spiderly.Security;
+using Spiderly.Security.Authorization;
 using Spiderly.Security.Extensions;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -2598,8 +2600,13 @@ namespace {{appName}}.WebAPI.Extensions
             #region Spiderly
 
             services.AddTransient<AuthenticationService>();
-            services.AddTransient<AuthorizationServiceBase>();
+            // Forward AuthorizationServiceBase to the app's generated authorization service so framework
+            // consumers (e.g. PermissionAuthorizationHandler) resolve the most-derived IsAuthorizedAsync override.
+            services.AddTransient<AuthorizationServiceBase>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationServiceGenerated>());
             services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
+
+            // Evaluates [HasPermission] / [Authorize("perm:...")] policies via the permission policy provider.
+            services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
             // Register the application's principal kind(s). A single-principal app registers just User; the
             // kind-dispatched authorization resolves it even without a principal_kind claim (single kind = the
