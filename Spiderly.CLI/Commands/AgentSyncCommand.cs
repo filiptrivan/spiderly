@@ -153,10 +153,14 @@ namespace Spiderly.CLI.Commands
         /// <c>".."</c> targets the parent workspace. Returns an absolute path.
         /// </summary>
         private static string ResolveAgentRoot(string source, string explicitAgentRoot)
+            => ResolveAgentRootPath(source, explicitAgentRoot, ReadAgentRootFromConfig(source));
+
+        /// <summary>Pure precedence + path resolution (no I/O): explicit > fromConfig > source itself.</summary>
+        internal static string ResolveAgentRootPath(string source, string explicitAgentRoot, string fromConfig)
         {
-            string value = !string.IsNullOrWhiteSpace(explicitAgentRoot)
-                ? explicitAgentRoot
-                : ReadAgentRootFromConfig(source);
+            string value = !string.IsNullOrWhiteSpace(explicitAgentRoot) ? explicitAgentRoot
+                : !string.IsNullOrWhiteSpace(fromConfig) ? fromConfig
+                : null;
 
             if (string.IsNullOrWhiteSpace(value))
                 return Path.GetFullPath(source);
@@ -176,24 +180,37 @@ namespace Spiderly.CLI.Commands
                 string path = Path.Combine(source, ".spiderly", fileName);
                 if (!File.Exists(path))
                     continue;
-                try
+                string content;
+                try { content = File.ReadAllText(path); }
+                catch { continue; }
+                string value = ExtractAgentRoot(content);
+                if (!string.IsNullOrWhiteSpace(value))
+                    return value;
+            }
+            return null;
+        }
+
+        /// <summary>Pure: extracts <c>agentSync.root</c> from a config JSON string; null if absent/malformed.</summary>
+        internal static string ExtractAgentRoot(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(
+                    json,
+                    new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                if (doc.RootElement.TryGetProperty("agentSync", out JsonElement agentSync) &&
+                    agentSync.TryGetProperty("root", out JsonElement root) &&
+                    root.ValueKind == JsonValueKind.String)
                 {
-                    using JsonDocument doc = JsonDocument.Parse(
-                        File.ReadAllText(path),
-                        new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-                    if (doc.RootElement.TryGetProperty("agentSync", out JsonElement agentSync) &&
-                        agentSync.TryGetProperty("root", out JsonElement root) &&
-                        root.ValueKind == JsonValueKind.String)
-                    {
-                        string value = root.GetString();
-                        if (!string.IsNullOrWhiteSpace(value))
-                            return value;
-                    }
+                    string value = root.GetString();
+                    return string.IsNullOrWhiteSpace(value) ? null : value;
                 }
-                catch
-                {
-                    // Malformed config — ignore and fall through to the next candidate / default.
-                }
+            }
+            catch
+            {
+                // Malformed config — treat as "not set".
             }
             return null;
         }
@@ -208,12 +225,23 @@ namespace Spiderly.CLI.Commands
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, "config.local.json");
 
+            string existing = File.Exists(path) ? File.ReadAllText(path) : null;
+            File.WriteAllText(path, MergeAgentRoot(existing, agentRoot) + "\n", new UTF8Encoding(false));
+
+            EnsureLocalConfigIgnored(source);
+        }
+
+        /// <summary>Pure: sets <c>agentSync.root</c> in the given config JSON, preserving other keys; returns new JSON.</summary>
+        internal static string MergeAgentRoot(string existingJson, string agentRoot)
+        {
             JsonObject root;
             try
             {
-                root = File.Exists(path)
-                    ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? new JsonObject()
-                    : new JsonObject();
+                root = string.IsNullOrWhiteSpace(existingJson)
+                    ? new JsonObject()
+                    : JsonNode.Parse(
+                        existingJson,
+                        documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) as JsonObject ?? new JsonObject();
             }
             catch
             {
@@ -224,12 +252,7 @@ namespace Spiderly.CLI.Commands
             agentSync["root"] = agentRoot;
             root["agentSync"] = agentSync;
 
-            File.WriteAllText(
-                path,
-                root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n",
-                new UTF8Encoding(false));
-
-            EnsureLocalConfigIgnored(source);
+            return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         }
 
         /// <summary>Ensures <paramref name="source"/>'s .gitignore excludes machine-local <c>.spiderly/*.local.json</c>.</summary>
@@ -239,11 +262,21 @@ namespace Spiderly.CLI.Commands
             string path = Path.Combine(source, ".gitignore");
             string existing = File.Exists(path) ? File.ReadAllText(path).Replace("\r\n", "\n") : "";
 
-            if (existing.Split('\n').Select(l => l.Trim()).Any(t => t == pattern || t == "**/" + pattern))
+            if (IsPatternIgnored(existing, pattern))
                 return;
 
             string sep = existing.Length == 0 || existing.EndsWith("\n") ? "" : "\n";
             File.AppendAllText(path, $"{sep}\n# Spiderly machine-local config (agent-sync workspace target, etc.)\n{pattern}\n");
+        }
+
+        /// <summary>Pure: true if a gitignore body already lists <paramref name="pattern"/> (with or without a leading **/).</summary>
+        internal static bool IsPatternIgnored(string gitignoreContent, string pattern)
+        {
+            if (string.IsNullOrEmpty(gitignoreContent))
+                return false;
+            return gitignoreContent.Replace("\r\n", "\n").Split('\n')
+                .Select(l => l.Trim())
+                .Any(t => t == pattern || t == "**/" + pattern);
         }
 
         private static string ReadPackageVersion(string agentDir)
