@@ -66,18 +66,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 if (x.HasSpiderlyDTOAttribute())
                 {
-                    DTOList.Add(new SpiderlyClass
-                    {
-                        Name = x.Name,
-                        Properties = x.Properties,
-                        Attributes = x.Attributes,
-                        BaseType = x.BaseType,
-                        IsAbstract = x.IsAbstract,
-                        Methods = x.Methods,
-                        Namespace = x.Namespace,
-                        Location = x.Location,
-                        IsGenerated = false,
-                    });
+                    DTOList.Add(ToHandWrittenDTO(x));
                 }
                 else if (x.HasSpiderlyEntityAttribute())
                 {
@@ -112,8 +101,46 @@ namespace Spiderly.SourceGenerators.Shared
                 }
             }
 
+            // Merge hand-written `partial class {Entity}DTO` extensions that omitted [SpiderlyDTO]: they carry
+            // the same name as a DTO Spiderly generates from an entity, so without this their members are
+            // silently dropped from every artifact generator (entities.generated.ts, validators, ...) —
+            // the field compiles and serializes but never reaches the generated artifacts (spiderly#258).
+            // Scoped to those generated names, so a standalone unmarked DTO still requires the marker. This
+            // produces the same two-same-named-entries shape a [SpiderlyDTO] partial already does, which the
+            // downstream callers (NgEntities, FluentValidation, Mapper, ...) group and merge.
+            HashSet<string> generatedDTONames = new(DTOList.Where(d => d.IsGenerated).Select(d => d.Name));
+
+            foreach (var x in currentProjectClasses)
+            {
+                if (x.HasSpiderlyDTOAttribute() || x.HasSpiderlyEntityAttribute())
+                    continue;
+
+                if (generatedDTONames.Contains(x.Name) == false)
+                    continue;
+
+                DTOList.Add(ToHandWrittenDTO(x));
+            }
+
             return DTOList;
         }
+
+        /// <summary>
+        /// Projects a hand-written DTO class — a `[SpiderlyDTO]` class or an unmarked `partial {Entity}DTO`
+        /// extension — into the DTO list verbatim, flagged non-generated so callers merge it with the
+        /// entity-derived DTO of the same name.
+        /// </summary>
+        private static SpiderlyClass ToHandWrittenDTO(SpiderlyClass x) => new()
+        {
+            Name = x.Name,
+            Properties = x.Properties,
+            Attributes = x.Attributes,
+            BaseType = x.BaseType,
+            IsAbstract = x.IsAbstract,
+            Methods = x.Methods,
+            Namespace = x.Namespace,
+            Location = x.Location,
+            IsGenerated = false,
+        };
 
         private static string GetDtoNamespaceForEntity(string entityNamespace)
         {
