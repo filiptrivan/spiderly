@@ -52,6 +52,9 @@ public class AgentSyncIntegrationTests : IDisposable
         Assert.Equal("..", AgentSyncCommand.ExtractAgentRoot(File.ReadAllText(localCfg)));
         Assert.True(AgentSyncCommand.IsPatternIgnored(File.ReadAllText(Path.Combine(_app, ".gitignore")), ".spiderly/*.local.json"));
 
+        // The umbrella target's .gitignore excludes the machine-local junctions (must not be committed).
+        Assert.Contains("**/.claude/skills/spiderly-*", File.ReadAllText(Path.Combine(_ws, ".gitignore")));
+
         // RUN 2: BARE (no flags) — must reuse the persisted root and re-project to the umbrella.
         File.Delete(Path.Combine(_ws, "AGENTS.md"));
         Assert.Equal(0, AgentSyncCommand.Execute(projectRoot: _app));
