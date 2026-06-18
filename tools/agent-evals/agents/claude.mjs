@@ -1,7 +1,8 @@
 import { run } from '../lib/exec.mjs';
 
 // Real Claude Code headless run. Edits the workspace in place over multiple turns.
-// Auth (any one): a logged-in CLI, ANTHROPIC_API_KEY, or a Pro/Max CLAUDE_CODE_OAUTH_TOKEN in env.
+// Auth: a Pro/Max CLAUDE_CODE_OAUTH_TOKEN in env (or a subscription-logged-in CLI locally).
+// Subscription-only by design — do NOT add ANTHROPIC_API_KEY / per-use API-key billing.
 // NOTE: Date.now() is fine here — this is an ordinary Node CLI, not a Workflow() sandbox.
 export default {
   name: 'claude',

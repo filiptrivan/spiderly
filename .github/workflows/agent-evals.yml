@@ -9,8 +9,8 @@ name: Agent Evals
 # fixture build + Claude CLI install must be validated by a first `workflow_dispatch` run. The
 # `claude` agent authenticates with a Claude Pro/Max subscription via the `CLAUDE_CODE_OAUTH_TOKEN`
 # repo secret (generate locally with `claude setup-token`; valid ~1 year — regenerate before it
-# lapses). Run `oracle,noop` for a free dry run that needs no token. To bill a per-use API key
-# instead, swap the env var below for `ANTHROPIC_API_KEY` — set only one, never both.
+# lapses). Run `oracle,noop` for a free dry run that needs no token. This harness is
+# subscription-only by design — do NOT add or suggest `ANTHROPIC_API_KEY` / per-use API-key billing.
 #
 # TODO (after the first green dispatch):
 #  - Extract the shared build->pack->Verdaccio->`spiderly init` scaffold (duplicated from ci.yml's
@@ -73,8 +73,8 @@ jobs:
         run: cd tools && npm run test:evals
 
       # Fail fast on a bad/expired Claude token BEFORE the ~8-min fixture build. Only for `claude`
-      # runs. Installs the CLI here (reused by "Run evals"); `claude auth status` exits 1 if not
-      # authenticated, failing the job early with a clear signal instead of a silent 0-token no-op.
+      # runs. Installs the CLI here (reused by "Run evals"), then makes a tiny real `claude -p` probe
+      # that fails the job in seconds on a 401 instead of a silent 0-token no-op after the build.
       - name: Verify Claude auth (fail fast)
         if: contains(inputs.agents, 'claude')
         env:
@@ -179,8 +179,8 @@ jobs:
       # --- Run the agents (Claude CLI already installed + auth-verified above) ---
       - name: Run evals
         env:
-          # Claude Pro/Max subscription token (headless `claude` reads this directly). Swap for
-          # ANTHROPIC_API_KEY to bill a per-use API key instead — set only one, never both.
+          # Claude Pro/Max subscription token (headless `claude` reads this directly).
+          # Subscription-only by design — do NOT switch to ANTHROPIC_API_KEY / per-use API-key billing.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           cd tools
