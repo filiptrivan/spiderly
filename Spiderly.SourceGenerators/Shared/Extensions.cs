@@ -293,6 +293,11 @@ namespace Spiderly.SourceGenerators.Shared
             return c.Modifiers.Any(x => x.Text == "abstract");
         }
 
+        public static bool IsPartial(this ClassDeclarationSyntax c)
+        {
+            return c.Modifiers.Any(x => x.Text == "partial");
+        }
+
         /// <summary>
         /// User : BusinessObject<long> -> true
         /// User : ReadonlyObject<long> -> false
