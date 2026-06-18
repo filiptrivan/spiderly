@@ -2301,6 +2301,8 @@ public class Startup
 
         app.SpiderlyUseHangfireFailedJobNotificationFilter();
 
+        app.SpiderlyUseHangfirePrincipalFilter();
+
         app.SpiderlyUseOutboxRecurringJob<OutboxMessage>();
 
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
