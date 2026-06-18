@@ -75,7 +75,7 @@ Never hand-edit anything under `agent/`. The generator fails loud if a skill fol
 - **Hand-written classes require classification attributes.** Source generators enroll classes by marker attribute, not by namespace suffix:
   - Entities → `[SpiderlyEntity]`
   - M2M junction classes → `[M2M]` **and** `[SpiderlyEntity]` (both required — `[M2M]` flags the junction; `[SpiderlyEntity]` enrolls it for generation)
-  - Hand-written DTOs → `[SpiderlyDTO]` (generated DTOs like `{Entity}DTO` / `{Entity}SaveBodyDTO` / `{Entity}MainUIFormDTO` need no attribute)
+  - Hand-written **standalone** DTOs → `[SpiderlyDTO]`. The generated declarations (`{Entity}DTO` / `{Entity}SaveBodyDTO` / `{Entity}MainUIFormDTO`) need no attribute — and neither does a hand-written `partial class {Entity}DTO` that merely **extends** one to add a property: such a partial is merged into the generated DTO by name (`PipelineFactory` enrolls it, `GetDTOClasses` merges it), so its members reach every artifact generator. `[SpiderlyDTO]` is required only for a brand-new DTO that does not extend a generated one.
   - Custom controllers → `[SpiderlyController]`
   - Entity services extending `{Entity}ServiceGenerated` → `[SpiderlyService]`
   - The hand-written partial mapper class → `[SpiderlyDataMapper]`

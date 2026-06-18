@@ -49,6 +49,34 @@ public class Achievement : BusinessObject<long>
 
 The string is appended directly to the generated `.NewConfig<Entity, EntityDTO>()` chain. Use this for simple field mappings that the generator doesn't produce automatically.
 
+### `[ProjectToDTO]` only fills the value — the field must exist on the DTO
+
+`[ProjectToDTO]` adds a Mapster *mapping*; it does **not** create the property. If `dest.ProductId`
+is not a property on the DTO, the field **never appears in the generated Angular type**
+(`entities.generated.ts`) — `[ProjectToDTO]` fills a value that has nowhere to land. (A common
+false alarm: the value maps fine at runtime, so it looks like the frontend "didn't regenerate" —
+but a normal `dotnet build` *does* regenerate the Angular files; the property was just never on
+the DTO for the generator to emit.)
+
+To add a computed/projected field end-to-end, declare the property on a `partial class {Entity}DTO`
+extension — it merges into the generated DTO automatically, no attribute needed — **then** map its value:
+
+```csharp
+// 1. The property — a partial extension of the generated OrderItemDTO. No [SpiderlyDTO]
+//    needed: a partial that extends a generated DTO is merged in by name.
+public partial class OrderItemDTO
+{
+    public int? ProductId { get; set; }
+}
+
+// 2. The value — [ProjectToDTO] on the entity fills it during projection.
+[ProjectToDTO(".Map(dest => dest.ProductId, src => src.ProductVariant.ProductId)")]
+public class OrderItem : BusinessObject<long> { /* ... */ }
+```
+
+Then `dotnet build` the backend — the source generators run on build and the field appears
+in `entities.generated.ts`. There is no separate "regenerate" command; the build is it.
+
 ## Partial Method Override — Full Control
 
 For complex mapping logic, override the entire generated method. The generator **skips generation** for any method that already exists in the user's partial `Mapper` class (detected by method name match).
