@@ -1,3 +1,5 @@
+using Spiderly.Shared.Authorization;
+
 namespace Spiderly.Security
 {
     /// <summary>

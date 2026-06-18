@@ -1,4 +1,4 @@
-namespace Spiderly.Security
+namespace Spiderly.Shared.Authorization
 {
     /// <summary>
     /// Custom claim types Spiderly stamps onto an authenticated principal in addition to the standard
