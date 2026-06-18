@@ -565,6 +565,26 @@ namespace Spiderly.Shared.Extensions
                 services.GetRequiredService<ILoggerFactory>().CreateLogger<HangfireFailedJobNotificationFilter>()));
         }
 
+        /// <summary>
+        /// Registers the global Hangfire filter that carries the current principal into background jobs: it
+        /// captures the enqueuing principal (when one is authenticated) and restores it for the duration of job
+        /// execution via <see cref="ISpiderlyPrincipalAccessor"/>, defaulting to
+        /// <see cref="Authorization.SpiderlyPrincipal.System"/> for recurring / scheduler-enqueued jobs. Call in
+        /// the Configure phase (after the DI container is built). Only the principal id and kind travel with the
+        /// job — never tokens; background work carries attribution, not re-authorization.
+        /// <example>
+        /// <code>
+        /// app.SpiderlyUseHangfirePrincipalFilter();
+        /// </code>
+        /// </example>
+        /// </summary>
+        /// <param name="app">The application builder (Configure phase); the filter is registered globally via Hangfire.</param>
+        public static void SpiderlyUseHangfirePrincipalFilter(this IApplicationBuilder app)
+        {
+            IServiceProvider services = app.ApplicationServices;
+            GlobalJobFilters.Filters.Add(new HangfirePrincipalFilter(services.GetRequiredService<ISpiderlyPrincipalAccessor>()));
+        }
+
         #endregion
 
     }
