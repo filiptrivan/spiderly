@@ -101,8 +101,18 @@ namespace Spiderly.CLI.Commands
             // `source` itself (the original, same-directory behavior).
             string target = ResolveAgentRoot(source, agentRoot);
 
-            if (saveAgentRoot && !string.IsNullOrWhiteSpace(agentRoot))
-                SaveAgentRoot(source, agentRoot);
+            if (saveAgentRoot)
+            {
+                // --save persists the *value of --agent-root*; with nothing to save it's a no-op.
+                // Fail loudly (ai-agentic-design) so an agent that expected persistence isn't misled
+                // by a silent success.
+                if (string.IsNullOrWhiteSpace(agentRoot))
+                    ConsoleHelper.MarkupLineWARNING(
+                        "--save was ignored: it persists the value of --agent-root, but no --agent-root was given. " +
+                        "Re-run as 'spiderly agent-sync --agent-root <dir> --save' to persist the workspace target.");
+                else
+                    SaveAgentRoot(source, agentRoot);
+            }
 
             string agentDir = Path.GetDirectoryName(manifestPath);
             string docsDir = Path.Combine(agentDir, "docs");
