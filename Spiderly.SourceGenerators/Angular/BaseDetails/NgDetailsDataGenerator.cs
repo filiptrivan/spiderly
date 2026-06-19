@@ -72,7 +72,7 @@ namespace Spiderly.SourceGenerators.Angular
             return result;
         }
 
-        internal static List<string> GetManyToManyMultiSelectListForDropdownMethods(SpiderlyClass entity, List<SpiderlyClass> entities, bool isFromOrderedOneToMany = false)
+        internal static List<string> GetManyToManyMultiSelectListForDropdownMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             List<string> result = new();
 
@@ -82,7 +82,7 @@ namespace Spiderly.SourceGenerators.Angular
                 {
                     SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
-                    result.AddRange(GetManyToManyMultiSelectListForDropdownMethods(extractedEntity, entities, isFromOrderedOneToMany: true));
+                    result.AddRange(GetManyToManyMultiSelectListForDropdownMethods(extractedEntity, entities));
 
                     continue;
                 }
@@ -90,10 +90,8 @@ namespace Spiderly.SourceGenerators.Angular
                 if (property.IsMultiSelectControlType() == false && property.IsDropdownControlType() == false)
                     continue;
 
-                string idArgument = isFromOrderedOneToMany ? "null" : "this.modelId";
-
                 result.Add($$"""
-            this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}({{idArgument}}).subscribe(no => {
+            this.apiService.get{{property.Name}}DropdownListFor{{entity.Name}}().subscribe(no => {
                 this.{{property.Name.FirstCharToLower()}}OptionsFor{{entity.Name}} = no;
             });
 """);
@@ -141,8 +139,8 @@ namespace Spiderly.SourceGenerators.Angular
                     controlType == UIControlTypeCodes.MultiAutocomplete)
                 {
                     result.Add($$"""
-    search{{context.Property.Name}}For{{context.Entity.Name}}(event: AutoCompleteCompleteEvent, modelId: number = null) {
-        this.apiService.get{{context.Property.Name}}AutocompleteListFor{{context.Entity.Name}}(50, event?.query ?? '', modelId).subscribe(no => {
+    search{{context.Property.Name}}For{{context.Entity.Name}}(event: AutoCompleteCompleteEvent) {
+        this.apiService.get{{context.Property.Name}}AutocompleteListFor{{context.Entity.Name}}(50, event?.query ?? '').subscribe(no => {
             this.{{context.Property.Name.FirstCharToLower()}}OptionsFor{{context.Entity.Name}} = no;
         });
     }

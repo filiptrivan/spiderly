@@ -154,16 +154,27 @@ namespace Spiderly.SourceGenerators.Shared
             return enumMembers;
         }
 
+        /// <summary>
+        /// The single source for the <c>{Crud}{EntityName}</c> permission-code convention (e.g. <c>ReadProduct</c>).
+        /// Both the generated <c>PermissionCodes</c> constants (via <see cref="GetPermissionCodesForEntites"/>) and the
+        /// boundary <c>[HasPermission(...)]</c> attribute (via <see cref="GetPermissionAttribute"/>) build their codes
+        /// through here, so the attribute can never drift from a real permission code.
+        /// </summary>
+        public static string GetEntityPermissionCode(SpiderlyClass entity, CrudCodes crudCode)
+        {
+            return $"{crudCode}{entity.Name}";
+        }
+
         public static List<string> GetPermissionCodesForEntites(List<SpiderlyClass> entities)
         {
             List<string> result = new();
 
             foreach (SpiderlyClass entity in entities)
             {
-                result.Add($"Read{entity.Name}");
-                result.Add($"Update{entity.Name}");
-                result.Add($"Insert{entity.Name}");
-                result.Add($"Delete{entity.Name}");
+                result.Add(GetEntityPermissionCode(entity, CrudCodes.Read));
+                result.Add(GetEntityPermissionCode(entity, CrudCodes.Update));
+                result.Add(GetEntityPermissionCode(entity, CrudCodes.Insert));
+                result.Add(GetEntityPermissionCode(entity, CrudCodes.Delete));
             }
 
             return result;
@@ -188,15 +199,15 @@ namespace Spiderly.SourceGenerators.Shared
         /// Returns the boundary authorization attribute for a CRUD operation on <paramref name="entity"/> —
         /// e.g. <c>[HasPermission("ReadProduct")]</c> — with a trailing newline + indent so it can be emitted
         /// inline before a generated action, or an empty string when the entity opts out via [DoNotAuthorize].
-        /// <paramref name="crudPrefix"/> is the permission-code prefix ("Read" / "Delete" / …), matching the
-        /// codes emitted by the permission-codes generator.
+        /// The permission code comes from <see cref="GetEntityPermissionCode"/> — the same source as the generated
+        /// <c>PermissionCodes</c> constants — so the attribute always references a real permission code.
         /// </summary>
-        public static string GetPermissionAttribute(SpiderlyClass entity, string crudPrefix)
+        public static string GetPermissionAttribute(SpiderlyClass entity, CrudCodes crudCode)
         {
             if (ShouldAuthorizeEntity(entity) == false)
                 return "";
 
-            return $"[HasPermission(\"{crudPrefix}{entity.Name}\")]\n        ";
+            return $"[HasPermission(\"{GetEntityPermissionCode(entity, crudCode)}\")]\n        ";
         }
 
         #endregion

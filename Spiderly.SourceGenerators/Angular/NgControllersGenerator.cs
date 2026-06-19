@@ -708,7 +708,6 @@ import { {{ngType}} } from '../../entities/entities.generated';
                     {
                         { "limit", "number" },
                         { "filter", "string" },
-                        { $"{entity.Name.FirstCharToLower()}Id", "number = null"}
                     };
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
@@ -731,7 +730,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
                     if (alreadyAddedMethods.Contains(methodName))
                         continue;
 
-                    Dictionary<string, string> getAndDeleteParameters = new() { { $"{entity.Name.FirstCharToLower()}Id", "number = null" } };
+                    Dictionary<string, string> getAndDeleteParameters = new();
 
                     sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
                 }

@@ -1854,7 +1854,7 @@ namespace {{appName}}.WebAPI.Controllers
         public async Task<UserDTO> GetCurrentUser()
         {
             long userId = _authenticationService.GetCurrentUserId();
-            return await _userService.GetUserDTO(userId, false); // Don't need to authorize because he is current user
+            return await _userService.GetUserDTO(userId); // Current user reading own profile; admin reads are gated by [HasPermission("ReadUser")] on the generated endpoint
         }
 
     }
@@ -1930,7 +1930,7 @@ namespace {{appName}}.Business.Services
     {
         public OutboxMessageService(EntityServiceDependencies deps) : base(deps) { }
 
-        public override async Task<PaginatedResult<OutboxMessage>> GetPaginatedOutboxMessageList(
+        public override async Task<PaginatedResult<OutboxMessage>> GetPaginatedOutboxMessageResult(
             FilterDTO filterDTO, IQueryable<OutboxMessage> query)
         {
             bool hasExplicitDispatchedFilter = filterDTO.Filters != null
@@ -1939,7 +1939,7 @@ namespace {{appName}}.Business.Services
             if (!hasExplicitDispatchedFilter)
                 query = query.Where(x => x.DispatchedAt == null);
 
-            return await base.GetPaginatedOutboxMessageList(filterDTO, query);
+            return await base.GetPaginatedOutboxMessageResult(filterDTO, query);
         }
     }
 }
@@ -2577,12 +2577,10 @@ namespace {{appName}}.WebAPI
         private static string GetAppServiceExtensionsCsData(string appName)
         {
             return $$"""
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Spiderly.Security;
-using Spiderly.Security.Authorization;
 using Spiderly.Security.Extensions;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -2600,13 +2598,12 @@ namespace {{appName}}.WebAPI.Extensions
             #region Spiderly
 
             services.AddTransient<AuthenticationService>();
-            // Forward AuthorizationServiceBase to the app's generated authorization service so framework
-            // consumers (e.g. PermissionAuthorizationHandler) resolve the most-derived IsAuthorizedAsync override.
-            services.AddTransient<AuthorizationServiceBase>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationServiceGenerated>());
             services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
 
-            // Evaluates [HasPermission] / [Authorize("perm:...")] policies via the permission policy provider.
-            services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+            // Permission-as-policy authorization: registers the [HasPermission] handler and forwards the framework's
+            // AuthorizationServiceBase to this app's generated authorization service (so its IsAuthorizedAsync override
+            // applies). Pairs with PermissionPolicyProvider, which AddSpiderly registers.
+            services.AddSpiderlyAuthorization<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
 
             // Register the application's principal kind(s). A single-principal app registers just User; the
             // kind-dispatched authorization resolves it even without a principal_kind claim (single kind = the
@@ -2928,18 +2925,6 @@ namespace {{appName}}.Business.Services
         }
 
         #region User
-
-        public override async Task AuthorizeUserReadAndThrow(long? userId)
-        {
-            await _context.WithTransactionAsync(async () =>
-            {
-                bool hasAdminReadPermission = await IsAuthorizedAsync<User>(PermissionCodes.ReadUser);
-                bool isCurrentUser = _authenticationService.GetCurrentUserId() == userId;
-
-                if (isCurrentUser == false && hasAdminReadPermission == false)
-                    throw new UnauthorizedException();
-            });
-        }
 
         public override async Task AuthorizeUserUpdateAndThrow(UserDTO userDTO)
         {

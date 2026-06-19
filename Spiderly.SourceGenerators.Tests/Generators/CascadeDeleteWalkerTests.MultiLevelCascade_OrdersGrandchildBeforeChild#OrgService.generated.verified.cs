@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for Org, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the Org entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>OrgMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<OrgMainUIFormDTO> GetOrgMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<OrgMainUIFormDTO> GetOrgMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
-                }
-
                 var result = new OrgMainUIFormDTO
                 {
-                    OrgDTO = await GetOrgDTO(id, false),
+                    OrgDTO = await GetOrgDTO(id),
                 };
 
                 await OnAfterGetOrgMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single Org entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the Org entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>OrgDTO with all blob properties populated</returns>
-        public async virtual Task<OrgDTO> GetOrgDTO(long id, bool authorize)
+        public async virtual Task<OrgDTO> GetOrgDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<Org>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<OrgDTO>(Mapper.OrgProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<Org>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query)
+        public async virtual Task<PaginatedResult<Org>> GetPaginatedOrgResult(FilterDTO filterDTO, IQueryable<Org> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing OrgDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<OrgDTO>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<OrgDTO>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query)
         {
             PaginatedResult<Org> paginationResult = new();
             List<OrgDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedOrgList(filterDTO, query);
+                paginationResult = await GetPaginatedOrgResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<OrgDTO>(Mapper.OrgProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportOrgListToExcel(FilterDTO filterDTO, IQueryable<Org> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportOrgListToExcel(FilterDTO filterDTO, IQueryable<Org> query, CancellationToken cancellationToken = default)
         {
             IQueryable<OrgDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<Org> paginationResult = await GetPaginatedOrgList(filterDTO, query);
+                PaginatedResult<Org> paginationResult = await GetPaginatedOrgResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Org entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of Org entities</returns>
-        public async virtual Task<List<Org>> GetOrgList(IQueryable<Org> query, bool authorize)
+        public async virtual Task<List<Org>> GetOrgList(IQueryable<Org> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Org DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of OrgDTO with blob properties populated</returns>
-        public async virtual Task<List<OrgDTO>> GetOrgDTOList(IQueryable<Org> query, bool authorize)
+        public async virtual Task<List<OrgDTO>> GetOrgDTOList(IQueryable<Org> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<OrgDTO>(Mapper.OrgToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -425,8 +394,7 @@ namespace TestApp.Business.Services
         /// Deletes a single Org entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteOrg(long id, bool authorize)
+        public async virtual Task DeleteOrg(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -437,11 +405,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -480,8 +443,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple Org entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteOrgList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteOrgList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -492,11 +454,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgDeleteAndThrow(listForDelete_1);
-                }
 
                 var teamListForDeleteBecauseOrg_2 = await _deps.Context.DbSet<Team>()
                     .AsNoTracking()
@@ -530,17 +487,11 @@ namespace TestApp.Business.Services
         /// Retrieves namebook DTOs for Team entities related to a Org.
         /// </summary>
         /// <param name="id">The ID of the Org entity</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
-        public async virtual Task<List<NamebookDTO<long>>> GetTeamsNamebookListForOrg(long id, bool authorize)
+        public async virtual Task<List<NamebookDTO<long>>> GetTeamsNamebookListForOrg(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeOrgReadAndThrow(id);
-                }
-
                 return await _deps.Context.DbSet<Team>()
                     .AsNoTracking()
                     .Where(x => EF.Property<long>(x, "OrgId") == id)

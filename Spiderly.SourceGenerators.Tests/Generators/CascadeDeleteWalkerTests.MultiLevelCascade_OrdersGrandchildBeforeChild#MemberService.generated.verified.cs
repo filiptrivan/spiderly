@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for Member, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the Member entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>MemberMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<MemberMainUIFormDTO> GetMemberMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<MemberMainUIFormDTO> GetMemberMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(id);
-                }
-
                 var result = new MemberMainUIFormDTO
                 {
-                    MemberDTO = await GetMemberDTO(id, false),
+                    MemberDTO = await GetMemberDTO(id),
                 };
 
                 await OnAfterGetMemberMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single Member entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the Member entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>MemberDTO with all blob properties populated</returns>
-        public async virtual Task<MemberDTO> GetMemberDTO(long id, bool authorize)
+        public async virtual Task<MemberDTO> GetMemberDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<Member>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<MemberDTO>(Mapper.MemberProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<Member>> GetPaginatedMemberList(FilterDTO filterDTO, IQueryable<Member> query)
+        public async virtual Task<PaginatedResult<Member>> GetPaginatedMemberResult(FilterDTO filterDTO, IQueryable<Member> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing MemberDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<MemberDTO>> GetPaginatedMemberList(FilterDTO filterDTO, IQueryable<Member> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<MemberDTO>> GetPaginatedMemberList(FilterDTO filterDTO, IQueryable<Member> query)
         {
             PaginatedResult<Member> paginationResult = new();
             List<MemberDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedMemberList(filterDTO, query);
+                paginationResult = await GetPaginatedMemberResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<MemberDTO>(Mapper.MemberProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportMemberListToExcel(FilterDTO filterDTO, IQueryable<Member> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportMemberListToExcel(FilterDTO filterDTO, IQueryable<Member> query, CancellationToken cancellationToken = default)
         {
             IQueryable<MemberDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<Member> paginationResult = await GetPaginatedMemberList(filterDTO, query);
+                PaginatedResult<Member> paginationResult = await GetPaginatedMemberResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Member entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of Member entities</returns>
-        public async virtual Task<List<Member>> GetMemberList(IQueryable<Member> query, bool authorize)
+        public async virtual Task<List<Member>> GetMemberList(IQueryable<Member> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Member DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of MemberDTO with blob properties populated</returns>
-        public async virtual Task<List<MemberDTO>> GetMemberDTOList(IQueryable<Member> query, bool authorize)
+        public async virtual Task<List<MemberDTO>> GetMemberDTOList(IQueryable<Member> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<MemberDTO>(Mapper.MemberToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -243,24 +212,15 @@ namespace TestApp.Business.Services
         /// <param name="limit">Maximum number of results to return</param>
         /// <param name="filter">Text filter for Name</param>
         /// <param name="query">Base query for Team entities</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
-        /// <param name="memberId">Optional Member ID for context-specific authorization</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<long>>> GetTeamAutocompleteListForMember(
             int limit,
             string filter,
-            IQueryable<Team> query,
-            bool authorize,
-            long? memberId = null
+            IQueryable<Team> query
         )
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberReadAndThrow(memberId);
-                }
-
                 if (!string.IsNullOrEmpty(filter))
                     query = query.Where(x => x.Name.ToLower().Contains(filter.ToLower()));
 
@@ -473,8 +433,7 @@ namespace TestApp.Business.Services
         /// Deletes a single Member entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteMember(long id, bool authorize)
+        public async virtual Task DeleteMember(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -485,11 +444,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -510,8 +464,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple Member entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteMemberList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteMemberList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -522,11 +475,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeMemberDeleteAndThrow(listForDelete_1);
-                }
 
 
 

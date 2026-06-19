@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for Tag, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the Tag entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>TagMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<TagMainUIFormDTO> GetTagMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<TagMainUIFormDTO> GetTagMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagReadAndThrow(id);
-                }
-
                 var result = new TagMainUIFormDTO
                 {
-                    TagDTO = await GetTagDTO(id, false),
+                    TagDTO = await GetTagDTO(id),
                 };
 
                 await OnAfterGetTagMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single Tag entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the Tag entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>TagDTO with all blob properties populated</returns>
-        public async virtual Task<TagDTO> GetTagDTO(long id, bool authorize)
+        public async virtual Task<TagDTO> GetTagDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<Tag>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<TagDTO>(Mapper.TagProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<Tag>> GetPaginatedTagList(FilterDTO filterDTO, IQueryable<Tag> query)
+        public async virtual Task<PaginatedResult<Tag>> GetPaginatedTagResult(FilterDTO filterDTO, IQueryable<Tag> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing TagDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<TagDTO>> GetPaginatedTagList(FilterDTO filterDTO, IQueryable<Tag> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<TagDTO>> GetPaginatedTagList(FilterDTO filterDTO, IQueryable<Tag> query)
         {
             PaginatedResult<Tag> paginationResult = new();
             List<TagDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedTagList(filterDTO, query);
+                paginationResult = await GetPaginatedTagResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<TagDTO>(Mapper.TagProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportTagListToExcel(FilterDTO filterDTO, IQueryable<Tag> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportTagListToExcel(FilterDTO filterDTO, IQueryable<Tag> query, CancellationToken cancellationToken = default)
         {
             IQueryable<TagDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<Tag> paginationResult = await GetPaginatedTagList(filterDTO, query);
+                PaginatedResult<Tag> paginationResult = await GetPaginatedTagResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Tag entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of Tag entities</returns>
-        public async virtual Task<List<Tag>> GetTagList(IQueryable<Tag> query, bool authorize)
+        public async virtual Task<List<Tag>> GetTagList(IQueryable<Tag> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Tag DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of TagDTO with blob properties populated</returns>
-        public async virtual Task<List<TagDTO>> GetTagDTOList(IQueryable<Tag> query, bool authorize)
+        public async virtual Task<List<TagDTO>> GetTagDTOList(IQueryable<Tag> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<TagDTO>(Mapper.TagToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -425,8 +394,7 @@ namespace TestApp.Business.Services
         /// Deletes a single Tag entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteTag(long id, bool authorize)
+        public async virtual Task DeleteTag(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -437,11 +405,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -462,8 +425,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple Tag entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteTagList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteTagList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -474,11 +436,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTagDeleteAndThrow(listForDelete_1);
-                }
 
 
 

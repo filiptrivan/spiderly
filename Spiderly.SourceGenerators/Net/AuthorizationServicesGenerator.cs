@@ -98,17 +98,9 @@ namespace {{basePartOfNamespace}}.Services
                 sb.AppendLine($$"""
         #region {{entity.Name}}
 
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"{entityIdType}? {entity.Name.FirstCharToLower()}IdToRead")}}
-
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Read, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}IdListToRead")}}
-
 {{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Update, $"{entity.Name}DTO dto")}}
 
 {{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Insert, $"{entity.Name}DTO dto")}}
-
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"{entityIdType} {entity.Name.FirstCharToLower()}Id")}}
-
-{{GetAuthorizeEntityMethod(entity.Name, entity, CrudCodes.Delete, $"List<{entityIdType}> {entity.Name.FirstCharToLower()}ListToDelete")}}
 
 {{GetBloblAuthorizeEntityMethods(entity, entityIdType)}}
 

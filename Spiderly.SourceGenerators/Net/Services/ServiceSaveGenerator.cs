@@ -336,7 +336,7 @@ namespace Spiderly.SourceGenerators.Net
                 result.Add($$"""
                 var all{{property.Name}}Query = await GetAll{{property.Name}}QueryFor{{entity.Name}}(_deps.Context.DbSet<{{extractedEntity.Name}}>());
                 var {{property.Name.FirstCharToLower()}}Service = _deps.ServiceProvider.GetRequiredService<{{extractedEntity.Name}}ServiceGenerated>();
-                var {{property.Name.FirstCharToLower()}}PaginatedResult = await {{property.Name.FirstCharToLower()}}Service.GetPaginated{{extractedEntity.Name}}List(saveBodyDTO.{{property.Name}}TableFilter, all{{property.Name}}Query);
+                var {{property.Name.FirstCharToLower()}}PaginatedResult = await {{property.Name.FirstCharToLower()}}Service.GetPaginated{{extractedEntity.Name}}Result(saveBodyDTO.{{property.Name}}TableFilter, all{{property.Name}}Query);
                 await Update{{property.Name}}WithLazyTableSelectionFor{{entity.Name}}({{property.Name.FirstCharToLower()}}PaginatedResult.Query, savedDTO.Id, saveBodyDTO);
 """);
 
@@ -395,7 +395,7 @@ namespace Spiderly.SourceGenerators.Net
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
                 result.Add($$"""
-                    {{property.Name}} = await {{servicePrefix}}Get{{property.Name}}For{{entity.Name}}(savedDTO.Id, false),
+                    {{property.Name}} = await {{servicePrefix}}Get{{property.Name}}For{{entity.Name}}(savedDTO.Id),
 """);
             }
 

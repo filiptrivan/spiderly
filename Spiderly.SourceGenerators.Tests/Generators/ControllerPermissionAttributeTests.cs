@@ -1,3 +1,4 @@
+using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
@@ -18,8 +19,8 @@ public class ControllerPermissionAttributeTests
     {
         SpiderlyClass entity = new() { Name = "Product" };
 
-        Assert.Equal("[HasPermission(\"ReadProduct\")]\n        ", Helpers.GetPermissionAttribute(entity, "Read"));
-        Assert.Equal("[HasPermission(\"DeleteProduct\")]\n        ", Helpers.GetPermissionAttribute(entity, "Delete"));
+        Assert.Equal("[HasPermission(\"ReadProduct\")]\n        ", Helpers.GetPermissionAttribute(entity, CrudCodes.Read));
+        Assert.Equal("[HasPermission(\"DeleteProduct\")]\n        ", Helpers.GetPermissionAttribute(entity, CrudCodes.Delete));
     }
 
     [Fact]
@@ -31,7 +32,7 @@ public class ControllerPermissionAttributeTests
             Attributes = new() { new SpiderlyAttribute { Name = "DoNotAuthorize" } },
         };
 
-        Assert.Equal("", Helpers.GetPermissionAttribute(entity, "Read"));
-        Assert.Equal("", Helpers.GetPermissionAttribute(entity, "Delete"));
+        Assert.Equal("", Helpers.GetPermissionAttribute(entity, CrudCodes.Read));
+        Assert.Equal("", Helpers.GetPermissionAttribute(entity, CrudCodes.Delete));
     }
 }

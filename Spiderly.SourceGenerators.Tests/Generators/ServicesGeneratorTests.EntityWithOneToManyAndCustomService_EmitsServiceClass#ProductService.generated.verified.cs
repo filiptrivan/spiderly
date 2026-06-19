@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for Product, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the Product entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>ProductMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<ProductMainUIFormDTO> GetProductMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<ProductMainUIFormDTO> GetProductMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductReadAndThrow(id);
-                }
-
                 var result = new ProductMainUIFormDTO
                 {
-                    ProductDTO = await GetProductDTO(id, false),
+                    ProductDTO = await GetProductDTO(id),
                 };
 
                 await OnAfterGetProductMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single Product entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the Product entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>ProductDTO with all blob properties populated</returns>
-        public async virtual Task<ProductDTO> GetProductDTO(long id, bool authorize)
+        public async virtual Task<ProductDTO> GetProductDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<Product>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<ProductDTO>(Mapper.ProductProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<Product>> GetPaginatedProductList(FilterDTO filterDTO, IQueryable<Product> query)
+        public async virtual Task<PaginatedResult<Product>> GetPaginatedProductResult(FilterDTO filterDTO, IQueryable<Product> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing ProductDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<ProductDTO>> GetPaginatedProductList(FilterDTO filterDTO, IQueryable<Product> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<ProductDTO>> GetPaginatedProductList(FilterDTO filterDTO, IQueryable<Product> query)
         {
             PaginatedResult<Product> paginationResult = new();
             List<ProductDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedProductList(filterDTO, query);
+                paginationResult = await GetPaginatedProductResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<ProductDTO>(Mapper.ProductProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportProductListToExcel(FilterDTO filterDTO, IQueryable<Product> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportProductListToExcel(FilterDTO filterDTO, IQueryable<Product> query, CancellationToken cancellationToken = default)
         {
             IQueryable<ProductDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<Product> paginationResult = await GetPaginatedProductList(filterDTO, query);
+                PaginatedResult<Product> paginationResult = await GetPaginatedProductResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Product entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of Product entities</returns>
-        public async virtual Task<List<Product>> GetProductList(IQueryable<Product> query, bool authorize)
+        public async virtual Task<List<Product>> GetProductList(IQueryable<Product> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Product DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of ProductDTO with blob properties populated</returns>
-        public async virtual Task<List<ProductDTO>> GetProductDTOList(IQueryable<Product> query, bool authorize)
+        public async virtual Task<List<ProductDTO>> GetProductDTOList(IQueryable<Product> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<ProductDTO>(Mapper.ProductToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -425,8 +394,7 @@ namespace TestApp.Business.Services
         /// Deletes a single Product entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteProduct(long id, bool authorize)
+        public async virtual Task DeleteProduct(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -437,11 +405,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -462,8 +425,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple Product entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteProductList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteProductList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -474,11 +436,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeProductDeleteAndThrow(listForDelete_1);
-                }
 
 
 

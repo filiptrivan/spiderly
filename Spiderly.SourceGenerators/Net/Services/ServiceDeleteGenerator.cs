@@ -53,19 +53,13 @@ namespace Spiderly.SourceGenerators.Net
         /// Deletes a single {{entity.Name}} entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task Delete{{entity.Name}}({{entityIdType}} id, bool authorize)
+        public async virtual Task Delete{{entity.Name}}({{entityIdType}} id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}Delete(id);
 
 {{FlushStagedHookWritesSnippet}}
-
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Delete, "id")}}
-                }
 
                 List<{{entityIdType}}> listForDelete_{{deleteIterator}} = id.StructToList();
 
@@ -94,19 +88,13 @@ namespace Spiderly.SourceGenerators.Net
         /// Deletes multiple {{entity.Name}} entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_{{deleteIterator}}">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task Delete{{entity.Name}}List(List<{{entityIdType}}> listForDelete_{{deleteIterator}}, bool authorize)
+        public async virtual Task Delete{{entity.Name}}List(List<{{entityIdType}}> listForDelete_{{deleteIterator}})
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}ListDelete(listForDelete_{{deleteIterator}});
 
 {{FlushStagedHookWritesSnippet}}
-
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Delete, $"listForDelete_{deleteIterator}")}}
-                }
 
 {{string.Join("\n\n", GetManyToOneDeleteQueries(entity, allEntities, "listForDelete", deleteIterator))}}
 
