@@ -32,6 +32,6 @@ jobs:
 
         CONVENTIONS (advisory): public members in shipped packages (Spiderly.Shared, Spiderly.Security, Spiderly.Infrastructure) need /// <summary> XML docs; remove dead code left by deletions; reuse existing helpers instead of duplicating; logic errors; security.
 
-        SKIP: framework-metadata.json, any *.generated.md, Angular/projects/spiderly/agent/**, and anything under obj/, bin/, node_modules/, or .source/.
+        SKIP: framework-metadata.json, any *.generated.md, any *.verified.cs (Verify snapshot fixtures — review the generator that produces them, not the approved output), Angular/projects/spiderly/agent/**, and anything under obj/, bin/, node_modules/, or .source/.
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
