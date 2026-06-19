@@ -280,28 +280,6 @@ namespace Spiderly.Shared.Helpers
 
         #region Security
 
-        #region User
-
-        public static bool IsUserLoggedIn(HttpContext context)
-        {
-            return context?.User?.Identity?.IsAuthenticated ?? false;
-        }
-
-        public static long GetCurrentUserId(HttpContext context)
-        {
-            return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value);
-        }
-
-        public static long? GetCurrentUserIdOrDefault(HttpContext context)
-        {
-            if (IsUserLoggedIn(context))
-                return long.Parse(context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value);
-
-            return null;
-        }
-
-        #endregion
-
         #region JWT
 
         /// <summary>

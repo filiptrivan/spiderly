@@ -40,7 +40,7 @@ namespace Spiderly.Shared.Authorization
         public void OnCreating(CreatingContext context)
         {
             SpiderlyPrincipal current = _principalAccessor.Current;
-            if (current.IsAuthenticated == false || current.UserId.HasValue == false)
+            if (current.UserId.HasValue == false)
                 return;
 
             context.SetJobParameter(UserIdParameter, current.UserId.Value);
