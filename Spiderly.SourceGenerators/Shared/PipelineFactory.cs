@@ -38,18 +38,22 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 if (HasAttributeByName(classDeclaration, GetMarkerAttributeName(category)))
                     return true;
-
-                // A hand-written `partial class {Entity}DTO` that extends a generated DTO is enrolled even
-                // without [SpiderlyDTO], so the members it adds aren't silently dropped from codegen
-                // (spiderly#258). Scoped to partial *DTO declarations; GetDTOClasses further narrows the merge
-                // to names that match a generated DTO, so a standalone unmarked DTO still requires the marker.
-                if (category == ClassCategoryCodes.DTO
-                    && classDeclaration.Identifier.Text.EndsWith(Helpers.DTONamespaceEnding)
-                    && classDeclaration.IsPartial())
-                    return true;
             }
 
+            // A hand-written `partial class {Entity}DTO` that extends a generated DTO is enrolled even without
+            // [SpiderlyDTO], so the members it adds aren't silently dropped from codegen (spiderly#258). Scoped
+            // to partial *DTO declarations; GetDTOClasses further narrows the merge to names that match a
+            // generated DTO, so a standalone unmarked DTO still requires the marker.
+            if (categories.Contains(ClassCategoryCodes.DTO) && IsPartialDtoClass(classDeclaration))
+                return true;
+
             return false;
+        }
+
+        private static bool IsPartialDtoClass(ClassDeclarationSyntax classDeclaration)
+        {
+            return classDeclaration.Identifier.Text.EndsWith(Helpers.DTONamespaceEnding)
+                && classDeclaration.IsPartial();
         }
 
         public static string GetMarkerAttributeName(ClassCategoryCodes category) => category switch
