@@ -18,17 +18,11 @@ namespace Spiderly.SourceGenerators.Net
         /// Retrieves the complete MainUIFormDTO for {{entity.Name}}, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>{{entity.Name}}MainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<{{entity.Name}}MainUIFormDTO> Get{{entity.Name}}MainUIFormDTO({{entityIdType}} id, bool authorize)
+        public async virtual Task<{{entity.Name}}MainUIFormDTO> Get{{entity.Name}}MainUIFormDTO({{entityIdType}} id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
-                }
-
                 var result = new {{entity.Name}}MainUIFormDTO
                 {
 {{GetMainUIFormDTOInitializationProperties(entity, allEntities)}}
@@ -58,17 +52,11 @@ namespace Spiderly.SourceGenerators.Net
         /// Retrieves a single {{entity.Name}} entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>{{entity.Name}}DTO with all blob properties populated</returns>
-        public async virtual Task<{{entity.Name}}DTO> Get{{entity.Name}}DTO({{entityIdType}} id, bool authorize)
+        public async virtual Task<{{entity.Name}}DTO> Get{{entity.Name}}DTO({{entityIdType}} id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "id")}}
-                }
-
                 var dto = await _deps.Context.DbSet<{{entity.Name}}>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ProjectToConfig())
@@ -89,7 +77,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<{{entity.Name}}>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
+        public async virtual Task<PaginatedResult<{{entity.Name}}>> GetPaginated{{entity.Name}}Result(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -102,27 +90,21 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing {{entity.Name}}DTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<{{entity.Name}}DTO>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<{{entity.Name}}DTO>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
         {
             PaginatedResult<{{entity.Name}}> paginationResult = new();
             List<{{entity.Name}}DTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
+                paginationResult = await GetPaginated{{entity.Name}}Result(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
-                }
 
 {{GetPopulateDTOWithBlobPartsForDTOList(entity.Properties)}}
             });
@@ -135,16 +117,15 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, CancellationToken cancellationToken = default)
         {
             IQueryable<{{entity.Name}}DTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<{{entity.Name}}> paginationResult = await GetPaginated{{entity.Name}}List(filterDTO, query);
+                PaginatedResult<{{entity.Name}}> paginationResult = await GetPaginated{{entity.Name}}Result(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -164,19 +145,13 @@ namespace Spiderly.SourceGenerators.Net
         /// Retrieves a list of {{entity.Name}} entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of {{entity.Name}} entities</returns>
-        public async virtual Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query, bool authorize)
+        public async virtual Task<List<{{entity.Name}}>> Get{{entity.Name}}List(IQueryable<{{entity.Name}}> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "result.Select(x => x.Id).ToList()")}}
-                }
 
                 return result;
             });
@@ -186,9 +161,8 @@ namespace Spiderly.SourceGenerators.Net
         /// Retrieves a list of {{entity.Name}} DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of {{entity.Name}}DTO with blob properties populated</returns>
-        public async virtual Task<List<{{entity.Name}}DTO>> Get{{entity.Name}}DTOList(IQueryable<{{entity.Name}}> query, bool authorize)
+        public async virtual Task<List<{{entity.Name}}DTO>> Get{{entity.Name}}DTOList(IQueryable<{{entity.Name}}> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -196,11 +170,6 @@ namespace Spiderly.SourceGenerators.Net
                     .AsNoTracking()
                     .ProjectToType<{{entity.Name}}DTO>(Mapper.{{entity.Name}}ToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, "dtoList.Select(x => x.Id).ToList()")}}
-                }
 
 {{GetPopulateDTOWithBlobPartsForDTOList(entity.Properties)}}
 
@@ -217,7 +186,7 @@ namespace Spiderly.SourceGenerators.Net
             List<string> result = new();
 
             result.Add($$"""
-                    {{entity.Name}}DTO = await Get{{entity.Name}}DTO(id, false),
+                    {{entity.Name}}DTO = await Get{{entity.Name}}DTO(id),
 """);
 
             foreach (SpiderlyProperty property in entity.Properties
@@ -235,25 +204,25 @@ namespace Spiderly.SourceGenerators.Net
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     result.Add($$"""
-                    Ordered{{property.Name}}MainUIFormDTO = await GetOrdered{{property.Name}}For{{entity.Name}}(id, false),
+                    Ordered{{property.Name}}MainUIFormDTO = await GetOrdered{{property.Name}}For{{entity.Name}}(id),
 """);
                 }
                 else if (property.IsMultiSelectControlType())
                 {
                     result.Add($$"""
-                    {{property.Name}}Ids = await Get{{property.Name}}IdsFor{{entity.Name}}(id, false),
+                    {{property.Name}}Ids = await Get{{property.Name}}IdsFor{{entity.Name}}(id),
 """);
                 }
                 else if (property.IsMultiAutocompleteControlType())
                 {
                     result.Add($$"""
-                    {{property.Name}}NamebookDTOList = await Get{{property.Name}}NamebookListFor{{entity.Name}}(id, false),
+                    {{property.Name}}NamebookDTOList = await Get{{property.Name}}NamebookListFor{{entity.Name}}(id),
 """);
                 }
                 else if (property.HasComplexManyToManyListAttribute())
                 {
                     result.Add($$"""
-                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(id, false),
+                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(id),
 """);
                 }
             }
@@ -399,24 +368,15 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="limit">Maximum number of results to return</param>
         /// <param name="filter">Text filter for {{autocompleteEntityDisplayName}}</param>
         /// <param name="query">Base query for {{autocompleteEntity.Name}} entities</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
-        /// <param name="{{entity.Name.FirstCharToLower()}}Id">Optional {{entity.Name}} ID for context-specific authorization</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{autocompleteEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
             int limit,
             string filter,
-            IQueryable<{{autocompleteEntity.Name}}> query,
-            bool authorize,
-            {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id = null
+            IQueryable<{{autocompleteEntity.Name}}> query
         )
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"{entity.Name.FirstCharToLower()}Id")}}
-                }
-
                 if (!string.IsNullOrEmpty(filter))
                     query = query.Where(x => x.{{autocompleteEntityDisplayName}}.ToLower().Contains(filter.ToLower()));
 
@@ -447,22 +407,13 @@ namespace Spiderly.SourceGenerators.Net
         /// Retrieves dropdown options for the {{property.Name}} many-to-one relationship in {{entity.Name}}.
         /// </summary>
         /// <param name="query">Base query for {{dropdownEntity.Name}} entities</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
-        /// <param name="{{entity.Name.FirstCharToLower()}}Id">Optional {{entity.Name}} ID for context-specific authorization</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{dropdownEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}(
-            IQueryable<{{dropdownEntity.Name}}> query,
-            bool authorize,
-            {{entity.GetIdType(allEntities)}}? {{entity.Name.FirstCharToLower()}}Id = null
+            IQueryable<{{dropdownEntity.Name}}> query
         )
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    {{ServicesGenerator.GetAuthorizeEntityMethodCall(entity.Name, CrudCodes.Read, $"{entity.Name.FirstCharToLower()}Id")}}
-                }
-
                 var result = await query
                     .AsNoTracking()
                     .Select(x => new NamebookDTO<{{dropdownEntityIdType}}>

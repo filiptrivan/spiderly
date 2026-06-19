@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for Conversation, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the Conversation entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>ConversationMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<ConversationMainUIFormDTO> GetConversationMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<ConversationMainUIFormDTO> GetConversationMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(id);
-                }
-
                 var result = new ConversationMainUIFormDTO
                 {
-                    ConversationDTO = await GetConversationDTO(id, false),
+                    ConversationDTO = await GetConversationDTO(id),
                 };
 
                 await OnAfterGetConversationMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single Conversation entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the Conversation entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>ConversationDTO with all blob properties populated</returns>
-        public async virtual Task<ConversationDTO> GetConversationDTO(long id, bool authorize)
+        public async virtual Task<ConversationDTO> GetConversationDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<Conversation>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<ConversationDTO>(Mapper.ConversationProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<Conversation>> GetPaginatedConversationList(FilterDTO filterDTO, IQueryable<Conversation> query)
+        public async virtual Task<PaginatedResult<Conversation>> GetPaginatedConversationResult(FilterDTO filterDTO, IQueryable<Conversation> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing ConversationDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<ConversationDTO>> GetPaginatedConversationList(FilterDTO filterDTO, IQueryable<Conversation> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<ConversationDTO>> GetPaginatedConversationList(FilterDTO filterDTO, IQueryable<Conversation> query)
         {
             PaginatedResult<Conversation> paginationResult = new();
             List<ConversationDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedConversationList(filterDTO, query);
+                paginationResult = await GetPaginatedConversationResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<ConversationDTO>(Mapper.ConversationProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportConversationListToExcel(FilterDTO filterDTO, IQueryable<Conversation> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportConversationListToExcel(FilterDTO filterDTO, IQueryable<Conversation> query, CancellationToken cancellationToken = default)
         {
             IQueryable<ConversationDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<Conversation> paginationResult = await GetPaginatedConversationList(filterDTO, query);
+                PaginatedResult<Conversation> paginationResult = await GetPaginatedConversationResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Conversation entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of Conversation entities</returns>
-        public async virtual Task<List<Conversation>> GetConversationList(IQueryable<Conversation> query, bool authorize)
+        public async virtual Task<List<Conversation>> GetConversationList(IQueryable<Conversation> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of Conversation DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of ConversationDTO with blob properties populated</returns>
-        public async virtual Task<List<ConversationDTO>> GetConversationDTOList(IQueryable<Conversation> query, bool authorize)
+        public async virtual Task<List<ConversationDTO>> GetConversationDTOList(IQueryable<Conversation> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<ConversationDTO>(Mapper.ConversationToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -243,24 +212,15 @@ namespace TestApp.Business.Services
         /// <param name="limit">Maximum number of results to return</param>
         /// <param name="filter">Text filter for Title</param>
         /// <param name="query">Base query for TaskItem entities</param>
-        /// <param name="authorize">Whether to perform authorization check</param>
-        /// <param name="conversationId">Optional Conversation ID for context-specific authorization</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<long>>> GetOwningTaskItemAutocompleteListForConversation(
             int limit,
             string filter,
-            IQueryable<TaskItem> query,
-            bool authorize,
-            long? conversationId = null
+            IQueryable<TaskItem> query
         )
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationReadAndThrow(conversationId);
-                }
-
                 if (!string.IsNullOrEmpty(filter))
                     query = query.Where(x => x.Title.ToLower().Contains(filter.ToLower()));
 
@@ -473,8 +433,7 @@ namespace TestApp.Business.Services
         /// Deletes a single Conversation entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteConversation(long id, bool authorize)
+        public async virtual Task DeleteConversation(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -485,11 +444,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -510,8 +464,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple Conversation entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteConversationList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteConversationList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -522,11 +475,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeConversationDeleteAndThrow(listForDelete_1);
-                }
 
 
 

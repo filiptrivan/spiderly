@@ -47,20 +47,14 @@ namespace TestApp.Business.Services
         /// Retrieves the complete MainUIFormDTO for TaskItem, including the entity DTO and all related collections (one-to-many, many-to-many).
         /// </summary>
         /// <param name="id">The ID of the TaskItem entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>TaskItemMainUIFormDTO containing the entity DTO and related data</returns>
-        public async virtual Task<TaskItemMainUIFormDTO> GetTaskItemMainUIFormDTO(long id, bool authorize)
+        public async virtual Task<TaskItemMainUIFormDTO> GetTaskItemMainUIFormDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(id);
-                }
-
                 var result = new TaskItemMainUIFormDTO
                 {
-                    TaskItemDTO = await GetTaskItemDTO(id, false),
+                    TaskItemDTO = await GetTaskItemDTO(id),
                 };
 
                 await OnAfterGetTaskItemMainUIFormDTO(result);
@@ -87,17 +81,11 @@ namespace TestApp.Business.Services
         /// Retrieves a single TaskItem entity as a DTO with blob data populated.
         /// </summary>
         /// <param name="id">The ID of the TaskItem entity</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>TaskItemDTO with all blob properties populated</returns>
-        public async virtual Task<TaskItemDTO> GetTaskItemDTO(long id, bool authorize)
+        public async virtual Task<TaskItemDTO> GetTaskItemDTO(long id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(id);
-                }
-
                 var dto = await _deps.Context.DbSet<TaskItem>()
                     .AsNoTracking()
                     .Where(x => x.Id == id).ProjectToType<TaskItemDTO>(Mapper.TaskItemProjectToConfig())
@@ -118,7 +106,7 @@ namespace TestApp.Business.Services
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
         /// <returns>PaginatedResult containing the query and total record count</returns>
-        public async virtual Task<PaginatedResult<TaskItem>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query)
+        public async virtual Task<PaginatedResult<TaskItem>> GetPaginatedTaskItemResult(FilterDTO filterDTO, IQueryable<TaskItem> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -131,27 +119,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter and pagination parameters</param>
         /// <param name="query">The base query to paginate</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>PaginatedResultDTO containing TaskItemDTO list and total record count</returns>
-        public async virtual Task<PaginatedResultDTO<TaskItemDTO>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query, bool authorize)
+        public async virtual Task<PaginatedResultDTO<TaskItemDTO>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query)
         {
             PaginatedResult<TaskItem> paginationResult = new();
             List<TaskItemDTO> dtoList = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                paginationResult = await GetPaginatedTaskItemList(filterDTO, query);
+                paginationResult = await GetPaginatedTaskItemResult(filterDTO, query);
 
                 dtoList = await paginationResult.Query
                     .Skip(filterDTO.First)
                     .Take(filterDTO.Rows)
                     .ProjectToType<TaskItemDTO>(Mapper.TaskItemProjectToConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
             });
@@ -164,16 +146,15 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="filterDTO">Filter parameters for the export</param>
         /// <param name="query">The base query to export</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Excel file as byte array</returns>
-        public async virtual Task<byte[]> ExportTaskItemListToExcel(FilterDTO filterDTO, IQueryable<TaskItem> query, bool authorize, CancellationToken cancellationToken = default)
+        public async virtual Task<byte[]> ExportTaskItemListToExcel(FilterDTO filterDTO, IQueryable<TaskItem> query, CancellationToken cancellationToken = default)
         {
             IQueryable<TaskItemDTO> exportQuery = null;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                PaginatedResult<TaskItem> paginationResult = await GetPaginatedTaskItemList(filterDTO, query);
+                PaginatedResult<TaskItem> paginationResult = await GetPaginatedTaskItemResult(filterDTO, query);
                 int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
                 exportQuery = paginationResult.Query
                     .OrderBy(x => x.Id)
@@ -193,19 +174,13 @@ namespace TestApp.Business.Services
         /// Retrieves a list of TaskItem entities without pagination.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of TaskItem entities</returns>
-        public async virtual Task<List<TaskItem>> GetTaskItemList(IQueryable<TaskItem> query, bool authorize)
+        public async virtual Task<List<TaskItem>> GetTaskItemList(IQueryable<TaskItem> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 var result = await query
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(result.Select(x => x.Id).ToList());
-                }
 
                 return result;
             });
@@ -215,9 +190,8 @@ namespace TestApp.Business.Services
         /// Retrieves a list of TaskItem DTOs without pagination, with blob data populated.
         /// </summary>
         /// <param name="query">The query to execute</param>
-        /// <param name="authorize">Whether to perform authorization check for Read operation</param>
         /// <returns>List of TaskItemDTO with blob properties populated</returns>
-        public async virtual Task<List<TaskItemDTO>> GetTaskItemDTOList(IQueryable<TaskItem> query, bool authorize)
+        public async virtual Task<List<TaskItemDTO>> GetTaskItemDTOList(IQueryable<TaskItem> query)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -225,11 +199,6 @@ namespace TestApp.Business.Services
                     .AsNoTracking()
                     .ProjectToType<TaskItemDTO>(Mapper.TaskItemToDTOConfig())
                     .ToListAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemReadAndThrow(dtoList.Select(x => x.Id).ToList());
-                }
 
 
 
@@ -425,8 +394,7 @@ namespace TestApp.Business.Services
         /// Deletes a single TaskItem entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteTaskItem(long id, bool authorize)
+        public async virtual Task DeleteTaskItem(long id)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -437,11 +405,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemDeleteAndThrow(id);
-                }
 
                 List<long> listForDelete_1 = id.StructToList();
 
@@ -470,8 +433,7 @@ namespace TestApp.Business.Services
         /// Deletes multiple TaskItem entities with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="listForDelete_1">The list of entity IDs to delete</param>
-        /// <param name="authorize">Whether to perform authorization check for Delete operation</param>
-        public async virtual Task DeleteTaskItemList(List<long> listForDelete_1, bool authorize)
+        public async virtual Task DeleteTaskItemList(List<long> listForDelete_1)
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -482,11 +444,6 @@ namespace TestApp.Business.Services
                 // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
-
-                if (authorize)
-                {
-                    await _deps.AuthorizationService.AuthorizeTaskItemDeleteAndThrow(listForDelete_1);
-                }
 
                 var conversationListForDeleteBecauseOwningTaskItem_2 = await _deps.Context.DbSet<Conversation>()
                     .AsNoTracking()
