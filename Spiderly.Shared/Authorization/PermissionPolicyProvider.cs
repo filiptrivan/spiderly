@@ -22,6 +22,16 @@ namespace Spiderly.Shared.Authorization
             _fallbackPolicyProvider = new DefaultAuthorizationPolicyProvider(options);
         }
 
+        /// <summary>
+        /// Opts into the framework's per-endpoint policy cache. The <c>perm:&lt;code&gt;</c> policies materialized here
+        /// are deterministic per policy name (same requirement set every time), and the per-user permission check runs
+        /// on every request in the <c>PermissionAuthorizationHandler</c> regardless — so caching the static policy
+        /// shape is safe and avoids rebuilding it (and the combined policy) on every authorized request. Without this,
+        /// <c>AuthorizationMiddleware</c> bypasses its cache for this provider and calls <see cref="GetPolicyAsync"/>
+        /// per request (the default-interface value is <c>false</c> for any non-<c>DefaultAuthorizationPolicyProvider</c>).
+        /// </summary>
+        public bool AllowsCachingPolicies => true;
+
         /// <inheritdoc/>
         public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallbackPolicyProvider.GetDefaultPolicyAsync();
 

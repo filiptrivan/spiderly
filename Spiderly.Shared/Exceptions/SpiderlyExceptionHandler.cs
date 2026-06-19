@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
@@ -27,19 +28,22 @@ namespace Spiderly.Shared.Exceptions
         private readonly IWebHostEnvironment _env;
         private readonly TokenKeyOptions _tokenKeySettings;
         private readonly CookieManager _cookieManager;
+        private readonly ISpiderlyPrincipalAccessor _principalAccessor;
 
         public SpiderlyExceptionHandler(
             ILogger<SpiderlyExceptionHandler> logger,
             IStringLocalizer localizer,
             IWebHostEnvironment env,
             IOptions<TokenKeyOptions> tokenKeyOptions,
-            CookieManager cookieManager)
+            CookieManager cookieManager,
+            ISpiderlyPrincipalAccessor principalAccessor)
         {
             _logger = logger;
             _localizer = localizer;
             _env = env;
             _tokenKeySettings = tokenKeyOptions.Value;
             _cookieManager = cookieManager;
+            _principalAccessor = principalAccessor;
         }
 
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception ex, CancellationToken cancellationToken)
@@ -47,7 +51,7 @@ namespace Spiderly.Shared.Exceptions
             httpContext.Response.ContentType = "application/json";
 
             string exceptionString = _env.IsDevelopment() ? ex.ToString() : null;
-            long? userId = Helper.GetCurrentUserIdOrDefault(httpContext);
+            long? userId = _principalAccessor.Current.UserId;
 
             ApiErrorDTO body;
             LogLevel logLevel;

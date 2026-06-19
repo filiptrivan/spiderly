@@ -18,8 +18,8 @@ namespace Spiderly.Shared.Authorization
         /// </summary>
         public string Kind { get; }
 
-        /// <summary>True when this principal represents an authenticated end user (has a <see cref="UserId"/>).</summary>
-        public bool IsAuthenticated { get; }
+        /// <summary>True when this principal represents an authenticated end user — i.e. it carries a <see cref="UserId"/>.</summary>
+        public bool IsAuthenticated => UserId.HasValue;
 
         /// <summary>
         /// True when this principal represents trusted background/system execution with no end user
@@ -27,11 +27,10 @@ namespace Spiderly.Shared.Authorization
         /// </summary>
         public bool IsSystem { get; }
 
-        private SpiderlyPrincipal(long? userId, string kind, bool isAuthenticated, bool isSystem)
+        private SpiderlyPrincipal(long? userId, string kind, bool isSystem)
         {
             UserId = userId;
             Kind = kind;
-            IsAuthenticated = isAuthenticated;
             IsSystem = isSystem;
         }
 
@@ -40,20 +39,20 @@ namespace Spiderly.Shared.Authorization
         /// background job before any actor is pushed). <see cref="IsAuthenticated"/> and <see cref="IsSystem"/>
         /// are both <c>false</c> and <see cref="UserId"/> is <c>null</c>.
         /// </summary>
-        public static readonly SpiderlyPrincipal Anonymous = new(userId: null, kind: null, isAuthenticated: false, isSystem: false);
+        public static readonly SpiderlyPrincipal Anonymous = new(userId: null, kind: null, isSystem: false);
 
         /// <summary>
         /// Trusted background/system execution with no end user (e.g. a recurring Hangfire job). Use this as the
         /// pushed principal for system-initiated work so audit attributes to "system" and authorization can
         /// treat <see cref="IsSystem"/> as a bypass.
         /// </summary>
-        public static readonly SpiderlyPrincipal System = new(userId: null, kind: null, isAuthenticated: false, isSystem: true);
+        public static readonly SpiderlyPrincipal System = new(userId: null, kind: null, isSystem: true);
 
         /// <summary>Creates an authenticated end-user principal.</summary>
         /// <param name="userId">The authenticated user's id (subject).</param>
         /// <param name="kind">The principal kind, or <c>null</c> for the single-principal default.</param>
         /// <returns>A principal with <see cref="IsAuthenticated"/> set to <c>true</c>.</returns>
         public static SpiderlyPrincipal ForUser(long userId, string kind = null) =>
-            new(userId, kind, isAuthenticated: true, isSystem: false);
+            new(userId, kind, isSystem: false);
     }
 }

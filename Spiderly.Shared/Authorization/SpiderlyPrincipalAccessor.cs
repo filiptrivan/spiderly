@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
@@ -56,11 +55,11 @@ namespace Spiderly.Shared.Authorization
             if (httpContext?.User?.Identity?.IsAuthenticated != true)
                 return null;
 
-            string subject = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+            string subject = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (long.TryParse(subject, out long userId) == false)
                 return null;
 
-            string kind = httpContext.User.Claims.FirstOrDefault(x => x.Type == PrincipalClaims.PrincipalKind)?.Value;
+            string kind = httpContext.User.FindFirst(PrincipalClaims.PrincipalKind)?.Value;
             return SpiderlyPrincipal.ForUser(userId, kind);
         }
 
