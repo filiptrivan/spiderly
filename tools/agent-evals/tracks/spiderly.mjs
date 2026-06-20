@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { copyDir } from '../lib/fs-utils.mjs';
+import { copyDir, skipDirsFilter, BUILD_ARTIFACT_DIRS } from '../lib/fs-utils.mjs';
 import { fixturesRoot } from '../lib/paths.mjs';
 
 // Spiderly (with-framework) benchmark arm. The fixture is a REAL `spiderly init` app, left intact:
@@ -10,9 +10,10 @@ import { fixturesRoot } from '../lib/paths.mjs';
 // mirroring plain-net. `root`/`fixtureName` injectable for tests.
 //
 // KEEP node_modules — that's where the shipped docs/skills live; stripping it is the very bug we just
-// fixed, one level up. Only .NET build artifacts (bin/obj) are skipped.
-const SKIP = /[\\/](bin|obj)([\\/]|$)/;
+// fixed, one level up. So skip the standard build artifacts MINUS node_modules: the keep-it invariant
+// is one data difference from the shared set, not a hand-retyped regex.
+const SKIP_DIRS = new Set([...BUILD_ARTIFACT_DIRS].filter((d) => d !== 'node_modules'));
 
 export function provision(task, workspaceDir, { fixtureName = 'spiderly-app', root = fixturesRoot } = {}) {
-  copyDir(join(root, fixtureName), workspaceDir, { filter: (src) => !SKIP.test(src) });
+  copyDir(join(root, fixtureName), workspaceDir, { filter: skipDirsFilter(SKIP_DIRS) });
 }

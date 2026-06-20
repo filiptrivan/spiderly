@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { walkFiles } from '../../../lib/fs-utils.mjs';
 
 // INTERIM verifier (walking skeleton). The REAL check is OUTSIDE-IN — boot the app + Postgres, log
 // in, POST/GET /api/suppliers, assert 201/200 and a 400 on an invalid Name/Email — which is the
@@ -8,21 +9,6 @@ import { join } from 'node:path';
 // entity and a SuppliersController. Replace with the boot-based contract check once Postgres is
 // wired. Per the runVerify INVARIANT, never throw — return failing checks instead.
 
-function csFiles(dir) {
-  const out = [];
-  let entries = [];
-  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
-  for (const e of entries) {
-    if (e.isDirectory()) {
-      if (e.name === 'bin' || e.name === 'obj' || e.name === 'node_modules') continue;
-      out.push(...csFiles(join(dir, e.name)));
-    } else if (e.name.endsWith('.cs')) {
-      out.push(join(dir, e.name));
-    }
-  }
-  return out;
-}
-
 export default async function verify({ workspaceDir, run }) {
   const backend = join(workspaceDir, 'Backend');
   const build = run('dotnet', ['build'], { cwd: backend, shell: true, timeoutMs: 10 * 60 * 1000 });
@@ -30,8 +16,10 @@ export default async function verify({ workspaceDir, run }) {
 
   let entity = false;
   let endpoint = false;
-  for (const f of csFiles(backend)) {
-    const txt = readFileSync(f, 'utf8');
+  // Reuse the shared tree-walk (skips bin/obj/node_modules/etc. via BUILD_ARTIFACT_DIRS); grep .cs only.
+  for (const rel of walkFiles(backend)) {
+    if (!rel.endsWith('.cs')) continue;
+    const txt = readFileSync(join(backend, rel), 'utf8');
     if (/class\s+Supplier\b/.test(txt) && /\bstring\s+Name\b/.test(txt)) entity = true;
     if (/class\s+SuppliersController\b/.test(txt)) endpoint = true;
     if (entity && endpoint) break;
