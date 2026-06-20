@@ -1,0 +1,8 @@
+{
+  "id": "supplier-crud",
+  "tier": "atomic",
+  "targets": ["entity", "validation", "crud-api"],
+  "fixture": "plain-app",
+  "maxTurns": 25,
+  "required": ["compiles", "supplier-entity", "suppliers-endpoint"]
+}
