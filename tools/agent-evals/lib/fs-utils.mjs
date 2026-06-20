@@ -12,6 +12,15 @@ export function copyDir(src, dst, { filter } = {}) {
 // Build output / dependency dirs — never "source the build produced"; skipped by walkFiles.
 export const BUILD_ARTIFACT_DIRS = new Set(['bin', 'obj', 'node_modules', '.git', '.angular', 'dist', '.vs']);
 
+// A cpSync `filter` that drops any path lying under one of `dirNames` (matched as a path segment), so
+// a whole build-artifact subtree is excluded from a copyDir. Pass a subset of BUILD_ARTIFACT_DIRS —
+// the full set, or the set minus 'node_modules' to keep a shipped bundle. Single source of truth for
+// "what's a build dir", shared with walkFiles instead of per-track regexes.
+export function skipDirsFilter(dirNames) {
+  const set = dirNames instanceof Set ? dirNames : new Set(dirNames);
+  return (src) => !src.split(/[\\/]/).some((seg) => set.has(seg));
+}
+
 // Recursively list source files under `root` as sorted, POSIX-relative paths, skipping
 // BUILD_ARTIFACT_DIRS. Unreadable dirs are skipped (not thrown). Used to capture what a build
 // produced — e.g. the showcase file-tree + count.
