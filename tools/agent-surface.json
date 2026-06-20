@@ -14,6 +14,7 @@
     "frontend-localization": "doc",
     "mapper-customization": "doc",
     "add-entity": "skill",
+    "backups": "skill",
     "deployment": "skill",
     "ef-migrations": "skill",
     "report-gap": "skill",
