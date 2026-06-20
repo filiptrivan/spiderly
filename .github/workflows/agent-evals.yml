@@ -94,8 +94,10 @@ jobs:
 
       # --- Build the `spiderly-app` fixture in CI (the pre-task state) ---
       # Mirrors ci.yml's integration-test scaffold: build+pack packages, publish the Angular lib to a
-      # local Verdaccio, install the CLI, then `spiderly init`. Only the BACKEND is kept as the
-      # fixture — the add-validator verifier is dotnet-build-only (no Postgres, no Angular, no boot).
+      # local Verdaccio, install the CLI, then `spiderly init`. The WHOLE real init app is kept as the
+      # fixture — guidance included (AGENTS.md + docs + .claude/skills) — so the with-Spiderly arm
+      # mirrors what a real Spiderly developer has. Stripping it to Backend-only would delete exactly
+      # that guidance (the bug we fixed one level up). UNVALIDATED until the first workflow_dispatch.
       - name: Build and pack all Spiderly packages
         run: |
           dotnet restore
@@ -152,6 +154,19 @@ jobs:
           # unlike ci.yml's integration-test, which boots the app and so sets up Postgres first.
           spiderly init --name "${{ env.TEST_APP_NAME }}" --db skip
 
+      # Set up the agent guidance the WITH-Spiderly arm depends on. `spiderly init` already runs
+      # agent-sync, but agent-sync SOFT-SKIPS when node_modules isn't installed yet — so install the
+      # app's frontend deps (pulls `spiderly` from Verdaccio → node_modules/spiderly/agent), then run
+      # agent-sync explicitly to write AGENTS.md + the docs pointer + .claude/skills/spiderly-*.
+      # NOTE: assumes `spiderly init` scaffolds a `Frontend/` — verify on the first real run.
+      - name: Sync Spiderly agent guidance into the app
+        run: |
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          cd "${{ env.APP_FOLDER }}/Frontend"
+          npm install
+          cd "${{ env.APP_FOLDER }}"
+          spiderly agent-sync
+
       # Apply the eval overlay: the add-validator PRE-task Product (Name present, NO validation).
       # We deliberately do NOT run tests/e2e-fixtures/setup.sh — that overlay's Product.Name already
       # has [Required]/[MaxLength(100)], which would make the task pre-satisfied (a no-op would pass).
@@ -170,11 +185,19 @@ jobs:
           dotnet restore
           dotnet build -c Release --no-restore
 
-      - name: Stage fixture (Backend only, no bin/obj)
+      - name: Stage fixture (full real `spiderly init` app — guidance kept)
         run: |
+          export PATH="$HOME/.dotnet/tools:$PATH"
           DEST="$GITHUB_WORKSPACE/tools/agent-evals/fixtures/spiderly-app"
           mkdir -p "$DEST"
-          rsync -a --exclude bin --exclude obj "${{ env.APP_FOLDER }}/Backend" "$DEST/"
+          # Keep the WHOLE app — Backend + Frontend + the node_modules/spiderly/agent bundle the
+          # guidance points at + AGENTS.md + CLAUDE.md + .claude/skills — dropping only .NET build
+          # output. The with-Spiderly arm must mirror a real developer's app; stripping the guidance is
+          # the bug we fixed. (-a preserves the .claude/skills symlinks agent-sync created.)
+          rsync -a --exclude 'bin' --exclude 'obj' "${{ env.APP_FOLDER }}/" "$DEST/"
+          # The .claude/skills symlinks were created against the build-time app path, which won't exist
+          # at eval time — re-point them at the staged bundle so they resolve in each run's copy.
+          cd "$DEST" && spiderly agent-sync
 
       # --- Run the agents (Claude CLI already installed + auth-verified above) ---
       - name: Run evals

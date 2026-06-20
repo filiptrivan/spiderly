@@ -6,7 +6,7 @@ const TIERS = ['atomic', 'feature', 'full-app'];
 const REQUIRED_FIELDS = ['id', 'tier', 'targets', 'fixture', 'maxTurns', 'required'];
 
 // Discover tasks. A task is a folder under tasks/<tier>/ containing task.json + prompt.md.
-export function loadTasks({ tier } = {}) {
+export function loadTasks({ tier, taskId } = {}) {
   const tasks = [];
   for (const t of TIERS) {
     if (tier && tier !== t) continue;
@@ -14,6 +14,7 @@ export function loadTasks({ tier } = {}) {
     if (!existsSync(tierDir)) continue;
     for (const d of readdirSync(tierDir, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
+      if (taskId && d.name !== taskId) continue;
       const dir = join(tierDir, d.name);
       if (!existsSync(join(dir, 'task.json'))) continue;
       const meta = JSON.parse(readFileSync(join(dir, 'task.json'), 'utf8'));
