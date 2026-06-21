@@ -176,7 +176,7 @@ claude plugin add filiptrivan/spiderly
 We welcome contributions from the community! Whether you have ideas, found a bug, or want to add a new feature — feel free to get involved. You can:
 
 - [Open an issue](https://github.com/filiptrivan/spiderly/issues) to report bugs or suggest enhancements
-- [Submit a pull request](https://github.com/filiptrivan/spiderly/pulls) with your proposed changes — set the base branch to `develop`, not `main` (`main` is release-only and stays in sync automatically)
+- [Submit a pull request](https://github.com/filiptrivan/spiderly/pulls) with your proposed changes — base it on `main` (the default branch); a maintainer cuts releases and tags `vX.Y.Z` from there
 - [Start a discussion](https://github.com/filiptrivan/spiderly/discussions) to explore ideas or ask questions
 
 Every contribution is appreciated and helps make this project better for everyone.

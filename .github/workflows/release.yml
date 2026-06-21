@@ -78,14 +78,14 @@ jobs:
       has_dotnet_packages: ${{ steps.packages.outputs.has_dotnet_packages }}
 
     steps:
-      - name: Enforce develop branch
+      - name: Enforce main branch
         if: inputs.dry_run != true
         run: |
-          if [ "${GITHUB_REF}" != "refs/heads/develop" ]; then
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
             echo "Branch: ${GITHUB_REF_NAME}"
-            echo "The release pipeline fast-forwards 'main' from 'develop' as part of finalize."
+            echo "Releases are cut from 'main' (the trunk): the pipeline bumps versions, publishes, and tags vX.Y.Z on this branch."
             echo "Running from any other branch would publish that branch's code under a fresh version."
-            echo "::error::Release pipeline must be run from 'develop' (got: ${GITHUB_REF_NAME}). See spiderly/CLAUDE.md."
+            echo "::error::Release pipeline must be run from 'main' (got: ${GITHUB_REF_NAME}). See README / CLAUDE.md."
             exit 1
           fi
 
@@ -334,7 +334,7 @@ jobs:
   publish-nuget:
     name: Publish to NuGet
     needs: [validate, build-dotnet, test-dotnet]
-    if: needs.validate.outputs.has_dotnet_packages == 'true' && (inputs.dry_run == true || github.ref == 'refs/heads/develop')
+    if: needs.validate.outputs.has_dotnet_packages == 'true' && (inputs.dry_run == true || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     outputs:
       published_packages: ${{ steps.publish.outputs.published_packages }}
@@ -416,7 +416,7 @@ jobs:
     needs: [validate, build-angular, publish-nuget]
     if: |
       always() &&
-      (inputs.dry_run == true || github.ref == 'refs/heads/develop') &&
+      (inputs.dry_run == true || github.ref == 'refs/heads/main') &&
       needs.validate.result == 'success' &&
       needs.validate.outputs.publish_angular == 'true' &&
       needs.build-angular.result == 'success' &&
@@ -427,7 +427,7 @@ jobs:
 
     steps:
       # This job is deliberately artifact-only — a full checkout here would fetch current
-      # develop HEAD, which may be newer than the commit the artifact was built from. But
+      # main HEAD, which may be newer than the commit the artifact was built from. But
       # setup-node reads .nvmrc from the workspace, so fetch just that one file.
       - name: Checkout .nvmrc
         uses: actions/checkout@v6
@@ -480,7 +480,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
-      github.ref == 'refs/heads/develop' &&
+      github.ref == 'refs/heads/main' &&
       needs.validate.outputs.is_prerelease == 'false' &&
       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
@@ -567,7 +567,7 @@ jobs:
     if: |
       always() &&
       inputs.dry_run != true &&
-      github.ref == 'refs/heads/develop' &&
+      github.ref == 'refs/heads/main' &&
       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success') &&
@@ -622,18 +622,6 @@ jobs:
             echo "No version changes to commit"
           fi
 
-      - name: Merge to main
-        if: needs.validate.outputs.is_prerelease == 'false'
-        run: |
-          echo "Fast-forwarding main to match develop..."
-
-          git fetch origin main
-          git checkout main
-          git merge --ff-only origin/develop
-          git push origin main
-
-          echo "Successfully fast-forwarded main"
-
       # Push the single-source-of-truth metadata into the docs site so it can render the framework
       # reference tables (see docs/framework-metadata-ssot.md). Runs before the develop→master
       # fast-forward below so it ships in the same release. continue-on-error: a docs-sync hiccup
@@ -668,8 +656,10 @@ jobs:
             echo "Pushed framework-metadata.json to $REPO develop"
           fi
 
-      # The website mirrors this repo's linear model: master must always be an ancestor of develop,
-      # and a release just fast-forwards master's ref to develop. A non-force ref update is rejected
+      # spiderly-website uses a linear env-branch model (master = production, develop = staging):
+      # master must always be an ancestor of develop, and a release just fast-forwards master's ref
+      # to develop. (This repo — spiderly — is trunk-based on main + tags, and no longer mirrors it.)
+      # A non-force ref update is rejected
       # by GitHub unless it is a fast-forward, so a broken invariant fails loudly here instead of
       # producing a merge conflict (the merge-based predecessor of this step silently filed
       # spiderly-website#75 and nobody heard about it for a month). Hotfix flow that preserves the
