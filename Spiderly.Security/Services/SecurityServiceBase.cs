@@ -278,6 +278,18 @@ namespace Spiderly.Security.Services
                 _authenticationService.SetAccessTokenCookie(jwtAuthResultDTO.AccessTokenDTO.TokenString);
                 _authenticationService.SetAuthResultCookie(authResultWithCookiesDTO);
 
+                // Parity with Login and LoginExternal: the server-side OIDC code flow must also fire the
+                // post-login hook, inside the same transaction, so consumer overrides (e.g. a first-login
+                // role bootstrap) run on every auth path — not just classic and id-token logins.
+                await OnAfterLogin(new AuthResultDTO
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    AccessToken = jwtAuthResultDTO.AccessTokenDTO.TokenString,
+                    AccessTokenExpiresAt = jwtAuthResultDTO.AccessTokenDTO.ExpiresAt,
+                    RefreshToken = jwtAuthResultDTO.RefreshTokenDTO.TokenString,
+                });
+
                 return payload.ReturnUrl;
             });
         }
