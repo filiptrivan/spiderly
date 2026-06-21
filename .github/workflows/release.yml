@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -215,7 +215,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -264,7 +264,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -288,7 +288,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -430,7 +430,7 @@ jobs:
       # develop HEAD, which may be newer than the commit the artifact was built from. But
       # setup-node reads .nvmrc from the workspace, so fetch just that one file.
       - name: Checkout .nvmrc
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: .nvmrc
           sparse-checkout-cone-mode: false
@@ -491,7 +491,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -578,7 +578,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
