@@ -166,16 +166,18 @@ In the app's authorization service (the `[SpiderlyService]` extending `Authoriza
 
 ```csharp
 /// <summary>
-/// Issuance guard: an admin may only grant an API key roles whose permissions the admin already holds,
-/// so a key can never be minted more powerful than its creator. The principal model has no runtime cap —
-/// a key authorizes through its own roles — so this is enforced once, at assignment.
+/// Issuance guard: the principal creating a key may only grant it roles whose permissions that principal
+/// already holds, so a key can never be minted more powerful than its creator. The creator can be any
+/// principal kind (a user, a service account, another key), so the ceiling is resolved principal-agnostically
+/// via GetCurrentPrincipalPermissionCodesAsync() (not the User-typed GetCurrentUserPermissionCodes). No
+/// runtime cap — a key authorizes through its own roles — so this is enforced once, at assignment.
 /// </summary>
 public async Task AuthorizeApiKeyRoleAssignmentAsync(List<int> roleIds)
 {
     if (roleIds == null || roleIds.Count == 0)
         return;
 
-    HashSet<string> userPermissions = (await GetCurrentUserPermissionCodes<User, Role>()).ToHashSet();
+    HashSet<string> creatorPermissions = (await GetCurrentPrincipalPermissionCodesAsync()).ToHashSet();
 
     List<string> targetRolePermissions = await _context.DbSet<Role>()
         .AsNoTracking()
@@ -185,7 +187,7 @@ public async Task AuthorizeApiKeyRoleAssignmentAsync(List<int> roleIds)
         .Distinct()
         .ToListAsync();
 
-    if (!targetRolePermissions.All(p => userPermissions.Contains(p)))
+    if (!targetRolePermissions.All(p => creatorPermissions.Contains(p)))
         throw new BusinessException(_localizer["ApiKeyRoleExceedsYourPermissionsException"]);
 }
 ```
@@ -205,7 +207,7 @@ These are the machine-facing REST surface (also what a management skill drives).
 [HttpPost, AuthGuard]
 public async Task<GenerateApiKeyResponseDTO> GenerateApiKey([FromBody] GenerateApiKeyRequestDTO request)
 {
-    await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.InsertApiKey);
+    await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.InsertApiKey);   // principal-agnostic — any principal kind can create a key
     long currentUserId = _authenticationService.GetCurrentUserId();
 
     List<Role> roles = new();
@@ -234,7 +236,7 @@ public async Task<GenerateApiKeyResponseDTO> GenerateApiKey([FromBody] GenerateA
 [HttpPost, AuthGuard]
 public async Task RevokeApiKey([FromBody] RevokeApiKeyRequestDTO request)
 {
-    await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateApiKey);
+    await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.UpdateApiKey);
     ApiKey apiKey = await _context.DbSet<ApiKey>().FirstOrDefaultAsync(x => x.Id == request.ApiKeyId)
         ?? throw new BusinessException("API key not found.");
     apiKey.IsRevoked = true;
@@ -262,4 +264,4 @@ Build the backend (`dotnet build` the Business project, then the WebAPI project)
 - **Store only the hash.** The plaintext is returned once at generation and never persisted.
 - **Guard every role-assignment path.** Both the Generate endpoint and `UpdateRolesForApiKey` call `AuthorizeApiKeyRoleAssignmentAsync` — a key can never be minted more powerful than its creator.
 - **A role-less key has no permissions** (deny), by design. Assign an admin role for a full-access key.
-- **Revocation/expiry/disabled are checked live** in `ApiKeyAuthenticator` on every request — that's the whole point of opaque keys over JWTs.
+- **Revocation/expiry/disabled are checked live** in `DefaultApiKeyAuthenticator` on every request — that's the whole point of opaque keys over JWTs.

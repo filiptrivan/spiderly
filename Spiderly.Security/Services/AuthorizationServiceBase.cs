@@ -43,6 +43,13 @@ namespace Spiderly.Security.Services
                 throw new UnauthorizedException(_localizer["UnauthorizedAccessExceptionMessage"]);
         }
 
+        /// <summary>
+        /// Authorization check restricted to a <b>human user</b>: it resolves <paramref name="permissionCode"/>
+        /// against the <typeparamref name="TUser"/> table by the current principal's id, so a non-user principal
+        /// (e.g. an API key) is denied because it isn't in that table. Use this to mark an operation as
+        /// users-only; for an operation any principal kind may perform, use the non-generic
+        /// <see cref="IsAuthorizedAsync(string)"/>.
+        /// </summary>
         public virtual async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
         {
             ArgumentNullException.ThrowIfNull(permissionCode);
@@ -86,10 +93,11 @@ namespace Spiderly.Security.Services
 
         /// <summary>
         /// Principal-kind-agnostic authorization check. Resolves the current principal (human user, service
-        /// account, …) by its kind through the <see cref="IPrincipalRegistry"/> rather than a compile-time
-        /// user type, so the same endpoint authorizes correctly whatever kind of principal is calling. This
-        /// is what generated CRUD authorization calls; prefer it over the generic
-        /// <c>IsAuthorizedAsync&lt;TUser&gt;</c> overload.
+        /// account, API key, …) by its kind through the <see cref="IPrincipalRegistry"/> rather than a
+        /// compile-time user type, so the same endpoint authorizes correctly whatever kind of principal is
+        /// calling. This is the default — it's what generated CRUD authorization calls. Use the generic
+        /// <see cref="IsAuthorizedAsync{TUser}(string)"/> overload instead only when the operation must be
+        /// performed by a <b>human user</b> (it resolves against the user table, so any non-user principal is denied).
         /// </summary>
         public virtual async Task<bool> IsAuthorizedAsync(string permissionCode)
         {
@@ -115,8 +123,9 @@ namespace Spiderly.Security.Services
 
         /// <summary>
         /// Principal-kind-agnostic authorization check that throws <see cref="UnauthorizedException"/> when the
-        /// current principal lacks <paramref name="permissionCode"/>. Prefer this over the generic
-        /// <c>AuthorizeAndThrowAsync&lt;TUser&gt;</c> overload.
+        /// current principal lacks <paramref name="permissionCode"/>. This is the default; use the generic
+        /// <c>AuthorizeAndThrowAsync&lt;TUser&gt;</c> overload only when the operation must be performed by a
+        /// <b>human user</b> (a non-user principal is then denied — see <see cref="IsAuthorizedAsync(string)"/>).
         /// </summary>
         public virtual async Task AuthorizeAndThrowAsync(string permissionCode)
         {
@@ -141,6 +150,31 @@ namespace Spiderly.Security.Services
                     .Distinct()
                     .ToListAsync();
             });
+        }
+
+        /// <summary>
+        /// The distinct permission codes held by the <b>current principal of any kind</b> — resolved through the
+        /// <see cref="IPrincipalRegistry"/> by the <c>principal_kind</c> claim, mirroring <see cref="IsAuthorizedAsync(string)"/>.
+        /// Prefer this over the generic <see cref="GetCurrentUserPermissionCodes{TUser, TRole}"/> when the caller
+        /// may be a non-human principal (a service account, an API key, …) — e.g. for a "you can only grant what
+        /// you already hold" check that must stay correct whatever kind of principal is acting. Returns an empty
+        /// list when the principal kind is unrecognized (fail closed).
+        /// </summary>
+        /// <returns>The current principal's distinct permission codes, or an empty list if it can't be resolved.</returns>
+        public virtual async Task<List<string>> GetCurrentPrincipalPermissionCodesAsync()
+        {
+            if (_principalRegistry.IsEmpty)
+                throw new InvalidOperationException(
+                    "No principal kinds are registered, so authorization cannot resolve the current principal. " +
+                    "Call AddSpiderlyPrincipal<TPrincipal>(\"kind\") (the spiderly init template registers User).");
+
+            if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver resolver) == false)
+                return new List<string>();
+
+            long principalId = _authenticationService.GetCurrentUserId();
+
+            return await _context.WithTransactionAsync(async () =>
+                await resolver.GetPermissionCodesAsync(_context, principalId));
         }
 
     }
