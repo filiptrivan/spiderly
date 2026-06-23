@@ -14,5 +14,13 @@ namespace Spiderly.Security
         /// (the <c>spiderly init</c> template does: <c>AddSpiderlyPrincipal&lt;User&gt;(PrincipalKinds.User)</c>).
         /// </summary>
         public const string User = "User";
+
+        /// <summary>
+        /// The built-in machine principal kind for API keys. The API-key authentication handler stamps this
+        /// kind on the principal it issues, so an application that enables API keys registers its key entity
+        /// under it (<c>AddSpiderlyPrincipal&lt;ApiKey&gt;(PrincipalKinds.ApiKey)</c>). An <c>ApiKey</c> is a
+        /// first-class principal carrying its own roles, not an impersonation of its owning user.
+        /// </summary>
+        public const string ApiKey = "ApiKey";
     }
 }

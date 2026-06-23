@@ -6,6 +6,11 @@
       "description": "Scaffold a new Spiderly entity end-to-end (entity class, Angular pages, routes, menu, migration)"
     },
     {
+      "name": "api-keys",
+      "surface": "skill",
+      "description": "Add the API-keys feature to a Spiderly app — per-key authentication via an X-Api-Key header, where each key is a first-class principal carrying its own roles. Use when a project needs machine/partner/agent access to its REST API (generate, scope-to-roles, expire, revoke). Opt-in; not part of the default app."
+    },
+    {
       "name": "backups",
       "surface": "skill",
       "description": "Back up and restore a Spiderly app's Postgres database, and archive logs off the VPS. Use when setting up automated database backups, scheduling pg_dump to object storage (Cloudflare R2), restoring from a backup, running a restore drill, configuring backup retention, or archiving Serilog file logs. Covers the backup and restore scripts, cron scheduling, and the R2 bucket Terraform."
