@@ -207,10 +207,15 @@ namespace Spiderly.CLI.Commands
             string menuItemToAdd = $$"""
                                 {
                                     label: this.translocoService.translate('{{entityName}}List'),
-                                    icon: 'pi pi-fw pi-list',
+                                    icon: PrimeIcons.LIST + ' pi-fw',
                                     routerLink: ['/{{kebabEntityName}}-list'],
                                 },
             """;
+
+            if (!layoutContent.Contains("from 'primeng/api'"))
+            {
+                layoutContent = "import { PrimeIcons } from 'primeng/api';\n" + layoutContent;
+            }
 
             string pattern = @"(this\.menu = \[\s*\{\s*items: \[)";
             Match match = Regex.Match(layoutContent, pattern, RegexOptions.Singleline);

@@ -4074,6 +4074,7 @@ import { FormsModule } from '@angular/forms';
 import { SpiderlyLayoutComponent, SpiderlyMenuItem, SecurityPermissionCodes } from 'spiderly';
 import { CommonModule } from '@angular/common';
 import { PermissionCodes } from '../enums/enums.generated';
+import { PrimeIcons } from 'primeng/api';
 
 @Component({
     selector: 'layout',
@@ -4099,14 +4100,14 @@ export class LayoutComponent {
         this.menu = [
             {
                 items: [
-                    { 
-                        label: this.translocoService.translate('Home'), 
-                        icon: 'pi pi-fw pi-home', 
+                    {
+                        label: this.translocoService.translate('Home'),
+                        icon: PrimeIcons.HOME + ' pi-fw',
                         routerLink: [''],
                     },
                     {
                         label: this.translocoService.translate('Administration'),
-                        icon: 'pi pi-fw pi-cog',
+                        icon: PrimeIcons.COG + ' pi-fw',
                         hasPermission: (permissionCodes: string[]): boolean => {
                             return (
                                 permissionCodes?.includes(PermissionCodes.ReadUser) ||
@@ -4116,7 +4117,7 @@ export class LayoutComponent {
                         items: [
                             {
                                 label: this.translocoService.translate('UserList'),
-                                icon: 'pi pi-fw pi-user',
+                                icon: PrimeIcons.USER + ' pi-fw',
                                 routerLink: [`/${this.config.administrationSlug}/users`],
                                 hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
@@ -4126,7 +4127,7 @@ export class LayoutComponent {
                             },
                             {
                                 label: this.translocoService.translate('RoleList'),
-                                icon: 'pi pi-fw pi-id-card',
+                                icon: PrimeIcons.ID_CARD + ' pi-fw',
                                 routerLink: [`/${this.config.administrationSlug}/roles`],
                                 hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
