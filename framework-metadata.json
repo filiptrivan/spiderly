@@ -587,6 +587,10 @@
       "signature": "pushAction(cols: Column[], action: Action)"
     },
     {
+      "name": "saveResponseAsFile",
+      "signature": "saveResponseAsFile(res: HttpResponse<Blob>, fallbackName: string): void"
+    },
+    {
       "name": "selectedTab",
       "signature": "selectedTab(tabs: SpiderlyTab[]): number"
     },
