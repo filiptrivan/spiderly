@@ -221,13 +221,23 @@ export function isExcelFileType(mimeType: string): boolean {
   return false;
 }
 
+export function saveResponseAsFile(
+  res: HttpResponse<Blob>,
+  fallbackName: string,
+): void {
+  if (res?.body == null) {
+    return;
+  }
+  let fileName = getFileNameFromContentDisposition(res, fallbackName);
+  FileSaver.saveAs(res.body, decodeURIComponent(fileName));
+}
+
 export function exportListToExcel(
   exportListToExcelObservableMethod: (filter: Filter) => Observable<any>,
   filter: Filter,
 ) {
   exportListToExcelObservableMethod(filter).subscribe((res) => {
-    let fileName = getFileNameFromContentDisposition(res, 'ExcelExport.xlsx');
-    FileSaver.saveAs(res.body, decodeURIComponent(fileName));
+    saveResponseAsFile(res, 'ExcelExport.xlsx');
   });
 }
 
