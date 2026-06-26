@@ -32,6 +32,7 @@ Reusable helpers exported from `helper-functions.ts`. Import the one you need in
 | `nameof(key1: any, key2?: any): any` |  |
 | `parseDateOnlyLocal(s: string): Date \| null` |  |
 | `pushAction(cols: Column[], action: Action)` |  |
+| `saveResponseAsFile(res: HttpResponse<Blob>, fallbackName: string): void` |  |
 | `selectedTab(tabs: SpiderlyTab[]): number` |  |
 | `singleOrDefault<T>(array: T[], predicate: (item: T) => boolean): T \| undefined` |  |
 | `splitPascalCase(input: string)` |  |
