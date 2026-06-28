@@ -81,6 +81,14 @@ Never hand-edit anything under `agent/`. The generator fails loud if a folder is
   - The hand-written partial mapper class → `[SpiderlyDataMapper]`
   - C# enums and class-based enums (static classes of string constants) exposed to Angular → `[SpiderlyEnum]`
 
+## Bundle co-required registrations behind one call
+
+When two or more registrations are **co-required** — the app is silently broken if any is present without the others — register them behind **one call** so they can't drift apart. Don't expose them as independent `Add*` steps a consumer must remember to pair; a forgotten one fails at runtime in a confusing way (the `[HasPermission]` handler being a separate `AddSpiderlyAuthorization` call from the policy provider 403'd *every* permission-gated endpoint, silently). Precedents: `AddBrevoEmailing` (emailing service + its named HttpClient), `AddSpiderlyApiKeyAuthentication` (authenticator + scheme + policy scheme + default-scheme config), and `AddSecurity<TUser, TUserExternalLogin, TAuthorizationService>` (the whole auth core; API keys opt in via the `SpiderlySecurityBuilder` sub-builder).
+
+- Keep **genuinely-optional** pieces opt-in (a sub-builder or a separate `Add*`), so apps that don't use them never have to name their types — don't over-merge.
+- Use **`TryAdd`** inside the bundle so a consumer can still pre-register a custom implementation (override seam).
+- When a one-way **assembly boundary** forces the pairing apart (e.g. `AddSpiderly` in `Spiderly.Shared` registers the `[HasPermission]` policy provider, but the handler lives in `Spiderly.Security`), you can't merge them — so add a **fail-loud boot guard** for the unavoidable seam (see `PermissionHandlerRegistrationGuard`), mirroring the `ValidateOnStart` philosophy: never let a missing half-of-a-pair degrade silently.
+
 ## Init template drift
 
 `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` holds the full project template emitted by `spiderly init` — `Startup.cs`, `AppServiceExtensions.cs`, the entity scaffolding, package.json, etc. — as raw string literals. When you change a framework public API (DI registration shape, `SpiderlyBuilder` methods, generated service constructor signature, new built-in service that needs registering), audit the relevant template strings in this file and update them too. CI's e2e job catches the worst regressions, but only for code paths the fixture exercises (commit `96ad6b9` removed the global `IFileManager` slot but missed adding `services.AddTransient<DiskStorageService>()` to the template — every freshly-init'd app crashed on the first save of a `[DiskStorage]` property).

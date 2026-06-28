@@ -146,9 +146,15 @@ namespace Spiderly.Shared.Extensions
         }
 
         /// <summary>
-        /// Enables JWT-based authentication and authorization middleware.
-        /// You still need to register your security services (AuthenticationService, AuthorizationServiceBase,
-        /// SecurityServiceBase&lt;TUser&gt;, IJwtAuthManager) and call <c>spiderly.AddTokenStorage()</c> inside the builder configuration.
+        /// Enables JWT-based authentication and the <c>[HasPermission]</c> authorization policy.
+        /// You still need to register your security services inside the builder configuration: <c>AuthenticationService</c>,
+        /// <c>SecurityServiceBase&lt;TUser&gt;</c>, <c>IJwtAuthManager</c>, the principal kinds via
+        /// <c>services.AddSpiderlyPrincipal&lt;TPrincipal&gt;(...)</c>, and — required for <c>[HasPermission]</c> —
+        /// <c>services.AddSpiderlyAuthorization&lt;TAuthorizationService&gt;()</c> (it registers the handler that satisfies
+        /// the permission policy and forwards <c>AuthorizationServiceBase</c> to your authorization service); also call
+        /// <c>spiderly.AddTokenStorage()</c>. If <c>AddSpiderlyAuthorization</c> is missing the app fails loud at startup
+        /// (<see cref="Spiderly.Shared.Authorization.PermissionHandlerRegistrationGuard"/>) instead of returning 403 from
+        /// every permission-gated endpoint.
         /// </summary>
         public SpiderlyBuilder AddAuthentication()
         {

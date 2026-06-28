@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
@@ -165,8 +166,16 @@ namespace Spiderly.Shared.Extensions
                 // endpoint can declare [Authorize(SpiderlyAuthorizationPolicies.ForPermission(code))] without
                 // pre-registering each policy. Falls through to the default provider for every other policy name.
                 // The matching PermissionAuthorizationHandler (which delegates to the consumer's AuthorizationService
-                // so its override/API-key cap applies) is wired alongside the security services.
+                // so its override/API-key cap applies) is wired alongside the security services via
+                // AddSpiderlyAuthorization<TAuthorizationService>() — it lives in Spiderly.Security, which this
+                // assembly cannot reference, so it cannot be registered here.
                 services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+
+                // Fail loud at boot if the consumer enabled [HasPermission] (the provider above) but never registered
+                // the satisfying handler (forgot AddSpiderlyAuthorization). Without this guard the requirement has no
+                // handler, can never Succeed(), and every permission-gated endpoint silently 403s. The guard inspects
+                // the final service collection at startup (after the consumer's post-AddSpiderly registrations run).
+                services.AddSingleton<IStartupFilter>(new PermissionHandlerRegistrationGuard(services));
 
                 // Resolves a provider code to its id-token validator. Built eagerly at first resolution from
                 // the configured providers (+ any consumer-registered custom IExternalAuthProvider), so the
