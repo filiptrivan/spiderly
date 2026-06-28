@@ -1,3 +1,5 @@
+using Spiderly.Shared.Outbox;
+
 namespace Spiderly.Shared.Interfaces
 {
     /// <summary>
@@ -27,6 +29,13 @@ namespace Spiderly.Shared.Interfaces
     {
         /// <summary>Stable code matched against <see cref="IOutboxMessage.HandlerCode"/>. Must be unique across registered handlers.</summary>
         string Code { get; }
+
+        /// <summary>
+        /// Retry tuning for this handler's rows — how many times <c>OutboxDispatcherJob</c> retries before dead-lettering,
+        /// and the backoff ceiling. Override to let loss-tolerant work retry longer, or latency-sensitive work give up
+        /// sooner. Defaults to <see cref="OutboxRetryPolicy.Default"/> (12 attempts, 1-hour backoff cap).
+        /// </summary>
+        OutboxRetryPolicy RetryPolicy => OutboxRetryPolicy.Default;
 
         /// <summary>
         /// Performs the deferred work for one outbox row. Throwing marks the row as a failed attempt

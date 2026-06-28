@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Spiderly.Shared;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Outbox;
 
@@ -79,15 +81,49 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
-        public async Task Rows_at_the_retry_cap_are_skipped()
+        public async Task Rows_scheduled_for_a_future_attempt_are_skipped()
         {
             using TestDbContext ctx = NewContext();
-            await SeedAsync(ctx, handlerCode: "Email", attemptCount: 10); // MaxAttempts = 10
+            // A row mid-backoff (or dead-lettered) carries a future NextAttemptAt; the sweep's time gate skips it.
+            await SeedAsync(ctx, handlerCode: "Email", attemptCount: 3, nextAttemptAt: DateTime.UtcNow.AddMinutes(5));
             RecordingHandler handler = new("Email");
 
             await NewJob(ctx, handler).ProcessAsync();
 
             Assert.Empty(handler.ReceivedPayloads);
+        }
+
+        [Fact]
+        public async Task Reaching_the_retry_cap_dead_letters_the_row()
+        {
+            using TestDbContext ctx = NewContext();
+            // One attempt below the default cap; the next failure caps it and parks NextAttemptAt far in the future.
+            TestOutboxMessage row = await SeedAsync(
+                ctx, handlerCode: "Email", attemptCount: OutboxRetryPolicy.Default.MaxAttempts - 1);
+
+            await NewJob(ctx, new ThrowingHandler("Email")).ProcessAsync();
+
+            Assert.Equal(OutboxRetryPolicy.Default.MaxAttempts, row.AttemptCount);
+            Assert.Null(row.DispatchedAt);
+            // Dead-lettered: NextAttemptAt parked far in the future so the sweep never picks it up again.
+            Assert.NotNull(row.NextAttemptAt);
+            Assert.True(row.NextAttemptAt > DateTime.UtcNow.AddYears(100));
+        }
+
+        [Fact]
+        public async Task Per_handler_config_override_caps_attempts()
+        {
+            using TestDbContext ctx = NewContext();
+            TestOutboxMessage row = await SeedAsync(ctx, handlerCode: "Email");
+            OutboxOptions options = new();
+            options.Handlers["Email"] = new OutboxRetryOptions { MaxAttempts = 1 };
+
+            // Config cap of 1 → the first failure dead-letters immediately, overriding the default (12).
+            await NewJob(ctx, options, new ThrowingHandler("Email")).ProcessAsync();
+
+            Assert.Equal(1, row.AttemptCount);
+            Assert.NotNull(row.NextAttemptAt);
+            Assert.True(row.NextAttemptAt > DateTime.UtcNow.AddYears(100));
         }
 
         // ---- helpers ----
@@ -99,7 +135,12 @@ namespace Spiderly.Shared.Tests
 
         private static OutboxDispatcherJob<TestOutboxMessage> NewJob(
             IApplicationDbContext ctx, params IOutboxHandler[] handlers)
-            => new(ctx, new FakeScopeFactory(handlers), NullLogger<OutboxDispatcherJob<TestOutboxMessage>>.Instance);
+            => NewJob(ctx, new OutboxOptions(), handlers);
+
+        private static OutboxDispatcherJob<TestOutboxMessage> NewJob(
+            IApplicationDbContext ctx, OutboxOptions options, params IOutboxHandler[] handlers)
+            => new(ctx, new FakeScopeFactory(handlers), NullLogger<OutboxDispatcherJob<TestOutboxMessage>>.Instance,
+                Options.Create(options));
 
         // The dispatcher resolves handlers from a fresh DI scope per row; this minimal fake hands back the test's
         // handlers when asked for IEnumerable<IOutboxHandler> (what GetServices<IOutboxHandler>() requests).
@@ -112,7 +153,7 @@ namespace Spiderly.Shared.Tests
             public IServiceProvider ServiceProvider => this;
             public void Dispose() { }
 
-            public object? GetService(Type serviceType)
+            public object GetService(Type serviceType)
                 => serviceType == typeof(IEnumerable<IOutboxHandler>) ? _handlers : null;
         }
 
@@ -121,7 +162,8 @@ namespace Spiderly.Shared.Tests
             string handlerCode,
             string payload = "{}",
             DateTime? dispatchedAt = null,
-            int attemptCount = 0)
+            int attemptCount = 0,
+            DateTime? nextAttemptAt = null)
         {
             TestOutboxMessage row = new()
             {
@@ -130,6 +172,7 @@ namespace Spiderly.Shared.Tests
                 CreatedAt = DateTime.UtcNow,
                 DispatchedAt = dispatchedAt,
                 AttemptCount = attemptCount,
+                NextAttemptAt = nextAttemptAt,
             };
             ctx.OutboxMessages.Add(row);
             await ctx.SaveChangesAsync();
@@ -168,6 +211,7 @@ namespace Spiderly.Shared.Tests
             public int AttemptCount { get; set; }
             public DateTime? LastAttemptedAt { get; set; }
             public string LastError { get; set; } = "";
+            public DateTime? NextAttemptAt { get; set; }
             public long? DismissedByUserId { get; set; }
         }
 

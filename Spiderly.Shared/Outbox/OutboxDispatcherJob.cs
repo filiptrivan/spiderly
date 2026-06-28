@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Spiderly.Shared;
 using Spiderly.Shared.Interfaces;
 
 namespace Spiderly.Shared.Outbox
@@ -11,8 +13,10 @@ namespace Spiderly.Shared.Outbox
     /// Recurring sweep that delivers pending transactional-outbox rows. Generic over the consumer's concrete
     /// outbox entity <typeparamref name="TOutbox"/>; scheduled by <c>SpiderlyUseOutboxRecurringJob&lt;TOutbox&gt;()</c>.
     ///
-    /// <para><c>[AutomaticRetry(Attempts = 0)]</c> — retry semantics live on the row (<see cref="IOutboxMessage.AttemptCount"/>)
-    /// plus the recurring schedule, not on the Hangfire job; a recurring job that also retries would multiply runs.</para>
+    /// <para><c>[AutomaticRetry(Attempts = 0)]</c> — retry semantics live on the row (<see cref="IOutboxMessage.AttemptCount"/>,
+    /// with per-handler exponential backoff staged via <see cref="IOutboxMessage.NextAttemptAt"/> using each handler's
+    /// <see cref="IOutboxHandler.RetryPolicy"/>) plus the recurring schedule, not on the Hangfire job; a recurring job
+    /// that also retries would multiply runs.</para>
     ///
     /// <para><c>[DisableConcurrentExecution]</c> — the sweep reads pending rows without a row-level claim, so two
     /// overlapping sweeps would read and dispatch the same rows (duplicate side effects). The interval is one minute,
@@ -39,29 +43,40 @@ namespace Spiderly.Shared.Outbox
         where TOutbox : class, IOutboxMessage, new()
     {
         private const int BatchSize = 100;
-        private const int MaxAttempts = 10;
         private const int LastErrorMaxLength = 2000;
+
+        // Parked in a dead-lettered row's NextAttemptAt to permanently exclude it from the time-based sweep
+        // (keeps AttemptCount truthful for the admin view; an admin Retry clears it back to null to requeue).
+        private static readonly DateTime NeverRetry = new(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
         private readonly IApplicationDbContext _context;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<OutboxDispatcherJob<TOutbox>> _logger;
+        private readonly OutboxOptions _options;
 
         /// <summary>Creates the sweep over the job-scoped context and a scope factory used to isolate each handler.</summary>
         public OutboxDispatcherJob(
             IApplicationDbContext context,
             IServiceScopeFactory scopeFactory,
-            ILogger<OutboxDispatcherJob<TOutbox>> logger)
+            ILogger<OutboxDispatcherJob<TOutbox>> logger,
+            IOptions<OutboxOptions> options)
         {
             _context = context;
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _options = options.Value;
         }
 
         /// <summary>Claims a batch of pending rows (oldest first, under the retry cap) and dispatches each to its handler.</summary>
         public async Task ProcessAsync()
         {
+            // Per-handler retry caps are enforced in the loop below (each row's cap depends on its handler's
+            // RetryPolicy, which isn't known to this query); a row that crosses its cap is dead-lettered by parking
+            // NextAttemptAt at NeverRetry, so the time gate here is the single eligibility filter.
+            DateTime now = DateTime.UtcNow;
             List<TOutbox> pending = await _context.DbSet<TOutbox>()
-                .Where(x => x.DispatchedAt == null && x.AttemptCount < MaxAttempts)
+                .Where(x => x.DispatchedAt == null
+                    && (x.NextAttemptAt == null || x.NextAttemptAt <= now))
                 .OrderBy(x => x.CreatedAt)
                 .Take(BatchSize)
                 .ToListAsync();
@@ -78,6 +93,9 @@ namespace Spiderly.Shared.Outbox
 
             foreach (TOutbox msg in pending)
             {
+                // Default until the handler is resolved below; if the row's HandlerCode has no registered handler the
+                // dispatch throws before this is set, and the row retries under the default policy.
+                OutboxRetryPolicy policy = OutboxRetryPolicy.Default;
                 try
                 {
                     // Resolve and run the handler in its own DI scope so its context is isolated from the
@@ -97,6 +115,7 @@ namespace Spiderly.Shared.Outbox
                         throw new InvalidOperationException(
                             $"No IOutboxHandler registered for HandlerCode '{msg.HandlerCode}'.");
 
+                    policy = ResolvePolicy(handler);
                     await handler.HandleAsync(msg.Payload, CancellationToken.None);
                     msg.DispatchedAt = DateTime.UtcNow;
                 }
@@ -108,17 +127,26 @@ namespace Spiderly.Shared.Outbox
                         ? ex.Message[..LastErrorMaxLength]
                         : ex.Message;
 
-                    if (msg.AttemptCount >= MaxAttempts)
-                        // Crossed the retry cap — the query filters this row out from here on, so it will never be
-                        // swept again. Logged at Error (→ Sentry) as the proactive dev signal; the row itself stays
-                        // as the admin-facing record. Fires exactly once, on the attempt that hits the cap.
+                    if (msg.AttemptCount >= policy.MaxAttempts)
+                    {
+                        // Crossed the handler's retry cap — park NextAttemptAt far in the future so the time-based sweep
+                        // skips it forever (AttemptCount stays truthful for the admin view). Logged at Error (→ Sentry)
+                        // as the proactive dev signal; the row stays as the admin-facing record, and an admin Retry
+                        // clears NextAttemptAt back to null to requeue it. Fires once, on the attempt that hits the cap.
+                        msg.NextAttemptAt = NeverRetry;
                         _logger.LogError(ex,
                             "Outbox message {MessageId} (handler={HandlerCode}) permanently failed after {MaxAttempts} attempts and will not be retried.",
-                            msg.Id, msg.HandlerCode, MaxAttempts);
+                            msg.Id, msg.HandlerCode, policy.MaxAttempts);
+                    }
                     else
+                    {
+                        // Exponential backoff: defer the next attempt so a transient downstream outage isn't hammered
+                        // and doesn't burn through the retry cap in minutes. The sweep skips this row until NextAttemptAt.
+                        msg.NextAttemptAt = msg.LastAttemptedAt + BackoffDelay(msg.AttemptCount, policy.MaxBackoff);
                         _logger.LogError(ex,
-                            "Outbox dispatch failed for message {MessageId} (handler={HandlerCode}, attempt={Attempt})",
-                            msg.Id, msg.HandlerCode, msg.AttemptCount);
+                            "Outbox dispatch failed for message {MessageId} (handler={HandlerCode}, attempt={Attempt}); next attempt at {NextAttemptAt:o}",
+                            msg.Id, msg.HandlerCode, msg.AttemptCount, msg.NextAttemptAt);
+                    }
                 }
 
                 await PersistRowStateAsync(msg);
@@ -146,6 +174,38 @@ namespace Spiderly.Shared.Outbox
                     .ToList())
                     entry.State = EntityState.Detached;
             }
+        }
+
+        // Effective retry policy for a handler: an explicit per-handler config override wins; otherwise a handler that
+        // declared its own (non-default) policy keeps it; otherwise the global config default, else the framework default.
+        private OutboxRetryPolicy ResolvePolicy(IOutboxHandler handler)
+        {
+            if (_options.Handlers != null
+                && _options.Handlers.TryGetValue(handler.Code, out OutboxRetryOptions perHandler)
+                && perHandler != null)
+                return Apply(perHandler, handler.RetryPolicy);
+
+            if (handler.RetryPolicy != OutboxRetryPolicy.Default)
+                return handler.RetryPolicy;
+
+            return _options.Default != null
+                ? Apply(_options.Default, OutboxRetryPolicy.Default)
+                : OutboxRetryPolicy.Default;
+        }
+
+        // Overlays the configured (nullable) fields onto a fallback policy, so a partial override (e.g. only
+        // MaxAttempts) keeps the fallback's other values.
+        private static OutboxRetryPolicy Apply(OutboxRetryOptions o, OutboxRetryPolicy fallback) =>
+            new(
+                o.MaxAttempts ?? fallback.MaxAttempts,
+                o.MaxBackoffMinutes is int m ? TimeSpan.FromMinutes(m) : fallback.MaxBackoff);
+
+        // Exponential backoff for the next retry: 1, 2, 4, 8, 16, 32 minutes, then capped at the handler's maxBackoff.
+        // attemptCount is the already-incremented count of failed attempts.
+        private static TimeSpan BackoffDelay(int attemptCount, TimeSpan maxBackoff)
+        {
+            double minutes = Math.Min(Math.Pow(2, attemptCount - 1), maxBackoff.TotalMinutes);
+            return TimeSpan.FromMinutes(minutes);
         }
 
         // A duplicate Code is a registration bug — fail loud with the offending code rather than

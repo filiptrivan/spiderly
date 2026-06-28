@@ -100,6 +100,9 @@ namespace Spiderly.Shared.Extensions
                     $"'EmailSender' must be an OBJECT (e.g. {{ \"Email\": \"you@example.com\", \"Name\": \"...\" }}), not a string.")
                 .ValidateOnStart();
             services.AddOptions<NotificationOptions>().Bind(section).ValidateOnStart();
+            // Optional outbox retry tuning, nested under Spiderly.Shared:Outbox. No ValidateOnStart — every value is
+            // optional and falls back to the handler's code-declared RetryPolicy / OutboxRetryPolicy.Default.
+            services.AddOptions<OutboxOptions>().Bind(section.GetSection("Outbox"));
             services.AddOptions<CookieSettings>().Bind(section).ValidateOnStart();
             services.AddOptions<ExcelOptions>().Bind(section).ValidateOnStart();
             // External-provider config is validated at boot (aggregated) by ExternalProviderOptionsValidator, so a

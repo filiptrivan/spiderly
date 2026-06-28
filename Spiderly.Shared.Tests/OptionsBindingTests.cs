@@ -71,5 +71,22 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("access_token", section.Get<TokenKeyOptions>().AccessTokenKey);
             Assert.Equal("ops@example.com", Assert.Single(section.Get<NotificationOptions>().AdminRecipients));
         }
+
+        [Fact]
+        public void Outbox_retry_options_bind_from_default_and_per_handler()
+        {
+            OutboxOptions options = Section(new()
+            {
+                ["AppSettings:Spiderly.Shared:Outbox:Default:MaxAttempts"] = "15",
+                ["AppSettings:Spiderly.Shared:Outbox:Default:MaxBackoffMinutes"] = "90",
+                ["AppSettings:Spiderly.Shared:Outbox:Handlers:WingsExport:MaxAttempts"] = "20",
+            }).GetSection("Outbox").Get<OutboxOptions>();
+
+            Assert.Equal(15, options.Default.MaxAttempts);
+            Assert.Equal(90, options.Default.MaxBackoffMinutes);
+            Assert.Equal(20, options.Handlers["WingsExport"].MaxAttempts);
+            // Unset field stays null so it falls through to the next layer at resolution time.
+            Assert.Null(options.Handlers["WingsExport"].MaxBackoffMinutes);
+        }
     }
 }

@@ -38,6 +38,9 @@ namespace Spiderly.Shared.Interfaces
         /// <summary>Truncated exception/error message from the last failed attempt.</summary>
         string LastError { get; set; }
 
+        /// <summary>When set, the sweep skips this row until this time — exponential backoff between failed attempts, set by <c>OutboxDispatcherJob</c>. <c>null</c> means eligible immediately (a fresh row).</summary>
+        DateTime? NextAttemptAt { get; set; }
+
         /// <summary>Set by the admin Dismiss action — the operator who marked this row handled out-of-band. <see cref="DispatchedAt"/> is set in the same write so the sweep skips it.</summary>
         long? DismissedByUserId { get; set; }
     }

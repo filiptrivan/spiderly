@@ -1791,6 +1791,8 @@ namespace {{appName}}.Business.Entities
         [StringLength(2000)]
         public string LastError { get; set; }
 
+        public DateTime? NextAttemptAt { get; set; }
+
         public long? DismissedByUserId { get; set; }
     }
 }
@@ -1853,8 +1855,8 @@ namespace {{appName}}.WebAPI.Controllers
     /// <summary>
     /// Admin row actions on the OutboxMessage table beyond the generated read:
     /// <list type="bullet">
-    /// <item><description><c>Retry</c> — clears AttemptCount + LastError so the next OutboxDispatcherJob sweep
-    /// picks the row up (e.g. after an external dependency that was down recovers).</description></item>
+    /// <item><description><c>Retry</c> — clears AttemptCount + LastError + NextAttemptAt so the next OutboxDispatcherJob
+    /// sweep picks the row up (e.g. after an external dependency that was down recovers).</description></item>
     /// <item><description><c>Dismiss</c> — marks the row handled out-of-band (sets DispatchedAt +
     /// DismissedByUserId); the sweep skips it.</description></item>
     /// </list>
@@ -1900,6 +1902,8 @@ namespace {{appName}}.WebAPI.Controllers
             row.AttemptCount = 0;
             row.LastError = null;
             row.LastAttemptedAt = null;
+            // Clear the backoff/dead-letter gate so the next sweep picks the row up immediately.
+            row.NextAttemptAt = null;
             await _context.SaveChangesAsync();
 
             return Ok();
