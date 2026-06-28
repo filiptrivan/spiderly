@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,6 +24,7 @@ using Spiderly.Shared.Excel;
 using Spiderly.Shared.ExternalAuth;
 using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
+using Spiderly.Shared.IntegrationEvents;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Outbox;
@@ -219,21 +221,15 @@ namespace Spiderly.Shared.Extensions
             if (builder.NotificationsEnabled)
             {
                 // Immutable config + the code→type registry are singletons (the registry is built eagerly here so
-                // duplicate [NotificationCode]s fail at boot). Everything else is scoped — channels may depend on
+                // a duplicate [OutboxCode] fails at boot). Everything else is scoped — channels may depend on
                 // scoped/transient services (e.g. EmailChannel → IEmailingService), so nothing here is a singleton
                 // holding a channel.
                 services.AddSingleton(builder.NotificationRoutingMap);
 
-                // Discover notification types from the assemblies of the routed types, not AppDomain.CurrentDomain —
-                // the latter only sees assemblies the CLR has already loaded at ConfigureServices time, so a consumer
-                // notification in a not-yet-JIT-loaded assembly would be missed (load-order-dependent). Every
-                // deliverable notification must be routed (an unrouted one is never dispatched), so the routed types'
-                // assemblies are exactly the set that can produce a delivery — and building the routing map already
-                // forced those assemblies to load.
-                var notificationAssemblies = builder.NotificationRoutingMap.Routes.Keys
-                    .Select(notificationType => notificationType.Assembly)
-                    .Distinct();
-                services.AddSingleton(NotificationTypeRegistry.Discover(notificationAssemblies));
+                // The route keys ARE the complete deliverable set (an unrouted notification is dropped before serialize),
+                // so the shared delivery-side registry is built directly from them — no assembly scanning. Eager, so a
+                // duplicate [OutboxCode] fails loud at boot.
+                services.AddSingleton(new CodeTypeRegistry<INotification>(builder.NotificationRoutingMap.Routes.Keys));
                 services.AddScoped<INotificationRouter, DefaultNotificationRouter>();
                 services.AddScoped<NotificationDeliveryExecutor>();
                 services.AddScoped<NotificationDeliveryJob>();
@@ -251,6 +247,29 @@ namespace Spiderly.Shared.Extensions
                 // notification is dropped silently). Runs after the container is built, so it sees channels registered
                 // after AddNotifications.
                 services.AddHostedService<NotificationRoutingValidator>();
+            }
+
+            if (builder.IntegrationEventsEnabled)
+            {
+                if (!builder.OutboxEnabled)
+                    throw new InvalidOperationException(
+                        "AddIntegrationEvents() requires the transactional outbox — call AddOutbox<TOutbox>() as well (integration events ride the outbox).");
+
+                // Delivery-side code->type registry, built from the explicitly-registered event types (no assembly
+                // scanning). Eager singleton, so a duplicate [OutboxCode] — or a non-event/uncoded type — fails loud at boot.
+                services.AddSingleton(new CodeTypeRegistry<IIntegrationEvent>(builder.IntegrationEventTypes));
+
+                // The one outbox handler that fans a delivered event out to its IIntegrationEventHandlers.
+                services.AddScoped<IOutboxHandler, IntegrationEventOutboxHandler>();
+
+                // Explicit publisher for facts with no aggregate write (webhooks / jobs / security events).
+                services.AddScoped<IIntegrationEventPublisher, IntegrationEventPublisher>();
+
+                // The harvest interceptor, closed over the consumer's outbox entity and registered as a singleton
+                // ISaveChangesInterceptor so SpiderlyAddDbContext wires it into the context. Stamps raised events into
+                // outbox rows (reading [OutboxCode] off the type) in the same transaction as the entity write.
+                Type interceptorType = typeof(IntegrationEventOutboxInterceptor<>).MakeGenericType(builder.OutboxEntityType);
+                services.AddSingleton(typeof(ISaveChangesInterceptor), interceptorType);
             }
 
             if (builder.LocalizerType != null)
@@ -359,7 +378,7 @@ namespace Spiderly.Shared.Extensions
 
         public static void SpiderlyAddDbContext<TDbContext>(this IServiceCollection services, DbProviderCodes dbProvider, string connectionString) where TDbContext : DbContext, IApplicationDbContext
         {
-            services.AddDbContext<IApplicationDbContext, TDbContext>(options =>
+            services.AddDbContext<IApplicationDbContext, TDbContext>((sp, options) =>
             {
                 options.UseLazyLoadingProxies();
 
@@ -372,6 +391,9 @@ namespace Spiderly.Shared.Extensions
                     options.UseNpgsql(connectionString);
                 }
 
+                // Any framework- or consumer-registered SaveChanges interceptors (e.g. the integration-event
+                // harvester). Empty — and a no-op — for apps that register none.
+                options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
             });
         }
 

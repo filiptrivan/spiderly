@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Tests
 {
@@ -77,12 +78,12 @@ namespace Spiderly.Shared.Tests
             INotificationChannel[] channels,
             INotificationRecipientResolver? resolver = null)
             => new(
-                new NotificationTypeRegistry(new[] { typeof(TestNotification) }),
+                new CodeTypeRegistry<INotification>(new[] { typeof(TestNotification) }),
                 channels,
                 resolver == null ? Array.Empty<INotificationRecipientResolver>() : new[] { resolver },
                 NullLogger<NotificationDeliveryExecutor>.Instance);
 
-        [NotificationCode("TestNote")]
+        [OutboxCode("TestNote")]
         private sealed class TestNotification : INotification
         {
         }

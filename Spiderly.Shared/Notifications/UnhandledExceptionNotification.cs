@@ -1,4 +1,5 @@
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -6,7 +7,7 @@ namespace Spiderly.Shared.Notifications
     /// Operational notification for an unhandled exception, sent to admins via <see cref="INotifier.NotifyAdmins"/>.
     /// Delivered <c>FireNow</c> (the default) and deduped on the exception text so a storm collapses to one alert.
     /// </summary>
-    [NotificationCode("Spiderly.UnhandledException")]
+    [OutboxCode("Spiderly.UnhandledException")]
     public class UnhandledExceptionNotification : INotification, IEmailNotification
     {
         /// <summary>Parameterless ctor for deserialization at delivery time.</summary>

@@ -1,21 +1,17 @@
 using System.Text.Json;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
     /// <summary>
     /// What the notification framework stores in a transactional-outbox row for an
-    /// <see cref="Spiderly.Shared.Enums.NotificationDelivery.Outbox"/> notification. One row per channel; the
+    /// <see cref="Spiderly.Shared.Enums.NotificationDelivery.Outbox"/> notification — the shared
+    /// <see cref="OutboxEnvelope"/> (code + data) plus the channel-fan-out fields. One row per channel; the
     /// recipient lives here (by id), never on the general outbox row.
     /// </summary>
-    public class NotificationOutboxPayload
+    public sealed class NotificationOutboxPayload : OutboxEnvelope
     {
-        /// <summary>The notification's stable code (see <see cref="NotificationCodeAttribute"/>).</summary>
-        public string NotificationCode { get; set; }
-
-        /// <summary>The notification serialized to JSON.</summary>
-        public string NotificationData { get; set; }
-
         /// <summary>The target recipient's id, or <c>null</c> for an admin notification.</summary>
         public long? RecipientId { get; set; }
 
@@ -50,7 +46,7 @@ namespace Spiderly.Shared.Notifications
             NotificationOutboxPayload p = JsonSerializer.Deserialize<NotificationOutboxPayload>(payload)
                 ?? throw new InvalidOperationException("Notification outbox payload deserialized to null.");
 
-            await _executor.DeliverAsync(p.NotificationCode, p.NotificationData, p.RecipientId, p.ChannelCode, cancellationToken);
+            await _executor.DeliverAsync(p.Code, p.Data, p.RecipientId, p.ChannelCode, cancellationToken);
         }
     }
 }

@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -12,14 +12,14 @@ namespace Spiderly.Shared.Notifications
     /// </summary>
     public class NotificationDeliveryExecutor
     {
-        private readonly NotificationTypeRegistry _registry;
+        private readonly CodeTypeRegistry<INotification> _registry;
         private readonly IEnumerable<INotificationChannel> _channels;
         private readonly IEnumerable<INotificationRecipientResolver> _recipientResolvers;
         private readonly ILogger<NotificationDeliveryExecutor> _logger;
 
         /// <summary>Creates the executor. <paramref name="recipientResolvers"/> is empty when the app sends admin-only notifications.</summary>
         public NotificationDeliveryExecutor(
-            NotificationTypeRegistry registry,
+            CodeTypeRegistry<INotification> registry,
             IEnumerable<INotificationChannel> channels,
             IEnumerable<INotificationRecipientResolver> recipientResolvers,
             ILogger<NotificationDeliveryExecutor> logger)
@@ -33,11 +33,7 @@ namespace Spiderly.Shared.Notifications
         /// <summary>Delivers one notification to one channel. Throws on unknown code/channel or a missing resolver so the caller (Hangfire/outbox) retries.</summary>
         public async Task DeliverAsync(string notificationCode, string notificationData, long? recipientId, string channelCode, CancellationToken cancellationToken)
         {
-            Type notificationType = _registry.GetNotificationType(notificationCode);
-
-            INotification notification = (INotification)JsonSerializer.Deserialize(notificationData, notificationType);
-            if (notification == null)
-                throw new InvalidOperationException($"Notification '{notificationCode}' payload deserialized to null.");
+            INotification notification = _registry.Rebuild(notificationCode, notificationData);
 
             INotificationChannel channel = _channels.FirstOrDefault(c => c.Code == channelCode)
                 ?? throw new InvalidOperationException($"No notification channel registered with Code '{channelCode}'.");

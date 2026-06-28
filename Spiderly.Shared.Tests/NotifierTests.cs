@@ -6,6 +6,7 @@ using Spiderly.Shared;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Tests
 {
@@ -89,11 +90,10 @@ namespace Spiderly.Shared.Tests
         {
             FakeRouter router = new(routedChannelCodes.Select(c => (INotificationChannel)new StubChannel(c)).ToList());
             NotificationRateLimiter rateLimiter = new(Options.Create(new NotificationOptions { NotificationRateLimitMinutes = 60 }));
-            NotificationTypeRegistry registry = new(new[] { typeof(TestNotification) });
-            return new Notifier(router, registry, jobClient, rateLimiter, new IOutbox[] { outbox });
+            return new Notifier(router, jobClient, rateLimiter, new IOutbox[] { outbox });
         }
 
-        [NotificationCode("TestNote")]
+        [OutboxCode("TestNote")]
         private sealed class TestNotification : INotification
         {
             public NotificationDelivery DeliveryMode { get; set; } = NotificationDelivery.FireNow;

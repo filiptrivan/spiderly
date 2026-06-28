@@ -1,4 +1,5 @@
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -7,7 +8,7 @@ namespace Spiderly.Shared.Notifications
     /// sent to admins via <see cref="INotifier.NotifyAdmins"/>. Delivered <c>FireNow</c> and deduped on the
     /// exception so a repeatedly-failing job alerts at most once per window.
     /// </summary>
-    [NotificationCode("Spiderly.JobFailed")]
+    [OutboxCode("Spiderly.JobFailed")]
     public class JobFailedNotification : INotification, IEmailNotification
     {
         /// <summary>Parameterless ctor for deserialization at delivery time.</summary>

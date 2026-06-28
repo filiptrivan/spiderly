@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Hangfire;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -14,7 +14,6 @@ namespace Spiderly.Shared.Notifications
     public class Notifier : INotifier
     {
         private readonly INotificationRouter _router;
-        private readonly NotificationTypeRegistry _registry;
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly NotificationRateLimiter _rateLimiter;
         private readonly IEnumerable<IOutbox> _outboxes;
@@ -22,13 +21,11 @@ namespace Spiderly.Shared.Notifications
         /// <summary>Creates the notifier. <paramref name="outboxes"/> is empty unless <c>AddOutbox</c> was called.</summary>
         public Notifier(
             INotificationRouter router,
-            NotificationTypeRegistry registry,
             IBackgroundJobClient backgroundJobClient,
             NotificationRateLimiter rateLimiter,
             IEnumerable<IOutbox> outboxes)
         {
             _router = router;
-            _registry = registry;
             _backgroundJobClient = backgroundJobClient;
             _rateLimiter = rateLimiter;
             _outboxes = outboxes;
@@ -52,9 +49,10 @@ namespace Spiderly.Shared.Notifications
             if (channels.Count == 0)
                 return;
 
-            // Serialized once and re-used per channel; rebuilt at delivery from the code + this JSON.
-            string code = _registry.GetCode(notification.GetType());
-            string data = JsonSerializer.Serialize(notification, notification.GetType());
+            // Serialized once (via the shared envelope) and re-used per channel; rebuilt at delivery from code + JSON.
+            OutboxEnvelope envelope = OutboxEnvelope.For(notification);
+            string code = envelope.Code;
+            string data = envelope.Data;
 
             foreach (INotificationChannel channel in channels)
             {
@@ -72,8 +70,8 @@ namespace Spiderly.Shared.Notifications
 
                         outbox.Enqueue(NotificationOutboxHandler.HandlerCode, new NotificationOutboxPayload
                         {
-                            NotificationCode = code,
-                            NotificationData = data,
+                            Code = code,
+                            Data = data,
                             RecipientId = recipientId,
                             ChannelCode = channel.Code,
                         });

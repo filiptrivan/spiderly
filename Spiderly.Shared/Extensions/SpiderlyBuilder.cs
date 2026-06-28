@@ -63,6 +63,9 @@ namespace Spiderly.Shared.Extensions
         internal bool NotificationsEnabled { get; private set; }
         internal NotificationRoutingMap NotificationRoutingMap { get; private set; }
 
+        internal bool IntegrationEventsEnabled { get; private set; }
+        internal List<Type> IntegrationEventTypes { get; private set; } = new();
+
         internal SpiderlyBuilder(IServiceCollection services, IConfiguration configuration)
         {
             Services = services;
@@ -233,6 +236,29 @@ namespace Spiderly.Shared.Extensions
             configure?.Invoke(routingBuilder);
             NotificationRoutingMap = routingBuilder.Build();
             NotificationsEnabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables the integration-event bus: aggregates raise <see cref="IIntegrationEvent"/>s (via
+        /// <see cref="IHasIntegrationEvents.RaiseIntegrationEvent"/>), which are harvested into the transactional
+        /// outbox at <c>SaveChanges</c> and, after commit, fanned out to every registered
+        /// <see cref="IIntegrationEventHandler"/>. Requires <c>AddOutbox&lt;TOutbox&gt;()</c> — events ride the
+        /// outbox. Register handlers with <c>services.AddScoped&lt;IIntegrationEventHandler, MyHandler&gt;()</c>.
+        /// <para>Pass your event types explicitly — each must carry <c>[OutboxCode]</c>. They become the delivery-side
+        /// <c>CodeTypeRegistry&lt;IIntegrationEvent&gt;</c> (no assembly scanning; the producer reads the code off the
+        /// type). Facts with no aggregate write can be staged via <see cref="IIntegrationEventPublisher"/>.</para>
+        /// <example>
+        /// <code>
+        /// spiderly.AddOutbox&lt;OutboxMessage&gt;();
+        /// spiderly.AddIntegrationEvents(typeof(OrderCreated), typeof(OrderShipped));
+        /// </code>
+        /// </example>
+        /// </summary>
+        public SpiderlyBuilder AddIntegrationEvents(params Type[] eventTypes)
+        {
+            IntegrationEventsEnabled = true;
+            IntegrationEventTypes = eventTypes.Distinct().ToList();
             return this;
         }
 

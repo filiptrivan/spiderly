@@ -1,4 +1,5 @@
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -7,7 +8,7 @@ namespace Spiderly.Shared.Notifications
     /// sent to admins via <see cref="INotifier.NotifyAdmins"/>. Delivered <c>FireNow</c> and deduped on
     /// event type + debounce key.
     /// </summary>
-    [NotificationCode("Spiderly.SecurityEvent")]
+    [OutboxCode("Spiderly.SecurityEvent")]
     public class SecurityEventNotification : INotification, IEmailNotification
     {
         /// <summary>Parameterless ctor for deserialization at delivery time.</summary>
