@@ -34,6 +34,15 @@
 }
 
 :host {
+  // The `.clickable` affordance is shared: clickable rows (navigateOnRowClick) and opt-in cells
+  // (Column.onCellClick) both get a pointer cursor; cells additionally underline on hover.
+  ::ng-deep .clickable {
+    cursor: pointer;
+  }
+  ::ng-deep td.clickable:hover {
+    text-decoration: underline;
+  }
+
   ::ng-deep {
     .p-datatable-thead {
       position: unset !important;

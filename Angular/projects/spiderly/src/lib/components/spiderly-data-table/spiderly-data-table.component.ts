@@ -461,6 +461,35 @@ export class SpiderlyDataTableComponent
     this.navigateToDetails(row.id);
   }
 
+  /*
+   * Handle a cell click. Only columns that opt in (have an `onCellClick` callback) react; for them
+   * we stop propagation so the click does not also trigger row navigation, then invoke the consumer
+   * callback with a fully-populated CellClickEvent. Inert cells fall through to onRowClick unchanged.
+   */
+  onCellClick(col: Column, rowData: any, event: MouseEvent): void {
+    if (!col.onCellClick) return;
+    event.stopPropagation();
+    col.onCellClick({
+      ...this.buildClickEvent(rowData, event),
+      field: col.field,
+      value: rowData[col.field],
+      displayValue: this.getRowData(rowData, col),
+    });
+  }
+
+  /*
+   * Build the base click payload shared by custom action clicks and cell clicks. The clicked element
+   * is captured here, not read later from `originalEvent.currentTarget` (which nulls after dispatch).
+   */
+  private buildClickEvent(rowData: any, event: MouseEvent): ActionClickEvent {
+    return {
+      id: rowData[this.idField],
+      row: rowData,
+      element: event.currentTarget as HTMLElement,
+      originalEvent: event,
+    };
+  }
+
   deleteObject(rowId: number) {
     this.openDeleteConfirmation(
       {
@@ -586,12 +615,7 @@ export class SpiderlyDataTableComponent
       case 'Delete':
         return this.deleteObject(rowData[this.idField]);
       default:
-        return action.onClick({
-          id: rowData[this.idField],
-          row: rowData,
-          element: event.currentTarget as HTMLElement,
-          originalEvent: event,
-        });
+        return action.onClick(this.buildClickEvent(rowData, event));
     }
   }
 
@@ -846,6 +870,16 @@ export class Column<T = any> {
   showTime?: boolean;
   decimalPlaces?: number;
   sortable?: boolean;
+  /**
+   * Fired when this column's cell is clicked. Receives a {@link CellClickEvent} with the row id,
+   * the column field, the full row, the raw and formatted cell value, the clicked `<td>` element
+   * (use it to anchor an overlay/popover), and the original `MouseEvent`.
+   *
+   * Setting this makes the cell visibly clickable (cursor + hover) and the click no longer bubbles
+   * up to row navigation. The mirror of {@link Action.onClick}, but for plain value cells.
+   * Not applied to editable cells — those belong to their inline input.
+   */
+  onCellClick?: (event: CellClickEvent) => void;
 
   constructor({
     name,
@@ -861,6 +895,7 @@ export class Column<T = any> {
     showTime,
     decimalPlaces,
     sortable,
+    onCellClick,
   }: {
     name?: string;
     field?: string & keyof T;
@@ -875,6 +910,7 @@ export class Column<T = any> {
     showTime?: boolean;
     decimalPlaces?: number;
     sortable?: boolean;
+    onCellClick?: (event: CellClickEvent) => void;
   } = {}) {
     this.name = name;
     this.field = field;
@@ -889,6 +925,7 @@ export class Column<T = any> {
     this.showTime = showTime;
     this.decimalPlaces = decimalPlaces;
     this.sortable = sortable;
+    this.onCellClick = onCellClick;
   }
 }
 
@@ -909,6 +946,20 @@ export interface ActionClickEvent {
   element: HTMLElement;
   /** The original DOM click event. */
   originalEvent: MouseEvent;
+}
+
+/**
+ * Payload passed to {@link Column.onCellClick} when a cell is clicked. A superset of
+ * {@link ActionClickEvent} (same `id` / `row` / `element` / `originalEvent`) plus the cell's
+ * column and value. Every field is populated by the data table.
+ */
+export interface CellClickEvent extends ActionClickEvent {
+  /** The clicked column's `field`. */
+  field: string;
+  /** The cell's raw value (`row[field]`). */
+  value: any;
+  /** The formatted value shown in the cell (what the table renders via `getRowData`). */
+  displayValue: string;
 }
 
 export class RowClickEvent {

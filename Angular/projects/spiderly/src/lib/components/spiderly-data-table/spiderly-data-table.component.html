@@ -173,7 +173,12 @@
             ></p-checkbox>
           </td>
           <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
-            <td [style]="getStyleForBodyColumn(col)" *ngIf="!col.editable">
+            <td
+              [style]="getStyleForBodyColumn(col)"
+              [class.clickable]="col.onCellClick"
+              (click)="onCellClick(col, rowData, $event)"
+              *ngIf="!col.editable"
+            >
               <div
                 style="
                   display: flex;

@@ -30,3 +30,16 @@ When matching options programmatically (e2e tests, conditional logic), match aga
 ## Filter-state persistence
 
 `@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method also calls `table.clearState()` so the "Clear all filters" caption button wipes the persisted state instead of just resetting the in-memory table.
+
+## Per-cell click — `Column.onCellClick`
+
+Set `onCellClick?: (e: CellClickEvent) => void` on a column to make *its* value cells clickable (the mirror of `Action.onClick`, but for plain value cells rather than the actions column). It's surgical and opt-in: only columns that define it react, and those cells get a `cursor: pointer` + hover affordance (the `td.clickable` rule in this component's SCSS — `.clickable` was previously declared on rows but never styled, so the rule is new).
+
+- **Fires on display cells only** — text/numeric/date/boolean/`blob`. Editable cells (`col.editable`) are excluded; that cell belongs to its inline input.
+- **Swallows row navigation.** The handler calls `event.stopPropagation()`, so on a `navigateOnRowClick` table an opted-in cell runs *its* handler instead of navigating. (On non-navigating tables this is a harmless no-op.)
+- **`CellClickEvent` carries `element` on purpose.** It's the clicked `<td>`, captured synchronously — use it to anchor an overlay/popover. Do **not** reach for `originalEvent.currentTarget` in an async handler: the DOM nulls it once dispatch ends, so it's already null by the time an HTTP response resolves. (`element` is a superset addition over `ActionClickEvent`'s, alongside `field`, `value` (raw) and `displayValue` (formatted).)
+
+```typescript
+{ name: t('Total'), filterType: 'numeric', field: 'total',
+  onCellClick: (e) => this.itemsPopover.show(e.originalEvent, e.element) }
+```
