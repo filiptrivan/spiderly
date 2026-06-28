@@ -59,7 +59,7 @@ The bundle is **physically split** in the npm package: `agent/docs/**` holds the
 
 ### The manifest contract + reconcile semantics
 
-The whole authoring source is `claude-plugins/skills/<name>/` (one folder per skill, `SKILL.md` with `name` + `description` frontmatter). A build step (`tools/build-agent-bundle.mjs`) packages that tree into the npm package and emits a single machine-readable contract the CLI consumes:
+The authoring source is two trees — `claude-plugins/docs/<name>/index.md` (reference docs) and `claude-plugins/skills/<name>/SKILL.md` (workflow skills), each with `name` + `description` frontmatter. Which tree a folder lives in *is* its surface (doc vs skill) — there is no separate categorization file. A build step (`tools/build-agent-bundle.mjs`) packages both trees into the npm package and emits a single machine-readable contract the CLI consumes:
 
 ```jsonc
 // node_modules/spiderly/agent/manifest.json  (no version field — SSOT-stable across bumps;
@@ -73,7 +73,7 @@ The whole authoring source is `claude-plugins/skills/<name>/` (one folder per sk
 }
 ```
 
-`surface` (`doc` | `skill`) is the only categorization input — held in a committed `tools/agent-surface.json`. The full skill tree (both surfaces) ships in `agent/skills/**`; `surface` decides only *how each is projected*.
+`surface` (`doc` | `skill`) is implied by which authoring tree a folder lives in — `claude-plugins/docs/` vs `claude-plugins/skills/` — so there is no separate categorization file. Docs ship in `agent/docs/**` (browsed via the pointer); skills ship in `agent/skills/**` (junctioned). `surface` decides how each is projected.
 
 **`agent-sync` is a reconcile, not an append.** Every run makes the consumer project match the manifest:
 
@@ -82,7 +82,7 @@ The whole authoring source is `claude-plugins/skills/<name>/` (one folder per sk
 
 This is what makes rename/add/delete self-heal (issue #250 discussion). The one timing nuance: because the bundle is version-pinned in `node_modules`, projected artifacts only update **when `agent-sync` runs** — so `spiderly init` and `spiderly-upgrade` invoke it, and it is idempotent and safe to re-run (the next run prunes any junction left dangling by an upgrade).
 
-**Guard.** A rename also ripples to in-repo references that aren't auto-generated (`tools/gen-skill-docs.mjs` placement map, `framework-metadata-ssot.md`, cross-links, the website). The committed-bundle drift guard (CI + `.githooks/pre-commit`) regenerates the bundle and fails on diff, and additionally asserts *folder name == frontmatter `name`* and *every skill is categorized in `agent-surface.json`* — catching a half-done rename at commit time.
+**Guard.** A rename also ripples to in-repo references that aren't auto-generated (`tools/gen-skill-docs.mjs` placement map, `framework-metadata-ssot.md`, cross-links, the website). The committed-bundle drift guard (CI + `.githooks/pre-commit`) regenerates the bundle and fails on diff, and additionally asserts *folder name == frontmatter `name`* and *each folder carries its `index.md` (docs) or `SKILL.md` (skills)* — catching a half-done rename at commit time.
 
 ### Projector: `Spiderly.CLI`
 
@@ -107,7 +107,7 @@ Resolution order: `--agent-root` > `.spiderly/config.local.json` > `.spiderly/co
 
 ### Relationship to the existing SSOT pipeline
 
-`docs/framework-metadata-ssot.md` already derives reference **tables** (`*.generated.md`) from `framework-metadata.json` into `claude-plugins/skills/*/references/`. This design **keeps that pipeline** and changes only the *destination*:
+`docs/framework-metadata-ssot.md` already derives reference **tables** (`*.generated.md`) from `framework-metadata.json` into `claude-plugins/docs/*/references/`. This design **keeps that pipeline** and changes only the *destination*:
 
 - The generator (`tools/gen-skill-docs.mjs`) emits into the npm package's `docs/`/`skills/` tree instead of (or in addition to) `claude-plugins/`.
 - Skill **bodies** (`SKILL.md`) are still hand-authored, but should live in **one** canonical place and be packaged from there — see open decision 1.

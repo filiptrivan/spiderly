@@ -9,7 +9,7 @@ import { provision } from './native.mjs';
 function fakeBundle() {
   const bundle = mkdtempSync(join(tmpdir(), 'bundle-'));
   mkdirSync(join(bundle, 'docs', 'entity-design'), { recursive: true });
-  writeFileSync(join(bundle, 'docs', 'entity-design', 'SKILL.md'), '# entity design');
+  writeFileSync(join(bundle, 'docs', 'entity-design', 'index.md'), '# entity design');
   mkdirSync(join(bundle, 'skills', 'add-entity'), { recursive: true });
   writeFileSync(join(bundle, 'skills', 'add-entity', 'SKILL.md'), '# add entity');
   writeFileSync(join(bundle, 'manifest.json'), JSON.stringify({
@@ -29,7 +29,7 @@ test('native provision reproduces agent-sync: docs pointer, junctioned skills, C
   assert.match(agents, /training data for Spiderly is stale/, 'verbatim pointer text');
   assert.match(agents, /\.spiderly\/agent\/docs\//, 'points at the staged docs dir');
 
-  assert.ok(existsSync(join(ws, '.spiderly', 'agent', 'docs', 'entity-design', 'SKILL.md')), 'docs staged');
+  assert.ok(existsSync(join(ws, '.spiderly', 'agent', 'docs', 'entity-design', 'index.md')), 'docs staged');
   assert.ok(existsSync(join(ws, '.claude', 'skills', 'spiderly-add-entity', 'SKILL.md')), 'skill copied with spiderly- prefix');
 
   const claude = readFileSync(join(ws, 'CLAUDE.md'), 'utf8');

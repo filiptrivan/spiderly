@@ -5,7 +5,7 @@
 Several framework facts are duplicated across three places that drift independently:
 
 - **Code** — the authoritative C# / TS definitions (enums, attributes, controller endpoints, helpers).
-- **Skills** — markdown tables in `claude-plugins/skills/**`.
+- **Docs** — markdown tables in `claude-plugins/docs/**`.
 - **Website docs** — MDX in the separate `spiderly-website` repo.
 
 A 2026-05 audit found this is already real (e.g. the `authorization` skill's endpoint table was missing ~8 actions, `MatchModeCodes` was hand-listed in `filtering-patterns`, `ApiErrorCodes` was documented nowhere). The fix is to derive the docs from the code instead of hand-maintaining copies.
@@ -16,7 +16,7 @@ A 2026-05 audit found this is already real (e.g. the `authorization` skill's end
 Spiderly.MetadataExporter (C#)  ─┐
   reflects shipped assemblies +  │
   reads their .xml doc summaries │
-                                 ├─► framework-metadata.json ─┬─► tools/gen-skill-docs.mjs ─► claude-plugins/skills/*/references/*.generated.md
+                                 ├─► framework-metadata.json ─┬─► tools/gen-skill-docs.mjs ─► claude-plugins/docs/*/references/*.generated.md
 tools/extract-ts-metadata.mjs   │     (committed; self-guarded) └─► (planned) spiderly-website imports + renders <ReferenceTable>
   ts-morph over the Angular lib ─┘
   MERGES TS facts into the JSON
@@ -28,7 +28,7 @@ tools/extract-ts-metadata.mjs   │     (committed; self-guarded) └─► (pla
 
 ## What's covered
 
-| Contract | Source | Hosted in skill | Generated file |
+| Contract | Source | Hosted in doc | Generated file |
 |---|---|---|---|
 | `ApiErrorCodes` | C# const-string class | authorization | `references/api-error-codes.generated.md` |
 | `MatchModeCodes` | C# const-string class | filtering-patterns | `references/match-mode-codes.generated.md` |
@@ -69,7 +69,7 @@ Bypass for emergencies with `git commit --no-verify` — CI remains the backstop
 
 **TypeScript:** add extraction to `tools/extract-ts-metadata.mjs` (ts-morph).
 
-Either way: add the skill placement in `tools/gen-skill-docs.mjs` (it fails loud if a contract has no placement), add a one-line pointer from the host `SKILL.md`, extend the `ssot_src` trigger regex in `.githooks/pre-commit` with the new source path, then regenerate + commit.
+Either way: add the doc placement in `tools/gen-skill-docs.mjs` (it fails loud if a contract has no placement), add a one-line pointer from the host `index.md`, extend the `ssot_src` trigger regex in `.githooks/pre-commit` with the new source path, then regenerate + commit.
 
 ## Cross-language mirrors
 

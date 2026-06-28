@@ -1,6 +1,6 @@
 # E2E Fixtures (Playwright)
 
-This file covers the **framework-internal** overlay mechanics that turn `tests/e2e-fixtures/` into Spiderly's own CI suite. For test-authoring patterns that also apply to consumer apps (login helper, PrimeNG v19 selectors, trace debugging, data seeding), see the `e2e-testing` consumer skill at `claude-plugins/skills/e2e-testing/SKILL.md`.
+This file covers the **framework-internal** overlay mechanics that turn `tests/e2e-fixtures/` into Spiderly's own CI suite. For test-authoring patterns that also apply to consumer apps (login helper, PrimeNG v19 selectors, trace debugging, data seeding), see the `e2e-testing` consumer doc at `claude-plugins/docs/e2e-testing/index.md`.
 
 ## Why a codegen change is not "done" until the e2e is green
 

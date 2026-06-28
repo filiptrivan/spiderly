@@ -39,7 +39,7 @@ Changing `ApiErrorCodes` also changes the framework-metadata SSOT — regenerate
 
 ## Framework metadata SSOT — regenerate after contract changes
 
-`framework-metadata.json` (repo root) and `claude-plugins/skills/*/references/*.generated.md` are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
+`framework-metadata.json` (repo root) and `claude-plugins/docs/*/references/*.generated.md` are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
 
 ```bash
 tools/regen-metadata.sh
@@ -57,13 +57,13 @@ git config core.hooksPath .githooks
 
 `Angular/projects/spiderly/agent/` (`manifest.json` + `docs/**` + `skills/**`) is a **committed build artifact** that ships *inside* the `spiderly` npm package (via `ng-package.json` assets) so it lands version-pinned at `node_modules/spiderly/agent/` in consumer apps. `docs/**` is browsed via the `AGENTS.md` pointer; `skills/**` is junctioned into `.claude/skills`. `Spiderly.CLI agent-sync` reads it to project version-matched AI-agent guidance into a consumer (writes an `AGENTS.md` index, makes `CLAUDE.md` import it, and junctions `skill`-surface skills into `.claude/skills`). Design: `docs/agent-guidance-distribution.md`.
 
-The bundle is derived from `claude-plugins/skills/**` (the authoring source) + `tools/agent-surface.json` (each skill → `doc` | `skill`). After changing any skill, its `*.generated.md` references, or the surface map, regenerate and commit the bundle in the same commit:
+The bundle is derived from two authoring trees — `claude-plugins/docs/**` (reference docs, each `index.md`) and `claude-plugins/skills/**` (workflow skills, each `SKILL.md`). Which tree a folder lives in *is* the doc/skill split — there is no surface map. After changing any doc or skill, or its `*.generated.md` references, regenerate and commit the bundle in the same commit:
 
 ```bash
 node tools/build-agent-bundle.mjs
 ```
 
-Never hand-edit anything under `agent/`. The generator fails loud if a skill folder isn't categorized in `agent-surface.json` or its frontmatter `name` ≠ folder name (catches half-done renames). CI and the gated `.githooks/pre-commit` regenerate it and fail on any diff/untracked change, same model as the framework-metadata SSOT. Run the bundle regen **after** `tools/regen-metadata.sh` (it copies the freshly-generated reference tables).
+Never hand-edit anything under `agent/`. The generator fails loud if a folder is missing its `index.md`/`SKILL.md` or its frontmatter `name` ≠ folder name (catches half-done renames). CI and the gated `.githooks/pre-commit` regenerate it and fail on any diff/untracked change, same model as the framework-metadata SSOT. Run the bundle regen **after** `tools/regen-metadata.sh` (it copies the freshly-generated reference tables).
 
 ## Coding conventions
 

@@ -318,7 +318,7 @@ namespace Spiderly.CLI.Commands
             # Spiderly
 
             Your training data for Spiderly is stale. Before writing any Spiderly code, browse
-            `{{relDocs}}/` and read the `SKILL.md` for the topic you're working on — these docs are
+            `{{relDocs}}/` and read the `index.md` for the topic you're working on — these docs are
             version-matched to the installed Spiderly package.
             {{EndMarker}}
             """;

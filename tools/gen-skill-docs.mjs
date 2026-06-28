@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates skill reference docs from framework-metadata.json — the single source of truth
+// Generates reference docs from framework-metadata.json — the single source of truth
 // produced by Spiderly.MetadataExporter. Zero dependencies.
 //
 //   Regenerate the whole chain:
@@ -8,6 +8,9 @@
 //
 // DO NOT hand-edit the *.generated.md files this writes — change the C# source + re-run.
 // CI runs this and fails on any git diff, so stale docs can never merge.
+//
+// Generated reference tables are pure reference, so they're always hosted under a doc
+// (claude-plugins/docs/<name>/references/), never under a workflow skill.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -15,22 +18,22 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const metadataPath = join(repoRoot, 'framework-metadata.json');
-const skillsRoot = join(repoRoot, 'claude-plugins', 'skills');
+const docsRoot = join(repoRoot, 'claude-plugins', 'docs');
 
-// Which contract is documented in which skill, plus the generated file's name + heading.
+// Which contract is documented in which doc, plus the generated file's name + heading.
 // Add an entry when the exporter emits a new contract, or the renderer fails loud.
 const ENUM_PLACEMENT = {
-  ApiErrorCodes:      { skill: 'authorization',         file: 'api-error-codes.generated.md',  title: 'API error codes' },
-  MatchModeCodes:     { skill: 'filtering-patterns',    file: 'match-mode-codes.generated.md', title: 'Filter match modes' },
-  UIControlTypeCodes: { skill: 'angular-customization', file: 'ui-control-types.generated.md', title: 'UI control types' },
+  ApiErrorCodes:      { doc: 'authorization',         file: 'api-error-codes.generated.md',  title: 'API error codes' },
+  MatchModeCodes:     { doc: 'filtering-patterns',    file: 'match-mode-codes.generated.md', title: 'Filter match modes' },
+  UIControlTypeCodes: { doc: 'angular-customization', file: 'ui-control-types.generated.md', title: 'UI control types' },
 };
 const CONTROLLER_PLACEMENT = {
-  SecurityBaseController: { skill: 'authorization', file: 'security-endpoints.generated.md', title: 'SecurityBaseController endpoints' },
+  SecurityBaseController: { doc: 'authorization', file: 'security-endpoints.generated.md', title: 'SecurityBaseController endpoints' },
 };
-const ATTRIBUTES_PLACEMENT = { skill: 'entity-design', file: 'attributes.generated.md', title: 'Spiderly attributes' };
-const HELPERS_PLACEMENT = { skill: 'angular-customization', file: 'helper-functions.generated.md', title: 'Shared helper functions' };
-const VALIDATORS_PLACEMENT = { skill: 'angular-customization', file: 'validators.generated.md', title: 'Built-in validators' };
-const CONTROLS_PLACEMENT = { skill: 'angular-customization', file: 'controls.generated.md', title: 'Form control components' };
+const ATTRIBUTES_PLACEMENT = { doc: 'entity-design', file: 'attributes.generated.md', title: 'Spiderly attributes' };
+const HELPERS_PLACEMENT = { doc: 'angular-customization', file: 'helper-functions.generated.md', title: 'Shared helper functions' };
+const VALIDATORS_PLACEMENT = { doc: 'angular-customization', file: 'validators.generated.md', title: 'Built-in validators' };
+const CONTROLS_PLACEMENT = { doc: 'angular-customization', file: 'controls.generated.md', title: 'Form control components' };
 
 function fail(msg) {
   console.error(`ERROR: gen-skill-docs: ${msg}`);
@@ -49,9 +52,9 @@ const header =
 let written = 0;
 
 function writeRef(place, contextName, bodyLines) {
-  const skillDir = join(skillsRoot, place.skill);
-  if (!existsSync(skillDir)) fail(`skill directory not found: ${skillDir} (for '${contextName}').`);
-  const refDir = join(skillDir, 'references');
+  const docDir = join(docsRoot, place.doc);
+  if (!existsSync(docDir)) fail(`doc directory not found: ${docDir} (for '${contextName}').`);
+  const refDir = join(docDir, 'references');
   mkdirSync(refDir, { recursive: true });
   writeFileSync(join(refDir, place.file), [header, '', `# ${place.title}`, '', ...bodyLines, ''].join('\n'), 'utf8');
   written++;
@@ -71,7 +74,7 @@ function tableBody(headers, rows, intro) {
 // Enums + const-string classes.
 for (const model of metadata.enums ?? []) {
   const place = ENUM_PLACEMENT[model.name];
-  if (!place) fail(`no ENUM_PLACEMENT entry for '${model.name}'. Add one (which skill hosts its reference doc?).`);
+  if (!place) fail(`no ENUM_PLACEMENT entry for '${model.name}'. Add one (which doc hosts its reference table?).`);
 
   const hasValue = model.kind === 'constStringClass';
   const headers = hasValue ? ['Name', 'Value', 'Description'] : ['Name', 'Description'];
@@ -80,24 +83,24 @@ for (const model of metadata.enums ?? []) {
   );
 
   writeRef(place, model.name, tableBody(headers, rows, model.summary));
-  console.log(`  ${model.name} -> ${place.skill}/references/${place.file} (${model.members.length} members)`);
+  console.log(`  ${model.name} -> ${place.doc}/references/${place.file} (${model.members.length} members)`);
 }
 
 // Controller endpoints.
 for (const ctrl of metadata.controllers ?? []) {
   const place = CONTROLLER_PLACEMENT[ctrl.name];
-  if (!place) fail(`no CONTROLLER_PLACEMENT entry for '${ctrl.name}'. Add one (which skill hosts its reference doc?).`);
+  if (!place) fail(`no CONTROLLER_PLACEMENT entry for '${ctrl.name}'. Add one (which doc hosts its reference table?).`);
 
   const rows = ctrl.endpoints.map((e) => `| \`${e.name}\` | ${e.verb} | ${e.auth ? 'Yes' : 'No'} | ${cell(e.summary)} |`);
   writeRef(place, ctrl.name, tableBody(['Endpoint', 'Method', 'Auth', 'Description'], rows, ctrl.summary));
-  console.log(`  ${ctrl.name} -> ${place.skill}/references/${place.file} (${ctrl.endpoints.length} endpoints)`);
+  console.log(`  ${ctrl.name} -> ${place.doc}/references/${place.file} (${ctrl.endpoints.length} endpoints)`);
 }
 
 // Attributes (one combined reference for the whole set).
 if ((metadata.attributes ?? []).length > 0) {
   const rows = metadata.attributes.map((a) => `| \`[${a.name}]\` | ${a.target} | ${cell(a.summary)} |`);
   writeRef(ATTRIBUTES_PLACEMENT, 'attributes', tableBody(['Attribute', 'Target', 'Description'], rows));
-  console.log(`  attributes -> ${ATTRIBUTES_PLACEMENT.skill}/references/${ATTRIBUTES_PLACEMENT.file} (${metadata.attributes.length} attributes)`);
+  console.log(`  attributes -> ${ATTRIBUTES_PLACEMENT.doc}/references/${ATTRIBUTES_PLACEMENT.file} (${metadata.attributes.length} attributes)`);
 }
 
 // Helpers + validators — both signature-first (description only where JSDoc exists).
@@ -121,7 +124,7 @@ for (const { items, place, label, header: col, intro } of SIGNATURE_REFS) {
   if (!(items ?? []).length) continue;
   const rows = items.map((x) => `| \`${cell(x.signature)}\` | ${cell(x.description ?? '')} |`);
   writeRef(place, label, tableBody([col, 'Description'], rows, intro));
-  console.log(`  ${label} -> ${place.skill}/references/${place.file} (${items.length} ${label})`);
+  console.log(`  ${label} -> ${place.doc}/references/${place.file} (${items.length} ${label})`);
 }
 
 // Form control components.
@@ -133,7 +136,7 @@ if ((metadata.controls?.components ?? []).length > 0) {
     (c) => `| \`${c.selector}\` | \`${c.component}\` | ${c.inputs.map((i) => `\`${i}\``).join(', ') || '—'} |`,
   );
   writeRef(CONTROLS_PLACEMENT, 'controls', tableBody(['Selector', 'Component', 'Control-specific inputs'], rows, intro));
-  console.log(`  controls -> ${CONTROLS_PLACEMENT.skill}/references/${CONTROLS_PLACEMENT.file} (${metadata.controls.components.length} controls)`);
+  console.log(`  controls -> ${CONTROLS_PLACEMENT.doc}/references/${CONTROLS_PLACEMENT.file} (${metadata.controls.components.length} controls)`);
 }
 
 console.log(`gen-skill-docs: wrote ${written} reference file(s) from framework-metadata.json.`);

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Builds the agent guidance bundle shipped inside the `spiderly` npm package.
 //
-// Source of truth: claude-plugins/skills/<name>/ (SKILL.md frontmatter + references).
-// Categorization:  tools/agent-surface.json (each skill -> "doc" | "skill").
+// Authoring source — TWO trees, where location IS the doc/skill taxonomy (no side-car map):
+//   claude-plugins/docs/<name>/index.md     — reference docs (browsed via the AGENTS.md pointer)
+//   claude-plugins/skills/<name>/SKILL.md   — workflow skills (junctioned into .claude/skills)
 //
 // Output (committed build artifact, like the framework-metadata SSOT):
 //   Angular/projects/spiderly/agent/manifest.json   — machine-readable contract (skill-surface only)
@@ -25,11 +26,17 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const skillsRoot = join(repoRoot, 'claude-plugins', 'skills');
-const surfaceConfigPath = join(repoRoot, 'tools', 'agent-surface.json');
 const bundleRoot = join(repoRoot, 'Angular', 'projects', 'spiderly', 'agent');
 
-const VALID_SURFACES = ['doc', 'skill'];
+// The two authoring trees. `surface` is implied by location — no separate categorization file:
+//   doc   → browsed via the always-on AGENTS.md pointer at agent/docs/
+//   skill → junctioned into .claude/skills/spiderly-*
+// The entry filename differs because Claude Code only recognizes a skill by its `SKILL.md`,
+// while docs are plain reference and use `index.md`.
+const TREES = [
+  { surface: 'doc', root: join(repoRoot, 'claude-plugins', 'docs'), file: 'index.md', dest: 'docs' },
+  { surface: 'skill', root: join(repoRoot, 'claude-plugins', 'skills'), file: 'SKILL.md', dest: 'skills' },
+];
 
 function fail(msg, details = []) {
   console.error(`ERROR: build-agent-bundle: ${msg}`);
@@ -37,20 +44,11 @@ function fail(msg, details = []) {
   process.exit(1);
 }
 
-if (!existsSync(skillsRoot)) fail(`skills directory not found at ${skillsRoot}`);
-if (!existsSync(surfaceConfigPath)) fail(`surface config not found at ${surfaceConfigPath}`);
+for (const t of TREES) if (!existsSync(t.root)) fail(`authoring tree not found at ${t.root}`);
 
-const surfaces = JSON.parse(readFileSync(surfaceConfigPath, 'utf8')).surfaces ?? {};
-
-// Discover skill folders (a folder is a skill iff it has a SKILL.md).
-const skillDirs = readdirSync(skillsRoot, { withFileTypes: true })
-  .filter((d) => d.isDirectory() && existsSync(join(skillsRoot, d.name, 'SKILL.md')))
-  .map((d) => d.name)
-  .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // ordinal, deterministic
-
-// Parse `name` and `description` from a SKILL.md YAML frontmatter block.
-function parseFrontmatter(folder) {
-  const text = readFileSync(join(skillsRoot, folder, 'SKILL.md'), 'utf8');
+// Parse `name` and `description` from a YAML frontmatter block.
+function parseFrontmatter(filePath) {
+  const text = readFileSync(filePath, 'utf8');
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return {};
   const fields = {};
@@ -62,27 +60,33 @@ function parseFrontmatter(folder) {
   return fields;
 }
 
-// --- Validate everything up front, aggregate all problems, then fail once -----------------------
+// --- Discover + validate everything up front, aggregate all problems, then fail once -------------
 const errors = [];
-const skills = [];
+const entries = [];
 
-for (const folder of skillDirs) {
-  const fm = parseFrontmatter(folder);
-  if (!fm.name) errors.push(`${folder}/SKILL.md: missing 'name' in frontmatter`);
-  else if (fm.name !== folder) errors.push(`${folder}/SKILL.md: frontmatter name '${fm.name}' != folder name '${folder}'`);
-  if (!fm.description) errors.push(`${folder}/SKILL.md: missing 'description' in frontmatter`);
+for (const t of TREES) {
+  const allDirs = readdirSync(t.root, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // ordinal, deterministic
 
-  const surface = surfaces[folder];
-  if (!surface) errors.push(`${folder}: not categorized in tools/agent-surface.json (add "doc" or "skill")`);
-  else if (!VALID_SURFACES.includes(surface)) errors.push(`${folder}: invalid surface '${surface}' (must be "doc" or "skill")`);
+  for (const folder of allDirs) {
+    // A folder without the expected entry file is a mis-placed or half-renamed entry
+    // (e.g. a doc left in skills/, or a SKILL.md not yet renamed to index.md).
+    if (!existsSync(join(t.root, folder, t.file))) {
+      errors.push(`${t.dest}/${folder}: missing ${t.file}`);
+      continue;
+    }
 
-  if (fm.name === folder && fm.description && VALID_SURFACES.includes(surface))
-    skills.push({ name: folder, surface, description: fm.description });
+    const fm = parseFrontmatter(join(t.root, folder, t.file));
+    if (!fm.name) errors.push(`${t.dest}/${folder}/${t.file}: missing 'name' in frontmatter`);
+    else if (fm.name !== folder) errors.push(`${t.dest}/${folder}/${t.file}: frontmatter name '${fm.name}' != folder name '${folder}'`);
+    if (!fm.description) errors.push(`${t.dest}/${folder}/${t.file}: missing 'description' in frontmatter`);
+
+    if (fm.name === folder && fm.description)
+      entries.push({ name: folder, surface: t.surface, description: fm.description });
+  }
 }
-
-// Surface entries with no matching skill folder (stale config).
-for (const key of Object.keys(surfaces))
-  if (!skillDirs.includes(key)) errors.push(`tools/agent-surface.json: '${key}' has no claude-plugins/skills/${key} folder`);
 
 if (errors.length) fail(`bundle validation failed (${errors.length})`, errors);
 
@@ -91,18 +95,15 @@ rmSync(bundleRoot, { recursive: true, force: true });
 mkdirSync(join(bundleRoot, 'docs'), { recursive: true });
 mkdirSync(join(bundleRoot, 'skills'), { recursive: true });
 
-// Split by surface so each skill has exactly ONE discovery channel:
-//   agent/docs/<name>   — reference, browsed via the always-on AGENTS.md pointer
-//   agent/skills/<name> — workflow, junctioned into .claude/skills/spiderly-*
-for (const s of skills) {
-  const dest = s.surface === 'doc' ? 'docs' : 'skills';
-  cpSync(join(skillsRoot, s.name), join(bundleRoot, dest, s.name), { recursive: true });
-}
+// Each entry's whole folder rides along (index.md/SKILL.md + any references/ or scripts/ subdirs).
+for (const t of TREES)
+  for (const e of entries.filter((e) => e.surface === t.surface))
+    cpSync(join(t.root, e.name), join(bundleRoot, t.dest, e.name), { recursive: true });
 
-// Manifest lists ONLY skill-surface entries — the CLI junctions these by name and prunes the
-// rest. Doc-surface skills need no enumeration; they're found by browsing agent/docs/.
-const manifest = { skills: skills.filter((s) => s.surface === 'skill') };
+// Manifest lists ONLY skill-surface entries — the CLI junctions these by name and prunes the rest.
+// Docs need no enumeration; they're found by browsing agent/docs/.
+const manifest = { skills: entries.filter((e) => e.surface === 'skill') };
 writeFileSync(join(bundleRoot, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-const docCount = skills.length - manifest.skills.length;
-console.log(`build-agent-bundle: wrote ${docCount} doc(s) to agent/docs, ${skills.length - docCount} skill(s) to agent/skills + manifest`);
+const docCount = entries.length - manifest.skills.length;
+console.log(`build-agent-bundle: wrote ${docCount} doc(s) to agent/docs, ${manifest.skills.length} skill(s) to agent/skills + manifest`);

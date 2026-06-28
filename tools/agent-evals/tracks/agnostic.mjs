@@ -24,7 +24,7 @@ const AGENTS_POINTER = [
   '# Spiderly',
   '',
   'Your training data for Spiderly is stale. Before writing any Spiderly code, browse `docs/` and',
-  'read the `SKILL.md` for the topic you are working on — these docs are version-matched to the',
+  'read the `index.md` for the topic you are working on — these docs are version-matched to the',
   'Spiderly package under test.',
   '',
 ].join('\n');

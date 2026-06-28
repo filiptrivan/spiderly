@@ -14,7 +14,7 @@ test('spiderly provision copies the real init output incl. its shipped guidance,
   mkdirSync(join(app, 'node_modules', 'spiderly', 'agent', 'docs', 'entity-design'), { recursive: true });
   writeFileSync(join(app, 'Backend', 'Program.cs'), '// spiderly app');
   writeFileSync(join(app, 'AGENTS.md'), '# Spiderly\n');
-  writeFileSync(join(app, 'node_modules', 'spiderly', 'agent', 'docs', 'entity-design', 'SKILL.md'), '# doc');
+  writeFileSync(join(app, 'node_modules', 'spiderly', 'agent', 'docs', 'entity-design', 'index.md'), '# doc');
   writeFileSync(join(app, 'Backend', 'bin', 'x.dll'), 'BIN');
 
   const ws = mkdtempSync(join(tmpdir(), 'ws-'));
@@ -24,7 +24,7 @@ test('spiderly provision copies the real init output incl. its shipped guidance,
   assert.ok(existsSync(join(ws, 'AGENTS.md')), 'init-written AGENTS.md kept');
   // The whole point: the guidance shipped in node_modules is KEPT (plain-net strips it; this must not).
   assert.ok(
-    existsSync(join(ws, 'node_modules', 'spiderly', 'agent', 'docs', 'entity-design', 'SKILL.md')),
+    existsSync(join(ws, 'node_modules', 'spiderly', 'agent', 'docs', 'entity-design', 'index.md')),
     'shipped Spiderly guidance kept',
   );
   assert.equal(existsSync(join(ws, 'Backend', 'bin')), false, '.NET build output skipped');
