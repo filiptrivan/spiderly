@@ -16,6 +16,12 @@ namespace Spiderly.Shared
 
         /// <summary>Per-handler-code overrides, keyed by <see cref="IOutboxHandler.Code"/> (e.g. "WingsExport"). An entry wins over both the global <see cref="Default"/> and the handler's code-declared policy.</summary>
         public Dictionary<string, OutboxRetryOptions> Handlers { get; set; } = new();
+
+        /// <summary>Days to keep fully-handled (<c>DispatchedAt</c> set) outbox rows before <c>OutboxRetentionJob</c> purges them. Pending/dead-lettered rows are never purged. Default 30.</summary>
+        public int RetentionDays { get; set; } = 30;
+
+        /// <summary>The outbox health check (<c>OutboxHealthJob</c>) logs an error — for your alerting — when the oldest still-due pending row is older than this many minutes. Default 15.</summary>
+        public int BacklogAgeAlertMinutes { get; set; } = 15;
     }
 
     /// <summary>A retry-policy override. Fields are nullable so an unset field falls through to the next layer instead of binding to 0.</summary>

@@ -107,7 +107,7 @@ namespace Spiderly.Shared.Tests
             Assert.Null(row.DispatchedAt);
             // Dead-lettered: NextAttemptAt parked far in the future so the sweep never picks it up again.
             Assert.NotNull(row.NextAttemptAt);
-            Assert.True(row.NextAttemptAt > DateTime.UtcNow.AddYears(100));
+            Assert.Equal(OutboxRetryPolicy.NeverRetry, row.NextAttemptAt);
         }
 
         [Fact]
@@ -123,7 +123,7 @@ namespace Spiderly.Shared.Tests
 
             Assert.Equal(1, row.AttemptCount);
             Assert.NotNull(row.NextAttemptAt);
-            Assert.True(row.NextAttemptAt > DateTime.UtcNow.AddYears(100));
+            Assert.Equal(OutboxRetryPolicy.NeverRetry, row.NextAttemptAt);
         }
 
         // ---- helpers ----

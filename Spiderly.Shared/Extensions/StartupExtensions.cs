@@ -100,9 +100,17 @@ namespace Spiderly.Shared.Extensions
                     $"'EmailSender' must be an OBJECT (e.g. {{ \"Email\": \"you@example.com\", \"Name\": \"...\" }}), not a string.")
                 .ValidateOnStart();
             services.AddOptions<NotificationOptions>().Bind(section).ValidateOnStart();
-            // Optional outbox retry tuning, nested under Spiderly.Shared:Outbox. No ValidateOnStart — every value is
-            // optional and falls back to the handler's code-declared RetryPolicy / OutboxRetryPolicy.Default.
-            services.AddOptions<OutboxOptions>().Bind(section.GetSection("Outbox"));
+            // Optional outbox retry tuning, nested under Spiderly.Shared:Outbox. Every value is optional (falls back to
+            // the handler's code-declared RetryPolicy / OutboxRetryPolicy.Default); the guard rejects nonsense overrides
+            // (e.g. MaxAttempts 0 would dead-letter every row on first failure) loudly at boot rather than silently.
+            static bool SaneOutboxRetry(OutboxRetryOptions r)
+                => r == null || ((r.MaxAttempts is null or >= 1) && (r.MaxBackoffMinutes is null or >= 1));
+            services.AddOptions<OutboxOptions>().Bind(section.GetSection("Outbox"))
+                .Validate(
+                    o => o.RetentionDays >= 1 && o.BacklogAgeAlertMinutes >= 1
+                         && SaneOutboxRetry(o.Default) && (o.Handlers == null || o.Handlers.Values.All(SaneOutboxRetry)),
+                    $"Spiderly: '{Settings.ConfigurationSection}:Outbox' needs RetentionDays >= 1, BacklogAgeAlertMinutes >= 1, and any retry override's MaxAttempts/MaxBackoffMinutes >= 1.")
+                .ValidateOnStart();
             services.AddOptions<CookieSettings>().Bind(section).ValidateOnStart();
             services.AddOptions<ExcelOptions>().Bind(section).ValidateOnStart();
             // External-provider config is validated at boot (aggregated) by ExternalProviderOptionsValidator, so a
@@ -537,9 +545,10 @@ namespace Spiderly.Shared.Extensions
         }
 
         /// <summary>
-        /// Schedules the recurring outbox sweep for the consumer's outbox entity <typeparamref name="TOutbox"/>.
-        /// Call in the Configure phase, after Hangfire is initialized. Requires <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c>
-        /// during service registration.
+        /// Schedules the recurring outbox jobs for the consumer's outbox entity <typeparamref name="TOutbox"/>: the
+        /// dispatcher sweep, plus daily retention (<c>OutboxRetentionJob</c>) and a 5-minute health check
+        /// (<c>OutboxHealthJob</c>). Call in the Configure phase, after Hangfire is initialized. Requires
+        /// <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c> during service registration; tune via <c>OutboxOptions</c>.
         /// </summary>
         /// <param name="app">The application builder (Configure phase marker; the schedule is registered globally via Hangfire).</param>
         /// <param name="cronExpression">Sweep cadence. Defaults to once a minute; pass a faster (e.g. seconds-based) cron if your Hangfire is configured for it.</param>
@@ -555,6 +564,13 @@ namespace Spiderly.Shared.Extensions
                 "outbox-dispatcher",
                 job => job.ProcessAsync(),
                 cronExpression ?? Cron.Minutely());
+
+            // Storage hygiene + ops visibility, both generic over TOutbox and tuned via OutboxOptions: retention purges
+            // handled rows past the window; health logs an error (→ your alerting) on backlog age / dead-letters.
+            RecurringJob.AddOrUpdate<OutboxRetentionJob<TOutbox>>(
+                "outbox-retention", job => job.PurgeAsync(), Cron.Daily());
+            RecurringJob.AddOrUpdate<OutboxHealthJob<TOutbox>>(
+                "outbox-health", job => job.CheckAsync(), "*/5 * * * *");
         }
 
         /// <summary>

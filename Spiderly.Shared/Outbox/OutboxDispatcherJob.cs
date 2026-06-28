@@ -21,7 +21,9 @@ namespace Spiderly.Shared.Outbox
     /// <para><c>[DisableConcurrentExecution]</c> — the sweep reads pending rows without a row-level claim, so two
     /// overlapping sweeps would read and dispatch the same rows (duplicate side effects). The interval is one minute,
     /// but a batch of slow handlers can overrun it; the distributed lock (held in Hangfire storage, so it also covers
-    /// multiple backend instances) serializes runs. The timeout is generous on purpose: an overrunning tick <i>waits</i>
+    /// multiple backend instances) serializes runs. This makes dispatch strictly serial across the fleet — the
+    /// throughput ceiling, and deliberate: to scale, swap the global lock for <c>SELECT … FOR UPDATE SKIP LOCKED</c>
+    /// + concurrent workers (needed only at high volume; not a bug). The timeout is generous on purpose: an overrunning tick <i>waits</i>
     /// for the in-flight sweep to release the lock and then runs, rather than failing — so a slow batch does not raise a
     /// spurious failure alert via the job-failed filter. Only a sweep stuck past the timeout fails, which is a genuine
     /// "outbox is wedged" signal worth surfacing.</para>
@@ -44,10 +46,6 @@ namespace Spiderly.Shared.Outbox
     {
         private const int BatchSize = 100;
         private const int LastErrorMaxLength = 2000;
-
-        // Parked in a dead-lettered row's NextAttemptAt to permanently exclude it from the time-based sweep
-        // (keeps AttemptCount truthful for the admin view; an admin Retry clears it back to null to requeue).
-        private static readonly DateTime NeverRetry = new(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
         private readonly IApplicationDbContext _context;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -133,7 +131,7 @@ namespace Spiderly.Shared.Outbox
                         // skips it forever (AttemptCount stays truthful for the admin view). Logged at Error (→ Sentry)
                         // as the proactive dev signal; the row stays as the admin-facing record, and an admin Retry
                         // clears NextAttemptAt back to null to requeue it. Fires once, on the attempt that hits the cap.
-                        msg.NextAttemptAt = NeverRetry;
+                        msg.NextAttemptAt = OutboxRetryPolicy.NeverRetry;
                         _logger.LogError(ex,
                             "Outbox message {MessageId} (handler={HandlerCode}) permanently failed after {MaxAttempts} attempts and will not be retried.",
                             msg.Id, msg.HandlerCode, policy.MaxAttempts);

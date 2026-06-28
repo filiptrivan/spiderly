@@ -12,5 +12,12 @@ namespace Spiderly.Shared.Outbox
     {
         /// <summary>The policy used by any handler that does not override <c>IOutboxHandler.RetryPolicy</c>: 12 attempts, 1-hour backoff cap (~6 h total window).</summary>
         public static readonly OutboxRetryPolicy Default = new(MaxAttempts: 12, MaxBackoff: TimeSpan.FromHours(1));
+
+        /// <summary>
+        /// Sentinel parked in a dead-lettered row's <c>NextAttemptAt</c> (a row that crossed its <see cref="MaxAttempts"/>):
+        /// a far-future time, so the time-based sweep skips it forever while <c>AttemptCount</c> stays truthful. An admin
+        /// Retry clears <c>NextAttemptAt</c> back to null to requeue; the outbox health check counts rows here as dead-letters.
+        /// </summary>
+        public static readonly DateTime NeverRetry = new(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
     }
 }
