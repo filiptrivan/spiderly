@@ -23,7 +23,7 @@ public class AgentRootLogicTests
     [InlineData("""{"agentSync":{}}""")]
     [InlineData("""{"agentSync":{"root":""}}""")]
     [InlineData("""{"agentSync":{"root":123}}""")]
-    public void ExtractAgentRoot_ReturnsNull_WhenAbsentOrInvalid(string? json)
+    public void ExtractAgentRoot_ReturnsNull_WhenAbsentOrInvalid(string json)
         => Assert.Null(AgentSyncCommand.ExtractAgentRoot(json!));
 
     [Fact]

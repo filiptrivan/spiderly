@@ -35,7 +35,7 @@ namespace Spiderly.Shared.Tests
 
         private sealed class RecordingReporter : IExceptionReporter
         {
-            public ExceptionReport? Received { get; private set; }
+            public ExceptionReport Received { get; private set; }
             public void Report(ExceptionReport report) => Received = report;
         }
 

@@ -97,10 +97,10 @@ namespace Spiderly.Shared.Tests
         private sealed class TestNotification : INotification
         {
             public NotificationDelivery DeliveryMode { get; set; } = NotificationDelivery.FireNow;
-            public string? DedupeValue { get; set; }
+            public string DedupeValue { get; set; }
             public TimeSpan? DedupeWindowValue { get; set; }
             public NotificationDelivery Delivery => DeliveryMode;
-            public string? DedupeKey => DedupeValue;
+            public string DedupeKey => DedupeValue;
             public TimeSpan? DedupeWindow => DedupeWindowValue;
         }
 
@@ -109,7 +109,7 @@ namespace Spiderly.Shared.Tests
             public StubChannel(string code) => Code = code;
             public string Code { get; }
             public bool IsConfigured => true;
-            public Task SendAsync(INotification n, INotificationRecipient? r, CancellationToken ct) => Task.CompletedTask;
+            public Task SendAsync(INotification n, INotificationRecipient r, CancellationToken ct) => Task.CompletedTask;
         }
 
         private sealed class FakeRouter : INotificationRouter

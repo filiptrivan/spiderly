@@ -17,7 +17,7 @@ public class HelpersTests
     [InlineData("nameof(Entities.Product.WarrantyRegistrations)", "WarrantyRegistrations")]
     [InlineData("nameof(Foo.Bar.Baz.Qux)", "Qux")]
     [InlineData(null, null)]
-    public void GetFormatedAttributeValue_VariousInputs_ReturnsCleanedValue(string? input, string? expected)
+    public void GetFormatedAttributeValue_VariousInputs_ReturnsCleanedValue(string input, string expected)
     {
         Assert.Equal(expected, ClassAnalyzer.GetFormatedAttributeValue(input));
     }
@@ -268,7 +268,7 @@ public class HelpersTests
     [InlineData("List<long>", "long")]
     [InlineData("List<User>", "User")]
     [InlineData(null, null)]
-    public void ExtractTypeFromGenericType_VariousInputs_ExtractsInnerType(string? input, string? expected)
+    public void ExtractTypeFromGenericType_VariousInputs_ExtractsInnerType(string input, string expected)
     {
         Assert.Equal(expected, Helpers.ExtractTypeFromGenericType(input));
     }
