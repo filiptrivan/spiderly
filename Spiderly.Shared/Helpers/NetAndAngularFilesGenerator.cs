@@ -2133,7 +2133,10 @@ public class Startup
             spiderly.{{(dbProvider == DbProviderCodes.SQLServer ? "UseSQLServer()" : "UsePostgreSQL()")}};
             spiderly.UseCulture("en");
             spiderly.UseTranslations();
-            spiderly.AddAuthentication();
+            // One call wires the co-required auth core (current-user/login/JWT, the User principal, and the
+            // [HasPermission] handler forwarded to AuthorizationService) and enables authentication. Add API keys
+            // with .AddApiKeys<ApiKey>() if the app exposes them.
+            spiderly.AddSecurity<User, UserExternalLogin, {{appName}}.Business.Services.AuthorizationService>();
             spiderly.AddTokenStorage();
             spiderly.AddExcel();
             spiderly.AddEmailing<EmailingService>();
@@ -2489,23 +2492,14 @@ namespace {{appName}}.WebAPI.Extensions
         {
             #region Spiderly
 
-            services.AddTransient<AuthenticationService>();
-            services.AddTransient<SecurityServiceBase<User, UserExternalLogin>>();
-
-            // Permission-as-policy authorization: registers the [HasPermission] handler and forwards the framework's
-            // AuthorizationServiceBase to this app's generated authorization service (so its IsAuthorizedAsync override
-            // applies). Pairs with PermissionPolicyProvider, which AddSpiderly registers.
-            services.AddSpiderlyAuthorization<{{appName}}.Business.Services.AuthorizationServiceGenerated>();
-
-            // Register the application's principal kind(s). A single-principal app registers just User; the
-            // kind-dispatched authorization resolves it even without a principal_kind claim (single kind = the
-            // default). The login flow stamps PrincipalKinds.User onto issued tokens so authorization still
-            // dispatches correctly once a second principal kind is added.
-            // Add a line per additional principal kind (e.g. a machine/service account).
-            services.AddSpiderlyPrincipal<User>(PrincipalKinds.User);
+            // The auth core (current-user/login/JWT, the User principal, and the [HasPermission] handler forwarded
+            // to AuthorizationService) is wired by spiderly.AddSecurity<...>() in Startup; AuthorizationService and its
+            // generated base are registered by the generated AddEntityServices(). Only app-specific extras remain here.
+            // Narrow current-user slice so domain services depend on the abstraction, not the full HTTP/auth-bound
+            // AuthenticationService (registered by AddSecurity). Stateless forwarder.
+            services.AddTransient<Spiderly.Shared.Interfaces.ICurrentUserAccessor>(sp => sp.GetRequiredService<AuthenticationService>());
 
             services.AddSingleton<IConfigureOptions<MvcOptions>, TranslatePropertiesConfiguration>();
-            services.AddSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
             // DiskStorageService is the dev default; add S3PublicStorageService / S3PrivateStorageService here when adopting S3.
             services.AddSingleton<DiskStorageService>();
@@ -2515,9 +2509,9 @@ namespace {{appName}}.WebAPI.Extensions
             #region Business
 
             services.AddTransient<SecurityService<User, UserExternalLogin>>();
+            // AddEntityServices() also registers AuthorizationService and its generated base (the latter forwarded to
+            // it) — the generated EntityServiceDependencies injects AuthorizationServiceGenerated.
             services.AddEntityServices();
-            services.AddTransient<{{appName}}.Business.Services.AuthorizationService>();
-            services.AddTransient<{{appName}}.Business.Services.AuthorizationServiceGenerated>(sp => sp.GetRequiredService<{{appName}}.Business.Services.AuthorizationService>());
 
             #endregion
 

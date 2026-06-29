@@ -253,6 +253,21 @@ namespace {{basePartOfNamespace}}.Services
 
             registrations.AppendLine("            services.AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));");
             registrations.AppendLine("            services.AddTransient<EntityServiceDependencies>();");
+
+            // EntityServiceDependencies injects AuthorizationServiceGenerated directly, so it must be registered.
+            // Mirror the per-entity pattern below: forward the generated base to the user's AuthorizationService
+            // subclass when present (so its overrides apply), otherwise register the generated base directly. This
+            // is wired here — rather than left to the consumer's startup — so a forgotten registration can't 403
+            // every permission-gated endpoint or fail DI validation at boot.
+            if (userEntityServices.Any(x => x.Name == "AuthorizationService"))
+            {
+                registrations.AppendLine("            services.AddTransient<AuthorizationService>();");
+                registrations.AppendLine("            services.AddTransient<AuthorizationServiceGenerated>(sp => sp.GetRequiredService<AuthorizationService>());");
+            }
+            else
+            {
+                registrations.AppendLine("            services.AddTransient<AuthorizationServiceGenerated>();");
+            }
             registrations.AppendLine();
 
             foreach (SpiderlyClass entity in entities)

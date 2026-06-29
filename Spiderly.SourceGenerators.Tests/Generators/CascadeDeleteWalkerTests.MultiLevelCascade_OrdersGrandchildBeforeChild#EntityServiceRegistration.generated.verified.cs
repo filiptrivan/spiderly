@@ -14,6 +14,7 @@ namespace TestApp.Business.Services
         {
             services.AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
             services.AddTransient<EntityServiceDependencies>();
+            services.AddTransient<AuthorizationServiceGenerated>();
 
             services.AddTransient<MemberServiceGenerated>();
             services.AddTransient<OrgService>();
