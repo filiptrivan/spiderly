@@ -2,7 +2,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,7 +9,6 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Npgsql;
 using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
@@ -54,14 +52,15 @@ namespace Spiderly.Shared.Exceptions
             long? userId = _principalAccessor.Current.UserId;
 
             ApiErrorDTO body;
-            LogLevel logLevel;
+            // Single source of truth for the level — the handler's logging and SpiderlyExceptionClassifier.IsExpected
+            // (consumed by error-tracker filters like Sentry's beforeSend) derive from one place, so they can't drift.
+            LogLevel logLevel = SpiderlyExceptionClassifier.GetLogLevel(ex);
             bool logException;
 
             if (ex is BusinessException businessEx)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 body = new ApiErrorDTO { Message = businessEx.Message, ErrorCode = businessEx.ErrorCode };
-                logLevel = LogLevel.Information;
                 logException = false;
             }
             else if (ex is SpiderlyValidationException || ex is ValidationException)
@@ -77,28 +76,24 @@ namespace Spiderly.Shared.Exceptions
                             .GroupBy(f => f.PropertyName)
                             .ToDictionary(g => g.Key, g => g.Select(f => f.ErrorMessage).ToArray()),
                 };
-                logLevel = LogLevel.Information;
                 logException = false;
             }
             else if (ex is ExpiredVerificationException expiredVerificationEx)
             {
                 httpContext.Response.StatusCode = expiredVerificationEx.StatusCode;
                 body = new ApiErrorDTO { Message = expiredVerificationEx.Message };
-                logLevel = LogLevel.Information;
                 logException = false;
             }
             else if (ex is UnauthorizedException unauthorizedEx)
             {
                 httpContext.Response.StatusCode = unauthorizedEx.StatusCode;
                 body = new ApiErrorDTO { Message = unauthorizedEx.Message };
-                logLevel = LogLevel.Warning;
                 logException = false;
             }
             else if (ex is SecurityViolationException securityViolationEx)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                 body = new ApiErrorDTO { Message = _localizer["GlobalError"] };
-                logLevel = LogLevel.Error;
                 logException = true;
 
                 if (!_env.IsDevelopment())
@@ -116,7 +111,6 @@ namespace Spiderly.Shared.Exceptions
                     Message = _localizer["TokenExpired"],
                     ErrorCode = ApiErrorCodes.InvalidToken,
                 };
-                logLevel = LogLevel.Information;
                 logException = false;
 
                 _cookieManager.ClearCookie(httpContext.Response.Cookies, _tokenKeySettings.AccessTokenKey, httpOnly: true);
@@ -131,25 +125,25 @@ namespace Spiderly.Shared.Exceptions
                     Message = _localizer["ConcurrencyException"],
                     ErrorCode = ApiErrorCodes.ConcurrencyConflict,
                 };
-                logLevel = LogLevel.Warning;
                 logException = true;
             }
-            else if (ex is DbUpdateException dbUpdateEx && TryMapDbConstraint(dbUpdateEx, out string constraintCode, out string constraintMessageKey))
+            else if (ex is DbUpdateException dbUpdateEx
+                && SpiderlyExceptionClassifier.GetDbConstraintErrorCode(dbUpdateEx) is string constraintCode)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
                 body = new ApiErrorDTO
                 {
-                    Message = _localizer[constraintMessageKey],
+                    Message = _localizer[constraintCode == ApiErrorCodes.ForeignKeyViolation
+                        ? "ForeignKeyConstraintException"
+                        : "UniqueConstraintException"],
                     ErrorCode = constraintCode,
                 };
-                logLevel = LogLevel.Warning;
                 logException = true;
             }
             else
             {
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 body = new ApiErrorDTO { Message = _localizer["GlobalError"] };
-                logLevel = LogLevel.Error;
                 logException = true;
 
                 if (!_env.IsDevelopment())
@@ -175,50 +169,6 @@ namespace Spiderly.Shared.Exceptions
             await httpContext.Response.WriteAsJsonAsync(body, cancellationToken);
 
             return true;
-        }
-
-        private static bool TryMapDbConstraint(DbUpdateException ex, out string errorCode, out string messageKey)
-        {
-            const string postgresUniqueViolation = "23505";
-            const string postgresForeignKeyViolation = "23503";
-            const int sqlServerUniqueConstraint = 2627;
-            const int sqlServerUniqueIndex = 2601;
-            const int sqlServerForeignKey = 547;
-
-            if (ex.InnerException is PostgresException pg)
-            {
-                switch (pg.SqlState)
-                {
-                    case postgresUniqueViolation:
-                        errorCode = ApiErrorCodes.UniqueViolation;
-                        messageKey = "UniqueConstraintException";
-                        return true;
-                    case postgresForeignKeyViolation:
-                        errorCode = ApiErrorCodes.ForeignKeyViolation;
-                        messageKey = "ForeignKeyConstraintException";
-                        return true;
-                }
-            }
-
-            if (ex.InnerException is SqlException sql)
-            {
-                switch (sql.Number)
-                {
-                    case sqlServerUniqueConstraint:
-                    case sqlServerUniqueIndex:
-                        errorCode = ApiErrorCodes.UniqueViolation;
-                        messageKey = "UniqueConstraintException";
-                        return true;
-                    case sqlServerForeignKey:
-                        errorCode = ApiErrorCodes.ForeignKeyViolation;
-                        messageKey = "ForeignKeyConstraintException";
-                        return true;
-                }
-            }
-
-            errorCode = null;
-            messageKey = null;
-            return false;
         }
     }
 }
