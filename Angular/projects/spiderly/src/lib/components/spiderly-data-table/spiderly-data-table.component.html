@@ -30,6 +30,10 @@
             <div style="margin: 0px; font-size: 17.5px">{{ tableTitle }}</div>
           </div>
           <div style="display: flex; gap: 8px">
+            <ng-container
+              *ngIf="actionsTemplate"
+              [ngTemplateOutlet]="actionsTemplate"
+            ></ng-container>
             <button
               pButton
               [label]="t('ClearFilters')"

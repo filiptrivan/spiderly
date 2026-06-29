@@ -191,6 +191,23 @@ new Column({ field: 'total', name: 'Total', filterType: 'numeric',
 
 It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells.
 
+### Custom Toolbar Actions
+
+Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or any markup) to the table's toolbar, alongside the built-in Clear Filters / Export to Excel / Reload / Delete Selected buttons. Import `SpiderlyDataTableActionsDirective` in the consuming component.
+
+```html
+<spiderly-data-table [cols]="cols" [getPaginatedListObservableMethod]="getListMethod">
+  <ng-template spiderlyDataTableActions>
+    <button pButton class="p-button-outlined" style="flex: none"
+            icon="pi pi-check" [label]="t('ApproveAll')" (click)="approveAll()"></button>
+  </ng-template>
+</spiderly-data-table>
+```
+
+- The projected content renders **ahead of** the built-in buttons, so its position stays stable even as the conditional Delete Selected button appears/disappears.
+- The template binds to the **consuming component** (`(click)` calls your method), and root-level buttons inherit the toolbar's spacing + responsive stacking.
+- No table state is passed as context — read it from the table's outputs (`onLazyLoad` for the current `Filter`, `onTotalRecordsChange`, `onRowSelect`) when an action needs it.
+
 ### Key Inputs
 
 | Input                              | Type                     | Default | Purpose                 |

@@ -2,6 +2,7 @@ import { CommonModule, formatDate, formatNumber } from '@angular/common';
 import {
   AfterViewInit,
   Component,
+  ContentChild,
   EventEmitter,
   Inject,
   Input,
@@ -9,6 +10,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  TemplateRef,
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +32,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
+import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
 import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { PaginatedResult } from '../../entities/paginated-result';
@@ -71,6 +74,14 @@ export class SpiderlyDataTableComponent
   private readonly destroy$ = new Subject<void>();
 
   @ViewChild('dt') table: Table;
+
+  /**
+   * Custom toolbar content projected via `<ng-template spiderlyDataTableActions>`.
+   * Rendered in the caption action area ahead of the built-in buttons.
+   */
+  @ContentChild(SpiderlyDataTableActionsDirective, { read: TemplateRef })
+  actionsTemplate: TemplateRef<any>;
+
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
   @Input() items: any[]; // Pass only when hasLazyLoad === false

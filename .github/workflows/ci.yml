@@ -73,6 +73,32 @@ jobs:
       - name: Agent-eval harness self-test
         run: cd tools && npm run test:evals
 
+  angular-unit-test:
+    name: Unit Tests (Angular)
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: Angular/package-lock.json
+
+      - name: Install dependencies
+        run: cd Angular && npm ci
+
+      # Karma runs against ubuntu-latest's preinstalled Chrome via the
+      # ChromeHeadlessNoSandbox launcher defined in projects/spiderly/karma.conf.js
+      # (the runner has no usable Chrome sandbox).
+      - name: Run Angular library unit tests
+        run: cd Angular && npx ng test spiderly --watch=false --browsers=ChromeHeadlessNoSandbox
+
   integration-test:
     name: Test CLI Generated Application
     needs: unit-test
