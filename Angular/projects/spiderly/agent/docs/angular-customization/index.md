@@ -186,10 +186,18 @@ For a click on the cell value itself (not an action icon), set a column's `onCel
 
 ```typescript
 new Column({ field: 'total', name: 'Total', filterType: 'numeric',
-  onCellClick: (e) => this.itemsPopover.show(e.originalEvent, e.element) }),
+  // Reusing one popover across cells: show() updates the anchor element, but it will NOT move a
+  // popover that is already open — PrimeNG re-positions via align() only during the open animation,
+  // which an already-open popover never re-enters (and hide()+show() in the same tick collapses to
+  // no state change). So after show(), call align() to re-anchor it to the new cell.
+  onCellClick: (e) => {
+    const wasOpen = this.itemsPopover.overlayVisible;
+    this.itemsPopover.show(e.originalEvent, e.element);
+    if (wasOpen) this.itemsPopover.align();
+  } }),
 ```
 
-It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells.
+It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells. (Reusing one popover across rows is the `show()` + `align()` case shown in the snippet above — bare `show()` swaps content but won't move an already-open panel.)
 
 ### Custom Toolbar Actions
 

@@ -41,13 +41,11 @@ When matching options programmatically (e2e tests, conditional logic), match aga
 
 ## Per-cell click — `Column.onCellClick`
 
-Set `onCellClick?: (e: CellClickEvent) => void` on a column to make *its* value cells clickable (the mirror of `Action.onClick`, but for plain value cells rather than the actions column). It's surgical and opt-in: only columns that define it react, and those cells get a `cursor: pointer` + hover affordance (the `td.clickable` rule in this component's SCSS — `.clickable` was previously declared on rows but never styled, so the rule is new).
+Set `onCellClick?: (e: CellClickEvent) => void` on a column to make *its* value cells clickable (the mirror of `Action.onClick`, but for plain value cells rather than the actions column). Implementation notes for editing this component:
 
+- **`td.clickable` is the affordance.** Opted-in cells get `cursor: pointer` + hover via the `td.clickable` rule in this component's SCSS — `.clickable` was previously declared on rows but never styled, so the rule is new.
 - **Fires on display cells only** — text/numeric/date/boolean/`blob`. Editable cells (`col.editable`) are excluded; that cell belongs to its inline input.
 - **Swallows row navigation.** The handler calls `event.stopPropagation()`, so on a `navigateOnRowClick` table an opted-in cell runs *its* handler instead of navigating. (On non-navigating tables this is a harmless no-op.)
-- **`CellClickEvent` carries `element` on purpose.** It's the clicked `<td>`, captured synchronously — use it to anchor an overlay/popover. Do **not** reach for `originalEvent.currentTarget` in an async handler: the DOM nulls it once dispatch ends, so it's already null by the time an HTTP response resolves. (`element` is a superset addition over `ActionClickEvent`'s, alongside `field`, `value` (raw) and `displayValue` (formatted).)
+- **`CellClickEvent` captures `element` synchronously on purpose.** It's the clicked `<td>`; we grab it at dispatch time because `originalEvent.currentTarget` nulls once dispatch ends, so it's already null by the time an async handler's HTTP response resolves. (`element` is a superset addition over `ActionClickEvent`'s, alongside `field`, `value` (raw) and `displayValue` (formatted).)
 
-```typescript
-{ name: t('Total'), filterType: 'numeric', field: 'total',
-  onCellClick: (e) => this.itemsPopover.show(e.originalEvent, e.element) }
-```
+Consumer usage — anchoring a popover, including the re-anchor-while-open pattern — is documented once in the agent bundle: `claude-plugins/docs/angular-customization/index.md` → `onCellClick`. Don't duplicate the snippet here (the duplicated `show()` example was how a re-anchor bug propagated to a consumer).
