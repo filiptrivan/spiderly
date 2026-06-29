@@ -131,11 +131,17 @@ namespace Spiderly.Shared.Exceptions
                 && SpiderlyExceptionClassifier.GetDbConstraintErrorCode(dbUpdateEx) is string constraintCode)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                // Exhaustive on the codes GetDbConstraintErrorCode returns — a future code falls to the
+                // generic message rather than being silently mislabeled as a unique-constraint violation.
+                string constraintMessageKey = constraintCode switch
+                {
+                    ApiErrorCodes.UniqueViolation => "UniqueConstraintException",
+                    ApiErrorCodes.ForeignKeyViolation => "ForeignKeyConstraintException",
+                    _ => "GlobalError",
+                };
                 body = new ApiErrorDTO
                 {
-                    Message = _localizer[constraintCode == ApiErrorCodes.ForeignKeyViolation
-                        ? "ForeignKeyConstraintException"
-                        : "UniqueConstraintException"],
+                    Message = _localizer[constraintMessageKey],
                     ErrorCode = constraintCode,
                 };
                 logException = true;

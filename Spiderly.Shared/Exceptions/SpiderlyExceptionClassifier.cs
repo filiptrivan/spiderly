@@ -63,8 +63,7 @@ namespace Spiderly.Shared.Exceptions
         /// </summary>
         public static string GetDbConstraintErrorCode(DbUpdateException exception)
         {
-            const string postgresUniqueViolation = "23505";
-            const string postgresForeignKeyViolation = "23503";
+            // SQL Server ships no named-constant class for these (unlike Npgsql's PostgresErrorCodes), so keep the ints.
             const int sqlServerUniqueConstraint = 2627;
             const int sqlServerUniqueIndex = 2601;
             const int sqlServerForeignKey = 547;
@@ -73,9 +72,9 @@ namespace Spiderly.Shared.Exceptions
             {
                 switch (pg.SqlState)
                 {
-                    case postgresUniqueViolation:
+                    case PostgresErrorCodes.UniqueViolation:
                         return ApiErrorCodes.UniqueViolation;
-                    case postgresForeignKeyViolation:
+                    case PostgresErrorCodes.ForeignKeyViolation:
                         return ApiErrorCodes.ForeignKeyViolation;
                 }
             }
