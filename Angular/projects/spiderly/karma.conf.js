@@ -2,7 +2,6 @@
 // See https://karma-runner.github.io/6.4/config/configuration-file.html
 module.exports = function (config) {
   config.set({
-    basePath: '',
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
     plugins: [
       require('karma-jasmine'),
@@ -12,7 +11,6 @@ module.exports = function (config) {
       require('@angular-devkit/build-angular/plugins/karma'),
     ],
     client: {
-      jasmine: {},
       clearContext: false, // leave Jasmine Spec Runner output visible in browser
     },
     jasmineHtmlReporter: {
@@ -25,13 +23,13 @@ module.exports = function (config) {
     },
     reporters: ['progress', 'kjhtml'],
     browsers: ['Chrome'],
-    // CI runs as root on a headless runner, where Chrome's sandbox is unavailable.
+    // CI runs on a headless runner where Chrome's sandbox is unavailable; the
+    // `Unit Tests (Angular)` job selects this launcher via --browsers.
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
         flags: ['--no-sandbox', '--disable-gpu'],
       },
     },
-    restartOnFileChange: true,
   });
 };
