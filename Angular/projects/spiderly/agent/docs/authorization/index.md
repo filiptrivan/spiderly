@@ -243,18 +243,21 @@ public virtual async Task AuthorizeProductDeleteAndThrow(long id)
 
 ## Registering Principal Kinds
 
-Register each principal kind in `AddAppServices` so authorization can resolve the current principal.
-A single-principal app registers just `User`; the kind-dispatched authorization then resolves it
-without a `principal_kind` claim (it is the sole, default kind):
+The `User` principal kind is registered for you by `spiderly.AddSecurity<User, UserExternalLogin, AuthorizationService>(…)`
+in `Startup.cs` — a single-principal app needs nothing more. The kind-dispatched authorization then resolves
+`User` without a `principal_kind` claim (it is the sole, default kind).
+
+To add **another** principal kind (a machine/service account, …), register it with `AddSpiderlyPrincipal<T>`
+in `AddAppServices`:
 
 ```csharp
-services.AddSpiderlyPrincipal<User>("User");
-// Add a line per additional principal kind, e.g.:
-// services.AddSpiderlyPrincipal<ServiceAccount>("ServiceAccount");
+// The User kind is already registered by AddSecurity — add a line per *additional* kind:
+services.AddSpiderlyPrincipal<ServiceAccount>("ServiceAccount");
 ```
 
 Each kind is any entity implementing `ISecurityPrincipal` with its own `Roles` into the shared
-Role/Permission catalog. (`spiderly init` scaffolds the `User` registration for you.)
+Role/Permission catalog. API keys have a dedicated sub-builder — `AddSecurity<…>(s => s.AddApiKeys<ApiKey>())` —
+which registers the `ApiKey` kind and its auth scheme together (see the API-keys docs).
 
 ## Checking Permissions in Custom Code
 

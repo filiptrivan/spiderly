@@ -20,8 +20,8 @@ Modeling the key as its own `ISecurityPrincipal` (rather than "resolve to the ow
 
 ## Step 0 — Prerequisites
 
-1. **Spiderly version** — confirm the compiled mechanism is present. It must expose `Spiderly.Security.Authentication.IApiKeyAuthenticator`, `AddSpiderlyApiKeyAuthentication`, and `PrincipalKinds.ApiKey`. If a `using Spiderly.Security.Authentication;` doesn't resolve those, the app is on too old a Spiderly version — upgrade first (see the `spiderly-upgrade` skill).
-2. **The app must already use Spiderly auth** — it registers a human principal (`AddSpiderlyPrincipal<User>(PrincipalKinds.User)`) and calls `spiderly.AddAuthentication()`. API keys add a *second* principal kind alongside it.
+1. **Spiderly version** — confirm the compiled mechanism is present. It must expose `Spiderly.Security.Authentication.IApiKeyAuthenticator`, the `AddApiKeys<TApiKey>()` sub-builder on `SpiderlySecurityBuilder`, and `PrincipalKinds.ApiKey`. If those don't resolve, the app is on too old a Spiderly version — upgrade first (see the `spiderly-upgrade` skill).
+2. **The app must already use Spiderly auth** — its `Startup.cs` calls `spiderly.AddSecurity<User, UserExternalLogin, AuthorizationService>(…)`, which registers the human `User` principal and enables authentication. API keys add a *second* principal kind alongside it.
 
 Decide with the user up front: **do they want an admin UI** to manage keys, or **API/agent-only** (drive generation via the REST endpoints / a management skill)? The backend is identical either way; the UI is the optional Step 8.
 
@@ -90,7 +90,7 @@ Add the inverse M2M nav `public virtual List<ApiKey> ApiKeys { get; } = new(); /
 
 The framework ships `DefaultApiKeyAuthenticator<TApiKey>`, which does the hash→active-id lookup over your `ApiKey` entity generically (it reads it via the `IApiKey` interface, so it stays decoupled from your namespace). You get it for free from the Step 4 registration — there is **no authenticator to hand-write**.
 
-Only implement your own `IApiKeyAuthenticator` for a non-standard lookup (e.g. an external key store). If you do, register it **before** `AddSpiderlyApiKeyAuthentication<ApiKey>()` — the framework adds the default with `TryAdd`, so your registration wins.
+Only implement your own `IApiKeyAuthenticator` for a non-standard lookup (e.g. an external key store). If you do, register it **before** the `AddApiKeys<ApiKey>()` call (Step 4) — the framework adds the default with `TryAdd`, so your registration wins.
 
 ## Step 3 — `ApiKeyService` hooks (generate + hash + show-once)
 
@@ -149,16 +149,15 @@ public class ApiKeyService : ApiKeyServiceGenerated
 
 `ApiKeyHelper` is `Spiderly.Security.Authentication`. If the app's authorization service has a different class name, inject that.
 
-## Step 4 — Register the principal + the auth scheme
+## Step 4 — Register the key (API-keys sub-builder)
 
-In the app's service-registration (where `AddSpiderlyPrincipal<User>` is called, **after** `AddSpiderly(...)`):
+Pass an `s => s.AddApiKeys<ApiKey>()` configurator to the existing `spiderly.AddSecurity<…>(…)` call in `Startup.cs`:
 
 ```csharp
-services.AddSpiderlyPrincipal<ApiKey>(PrincipalKinds.ApiKey);
-services.AddSpiderlyApiKeyAuthentication<ApiKey>();
+spiderly.AddSecurity<User, UserExternalLogin, AuthorizationService>(s => s.AddApiKeys<ApiKey>());
 ```
 
-`AddSpiderlyApiKeyAuthentication` registers the `ApiKey` scheme **and** a forwarding policy scheme set as the default — so `X-Api-Key` requests route to the key handler and everything else to JWT, with no per-endpoint `[Authorize(AuthenticationSchemes=...)]` churn. Registering a second principal kind makes the app multi-principal; the JWT login already stamps `PrincipalKinds.User`, the key handler stamps `PrincipalKinds.ApiKey`, so both satisfy the now-required `principal_kind` claim.
+`AddApiKeys<ApiKey>()` registers the `ApiKey` principal kind **and** the authentication scheme in one call — the `ApiKey` scheme plus a forwarding policy scheme set as the default, so `X-Api-Key` requests route to the key handler and everything else to JWT, with no per-endpoint `[Authorize(AuthenticationSchemes=...)]` churn. Registering a second principal kind makes the app multi-principal; the JWT login already stamps `PrincipalKinds.User`, the key handler stamps `PrincipalKinds.ApiKey`, so both satisfy the now-required `principal_kind` claim.
 
 ## Step 5 — The issuance guard (authorization service)
 
