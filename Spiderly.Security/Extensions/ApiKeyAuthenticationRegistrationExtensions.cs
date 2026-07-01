@@ -67,9 +67,16 @@ namespace Spiderly.Security.Extensions
                 });
 
             // Route UseAuthentication() through the forwarding scheme so a [HasPermission]/[Authorize] endpoint
-            // accepts either credential. Post-configures the defaults set by AddSpiderly's JWT registration;
-            // this runs only when API-key auth is opted into.
-            services.Configure<AuthenticationOptions>(options =>
+            // accepts either credential. PostConfigure (not Configure) is deliberate and load-bearing: this opt-in
+            // call runs *inside* the AddSpiderly builder lambda, but AddSpiderly's mandatory JWT registration
+            // (SpiderlyAddAuthentication -> AddAuthentication(JwtBearerDefaults)) runs *after* the lambda returns and
+            // sets DefaultScheme = JwtBearer via its own Configure<AuthenticationOptions>. Because every
+            // IConfigureOptions runs before every IPostConfigureOptions, a PostConfigure here wins deterministically
+            // regardless of registration order. A plain Configure would be overwritten — DefaultScheme would silently
+            // resolve to JwtBearer instead of this forwarding scheme, bypassing API-key forwarding for anything that
+            // falls back to the default scheme (SignIn/SignOut/Forbid, or a future change that drops the explicit
+            // authenticate/challenge assignments below). Runs only when API-key auth is opted into.
+            services.PostConfigure<AuthenticationOptions>(options =>
             {
                 options.DefaultScheme = ApiKeyAuthenticationDefaults.PolicyScheme;
                 options.DefaultAuthenticateScheme = ApiKeyAuthenticationDefaults.PolicyScheme;
