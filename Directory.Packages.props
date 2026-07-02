@@ -1,0 +1,98 @@
+<Project>
+
+  <!-- Central Package Management: every package version for the Spiderly.* projects lives HERE, not inline
+       in the .csproj files. Projects reference packages with <PackageReference Include="X" /> (no Version).
+       One version per package across the repo makes cross-project drift unrepresentable.
+
+       Do NOT enable transitive pinning (CentralPackageTransitivePinningEnabled); it stays off, the CPM
+       default. The Spiderly.* projects are PACKED and published to NuGet, and
+       when a transitively-pinned project is packed, NuGet promotes the pinned transitives to explicit nuspec
+       dependencies (per the CPM docs) — silently widening the public dependency contract every consumer
+       (PACMS, dck, sg-tools, partners) inherits. To force a transitive here, add an explicit
+       <PackageReference> to the one project that needs it, so the new public dependency is intentional and
+       visible in that csproj.
+
+       The agent-eval fixture tools/agent-evals/fixtures/plain-app/Backend opts OUT of CPM in its own csproj
+       (ManagePackageVersionsCentrally=false); see the comment there for why. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- EF Core / data access -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.1" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.1" />
+  </ItemGroup>
+
+  <!-- ASP.NET / auth / API -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.14" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
+  </ItemGroup>
+
+  <!-- Background jobs. Hangfire.Core was declared 1.8.* (floating); de-floated to the exact version it
+       resolves to today (1.8.23), so the published nuspec floor stops drifting with the calendar. This is
+       the direct-dependency non-determinism behind the prod Hangfire.Core incident, fixed at the source. -->
+  <ItemGroup>
+    <PackageVersion Include="Hangfire.Core" Version="1.8.23" />
+  </ItemGroup>
+
+  <!-- Validation / mapping / query -->
+  <ItemGroup>
+    <PackageVersion Include="FluentValidation" Version="11.9.1" />
+    <PackageVersion Include="Mapster" Version="7.4.0" />
+    <PackageVersion Include="Riok.Mapperly" Version="3.5.1" />
+    <PackageVersion Include="LinqKit.Core" Version="1.2.5" />
+  </ItemGroup>
+
+  <!-- Source-generator toolchain (Spiderly.SourceGenerators targets netstandard2.0) -->
+  <ItemGroup>
+    <PackageVersion Include="CodegenCS.Core" Version="3.3.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.7.0" />
+    <PackageVersion Include="System.IO.Pipelines" Version="10.0.1" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.1" />
+  </ItemGroup>
+
+  <!-- CLI (spiderly.cli tool) -->
+  <ItemGroup>
+    <PackageVersion Include="Spectre.Console" Version="0.54.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.3" />
+  </ItemGroup>
+
+  <!-- Storage / media / files -->
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.11.3" />
+    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageVersion Include="Mime-Detective" Version="25.8.1" />
+    <PackageVersion Include="MiniExcel" Version="1.42.0" />
+  </ItemGroup>
+
+  <!-- Caching -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
+  </ItemGroup>
+
+  <!-- Serialization / util -->
+  <ItemGroup>
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="CaseConverter" Version="2.0.1" />
+  </ItemGroup>
+
+  <!-- Test-only -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="Verify.Xunit" Version="28.4.0" />
+    <PackageVersion Include="Verify.SourceGenerators" Version="2.4.0" />
+  </ItemGroup>
+
+</Project>

@@ -3,6 +3,13 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Opt OUT of the repo's Central Package Management. This is an agent-eval fixture representing a plain,
+         non-Spiderly app, so it keeps inline PackageReference versions (a fresh app looks like this). Without
+         this opt-out, an in-tree build inherits the repo-root Directory.Packages.props (MSBuild walks up) and
+         the inline versions would fail with NU1008. Kept in this csproj (not a parent dir) so it travels with
+         the fixture when the eval harness copies plain-app/ out of the tree, staying CPM-immune wherever it
+         is built. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
