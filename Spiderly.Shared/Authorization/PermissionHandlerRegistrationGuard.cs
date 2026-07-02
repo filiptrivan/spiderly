@@ -52,16 +52,25 @@ namespace Spiderly.Shared.Authorization
         /// True when some descriptor registers an <see cref="IAuthorizationHandler"/> whose implementation derives
         /// from <see cref="AuthorizationHandler{TRequirement}"/> for <see cref="PermissionRequirement"/>. Checked by
         /// type so it does not need to reference the concrete <c>PermissionAuthorizationHandler</c> (which lives in
-        /// <c>Spiderly.Security</c>); a consumer's custom handler for the same requirement satisfies it too, as long
-        /// as it is registered by its implementation type (a factory/instance registration is not seen).
+        /// <c>Spiderly.Security</c>); a consumer's custom handler for the same requirement satisfies it too, whether
+        /// it is registered by implementation type or as a pre-built instance.
+        /// <para>Known limitation (fail-closed): a <b>factory</b> registration (both <c>ImplementationType</c> and
+        /// <c>ImplementationInstance</c> null) cannot be introspected without invoking the factory — which would
+        /// instantiate the handler graph at boot — so such a handler is not seen and, if it is the only one, produces
+        /// a false boot failure. Accepted trade-off: it fails loud and rare, never back to the silent 403 the guard
+        /// exists to prevent, and the built-in <c>AddSecurity</c> bundle registers by type. Resolving the built
+        /// provider to close the gap costs more than the edge is worth.</para>
         /// </summary>
         /// <param name="services">The service collection to inspect.</param>
         public static bool HasPermissionRequirementHandler(IServiceCollection services)
         {
-            // IsAssignableFrom(null) is false, so a factory/instance descriptor (null ImplementationType) is skipped.
+            Type permissionHandlerType = typeof(AuthorizationHandler<PermissionRequirement>);
+
+            // Match the implementation type, or the runtime type of a pre-built instance. IsAssignableFrom(null) is
+            // false, so a factory registration (both null) falls through undetected — see the remarks above.
             return services.Any(descriptor =>
                 descriptor.ServiceType == typeof(IAuthorizationHandler) &&
-                typeof(AuthorizationHandler<PermissionRequirement>).IsAssignableFrom(descriptor.ImplementationType));
+                permissionHandlerType.IsAssignableFrom(descriptor.ImplementationType ?? descriptor.ImplementationInstance?.GetType()));
         }
     }
 }

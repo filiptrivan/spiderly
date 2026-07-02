@@ -73,5 +73,29 @@ namespace Spiderly.Shared.Tests
 
             Assert.True(PermissionHandlerRegistrationGuard.HasPermissionRequirementHandler(services));
         }
+
+        [Fact]
+        public void HasPermissionRequirementHandler_detects_a_handler_registered_as_an_instance()
+        {
+            ServiceCollection services = new();
+            // Instance registration: ImplementationType is null, but ImplementationInstance carries the runtime type.
+            // Without inspecting the instance the guard would falsely fail the boot of a correctly-configured app.
+            services.AddSingleton<IAuthorizationHandler>(new FakePermissionHandler());
+
+            Assert.True(PermissionHandlerRegistrationGuard.HasPermissionRequirementHandler(services));
+        }
+
+        [Fact]
+        public void HasPermissionRequirementHandler_does_not_detect_a_factory_registered_handler()
+        {
+            ServiceCollection services = new();
+            // Factory registration: both ImplementationType and ImplementationInstance are null, so the runtime type
+            // is unknowable without invoking the factory (which would instantiate the handler graph at boot). Accepted,
+            // documented fail-closed limitation — the resulting false boot failure is loud and rare, and resolving the
+            // built provider to close it isn't worth the cost. A consumer on this path uses the AddSecurity bundle.
+            services.AddScoped<IAuthorizationHandler>(_ => new FakePermissionHandler());
+
+            Assert.False(PermissionHandlerRegistrationGuard.HasPermissionRequirementHandler(services));
+        }
     }
 }
