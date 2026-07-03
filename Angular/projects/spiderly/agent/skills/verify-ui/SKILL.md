@@ -10,7 +10,25 @@ The Spiderly admin panel sits entirely behind a passwordless **email-code** logi
 
 **This is for ad-hoc visual verification, not test authoring.** If you're writing a Playwright suite or debugging a failing CI run, use the `e2e-testing` skill — it owns the canonical login helper and the PrimeNG selector quirks.
 
-## The core idea (driver-agnostic)
+## Two auth flows — check which one first
+
+- **Header flow** (`Login` + `RefreshTokenWithHeaders`): tokens in localStorage → recipe below.
+- **Cookie flow** (`LoginWithCookies` + `RefreshTokenWithCookies`): the refresh token is an HttpOnly cookie — localStorage injection can't work. Symptom: bearer fetches return 200, yet every load bounces to `/login` with a 401 on `RefreshTokenWithCookies`. Log in **from inside the browser** with `credentials: 'include'` instead:
+
+```js
+// eval on the admin origin; email must have the Admin role
+const browserId = 'verify-ui';
+localStorage.setItem('browser_id', browserId); // must match the login below
+const { verificationCode } = await (await fetch(API + '/api/Security/SendLoginVerificationEmail', {
+  method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+  body: JSON.stringify({ email, browserId }) })).json();
+await fetch(API + '/api/Security/LoginWithCookies', { method: 'POST',
+  headers: {'Content-Type':'application/json'}, credentials: 'include',
+  body: JSON.stringify({ verificationCode, email, browserId }) });
+// reload — boot's RefreshTokenWithCookies now finds the cookie
+```
+
+## The core idea — header flow (driver-agnostic)
 
 In development, `SecurityService.SendLoginVerificationEmail` returns the verification code **in the response body** (when `ShouldShowVerificationCodeInNotification()` is true — i.e. `IWebHostEnvironment.IsDevelopment()` **and** SMTP is not fully configured, so `emailingService.IsConfigured()` is false). So no email inbox is needed. The flow is always:
 
