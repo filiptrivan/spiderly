@@ -621,7 +621,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>Processed file bytes</returns>
         public virtual async Task<byte[]> OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded (Stream stream, IFormFile file, {{entityIdType}} id)
         {
-            if (file.ContentType.StartsWith("image/"))
+            if (Helper.IsOptimizableImage(file.ContentType)) // rasters only — SVG can't go through ImageSharp, it passes through raw
             {
                 await ValidateImageFor{{property.Name}}Of{{entity.Name}}(stream, file, id);
                 stream.Position = 0;

@@ -154,13 +154,25 @@ Generated methods per blob property:
 ```
 1. Upload{Property}For{Entity}(IFormFile file)         ← Controller endpoint
 2.   → OnBefore{Property}BlobFor{Entity}UploadIsAuthorized(file, id)
-3.   → OnBefore{Property}BlobFor{Entity}IsUploaded(stream, file, id)
-4.       → For image/* content types:
-5.           → ValidateImageFor{Property}Of{Entity}(stream, file, id)
-6.           → OptimizeImageFor{Property}Of{Entity}(stream, file, id)
-7.   → storageService.UploadFileAsync(...)            ← resolved per [*Storage] attribute
-8.   → Returns file key/URL (semantics depend on the adapter)
+3.   → Helper.ValidateFileSize + Helper.ValidateFileSignature (whitelist + content inspection)
+4.   → OnBefore{Property}BlobFor{Entity}IsUploaded(stream, file, id)
+5.       → For raster image content types (Helper.IsOptimizableImage — image/* except SVG):
+6.           → ValidateImageFor{Property}Of{Entity}(stream, file, id)
+7.           → OptimizeImageFor{Property}Of{Entity}(stream, file, id)
+8.       → Everything else (SVG, video, PDF, …) passes through raw
+9.   → storageService.UploadFileAsync(...)            ← resolved per [*Storage] attribute
+10.  → Returns file key/URL (semantics depend on the adapter)
 ```
+
+### File-type validation semantics
+
+`Helper.ValidateFileSignature` enforces the `[AcceptedFileTypes]` whitelist server-side:
+
+- MIME entries (`"image/png"`) must match the declared content type — exactly, or by prefix for type wildcards (`"image/*"`).
+- Extension entries (`".pdf"` — leading dot, no `/`) only widen the UI file picker; always pair them with the MIME type.
+- Binary types are then verified against the stream's **magic bytes** (Mime-Detective), so a spoofed `Content-Type` header is rejected.
+- `image/svg+xml` has no magic bytes — it is validated **structurally** instead: must parse as XML with an `<svg>` root, and active content (script elements, `on*` event attributes, `javascript:` hrefs, `foreignObject`) is rejected. SVG also bypasses ImageSharp optimization (step 5) and uploads as-is.
+- Failures throw `BusinessException` (HTTP 400, localized message shown to the user — keys `FileTypeNotAllowed`, `FileContentDoesNotMatchType`, `FileContainsActiveContent`, `FileIsEmpty`, `FileSizeExceeded`).
 
 On entity save (Update/Insert):
 
@@ -184,8 +196,8 @@ public override async Task OnBeforeMainImageBlobForProductUploadIsAuthorized(
 public override async Task<byte[]> OnBeforeMainImageBlobForProductIsUploaded(
     Stream stream, IFormFile file, long id)
 {
-    // For images: validate then optimize
-    if (file.ContentType.StartsWith("image/"))
+    // For raster images: validate then optimize (SVG/video/PDF pass through raw)
+    if (Helper.IsOptimizableImage(file.ContentType))
     {
         await ValidateImageForMainImageOfProduct(stream, file, id);
         stream.Position = 0;
@@ -233,7 +245,7 @@ public static async Task ValidateImageDimensions(
 )
 ```
 
-Throws `SecurityViolationException` if dimensions don't match exactly.
+Throws `BusinessException` (localized, shown to the user) if dimensions don't match exactly.
 
 ## Cleanup methods
 

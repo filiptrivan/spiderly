@@ -12,6 +12,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace Spiderly.Shared.Helpers
 {
@@ -423,25 +424,47 @@ namespace Spiderly.Shared.Helpers
             int actualHeight = imageInfo.Height;
 
             if (width > 0 && actualWidth != width)
-                throw new SecurityViolationException(localizer?["ImageWidthMustBeExact", width, actualWidth]
+                throw new BusinessException(localizer?["ImageWidthMustBeExact", width, actualWidth]
                     ?? $"Image width must be exactly {width}px (current: {actualWidth}px).");
 
             if (height > 0 && actualHeight != height)
-                throw new SecurityViolationException(localizer?["ImageHeightMustBeExact", height, actualHeight]
+                throw new BusinessException(localizer?["ImageHeightMustBeExact", height, actualHeight]
                     ?? $"Image height must be exactly {height}px (current: {actualHeight}px).");
         }
 
         public static void ValidateFileSize(long fileSize, int maxFileSize, IStringLocalizer localizer = null)
         {
             if (maxFileSize > 0 && fileSize > maxFileSize)
-                throw new SecurityViolationException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
+                throw new BusinessException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
                     ?? $"File size must not exceed {maxFileSize / 1_000_000} MB.");
         }
 
         /// <summary>
+        /// True for content types the generated <c>OnBefore*IsUploaded</c> hook may route through
+        /// ImageSharp validation/optimization — raster <c>image/*</c> types only. SVG is an image
+        /// content type but a vector text format ImageSharp cannot decode; it must pass through raw
+        /// (its safety is enforced by <see cref="ValidateFileSignature"/>'s XML content validation).
+        /// </summary>
+        public static bool IsOptimizableImage(string contentType)
+        {
+            return contentType != null
+                && contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+                && !contentType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Validates that the content-type header declared by the client is in the allowed list
-        /// AND that the stream's magic bytes (inspected via Mime-Detective) match the declared type.
-        /// Both checks are required — client-supplied Content-Type is trivially spoofable.
+        /// AND that the stream content matches the declared type. Both checks are required —
+        /// client-supplied Content-Type is trivially spoofable.
+        /// <para>Allowed entries may be exact MIME types (<c>"image/png"</c>) or type wildcards
+        /// (<c>"image/*"</c>), matching any declared type with that prefix.</para>
+        /// <para>Binary types are matched by magic bytes via Mime-Detective. <c>image/svg+xml</c> is a
+        /// text format with no magic bytes, so it is validated structurally instead: the document must
+        /// parse as XML with an <c>&lt;svg&gt;</c> root and carry no active content (script elements,
+        /// event-handler attributes, <c>javascript:</c> hrefs, <c>foreignObject</c>).</para>
+        /// <para>Failures throw <see cref="BusinessException"/> — a user-correctable mistake (wrong file
+        /// picked, renamed extension), not a security violation: the whitelist is already public in the
+        /// UI's accept attribute, and the localized messages are written to be shown to the user.</para>
         /// Resets <paramref name="content"/> to position 0 before and after inspection.
         /// </summary>
         public static Task ValidateFileSignature(
@@ -454,14 +477,20 @@ namespace Spiderly.Shared.Helpers
                 return Task.CompletedTask;
 
             if (string.IsNullOrEmpty(declaredContentType) ||
-                !allowedMimeTypes.Any(t => t.Equals(declaredContentType, StringComparison.OrdinalIgnoreCase)))
+                !allowedMimeTypes.Any(t => MatchesMimeType(t, declaredContentType)))
             {
-                throw new SecurityViolationException(localizer?["FileTypeNotAllowed", declaredContentType ?? ""]
+                throw new BusinessException(localizer?["FileTypeNotAllowed", declaredContentType ?? ""]
                     ?? $"File type '{declaredContentType}' is not allowed.");
             }
 
             if (content.Length == 0)
-                throw new SecurityViolationException(localizer?["FileIsEmpty"] ?? "File is empty.");
+                throw new BusinessException(localizer?["FileIsEmpty"] ?? "File is empty.");
+
+            if (declaredContentType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase))
+            {
+                ValidateSvgContent(content, localizer);
+                return Task.CompletedTask;
+            }
 
             content.Position = 0;
             var results = FileSignatures.Inspector.Inspect(content);
@@ -471,11 +500,111 @@ namespace Spiderly.Shared.Helpers
                 string.Equals(r.Definition.File.MimeType, declaredContentType, StringComparison.OrdinalIgnoreCase));
 
             if (!matches)
-                throw new SecurityViolationException(localizer?["FileContentDoesNotMatchType", declaredContentType]
+                throw new BusinessException(localizer?["FileContentDoesNotMatchType", declaredContentType]
                     ?? $"File content does not match declared type '{declaredContentType}'.");
 
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Matches a declared content type against a whitelist entry: exact match, or prefix match
+        /// for type wildcards (<c>"image/*"</c> matches <c>"image/png"</c>). Extension entries
+        /// (<c>".svg"</c> — no '/') never reach this method; the source generator strips them.
+        /// </summary>
+        private static bool MatchesMimeType(string allowed, string declared)
+        {
+            if (allowed.EndsWith("/*"))
+                return declared.StartsWith(allowed[..^1], StringComparison.OrdinalIgnoreCase);
+
+            return allowed.Equals(declared, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Structural validation for SVG uploads (no magic bytes to inspect): the stream must parse as
+        /// XML with an <c>&lt;svg&gt;</c> root, and must not contain active content — script elements,
+        /// event-handler (<c>on*</c>) attributes, <c>javascript:</c> hrefs, or <c>foreignObject</c>.
+        /// SVG is an active format (a script inside executes when the file is opened directly), so a
+        /// framework-level allowance has to be safe-by-default even when uploads are admin-gated.
+        /// DTDs are ignored and external resolution is disabled (XXE-safe) while still accepting the
+        /// DOCTYPE line vector editors commonly emit.
+        /// </summary>
+        private static void ValidateSvgContent(Stream content, IStringLocalizer localizer)
+        {
+            content.Position = 0;
+
+            bool rootSeen = false;
+
+            try
+            {
+                XmlReaderSettings settings = new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Ignore,
+                    XmlResolver = null,
+                    CloseInput = false,
+                };
+
+                using (XmlReader reader = XmlReader.Create(content, settings))
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.NodeType != XmlNodeType.Element)
+                            continue;
+
+                        if (!rootSeen)
+                        {
+                            if (!reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase))
+                                throw NotAnSvg(localizer);
+
+                            rootSeen = true;
+                        }
+
+                        if (reader.LocalName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+                            reader.LocalName.Equals("foreignObject", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw ActiveSvgContent(localizer);
+                        }
+
+                        if (reader.HasAttributes)
+                        {
+                            for (int i = 0; i < reader.AttributeCount; i++)
+                            {
+                                reader.MoveToAttribute(i);
+
+                                if (reader.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+                                    throw ActiveSvgContent(localizer);
+
+                                if (reader.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
+                                    reader.Value.TrimStart().StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    throw ActiveSvgContent(localizer);
+                                }
+                            }
+
+                            reader.MoveToElement();
+                        }
+                    }
+                }
+            }
+            catch (XmlException)
+            {
+                throw NotAnSvg(localizer);
+            }
+            finally
+            {
+                content.Position = 0;
+            }
+
+            if (!rootSeen)
+                throw NotAnSvg(localizer);
+        }
+
+        private static BusinessException NotAnSvg(IStringLocalizer localizer) =>
+            new(localizer?["FileContentDoesNotMatchType", "image/svg+xml"]
+                ?? "File content does not match declared type 'image/svg+xml'.");
+
+        private static BusinessException ActiveSvgContent(IStringLocalizer localizer) =>
+            new(localizer?["FileContainsActiveContent"]
+                ?? "The file contains disallowed active content (scripts or event handlers).");
 
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {

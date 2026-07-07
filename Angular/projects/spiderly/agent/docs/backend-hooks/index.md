@@ -107,7 +107,8 @@ public virtual async Task OnBefore{Property}BlobFor{Entity}UploadIsAuthorized(
 public virtual async Task<byte[]> OnBefore{Property}BlobFor{Entity}IsUploaded(
     Stream stream, IFormFile file, {IdType} id) { }
 
-// Image-specific hooks (called by OnBefore*IsUploaded for image/* content types)
+// Image-specific hooks (called by OnBefore*IsUploaded for raster image content
+// types only — Helper.IsOptimizableImage; SVG/video/PDF pass through raw)
 public virtual async Task ValidateImageFor{Property}Of{Entity}(
     Stream stream, IFormFile file, {IdType} id) { }
 public virtual async Task<byte[]> OptimizeImageFor{Property}Of{Entity}(
