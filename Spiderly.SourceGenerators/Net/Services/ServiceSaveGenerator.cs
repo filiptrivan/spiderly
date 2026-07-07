@@ -747,14 +747,26 @@ namespace Spiderly.SourceGenerators.Net
             {
                 {{ServicesGenerator.GetAuthorizeEntityMethodCall($"{property.Name}ImageFor{entity.Name}", CrudCodes.Insert, "")}}
             }
-
+{{GetFileSizeValidation(property)}}
+{{GetFileTypeValidation(property, entity)}}
             string imageUrl;
             int imageWidth;
             int imageHeight;
 
             using (Stream stream = file.OpenReadStream())
             {
-                (byte[] byteArray, imageWidth, imageHeight) = await Helper.OptimizeImageWithDimensions(stream);
+                byte[] byteArray;
+
+                if (Helper.IsOptimizableImage(file.ContentType))
+                {
+                    (byteArray, imageWidth, imageHeight) = await Helper.OptimizeImageWithDimensions(stream);
+                }
+                else
+                {
+                    // SVG: no ImageSharp decode — upload as-is; intrinsic size best-effort (0,0 when unknown)
+                    byteArray = await Helper.ReadAllBytesAsync(stream);
+                    (imageWidth, imageHeight) = Helper.GetSvgDimensions(stream);
+                }
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
 using System.ComponentModel;
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -605,6 +606,93 @@ namespace Spiderly.Shared.Helpers
         private static BusinessException ActiveSvgContent(IStringLocalizer localizer) =>
             new(localizer?["FileContainsActiveContent"]
                 ?? "The file contains disallowed active content (scripts or event handlers).");
+
+        /// <summary>
+        /// Best-effort intrinsic pixel size of an SVG stream, used for CLS-preventing width/height
+        /// attributes on editor-inserted images: root <c>&lt;svg&gt;</c> width/height (unitless or px),
+        /// falling back to the viewBox size. Returns (0, 0) when the size can't be determined
+        /// (percentage/other units without a viewBox, not an SVG) — callers must omit the attributes
+        /// in that case, never write 0. Resets the stream position before and after reading.
+        /// </summary>
+        public static (int Width, int Height) GetSvgDimensions(Stream content)
+        {
+            try
+            {
+                content.Position = 0;
+
+                XmlReaderSettings settings = new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Ignore,
+                    XmlResolver = null,
+                    CloseInput = false,
+                };
+
+                using (XmlReader reader = XmlReader.Create(content, settings))
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.NodeType != XmlNodeType.Element)
+                            continue;
+
+                        if (!reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase))
+                            return (0, 0);
+
+                        if (TryParseSvgLength(reader.GetAttribute("width"), out int width) &&
+                            TryParseSvgLength(reader.GetAttribute("height"), out int height))
+                        {
+                            return (width, height);
+                        }
+
+                        string viewBox = reader.GetAttribute("viewBox");
+                        string[] parts = viewBox?.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+
+                        if (parts?.Length == 4 &&
+                            double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double viewBoxWidth) &&
+                            double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out double viewBoxHeight) &&
+                            viewBoxWidth > 0 && viewBoxHeight > 0)
+                        {
+                            return ((int)Math.Round(viewBoxWidth), (int)Math.Round(viewBoxHeight));
+                        }
+
+                        return (0, 0);
+                    }
+                }
+            }
+            catch (XmlException)
+            {
+                // not parseable XML — no dimensions to report
+            }
+            finally
+            {
+                content.Position = 0;
+            }
+
+            return (0, 0);
+        }
+
+        /// <summary>
+        /// Parses an SVG length attribute into whole pixels. Only unitless and <c>px</c> values count —
+        /// percentages and other units have no fixed pixel meaning, so they fail and the caller falls
+        /// back to the viewBox.
+        /// </summary>
+        private static bool TryParseSvgLength(string value, out int pixels)
+        {
+            pixels = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            value = value.Trim();
+
+            if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+                value = value[..^2];
+
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) || result <= 0)
+                return false;
+
+            pixels = (int)Math.Round(result);
+            return true;
+        }
 
         public static async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {

@@ -256,6 +256,30 @@ namespace Spiderly.Shared.Tests
 
         //#endregion
 
+        //#region SVG dimensions (editor image uploads)
+
+        [Theory]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16"/>""", 24, 16)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" width="24px" height="16px"/>""", 24, 16)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" width="24.6" height="15.4"/>""", 25, 15)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"/>""", 120, 80)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 120 80"/>""", 120, 80)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"/>""", 0, 0)]
+        [InlineData("""<svg xmlns="http://www.w3.org/2000/svg"/>""", 0, 0)]
+        [InlineData("""<html xmlns="http://www.w3.org/1999/xhtml"/>""", 0, 0)]
+        [InlineData("not xml at all", 0, 0)]
+        public void Svg_dimensions_are_best_effort(string content, int expectedWidth, int expectedHeight)
+        {
+            using MemoryStream stream = Stream(content);
+
+            (int width, int height) = Helper.GetSvgDimensions(stream);
+
+            Assert.Equal((expectedWidth, expectedHeight), (width, height));
+            Assert.Equal(0, stream.Position); // reset for the subsequent upload read
+        }
+
+        //#endregion
+
         //#region Optimizable-image routing (generated OnBefore*IsUploaded hook)
 
         [Theory]

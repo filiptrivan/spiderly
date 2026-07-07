@@ -25,6 +25,8 @@ export class SpiderlyEditorComponent extends BaseControl implements OnInit {
 
   @Input() uploadImageMethod: (formData: FormData) => Observable<EditorImageUploadResult>;
   @Input() objectId: number = 0;
+  /** Mirrors the entity property's [AcceptedFileTypes] so the picker matches what the server validates. */
+  @Input() acceptedFileTypes: string[];
 
   constructor(protected override translocoService: TranslocoService) {
     super(translocoService);
@@ -46,7 +48,7 @@ export class SpiderlyEditorComponent extends BaseControl implements OnInit {
   private imageHandler(quill: any) {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
+    input.setAttribute('accept', this.acceptedFileTypes?.join(',') ?? 'image/*');
     input.click();
 
     input.onchange = async () => {
@@ -60,8 +62,12 @@ export class SpiderlyEditorComponent extends BaseControl implements OnInit {
           quill.insertEmbed(range.index, 'image', result.url);
           // Quill 2's built-in Image blot recognizes width/height as native attributes,
           // so formatText writes them directly onto the rendered <img>. Storefront uses
-          // these to size the image up-front and prevent CLS.
-          quill.formatText(range.index, 1, { width: result.width, height: result.height });
+          // these to size the image up-front and prevent CLS. (0, 0) means the server
+          // couldn't determine an intrinsic size (e.g. an SVG without width/viewBox) —
+          // omit the attributes entirely rather than render an invisible 0×0 image.
+          if (result.width && result.height) {
+            quill.formatText(range.index, 1, { width: result.width, height: result.height });
+          }
           quill.setSelection(range.index + 1);
         });
       }

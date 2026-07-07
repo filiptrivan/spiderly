@@ -692,7 +692,8 @@
         "component": "SpiderlyEditorComponent",
         "inputs": [
           "uploadImageMethod",
-          "objectId"
+          "objectId",
+          "acceptedFileTypes"
         ]
       },
       {
@@ -716,7 +717,8 @@
         "component": "SpiderlyMarkdownComponent",
         "inputs": [
           "uploadImageMethod",
-          "objectId"
+          "objectId",
+          "acceptedFileTypes"
         ]
       },
       {

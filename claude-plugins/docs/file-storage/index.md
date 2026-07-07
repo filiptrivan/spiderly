@@ -174,6 +174,8 @@ Generated methods per blob property:
 - `image/svg+xml` has no magic bytes — it is validated **structurally** instead: must parse as XML with an `<svg>` root, and active content (script elements, `on*` event attributes, `javascript:` hrefs, `foreignObject`) is rejected. SVG also bypasses ImageSharp optimization (step 5) and uploads as-is.
 - Failures throw `BusinessException` (HTTP 400, localized message shown to the user — keys `FileTypeNotAllowed`, `FileContentDoesNotMatchType`, `FileContainsActiveContent`, `FileIsEmpty`, `FileSizeExceeded`).
 
+Inline editor image uploads (`Upload{Property}ImageFor{Entity}` for `[Editor]`/`[Markdown]` + `[S3PublicStorage]` properties) run the same size + type validation against the property's `[AcceptedFileTypes]`. Raster images are optimized and return their pixel dimensions; SVG uploads as-is and its dimensions are best-effort (`Helper.GetSvgDimensions`: root width/height, then viewBox, else `(0, 0)` — the editor omits width/height attributes when unknown).
+
 On entity save (Update/Insert):
 
 ```

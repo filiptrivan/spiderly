@@ -588,7 +588,7 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 if (property.HasS3PublicStorageAttribute())
                 {
-                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\"";
+                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" {GetAcceptedFileTypesHtmlAttribute(property)}";
                 }
 
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";
