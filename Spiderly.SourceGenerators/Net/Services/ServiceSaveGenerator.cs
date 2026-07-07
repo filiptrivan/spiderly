@@ -764,8 +764,8 @@ namespace Spiderly.SourceGenerators.Net
                 else
                 {
                     // SVG: no ImageSharp decode — upload as-is; intrinsic size best-effort (0,0 when unknown)
-                    byteArray = await Helper.ReadAllBytesAsync(stream);
                     (imageWidth, imageHeight) = Helper.GetSvgDimensions(stream);
+                    byteArray = await Helper.ReadAllBytesAsync(stream);
                 }
 
                 using (Stream updatedStream = new MemoryStream(byteArray))

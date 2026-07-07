@@ -14,7 +14,7 @@ Every control also accepts the shared `BaseControl` inputs: `control`, `controlV
 | `spiderly-dropdown` | `SpiderlyDropdownComponent` | `isBooleanPicker` |
 | `spiderly-editor` | `SpiderlyEditorComponent` | `uploadImageMethod`, `objectId`, `acceptedFileTypes` |
 | `spiderly-file` | `SpiderlyFileComponent` | `objectId`, `fileData`, `acceptedFileTypes`, `required`, `multiple`, `isUrlFileData`, `imageWidth`, `imageHeight`, `maxFileSize`, `files` |
-| `spiderly-markdown` | `SpiderlyMarkdownComponent` | `uploadImageMethod`, `objectId`, `acceptedFileTypes` |
+| `spiderly-markdown` | `SpiderlyMarkdownComponent` | `uploadImageMethod`, `objectId` |
 | `spiderly-multiautocomplete` | `SpiderlyMultiAutocompleteComponent` | — |
 | `spiderly-multiselect` | `SpiderlyMultiSelectComponent` | — |
 | `spiderly-number` | `SpiderlyNumberComponent` | `prefix`, `showButtons`, `decimal`, `maxFractionDigits` |

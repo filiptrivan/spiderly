@@ -45,10 +45,6 @@ export class SpiderlyMarkdownComponent extends BaseControl implements OnInit {
 
   @Input() uploadImageMethod: (formData: FormData) => Observable<EditorImageUploadResult>;
   @Input() objectId: number = 0;
-  /** Mirrors the entity property's [AcceptedFileTypes]. Markdown uploads are paste-only today, so this
-   * only exists to accept the generated binding shared with spiderly-editor; the paste path takes any
-   * pasted image and lets the server whitelist decide. */
-  @Input() acceptedFileTypes: string[];
 
   pendingImageUploads: number = 0;
   imageUploadFailed: boolean = false;

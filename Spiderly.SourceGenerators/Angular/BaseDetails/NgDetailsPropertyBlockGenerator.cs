@@ -588,7 +588,13 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 if (property.HasS3PublicStorageAttribute())
                 {
-                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" {GetAcceptedFileTypesHtmlAttribute(property)}";
+                    // acceptedFileTypes drives the editor's file-picker accept attribute; the markdown
+                    // control has no picker (paste-only uploads), so it gets no such binding.
+                    string acceptedFileTypes = controlType == UIControlTypeCodes.Editor
+                        ? GetAcceptedFileTypesHtmlAttribute(property)
+                        : "";
+
+                    return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\" [uploadImageMethod]=\"upload{property.Name}ImageFor{entity.Name}\" [objectId]=\"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany)}.controls.id.getRawValue()\" {acceptedFileTypes}";
                 }
 
                 return $"[control]=\"{GetControlHtmlAttributeValue(property, entity, isFromOrderedOneToMany)}\"";

@@ -717,8 +717,7 @@
         "component": "SpiderlyMarkdownComponent",
         "inputs": [
           "uploadImageMethod",
-          "objectId",
-          "acceptedFileTypes"
+          "objectId"
         ]
       },
       {

@@ -441,6 +441,25 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
+        /// SVG is special-cased throughout upload validation: it's the one image type with no magic
+        /// bytes (validated structurally as XML instead) and the one ImageSharp cannot decode
+        /// (skips optimization). See <see cref="Attributes.Entity.AcceptedFileTypesAttribute"/>.
+        /// </summary>
+        private const string SvgMimeType = "image/svg+xml";
+
+        /// <summary>
+        /// XXE-safe reader settings for sniffing uploaded SVG content: DTDs ignored (vector editors
+        /// commonly emit a DOCTYPE line) and external resolution disabled. <c>XmlReader.Create</c>
+        /// clones the settings, so the shared instance is thread-safe.
+        /// </summary>
+        private static readonly XmlReaderSettings SvgReaderSettings = new()
+        {
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = null,
+            CloseInput = false,
+        };
+
+        /// <summary>
         /// True for content types the generated <c>OnBefore*IsUploaded</c> hook may route through
         /// ImageSharp validation/optimization — raster <c>image/*</c> types only. SVG is an image
         /// content type but a vector text format ImageSharp cannot decode; it must pass through raw
@@ -450,7 +469,7 @@ namespace Spiderly.Shared.Helpers
         {
             return contentType != null
                 && contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
-                && !contentType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase);
+                && !contentType.Equals(SvgMimeType, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -487,7 +506,7 @@ namespace Spiderly.Shared.Helpers
             if (content.Length == 0)
                 throw new BusinessException(localizer?["FileIsEmpty"] ?? "File is empty.");
 
-            if (declaredContentType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase))
+            if (declaredContentType.Equals(SvgMimeType, StringComparison.OrdinalIgnoreCase))
             {
                 ValidateSvgContent(content, localizer);
                 return Task.CompletedTask;
@@ -537,14 +556,7 @@ namespace Spiderly.Shared.Helpers
 
             try
             {
-                XmlReaderSettings settings = new XmlReaderSettings
-                {
-                    DtdProcessing = DtdProcessing.Ignore,
-                    XmlResolver = null,
-                    CloseInput = false,
-                };
-
-                using (XmlReader reader = XmlReader.Create(content, settings))
+                using (XmlReader reader = XmlReader.Create(content, SvgReaderSettings))
                 {
                     while (reader.Read())
                     {
@@ -600,8 +612,8 @@ namespace Spiderly.Shared.Helpers
         }
 
         private static BusinessException NotAnSvg(IStringLocalizer localizer) =>
-            new(localizer?["FileContentDoesNotMatchType", "image/svg+xml"]
-                ?? "File content does not match declared type 'image/svg+xml'.");
+            new(localizer?["FileContentDoesNotMatchType", SvgMimeType]
+                ?? $"File content does not match declared type '{SvgMimeType}'.");
 
         private static BusinessException ActiveSvgContent(IStringLocalizer localizer) =>
             new(localizer?["FileContainsActiveContent"]
@@ -620,14 +632,7 @@ namespace Spiderly.Shared.Helpers
             {
                 content.Position = 0;
 
-                XmlReaderSettings settings = new XmlReaderSettings
-                {
-                    DtdProcessing = DtdProcessing.Ignore,
-                    XmlResolver = null,
-                    CloseInput = false,
-                };
-
-                using (XmlReader reader = XmlReader.Create(content, settings))
+                using (XmlReader reader = XmlReader.Create(content, SvgReaderSettings))
                 {
                     while (reader.Read())
                     {
