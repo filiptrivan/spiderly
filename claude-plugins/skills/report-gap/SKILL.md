@@ -22,13 +22,14 @@ The trigger is sharp on purpose. Two shapes of gap qualify:
 
 - A Spiderly skill should have fired for your task but its description didn't match, so you worked blind until someone pointed you at it.
 - Skill or doc content you followed was **missing the case you hit, stale** against current Spiderly behavior, **or outright wrong** — and following it cost you a wrong turn.
+- The framework **had** the feature your task needed, but the topic's doc never mentions it — so you hand-rolled a duplicate or picked a worse seam until someone pointed at the built-in (e.g. an undocumented generated-template projection slot). The feature existing makes it a **documentation** gap, not an enhancement — still file it.
 
-For these, use `--labels "agent-reported,documentation"` and name the skill/doc file in the body. The same sharpness applies: "the docs could say more about X" is not a gap; "the docs told me the wrong thing / the skill never fired" is.
+For these, use `--labels "agent-reported,documentation"` and name the skill/doc file in the body. The same sharpness applies: "the docs could say more about X" is not a gap; "the docs told me the wrong thing / the skill never fired / the doc omits the feature entirely" is.
 
 Do **NOT** use it for:
 
 - Workarounds in the **consumer's own business logic** — that's the consumer's problem, not a Spiderly gap.
-- Ordinary bugs in code you wrote, or a clean path you simply hadn't found yet (look harder first).
+- Ordinary bugs in code you wrote, or a clean path you simply hadn't found yet (look harder first). The boundary: if the relevant topic's doc **does cover** the path and you didn't read it, the miss is yours — no issue; if the docs bundle **never mentions it**, that's the documentation-gap shape above.
 - **Non-interactive sessions** (a subagent, CI, a scheduled run): there's no one to copy the URL. Just note the gap in your final output and move on — never block.
 
 ## Flow
