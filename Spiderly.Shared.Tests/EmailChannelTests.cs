@@ -1,5 +1,3 @@
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared;
 using Spiderly.Shared.DTO;
@@ -115,48 +113,16 @@ namespace Spiderly.Shared.Tests
             Assert.Empty(email.Multi);
         }
 
-        [Fact]
-        public async Task NotifyAdmins_appends_the_environment_and_host_origin_footer()
-        {
-            FakeEmailingService email = new();
-
-            await NewChannel(email, "ops1@x.com")
-                .SendAsync(new EmailableNotification(), recipient: null, default);
-
-            (List<string> _, string _, string body) = Assert.Single(email.Multi);
-            Assert.Contains("Environment: TestEnv", body);
-            Assert.Contains($"Host: {System.Environment.MachineName}", body);
-        }
-
-        [Fact]
-        public async Task Notify_to_a_recipient_gets_no_origin_footer()
-        {
-            FakeEmailingService email = new();
-
-            await NewChannel(email).SendAsync(new EmailableNotification(), new EmailRecipient("a@b.com"), default);
-
-            (string _, string _, string body) = Assert.Single(email.Single);
-            Assert.DoesNotContain("Environment:", body);
-        }
-
         // ---- helpers ----
 
         private static EmailChannel NewChannel(FakeEmailingService email, params string[] adminRecipients)
             => new(email, Array.Empty<IEmailRenderer>(), Options.Create(new NotificationOptions
             {
                 AdminRecipients = adminRecipients.ToList(),
-            }), new FakeHostEnvironment());
+            }));
 
         private static EmailChannel NewChannelWithRenderers(FakeEmailingService email, params IEmailRenderer[] renderers)
-            => new(email, renderers, Options.Create(new NotificationOptions()), new FakeHostEnvironment());
-
-        private sealed class FakeHostEnvironment : IHostEnvironment
-        {
-            public string EnvironmentName { get; set; } = "TestEnv";
-            public string ApplicationName { get; set; } = "TestApp";
-            public string ContentRootPath { get; set; } = ".";
-            public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-        }
+            => new(email, renderers, Options.Create(new NotificationOptions()));
 
         private sealed class FakeEmailRenderer : IEmailRenderer
         {
