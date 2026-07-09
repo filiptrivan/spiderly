@@ -2198,8 +2198,6 @@ public class Startup
 
         app.UseRateLimiter();
 
-        app.SpiderlyUseHangfireFailedJobNotificationFilter();
-
         app.SpiderlyUseHangfirePrincipalFilter();
 
         app.SpiderlyUseOutboxRecurringJob<OutboxMessage>();

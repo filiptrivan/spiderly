@@ -14,7 +14,6 @@ using Spiderly.Shared.Contracts;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
-using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Services;
 
 namespace Spiderly.Shared.Exceptions
@@ -90,17 +89,11 @@ namespace Spiderly.Shared.Exceptions
                 body = new ApiErrorDTO { Message = unauthorizedEx.Message };
                 logException = false;
             }
-            else if (ex is SecurityViolationException securityViolationEx)
+            else if (ex is SecurityViolationException)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                 body = new ApiErrorDTO { Message = _localizer["GlobalError"] };
-                logException = true;
-
-                if (!_env.IsDevelopment())
-                {
-                    httpContext.RequestServices.GetService<INotifier>()
-                        ?.NotifyAdmins(new SecurityEventNotification("SecurityViolation", securityViolationEx.Message, $"User {userId}: {securityViolationEx.Message}"));
-                }
+                logException = true; // Error-level log — the app's error tracker is the alert channel.
             }
             else if (ex is SecurityTokenException)
             {
@@ -150,18 +143,9 @@ namespace Spiderly.Shared.Exceptions
             {
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 body = new ApiErrorDTO { Message = _localizer["GlobalError"] };
+                // Error-level log + the framework's exception diagnostic are the alerting surface — an error
+                // tracker (e.g. Sentry.AspNetCore) captures both without any Spiderly seam.
                 logException = true;
-
-                if (!_env.IsDevelopment())
-                {
-                    // Crash (500) exceptions go through the pluggable IExceptionReporter seam (email by default,
-                    // or Sentry/etc. per app). The SecurityViolation branch above intentionally stays on the
-                    // direct INotifier path — an always-on security signal, not a reporting-backend choice.
-                    ExceptionReporting.ReportAll(
-                        httpContext.RequestServices.GetServices<IExceptionReporter>(),
-                        new ExceptionReport(ex, userId),
-                        _logger);
-                }
             }
 
             body.StatusCode = httpContext.Response.StatusCode;

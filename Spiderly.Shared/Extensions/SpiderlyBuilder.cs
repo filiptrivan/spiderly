@@ -217,28 +217,22 @@ namespace Spiderly.Shared.Extensions
 
         /// <summary>
         /// Enables the notification framework and configures routing (which channels each notification type uses).
-        /// Register channels (the built-in Email channel is registered automatically when emailing is enabled; add
-        /// others with <c>services.AddScoped&lt;INotificationChannel, MyChannel&gt;()</c>) and, for dynamic recipients,
-        /// an <see cref="INotificationRecipientResolver"/>. <c>Outbox</c>-level notifications also require <c>AddOutbox</c>.
+        /// The routing map is entirely the app's: notifications are for business facts (order shipped, account
+        /// approved, …) — operational telemetry (errors, security events, failed jobs) belongs in logs and the
+        /// app's error tracker, not here. Register channels (the built-in Email channel is registered automatically
+        /// when emailing is enabled; add others with <c>services.AddScoped&lt;INotificationChannel, MyChannel&gt;()</c>)
+        /// and, for dynamic recipients, an <see cref="INotificationRecipientResolver"/>. <c>Outbox</c>-level
+        /// notifications also require <c>AddOutbox</c>.
         /// <example>
         /// <code>
         /// spiderly.AddNotifications(r => r
-        ///     .Route&lt;OrderShippedNotification&gt;().To("Email").To("Telegram")
-        ///     .Route&lt;UnhandledExceptionNotification&gt;().To("Email"));
+        ///     .Route&lt;OrderShippedNotification&gt;().To("Email").To("Telegram"));
         /// </code>
         /// </example>
         /// </summary>
         public SpiderlyBuilder AddNotifications(Action<NotificationRoutingBuilder> configure)
         {
             NotificationRoutingBuilder routingBuilder = new();
-
-            // Framework defaults: route its own operational notifications to the built-in Email channel, so
-            // unhandled-exception / security-event alerts always reach admins without the consumer remembering.
-            // The consumer's configure can add more channels to these or route its own notifications.
-            routingBuilder.Route<UnhandledExceptionNotification>().To(EmailChannel.ChannelCode);
-            routingBuilder.Route<SecurityEventNotification>().To(EmailChannel.ChannelCode);
-            routingBuilder.Route<JobFailedNotification>().To(EmailChannel.ChannelCode);
-
             configure?.Invoke(routingBuilder);
             NotificationRoutingMap = routingBuilder.Build();
             NotificationsEnabled = true;

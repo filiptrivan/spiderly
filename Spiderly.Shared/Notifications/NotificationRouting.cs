@@ -24,8 +24,7 @@ namespace Spiderly.Shared.Notifications
     /// <example>
     /// <code>
     /// spiderly.AddNotifications(r => r
-    ///     .Route&lt;OrderShippedNotification&gt;().To("Email").To("Telegram")
-    ///     .Route&lt;UnhandledExceptionNotification&gt;().To("Email"));
+    ///     .Route&lt;OrderShippedNotification&gt;().To("Email").To("Telegram"));
     /// </code>
     /// </example>
     /// </summary>

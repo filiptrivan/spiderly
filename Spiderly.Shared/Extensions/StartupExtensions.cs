@@ -244,9 +244,6 @@ namespace Spiderly.Shared.Extensions
                 services.AddScoped<NotificationDeliveryJob>();
                 services.AddScoped<INotifier, Notifier>();
                 services.AddScoped<IOutboxHandler, NotificationOutboxHandler>();
-                // Default exception reporter: emails admins on unhandled exceptions (self-disables when no operator
-                // recipients are configured). Apps add another IExceptionReporter (e.g. Sentry) or replace this.
-                services.AddScoped<IExceptionReporter, NotificationExceptionReporter>();
 
                 // Email is the one built-in channel; it needs the emailing service.
                 if (builder.EmailingEnabled)
@@ -474,18 +471,13 @@ namespace Spiderly.Shared.Extensions
                         policyName = rateLimitAttr.PolicyName;
                     }
 
+                    // Warning-level structured log is the whole signal — the app's log pipeline / error
+                    // tracker decides whether rejections alert (a rate-limit storm is telemetry, not mail).
                     ILogger logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                         .CreateLogger("Spiderly.RateLimiting");
                     logger.LogWarning(
                         "Rate limit rejected: Policy={Policy}, IP={IP}, Method={Method}, Path={Path}",
                         policyName, ip, method, path);
-
-                    INotifier notifier = httpContext.RequestServices
-                        .GetService<INotifier>();
-                    notifier?.NotifyAdmins(new SecurityEventNotification(
-                        "Rate Limit Rejection",
-                        $"ratelimit:{policyName}",
-                        $"Policy: {policyName}\nIP: {ip}\nMethod: {method}\nPath: {path}\nTime: {DateTimeOffset.UtcNow:O}"));
 
                     return ValueTask.CompletedTask;
                 };
@@ -602,25 +594,6 @@ namespace Spiderly.Shared.Extensions
                 "outbox-retention", job => job.PurgeAsync(), Cron.Daily());
             RecurringJob.AddOrUpdate<OutboxHealthJob<TOutbox>>(
                 "outbox-health", job => job.CheckAsync(), "*/5 * * * *");
-        }
-
-        /// <summary>
-        /// Registers the global Hangfire filter that sends a <c>JobFailedNotification</c> (via the notification
-        /// framework) when a job lands in FailedState. Call this in the Configure phase (after the DI container is
-        /// built) so the filter can resolve a scoped <c>INotifier</c> from <see cref="IApplicationBuilder.ApplicationServices"/>.
-        /// Requires <c>spiderly.AddNotifications(...)</c>.
-        /// <example>
-        /// <code>
-        /// app.SpiderlyUseHangfireFailedJobNotificationFilter();
-        /// </code>
-        /// </example>
-        /// </summary>
-        public static void SpiderlyUseHangfireFailedJobNotificationFilter(this IApplicationBuilder app)
-        {
-            IServiceProvider services = app.ApplicationServices;
-            GlobalJobFilters.Filters.Add(new HangfireFailedJobNotificationFilter(
-                services,
-                services.GetRequiredService<ILoggerFactory>().CreateLogger<HangfireFailedJobNotificationFilter>()));
         }
 
         /// <summary>
