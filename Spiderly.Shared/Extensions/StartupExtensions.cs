@@ -143,9 +143,6 @@ namespace Spiderly.Shared.Extensions
             // and tests push an explicit principal. TryAdd lets a consumer override with a custom accessor.
             services.TryAddSingleton<ISpiderlyPrincipalAccessor, SpiderlyPrincipalAccessor>();
 
-            // Singleton so the dedupe cache is shared across all notification dispatches.
-            services.AddSingleton<NotificationRateLimiter>();
-
             services.AddExceptionHandler<SpiderlyExceptionHandler>();
             services.AddProblemDetails(); // Required alongside AddExceptionHandler<T> so UseExceptionHandler() passes its options check
             services.AddMemoryCache();

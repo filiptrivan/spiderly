@@ -2373,10 +2373,7 @@ namespace {{appName}}.WebAPI
       "EmailSender": {
         "email": "youremail@gmail.com",
         "name": ""
-      },
-      "AdminRecipients": [
-        "youremail@gmail.com"
-      ]
+      }
     },
     "Spiderly.Security": {
     }

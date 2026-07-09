@@ -41,8 +41,8 @@ namespace Spiderly.Shared.Notifications
             if (!channel.IsConfigured)
             {
                 // Channel not set up in this environment (e.g. missing email API key). Don't throw — there's
-                // nothing to deliver to — but log it: this is otherwise an invisible swallow that could hide the
-                // very exception/security alerts you'd want to see when an environment is misconfigured.
+                // nothing to deliver to — but log it: this is otherwise an invisible swallow that would hide
+                // notifications the app expects to be delivered when an environment is misconfigured.
                 _logger.LogWarning(
                     "Notification '{NotificationCode}' is routed to channel '{ChannelCode}', but that channel is not configured in this environment — skipping delivery.",
                     notificationCode, channelCode);

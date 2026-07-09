@@ -1,7 +1,6 @@
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Microsoft.Extensions.Options;
 using Spiderly.Shared;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
@@ -11,7 +10,7 @@ using Spiderly.Shared.Outbox;
 namespace Spiderly.Shared.Tests
 {
     /// <summary>
-    /// Behavior tests for <see cref="Notifier"/> — dedupe gating, "no route → nothing", and per-channel fan-out for
+    /// Behavior tests for <see cref="Notifier"/> — "no route → nothing" and per-channel fan-out for
     /// both delivery modes (<c>FireNow</c> → a Hangfire job per channel; <c>Outbox</c> → an outbox row per channel).
     /// </summary>
     public class NotifierTests
@@ -47,31 +46,6 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
-        public void Dedupe_key_suppresses_the_second_send_within_the_window()
-        {
-            FakeOutbox outbox = new();
-            Notifier notifier = NewNotifier(outbox, new FakeBackgroundJobClient(), "Email");
-
-            notifier.NotifyAdmins(new TestNotification { DeliveryMode = NotificationDelivery.Outbox, DedupeValue = "k" });
-            notifier.NotifyAdmins(new TestNotification { DeliveryMode = NotificationDelivery.Outbox, DedupeValue = "k" });
-
-            Assert.Single(outbox.Enqueued); // second suppressed
-        }
-
-        [Fact]
-        public void Per_notification_zero_dedupe_window_disables_suppression()
-        {
-            FakeOutbox outbox = new();
-            Notifier notifier = NewNotifier(outbox, new FakeBackgroundJobClient(), "Email");
-
-            // Same key, but a zero per-notification window overrides the global window → no suppression.
-            notifier.NotifyAdmins(new TestNotification { DeliveryMode = NotificationDelivery.Outbox, DedupeValue = "k", DedupeWindowValue = TimeSpan.Zero });
-            notifier.NotifyAdmins(new TestNotification { DeliveryMode = NotificationDelivery.Outbox, DedupeValue = "k", DedupeWindowValue = TimeSpan.Zero });
-
-            Assert.Equal(2, outbox.Enqueued.Count);
-        }
-
-        [Fact]
         public void No_route_sends_nothing()
         {
             FakeOutbox outbox = new();
@@ -89,19 +63,14 @@ namespace Spiderly.Shared.Tests
         private static Notifier NewNotifier(FakeOutbox outbox, FakeBackgroundJobClient jobClient, params string[] routedChannelCodes)
         {
             FakeRouter router = new(routedChannelCodes.Select(c => (INotificationChannel)new StubChannel(c)).ToList());
-            NotificationRateLimiter rateLimiter = new(Options.Create(new NotificationOptions { NotificationRateLimitMinutes = 60 }));
-            return new Notifier(router, jobClient, rateLimiter, new IOutbox[] { outbox });
+            return new Notifier(router, jobClient, new IOutbox[] { outbox });
         }
 
         [OutboxCode("TestNote")]
         private sealed class TestNotification : INotification
         {
             public NotificationDelivery DeliveryMode { get; set; } = NotificationDelivery.FireNow;
-            public string DedupeValue { get; set; }
-            public TimeSpan? DedupeWindowValue { get; set; }
             public NotificationDelivery Delivery => DeliveryMode;
-            public string DedupeKey => DedupeValue;
-            public TimeSpan? DedupeWindow => DedupeWindowValue;
         }
 
         private sealed class StubChannel : INotificationChannel

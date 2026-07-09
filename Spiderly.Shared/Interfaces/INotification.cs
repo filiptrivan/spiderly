@@ -9,9 +9,8 @@ namespace Spiderly.Shared.Interfaces
     /// notification does not implement simply skips it. The notification carries all data its content
     /// methods need, so it can be serialized to the outbox and rebuilt at delivery.
     ///
-    /// <para>Most notifications implement just this (taking the defaults) plus one or more channel content
-    /// interfaces. Override <see cref="Delivery"/> only for must-not-lose messages; set <see cref="DedupeKey"/>
-    /// only to debounce repeats.</para>
+    /// <para>Most notifications implement just this (taking the default) plus one or more channel content
+    /// interfaces. Override <see cref="Delivery"/> only for must-not-lose messages.</para>
     /// </summary>
     public interface INotification
     {
@@ -21,19 +20,5 @@ namespace Spiderly.Shared.Interfaces
         /// a rolled-back transaction.
         /// </summary>
         NotificationDelivery Delivery => NotificationDelivery.FireNow;
-
-        /// <summary>
-        /// Optional debounce key. When non-null, repeats with the same key inside the dedupe window are suppressed
-        /// (e.g. collapse an exception storm to one alert). <c>null</c> (the default) disables dedupe — required for
-        /// per-recipient customer notifications, which must never be merged.
-        /// </summary>
-        string DedupeKey => null;
-
-        /// <summary>
-        /// Window for <see cref="DedupeKey"/> suppression. <c>null</c> (the default) uses the global
-        /// <c>NotificationRateLimitMinutes</c>; set it to give this notification its own window (e.g. a daily
-        /// summary at 24h while exceptions stay at the global default). Ignored when <see cref="DedupeKey"/> is null.
-        /// </summary>
-        TimeSpan? DedupeWindow => null;
     }
 }

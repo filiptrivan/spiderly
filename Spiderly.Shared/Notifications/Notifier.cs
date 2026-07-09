@@ -6,7 +6,7 @@ using Spiderly.Shared.Outbox;
 namespace Spiderly.Shared.Notifications
 {
     /// <summary>
-    /// Default <see cref="INotifier"/>. Applies dedupe, asks the router for the notification's channels, then fans
+    /// Default <see cref="INotifier"/>. Asks the router for the notification's channels, then fans
     /// out one delivery per channel according to the notification's <see cref="INotification.Delivery"/>:
     /// <c>FireNow</c> enqueues a Hangfire <see cref="NotificationDeliveryJob"/>; <c>Outbox</c> stages a row via
     /// <see cref="IOutbox"/> (must be inside <c>WithTransactionAsync</c>).
@@ -15,19 +15,16 @@ namespace Spiderly.Shared.Notifications
     {
         private readonly INotificationRouter _router;
         private readonly IBackgroundJobClient _backgroundJobClient;
-        private readonly NotificationRateLimiter _rateLimiter;
         private readonly IEnumerable<IOutbox> _outboxes;
 
         /// <summary>Creates the notifier. <paramref name="outboxes"/> is empty unless <c>AddOutbox</c> was called.</summary>
         public Notifier(
             INotificationRouter router,
             IBackgroundJobClient backgroundJobClient,
-            NotificationRateLimiter rateLimiter,
             IEnumerable<IOutbox> outboxes)
         {
             _router = router;
             _backgroundJobClient = backgroundJobClient;
-            _rateLimiter = rateLimiter;
             _outboxes = outboxes;
         }
 
@@ -41,10 +38,6 @@ namespace Spiderly.Shared.Notifications
 
         private void Dispatch(INotification notification, long? recipientId)
         {
-            string dedupeKey = notification.DedupeKey;
-            if (dedupeKey != null && !_rateLimiter.ShouldSend(dedupeKey, notification.DedupeWindow))
-                return;
-
             IReadOnlyCollection<INotificationChannel> channels = _router.ChannelsFor(notification);
             if (channels.Count == 0)
                 return;
