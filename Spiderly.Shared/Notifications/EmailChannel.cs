@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Interfaces;
 
@@ -9,23 +10,28 @@ namespace Spiderly.Shared.Notifications
     /// back to the notification's self-contained <see cref="IEmailNotification.ToEmail"/>; a notification with
     /// neither is skipped. For <see cref="INotifier.Notify"/> it reads the address from the recipient's
     /// <see cref="IEmailRecipient"/>; for <see cref="INotifier.NotifyAdmins"/> (null recipient) it sends to the
-    /// configured operator recipients.
+    /// configured operator recipients, with an origin footer (environment + host) appended so the reader can tell
+    /// which instance sent the alert — production vs a developer machine, or one market's box vs another's.
     /// </summary>
     public class EmailChannel : INotificationChannel
     {
         private readonly IEmailingService _emailingService;
         private readonly IEnumerable<IEmailRenderer> _renderers;
         private readonly NotificationOptions _options;
+        private readonly IHostEnvironment _hostEnvironment;
 
-        /// <summary>Creates the Email channel over the app's emailing service, registered renderers, and options.</summary>
+        /// <summary>Creates the Email channel over the app's emailing service, registered renderers, options,
+        /// and host environment (stamped onto admin sends as the origin footer).</summary>
         public EmailChannel(
             IEmailingService emailingService,
             IEnumerable<IEmailRenderer> renderers,
-            IOptions<NotificationOptions> options)
+            IOptions<NotificationOptions> options,
+            IHostEnvironment hostEnvironment)
         {
             _emailingService = emailingService;
             _renderers = renderers;
             _options = options.Value;
+            _hostEnvironment = hostEnvironment;
         }
 
         /// <summary>The Email channel code, also exposed as a const so routing config can avoid a magic string.</summary>
@@ -46,10 +52,11 @@ namespace Spiderly.Shared.Notifications
 
             if (recipient == null)
             {
-                // Admin/static send (NotifyAdmins) → the configured admin recipient list.
+                // Admin/static send (NotifyAdmins) → the configured admin recipient list. Admin-only:
+                // recipient-addressed notifications can be customer-facing, so they get no origin footer.
                 List<string> adminRecipients = _options.AdminRecipients;
                 if (adminRecipients != null && adminRecipients.Count > 0)
-                    await _emailingService.SendEmailAsync(adminRecipients, content.Subject, content.Body);
+                    await _emailingService.SendEmailAsync(adminRecipients, content.Subject, content.Body + BuildOriginFooter());
 
                 return;
             }
@@ -61,6 +68,11 @@ namespace Spiderly.Shared.Notifications
             }
             // else: recipient has no email address — skip
         }
+
+        // Identifies which instance sent an operational alert — without it, a dev machine's alert is
+        // indistinguishable from production's, and (multi-market) one market's box from another's.
+        private string BuildOriginFooter()
+            => $"<br><br><hr>Environment: {_hostEnvironment.EnvironmentName} · Host: {System.Environment.MachineName}";
 
         // Prefer a registered renderer (can load fresh data) over the notification's self-contained ToEmail().
         private async Task<EmailContent> ResolveContentAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
