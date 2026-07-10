@@ -43,6 +43,7 @@ namespace Spiderly.Shared.Emailing
                 IsBodyHtml = true
             })
             {
+                ApplyReplyTo(mailMessage, null);
                 await _smtpClient.SendMailAsync(mailMessage); // https://stackoverflow.com/questions/11120350/how-to-check-programmatically-if-an-email-is-existing-or-not
             }
         }
@@ -57,6 +58,7 @@ namespace Spiderly.Shared.Emailing
                 IsBodyHtml = true,
             })
             {
+                ApplyReplyTo(mailMessage, from);
                 await _smtpClient.SendMailAsync(mailMessage);
             }
         }
@@ -70,6 +72,8 @@ namespace Spiderly.Shared.Emailing
                 BodyEncoding = Encoding.UTF8,
                 IsBodyHtml = true,
             };
+
+            ApplyReplyTo(mailMessage, from);
 
             if (attachments != null)
             {
@@ -99,6 +103,7 @@ namespace Spiderly.Shared.Emailing
                     IsBodyHtml = true,
                 })
                 {
+                    ApplyReplyTo(mailMessage, null);
                     await _smtpClient.SendMailAsync(mailMessage);
                 }
             }
@@ -114,6 +119,8 @@ namespace Spiderly.Shared.Emailing
                 IsBodyHtml = true,
             })
             {
+                ApplyReplyTo(mailMessage, null);
+
                 try
                 {
                     await _smtpClient.SendMailAsync(mailMessage);
@@ -138,6 +145,20 @@ namespace Spiderly.Shared.Emailing
             return string.IsNullOrWhiteSpace(s.Name)
                 ? new MailAddress(s.Email)
                 : new MailAddress(s.Email, s.Name);
+        }
+
+        // The configured Reply-To rides with the default sender identity only — a per-call
+        // `from` override replaces the whole identity.
+        private void ApplyReplyTo(MailMessage mailMessage, EmailSender from)
+        {
+            EmailSender replyTo = from == null ? _emailSettings.EmailReplyTo : null;
+
+            if (string.IsNullOrWhiteSpace(replyTo?.Email))
+                return;
+
+            mailMessage.ReplyToList.Add(string.IsNullOrWhiteSpace(replyTo.Name)
+                ? new MailAddress(replyTo.Email)
+                : new MailAddress(replyTo.Email, replyTo.Name));
         }
     }
 }

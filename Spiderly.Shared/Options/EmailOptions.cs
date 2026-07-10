@@ -14,6 +14,14 @@ namespace Spiderly.Shared
         /// </summary>
         public EmailSender EmailSender { get; set; } = new();
 
+        /// <summary>
+        /// Optional "Reply-To" address attached to emails sent with the default <see cref="EmailSender"/>.
+        /// Useful when the sender is a no-reply address: replies land in a monitored inbox instead of bouncing.
+        /// Not applied when a caller overrides the sender per call — the override owns the whole identity.
+        /// Unset (or empty <c>Email</c>) means no Reply-To header.
+        /// </summary>
+        public EmailSender EmailReplyTo { get; set; }
+
         /// <summary>SMTP password for the <see cref="EmailSender"/> account.</summary>
         public string EmailSenderPassword { get; set; }
 

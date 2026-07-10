@@ -35,6 +35,28 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
+        public void EmailReplyTo_binds_from_an_object_and_is_null_when_absent()
+        {
+            EmailOptions options = Section(new()
+            {
+                ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "no-reply@example.com",
+                ["AppSettings:Spiderly.Shared:EmailReplyTo:Email"] = "info@example.com",
+                ["AppSettings:Spiderly.Shared:EmailReplyTo:Name"] = "Example Shop",
+            }).Get<EmailOptions>();
+
+            Assert.Equal("info@example.com", options.EmailReplyTo.Email);
+            Assert.Equal("Example Shop", options.EmailReplyTo.Name);
+
+            EmailOptions withoutReplyTo = Section(new()
+            {
+                ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "no-reply@example.com",
+            }).Get<EmailOptions>();
+
+            // Absent config must stay null — the emailing services treat null as "no Reply-To header".
+            Assert.Null(withoutReplyTo.EmailReplyTo);
+        }
+
+        [Fact]
         public void EmailSender_as_a_string_yields_no_usable_sender()
         {
             // Regression for the silent string→object drift: a scalar EmailSender binds to an empty object

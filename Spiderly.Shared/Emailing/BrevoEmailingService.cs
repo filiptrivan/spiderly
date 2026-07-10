@@ -87,6 +87,18 @@ namespace Spiderly.Shared.Emailing
             else
                 payload["sender"] = new { email = sender.Email, name = sender.Name };
 
+            // The configured Reply-To rides with the default sender identity only — a per-call
+            // `from` override replaces the whole identity.
+            EmailSender replyTo = from == null ? _emailSettings.EmailReplyTo : null;
+
+            if (!string.IsNullOrWhiteSpace(replyTo?.Email))
+            {
+                if (string.IsNullOrWhiteSpace(replyTo.Name))
+                    payload["replyTo"] = new { email = replyTo.Email };
+                else
+                    payload["replyTo"] = new { email = replyTo.Email, name = replyTo.Name };
+            }
+
             // Brevo expects attachments as [{ name, content }] with base64 content.
             object[] brevoAttachments = attachments?
                 .Where(a => a != null && !string.IsNullOrEmpty(a.ContentBase64))
