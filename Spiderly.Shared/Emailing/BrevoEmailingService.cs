@@ -81,23 +81,12 @@ namespace Spiderly.Shared.Emailing
                 ["htmlContent"] = body,
             };
 
-            // Omit `name` when blank — some clients render an empty display name as literally "".
-            if (string.IsNullOrWhiteSpace(sender.Name))
-                payload["sender"] = new { email = sender.Email };
-            else
-                payload["sender"] = new { email = sender.Email, name = sender.Name };
+            payload["sender"] = BuildAddressPayload(sender);
 
-            // The configured Reply-To rides with the default sender identity only — a per-call
-            // `from` override replaces the whole identity.
-            EmailSender replyTo = from == null ? _emailSettings.EmailReplyTo : null;
+            EmailSender replyTo = _emailSettings.ResolveReplyTo(from);
 
             if (!string.IsNullOrWhiteSpace(replyTo?.Email))
-            {
-                if (string.IsNullOrWhiteSpace(replyTo.Name))
-                    payload["replyTo"] = new { email = replyTo.Email };
-                else
-                    payload["replyTo"] = new { email = replyTo.Email, name = replyTo.Name };
-            }
+                payload["replyTo"] = BuildAddressPayload(replyTo);
 
             // Brevo expects attachments as [{ name, content }] with base64 content.
             object[] brevoAttachments = attachments?
@@ -126,6 +115,14 @@ namespace Spiderly.Shared.Emailing
                 );
                 throw new HttpRequestException($"Brevo API returned {response.StatusCode}: {responseBody}");
             }
+        }
+
+        // Omit `name` when blank — some clients render an empty display name as literally "".
+        private static object BuildAddressPayload(EmailSender address)
+        {
+            return string.IsNullOrWhiteSpace(address.Name)
+                ? new { email = address.Email }
+                : new { email = address.Email, name = address.Name };
         }
     }
 }

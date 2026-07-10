@@ -147,11 +147,9 @@ namespace Spiderly.Shared.Emailing
                 : new MailAddress(s.Email, s.Name);
         }
 
-        // The configured Reply-To rides with the default sender identity only — a per-call
-        // `from` override replaces the whole identity.
         private void ApplyReplyTo(MailMessage mailMessage, EmailSender from)
         {
-            EmailSender replyTo = from == null ? _emailSettings.EmailReplyTo : null;
+            EmailSender replyTo = _emailSettings.ResolveReplyTo(from);
 
             if (string.IsNullOrWhiteSpace(replyTo?.Email))
                 return;
