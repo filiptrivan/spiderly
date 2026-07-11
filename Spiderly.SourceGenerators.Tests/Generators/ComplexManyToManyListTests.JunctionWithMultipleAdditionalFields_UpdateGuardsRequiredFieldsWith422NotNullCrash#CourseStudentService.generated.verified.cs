@@ -1,0 +1,149 @@
+﻿//HintName: CourseStudentService.generated.cs
+using TestApp.Business.ValidationRules;
+using TestApp.Business.DataMappers;
+using TestApp.Business.DTO;
+using TestApp.Business.Entities;
+using TestApp.Business.Enums;
+using TestApp.Business.ExcelProperties;
+using TestApp.Business.Filtering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using System.Data;
+using FluentValidation;
+using Spiderly.Security.Services;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Mapster;
+using Microsoft.AspNetCore.Http;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Generated service for the CourseStudent entity. Override lifecycle hooks
+    /// by creating a <c>CourseStudentService</c> class that inherits from this class.
+    /// </summary>
+    public class CourseStudentServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+
+
+        public CourseStudentServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
+        {
+            _deps = deps;
+
+        }
+
+        #region M2M
+
+        /// <summary>
+        /// Updates a complex many-to-many relationship with additional fields in the association entity.
+        /// Use this for M2M relationships that have extra properties beyond the foreign keys (e.g., OrderProduct with Quantity, Price).
+        /// Validates each DTO, adds new associations, updates existing ones, and removes unselected associations.
+        /// </summary>
+        /// <param name="studentId">The ID of the Student entity</param>
+        /// <param name="selectedCourseStudentDTOList">List of CourseStudentDTOs representing the associations with additional fields</param>
+        public async virtual Task UpdateCourseListForStudent(long studentId, List<CourseStudentDTO> selectedCourseStudentDTOList)
+        {
+            if (selectedCourseStudentDTOList == null)
+                return;
+
+            List<CourseStudentDTO> selectedDTOListHelper = selectedCourseStudentDTOList.ToList();
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
+
+                var dbSet = _deps.Context.DbSet<CourseStudent>();
+                var courseStudentList = await dbSet.Where(x => x.StudentId == studentId).ToListAsync();
+
+                foreach (CourseStudentDTO selectedCourseStudentDTO in selectedDTOListHelper)
+                {
+                    var validationRules = new CourseStudentDTOValidationRules();
+                    DefaultValidatorExtensions.ValidateAndThrow(validationRules, selectedCourseStudentDTO);
+
+                    var courseStudent = courseStudentList.Where(x => x.Course.Id == selectedCourseStudentDTO.CourseId).SingleOrDefault();
+
+                    if (courseStudent == null)
+                    {
+                        courseStudent = TypeAdapter.Adapt<CourseStudent>(selectedCourseStudentDTO, Mapper.CourseStudentDTOToEntityConfig());
+                        courseStudent.Student = await GetInstanceAsync<Student, long>(studentId, null);
+                        courseStudent.Course = await GetInstanceAsync<Course, long>(selectedCourseStudentDTO.CourseId.Value, null);
+                        dbSet.Add(courseStudent);
+                    }
+                    else
+                    {
+                        selectedCourseStudentDTO.Adapt(courseStudent, Mapper.CourseStudentDTOToEntityConfig());
+                        dbSet.Update(courseStudent);
+
+                        courseStudentList.Remove(courseStudent);
+                    }
+                }
+
+                dbSet.RemoveRange(courseStudentList);
+
+                await _deps.Context.SaveChangesAsync();
+            });
+        }
+
+        /// <summary>
+        /// Updates a complex many-to-many relationship with additional fields in the association entity.
+        /// Use this for M2M relationships that have extra properties beyond the foreign keys (e.g., OrderProduct with Quantity, Price).
+        /// Validates each DTO, adds new associations, updates existing ones, and removes unselected associations.
+        /// </summary>
+        /// <param name="courseId">The ID of the Course entity</param>
+        /// <param name="selectedCourseStudentDTOList">List of CourseStudentDTOs representing the associations with additional fields</param>
+        public async virtual Task UpdateStudentListForCourse(long courseId, List<CourseStudentDTO> selectedCourseStudentDTOList)
+        {
+            if (selectedCourseStudentDTOList == null)
+                return;
+
+            List<CourseStudentDTO> selectedDTOListHelper = selectedCourseStudentDTOList.ToList();
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
+
+                var dbSet = _deps.Context.DbSet<CourseStudent>();
+                var courseStudentList = await dbSet.Where(x => x.CourseId == courseId).ToListAsync();
+
+                foreach (CourseStudentDTO selectedCourseStudentDTO in selectedDTOListHelper)
+                {
+                    var validationRules = new CourseStudentDTOValidationRules();
+                    DefaultValidatorExtensions.ValidateAndThrow(validationRules, selectedCourseStudentDTO);
+
+                    var courseStudent = courseStudentList.Where(x => x.Student.Id == selectedCourseStudentDTO.StudentId).SingleOrDefault();
+
+                    if (courseStudent == null)
+                    {
+                        courseStudent = TypeAdapter.Adapt<CourseStudent>(selectedCourseStudentDTO, Mapper.CourseStudentDTOToEntityConfig());
+                        courseStudent.Course = await GetInstanceAsync<Course, long>(courseId, null);
+                        courseStudent.Student = await GetInstanceAsync<Student, long>(selectedCourseStudentDTO.StudentId.Value, null);
+                        dbSet.Add(courseStudent);
+                    }
+                    else
+                    {
+                        selectedCourseStudentDTO.Adapt(courseStudent, Mapper.CourseStudentDTOToEntityConfig());
+                        dbSet.Update(courseStudent);
+
+                        courseStudentList.Remove(courseStudent);
+                    }
+                }
+
+                dbSet.RemoveRange(courseStudentList);
+
+                await _deps.Context.SaveChangesAsync();
+            });
+        }
+
+        #endregion
+
+    }
+}

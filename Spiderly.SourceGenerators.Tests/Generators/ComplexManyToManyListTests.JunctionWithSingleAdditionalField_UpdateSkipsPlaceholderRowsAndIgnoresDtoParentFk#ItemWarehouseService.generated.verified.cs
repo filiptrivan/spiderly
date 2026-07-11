@@ -1,0 +1,149 @@
+﻿//HintName: ItemWarehouseService.generated.cs
+using TestApp.Business.ValidationRules;
+using TestApp.Business.DataMappers;
+using TestApp.Business.DTO;
+using TestApp.Business.Entities;
+using TestApp.Business.Enums;
+using TestApp.Business.ExcelProperties;
+using TestApp.Business.Filtering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using System.Data;
+using FluentValidation;
+using Spiderly.Security.Services;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Mapster;
+using Microsoft.AspNetCore.Http;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Generated service for the ItemWarehouse entity. Override lifecycle hooks
+    /// by creating a <c>ItemWarehouseService</c> class that inherits from this class.
+    /// </summary>
+    public class ItemWarehouseServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+
+
+        public ItemWarehouseServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
+        {
+            _deps = deps;
+
+        }
+
+        #region M2M
+
+        /// <summary>
+        /// Updates a complex many-to-many relationship with additional fields in the association entity.
+        /// Use this for M2M relationships that have extra properties beyond the foreign keys (e.g., OrderProduct with Quantity, Price).
+        /// Validates each DTO, adds new associations, updates existing ones, and removes unselected associations.
+        /// </summary>
+        /// <param name="warehouseId">The ID of the Warehouse entity</param>
+        /// <param name="selectedItemWarehouseDTOList">List of ItemWarehouseDTOs representing the associations with additional fields</param>
+        public async virtual Task UpdateItemListForWarehouse(byte warehouseId, List<ItemWarehouseDTO> selectedItemWarehouseDTOList)
+        {
+            if (selectedItemWarehouseDTOList == null)
+                return;
+
+            List<ItemWarehouseDTO> selectedDTOListHelper = selectedItemWarehouseDTOList.ToList();
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
+
+                var dbSet = _deps.Context.DbSet<ItemWarehouse>();
+                var itemWarehouseList = await dbSet.Where(x => x.WarehouseId == warehouseId).ToListAsync();
+
+                foreach (ItemWarehouseDTO selectedItemWarehouseDTO in selectedDTOListHelper)
+                {
+                    var validationRules = new ItemWarehouseDTOValidationRules();
+                    DefaultValidatorExtensions.ValidateAndThrow(validationRules, selectedItemWarehouseDTO);
+
+                    var itemWarehouse = itemWarehouseList.Where(x => x.Item.Id == selectedItemWarehouseDTO.ItemId).SingleOrDefault();
+
+                    if (itemWarehouse == null)
+                    {
+                        itemWarehouse = TypeAdapter.Adapt<ItemWarehouse>(selectedItemWarehouseDTO, Mapper.ItemWarehouseDTOToEntityConfig());
+                        itemWarehouse.Warehouse = await GetInstanceAsync<Warehouse, byte>(warehouseId, null);
+                        itemWarehouse.Item = await GetInstanceAsync<Item, long>(selectedItemWarehouseDTO.ItemId.Value, null);
+                        dbSet.Add(itemWarehouse);
+                    }
+                    else
+                    {
+                        selectedItemWarehouseDTO.Adapt(itemWarehouse, Mapper.ItemWarehouseDTOToEntityConfig());
+                        dbSet.Update(itemWarehouse);
+
+                        itemWarehouseList.Remove(itemWarehouse);
+                    }
+                }
+
+                dbSet.RemoveRange(itemWarehouseList);
+
+                await _deps.Context.SaveChangesAsync();
+            });
+        }
+
+        /// <summary>
+        /// Updates a complex many-to-many relationship with additional fields in the association entity.
+        /// Use this for M2M relationships that have extra properties beyond the foreign keys (e.g., OrderProduct with Quantity, Price).
+        /// Validates each DTO, adds new associations, updates existing ones, and removes unselected associations.
+        /// </summary>
+        /// <param name="itemId">The ID of the Item entity</param>
+        /// <param name="selectedItemWarehouseDTOList">List of ItemWarehouseDTOs representing the associations with additional fields</param>
+        public async virtual Task UpdateWarehouseListForItem(long itemId, List<ItemWarehouseDTO> selectedItemWarehouseDTOList)
+        {
+            if (selectedItemWarehouseDTOList == null)
+                return;
+
+            List<ItemWarehouseDTO> selectedDTOListHelper = selectedItemWarehouseDTOList.ToList();
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                // Not doing authorization here, because we can not figure out here if we are updating while inserting object (eg. User), or updating object, we will always get the id which is not 0 here.
+
+                var dbSet = _deps.Context.DbSet<ItemWarehouse>();
+                var itemWarehouseList = await dbSet.Where(x => x.ItemId == itemId).ToListAsync();
+
+                foreach (ItemWarehouseDTO selectedItemWarehouseDTO in selectedDTOListHelper)
+                {
+                    var validationRules = new ItemWarehouseDTOValidationRules();
+                    DefaultValidatorExtensions.ValidateAndThrow(validationRules, selectedItemWarehouseDTO);
+
+                    var itemWarehouse = itemWarehouseList.Where(x => x.Warehouse.Id == selectedItemWarehouseDTO.WarehouseId).SingleOrDefault();
+
+                    if (itemWarehouse == null)
+                    {
+                        itemWarehouse = TypeAdapter.Adapt<ItemWarehouse>(selectedItemWarehouseDTO, Mapper.ItemWarehouseDTOToEntityConfig());
+                        itemWarehouse.Item = await GetInstanceAsync<Item, long>(itemId, null);
+                        itemWarehouse.Warehouse = await GetInstanceAsync<Warehouse, byte>(selectedItemWarehouseDTO.WarehouseId.Value, null);
+                        dbSet.Add(itemWarehouse);
+                    }
+                    else
+                    {
+                        selectedItemWarehouseDTO.Adapt(itemWarehouse, Mapper.ItemWarehouseDTOToEntityConfig());
+                        dbSet.Update(itemWarehouse);
+
+                        itemWarehouseList.Remove(itemWarehouse);
+                    }
+                }
+
+                dbSet.RemoveRange(itemWarehouseList);
+
+                await _deps.Context.SaveChangesAsync();
+            });
+        }
+
+        #endregion
+
+    }
+}

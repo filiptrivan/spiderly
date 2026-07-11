@@ -1,0 +1,547 @@
+﻿//HintName: CourseService.generated.cs
+using TestApp.Business.ValidationRules;
+using TestApp.Business.DataMappers;
+using TestApp.Business.DTO;
+using TestApp.Business.Entities;
+using TestApp.Business.Enums;
+using TestApp.Business.ExcelProperties;
+using TestApp.Business.Filtering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using System.Data;
+using FluentValidation;
+using Spiderly.Security.Services;
+using Spiderly.Security.Interfaces;
+using Spiderly.Shared.Excel;
+using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Services;
+using Spiderly.Shared.Classes;
+using Spiderly.Shared.DTO;
+using Spiderly.Shared.Extensions;
+using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Helpers;
+using Mapster;
+using Microsoft.AspNetCore.Http;
+
+namespace TestApp.Business.Services
+{
+    /// <summary>
+    /// Generated service for the Course entity. Override lifecycle hooks
+    /// by creating a <c>CourseService</c> class that inherits from this class.
+    /// </summary>
+    public class CourseServiceGenerated : ServiceBase
+    {
+        protected readonly EntityServiceDependencies _deps;
+
+
+        public CourseServiceGenerated(EntityServiceDependencies deps) : base(deps.Context, deps.Localizer)
+        {
+            _deps = deps;
+
+        }
+
+        #region Read
+
+        /// <summary>
+        /// Retrieves the complete MainUIFormDTO for Course, including the entity DTO and all related collections (one-to-many, many-to-many).
+        /// </summary>
+        /// <param name="id">The ID of the Course entity</param>
+        /// <returns>CourseMainUIFormDTO containing the entity DTO and related data</returns>
+        public async virtual Task<CourseMainUIFormDTO> GetCourseMainUIFormDTO(long id)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var result = new CourseMainUIFormDTO
+                {
+                    CourseDTO = await GetCourseDTO(id),
+                    CourseStudents = await GetCourseStudentsForCourse(id),
+                };
+
+                await OnAfterGetCourseMainUIFormDTO(result);
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called after retrieving Course MainUIFormDTO.
+        /// Override this method to enrich the MainUIFormDTO with additional data (e.g., computed fields, extra queries).
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <example>
+        /// protected override async Task OnAfterGetCourseMainUIFormDTO(CourseMainUIFormDTO mainUIFormDTO)
+        /// {
+        ///     mainUIFormDTO.CustomProperty = await _deps.Context.DbSet&lt;OtherEntity&gt;().Where(x => x.CourseId == mainUIFormDTO.CourseDTO.Id).CountAsync();
+        /// }
+        /// </example>
+        /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
+        protected virtual async Task OnAfterGetCourseMainUIFormDTO(CourseMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Retrieves a single Course entity as a DTO with blob data populated.
+        /// </summary>
+        /// <param name="id">The ID of the Course entity</param>
+        /// <returns>CourseDTO with all blob properties populated</returns>
+        public async virtual Task<CourseDTO> GetCourseDTO(long id)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var dto = await _deps.Context.DbSet<Course>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == id).ProjectToType<CourseDTO>(Mapper.CourseProjectToConfig())
+                    .SingleOrDefaultAsync();
+
+                if (dto == null)
+                    throw new BusinessException(_deps.Localizer["EntityDoesNotExistInDatabase"]);
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of Course entities.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResult containing the query and total record count</returns>
+        public async virtual Task<PaginatedResult<Course>> GetPaginatedCourseResult(FilterDTO filterDTO, IQueryable<Course> query)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                return await PaginatedResultGenerator.Build(query.AsNoTracking(), filterDTO);
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of Course DTOs with blob data populated.
+        /// </summary>
+        /// <param name="filterDTO">Filter and pagination parameters</param>
+        /// <param name="query">The base query to paginate</param>
+        /// <returns>PaginatedResultDTO containing CourseDTO list and total record count</returns>
+        public async virtual Task<PaginatedResultDTO<CourseDTO>> GetPaginatedCourseList(FilterDTO filterDTO, IQueryable<Course> query)
+        {
+            PaginatedResult<Course> paginationResult = new();
+            List<CourseDTO> dtoList = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                paginationResult = await GetPaginatedCourseResult(filterDTO, query);
+
+                dtoList = await paginationResult.Query
+                    .Skip(filterDTO.First)
+                    .Take(filterDTO.Rows)
+                    .ProjectToType<CourseDTO>(Mapper.CourseProjectToConfig())
+                    .ToListAsync();
+
+
+            });
+
+            return new PaginatedResultDTO<CourseDTO> { Data = dtoList, TotalRecords = paginationResult.TotalRecords };
+        }
+
+        /// <summary>
+        /// Exports a filtered list of Course entities to Excel format.
+        /// </summary>
+        /// <param name="filterDTO">Filter parameters for the export</param>
+        /// <param name="query">The base query to export</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Excel file as byte array</returns>
+        public async virtual Task<byte[]> ExportCourseListToExcel(FilterDTO filterDTO, IQueryable<Course> query, CancellationToken cancellationToken = default)
+        {
+            IQueryable<CourseDTO> exportQuery = null;
+
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                PaginatedResult<Course> paginationResult = await GetPaginatedCourseResult(filterDTO, query);
+                int maxRows = _deps.ExcelSettings.ExcelExportMaxRows;
+                exportQuery = paginationResult.Query
+                    .OrderBy(x => x.Id)
+                    .Take(maxRows)
+                    .ProjectToType<CourseDTO>(Mapper.CourseExcelProjectToConfig());
+            });
+
+            string[] excelPropertiesToExclude = ExcelPropertiesToExclude.GetHeadersToExclude(new CourseDTO());
+            return await _deps.ExcelService.FillReportTemplateAsync(
+                exportQuery.AsAsyncEnumerable(),
+                excelPropertiesToExclude,
+                _deps.Localizer,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Retrieves a list of Course entities without pagination.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <returns>List of Course entities</returns>
+        public async virtual Task<List<Course>> GetCourseList(IQueryable<Course> query)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var result = await query
+                    .ToListAsync();
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Retrieves a list of Course DTOs without pagination, with blob data populated.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <returns>List of CourseDTO with blob properties populated</returns>
+        public async virtual Task<List<CourseDTO>> GetCourseDTOList(IQueryable<Course> query)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var dtoList = await query
+                    .AsNoTracking()
+                    .ProjectToType<CourseDTO>(Mapper.CourseToDTOConfig())
+                    .ToListAsync();
+
+
+
+                return dtoList;
+            });
+        }
+
+
+
+        #endregion
+
+        #region Save
+
+        /// <summary>
+        /// Saves a Course entity and returns the complete MainUIFormDTO including all related collections.
+        /// Handles insert/update logic, many-to-many relationships, and ordered one-to-many collections.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity data and related selections</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>CourseMainUIFormDTO with saved data and updated collections</returns>
+        public virtual async Task<CourseMainUIFormDTO> SaveCourseAndReturnMainUIFormDTO(CourseSaveBodyDTO saveBodyDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            new CourseSaveBodyDTOValidationRules().ValidateAndThrow(saveBodyDTO);
+
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeSaveCourseAndReturnMainUIFormDTO(saveBodyDTO);
+
+                var savedDTO = await SaveCourseAndReturnDTO(saveBodyDTO.CourseDTO, authorizeUpdate, authorizeInsert);
+
+
+
+
+                await UpdateCourseStudentsForCourse(savedDTO.Id, saveBodyDTO.CourseStudents);
+
+                var result = new CourseMainUIFormDTO
+                {
+                    CourseDTO = savedDTO,
+
+
+                    CourseStudents = await GetCourseStudentsForCourse(savedDTO.Id),
+                };
+
+                await OnAfterSaveCourseAndReturnMainUIFormDTO(saveBodyDTO, result);
+
+                return result;
+            });
+        }
+
+
+
+
+        /// <summary>
+        /// Lifecycle hook called before saving Course with MainUIFormDTO.
+        /// Override this method to add custom validation or modify the SaveBodyDTO.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
+        protected virtual async Task OnBeforeSaveCourseAndReturnMainUIFormDTO(CourseSaveBodyDTO saveBodyDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called after saving Course and after updating related collections.
+        /// Override this method to add custom business logic after the main entity is saved.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
+        /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
+        protected virtual async Task OnAfterSaveCourseAndReturnMainUIFormDTO(CourseSaveBodyDTO saveBodyDTO, CourseMainUIFormDTO mainUIFormDTO) { }
+
+        /// <summary>
+        /// Saves a Course entity and returns the DTO with blob data populated.
+        /// </summary>
+        /// <param name="saveDTO">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved CourseDTO with blob properties populated</returns>
+        public async virtual Task<CourseDTO> SaveCourseAndReturnDTO(CourseDTO saveDTO, bool authorizeUpdate, bool authorizeInsert)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var poco = await SaveCourse(saveDTO, authorizeUpdate, authorizeInsert);
+
+                var dto = poco.Adapt<CourseDTO>(Mapper.CourseToDTOConfig());
+
+
+
+                return dto;
+            });
+        }
+
+        /// <summary>
+        /// Core save method that handles both insert and update operations for Course.
+        /// Validates the DTO, maps to entity, handles many-to-one relationships, and manages blob deletion.
+        /// </summary>
+        /// <param name="dto">The DTO containing entity data to save</param>
+        /// <param name="authorizeUpdate">Whether to perform authorization check for Update operation</param>
+        /// <param name="authorizeInsert">Whether to perform authorization check for Insert operation</param>
+        /// <returns>Saved Course entity</returns>
+        public async virtual Task<Course> SaveCourse(CourseDTO dto, bool authorizeUpdate, bool authorizeInsert)
+        {
+            CourseDTOValidationRules validationRules = new CourseDTOValidationRules();
+            validationRules.ValidateAndThrow(dto);
+
+            Course poco = null;
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeCourseIsMapped(dto);
+                DbSet<Course> dbSet = _deps.Context.DbSet<Course>();
+
+                if (dto.Id > 0)
+                {
+                    if (authorizeUpdate)
+                    {
+                        await _deps.AuthorizationService.AuthorizeCourseUpdateAndThrow(dto);
+                    }
+
+                    poco = await GetInstanceAsync<Course, long>(dto.Id, dto.Version);
+                    await OnBeforeCourseUpdate(poco, dto);
+                    dto.Adapt(poco, Mapper.CourseDTOToEntityConfig());
+                    dbSet.Update(poco);
+                }
+                else
+                {
+                    if (authorizeInsert)
+                    {
+                        await _deps.AuthorizationService.AuthorizeCourseInsertAndThrow(dto);
+                    }
+
+                    poco = dto.Adapt<Course>(Mapper.CourseDTOToEntityConfig());
+                    await OnBeforeCourseInsert(poco, dto);
+                    await dbSet.AddAsync(poco);
+                }
+
+
+
+                await _deps.Context.SaveChangesAsync();
+
+
+
+
+
+
+            });
+
+            return poco;
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before the CourseDTO is mapped to the entity.
+        /// Override this method to add custom validation or modify the DTO before mapping.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="courseDTO">The DTO about to be mapped</param>
+        protected virtual async Task OnBeforeCourseIsMapped(CourseDTO courseDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before updating an existing Course entity.
+        /// Override this method to add custom business logic during updates.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="course">The existing entity being updated</param>
+        /// <param name="courseDTO">The DTO containing new data</param>
+        protected virtual async Task OnBeforeCourseUpdate(Course course, CourseDTO courseDTO) { }
+
+        /// <summary>
+        /// Lifecycle hook called before inserting a new Course entity.
+        /// Override this method to add custom business logic during inserts.
+        /// This method runs inside a database transaction.
+        /// </summary>
+        /// <param name="course">The new entity being inserted</param>
+        /// <param name="courseDTO">The DTO containing the data</param>
+        protected virtual async Task OnBeforeCourseInsert(Course course, CourseDTO courseDTO) { }
+
+
+
+
+
+        #endregion
+
+        #region Delete
+
+        /// <summary>
+        /// Per-id variant of the pre-delete hook. By default forwards to
+        /// <see cref="OnBeforeCourseListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity being deleted</param>
+        public virtual Task OnBeforeCourseDelete(long id) =>
+            OnBeforeCourseListDelete(id.StructToList());
+
+        /// <summary>
+        /// Deletes a single Course entity with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="id">The ID of the entity to delete</param>
+        public async virtual Task DeleteCourse(long id)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeCourseDelete(id);
+
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
+
+                List<long> listForDelete_1 = id.StructToList();
+
+
+
+                await DeleteEntityAsync<Course, long>(id);
+            });
+        }
+
+        /// <summary>
+        /// Lifecycle hook called before deleting a list of Course entities.
+        /// Override this to add custom validation or business logic before batch deletion.
+        /// </summary>
+        /// <param name="listForDelete">The list of entity IDs being deleted</param>
+        public virtual async Task OnBeforeCourseListDelete(List<long> listForDelete) { }
+
+        /// <summary>
+        /// Deletes multiple Course entities with cascade delete handling for dependent entities.
+        /// </summary>
+        /// <param name="listForDelete_1">The list of entity IDs to delete</param>
+        public async virtual Task DeleteCourseList(List<long> listForDelete_1)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await OnBeforeCourseListDelete(listForDelete_1);
+
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
+
+
+
+                await DeleteEntitiesAsync<Course, long>(listForDelete_1);
+            });
+        }
+
+        #endregion
+
+        #region One To Many
+
+        /// <summary>
+        /// Retrieves all CourseStudent DTOs for a Course, including default records for Student entities without existing junction records.
+        /// </summary>
+        /// <param name="id">The ID of the Course entity</param>
+        /// <returns>List of CourseStudentDTO for all Student entities</returns>
+        public async virtual Task<List<CourseStudentDTO>> GetCourseStudentsForCourse(long id)
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                var allOtherSideEntries = await _deps.Context.DbSet<Student>()
+                    .AsNoTracking()
+                    .OrderBy(x => x.Id)
+                    .Select(x => new { x.Id, DisplayName = x.Name })
+                    .ToListAsync();
+
+                var existingRecords = await _deps.Context.DbSet<CourseStudent>()
+                    .AsNoTracking()
+                    .Where(x => x.CourseId == id)
+                    .ProjectToType<CourseStudentDTO>(Mapper.CourseStudentProjectToConfig())
+                    .ToListAsync();
+
+                var result = new List<CourseStudentDTO>();
+
+                foreach (var otherSideEntry in allOtherSideEntries)
+                {
+                    var existing = existingRecords.FirstOrDefault(x => x.StudentId == otherSideEntry.Id);
+                    result.Add(existing ?? new CourseStudentDTO { StudentId = otherSideEntry.Id, StudentDisplayName = otherSideEntry.DisplayName });
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Updates all CourseStudent records for a Course by deleting existing records and inserting new ones.
+        /// Rows whose additional columns are all null are skipped — the ComplexManyToManyList form posts a placeholder
+        /// row for every Student without a record, and leaving a row blank (or blanking an existing one) means "no record".
+        /// </summary>
+        /// <param name="id">The ID of the Course entity</param>
+        /// <param name="dtos">List of CourseStudentDTO to save</param>
+        public async virtual Task UpdateCourseStudentsForCourse(long id, List<CourseStudentDTO> dtos)
+        {
+            await _deps.Context.WithTransactionAsync(async () =>
+            {
+                await _deps.Context.DbSet<CourseStudent>()
+                    .Where(x => x.CourseId == id)
+                    .ExecuteDeleteAsync();
+
+                foreach (var dto in dtos)
+                {
+                    if (dto.Grade == null && dto.Note == null)
+                        continue; // Placeholder row (Get/GetDefault emit one per Student without a record) — no data means no record.
+
+                    new CourseStudentDTOValidationRules().ValidateAndThrow(dto);
+
+                    if (dto.StudentId == null)
+                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["StudentId"] = new[] { "StudentId is required." } });
+
+                    var poco = new CourseStudent();
+                    if (dto.Grade == null)
+                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["Grade"] = new[] { "Grade is required." } });
+                    poco.Grade = dto.Grade.Value;
+                    poco.Note = dto.Note;
+
+                    var entry = await _deps.Context.DbSet<CourseStudent>().AddAsync(poco);
+
+                    entry.Property("CourseId").CurrentValue = id;
+                    entry.Property("StudentId").CurrentValue = dto.StudentId;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Returns default junction DTOs for all Student entities (without existing records).
+        /// Used when creating a new Course to pre-populate the ComplexManyToManyList form.
+        /// </summary>
+        /// <returns>List of CourseStudentDTO with StudentId and StudentDisplayName populated</returns>
+        public async virtual Task<List<CourseStudentDTO>> GetDefaultCourseStudentsForCourse()
+        {
+            return await _deps.Context.WithTransactionAsync(async () =>
+            {
+                return await _deps.Context.DbSet<Student>()
+                    .AsNoTracking()
+                    .OrderBy(x => x.Id)
+                    .Select(x => new CourseStudentDTO
+                    {
+                        StudentId = x.Id,
+                        StudentDisplayName = x.Name,
+                    })
+                    .ToListAsync();
+            });
+        }
+
+        #endregion
+
+    }
+}
