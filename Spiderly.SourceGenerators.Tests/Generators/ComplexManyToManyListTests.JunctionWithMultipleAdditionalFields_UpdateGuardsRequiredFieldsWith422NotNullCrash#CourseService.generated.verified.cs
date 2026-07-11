@@ -496,19 +496,22 @@ namespace TestApp.Business.Services
                     .Where(x => x.CourseId == id)
                     .ExecuteDeleteAsync();
 
+                var validationRules = new CourseStudentDTOValidationRules();
+
                 foreach (var dto in dtos)
                 {
                     if (dto.Grade == null && dto.Note == null)
                         continue; // Placeholder row (Get/GetDefault emit one per Student without a record) — no data means no record.
 
-                    new CourseStudentDTOValidationRules().ValidateAndThrow(dto);
+                    validationRules.ValidateAndThrow(dto);
 
                     if (dto.StudentId == null)
                         throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["StudentId"] = new[] { "StudentId is required." } });
 
-                    var poco = new CourseStudent();
                     if (dto.Grade == null)
                         throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["Grade"] = new[] { "Grade is required." } });
+
+                    var poco = new CourseStudent();
                     poco.Grade = dto.Grade.Value;
                     poco.Note = dto.Note;
 

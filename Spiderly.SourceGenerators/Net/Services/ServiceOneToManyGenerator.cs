@@ -359,37 +359,35 @@ namespace Spiderly.SourceGenerators.Net
                 .Where(p => p.Name != currentSideFKName && p.Name != otherSideFKName)
                 .ToList();
 
-            string placeholderRowSkip = "";
-            if (additionalFields.Count > 0)
+            // Without data columns the update below can't tell a linked row from a placeholder
+            // (both carry only FKs) and would link every row on save — a simple M2M collection
+            // is the right shape for that, so fail the build instead of generating it.
+            if (additionalFields.Count == 0)
             {
-                string allFieldsNullCondition = string.Join(" && ", additionalFields.Select(f => $"dto.{f.Name} == null"));
-                placeholderRowSkip = $$"""
-                    if ({{allFieldsNullCondition}})
-                        continue; // Placeholder row (Get/GetDefault emit one per {{otherSideEntity.Name}} without a record) — no data means no record.
-
-
-""";
+                throw SpiderlyDiagnostics.Create(
+                    SpiderlyDiagnostics.ComplexManyToManyListWithoutAdditionalFields,
+                    oneToManyProperty.Location ?? entity.Location,
+                    junctionEntity.Name,
+                    entity.Name);
             }
 
-            StringBuilder additionalFieldMappings = new();
+            string allFieldsNullCondition = string.Join(" && ", additionalFields.Select(f => $"dto.{f.Name} == null"));
+
+            List<string> requiredFieldGuards = new() { GetRequiredFieldGuard(otherSideFKName) };
+            List<string> fieldAssignments = new();
             foreach (SpiderlyProperty field in additionalFields)
             {
-                string dtoPropertyName = field.Name;
                 bool needsValueAccess = field.Type.Raw != "string" && field.Type.IsBaseDataType() && !field.Type.Raw.EndsWith("?");
                 // With a single additional field the placeholder skip already guarantees it's non-null;
                 // with several, a partially-filled row must 422 on missing required fields, not 500 on .Value.
                 if (needsValueAccess && additionalFields.Count > 1)
-                {
-                    additionalFieldMappings.AppendLine($$"""
-                    if (dto.{{field.Name}} == null)
-                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{field.Name}}"] = new[] { "{{field.Name}} is required." } });
-""");
-                }
-                string valueAccess = needsValueAccess ? ".Value" : "";
-                additionalFieldMappings.AppendLine($$"""
-                    poco.{{field.Name}} = dto.{{dtoPropertyName}}{{valueAccess}};
-""");
+                    requiredFieldGuards.Add(GetRequiredFieldGuard(field.Name));
+
+                fieldAssignments.Add($"                    poco.{field.Name} = dto.{field.Name}{(needsValueAccess ? ".Value" : "")};");
             }
+
+            string rowGuards = string.Join("\n\n", requiredFieldGuards);
+            string additionalFieldMappings = string.Join("\n", fieldAssignments);
 
             return $$"""
         /// <summary>
@@ -440,15 +438,20 @@ namespace Spiderly.SourceGenerators.Net
                     .Where(x => {{currentSideM2MProperty.GetForeignKeyAccessExpression(junctionEntity, allEntityClasses)}} == id)
                     .ExecuteDeleteAsync();
 
+                var validationRules = new {{junctionEntity.Name}}DTOValidationRules();
+
                 foreach (var dto in dtos)
                 {
-{{placeholderRowSkip}}                    new {{junctionEntity.Name}}DTOValidationRules().ValidateAndThrow(dto);
+                    if ({{allFieldsNullCondition}})
+                        continue; // Placeholder row (Get/GetDefault emit one per {{otherSideEntity.Name}} without a record) — no data means no record.
 
-                    if (dto.{{otherSideFKName}} == null)
-                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{otherSideFKName}}"] = new[] { "{{otherSideFKName}} is required." } });
+                    validationRules.ValidateAndThrow(dto);
+
+{{rowGuards}}
 
                     var poco = new {{junctionEntity.Name}}();
 {{additionalFieldMappings}}
+
                     var entry = await _deps.Context.DbSet<{{junctionEntity.Name}}>().AddAsync(poco);
 
                     entry.Property("{{currentSideFKName}}").CurrentValue = id;
@@ -479,6 +482,15 @@ namespace Spiderly.SourceGenerators.Net
         }
 """;
         }
+
+        /// <summary>
+        /// Emits the two-line "throw 422 when the posted DTO property is null" guard used inside the
+        /// complex M2M update loop — one emission site so the exception shape can't drift per field.
+        /// </summary>
+        private static string GetRequiredFieldGuard(string propertyName) => $$"""
+                    if (dto.{{propertyName}} == null)
+                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{propertyName}}"] = new[] { "{{propertyName}} is required." } });
+""";
 
         private static string GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {

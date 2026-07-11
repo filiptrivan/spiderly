@@ -215,5 +215,13 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ComplexManyToManyListWithoutAdditionalFields = new(
+            id: "SPIDERLY023",
+            title: "[ComplexManyToManyList] junction has no additional data columns",
+            messageFormat: "Junction '{0}' referenced by [ComplexManyToManyList] on '{1}' has no data columns beside its two FKs. The generated form distinguishes linked rows from placeholders by their data columns, so a data-less junction would link every row on save. Use a plain collection (simple many-to-many) instead, or add a data column to '{0}'.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

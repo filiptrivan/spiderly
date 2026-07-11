@@ -54,7 +54,6 @@ public class ComplexManyToManyListTests
                     [M2MWithMany(nameof(Warehouse.ItemWarehouses))]
                     public virtual Warehouse Warehouse { get; set; }
 
-                    [GreaterThanOrEqualTo(0)]
                     public int Stock { get; set; }
                 }
             }
@@ -62,6 +61,58 @@ public class ComplexManyToManyListTests
 
         var driver = GeneratorTestHarness.Run<ServicesGenerator>(source);
         return Verify(driver);
+    }
+
+    [Fact]
+    public void JunctionWithoutAdditionalFields_ReportsSPIDERLY023()
+    {
+        // Data-less junction: the update method couldn't tell a linked row from a placeholder
+        // (both carry only FKs), so the generator must refuse the shape instead of emitting
+        // link-everything semantics — simple many-to-many is the correct attribute there.
+        const string source = """
+            using System.Collections.Generic;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Playlist : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+
+                    [ComplexManyToManyList]
+                    public virtual List<PlaylistSong> PlaylistSongs { get; } = new();
+                }
+
+                [SpiderlyEntity]
+                public class Song : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+
+                    public virtual List<PlaylistSong> PlaylistSongs { get; } = new();
+                }
+
+                [M2M]
+                [SpiderlyEntity]
+                public class PlaylistSong
+                {
+                    public long PlaylistId { get; set; }
+                    [M2MWithMany(nameof(Playlist.PlaylistSongs))]
+                    public virtual Playlist Playlist { get; set; }
+
+                    public long SongId { get; set; }
+                    [M2MWithMany(nameof(Song.PlaylistSongs))]
+                    public virtual Song Song { get; set; }
+                }
+            }
+            """;
+
+        var driver = GeneratorTestHarness.Run<ServicesGenerator>(source);
+
+        var diagnostic = driver.GetRunResult().Diagnostics.Single(d => d.Id == "SPIDERLY023");
+        Assert.Contains("PlaylistSong", diagnostic.GetMessage());
+        Assert.Contains("simple many-to-many", diagnostic.GetMessage());
     }
 
     [Fact]

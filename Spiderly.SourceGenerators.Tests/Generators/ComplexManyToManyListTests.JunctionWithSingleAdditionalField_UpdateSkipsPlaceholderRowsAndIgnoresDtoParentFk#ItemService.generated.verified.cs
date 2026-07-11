@@ -496,12 +496,14 @@ namespace TestApp.Business.Services
                     .Where(x => x.ItemId == id)
                     .ExecuteDeleteAsync();
 
+                var validationRules = new ItemWarehouseDTOValidationRules();
+
                 foreach (var dto in dtos)
                 {
                     if (dto.Stock == null)
                         continue; // Placeholder row (Get/GetDefault emit one per Warehouse without a record) — no data means no record.
 
-                    new ItemWarehouseDTOValidationRules().ValidateAndThrow(dto);
+                    validationRules.ValidateAndThrow(dto);
 
                     if (dto.WarehouseId == null)
                         throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["WarehouseId"] = new[] { "WarehouseId is required." } });
