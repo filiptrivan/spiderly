@@ -351,18 +351,43 @@ namespace Spiderly.SourceGenerators.Net
             string currentSideFKName = $"{currentSideM2MProperty.Name}Id";
             string otherSideFKName = $"{otherSideM2MProperty.Name}Id";
 
+            // The two FK scalars are structural, not data: the current-side FK comes from the method's
+            // id parameter and the other-side FK is guarded explicitly below. Mapping them from the DTO
+            // crashed on the placeholder rows the generated form posts (their FKs are null by design).
             List<SpiderlyProperty> additionalFields = junctionEntity.Properties
                 .Where(p => !p.IsManyToOneType() && !p.Type.IsOneToManyType())
+                .Where(p => p.Name != currentSideFKName && p.Name != otherSideFKName)
                 .ToList();
+
+            string placeholderRowSkip = "";
+            if (additionalFields.Count > 0)
+            {
+                string allFieldsNullCondition = string.Join(" && ", additionalFields.Select(f => $"dto.{f.Name} == null"));
+                placeholderRowSkip = $$"""
+                    if ({{allFieldsNullCondition}})
+                        continue; // Placeholder row (Get/GetDefault emit one per {{otherSideEntity.Name}} without a record) — no data means no record.
+
+
+""";
+            }
 
             StringBuilder additionalFieldMappings = new();
             foreach (SpiderlyProperty field in additionalFields)
             {
                 string dtoPropertyName = field.Name;
                 bool needsValueAccess = field.Type.Raw != "string" && field.Type.IsBaseDataType() && !field.Type.Raw.EndsWith("?");
+                // With a single additional field the placeholder skip already guarantees it's non-null;
+                // with several, a partially-filled row must 422 on missing required fields, not 500 on .Value.
+                if (needsValueAccess && additionalFields.Count > 1)
+                {
+                    additionalFieldMappings.AppendLine($$"""
+                    if (dto.{{field.Name}} == null)
+                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{field.Name}}"] = new[] { "{{field.Name}} is required." } });
+""");
+                }
                 string valueAccess = needsValueAccess ? ".Value" : "";
                 additionalFieldMappings.AppendLine($$"""
-                        poco.{{field.Name}} = dto.{{dtoPropertyName}}{{valueAccess}};
+                    poco.{{field.Name}} = dto.{{dtoPropertyName}}{{valueAccess}};
 """);
             }
 
@@ -402,6 +427,8 @@ namespace Spiderly.SourceGenerators.Net
 
         /// <summary>
         /// Updates all {{junctionEntity.Name}} records for a {{entity.Name}} by deleting existing records and inserting new ones.
+        /// Rows whose additional columns are all null are skipped — the ComplexManyToManyList form posts a placeholder
+        /// row for every {{otherSideEntity.Name}} without a record, and leaving a row blank (or blanking an existing one) means "no record".
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
         /// <param name="dtos">List of {{junctionEntity.Name}}DTO to save</param>
@@ -415,7 +442,10 @@ namespace Spiderly.SourceGenerators.Net
 
                 foreach (var dto in dtos)
                 {
-                    new {{junctionEntity.Name}}DTOValidationRules().ValidateAndThrow(dto);
+{{placeholderRowSkip}}                    new {{junctionEntity.Name}}DTOValidationRules().ValidateAndThrow(dto);
+
+                    if (dto.{{otherSideFKName}} == null)
+                        throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{otherSideFKName}}"] = new[] { "{{otherSideFKName}} is required." } });
 
                     var poco = new {{junctionEntity.Name}}();
 {{additionalFieldMappings}}
