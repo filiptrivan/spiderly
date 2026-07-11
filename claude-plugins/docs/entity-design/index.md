@@ -204,6 +204,8 @@ public class Role : BusinessObject<long>
 
 Keep `[M2M]` and `[SpiderlyEntity]` on the junction and add additional properties beside the two `[M2MWithMany]` navigations. Use `[ComplexManyToManyList]` on the parent collection for editable junction UI, or `[ComplexManyToManyReadonlyTable]` for read-only display.
 
+The generated `[ComplexManyToManyList]` form shows one row per other-side entity; rows whose additional columns are all blank mean "no junction record" — they are skipped on save, and blanking an existing row's columns deletes that record.
+
 ### Ordered One-to-Many
 
 ```csharp
