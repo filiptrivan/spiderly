@@ -440,7 +440,7 @@ namespace Spiderly.SourceGenerators.Angular
             return (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity);
         }
 
-        private static string GetComplexManyToManyListBlock(
+        internal static string GetComplexManyToManyListBlock(
             SpiderlyClass entity,
             SpiderlyProperty property,
             List<SpiderlyClass> allEntities,
