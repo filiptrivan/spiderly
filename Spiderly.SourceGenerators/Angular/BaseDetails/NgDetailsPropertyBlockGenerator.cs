@@ -447,13 +447,20 @@ namespace Spiderly.SourceGenerators.Angular
             bool isFromOrderedOneToMany
         )
         {
-            var (junctionEntity, _, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
+            var (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity) = ResolveComplexManyToManyListInfo(entity, property, allEntities);
 
             string formArrayAccess = GetComplexManyToManyListFormArray(entity, property, isFromOrderedOneToMany);
             string junctionFormGroupVar = $"{junctionEntity.Name.FirstCharToLower()}FormGroup";
 
+            string currentSideFKName = $"{currentSideM2MProperty.Name}Id";
+            string otherSideFKName = $"{otherSideM2MProperty.Name}Id";
+
+            // The FK scalars are the row's identity, not editable data: the other side already names
+            // the card (its DisplayName header) and the current side is the form's own parent. They
+            // stay in the form model for the save round-trip — they just don't render as inputs.
             List<SpiderlyProperty> additionalFields = junctionEntity.Properties
                 .Where(p => !p.IsManyToOneType() && !p.Type.IsOneToManyType() && !p.HasUIDoNotGenerateAttribute())
+                .Where(p => p.Name != currentSideFKName && p.Name != otherSideFKName)
                 .ToList();
 
             StringBuilder fieldsHtml = new();
