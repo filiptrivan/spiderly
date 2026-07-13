@@ -130,7 +130,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 
                 foreach (SpiderlyMethod controllerMethod in controllerClass.Methods)
                 {
-                    if (controllerMethod.HasUIDoNotGenerateAttribute())
+                    if (!IsEndpointMethod(controllerMethod))
                         continue;
 
                     if (!alreadyAddedMethods.Add(controllerMethod.Name))
@@ -337,7 +337,18 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return angularType == "number" || angularType == "boolean" || angularType == "Date";
         }
 
-        private static HttpTypeCodes GetHttpType(SpiderlyMethod controllerMethod)
+        /// <summary>
+        /// A controller method is an endpoint the Angular client should call unless it opted out:
+        /// [NonAction] methods are excluded from ASP.NET routing (e.g. a consumer suppressing a
+        /// generated base action by overriding it) and carry no Http* attribute — without this
+        /// skip, GetHttpType throws and the WHOLE api.service.generated.ts silently stops
+        /// regenerating.
+        /// </summary>
+        internal static bool IsEndpointMethod(SpiderlyMethod controllerMethod) =>
+            !controllerMethod.HasUIDoNotGenerateAttribute()
+            && !controllerMethod.Attributes.Any(attr => attr.Name == "NonAction");
+
+        internal static HttpTypeCodes GetHttpType(SpiderlyMethod controllerMethod)
         {
             if (controllerMethod.Attributes.Any(attr => attr.Name == "HttpGet"))
             {
@@ -357,7 +368,9 @@ import { {{ngType}} } from '../../entities/entities.generated';
             }
             else
             {
-                throw new NotImplementedException("Http type doesn't exist.");
+                throw new NotImplementedException(
+                    $"Controller action '{controllerMethod.Name}' has no HttpGet/HttpPost/HttpPut/HttpDelete attribute. " +
+                    "Add one, or mark the method [NonAction] if it is not an endpoint.");
             }
         }
 
