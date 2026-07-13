@@ -342,6 +342,22 @@ namespace Spiderly.Shared.Helpers
             return httpContext.Connection.RemoteIpAddress?.ToString();
         }
 
+        /// <summary>
+        /// The authenticated API-key principal's id, or <c>null</c> when the request is anonymous or
+        /// carries a non-machine principal. Reads the validated principal stamped by the authentication
+        /// middleware — never the raw API-key header, whose unvalidated value must not be trusted as a
+        /// partition/identity key. Only meaningful in middleware that runs after <c>UseAuthentication</c>.
+        /// </summary>
+        public static string GetAuthenticatedApiKeyId(HttpContext httpContext)
+        {
+            ClaimsPrincipal user = httpContext.User;
+            if (user?.Identity?.IsAuthenticated != true)
+                return null;
+            if (user.FindFirstValue(Authorization.PrincipalClaims.PrincipalKind) != Authorization.PrincipalKinds.ApiKey)
+                return null;
+            return user.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
         #endregion
 
         #endregion

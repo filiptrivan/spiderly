@@ -1,4 +1,5 @@
 using System;
+using Spiderly.Shared.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Spiderly.Security.Authentication;
 using Spiderly.Security.Interfaces;

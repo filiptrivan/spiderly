@@ -1,6 +1,4 @@
-using Spiderly.Shared.Authorization;
-
-namespace Spiderly.Security
+namespace Spiderly.Shared.Authorization
 {
     /// <summary>
     /// Well-known principal kind values (the value carried in the <see cref="PrincipalClaims.PrincipalKind"/>

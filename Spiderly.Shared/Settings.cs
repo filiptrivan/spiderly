@@ -31,6 +31,17 @@ namespace Spiderly.Shared
         public int BlobUploadRequestsLimitWindow { get; set; } = 60;
 
         /// <summary>
+        /// Global sliding-window permit limit for an authenticated API-key principal. Machine callers
+        /// (SSR servers, static-site builds, partner integrations) aggregate many end users behind a few
+        /// shared egress IPs, so each key gets its own partition with this budget instead of competing
+        /// for a per-IP bucket with unrelated clients behind the same egress.
+        /// </summary>
+        public int ApiKeyRequestsLimitNumber { get; set; } = 1200;
+
+        /// <summary>API-key sliding-window length, in seconds.</summary>
+        public int ApiKeyRequestsLimitWindow { get; set; } = 60;
+
+        /// <summary>
         /// Additional CIDR ranges of trusted proxies allowed to set X-Forwarded-For headers
         /// (e.g. <c>["173.245.48.0/20"]</c> for Cloudflare).
         /// RFC 1918 private networks and loopback are always trusted.

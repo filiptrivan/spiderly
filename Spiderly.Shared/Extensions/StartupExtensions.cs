@@ -429,6 +429,25 @@ namespace Spiderly.Shared.Extensions
 
                 options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                 {
+                    // An authenticated API-key (machine) principal gets its own partition with its own
+                    // budget: machine callers aggregate many end users behind a few shared egress IPs, so
+                    // the per-IP bucket both starves them and lets one machine consume unrelated clients'
+                    // budget. Requires UseAuthentication before UseRateLimiter (the init template's order) —
+                    // the helper reads the VALIDATED principal, never the raw API-key header.
+                    string apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
+                    if (apiKeyId != null)
+                    {
+                        return RateLimitPartition.GetSlidingWindowLimiter(
+                            partitionKey: $"api-key:{apiKeyId}",
+                            factory: _ => new SlidingWindowRateLimiterOptions
+                            {
+                                PermitLimit = settings.ApiKeyRequestsLimitNumber,
+                                Window = TimeSpan.FromSeconds(settings.ApiKeyRequestsLimitWindow),
+                                SegmentsPerWindow = 6,
+                            }
+                        );
+                    }
+
                     string ipAddress = Helper.GetIPAddress(httpContext);
 
                     return RateLimitPartition.GetSlidingWindowLimiter(
@@ -457,6 +476,7 @@ namespace Spiderly.Shared.Extensions
                 {
                     HttpContext httpContext = context.HttpContext;
                     string ip = Helper.GetIPAddress(httpContext) ?? "unknown";
+                    string apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
                     string path = httpContext.Request.Path;
                     string method = httpContext.Request.Method;
 
@@ -473,8 +493,8 @@ namespace Spiderly.Shared.Extensions
                     ILogger logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                         .CreateLogger("Spiderly.RateLimiting");
                     logger.LogWarning(
-                        "Rate limit rejected: Policy={Policy}, IP={IP}, Method={Method}, Path={Path}",
-                        policyName, ip, method, path);
+                        "Rate limit rejected: Policy={Policy}, IP={IP}, ApiKeyId={ApiKeyId}, Method={Method}, Path={Path}",
+                        policyName, ip, apiKeyId, method, path);
 
                     return ValueTask.CompletedTask;
                 };
