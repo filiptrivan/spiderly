@@ -646,6 +646,11 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "UIDoNotGenerate");
         }
 
+        public static bool HasReadOnlyAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "ReadOnly");
+        }
+
         public static bool HasS3PublicStorageAttribute(this SpiderlyProperty property)
         {
             return property.Attributes.Any(x => x.Name == "S3PublicStorage");
@@ -969,6 +974,13 @@ namespace Spiderly.SourceGenerators.Shared
                 return false;
 
             if (property.HasUIDoNotGenerateAttribute())
+                return false;
+
+            // [ReadOnly] is server-owned: its write path is closed (mapper .Ignore + no validation),
+            // so an editable control would silently discard the admin's input. Drop the control. The
+            // value still reaches the admin via the read DTO (list view / API). Rendering it as a
+            // disabled read-only control instead is a deferred UX follow-up (spiderly#337).
+            if (property.HasReadOnlyAttribute())
                 return false;
 
             // [ExcludeFromDTO] removes the backing SaveBody/MainUIForm DTO field (see

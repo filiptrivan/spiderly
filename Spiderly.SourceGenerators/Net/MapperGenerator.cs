@@ -147,7 +147,16 @@ namespace {{basePartOfNamespace}}.DataMappers
 
             foreach (SpiderlyProperty property in entity.Properties)
             {
-
+                // [ReadOnly] is server-owned: the read DTO keeps the property (still nested in the
+                // SaveBody payload), so Mapster would map it onto the entity by name convention and a
+                // crafted payload could overwrite a backend-managed value. .Ignore() closes that path.
+                // Scoped to scalars — navs/collections don't flow through a same-named dest here.
+                if (property.HasReadOnlyAttribute() &&
+                    property.Type.IsEnumerable() == false &&
+                    property.IsForeignKeyReferenceNav() == false)
+                {
+                    result.Add($"                .Ignore(dest => dest.{property.Name})");
+                }
             }
 
             return result;

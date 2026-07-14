@@ -370,6 +370,11 @@
       "summary": "Specifies custom mapping configuration when projecting an entity to its DTO."
     },
     {
+      "name": "ReadOnly",
+      "target": "Property",
+      "summary": "Marks a property as server-owned: the client may read it, but can never write it (mirrors OpenAPI readOnly). The property stays in the read {Entity}DTO — so it's still returned by GET endpoints and shown in the list table — but the generator closes the write path for it: no inbound FluentValidation rule is emitted, and the generated DTO→entity Mapster config .Ignore()s it, so a crafted payload can't tamper with it. It also gets no editable control in the generated details form. Use for values only backend code assigns — usage counters, denormalized aggregates, computed timestamps. Combine with [Required] to document the non-null DB column without generating an unsatisfiable inbound rule (the form never sends it). This differs from [UIDoNotGenerate] (hidden from the form but still writable and validated) and [ExcludeFromDTO] (dropped from every DTO, unreadable)."
+    },
+    {
       "name": "S3PrivateStorage",
       "target": "Property",
       "summary": "Routes upload/delete operations for the decorated string property through S3PrivateStorageService. The column stores an opaque S3 key; access is expected to be mediated via signed URLs or a backend proxy rather than direct CDN retrieval. Intended for files that contain personal or compliance-sensitive data (warranty receipts, ID documents, customer-uploaded invoices)."

@@ -39,6 +39,12 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
         {
+            // [ReadOnly] is server-owned: the client never sends it, so any inbound rule (e.g. the
+            // NotEmpty a [Required] would emit) is structurally unsatisfiable and 422s every save.
+            // Skip it entirely — the read DTO keeps the property, but it carries no validation.
+            if (property.HasReadOnlyAttribute())
+                return null;
+
             if (property.Type.IsEnumerable() && !property.Attributes.Any(x => x.Name == "Required"))
                 return null;
 
