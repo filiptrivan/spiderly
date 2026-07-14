@@ -117,7 +117,15 @@ namespace Spiderly.Infrastructure
             switch (changedEntity.State)
             {
                 case EntityState.Added:
-                    businessObject.CreatedAt = now;
+                    // Stamp CreatedAt only when the caller left it unset (default). A hand-written
+                    // insert that assigns an explicit historical CreatedAt — e.g. a migration or an
+                    // import preserving a source system's creation dates — is respected. No generated
+                    // path (mapper, SaveBody DTO, UI form) ever populates CreatedAt, so a non-default
+                    // value here is always a deliberate assignment, never accidental caller input.
+                    // ModifiedAt is stamped unconditionally: it means "last write in this system", and
+                    // the insert IS that write, so a source system's modified date must not leak in.
+                    if (businessObject.CreatedAt == default)
+                        businessObject.CreatedAt = now;
                     businessObject.ModifiedAt = now;
                     businessObject.Version = 1;
                     break;
