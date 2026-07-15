@@ -31,6 +31,7 @@
   <!-- ASP.NET / auth / API -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.14" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="9.0.14" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />

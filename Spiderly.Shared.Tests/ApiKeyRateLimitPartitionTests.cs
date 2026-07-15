@@ -52,11 +52,7 @@ namespace Spiderly.Shared.Tests
         public void Authenticated_api_key_principal_yields_its_key_id()
         {
             DefaultHttpContext httpContext = new();
-            httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "5"),
-                new Claim(PrincipalClaims.PrincipalKind, PrincipalKinds.ApiKey),
-            }, authenticationType: "ApiKey"));
+            httpContext.User = TestPrincipals.ApiKey("5");
 
             Assert.Equal("5", Helper.GetAuthenticatedApiKeyId(httpContext));
         }

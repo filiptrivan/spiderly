@@ -42,6 +42,21 @@ namespace Spiderly.Shared
         public int ApiKeyRequestsLimitWindow { get; set; } = 60;
 
         /// <summary>
+        /// Global sliding-window permit limit for a trusted first-party caller (see
+        /// <see cref="RateLimiting.ITrustedCallerDetector"/>). Deliberately large but
+        /// <b>finite</b>: our own build/SSR infrastructure needs generous headroom, but a
+        /// finite ceiling still keeps a runaway build loop or a leaked edge secret from going
+        /// unbounded (which full exemption would allow). The bound is <b>per source IP</b> (the
+        /// trusted partition keys on the client IP), so it caps each egress, not the fleet in
+        /// aggregate. Only consulted when an <see cref="RateLimiting.ITrustedCallerDetector"/>
+        /// is registered.
+        /// </summary>
+        public int TrustedRequestsLimitNumber { get; set; } = 6000;
+
+        /// <summary>Trusted-caller sliding-window length, in seconds.</summary>
+        public int TrustedRequestsLimitWindow { get; set; } = 60;
+
+        /// <summary>
         /// Additional CIDR ranges of trusted proxies allowed to set X-Forwarded-For headers
         /// (e.g. <c>["173.245.48.0/20"]</c> for Cloudflare).
         /// RFC 1918 private networks and loopback are always trusted.

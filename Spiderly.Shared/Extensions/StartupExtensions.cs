@@ -29,6 +29,7 @@ using Spiderly.Shared.IntegrationEvents;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Outbox;
+using Spiderly.Shared.RateLimiting;
 using Spiderly.Shared.Services;
 using System.Globalization;
 using System.Net;
@@ -429,33 +430,22 @@ namespace Spiderly.Shared.Extensions
 
                 options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                 {
-                    // An authenticated API-key (machine) principal gets its own partition with its own
-                    // budget: machine callers aggregate many end users behind a few shared egress IPs, so
-                    // the per-IP bucket both starves them and lets one machine consume unrelated clients'
-                    // budget. Requires UseAuthentication before UseRateLimiter (the init template's order) —
-                    // the helper reads the VALIDATED principal, never the raw API-key header.
-                    string apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
-                    if (apiKeyId != null)
-                    {
-                        return RateLimitPartition.GetSlidingWindowLimiter(
-                            partitionKey: $"api-key:{apiKeyId}",
-                            factory: _ => new SlidingWindowRateLimiterOptions
-                            {
-                                PermitLimit = settings.ApiKeyRequestsLimitNumber,
-                                Window = TimeSpan.FromSeconds(settings.ApiKeyRequestsLimitWindow),
-                                SegmentsPerWindow = 6,
-                            }
-                        );
-                    }
-
-                    string ipAddress = Helper.GetIPAddress(httpContext);
+                    // Which class this request belongs to (trusted first-party infra → api-key principal →
+                    // per-IP) is a pure decision extracted to GlobalRateLimitPartitioner so the branch is
+                    // unit-testable. The trusted hook is opt-in (null detector ⇒ unchanged behavior) and
+                    // requires UseAuthentication before UseRateLimiter for the api-key branch to see the
+                    // validated principal — the init template's middleware order.
+                    ITrustedCallerDetector trustedCallerDetector =
+                        httpContext.RequestServices.GetService<ITrustedCallerDetector>();
+                    GlobalRateLimitPartition partition =
+                        GlobalRateLimitPartitioner.Resolve(httpContext, settings, trustedCallerDetector);
 
                     return RateLimitPartition.GetSlidingWindowLimiter(
-                        partitionKey: ipAddress,
+                        partitionKey: partition.Key,
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
-                            PermitLimit = settings.RequestsLimitNumber,
-                            Window = TimeSpan.FromSeconds(settings.RequestsLimitWindow),
+                            PermitLimit = partition.PermitLimit,
+                            Window = TimeSpan.FromSeconds(partition.WindowSeconds),
                             SegmentsPerWindow = 6,
                         }
                     );
