@@ -16,7 +16,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { SelectItem } from 'primeng/api';
+import { SelectItem, SortMeta } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -154,6 +154,19 @@ export class SpiderlyDataTableComponent
   /** 'session' persists across refresh only; 'local' persists indefinitely. */
   @Input() stateStorage: 'session' | 'local' = 'session';
 
+  /**
+   * Column field the table sorts by while the user has no sort of their own — applied on
+   * first load (persisted state, when present, wins) and re-applied whenever an action
+   * would leave the table unsorted (tri-state header click, Clear filters). Shows as a
+   * regular header sort arrow. Omit to keep the backend's implicit Id DESC ordering.
+   */
+  @Input() defaultSortField?: string;
+
+  /** Direction for `defaultSortField`: 1 ascending (default), -1 descending. */
+  @Input() defaultSortOrder: 1 | -1 = 1;
+
+  initialMultiSortMeta: SortMeta[] | null = null;
+
   resolvedStateKey: string | null = null;
   selectedItemIds: number[] = []; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
   @Input() getAlreadySelectedItemIds: (additionalIndexes?: any) => number[]; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
@@ -279,9 +292,56 @@ export class SpiderlyDataTableComponent
     } else {
       this.clientLoad();
     }
+
+    // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
+    // sort. Persisted user sort wins over the declared default; we read it ourselves
+    // because PrimeNG's restoreState() runs on the first [value] change — after the
+    // initial lazy emit has already left.
+    this.initialMultiSortMeta =
+      this.persistedMultiSortMeta() ?? this.defaultMultiSortMeta();
+  }
+
+  /** The declared default as PrimeNG sort meta, or null when none is declared. */
+  private defaultMultiSortMeta(): SortMeta[] | null {
+    return this.defaultSortField
+      ? [{ field: this.defaultSortField, order: this.defaultSortOrder }]
+      : null;
+  }
+
+  private persistedMultiSortMeta(): SortMeta[] | null {
+    if (!this.resolvedStateKey) return null;
+
+    const storage =
+      this.stateStorage === 'local' ? localStorage : sessionStorage;
+
+    try {
+      const state = JSON.parse(storage.getItem(this.resolvedStateKey) ?? 'null');
+      return state?.multiSortMeta?.length ? state.multiSortMeta : null;
+    } catch {
+      return null; // corrupted state entry — behave like a fresh table
+    }
+  }
+
+  // Every unsorted lazy load falls back to the declared default sort. PrimeNG reaches
+  // this handler with empty multiSortMeta from several paths (tri-state un-sort, Clear
+  // filters, stale persisted state), and patching the event before it becomes the backend
+  // Filter covers them all without a second fetch. sortMultiple() broadcasts sort state
+  // to the header icons only after emitting, so it picks the patched meta up on its own;
+  // clear() broadcasts before emitting, hence the explicit re-broadcast.
+  private applyDefaultSortIfUnsorted(event: TableLazyLoadEvent): void {
+    const defaultSort = this.defaultMultiSortMeta();
+    if (defaultSort == null || event.multiSortMeta?.length) return;
+
+    event.multiSortMeta = defaultSort;
+
+    if (this.table) {
+      this.table._multiSortMeta = defaultSort;
+      this.table.tableService.onSort(defaultSort);
+    }
   }
 
   lazyLoad(event: TableLazyLoadEvent) {
+    this.applyDefaultSortIfUnsorted(event);
     this.lastLazyLoadEvent = event;
 
     let tableFilter: Filter = event as unknown as Filter;

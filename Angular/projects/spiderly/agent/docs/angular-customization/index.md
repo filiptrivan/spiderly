@@ -153,6 +153,8 @@ Library components/controls also expose their own `show*` `@Input()`s (e.g. `sho
 </spiderly-data-table>
 ```
 
+Lazy tables are always deterministically ordered: when no sort is active the backend falls back to `Id` DESC (newest first). Declare `defaultSortField` (+ `defaultSortOrder`) when a page wants a different, user-visible default — it renders as a normal header sort arrow, persisted user sort wins over it, and un-sorting (tri-state header click, Clear filters) returns to it instead of "unsorted".
+
 ### Client-Side Mode
 
 ```html
@@ -228,6 +230,8 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 | `selectionMode`                    | `'single' \| 'multiple'` | —       | Selection mode          |
 | `navigateOnRowClick`               | `boolean`                | `false` | Click row → details     |
 | `rowNavigationPath`                | `string`                 | —       | Base path for row click |
+| `defaultSortField`                 | `string`                 | —       | Sort applied while the user has none |
+| `defaultSortOrder`                 | `1 \| -1`                | `1`     | Direction for `defaultSortField` |
 | `showAddButton`                    | `boolean`                | `true`  | Show "New" button       |
 | `showExportToExcelButton`          | `boolean`                | `true`  | Show Excel export       |
 | `readonly`                         | `boolean`                | `false` | Disable mutations       |
