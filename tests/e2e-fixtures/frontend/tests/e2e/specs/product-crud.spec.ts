@@ -155,12 +155,16 @@ test.describe('Product CRUD Operations', () => {
   // never repeat or drop rows. Asserted at the API level because row identity across
   // pages is invisible to the UI.
   test('paginated list without sort rules arrives Id-descending with disjoint pages', async ({ request }) => {
+    const seedResponses = await Promise.all(
+      Array.from({ length: 3 }, (_, i) =>
+        request.put(`${API_BASE_URL}/api/Product/SaveProduct`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          data: { productDTO: { ...TEST_PRODUCT_BODY.productDTO, name: `Default Order ${i}` } },
+        })
+      )
+    );
     const seededIds: number[] = [];
-    for (let i = 0; i < 3; i++) {
-      const res = await request.put(`${API_BASE_URL}/api/Product/SaveProduct`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        data: { productDTO: { ...TEST_PRODUCT_BODY.productDTO, name: `Default Order ${i}` } },
-      });
+    for (const res of seedResponses) {
       expect(res.ok()).toBeTruthy();
       seededIds.push((await res.json()).productDTO.id);
     }

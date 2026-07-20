@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 using Xunit;
@@ -64,42 +66,30 @@ public class PaginatedResultGeneratorTests
     [Fact]
     public void Build_AlwaysAppliesIdFallbackOrdering_ForBusinessObjectEntities()
     {
-        string generated = GetGeneratedPaginatedResult();
-
-        Assert.Contains(FallbackSort, BuildSectionOf(generated, "Item"));
-        Assert.Contains(FallbackSort, BuildSectionOf(generated, "Warehouse"));
+        Assert.Contains(FallbackSort, BuildMethodOf("Item"));
+        Assert.Contains(FallbackSort, BuildMethodOf("Warehouse"));
     }
 
     [Fact]
     public void Build_OmitsIdFallback_ForM2MJunctionWithoutId()
     {
-        string generated = GetGeneratedPaginatedResult();
-
-        Assert.DoesNotContain("ApplySort(x => x.Id", BuildSectionOf(generated, "ItemWarehouse"));
+        Assert.DoesNotContain("ApplySort(x => x.Id", BuildMethodOf("ItemWarehouse"));
     }
 
-    private static string GetGeneratedPaginatedResult()
-    {
-        GeneratorDriver driver = GeneratorTestHarness.Run<PaginatedResultGenerator>(Source);
-
-        GeneratedSourceResult generatedSource = driver.GetRunResult().Results.Single().GeneratedSources
-            .Single(s => s.HintName.StartsWith("PaginatedResultGenerator.generated"));
-
-        return generatedSource.SourceText.ToString();
-    }
+    private static readonly Lazy<SyntaxTree> GeneratedTree = new(() =>
+        GeneratorTestHarness.Run<PaginatedResultGenerator>(Source).GetRunResult().GeneratedTrees
+            .Single(t => t.FilePath.EndsWith("PaginatedResultGenerator.generated.cs")));
 
     /// <summary>
-    /// Slices the generated file down to one entity's Build method so assertions can't
-    /// accidentally match another entity's overload ("IQueryable&lt;Item&gt;" is a prefix
-    /// of "IQueryable&lt;ItemWarehouse&gt;", hence the " query" suffix in the marker).
+    /// One entity's Build overload, selected structurally by its parameter type so
+    /// assertions can't accidentally match another entity's Build.
     /// </summary>
-    private static string BuildSectionOf(string generated, string entityName)
+    private static string BuildMethodOf(string entityName)
     {
-        string marker = $"Build(IQueryable<{entityName}> query";
-        int start = generated.IndexOf(marker);
-        Assert.True(start >= 0, $"No Build method generated for {entityName}");
-
-        int end = generated.IndexOf("public static async Task<PaginatedResult<", start + marker.Length);
-        return end < 0 ? generated[start..] : generated[start..end];
+        return GeneratedTree.Value.GetRoot().DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Single(m => m.Identifier.Text == "Build"
+                && m.ParameterList.Parameters[0].Type?.ToString() == $"IQueryable<{entityName}>")
+            .ToString();
     }
 }

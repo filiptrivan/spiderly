@@ -36,6 +36,21 @@ const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
 const emptyList = (): Observable<PaginatedResult> =>
   of({ data: [], totalRecords: 0 } as PaginatedResult).pipe(delay(0));
 
+function createFixture<T>(host: new () => T): ComponentFixture<T> {
+  TestBed.configureTestingModule({
+    imports: [host, TranslocoTestingModule.forRoot(translocoTesting())],
+    providers: [
+      provideRouter([]),
+      { provide: ConfigServiceBase, useValue: { defaultPageSize: 10 } },
+      { provide: SpiderlyMessageService, useValue: {} },
+      { provide: DialogService, useValue: {} },
+    ],
+  });
+  const fixture = TestBed.createComponent(host);
+  fixture.detectChanges();
+  return fixture;
+}
+
 @Component({
   imports: [SpiderlyDataTableComponent, SpiderlyDataTableActionsDirective],
   template: `
@@ -69,23 +84,8 @@ class HostWithoutActionsComponent {
 }
 
 describe('SpiderlyDataTableComponent — toolbar actions projection slot', () => {
-  function setup<T>(host: new () => T): ComponentFixture<T> {
-    TestBed.configureTestingModule({
-      imports: [host, TranslocoTestingModule.forRoot(translocoTesting())],
-      providers: [
-        provideRouter([]),
-        { provide: ConfigServiceBase, useValue: { defaultPageSize: 10 } },
-        { provide: SpiderlyMessageService, useValue: {} },
-        { provide: DialogService, useValue: {} },
-      ],
-    });
-    const fixture = TestBed.createComponent(host);
-    fixture.detectChanges();
-    return fixture;
-  }
-
   it('renders the projected actions ahead of the built-in Clear Filters button', () => {
-    const el: HTMLElement = setup(HostWithActionsComponent).nativeElement;
+    const el: HTMLElement = createFixture(HostWithActionsComponent).nativeElement;
 
     const custom = el.querySelector('[data-testid="custom-action"]');
     const clearFilters = el
@@ -107,13 +107,15 @@ describe('SpiderlyDataTableComponent — toolbar actions projection slot', () =>
   });
 
   it('renders nothing extra when no actions template is projected', () => {
-    const el: HTMLElement = setup(HostWithoutActionsComponent).nativeElement;
+    const el: HTMLElement = createFixture(HostWithoutActionsComponent).nativeElement;
 
     expect(el.querySelector('[data-testid="custom-action"]')).toBeNull();
     // The built-in toolbar still renders.
     expect(el.querySelector('.pi-filter-slash')).toBeTruthy();
   });
 });
+
+const DEFAULT_SORT_STATE_KEY = 'sdt-default-sort-spec';
 
 @Component({
   imports: [SpiderlyDataTableComponent],
@@ -132,7 +134,7 @@ class HostWithDefaultSortComponent {
     { name: 'Id', field: 'id', filterType: 'numeric' },
     { name: 'Name', field: 'name', filterType: 'text' },
   ];
-  stateKey = 'sdt-default-sort-spec';
+  stateKey = DEFAULT_SORT_STATE_KEY;
   captured: Filter[] = [];
   // Snapshot the filter — PrimeNG mutates/reuses the lazy-load event object.
   getList = (filter: Filter): Observable<PaginatedResult> => {
@@ -142,31 +144,17 @@ class HostWithDefaultSortComponent {
 }
 
 describe('SpiderlyDataTableComponent — declared default sort', () => {
-  const stateKey = 'sdt-default-sort-spec';
+  const ID_ASC = [{ field: 'id', order: 1 }];
 
   function setup(): {
-    fixture: ComponentFixture<HostWithDefaultSortComponent>;
     host: HostWithDefaultSortComponent;
     dataTable: SpiderlyDataTableComponent;
   } {
-    TestBed.configureTestingModule({
-      imports: [
-        HostWithDefaultSortComponent,
-        TranslocoTestingModule.forRoot(translocoTesting()),
-      ],
-      providers: [
-        provideRouter([]),
-        { provide: ConfigServiceBase, useValue: { defaultPageSize: 10 } },
-        { provide: SpiderlyMessageService, useValue: {} },
-        { provide: DialogService, useValue: {} },
-      ],
-    });
-    const fixture = TestBed.createComponent(HostWithDefaultSortComponent);
-    fixture.detectChanges();
+    const fixture = createFixture(HostWithDefaultSortComponent);
     const dataTable = fixture.debugElement.query(
       By.directive(SpiderlyDataTableComponent),
     ).componentInstance as SpiderlyDataTableComponent;
-    return { fixture, host: fixture.componentInstance, dataTable };
+    return { host: fixture.componentInstance, dataTable };
   }
 
   afterEach(() => sessionStorage.clear());
@@ -175,12 +163,12 @@ describe('SpiderlyDataTableComponent — declared default sort', () => {
     const { host } = setup();
 
     expect(host.captured.length).toBe(1);
-    expect(host.captured[0].multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
+    expect(host.captured[0].multiSortMeta).toEqual(ID_ASC);
   });
 
   it('lets persisted state win over the declared default', () => {
     sessionStorage.setItem(
-      stateKey,
+      DEFAULT_SORT_STATE_KEY,
       JSON.stringify({ multiSortMeta: [{ field: 'name', order: -1 }] }),
     );
 
@@ -203,11 +191,9 @@ describe('SpiderlyDataTableComponent — declared default sort', () => {
     click(); // name descending
     click(); // would be "unsorted" — must land on the default instead
 
-    expect(host.captured[host.captured.length - 1].multiSortMeta).toEqual([
-      { field: 'id', order: 1 },
-    ]);
+    expect(host.captured[host.captured.length - 1].multiSortMeta).toEqual(ID_ASC);
     // Table state (header arrows, saved state) follows the same fallback.
-    expect(dataTable.table._multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
+    expect(dataTable.table._multiSortMeta).toEqual(ID_ASC);
   });
 
   it('returns to the declared default when Clear filters wipes the sort', () => {
@@ -215,10 +201,8 @@ describe('SpiderlyDataTableComponent — declared default sort', () => {
 
     dataTable.clear(dataTable.table);
 
-    expect(host.captured[host.captured.length - 1].multiSortMeta).toEqual([
-      { field: 'id', order: 1 },
-    ]);
-    expect(dataTable.table._multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
+    expect(host.captured[host.captured.length - 1].multiSortMeta).toEqual(ID_ASC);
+    expect(dataTable.table._multiSortMeta).toEqual(ID_ASC);
   });
 });
 
@@ -243,19 +227,7 @@ describe('SpiderlyDataTableComponent — no declared default sort', () => {
       };
     }
 
-    TestBed.configureTestingModule({
-      imports: [
-        HostWithoutDefaultSortComponent,
-        TranslocoTestingModule.forRoot(translocoTesting()),
-      ],
-      providers: [
-        provideRouter([]),
-        { provide: ConfigServiceBase, useValue: { defaultPageSize: 10 } },
-        { provide: SpiderlyMessageService, useValue: {} },
-        { provide: DialogService, useValue: {} },
-      ],
-    });
-    TestBed.createComponent(HostWithoutDefaultSortComponent).detectChanges();
+    createFixture(HostWithoutDefaultSortComponent);
 
     expect(captured.length).toBe(1);
     expect(captured[0].multiSortMeta ?? null).toBeNull();

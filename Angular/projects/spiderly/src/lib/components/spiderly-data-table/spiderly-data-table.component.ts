@@ -209,7 +209,8 @@ export class SpiderlyDataTableComponent
   }
 
   // PrimeNG v19 removed the removableSort property. This overrides the table's
-  // sort() method to add tri-state cycling: ascending → descending → unsorted.
+  // sort() method to add tri-state cycling: ascending → descending → unsorted
+  // (or back to the declared default sort when one is set).
   private setupRemovableSort(): void {
     const originalSort = this.table.sort.bind(this.table);
 
@@ -220,12 +221,17 @@ export class SpiderlyDataTableComponent
         const mouseEvent = event.originalEvent as MouseEvent;
         const isMultiSortClick = mouseEvent.metaKey || mouseEvent.ctrlKey;
 
+        // Un-sorting substitutes the declared default (when there is one) right here,
+        // so sortMultiple() broadcasts and emits the final meta in one shot.
         if (isMultiSortClick) {
-          this.table._multiSortMeta = this.table._multiSortMeta.filter(
+          const remaining = this.table._multiSortMeta.filter(
             (m) => m.field !== event.field,
           );
+          this.table._multiSortMeta = remaining.length
+            ? remaining
+            : (this.defaultMultiSortMeta() ?? remaining);
         } else {
-          this.table._multiSortMeta = [];
+          this.table._multiSortMeta = this.defaultMultiSortMeta() ?? [];
           if (this.table.resetPageOnSort) {
             this.table._first = 0;
             this.table.firstChange.emit(0);
@@ -322,15 +328,17 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  // Every unsorted lazy load falls back to the declared default sort. PrimeNG reaches
-  // this handler with empty multiSortMeta from several paths (tri-state un-sort, Clear
-  // filters, stale persisted state), and patching the event before it becomes the backend
-  // Filter covers them all without a second fetch. sortMultiple() broadcasts sort state
-  // to the header icons only after emitting, so it picks the patched meta up on its own;
-  // clear() broadcasts before emitting, hence the explicit re-broadcast.
+  // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()
+  // nulls the sort and emits in one call — or stale persisted state) falls back to the
+  // declared default. Patching the event before it becomes the backend Filter avoids a
+  // second fetch; clear() broadcasts sort state to the header icons before emitting,
+  // hence the explicit re-broadcast. The tri-state un-sort path never gets here — it
+  // substitutes the default at its source in setupRemovableSort().
   private applyDefaultSortIfUnsorted(event: TableLazyLoadEvent): void {
+    if (event.multiSortMeta?.length) return;
+
     const defaultSort = this.defaultMultiSortMeta();
-    if (defaultSort == null || event.multiSortMeta?.length) return;
+    if (defaultSort == null) return;
 
     event.multiSortMeta = defaultSort;
 
