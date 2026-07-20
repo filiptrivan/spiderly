@@ -150,6 +150,41 @@ test.describe('Product CRUD Operations', () => {
     );
   });
 
+  // Backend guarantee (PaginatedResultGenerator): a paginated query with no sort rules
+  // must still be totally ordered — Id DESC (newest first) — so Skip/Take pages can
+  // never repeat or drop rows. Asserted at the API level because row identity across
+  // pages is invisible to the UI.
+  test('paginated list without sort rules arrives Id-descending with disjoint pages', async ({ request }) => {
+    const seededIds: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const res = await request.put(`${API_BASE_URL}/api/Product/SaveProduct`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: { productDTO: { ...TEST_PRODUCT_BODY.productDTO, name: `Default Order ${i}` } },
+      });
+      expect(res.ok()).toBeTruthy();
+      seededIds.push((await res.json()).productDTO.id);
+    }
+    tableTestSeedIds.push(...seededIds);
+
+    const fetchPage = async (first: number) => {
+      const res = await request.post(`${API_BASE_URL}/api/Product/GetPaginatedProductList`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: { filters: {}, first, rows: 2 },
+      });
+      expect(res.ok()).toBeTruthy();
+      return (await res.json()) as { data: Array<{ id: number }>; totalRecords: number };
+    };
+
+    const page1 = await fetchPage(0);
+    const page2 = await fetchPage(2);
+
+    // Newest seeded product leads, ids strictly descend within and across pages.
+    expect(page1.data[0].id).toBe(Math.max(...seededIds));
+    const ids = [...page1.data, ...page2.data].map((p) => p.id);
+    expect(ids).toEqual([...ids].sort((a, b) => b - a));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   // Relies on the product-list.component.ts override shipped in e2e-fixtures/frontend/app/
   // (spiderly-cli's default list renders only the Id column, which can't exercise
   // text/numeric/boolean filters). Exercises the full stateful-table feature:
