@@ -202,6 +202,18 @@ namespace {{basePartOfNamespace}}.Filtering
 """);
                 }
 
+                // Skip/Take on an unordered query returns rows in arbitrary heap/plan order (PostgreSQL),
+                // so pages can repeat/drop rows. Always end with Id: as the whole ORDER BY when the client
+                // sent no sort, as a ThenBy tie-breaker after user sorts on non-unique columns otherwise.
+                // M2M junctions have no Id (no BusinessObject base) and keep the legacy unordered behavior.
+                if (entity.IsManyToMany() == false)
+                {
+                    sb.AppendLine($$"""
+            query = query.ApplySort(x => x.Id, ascending: false, isFirst: filterDTO.MultiSortMeta == null || filterDTO.MultiSortMeta.Count == 0);
+
+""");
+                }
+
                 sb.AppendLine($$"""
             return new PaginatedResult<{{entity.Name}}>()
             {
