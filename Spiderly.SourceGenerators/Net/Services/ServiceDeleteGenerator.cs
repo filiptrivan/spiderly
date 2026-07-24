@@ -8,23 +8,15 @@ namespace Spiderly.SourceGenerators.Net
 {
     internal static class ServiceDeleteGenerator
     {
-        // Emitted after the OnBefore...Delete hook in both generated delete methods: flushes any
-        // tracked write the hook staged (e.g. IOutbox.Enqueue) before the untracked ExecuteDeleteAsync
-        // cascade, so WithTransactionAsync's clean-tracker-at-commit guard doesn't throw. Interpolated
-        // at column 0 (like GetManyToOneDeleteQueries) — the snippet carries its own indentation.
+        // Emitted after the OnBefore...Delete and OnAfter...Delete hooks in both generated delete
+        // methods: flushes any tracked write the hook staged (e.g. IOutbox.Enqueue) — the next step
+        // (the untracked ExecuteDeleteAsync cascade, or the commit itself) never flushes the tracker,
+        // and WithTransactionAsync's clean-tracker-at-commit guard would throw. Interpolated at
+        // column 0 (like GetManyToOneDeleteQueries) — the snippet carries its own indentation.
         private const string FlushStagedHookWritesSnippet = """
                 // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
-                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
-                if (_deps.Context.ChangeTracker.HasChanges())
-                    await _deps.Context.SaveChangesAsync();
-""";
-
-        // Emitted after the OnAfter...Delete hook: same footgun as above, but the next step is
-        // the transaction commit itself, which never flushes the tracker.
-        private const string FlushStagedAfterHookWritesSnippet = """
-                // Persist writes the hook staged as part of this transaction; commit below
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                // transaction; the next step (untracked cascade delete, or the commit) won't
+                // flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
 """;
@@ -87,7 +79,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 await OnAfter{{entity.Name}}Delete(id);
 
-{{FlushStagedAfterHookWritesSnippet}}
+{{FlushStagedHookWritesSnippet}}
             });
         }
 """;
@@ -139,7 +131,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 await OnAfter{{entity.Name}}ListDelete(listForDelete_{{deleteIterator}});
 
-{{FlushStagedAfterHookWritesSnippet}}
+{{FlushStagedHookWritesSnippet}}
             });
         }
 """;

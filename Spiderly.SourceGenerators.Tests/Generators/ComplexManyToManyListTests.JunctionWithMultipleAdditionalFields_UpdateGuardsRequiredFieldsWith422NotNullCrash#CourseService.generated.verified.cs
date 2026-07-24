@@ -411,8 +411,8 @@ namespace TestApp.Business.Services
                 await OnBeforeCourseDelete(id);
 
                 // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
-                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                // transaction; the next step (untracked cascade delete, or the commit) won't
+                // flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
 
@@ -424,8 +424,9 @@ namespace TestApp.Business.Services
 
                 await OnAfterCourseDelete(id);
 
-                // Persist writes the hook staged as part of this transaction; commit below
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the next step (untracked cascade delete, or the commit) won't
+                // flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
             });
@@ -464,8 +465,8 @@ namespace TestApp.Business.Services
                 await OnBeforeCourseListDelete(listForDelete_1);
 
                 // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
-                // transaction; the delete path below is untracked ExecuteDeleteAsync, so it
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                // transaction; the next step (untracked cascade delete, or the commit) won't
+                // flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
 
@@ -475,8 +476,9 @@ namespace TestApp.Business.Services
 
                 await OnAfterCourseListDelete(listForDelete_1);
 
-                // Persist writes the hook staged as part of this transaction; commit below
-                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                // Persist writes the hook staged (e.g. IOutbox.Enqueue) as part of this
+                // transaction; the next step (untracked cascade delete, or the commit) won't
+                // flush them and WithTransactionAsync's clean-tracker guard would throw.
                 if (_deps.Context.ChangeTracker.HasChanges())
                     await _deps.Context.SaveChangesAsync();
             });
