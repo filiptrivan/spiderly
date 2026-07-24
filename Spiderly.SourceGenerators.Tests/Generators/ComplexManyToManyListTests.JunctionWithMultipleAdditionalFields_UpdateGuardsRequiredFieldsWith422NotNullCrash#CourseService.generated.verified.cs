@@ -392,6 +392,15 @@ namespace TestApp.Business.Services
             OnBeforeCourseListDelete(id.StructToList());
 
         /// <summary>
+        /// Per-id variant of the post-delete hook. By default forwards to
+        /// <see cref="OnAfterCourseListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity that was deleted</param>
+        public virtual Task OnAfterCourseDelete(long id) =>
+            OnAfterCourseListDelete(id.StructToList());
+
+        /// <summary>
         /// Deletes a single Course entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
@@ -412,6 +421,13 @@ namespace TestApp.Business.Services
 
 
                 await DeleteEntityAsync<Course, long>(id);
+
+                await OnAfterCourseDelete(id);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 
@@ -421,6 +437,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
         public virtual async Task OnBeforeCourseListDelete(List<long> listForDelete) { }
+
+        /// <summary>
+        /// Lifecycle hook called after deleting a list of Course entities (cascades included),
+        /// still inside the delete transaction — queries observe the post-delete state, and anything
+        /// written here commits or rolls back atomically with the delete.
+        /// Override this to recompute denormalized aggregates or stage post-delete work.
+        /// </summary>
+        /// <param name="deletedIds">The list of entity IDs that were deleted</param>
+        /// <example>
+        /// public override async Task OnAfterCourseListDelete(List&lt;long&gt; deletedIds)
+        /// {
+        ///     await RecalculateAggregatesAsync(); // reads the post-delete state
+        /// }
+        /// </example>
+        public virtual async Task OnAfterCourseListDelete(List<long> deletedIds) { }
 
         /// <summary>
         /// Deletes multiple Course entities with cascade delete handling for dependent entities.
@@ -441,6 +472,13 @@ namespace TestApp.Business.Services
 
 
                 await DeleteEntitiesAsync<Course, long>(listForDelete_1);
+
+                await OnAfterCourseListDelete(listForDelete_1);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 

@@ -430,6 +430,15 @@ namespace TestApp.Business.Services
             OnBeforeTeamListDelete(id.StructToList());
 
         /// <summary>
+        /// Per-id variant of the post-delete hook. By default forwards to
+        /// <see cref="OnAfterTeamListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity that was deleted</param>
+        public virtual Task OnAfterTeamDelete(long id) =>
+            OnAfterTeamListDelete(id.StructToList());
+
+        /// <summary>
         /// Deletes a single Team entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
@@ -458,6 +467,13 @@ namespace TestApp.Business.Services
                     .ExecuteDeleteAsync();
 
                 await DeleteEntityAsync<Team, long>(id);
+
+                await OnAfterTeamDelete(id);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 
@@ -467,6 +483,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
         public virtual async Task OnBeforeTeamListDelete(List<long> listForDelete) { }
+
+        /// <summary>
+        /// Lifecycle hook called after deleting a list of Team entities (cascades included),
+        /// still inside the delete transaction — queries observe the post-delete state, and anything
+        /// written here commits or rolls back atomically with the delete.
+        /// Override this to recompute denormalized aggregates or stage post-delete work.
+        /// </summary>
+        /// <param name="deletedIds">The list of entity IDs that were deleted</param>
+        /// <example>
+        /// public override async Task OnAfterTeamListDelete(List&lt;long&gt; deletedIds)
+        /// {
+        ///     await RecalculateAggregatesAsync(); // reads the post-delete state
+        /// }
+        /// </example>
+        public virtual async Task OnAfterTeamListDelete(List<long> deletedIds) { }
 
         /// <summary>
         /// Deletes multiple Team entities with cascade delete handling for dependent entities.
@@ -495,6 +526,13 @@ namespace TestApp.Business.Services
                     .ExecuteDeleteAsync();
 
                 await DeleteEntitiesAsync<Team, long>(listForDelete_1);
+
+                await OnAfterTeamListDelete(listForDelete_1);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 

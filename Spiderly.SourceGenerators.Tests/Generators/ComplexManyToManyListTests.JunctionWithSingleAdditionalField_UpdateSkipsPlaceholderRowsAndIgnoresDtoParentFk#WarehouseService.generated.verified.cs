@@ -391,6 +391,15 @@ namespace TestApp.Business.Services
             OnBeforeWarehouseListDelete(id.StructToList());
 
         /// <summary>
+        /// Per-id variant of the post-delete hook. By default forwards to
+        /// <see cref="OnAfterWarehouseListDelete"/> with a one-element list, so override
+        /// only the list hook unless single-id and batch flows genuinely diverge.
+        /// </summary>
+        /// <param name="id">The ID of the entity that was deleted</param>
+        public virtual Task OnAfterWarehouseDelete(byte id) =>
+            OnAfterWarehouseListDelete(id.StructToList());
+
+        /// <summary>
         /// Deletes a single Warehouse entity with cascade delete handling for dependent entities.
         /// </summary>
         /// <param name="id">The ID of the entity to delete</param>
@@ -411,6 +420,13 @@ namespace TestApp.Business.Services
 
 
                 await DeleteEntityAsync<Warehouse, byte>(id);
+
+                await OnAfterWarehouseDelete(id);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 
@@ -420,6 +436,21 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
         public virtual async Task OnBeforeWarehouseListDelete(List<byte> listForDelete) { }
+
+        /// <summary>
+        /// Lifecycle hook called after deleting a list of Warehouse entities (cascades included),
+        /// still inside the delete transaction — queries observe the post-delete state, and anything
+        /// written here commits or rolls back atomically with the delete.
+        /// Override this to recompute denormalized aggregates or stage post-delete work.
+        /// </summary>
+        /// <param name="deletedIds">The list of entity IDs that were deleted</param>
+        /// <example>
+        /// public override async Task OnAfterWarehouseListDelete(List&lt;byte&gt; deletedIds)
+        /// {
+        ///     await RecalculateAggregatesAsync(); // reads the post-delete state
+        /// }
+        /// </example>
+        public virtual async Task OnAfterWarehouseListDelete(List<byte> deletedIds) { }
 
         /// <summary>
         /// Deletes multiple Warehouse entities with cascade delete handling for dependent entities.
@@ -440,6 +471,13 @@ namespace TestApp.Business.Services
 
 
                 await DeleteEntitiesAsync<Warehouse, byte>(listForDelete_1);
+
+                await OnAfterWarehouseListDelete(listForDelete_1);
+
+                // Persist writes the hook staged as part of this transaction; commit below
+                // won't flush them and WithTransactionAsync's clean-tracker guard would throw.
+                if (_deps.Context.ChangeTracker.HasChanges())
+                    await _deps.Context.SaveChangesAsync();
             });
         }
 

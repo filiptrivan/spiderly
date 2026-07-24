@@ -66,14 +66,25 @@ protected virtual async Task OnAfterSave{Entity}AndReturnMainUIFormDTO(
 ### Delete Hooks
 
 ```csharp
+// Before the delete — rows still exist; validation / capturing data that dies with the rows.
 // Default forwards to OnBefore{Entity}ListDelete with a single-element list.
 public virtual Task OnBefore{Entity}Delete({IdType} id) =>
     OnBefore{Entity}ListDelete(id.StructToList());
 
 public virtual async Task OnBefore{Entity}ListDelete(List<{IdType}> ids) { }
+
+// After the delete (cascades included), still inside the transaction — queries observe
+// the post-delete state; writes commit or roll back atomically with the delete.
+// Default forwards to OnAfter{Entity}ListDelete with a single-element list.
+public virtual Task OnAfter{Entity}Delete({IdType} id) =>
+    OnAfter{Entity}ListDelete(id.StructToList());
+
+public virtual async Task OnAfter{Entity}ListDelete(List<{IdType}> deletedIds) { }
 ```
 
 **When single and batch deletes need the same logic, override only the list hook** — the single-id path forwards to it automatically. Override the single hook only when the per-id behaviour genuinely diverges from the batch case.
+
+**Recomputing denormalized aggregates belongs in the After hook**, where a plain query reads the real post-delete state. In the Before hook the doomed rows still exist, so an aggregate query there would have to exclude them by hand to simulate the future state.
 
 ### Get Hooks
 
@@ -127,7 +138,7 @@ protected virtual async Task<IQueryable<{Related}>> GetAll{Property}QueryFor{Ent
 
 Every generated method wraps its logic in `_context.WithTransactionAsync(...)`. Nested calls reuse the existing transaction. You do **not** need to start your own transaction in hooks.
 
-**Generated CRUD operations flush the change tracker before commit**, so you can stage tracked writes — an entity `Add`/`Update`, or `IOutbox.Enqueue` — inside any `OnBefore...` hook (including `OnBefore{Entity}Delete`) and they persist atomically with the operation; no manual `SaveChangesAsync`. This holds even though the delete path deletes via untracked bulk `ExecuteDeleteAsync` — the operation still flushes whatever the hook staged. The catch: `WithTransactionAsync`'s clean-tracker-at-commit guard is a backstop, so if you stage a tracked write in a **custom** (non-hook) `WithTransactionAsync` block, you must `SaveChangesAsync` it yourself or the guard throws.
+**Generated CRUD operations flush the change tracker before commit**, so you can stage tracked writes — an entity `Add`/`Update`, or `IOutbox.Enqueue` — inside any `OnBefore...` or `OnAfter...` hook (including the delete hooks) and they persist atomically with the operation; no manual `SaveChangesAsync`. This holds even though the delete path deletes via untracked bulk `ExecuteDeleteAsync` — the operation still flushes whatever the hook staged. The catch: `WithTransactionAsync`'s clean-tracker-at-commit guard is a backstop, so if you stage a tracked write in a **custom** (non-hook) `WithTransactionAsync` block, you must `SaveChangesAsync` it yourself or the guard throws.
 
 If you need a transaction in **custom** (non-hook) methods:
 
