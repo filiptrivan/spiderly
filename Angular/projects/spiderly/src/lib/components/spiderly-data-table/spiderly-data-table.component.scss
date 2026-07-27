@@ -43,6 +43,32 @@
     text-decoration: underline;
   }
 
+  .column-chooser {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .column-chooser-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .column-chooser-reset {
+    margin-top: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--p-primary-color);
+    cursor: pointer;
+    align-self: flex-start;
+    font-size: 0.875rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   ::ng-deep {
     .p-datatable-thead {
       position: unset !important;

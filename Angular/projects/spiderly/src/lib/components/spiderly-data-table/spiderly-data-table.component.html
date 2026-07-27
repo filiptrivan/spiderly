@@ -37,6 +37,16 @@
             ></ng-container>
             <button
               pButton
+              *ngIf="hasLazyLoad"
+              data-testid="column-chooser-button"
+              [label]="t('Columns')"
+              class="p-button-outlined"
+              style="flex: none"
+              icon="pi pi-sliders-h"
+              (click)="columnChooser.toggle($event)"
+            ></button>
+            <button
+              pButton
               [label]="t('ClearFilters')"
               class="p-button-outlined"
               style="flex: none"
@@ -87,7 +97,7 @@
               ({{ rowsSelectedNumber }})
             </div>
           </th>
-          <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
+          <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
             <th
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="col.sortable === false || !col.field"
@@ -177,7 +187,7 @@
               [binary]="true"
             ></p-checkbox>
           </td>
-          <ng-container *ngFor="let col of cols; trackBy: colTrackByFn">
+          <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
             <td
               [style]="getStyleForBodyColumn(col)"
               [class.clickable]="col.onCellClick"
@@ -223,7 +233,7 @@
         <tr>
           <td
             [attr.colspan]="
-              cols?.length + (selectionMode === 'multiple' ? 1 : 0)
+              visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
             "
           >
             {{ t("NoRecordsFound") }}
@@ -234,7 +244,7 @@
         <tr>
           <td
             [attr.colspan]="
-              cols?.length + (selectionMode === 'multiple' ? 1 : 0)
+              visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
             "
           >
             {{ t("Loading") }}...
@@ -255,5 +265,30 @@
         </div>
       </ng-template>
     </p-table>
+    <p-popover #columnChooser>
+      <div class="column-chooser">
+        <label
+          *ngFor="let col of chooserCols; trackBy: colTrackByFn"
+          data-testid="column-chooser-option"
+          class="column-chooser-option"
+        >
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="isColumnVisible(col)"
+            [disabled]="!canToggleColumn(col)"
+            (onChange)="toggleColumn(col, $event.checked)"
+          ></p-checkbox>
+          <span>{{ col.name }}</span>
+        </label>
+        <button
+          type="button"
+          data-testid="column-chooser-reset"
+          class="column-chooser-reset"
+          (click)="resetColumnVisibility()"
+        >
+          {{ t('ResetToDefault') }}
+        </button>
+      </div>
+    </p-popover>
   </div>
 </ng-container>

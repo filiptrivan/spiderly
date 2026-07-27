@@ -22,6 +22,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { PopoverModule } from 'primeng/popover';
 import {
   Table,
   TableFilterEvent,
@@ -63,6 +64,7 @@ import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-cont
     TableModule,
     ButtonModule,
     MultiSelectModule,
+    PopoverModule,
     DatePickerModule,
     CheckboxModule,
     TooltipModule,
@@ -166,6 +168,12 @@ export class SpiderlyDataTableComponent
   @Input() defaultSortOrder: 1 | -1 = 1;
 
   initialMultiSortMeta: SortMeta[] | null = null;
+
+  /** Columns currently rendered — `cols` minus the hidden ones. Actions columns always render. */
+  visibleCols: Column[] = [];
+
+  /** Data columns offered in the column chooser (actions columns are excluded). */
+  chooserCols: Column[] = [];
 
   resolvedStateKey: string | null = null;
   selectedItemIds: number[] = []; // Pass only when hasLazyLoad === false, it's enough if the M2M association hasn't additional fields
@@ -299,6 +307,11 @@ export class SpiderlyDataTableComponent
       this.clientLoad();
     }
 
+    this.restoreColumnVisibility();
+    this.reconcileVisibilityWithPersistedConstraints();
+    this.chooserCols = this.cols.filter((col) => col.field);
+    this.refreshVisibleCols();
+
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
     // sort. Persisted user sort wins over the declared default; we read it ourselves
     // because PrimeNG's restoreState() runs on the first [value] change — after the
@@ -307,11 +320,192 @@ export class SpiderlyDataTableComponent
       this.persistedMultiSortMeta() ?? this.defaultMultiSortMeta();
   }
 
-  /** The declared default as PrimeNG sort meta, or null when none is declared. */
+  //#region Column visibility
+
+  /**
+   * User visibility choices (field → visible), holding only fields the user explicitly
+   * toggled away from their declared default — so a page changing a column's declared
+   * default later flows through to every user who never touched that column.
+   */
+  private columnVisibilityOverrides: Record<string, boolean> = {};
+
+  /**
+   * Storage slot for the visibility overrides. Deliberately ALWAYS localStorage, even when
+   * `stateStorage` is 'session': the column layout is a durable preference, while filters
+   * are a transient working set — different natural lifetimes.
+   */
+  private get columnsStateKey(): string | null {
+    return this.resolvedStateKey ? `${this.resolvedStateKey}:columns` : null;
+  }
+
+  /** Actions columns (no `field`) always render; data columns follow override, then declared default. */
+  isColumnVisible(col: Column): boolean {
+    if (!col.field) return true;
+    if (col.lockVisible) return true; // pinned — wins over any (possibly stale) override
+    return this.columnVisibilityOverrides[col.field] ?? col.visible !== false;
+  }
+
+  private refreshVisibleCols(): void {
+    this.visibleCols = this.cols.filter((col) => this.isColumnVisible(col));
+  }
+
+  /**
+   * Locked columns can't be toggled; the last visible data column can't be hidden — the
+   * table must never collapse to just an actions column. Revealing is always allowed.
+   */
+  canToggleColumn(col: Column): boolean {
+    if (col.lockVisible) return false;
+    if (!this.isColumnVisible(col)) return true;
+    return this.visibleCols.filter((c) => c.field).length > 1;
+  }
+
+  toggleColumn(col: Column, visible: boolean): void {
+    if (visible === (col.visible !== false)) {
+      delete this.columnVisibilityOverrides[col.field]; // back at the declared default
+    } else {
+      this.columnVisibilityOverrides[col.field] = visible;
+    }
+
+    this.persistColumnVisibility();
+    this.refreshVisibleCols();
+
+    if (!visible) this.clearHiddenColumnConstraints([col]);
+  }
+
+  /** Restores every column to its declared default and forgets the stored override. */
+  resetColumnVisibility(): void {
+    const wasVisible = this.visibleCols.filter((col) => col.field);
+
+    this.columnVisibilityOverrides = {};
+    if (this.columnsStateKey) localStorage.removeItem(this.columnsStateKey);
+    this.refreshVisibleCols();
+
+    // Columns the reset just hid follow the same rule as a manual hide.
+    this.clearHiddenColumnConstraints(
+      wasVisible.filter((col) => !this.isColumnVisible(col)),
+    );
+  }
+
+  /**
+   * A hidden column contributes nothing to filtering or sorting: the header is the only
+   * filter surface, so a kept constraint would restrict the data invisibly. Reloads (once)
+   * only when a constraint was actually cleared — plain hides don't need a server round-trip.
+   */
+  private clearHiddenColumnConstraints(cols: Column[]): void {
+    if (!this.table) return;
+
+    let cleared = false;
+    for (const col of cols) {
+      const filterKey = col.filterField ?? col.field;
+      if (this.hasActiveFilter(filterKey)) {
+        delete this.table.filters[filterKey];
+        cleared = true;
+      }
+
+      if (this.table._multiSortMeta?.some((m) => m.field === col.field)) {
+        this.table._multiSortMeta = this.table._multiSortMeta.filter(
+          (m) => m.field !== col.field,
+        );
+        this.table.tableService.onSort(this.table._multiSortMeta);
+        cleared = true;
+      }
+    }
+
+    if (cleared) this.table._filter(); // re-emits the lazy load and saves the cleaned state
+  }
+
+  private hasActiveFilter(field: string): boolean {
+    const meta = this.table.filters?.[field];
+    return meta != null && SpiderlyDataTableComponent.isActiveFilterMeta(meta);
+  }
+
+  /** Whether filter metadata (single or array) carries a real constraint, not just an empty slot. */
+  private static isActiveFilterMeta(meta: unknown): boolean {
+    return (Array.isArray(meta) ? meta : [meta]).some(
+      (m: any) =>
+        m?.value != null &&
+        m.value !== '' &&
+        (!Array.isArray(m.value) || m.value.length > 0),
+    );
+  }
+
+  private persistColumnVisibility(): void {
+    if (!this.columnsStateKey) return;
+
+    if (Object.keys(this.columnVisibilityOverrides).length === 0) {
+      localStorage.removeItem(this.columnsStateKey);
+    } else {
+      localStorage.setItem(
+        this.columnsStateKey,
+        JSON.stringify(this.columnVisibilityOverrides),
+      );
+    }
+  }
+
+  private restoreColumnVisibility(): void {
+    if (!this.columnsStateKey) return;
+
+    try {
+      this.columnVisibilityOverrides =
+        JSON.parse(localStorage.getItem(this.columnsStateKey) ?? '{}') ?? {};
+    } catch {
+      this.columnVisibilityOverrides = {}; // corrupted entry — behave like a fresh table
+    }
+  }
+
+  /**
+   * Guards the "hidden contributes nothing" invariant against state this component didn't
+   * write (older blobs, hand-edited storage): a hidden column the persisted table state
+   * still filters or sorts by is revealed rather than constraining the data invisibly.
+   * In-memory only — once the constraint is gone, the user's stored choice reapplies.
+   */
+  private reconcileVisibilityWithPersistedConstraints(): void {
+    if (!this.resolvedStateKey) return;
+
+    const storage =
+      this.stateStorage === 'local' ? localStorage : sessionStorage;
+
+    let state: any;
+    try {
+      state = JSON.parse(storage.getItem(this.resolvedStateKey) ?? 'null');
+    } catch {
+      return;
+    }
+    if (!state) return;
+
+    const constrained = new Set<string>();
+    for (const [field, meta] of Object.entries(state.filters ?? {})) {
+      if (SpiderlyDataTableComponent.isActiveFilterMeta(meta))
+        constrained.add(field);
+    }
+    for (const sortMeta of state.multiSortMeta ?? []) {
+      if (sortMeta?.field) constrained.add(sortMeta.field);
+    }
+
+    for (const col of this.cols) {
+      if (!col.field || this.isColumnVisible(col)) continue;
+      if (constrained.has(col.field) || constrained.has(col.filterField)) {
+        this.columnVisibilityOverrides[col.field] = true;
+      }
+    }
+  }
+
+  //#endregion
+
+  /**
+   * The declared default as PrimeNG sort meta, or null when none is declared — or when its
+   * column is hidden ("hidden contributes nothing"): the table then falls back to the
+   * backend's implicit Id DESC, exactly as if no default were declared.
+   */
   private defaultMultiSortMeta(): SortMeta[] | null {
-    return this.defaultSortField
-      ? [{ field: this.defaultSortField, order: this.defaultSortOrder }]
-      : null;
+    if (!this.defaultSortField) return null;
+
+    const defaultSortCol = this.cols?.find(
+      (col) => col.field === this.defaultSortField,
+    );
+    if (defaultSortCol && !this.isColumnVisible(defaultSortCol)) return null;
+
+    return [{ field: this.defaultSortField, order: this.defaultSortOrder }];
   }
 
   private persistedMultiSortMeta(): SortMeta[] | null {
@@ -950,6 +1144,17 @@ export class Column<T = any> {
   decimalPlaces?: number;
   sortable?: boolean;
   /**
+   * Whether the column is initially rendered. Defaults to `true`. Declare `visible: false` for
+   * columns that should be available in the column chooser but hidden until the user reveals them.
+   */
+  visible?: boolean;
+  /**
+   * Pins the column: it always renders and shows in the chooser as checked and disabled.
+   * Use for the row's identifying column (e.g. a product's title) so the table can never
+   * lose its anchor.
+   */
+  lockVisible?: boolean;
+  /**
    * Fired when this column's cell is clicked. Receives a {@link CellClickEvent} with the row id,
    * the column field, the full row, the raw and formatted cell value, the clicked `<td>` element
    * (use it to anchor an overlay/popover), and the original `MouseEvent`.
@@ -974,6 +1179,8 @@ export class Column<T = any> {
     showTime,
     decimalPlaces,
     sortable,
+    visible,
+    lockVisible,
     onCellClick,
   }: {
     name?: string;
@@ -989,6 +1196,8 @@ export class Column<T = any> {
     showTime?: boolean;
     decimalPlaces?: number;
     sortable?: boolean;
+    visible?: boolean;
+    lockVisible?: boolean;
     onCellClick?: (event: CellClickEvent) => void;
   } = {}) {
     this.name = name;
@@ -1004,6 +1213,8 @@ export class Column<T = any> {
     this.showTime = showTime;
     this.decimalPlaces = decimalPlaces;
     this.sortable = sortable;
+    this.visible = visible;
+    this.lockVisible = lockVisible;
     this.onCellClick = onCellClick;
   }
 }

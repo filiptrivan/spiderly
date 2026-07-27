@@ -166,9 +166,9 @@ Lazy tables are always deterministically ordered: when no sort is active the bac
 
 ```typescript
 cols: Column<ProductDTO>[] = [
-  new Column({ field: 'title', name: 'Title', filterType: 'text' }),
+  new Column({ field: 'title', name: 'Title', filterType: 'text', lockVisible: true }),
   new Column({ field: 'price', name: 'Price', filterType: 'numeric', showMatchModes: true, decimalPlaces: 2 }),
-  new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true }),
+  new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true, visible: false }),
   new Column({ field: 'isActive', name: 'Active', filterType: 'boolean' }),
   new Column({ field: 'categoryDisplayName', name: 'Category', filterType: 'multiselect',
     dropdownOrMultiselectValues: this.categoryOptions }),
@@ -181,6 +181,10 @@ cols: Column<ProductDTO>[] = [
   }),
 ];
 ```
+
+### Column chooser (show/hide columns)
+
+Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Because a column's header is the table's only filter surface, showing a column is what makes it filterable — declare rarely-needed but filter-worthy columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Rules the table enforces: hiding a column clears its active filter + sort (one reload; plain hides don't hit the server), choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
 
 The `onClick` callback receives an `ActionClickEvent` — `{ id, row, element, originalEvent }`. Use `element` (or `originalEvent`) to anchor an overlay/popover to the clicked action; `row` gives you the full row object. It fires only for custom `field` values (never `'Details'` / `'Delete'`).
 

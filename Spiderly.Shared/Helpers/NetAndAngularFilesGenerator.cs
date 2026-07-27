@@ -3914,6 +3914,8 @@ export const ThemePreset = definePreset(Aura, {
   "EmptyMessage": "No results",
   "ClearFilters": "Clear all filters",
   "ApplyFilters": "Apply filters",
+  "Columns": "Columns",
+  "ResetToDefault": "Reset to default",
   "PartnerUserList": "Users",
   "YouDoNotHaveAnyAchievement": "You haven't earned any points yet.",
   "PointsHistory": "Points History",
