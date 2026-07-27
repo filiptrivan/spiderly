@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -24,8 +25,8 @@ namespace Spiderly.SourceGenerators.Models
         /// <summary>
         /// Generic outer types treated as collections. Mirrors the loose <c>IsEnumerable</c> contract
         /// (List / IList / arrays); the read-only interfaces are included for completeness.
-        /// Internal (not private) because it is a supported-shape axis: tests and the zoo-fixture
-        /// generator enumerate it, so coverage grows automatically with the dispatch itself.
+        /// Internal (not private) because it is a supported-shape axis the grammar-sweep tests
+        /// enumerate, so coverage grows automatically with the dispatch itself.
         /// </summary>
         internal static readonly string[] CollectionTypeNames =
         {
@@ -35,7 +36,7 @@ namespace Spiderly.SourceGenerators.Models
         /// <summary>
         /// Async / MVC transport wrappers the Angular mappers unwrap to the awaited body
         /// (<c>Task&lt;T&gt;</c> -> <c>T</c>). A supported-shape axis, same as
-        /// <see cref="CollectionTypeNames"/> — enumerable by tests and the zoo-fixture generator.
+        /// <see cref="CollectionTypeNames"/> — enumerated by the grammar-sweep tests.
         /// </summary>
         internal static readonly string[] TransportWrapperNames =
         {
@@ -44,11 +45,12 @@ namespace Spiderly.SourceGenerators.Models
 
         /// <summary>
         /// Scalar-name axis: every C# scalar type name the generators support, mapped to its
-        /// dispatch bucket. <see cref="ScalarKind"/> is a lookup into this table, so the production
-        /// dispatch and everything derived from it (tests, the zoo fixture) cannot drift — adding a
-        /// scalar here is the single change that fans out to all of them.
+        /// dispatch bucket. <see cref="ScalarKind"/> and <c>IsBaseDataType</c> are lookups into this
+        /// table, so the production dispatch and everything derived from it (tests, the zoo fixture)
+        /// cannot drift — adding a scalar here is the single change that fans out to all of them.
+        /// (Guid is deliberately absent: it is the unmapped scalar, emitted as TS <c>any</c>.)
         /// </summary>
-        internal static readonly IReadOnlyDictionary<string, SpiderlyScalarKind> ScalarKindByName =
+        internal static readonly Dictionary<string, SpiderlyScalarKind> ScalarKindByName =
             new Dictionary<string, SpiderlyScalarKind>
             {
                 ["string"] = SpiderlyScalarKind.String,
@@ -95,6 +97,12 @@ namespace Spiderly.SourceGenerators.Models
         /// <c>IList&lt;&gt;</c>, ...) or an array (<c>T[]</c>).
         /// </summary>
         public bool IsCollection { get; }
+
+        /// <summary>
+        /// The outer type is an async / MVC transport wrapper (<see cref="TransportWrapperNames"/>)
+        /// that the Angular mappers unwrap to the awaited body.
+        /// </summary>
+        internal bool IsTransportWrapper => Array.IndexOf(TransportWrapperNames, Name) >= 0;
 
         /// <summary>
         /// The element / type-argument for collections and generics; <c>null</c> for simple types.

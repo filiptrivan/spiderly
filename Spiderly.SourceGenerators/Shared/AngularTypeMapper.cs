@@ -68,7 +68,7 @@ namespace Spiderly.SourceGenerators.Shared
             // A bare wrapper with no type argument (e.g. "IActionResult", "Task") carries no typed body.
             // Matched by simple (unqualified) name, the form controllers are written in; fully-qualified
             // wrapper names (e.g. System.Threading.Tasks.Task<...>) are intentionally out of scope.
-            if (SpiderlyTypeRef.TransportWrapperNames.Contains(type.Name))
+            if (type.IsTransportWrapper)
                 return type.ElementType == null ? "any" : GetAngularType(type.ElementType, spiderlyEnumNames);
 
             // Collections recurse on the element, so arbitrary nesting (List<List<T>>, Task<List<T>>, ...) works.
@@ -78,7 +78,7 @@ namespace Spiderly.SourceGenerators.Shared
             // CoreName, never Raw: for a nullable enum property Raw carries the C# '?' ("MyEnum?"),
             // which is invalid TypeScript in type position. Optionality is already expressed by the
             // generated member's own '?:'.
-            if (type.Raw.IsEnum(spiderlyEnumNames))
+            if (type.IsEnum(spiderlyEnumNames))
                 return type.CoreName;
 
             // DTO leaf — checked before the scalar switch because a generic DTO like NamebookDTO<long>
@@ -115,11 +115,9 @@ namespace Spiderly.SourceGenerators.Shared
             //if (ExtractAngularTypeFromGenericCSharpType(CSharpDataType).IsBaseType()) // TODO FT: We were checking for the C# type, which wasn't correct, but add correct code here if we need in the future
             //    return null;
 
-            // Parsed CoreName, never the raw C# string: a nullable enum would otherwise leak its '?'
-            // into the emitted import symbol (import { MyEnum? }).
-            if (ExtractAngularTypeFromGenericCSharpType(CSharpDataType, spiderlyEnumNames).IsEnum(spiderlyEnumNames))
-                return SpiderlyTypeRef.Parse(CSharpDataType).CoreName;
-
+            // Enums need no special branch: Extract already reduces every enum shape ("MyEnum",
+            // "MyEnum?", "List<MyEnum>") to the bare core name — same no-'?'-in-TS invariant as the
+            // type emission, enforced once at Extract's exit.
             return ExtractAngularTypeFromGenericCSharpType(CSharpDataType, spiderlyEnumNames);
         }
 

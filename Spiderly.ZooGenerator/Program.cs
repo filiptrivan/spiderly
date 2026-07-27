@@ -17,9 +17,9 @@ internal static class Program
 
         string outPath = args[1];
         string directory = Path.GetDirectoryName(Path.GetFullPath(outPath));
-        if (directory == null || !Directory.Exists(directory))
+        if (!Directory.Exists(directory))
         {
-            Console.Error.WriteLine($"Output directory does not exist: {directory}");
+            Console.Error.WriteLine($"Output directory does not exist for: {outPath}");
             return 1;
         }
 

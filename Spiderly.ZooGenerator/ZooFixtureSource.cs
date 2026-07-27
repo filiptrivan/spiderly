@@ -25,31 +25,33 @@ public static class ZooFixtureSource
 
     /// <summary>
     /// The full shape axis as (C# type, property name) pairs, in the exact order
-    /// <see cref="Generate"/> renders them. Nullable variants are generated for value types only —
-    /// <c>string?</c> is a reference-type annotation that needs an NRT context the fixture apps
-    /// don't enable.
+    /// <see cref="Generate"/> renders them. Computed once — the axis is compile-time constant.
     /// </summary>
-    public static IReadOnlyList<(string Type, string Name)> ShapeProperties
+    public static readonly IReadOnlyList<(string Type, string Name)> ShapeProperties = BuildShapeProperties();
+
+    private static IReadOnlyList<(string Type, string Name)> BuildShapeProperties()
     {
-        get
+        List<(string, string)> properties = new()
         {
-            List<(string, string)> properties = new()
-            {
-                (EnumTypeName, "CodesValue"),
-                ($"{EnumTypeName}?", "CodesNullableValue"),
-            };
+            (EnumTypeName, "CodesValue"),
+            ($"{EnumTypeName}?", "CodesNullableValue"),
+        };
 
-            foreach (string scalar in SpiderlyTypeRef.ScalarKindByName.Keys.OrderBy(x => x, StringComparer.Ordinal))
-            {
-                string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
-                properties.Add((scalar, $"{pascal}Value"));
+        foreach (string scalar in SpiderlyTypeRef.ScalarKindByName.Keys.OrderBy(x => x, StringComparer.Ordinal))
+        {
+            // Invariant casing on purpose — Extensions.FirstCharToUpper is culture-sensitive and
+            // would break the byte-identical output contract on e.g. tr-TR machines ("int" -> "İnt").
+            string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
+            properties.Add((scalar, $"{pascal}Value"));
 
-                if (scalar != "string")
-                    properties.Add(($"{scalar}?", $"{pascal}NullableValue"));
-            }
-
-            return properties;
+            // string is the axis's only reference type: a 'string?' variant needs an NRT context the
+            // fixture apps don't enable. If the axis ever gains a second reference-type scalar, this
+            // per-name knowledge should move into the axis table itself.
+            if (scalar != "string")
+                properties.Add(($"{scalar}?", $"{pascal}NullableValue"));
         }
+
+        return properties;
     }
 
     /// <summary>

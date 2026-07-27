@@ -11,11 +11,11 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 
 /// <summary>
 /// Guards the generated type-zoo fixture (tests/e2e-fixtures/backend/entities/ZooShapes.cs — see
-/// <see cref="ZooFixtureSource"/>): the committed artifact must match the generator (the unit-level
-/// mirror of the CI/pre-commit drift check), and the full shape axis must survive the real
-/// entities-TS emission seam that produced the nullable-enum 'prop?: MyEnum?;' TS17019 escape.
-/// The e2e job remains the end-to-end judge (it compiles the zoo with the real toolchain); these
-/// tests catch a broken zoo or a shape-axis leak locally, before a CI round-trip.
+/// <see cref="ZooFixtureSource"/> for the full motivation): the committed artifact must match the
+/// generator (the unit-level mirror of the CI/pre-commit drift check), and the full shape axis must
+/// survive the real entities-TS emission seam the original escape came through. The e2e job remains
+/// the end-to-end judge (it compiles the zoo with the real toolchain); these tests catch a broken
+/// zoo or a shape-axis leak locally, before a CI round-trip.
 /// </summary>
 public class ZooFixtureTests
 {

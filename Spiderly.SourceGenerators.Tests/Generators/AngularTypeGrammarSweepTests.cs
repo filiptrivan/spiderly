@@ -27,19 +27,24 @@ public class AngularTypeGrammarSweepTests
     private static readonly ImmutableArray<string> Enums = ImmutableArray.Create(EnumCore);
 
     /// <summary>
-    /// TS type-reference grammar: identifier, optionally one generic argument (itself arrayable),
-    /// optionally array suffixes. Matches every legal mapper output shape; a leaked '?' or raw C#
-    /// syntax fails it.
+    /// TS type-reference grammar for the swept domain: a bare identifier plus array suffixes — no
+    /// swept shape can produce a generic output (the only generic emission, PaginatedResultDTO,
+    /// is not a shape-axis member; widen the regex if such shapes ever join the sweep). A leaked
+    /// '?' or raw C# syntax fails it.
     /// </summary>
     private static readonly Regex TsTypeGrammar =
-        new(@"^[A-Za-z_][A-Za-z0-9_]*(<[A-Za-z_][A-Za-z0-9_]*(\[\])*>)?(\[\])*$", RegexOptions.Compiled);
+        new(@"^[A-Za-z_][A-Za-z0-9_]*(\[\])*$", RegexOptions.Compiled);
 
     /// <summary>
-    /// Type names that must never appear as a token in emitted TS: every scalar whose TS mapping
-    /// differs from its C# name, plus the DTO core (must emit as 'User'). 'string' maps to itself.
+    /// Type names that must never appear as a token in emitted TS, derived mechanically: every
+    /// scalar whose TS mapping differs from its own C# name (so 'string', which maps to itself,
+    /// self-excludes), plus the DTO core (must emit as 'User').
     /// </summary>
     private static readonly string[] BannedOutputTokens =
-        SpiderlyTypeRef.ScalarKindByName.Keys.Where(x => x != "string").Append(DtoCore).ToArray();
+        SpiderlyTypeRef.ScalarKindByName.Keys
+            .Where(x => AngularTypeMapper.GetAngularType(x, Enums) != x)
+            .Append(DtoCore)
+            .ToArray();
 
     public static TheoryData<string> AllShapes()
     {

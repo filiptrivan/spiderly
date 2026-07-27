@@ -210,7 +210,10 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static bool IsTimeOnly(this SpiderlyTypeRef type) => type?.Raw.IsTimeOnly() ?? false;
 
-        public static bool IsEnum(this SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames) => type?.Raw.IsEnum(spiderlyEnumNames) ?? false;
+        // Reads the already-parsed CoreName directly — round-tripping through Raw would re-run
+        // SpiderlyTypeRef.Parse on a tree the caller is holding (once per property mapping).
+        public static bool IsEnum(this SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames) =>
+            type != null && !spiderlyEnumNames.IsDefaultOrEmpty && spiderlyEnumNames.Contains(type.CoreName);
 
         /// <summary>
         /// Routes through the single parser (<see cref="SpiderlyTypeRef.IsCollection"/>) so there is exactly one
@@ -232,40 +235,25 @@ namespace Spiderly.SourceGenerators.Shared
             return !extractedType.IsBaseDataType();
         }
 
+        /// <summary>
+        /// Membership is a lookup into the scalar axis (<see cref="SpiderlyTypeRef.ScalarKindByName"/>)
+        /// after unwrapping nullability and a <c>System.</c> qualifier — it must never become a second
+        /// hand-maintained scalar list, or a scalar added to the axis silently misclassifies as a
+        /// DTO/navigation here. Flat check on purpose: a wrapped type (<c>List&lt;long&gt;</c>) is NOT a
+        /// base data type. Guid is the one extra member — a real scalar for classification, but absent
+        /// from the axis because it has no TS mapping (emitted as <c>any</c>).
+        /// </summary>
         public static bool IsBaseDataType(this string propType)
         {
-            return
-                propType == "string" ||
-                propType == "bool" ||
-                propType == "bool?" ||
-                propType == "DateTime" ||
-                propType == "DateTime?" ||
-                propType == "System.DateTime" ||
-                propType == "System.DateTime?" ||
-                propType == "DateOnly" ||
-                propType == "DateOnly?" ||
-                propType == "System.DateOnly" ||
-                propType == "System.DateOnly?" ||
-                propType == "TimeOnly" ||
-                propType == "TimeOnly?" ||
-                propType == "System.TimeOnly" ||
-                propType == "System.TimeOnly?" ||
-                propType == "long" ||
-                propType == "long?" ||
-                propType == "int" ||
-                propType == "int?" ||
-                propType == "decimal" ||
-                propType == "decimal?" ||
-                propType == "float" ||
-                propType == "float?" ||
-                propType == "double" ||
-                propType == "double?" ||
-                propType == "byte" ||
-                propType == "byte?" ||
-                propType == "System.Guid" ||
-                propType == "System.Guid?" ||
-                propType == "Guid" ||
-                propType == "Guid?";
+            if (propType == null)
+                return false;
+
+            string core = propType.WithoutNullableSuffix();
+
+            if (core.StartsWith("System."))
+                core = core.Substring("System.".Length);
+
+            return core == "Guid" || SpiderlyTypeRef.ScalarKindByName.ContainsKey(core);
         }
 
         public static bool IsDateTime(this string propType) =>
