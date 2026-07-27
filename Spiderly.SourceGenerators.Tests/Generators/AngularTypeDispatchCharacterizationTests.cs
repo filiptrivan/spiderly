@@ -54,6 +54,20 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("Task<int>", "number")]
     [InlineData("ValueTask<List<UserDTO>>", "User[]")]
     [InlineData("IActionResult", "any")]
+    // Bare special-form DTOs (unwrapped variants of the Task<...> rows above).
+    [InlineData("PaginatedResultDTO<UserDTO>", "PaginatedResult<User>")]
+    [InlineData("NamebookDTO<long>", "Namebook")]
+    [InlineData("CodebookDTO<long>", "Codebook")]
+    [InlineData("LazyLoadSelectedIdsResultDTO", "LazyLoadSelectedIdsResult")]
+    // A nullable DTO reference must not leak the C# '?' into TS (same TS17019 class as nullable enums).
+    [InlineData("UserDTO?", "User")]
+    // A user DTO whose name merely CONTAINS a framework special form is that user's type, not the
+    // framework one — the legacy parser's Contains sniffing silently collapses it.
+    [InlineData("BrandNamebookDTO", "BrandNamebook")]
+    [InlineData("ProductPaginatedResultDTO", "ProductPaginatedResult")]
+    // The PaginatedResult type argument is a TS type, so a scalar argument maps like any other
+    // scalar — the legacy parser emitted the raw C# name ("PaginatedResult<long>").
+    [InlineData("PaginatedResultDTO<long>", "PaginatedResult<number>")]
     public void GetAngularType(string cSharp, string expected)
         => Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharp, Enums));
 
