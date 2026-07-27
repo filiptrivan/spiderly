@@ -75,8 +75,11 @@ namespace Spiderly.SourceGenerators.Shared
             if (type.IsCollection)
                 return $"{GetAngularType(type.ElementType, spiderlyEnumNames)}[]";
 
+            // CoreName, never Raw: for a nullable enum property Raw carries the C# '?' ("MyEnum?"),
+            // which is invalid TypeScript in type position. Optionality is already expressed by the
+            // generated member's own '?:'.
             if (type.Raw.IsEnum(spiderlyEnumNames))
-                return type.Raw;
+                return type.CoreName;
 
             // DTO leaf — checked before the scalar switch because a generic DTO like NamebookDTO<long>
             // has CoreName "long" and would otherwise be misread as a scalar. ExtractAngularTypeFromGenericCSharpType
@@ -112,8 +115,10 @@ namespace Spiderly.SourceGenerators.Shared
             //if (ExtractAngularTypeFromGenericCSharpType(CSharpDataType).IsBaseType()) // TODO FT: We were checking for the C# type, which wasn't correct, but add correct code here if we need in the future
             //    return null;
 
+            // Parsed CoreName, never the raw C# string: a nullable enum would otherwise leak its '?'
+            // into the emitted import symbol (import { MyEnum? }).
             if (ExtractAngularTypeFromGenericCSharpType(CSharpDataType, spiderlyEnumNames).IsEnum(spiderlyEnumNames))
-                return CSharpDataType;
+                return SpiderlyTypeRef.Parse(CSharpDataType).CoreName;
 
             return ExtractAngularTypeFromGenericCSharpType(CSharpDataType, spiderlyEnumNames);
         }
