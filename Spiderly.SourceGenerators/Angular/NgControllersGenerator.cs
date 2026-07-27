@@ -139,7 +139,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                     ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     foreach (SpiderParameter parameter in controllerMethod.Parameters)
-                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type.Raw, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
+                        ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type.Raw == "IFormFile") == false)
                     {
@@ -161,28 +161,28 @@ export class ApiGeneratedService extends ApiSecurityService {
         }
 
         /// <summary>
-        /// Reports SPIDERLY001 if <paramref name="cSharpType"/> is a custom class that won't resolve to a known
+        /// Reports SPIDERLY001 if <paramref name="type"/> is a custom class that won't resolve to a known
         /// TypeScript type in the generated Angular client (i.e. not a primitive, enum, discovered DTO, or discovered entity).
         /// </summary>
         private static void ValidateControllerType(
             SourceProductionContext context,
             string kind,
-            string cSharpType,
+            SpiderlyTypeRef type,
             string controllerName,
             string methodName,
             HashSet<string> knownTsTypes,
             ImmutableArray<string> spiderlyEnumNames,
             Location location)
         {
-            if (cSharpType.IsBaseDataType()
-                || cSharpType == "Task"
-                || cSharpType == "void"
-                || cSharpType.Contains("ActionResult")
-                || cSharpType.Contains("IFormFile")
-                || cSharpType.IsEnum(spiderlyEnumNames))
+            if (type.Raw.IsBaseDataType()
+                || type.Raw == "Task"
+                || type.Raw == "void"
+                || type.Raw.Contains("ActionResult")
+                || type.Raw.Contains("IFormFile")
+                || type.Raw.IsEnum(spiderlyEnumNames))
                 return;
 
-            string target = AngularTypeMapper.GetValidationTargetSymbol(cSharpType, spiderlyEnumNames);
+            string target = AngularTypeMapper.GetValidationTargetSymbol(type, spiderlyEnumNames);
 
             if (string.IsNullOrEmpty(target))
                 return;
@@ -194,7 +194,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                 SpiderlyDiagnostics.UnresolvableControllerType,
                 location ?? Location.None,
                 kind,
-                cSharpType,
+                type.Raw,
                 controllerName,
                 methodName));
         }
