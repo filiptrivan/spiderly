@@ -1,7 +1,6 @@
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace Spiderly.SourceGenerators.Shared
 {
@@ -53,11 +52,9 @@ namespace Spiderly.SourceGenerators.Shared
                 return type.CoreName;
 
             // DTO leaf — checked before the scalar switch because a generic DTO like NamebookDTO<long>
-            // has CoreName "long" and would otherwise be misread as a scalar. ExtractAngularTypeFromGenericCSharpType
-            // owns the special-type mappings (PaginatedResultDTO -> PaginatedResult<T>, NamebookDTO -> Namebook,
-            // CodebookDTO -> Codebook, LazyLoadSelectedIdsResultDTO -> LazyLoadSelectedIdsResult, plain FooDTO -> Foo).
-            if (type.Raw.Contains(Helpers.DTONamespaceEnding))
-                return ExtractAngularTypeFromGenericCSharpType(type.Raw, spiderlyEnumNames); // ManyToOne
+            // has CoreName "long" and would otherwise be misread as a scalar.
+            if (IsDtoName(type.Name))
+                return GetAngularDtoType(type, spiderlyEnumNames); // ManyToOne
 
             // Scalars (ScalarKind already folds nullable variants into their underlying kind).
             switch (type.ScalarKind)
@@ -81,50 +78,65 @@ namespace Spiderly.SourceGenerators.Shared
             return "any"; // eg. "Guid", bare "ActionResult"/"Task", unmapped types
         }
 
+        private static bool IsDtoName(string name)
+            => name != null && name.EndsWith(Helpers.DTONamespaceEnding);
+
         /// <summary>
-        /// cSharp type could be enumerable or class
-        /// List<long> -> number
+        /// Maps a DTO leaf to its TS type. Special framework forms are matched by the EXACT parsed
+        /// outer name — a user DTO whose name merely contains one (e.g. <c>BrandNamebookDTO</c>) is
+        /// that user's type, not the framework's (the legacy string parser's <c>Contains</c> sniffing
+        /// collapsed it). <c>PaginatedResultDTO</c> is the one generic emission; its type argument
+        /// maps through <see cref="GetAngularType(SpiderlyTypeRef, ImmutableArray{string})"/> like
+        /// any other type, so a scalar argument becomes its TS scalar instead of the raw C# name.
         /// </summary>
-        internal static string ExtractAngularTypeFromGenericCSharpType(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
+        private static string GetAngularDtoType(SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames)
         {
-            string result;
+            switch (type.Name)
+            {
+                case "PaginatedResultDTO":
+                    return $"PaginatedResult<{(type.ElementType == null ? "any" : GetAngularType(type.ElementType, spiderlyEnumNames))}>";
+                case "LazyLoadSelectedIdsResultDTO":
+                    return "LazyLoadSelectedIdsResult";
+                case "NamebookDTO":
+                    return "Namebook";
+                case "CodebookDTO":
+                    return "Codebook";
+                default:
+                    return type.Name.Substring(0, type.Name.Length - Helpers.DTONamespaceEnding.Length); // UserDTO -> User
+            }
+        }
 
-            string[] parts = cSharpType.Split('<'); // List, long>
+        /// <summary>
+        /// The single symbol whose TS resolvability decides the SPIDERLY001 diagnostic for a controller
+        /// method type: transport wrappers and collections are unwrapped, and <c>PaginatedResultDTO&lt;T&gt;</c>
+        /// validates its payload <c>T</c> (the container itself is a framework base class that always
+        /// resolves). Scalars come back as their TS mapping (members of <see cref="KnownTsScalars"/>),
+        /// enums as the bare enum name, DTOs as the emitted class name — anything else is the
+        /// unresolvable symbol the diagnostic should report.
+        /// </summary>
+        internal static string GetValidationTargetSymbol(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
+        {
+            SpiderlyTypeRef type = SpiderlyTypeRef.Parse(cSharpType);
 
-            parts[parts.Length - 1] = parts[parts.Length - 1].Replace(">", ""); // long
-
-            if (cSharpType.Contains("PaginatedResultDTO"))
+            while (type != null && type.ElementType != null
+                && (type.IsTransportWrapper || type.IsCollection || type.Name == "PaginatedResultDTO"))
             {
-                result = $"PaginatedResult<{parts[parts.Length - 1].Replace("DTO", "")}>";
-            }
-            else if (cSharpType.Contains("LazyLoadSelectedIdsResultDTO"))
-            {
-                result = "LazyLoadSelectedIdsResult";
-            }
-            else if (cSharpType.Contains("NamebookDTO"))
-            {
-                result = "Namebook";
-            }
-            else if (cSharpType.Contains("CodebookDTO"))
-            {
-                result = "Codebook";
-            }
-            else if (cSharpType.Contains("IFormFile"))
-            {
-                result = "any";
-            }
-            else if (parts[parts.Length - 1].IsBaseDataType())
-            {
-                result = GetAngularType(parts[parts.Length - 1], spiderlyEnumNames); // List<long>
-            }
-            else
-            {
-                result = parts[parts.Length - 1]; // List<UserDTO>
+                type = type.ElementType;
             }
 
-            // WithoutNullableSuffix: a nullable DTO reference ("UserDTO?") would otherwise leak the
-            // C# '?' into emitted TS ("User?"), same class as the nullable-enum TS17019 leak.
-            return result.Replace(Helpers.DTONamespaceEnding, "").Replace("[]", "").WithoutNullableSuffix();
+            if (type == null || string.IsNullOrEmpty(type.Name))
+                return null;
+
+            if (type.Name == "PaginatedResultDTO") // no type argument to validate
+                return "PaginatedResult";
+
+            if (type.CoreName.IsBaseDataType())
+                return GetAngularType(type, spiderlyEnumNames);
+
+            if (IsDtoName(type.Name))
+                return GetAngularDtoType(type, spiderlyEnumNames);
+
+            return type.Name;
         }
     }
 }

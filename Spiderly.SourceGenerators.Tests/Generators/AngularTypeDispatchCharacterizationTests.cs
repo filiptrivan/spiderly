@@ -72,6 +72,19 @@ public class AngularTypeDispatchCharacterizationTests
         => Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharp, Enums));
 
     [Theory]
+    // The paginated container always resolves (framework base class) — its payload is what SPIDERLY001 must check.
+    [InlineData("Task<PaginatedResultDTO<UserDTO>>", "User")]
+    [InlineData("Task<List<UserDTO>>", "User")]
+    [InlineData("NamebookDTO<long>", "Namebook")]
+    [InlineData("List<long>", "number")]
+    [InlineData("List<Guid>", "any")]
+    [InlineData("MyEnum?", "MyEnum")]
+    // An unknown custom class surfaces as itself, so the diagnostic can name it.
+    [InlineData("Task<SomeRandomClass>", "SomeRandomClass")]
+    public void GetValidationTargetSymbol(string cSharp, string expected)
+        => Assert.Equal(expected, AngularTypeMapper.GetValidationTargetSymbol(cSharp, Enums));
+
+    [Theory]
     [InlineData("string", UIControlTypeCodes.TextBox)]
     [InlineData("bool", UIControlTypeCodes.CheckBox)]
     [InlineData("bool?", UIControlTypeCodes.CheckBox)]

@@ -94,4 +94,18 @@ public class AngularTypeGrammarSweepTests
             Assert.DoesNotContain(token, BannedOutputTokens);
     }
 
+    /// <summary>
+    /// The SPIDERLY001 resolvability check compares one symbol against the known-type set, so every
+    /// swept shape must reduce to a bare identifier — never a generic expression, array suffix, or a
+    /// leaked C# marker (any of which could never match the set and would misreport a resolvable type).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AllShapes))]
+    public void GetValidationTargetSymbol_EmitsABareSymbol(string cSharp)
+    {
+        string result = AngularTypeMapper.GetValidationTargetSymbol(cSharp, Enums);
+
+        Assert.False(string.IsNullOrWhiteSpace(result));
+        Assert.Matches(@"^[A-Za-z_][A-Za-z0-9_]*$", result);
+    }
 }

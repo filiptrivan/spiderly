@@ -182,14 +182,10 @@ export class ApiGeneratedService extends ApiSecurityService {
                 || cSharpType.IsEnum(spiderlyEnumNames))
                 return;
 
-            string extracted = AngularTypeMapper.ExtractAngularTypeFromGenericCSharpType(cSharpType, spiderlyEnumNames);
+            string target = AngularTypeMapper.GetValidationTargetSymbol(cSharpType, spiderlyEnumNames);
 
-            if (string.IsNullOrEmpty(extracted))
+            if (string.IsNullOrEmpty(target))
                 return;
-
-            string target = extracted.StartsWith("PaginatedResult<")
-                ? Helpers.ExtractTypeFromGenericType(extracted)
-                : extracted;
 
             if (AngularTypeMapper.IsKnownTsScalar(target) || target.IsEnum(spiderlyEnumNames) || knownTsTypes.Contains(target))
                 return;
