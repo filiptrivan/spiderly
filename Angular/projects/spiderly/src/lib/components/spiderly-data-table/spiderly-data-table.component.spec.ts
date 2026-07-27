@@ -38,6 +38,20 @@ const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
 const emptyList = (): Observable<PaginatedResult> =>
   of({ data: [], totalRecords: 0 } as PaginatedResult).pipe(delay(0));
 
+// Snapshot each filter — PrimeNG mutates/reuses the lazy-load event object.
+const capturingGetList =
+  (captured: Filter[]) =>
+  (filter: Filter): Observable<PaginatedResult> => {
+    captured.push(JSON.parse(JSON.stringify(filter)));
+    return emptyList();
+  };
+
+// Every suite touches persisted table state; wipe both stores between tests.
+afterEach(() => {
+  sessionStorage.clear();
+  localStorage.clear();
+});
+
 function createFixture<T>(host: new () => T): ComponentFixture<T> {
   TestBed.configureTestingModule({
     imports: [host, TranslocoTestingModule.forRoot(translocoTesting())],
@@ -52,6 +66,18 @@ function createFixture<T>(host: new () => T): ComponentFixture<T> {
   const fixture = TestBed.createComponent(host);
   fixture.detectChanges();
   return fixture;
+}
+
+function createWithDataTable<T>(host: new () => T): {
+  fixture: ComponentFixture<T>;
+  host: T;
+  dataTable: SpiderlyDataTableComponent;
+} {
+  const fixture = createFixture(host);
+  const dataTable = fixture.debugElement.query(
+    By.directive(SpiderlyDataTableComponent),
+  ).componentInstance as SpiderlyDataTableComponent;
+  return { fixture, host: fixture.componentInstance, dataTable };
 }
 
 @Component({
@@ -139,28 +165,13 @@ class HostWithDefaultSortComponent {
   ];
   stateKey = DEFAULT_SORT_STATE_KEY;
   captured: Filter[] = [];
-  // Snapshot the filter — PrimeNG mutates/reuses the lazy-load event object.
-  getList = (filter: Filter): Observable<PaginatedResult> => {
-    this.captured.push(JSON.parse(JSON.stringify(filter)));
-    return emptyList();
-  };
+  getList = capturingGetList(this.captured);
 }
 
 describe('SpiderlyDataTableComponent — declared default sort', () => {
   const ID_ASC = [{ field: 'id', order: 1 }];
 
-  function setup(): {
-    host: HostWithDefaultSortComponent;
-    dataTable: SpiderlyDataTableComponent;
-  } {
-    const fixture = createFixture(HostWithDefaultSortComponent);
-    const dataTable = fixture.debugElement.query(
-      By.directive(SpiderlyDataTableComponent),
-    ).componentInstance as SpiderlyDataTableComponent;
-    return { host: fixture.componentInstance, dataTable };
-  }
-
-  afterEach(() => sessionStorage.clear());
+  const setup = () => createWithDataTable(HostWithDefaultSortComponent);
 
   it('sends the declared default sort with the initial load', () => {
     const { host } = setup();
@@ -219,16 +230,19 @@ describe('SpiderlyDataTableComponent — declared default sort', () => {
   `,
 })
 class HostWithHiddenColumnComponent {
-  cols: Column[] = [
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-    { name: 'Name', field: 'name', filterType: 'text' },
-    { name: 'Stock', field: 'stock', filterType: 'numeric', visible: false },
-    { actions: [{ name: 'Details', field: 'Details' }] },
-  ];
+  cols = idNameStockCols;
   getList = emptyList;
 }
 
 const COLUMNS_STATE_KEY = 'sdt-columns-spec';
+
+// Id / Name visible, Stock hidden by declaration, plus an actions column.
+const idNameStockCols: Column[] = [
+  { name: 'Id', field: 'id', filterType: 'numeric' },
+  { name: 'Name', field: 'name', filterType: 'text' },
+  { name: 'Stock', field: 'stock', filterType: 'numeric', visible: false },
+  { actions: [{ name: 'Details', field: 'Details' }] },
+];
 
 @Component({
   imports: [SpiderlyDataTableComponent],
@@ -241,12 +255,7 @@ const COLUMNS_STATE_KEY = 'sdt-columns-spec';
   `,
 })
 class HostWithColumnsStateKeyComponent {
-  cols: Column[] = [
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-    { name: 'Name', field: 'name', filterType: 'text' },
-    { name: 'Stock', field: 'stock', filterType: 'numeric', visible: false },
-    { actions: [{ name: 'Details', field: 'Details' }] },
-  ];
+  cols = idNameStockCols;
   stateKey = COLUMNS_STATE_KEY;
   getList = emptyList;
 }
@@ -273,26 +282,35 @@ async function openChooser(fixture: ComponentFixture<unknown>): Promise<void> {
 
 // Query THIS fixture's popover container — once open, PrimeNG appends it to
 // document.body, where stale popovers from earlier fixtures may also linger.
+function chooserContainer(
+  fixture: ComponentFixture<unknown>,
+): HTMLElement | undefined {
+  const popover = fixture.debugElement.query(By.directive(Popover))
+    .componentInstance as Popover;
+  return popover.container as HTMLElement | undefined;
+}
+
 function chooserOptions(
   fixture: ComponentFixture<unknown>,
 ): { label: string; input: HTMLInputElement }[] {
-  const popover = fixture.debugElement.query(By.directive(Popover))
-    .componentInstance as Popover;
-  const container: HTMLElement | undefined = popover.container;
   return Array.from(
-    container?.querySelectorAll('[data-testid="column-chooser-option"]') ?? [],
+    chooserContainer(fixture)?.querySelectorAll(
+      '[data-testid="column-chooser-option"]',
+    ) ?? [],
   ).map((row) => ({
     label: row.textContent?.trim() ?? '',
     input: row.querySelector<HTMLInputElement>('input[type="checkbox"]')!,
   }));
 }
 
-describe('SpiderlyDataTableComponent — column visibility', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-  });
+function clickOption(fixture: ComponentFixture<unknown>, label: string): void {
+  chooserOptions(fixture)
+    .find((o) => o.label === label)!
+    .input.click();
+  fixture.detectChanges();
+}
 
+describe('SpiderlyDataTableComponent — column visibility', () => {
   it('does not render a column declared visible: false', () => {
     const el: HTMLElement = createFixture(
       HostWithHiddenColumnComponent,
@@ -317,10 +335,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
     const fixture = createFixture(HostWithHiddenColumnComponent);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Stock')!
-      .input.click();
-    fixture.detectChanges();
+    clickOption(fixture, 'Stock');
 
     expect(
       headerTexts(fixture.nativeElement).some((h) => h.includes('Stock')),
@@ -330,12 +345,8 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
   it('persists toggles and restores them for a new table with the same stateKey', async () => {
     const first = createFixture(HostWithColumnsStateKeyComponent);
     await openChooser(first);
-    chooserOptions(first)
-      .find((o) => o.label === 'Name')!
-      .input.click(); // hide Name
-    chooserOptions(first)
-      .find((o) => o.label === 'Stock')!
-      .input.click(); // reveal Stock
+    clickOption(first, 'Name'); // hide Name
+    clickOption(first, 'Stock'); // reveal Stock
     first.destroy();
     TestBed.resetTestingModule();
 
@@ -350,9 +361,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
     const fixture = createFixture(HostWithColumnsStateKeyComponent);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click();
+    clickOption(fixture, 'Name');
 
     expect(
       localStorage.getItem(`${COLUMNS_STATE_KEY}:columns`),
@@ -363,21 +372,14 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
     const fixture = createFixture(HostWithColumnsStateKeyComponent);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click(); // hide Name
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Stock')!
-      .input.click(); // reveal Stock
-    fixture.detectChanges();
+    clickOption(fixture, 'Name'); // hide Name
+    clickOption(fixture, 'Stock'); // reveal Stock
 
-    const reset = fixture.debugElement
-      .query(By.directive(Popover))
-      .componentInstance.container?.querySelector(
-        '[data-testid="column-chooser-reset"]',
-      ) as HTMLButtonElement;
+    const reset = chooserContainer(fixture)?.querySelector<HTMLButtonElement>(
+      '[data-testid="column-chooser-reset"]',
+    );
     expect(reset).withContext('reset button should render').toBeTruthy();
-    reset.click();
+    reset!.click();
     fixture.detectChanges();
 
     const headers = headerTexts(fixture.nativeElement);
@@ -390,10 +392,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
     const fixture = createFixture(HostWithHiddenColumnComponent);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click();
-    fixture.detectChanges();
+    clickOption(fixture, 'Name');
 
     expect(
       headerTexts(fixture.nativeElement).some((h) => h.includes('Name')),
@@ -402,9 +401,30 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
 });
 
 describe('SpiderlyDataTableComponent — hidden-but-constrained reconciliation on load', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
+  it('never persists a reconciliation reveal — a later toggle keeps the stored choice intact', async () => {
+    // User hid Name, but persisted state still filters by it → revealed on init.
+    localStorage.setItem(
+      `${COLUMNS_STATE_KEY}:columns`,
+      JSON.stringify({ name: false }),
+    );
+    sessionStorage.setItem(
+      COLUMNS_STATE_KEY,
+      JSON.stringify({
+        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
+      }),
+    );
+
+    const fixture = createFixture(HostWithColumnsStateKeyComponent);
+    await openChooser(fixture);
+    clickOption(fixture, 'Stock'); // unrelated toggle — persists the override map
+
+    const stored = JSON.parse(
+      localStorage.getItem(`${COLUMNS_STATE_KEY}:columns`)!,
+    );
+    expect(stored['name'])
+      .withContext('transient reveal must not overwrite the stored user choice')
+      .toBe(false);
+    expect(stored['stock']).toBeTrue();
   });
 
   it('reveals hidden columns that persisted state still filters or sorts by', () => {
@@ -435,30 +455,25 @@ describe('SpiderlyDataTableComponent — hidden-but-constrained reconciliation o
   });
 });
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithLockedColumnComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric', lockVisible: true },
+    { name: 'Name', field: 'name', filterType: 'text' },
+  ];
+  getList = emptyList;
+}
+
 describe('SpiderlyDataTableComponent — visibility guards', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-  });
-
   it('shows a lockVisible column as checked and disabled', async () => {
-    @Component({
-      imports: [SpiderlyDataTableComponent],
-      template: `
-        <spiderly-data-table
-          [cols]="cols"
-          [getPaginatedListObservableMethod]="getList"
-        ></spiderly-data-table>
-      `,
-    })
-    class HostWithLockedColumnComponent {
-      cols: Column[] = [
-        { name: 'Id', field: 'id', filterType: 'numeric', lockVisible: true },
-        { name: 'Name', field: 'name', filterType: 'text' },
-      ];
-      getList = emptyList;
-    }
-
     const fixture = createFixture(HostWithLockedColumnComponent);
 
     await openChooser(fixture);
@@ -472,10 +487,7 @@ describe('SpiderlyDataTableComponent — visibility guards', () => {
     const fixture = createFixture(HostWithColumnsStateKeyComponent);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click(); // hide Name — Id is now the only visible data column
-    fixture.detectChanges();
+    clickOption(fixture, 'Name'); // hide Name — Id is now the only visible data column
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -483,10 +495,7 @@ describe('SpiderlyDataTableComponent — visibility guards', () => {
       chooserOptions(fixture).find((o) => o.label === 'Id')!.input.disabled,
     ).toBeTrue();
 
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Stock')!
-      .input.click(); // reveal Stock — Id is hideable again
-    fixture.detectChanges();
+    clickOption(fixture, 'Stock'); // reveal Stock — Id is hideable again
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -513,30 +522,11 @@ class HostForClearOnHideComponent {
     { name: 'Stock', field: 'stock', filterType: 'numeric' },
   ];
   captured: Filter[] = [];
-  // Snapshot the filter — PrimeNG mutates/reuses the lazy-load event object.
-  getList = (filter: Filter): Observable<PaginatedResult> => {
-    this.captured.push(JSON.parse(JSON.stringify(filter)));
-    return emptyList();
-  };
+  getList = capturingGetList(this.captured);
 }
 
 describe('SpiderlyDataTableComponent — hiding a column clears its filter and sort', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-  });
-
-  function setup(): {
-    fixture: ComponentFixture<HostForClearOnHideComponent>;
-    host: HostForClearOnHideComponent;
-    dataTable: SpiderlyDataTableComponent;
-  } {
-    const fixture = createFixture(HostForClearOnHideComponent);
-    const dataTable = fixture.debugElement.query(
-      By.directive(SpiderlyDataTableComponent),
-    ).componentInstance as SpiderlyDataTableComponent;
-    return { fixture, host: fixture.componentInstance, dataTable };
-  }
+  const setup = () => createWithDataTable(HostForClearOnHideComponent);
 
   it('clears the hidden column\'s filter and sort and reloads exactly once, without them', async () => {
     const { fixture, host, dataTable } = setup();
@@ -550,10 +540,7 @@ describe('SpiderlyDataTableComponent — hiding a column clears its filter and s
     const loadsBefore = host.captured.length;
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click();
-    fixture.detectChanges();
+    clickOption(fixture, 'Name');
 
     expect(host.captured.length)
       .withContext('one reload after hiding a constrained column')
@@ -576,54 +563,40 @@ describe('SpiderlyDataTableComponent — hiding a column clears its filter and s
     const loadsBefore = host.captured.length;
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Name')!
-      .input.click();
-    fixture.detectChanges();
+    clickOption(fixture, 'Name');
 
     expect(host.captured.length).toBe(loadsBefore);
   });
 });
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [defaultSortField]="'id'"
+      [stateKey]="'sdt-hidden-default-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithHideableDefaultSortComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Name', field: 'name', filterType: 'text' },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
 describe('SpiderlyDataTableComponent — hiding the default-sort column', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-  });
-
   it('leaves the reload unsorted instead of re-applying an invisible default sort', async () => {
-    @Component({
-      imports: [SpiderlyDataTableComponent],
-      template: `
-        <spiderly-data-table
-          [cols]="cols"
-          [defaultSortField]="'id'"
-          [stateKey]="'sdt-hidden-default-sort-spec'"
-          [getPaginatedListObservableMethod]="getList"
-        ></spiderly-data-table>
-      `,
-    })
-    class HostWithHideableDefaultSortComponent {
-      cols: Column[] = [
-        { name: 'Id', field: 'id', filterType: 'numeric' },
-        { name: 'Name', field: 'name', filterType: 'text' },
-      ];
-      captured: Filter[] = [];
-      getList = (filter: Filter): Observable<PaginatedResult> => {
-        this.captured.push(JSON.parse(JSON.stringify(filter)));
-        return emptyList();
-      };
-    }
-
     const fixture = createFixture(HostWithHideableDefaultSortComponent);
     const host = fixture.componentInstance;
     expect(host.captured[0].multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
 
     await openChooser(fixture);
-    chooserOptions(fixture)
-      .find((o) => o.label === 'Id')!
-      .input.click();
-    fixture.detectChanges();
+    clickOption(fixture, 'Id');
 
     const last = host.captured[host.captured.length - 1];
     expect((last.multiSortMeta ?? []).some((m) => m.field === 'id'))
@@ -647,10 +620,7 @@ describe('SpiderlyDataTableComponent — no declared default sort', () => {
     })
     class HostWithoutDefaultSortComponent {
       cols = cols;
-      getList = (filter: Filter): Observable<PaginatedResult> => {
-        captured.push(JSON.parse(JSON.stringify(filter)));
-        return emptyList();
-      };
+      getList = capturingGetList(captured);
     }
 
     createFixture(HostWithoutDefaultSortComponent);

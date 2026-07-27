@@ -172,6 +172,9 @@ export class SpiderlyDataTableComponent
   /** Columns currently rendered — `cols` minus the hidden ones. Actions columns always render. */
   visibleCols: Column[] = [];
 
+  /** Cached count of visible data columns, so template bindings don't re-derive it per CD cycle. */
+  private visibleDataColsCount = 0;
+
   /** Data columns offered in the column chooser (actions columns are excluded). */
   chooserCols: Column[] = [];
 
@@ -309,7 +312,7 @@ export class SpiderlyDataTableComponent
 
     this.restoreColumnVisibility();
     this.reconcileVisibilityWithPersistedConstraints();
-    this.chooserCols = this.cols.filter((col) => col.field);
+    this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
 
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
@@ -330,6 +333,18 @@ export class SpiderlyDataTableComponent
   private columnVisibilityOverrides: Record<string, boolean> = {};
 
   /**
+   * Columns revealed by the load-time reconciliation. Kept apart from
+   * `columnVisibilityOverrides` so persisting a later unrelated toggle can't promote a
+   * transient safety reveal into a durable choice.
+   */
+  private revealedByConstraint = new Set<string>();
+
+  /** A data column shows values for a `field`; anything else (the actions column) always renders. */
+  private static isDataColumn(col: Column): boolean {
+    return !!col.field;
+  }
+
+  /**
    * Storage slot for the visibility overrides. Deliberately ALWAYS localStorage, even when
    * `stateStorage` is 'session': the column layout is a durable preference, while filters
    * are a transient working set — different natural lifetimes.
@@ -338,15 +353,19 @@ export class SpiderlyDataTableComponent
     return this.resolvedStateKey ? `${this.resolvedStateKey}:columns` : null;
   }
 
-  /** Actions columns (no `field`) always render; data columns follow override, then declared default. */
+  /** Actions columns always render; data columns follow reveal/override, then declared default. */
   isColumnVisible(col: Column): boolean {
-    if (!col.field) return true;
+    if (!SpiderlyDataTableComponent.isDataColumn(col)) return true;
     if (col.lockVisible) return true; // pinned — wins over any (possibly stale) override
+    if (this.revealedByConstraint.has(col.field)) return true;
     return this.columnVisibilityOverrides[col.field] ?? col.visible !== false;
   }
 
   private refreshVisibleCols(): void {
     this.visibleCols = this.cols.filter((col) => this.isColumnVisible(col));
+    this.visibleDataColsCount = this.visibleCols.filter(
+      SpiderlyDataTableComponent.isDataColumn,
+    ).length;
   }
 
   /**
@@ -356,10 +375,12 @@ export class SpiderlyDataTableComponent
   canToggleColumn(col: Column): boolean {
     if (col.lockVisible) return false;
     if (!this.isColumnVisible(col)) return true;
-    return this.visibleCols.filter((c) => c.field).length > 1;
+    return this.visibleDataColsCount > 1;
   }
 
   toggleColumn(col: Column, visible: boolean): void {
+    this.revealedByConstraint.delete(col.field); // an explicit choice supersedes a safety reveal
+
     if (visible === (col.visible !== false)) {
       delete this.columnVisibilityOverrides[col.field]; // back at the declared default
     } else {
@@ -374,10 +395,13 @@ export class SpiderlyDataTableComponent
 
   /** Restores every column to its declared default and forgets the stored override. */
   resetColumnVisibility(): void {
-    const wasVisible = this.visibleCols.filter((col) => col.field);
+    const wasVisible = this.visibleCols.filter(
+      SpiderlyDataTableComponent.isDataColumn,
+    );
 
+    this.revealedByConstraint.clear();
     this.columnVisibilityOverrides = {};
-    if (this.columnsStateKey) localStorage.removeItem(this.columnsStateKey);
+    this.persistColumnVisibility();
     this.refreshVisibleCols();
 
     // Columns the reset just hid follow the same rule as a manual hide.
@@ -397,7 +421,11 @@ export class SpiderlyDataTableComponent
     let cleared = false;
     for (const col of cols) {
       const filterKey = col.filterField ?? col.field;
-      if (this.hasActiveFilter(filterKey)) {
+      if (
+        SpiderlyDataTableComponent.isActiveFilterMeta(
+          this.table.filters?.[filterKey],
+        )
+      ) {
         delete this.table.filters[filterKey];
         cleared = true;
       }
@@ -412,11 +440,6 @@ export class SpiderlyDataTableComponent
     }
 
     if (cleared) this.table._filter(); // re-emits the lazy load and saves the cleaned state
-  }
-
-  private hasActiveFilter(field: string): boolean {
-    const meta = this.table.filters?.[field];
-    return meta != null && SpiderlyDataTableComponent.isActiveFilterMeta(meta);
   }
 
   /** Whether filter metadata (single or array) carries a real constraint, not just an empty slot. */
@@ -445,12 +468,33 @@ export class SpiderlyDataTableComponent
   private restoreColumnVisibility(): void {
     if (!this.columnsStateKey) return;
 
+    this.columnVisibilityOverrides =
+      SpiderlyDataTableComponent.readStoredJson(
+        localStorage,
+        this.columnsStateKey,
+      ) ?? {};
+  }
+
+  /** Parses a JSON entry from web storage; missing or corrupted entries read as null. */
+  private static readStoredJson(storage: Storage, key: string): any {
     try {
-      this.columnVisibilityOverrides =
-        JSON.parse(localStorage.getItem(this.columnsStateKey) ?? '{}') ?? {};
+      return JSON.parse(storage.getItem(key) ?? 'null');
     } catch {
-      this.columnVisibilityOverrides = {}; // corrupted entry — behave like a fresh table
+      return null;
     }
+  }
+
+  /**
+   * PrimeNG's persisted table state (filters/sort/pagination), read directly from storage
+   * because we need it before PrimeNG's restoreState() runs on the first [value] change.
+   */
+  private persistedTableState(): any {
+    if (!this.resolvedStateKey) return null;
+
+    return SpiderlyDataTableComponent.readStoredJson(
+      this.stateStorage === 'local' ? localStorage : sessionStorage,
+      this.resolvedStateKey,
+    );
   }
 
   /**
@@ -460,17 +504,7 @@ export class SpiderlyDataTableComponent
    * In-memory only — once the constraint is gone, the user's stored choice reapplies.
    */
   private reconcileVisibilityWithPersistedConstraints(): void {
-    if (!this.resolvedStateKey) return;
-
-    const storage =
-      this.stateStorage === 'local' ? localStorage : sessionStorage;
-
-    let state: any;
-    try {
-      state = JSON.parse(storage.getItem(this.resolvedStateKey) ?? 'null');
-    } catch {
-      return;
-    }
+    const state = this.persistedTableState();
     if (!state) return;
 
     const constrained = new Set<string>();
@@ -483,9 +517,10 @@ export class SpiderlyDataTableComponent
     }
 
     for (const col of this.cols) {
-      if (!col.field || this.isColumnVisible(col)) continue;
+      if (!SpiderlyDataTableComponent.isDataColumn(col)) continue;
+      if (this.isColumnVisible(col)) continue;
       if (constrained.has(col.field) || constrained.has(col.filterField)) {
-        this.columnVisibilityOverrides[col.field] = true;
+        this.revealedByConstraint.add(col.field);
       }
     }
   }
@@ -509,17 +544,8 @@ export class SpiderlyDataTableComponent
   }
 
   private persistedMultiSortMeta(): SortMeta[] | null {
-    if (!this.resolvedStateKey) return null;
-
-    const storage =
-      this.stateStorage === 'local' ? localStorage : sessionStorage;
-
-    try {
-      const state = JSON.parse(storage.getItem(this.resolvedStateKey) ?? 'null');
-      return state?.multiSortMeta?.length ? state.multiSortMeta : null;
-    } catch {
-      return null; // corrupted state entry — behave like a fresh table
-    }
+    const state = this.persistedTableState();
+    return state?.multiSortMeta?.length ? state.multiSortMeta : null;
   }
 
   // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()
