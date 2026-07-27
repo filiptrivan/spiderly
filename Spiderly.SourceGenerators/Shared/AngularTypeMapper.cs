@@ -164,7 +164,9 @@ namespace Spiderly.SourceGenerators.Shared
                 result = parts[parts.Length - 1]; // List<UserDTO>
             }
 
-            return result.Replace(Helpers.DTONamespaceEnding, "").Replace("[]", "");
+            // WithoutNullableSuffix: a nullable DTO reference ("UserDTO?") would otherwise leak the
+            // C# '?' into emitted TS ("User?"), same class as the nullable-enum TS17019 leak.
+            return result.Replace(Helpers.DTONamespaceEnding, "").Replace("[]", "").WithoutNullableSuffix();
         }
     }
 }
