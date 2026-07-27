@@ -58,14 +58,6 @@ public class AngularTypeDispatchCharacterizationTests
         => Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharp, Enums));
 
     [Theory]
-    [InlineData("MyEnum", "MyEnum")]
-    // Same invariant as GetAngularType: the emitted import symbol is the bare enum name, never `MyEnum?`.
-    [InlineData("MyEnum?", "MyEnum")]
-    [InlineData("UserDTO", "User")]
-    public void GetAngularDataTypeForImport(string cSharp, string expected)
-        => Assert.Equal(expected, AngularTypeMapper.GetAngularDataTypeForImport(cSharp, Enums));
-
-    [Theory]
     [InlineData("string", UIControlTypeCodes.TextBox)]
     [InlineData("bool", UIControlTypeCodes.CheckBox)]
     [InlineData("bool?", UIControlTypeCodes.CheckBox)]

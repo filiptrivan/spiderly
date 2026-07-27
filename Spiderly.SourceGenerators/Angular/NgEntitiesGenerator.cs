@@ -79,8 +79,6 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, Namebook } from 'spider
                 List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties, spiderlyEnumNames);
                 string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
 
-                sbImports.Append(string.Join("\n", AngularTypeMapper.GetAngularImports(DTOProperties, spiderlyEnumNames)));
-
                 sb.AppendLine($$"""
 
 

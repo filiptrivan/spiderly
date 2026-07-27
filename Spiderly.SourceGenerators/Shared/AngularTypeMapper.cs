@@ -7,35 +7,6 @@ namespace Spiderly.SourceGenerators.Shared
 {
     public static class AngularTypeMapper
     {
-        /// <summary>
-        /// Pass the properties with the C# data types. <paramref name="spiderlyEnumNames"/> is the
-        /// <c>[SpiderlyEnum]</c> registry used to decide whether a non-DTO type is an enum.
-        /// </summary>
-        public static List<string> GetAngularImports(List<SpiderlyProperty> properties, ImmutableArray<string> spiderlyEnumNames, bool generateClassImports = false, string importPath = null)
-        {
-            List<string> result = new();
-
-            foreach (SpiderlyProperty prop in properties)
-            {
-                string cSharpDataType = prop.Type.Raw;
-                if (cSharpDataType.IsBaseDataType() == false)
-                {
-                    string angularDataType = GetAngularDataTypeForImport(cSharpDataType, spiderlyEnumNames);
-
-                    if (generateClassImports && cSharpDataType.Contains($"{Helpers.DTONamespaceEnding}"))
-                    {
-                        result.Add($"import {{ {angularDataType} }} from \"./{importPath}entities.generated\";");
-                    }
-                    else if (generateClassImports && cSharpDataType.IsEnum(spiderlyEnumNames))
-                    {
-                        result.Add($"import {{ {angularDataType} }} from \"../../enums/generated/{importPath}enums.generated\";"); // TODO FT: When you need, implement so you can also send enums from the controller
-                    }
-                }
-            }
-
-            return result.Distinct().ToList();
-        }
-
         private static readonly HashSet<string> KnownTsScalars = new()
         {
             "string", "boolean", "Date", "number", "any"
@@ -108,17 +79,6 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             return "any"; // eg. "Guid", bare "ActionResult"/"Task", unmapped types
-        }
-
-        internal static string GetAngularDataTypeForImport(string CSharpDataType, ImmutableArray<string> spiderlyEnumNames)
-        {
-            //if (ExtractAngularTypeFromGenericCSharpType(CSharpDataType).IsBaseType()) // TODO FT: We were checking for the C# type, which wasn't correct, but add correct code here if we need in the future
-            //    return null;
-
-            // Enums need no special branch: Extract already reduces every enum shape ("MyEnum",
-            // "MyEnum?", "List<MyEnum>") to the bare core name — same no-'?'-in-TS invariant as the
-            // type emission, enforced once at Extract's exit.
-            return ExtractAngularTypeFromGenericCSharpType(CSharpDataType, spiderlyEnumNames);
         }
 
         /// <summary>

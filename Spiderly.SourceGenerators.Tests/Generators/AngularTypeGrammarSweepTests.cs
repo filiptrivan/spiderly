@@ -94,16 +94,4 @@ public class AngularTypeGrammarSweepTests
             Assert.DoesNotContain(token, BannedOutputTokens);
     }
 
-    [Theory]
-    [InlineData(EnumCore)]
-    [InlineData($"{EnumCore}?")]
-    [InlineData(DtoCore)]
-    [InlineData($"{DtoCore}?")]
-    public void GetAngularDataTypeForImport_EmitsValidImportSymbol(string cSharp)
-    {
-        string result = AngularTypeMapper.GetAngularDataTypeForImport(cSharp, Enums);
-
-        Assert.False(string.IsNullOrWhiteSpace(result));
-        Assert.Matches(@"^[A-Za-z_][A-Za-z0-9_]*$", result);
-    }
 }
