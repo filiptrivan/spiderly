@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spiderly.SourceGenerators\Spiderly.SourceGenerators.csproj" />
+    <ProjectReference Include="..\Spiderly.ZooGenerator\Spiderly.ZooGenerator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

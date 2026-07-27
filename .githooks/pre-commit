@@ -8,8 +8,8 @@ set -e
 staged=$(git diff --cached --name-only)
 
 # Hand-maintained; extend when adding a contract (docs/framework-metadata-ssot.md "Adding a new contract").
-ssot_src='^(Spiderly\.MetadataExporter/|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
-ssot_artifacts='^(framework-metadata\.json|claude-plugins/docs/[^/]+/references/[^/]+\.generated\.md)'
+ssot_src='^(Spiderly\.MetadataExporter/|Spiderly\.ZooGenerator/|Spiderly\.SourceGenerators/Models/SpiderlyTypeRef\.cs|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
+ssot_artifacts='^(framework-metadata\.json|claude-plugins/docs/[^/]+/references/[^/]+\.generated\.md|tests/e2e-fixtures/backend/entities/ZooShapes\.cs)'
 ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/MatchModeCodes\.cs|Angular/projects/spiderly/src/lib/errors/api-error-codes\.ts|Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes\.ts)$'
 bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
@@ -20,8 +20,8 @@ if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
 
   tools/regen-metadata.sh
 
-  stale=$(git diff --name-only -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md')
-  untracked_artifacts=$(git ls-files --others --exclude-standard -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md')
+  stale=$(git diff --name-only -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md' tests/e2e-fixtures/backend/entities/ZooShapes.cs)
+  untracked_artifacts=$(git ls-files --others --exclude-standard -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md' tests/e2e-fixtures/backend/entities/ZooShapes.cs)
 
   if [ -n "$stale$untracked_artifacts" ]; then
     # Auto-staging is only safe when the regen input (working tree) matches what is being
@@ -36,7 +36,7 @@ if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
       echo "pre-commit: stage (or stash) those sources, then retry the commit."
       exit 1
     fi
-    git add framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md'
+    git add framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md' tests/e2e-fixtures/backend/entities/ZooShapes.cs
     echo "pre-commit: artifacts were stale — regenerated and auto-staged into this commit:"
     printf '%s\n' $stale $untracked_artifacts | sed 's/^/  /'
   else

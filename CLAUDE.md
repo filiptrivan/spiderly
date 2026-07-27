@@ -39,7 +39,7 @@ Changing `ApiErrorCodes` also changes the framework-metadata SSOT — regenerate
 
 ## Framework metadata SSOT — regenerate after contract changes
 
-`framework-metadata.json` (repo root) and `claude-plugins/docs/*/references/*.generated.md` are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
+`framework-metadata.json` (repo root), `claude-plugins/docs/*/references/*.generated.md`, and the type-zoo e2e fixture `tests/e2e-fixtures/backend/entities/ZooShapes.cs` (one entity property per supported shape axis, derived from `SpiderlyTypeRef.ScalarKindByName` by `Spiderly.ZooGenerator`) are **committed build artifacts** derived from code. CI regenerates them and fails on any diff. After changing any covered contract — `ApiErrorCodes`, `MatchModeCodes`, `UIControlTypeCodes`, `SecurityBaseController` endpoints, `Spiderly.Shared.Attributes.*`, Angular `helper-functions.ts` / `ValidatorAbstractService` / `spiderly-*` controls, or the shape-axis data in `SpiderlyTypeRef` — **including only editing their XML `<summary>` docs**, regenerate and commit the artifacts in the same commit:
 
 ```bash
 tools/regen-metadata.sh

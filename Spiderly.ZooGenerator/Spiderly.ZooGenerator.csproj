@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Internal build tool. NOT packed or shipped (same model as Spiderly.MetadataExporter).
+    Emits tests/e2e-fixtures/backend/entities/ZooShapes.cs — the "type zoo" fixture entity with one
+    property per supported shape axis — from the axis data the production dispatch reads
+    (SpiderlyTypeRef.ScalarKindByName + the [SpiderlyEnum] axis). Run via tools/regen-metadata.sh;
+    CI and the pre-commit hook fail on drift. See docs/framework-metadata-ssot.md.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Referenced as a plain library (not an analyzer) for the internal axis data;
+         InternalsVisibleTo("Spiderly.ZooGenerator") grants access. -->
+    <ProjectReference Include="..\Spiderly.SourceGenerators\Spiderly.SourceGenerators.csproj" />
+  </ItemGroup>
+
+</Project>

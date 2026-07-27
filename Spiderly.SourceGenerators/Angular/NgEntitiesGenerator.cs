@@ -115,7 +115,9 @@ export class {{angularClassIdentifier}} extends BaseEntity
             Helpers.WriteToTheFile(sbImports.ToString(), outputPath);
         }
 
-        private static List<string> GetAllAngularPropertyDefinitions(List<SpiderlyProperty> DTOProperties, ImmutableArray<string> spiderlyEnumNames)
+        // Internal (not private): the zoo-fixture tests push the full shape axis through this exact
+        // emission seam — it produced the nullable-enum 'prop?: MyEnum?;' TS17019 leak.
+        internal static List<string> GetAllAngularPropertyDefinitions(List<SpiderlyProperty> DTOProperties, ImmutableArray<string> spiderlyEnumNames)
         {
             List<string> result = new();
 

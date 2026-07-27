@@ -12,3 +12,7 @@ fi
 dotnet run --project Spiderly.MetadataExporter -c "${1:-Debug}" -- --out framework-metadata.json
 node tools/extract-ts-metadata.mjs
 node tools/gen-skill-docs.mjs
+
+# Type-zoo e2e fixture: one entity property per supported shape axis, derived from the
+# generators' own axis data (SpiderlyTypeRef.ScalarKindByName + the [SpiderlyEnum] axis).
+dotnet run --project Spiderly.ZooGenerator -c "${1:-Debug}" -- --out tests/e2e-fixtures/backend/entities/ZooShapes.cs

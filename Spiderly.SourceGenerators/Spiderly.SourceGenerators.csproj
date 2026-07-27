@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Spiderly.SourceGenerators.Tests" />
+    <InternalsVisibleTo Include="Spiderly.ZooGenerator" />
   </ItemGroup>
 
   <ItemGroup>

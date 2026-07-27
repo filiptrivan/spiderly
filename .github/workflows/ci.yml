@@ -42,13 +42,14 @@ jobs:
           node-version-file: '.nvmrc'
 
       # Single-source-of-truth guard: framework-metadata.json (emitted by the C# exporter, then
-      # augmented by the TS extractor) and the generated skill reference docs must match the committed
+      # augmented by the TS extractor), the generated skill reference docs, and the type-zoo e2e
+      # fixture (ZooShapes.cs, derived from the generators' shape-axis data) must match the committed
       # copies. If a contract changed in code without regenerating, this fails — see docs/framework-metadata-ssot.md.
       - name: Verify framework-metadata + generated docs are in sync
         run: |
           tools/regen-metadata.sh Release
-          if ! git diff --exit-code -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md'; then
-            echo "::error::framework-metadata.json or generated skill docs are stale. Regenerate and commit:"
+          if ! git diff --exit-code -- framework-metadata.json 'claude-plugins/docs/*/references/*.generated.md' tests/e2e-fixtures/backend/entities/ZooShapes.cs; then
+            echo "::error::framework-metadata.json, generated skill docs, or the zoo fixture are stale. Regenerate and commit:"
             echo "::error::  tools/regen-metadata.sh"
             exit 1
           fi
