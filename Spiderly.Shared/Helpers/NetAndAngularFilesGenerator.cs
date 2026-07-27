@@ -4073,6 +4073,7 @@ import { FormsModule } from '@angular/forms';
 import { SpiderlyLayoutComponent, SpiderlyMenuItem, SecurityPermissionCodes } from 'spiderly';
 import { CommonModule } from '@angular/common';
 import { PermissionCodes } from '../enums/enums.generated';
+import { PrimeIcons } from 'primeng/api';
 
 @Component({
     selector: 'layout',
@@ -4100,12 +4101,12 @@ export class LayoutComponent {
                 items: [
                     { 
                         label: this.translocoService.translate('Home'), 
-                        icon: 'pi pi-fw pi-home', 
+                        icon: PrimeIcons.HOME,
                         routerLink: [''],
                     },
                     {
                         label: this.translocoService.translate('Administration'),
-                        icon: 'pi pi-fw pi-cog',
+                        icon: PrimeIcons.COG,
                         hasPermission: (permissionCodes: string[]): boolean => {
                             return (
                                 permissionCodes?.includes(PermissionCodes.ReadUser) ||
@@ -4115,7 +4116,7 @@ export class LayoutComponent {
                         items: [
                             {
                                 label: this.translocoService.translate('UserList'),
-                                icon: 'pi pi-fw pi-user',
+                                icon: PrimeIcons.USER,
                                 routerLink: [`/${this.config.administrationSlug}/users`],
                                 hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
@@ -4125,7 +4126,7 @@ export class LayoutComponent {
                             },
                             {
                                 label: this.translocoService.translate('RoleList'),
-                                icon: 'pi pi-fw pi-id-card',
+                                icon: PrimeIcons.ID_CARD,
                                 routerLink: [`/${this.config.administrationSlug}/roles`],
                                 hasPermission: (permissionCodes: string[]): boolean => {
                                     return (
