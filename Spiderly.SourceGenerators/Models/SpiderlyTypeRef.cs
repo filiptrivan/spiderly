@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Spiderly.SourceGenerators.Models
@@ -23,11 +24,45 @@ namespace Spiderly.SourceGenerators.Models
         /// <summary>
         /// Generic outer types treated as collections. Mirrors the loose <c>IsEnumerable</c> contract
         /// (List / IList / arrays); the read-only interfaces are included for completeness.
+        /// Internal (not private) because it is a supported-shape axis: tests and the zoo-fixture
+        /// generator enumerate it, so coverage grows automatically with the dispatch itself.
         /// </summary>
-        private static readonly string[] CollectionTypeNames =
+        internal static readonly string[] CollectionTypeNames =
         {
             "List", "IList", "ICollection", "IEnumerable", "IReadOnlyList", "IReadOnlyCollection"
         };
+
+        /// <summary>
+        /// Async / MVC transport wrappers the Angular mappers unwrap to the awaited body
+        /// (<c>Task&lt;T&gt;</c> -> <c>T</c>). A supported-shape axis, same as
+        /// <see cref="CollectionTypeNames"/> — enumerable by tests and the zoo-fixture generator.
+        /// </summary>
+        internal static readonly string[] TransportWrapperNames =
+        {
+            "Task", "ValueTask", "ActionResult", "IActionResult"
+        };
+
+        /// <summary>
+        /// Scalar-name axis: every C# scalar type name the generators support, mapped to its
+        /// dispatch bucket. <see cref="ScalarKind"/> is a lookup into this table, so the production
+        /// dispatch and everything derived from it (tests, the zoo fixture) cannot drift — adding a
+        /// scalar here is the single change that fans out to all of them.
+        /// </summary>
+        internal static readonly IReadOnlyDictionary<string, SpiderlyScalarKind> ScalarKindByName =
+            new Dictionary<string, SpiderlyScalarKind>
+            {
+                ["string"] = SpiderlyScalarKind.String,
+                ["bool"] = SpiderlyScalarKind.Boolean,
+                ["DateTime"] = SpiderlyScalarKind.DateTime,
+                ["DateOnly"] = SpiderlyScalarKind.DateOnly,
+                ["TimeOnly"] = SpiderlyScalarKind.TimeOnly,
+                ["long"] = SpiderlyScalarKind.Integer,
+                ["int"] = SpiderlyScalarKind.Integer,
+                ["byte"] = SpiderlyScalarKind.Integer,
+                ["decimal"] = SpiderlyScalarKind.Decimal,
+                ["float"] = SpiderlyScalarKind.Decimal,
+                ["double"] = SpiderlyScalarKind.Decimal,
+            };
 
         private SpiderlyTypeRef(string raw, string name, bool isNullable, bool isCollection, SpiderlyTypeRef elementType)
         {
@@ -91,24 +126,9 @@ namespace Spiderly.SourceGenerators.Models
                 if (IsCollection)
                     return SpiderlyScalarKind.Other;
 
-                switch (CoreName)
-                {
-                    case "string": return SpiderlyScalarKind.String;
-                    case "bool": return SpiderlyScalarKind.Boolean;
-                    case "DateTime": return SpiderlyScalarKind.DateTime;
-                    case "DateOnly": return SpiderlyScalarKind.DateOnly;
-                    case "TimeOnly": return SpiderlyScalarKind.TimeOnly;
-                    case "long":
-                    case "int":
-                    case "byte":
-                        return SpiderlyScalarKind.Integer;
-                    case "decimal":
-                    case "float":
-                    case "double":
-                        return SpiderlyScalarKind.Decimal;
-                    default:
-                        return SpiderlyScalarKind.Other;
-                }
+                return CoreName != null && ScalarKindByName.TryGetValue(CoreName, out SpiderlyScalarKind kind)
+                    ? kind
+                    : SpiderlyScalarKind.Other;
             }
         }
 

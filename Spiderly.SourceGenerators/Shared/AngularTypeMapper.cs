@@ -68,7 +68,7 @@ namespace Spiderly.SourceGenerators.Shared
             // A bare wrapper with no type argument (e.g. "IActionResult", "Task") carries no typed body.
             // Matched by simple (unqualified) name, the form controllers are written in; fully-qualified
             // wrapper names (e.g. System.Threading.Tasks.Task<...>) are intentionally out of scope.
-            if (type.Name == "Task" || type.Name == "ValueTask" || type.Name == "ActionResult" || type.Name == "IActionResult")
+            if (SpiderlyTypeRef.TransportWrapperNames.Contains(type.Name))
                 return type.ElementType == null ? "any" : GetAngularType(type.ElementType, spiderlyEnumNames);
 
             // Collections recurse on the element, so arbitrary nesting (List<List<T>>, Task<List<T>>, ...) works.
