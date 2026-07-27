@@ -35,7 +35,10 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("double", "number")]
     [InlineData("byte", "number")]
     [InlineData("MyEnum", "MyEnum")]
+    // C# nullability must never reach emitted TS — `MyEnum?` is invalid TypeScript in type position.
+    [InlineData("MyEnum?", "MyEnum")]
     [InlineData("List<MyEnum>", "MyEnum[]")]
+    [InlineData("List<MyEnum>?", "MyEnum[]")]
     [InlineData("List<long>", "number[]")]
     [InlineData("UserDTO", "User")]
     [InlineData("List<UserDTO>", "User[]")]
@@ -53,6 +56,14 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("IActionResult", "any")]
     public void GetAngularType(string cSharp, string expected)
         => Assert.Equal(expected, AngularTypeMapper.GetAngularType(cSharp, Enums));
+
+    [Theory]
+    [InlineData("MyEnum", "MyEnum")]
+    // Same invariant as GetAngularType: the emitted import symbol is the bare enum name, never `MyEnum?`.
+    [InlineData("MyEnum?", "MyEnum")]
+    [InlineData("UserDTO", "User")]
+    public void GetAngularDataTypeForImport(string cSharp, string expected)
+        => Assert.Equal(expected, AngularTypeMapper.GetAngularDataTypeForImport(cSharp, Enums));
 
     [Theory]
     [InlineData("string", UIControlTypeCodes.TextBox)]
