@@ -157,7 +157,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// The single source for the <c>{Crud}{EntityName}</c> permission-code convention (e.g. <c>ReadProduct</c>).
         /// Both the generated <c>PermissionCodes</c> constants (via <see cref="GetPermissionCodesForEntites"/>) and the
-        /// boundary <c>[HasPermission(...)]</c> attribute (via <see cref="GetPermissionAttribute"/>) build their codes
+        /// boundary <c>[AuthGuard(...)]</c> attribute (via <see cref="GetAuthGuardAttribute"/>) build their codes
         /// through here, so the attribute can never drift from a real permission code.
         /// </summary>
         public static string GetEntityPermissionCode(SpiderlyClass entity, CrudCodes crudCode)
@@ -196,18 +196,24 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// Returns the boundary authorization attribute for a CRUD operation on <paramref name="entity"/> —
-        /// e.g. <c>[HasPermission("ReadProduct")]</c> — with a trailing newline + indent so it can be emitted
-        /// inline before a generated action, or an empty string when the entity opts out via [DoNotAuthorize].
+        /// Returns the boundary guard for a CRUD operation on <paramref name="entity"/> — e.g.
+        /// <c>[AuthGuard("ReadProduct")]</c> — with a trailing newline + indent so it can be emitted inline before
+        /// a generated action. An entity that opts out via <c>[DoNotAuthorize]</c> still gets a bare
+        /// <c>[AuthGuard]</c>: opting out of the PERMISSION check must never silently opt out of authentication.
         /// The permission code comes from <see cref="GetEntityPermissionCode"/> — the same source as the generated
         /// <c>PermissionCodes</c> constants — so the attribute always references a real permission code.
         /// </summary>
-        public static string GetPermissionAttribute(SpiderlyClass entity, CrudCodes crudCode)
+        /// <remarks>
+        /// Emits the single merged guard (see <c>AuthGuardAttribute</c>): the generator used to emit a literal
+        /// <c>[AuthGuard]</c> plus this attribute, which is the pairing that made an authorization declaration
+        /// independently forgettable in hand-written controllers.
+        /// </remarks>
+        public static string GetAuthGuardAttribute(SpiderlyClass entity, CrudCodes crudCode)
         {
             if (ShouldAuthorizeEntity(entity) == false)
-                return "";
+                return "[AuthGuard]\n        ";
 
-            return $"[HasPermission(\"{GetEntityPermissionCode(entity, crudCode)}\")]\n        ";
+            return $"[AuthGuard(\"{GetEntityPermissionCode(entity, crudCode)}\")]\n        ";
         }
 
         #endregion

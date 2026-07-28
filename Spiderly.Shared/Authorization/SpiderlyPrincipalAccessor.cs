@@ -60,7 +60,7 @@ namespace Spiderly.Shared.Authorization
                 return null;
 
             string kind = httpContext.User.FindFirst(PrincipalClaims.PrincipalKind)?.Value;
-            return SpiderlyPrincipal.ForUser(userId, kind);
+            return SpiderlyPrincipal.ForPrincipal(userId, kind);
         }
 
         /// <summary>Restores the previous principal on dispose; idempotent.</summary>

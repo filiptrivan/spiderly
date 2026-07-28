@@ -14,7 +14,7 @@ namespace Spiderly.Security.Extensions
     public static class AuthorizationRegistrationExtensions
     {
         /// <summary>
-        /// Registers the <c>[HasPermission]</c> handler and forwards the framework's <see cref="AuthorizationServiceBase"/>
+        /// Registers the <c>[AuthGuard(...)]</c> handler and forwards the framework's <see cref="AuthorizationServiceBase"/>
         /// to <typeparamref name="TAuthorizationService"/> — the application's generated / most-derived authorization
         /// service — so the handler evaluates that service's <c>IsAuthorizedAsync</c> override (and any API-key cap).
         /// </summary>
@@ -26,7 +26,7 @@ namespace Spiderly.Security.Extensions
             // (PermissionAuthorizationHandler) resolve the most-derived IsAuthorizedAsync override.
             services.AddTransient<AuthorizationServiceBase>(sp => sp.GetRequiredService<TAuthorizationService>());
 
-            // Evaluates [HasPermission] / [Authorize("perm:...")] policies materialized by PermissionPolicyProvider.
+            // Evaluates [AuthGuard(...)] / [Authorize("perm:...")] policies materialized by PermissionPolicyProvider.
             services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
             return services;

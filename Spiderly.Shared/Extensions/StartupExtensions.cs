@@ -30,6 +30,7 @@ using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Outbox;
 using Spiderly.Shared.RateLimiting;
+using Spiderly.Shared.Security;
 using Spiderly.Shared.Services;
 using System.Globalization;
 using System.Net;
@@ -138,6 +139,10 @@ namespace Spiderly.Shared.Extensions
             // override it with a custom implementation.
             services.TryAddSingleton<IPrincipalRegistry, PrincipalRegistry>();
 
+            // Splits the two identity questions ("who is calling" vs "which person") so a machine principal
+            // can never be read as a user id. Singleton: pure, holds only the registry.
+            services.TryAddSingleton<PrincipalIdentity>();
+
             // Transport-agnostic current-principal accessor. Singleton: the per-flow value lives in an
             // AsyncLocal, not the instance (mirrors IHttpContextAccessor). Falls back to the ambient HTTP
             // request when nothing is pushed, so HTTP apps work without extra wiring; background-job filters
@@ -169,11 +174,18 @@ namespace Spiderly.Shared.Extensions
                 // assembly cannot reference, so it cannot be registered here.
                 services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
-                // Fail loud at boot if the consumer enabled [HasPermission] (the provider above) but never registered
+                // Fail loud at boot if the consumer enabled [AuthGuard(...)] (the provider above) but never registered
                 // the satisfying handler (forgot AddSpiderlyAuthorization). Without this guard the requirement has no
                 // handler, can never Succeed(), and every permission-gated endpoint silently 403s. The guard inspects
                 // the final service collection at startup (after the consumer's post-AddSpiderly registrations run).
                 services.AddSingleton<IStartupFilter>(new PermissionHandlerRegistrationGuard(services));
+
+                // CSRF protection is global and opt-out (UseSpiderlyCsrf + [IgnoreCsrf]), not an endpoint
+                // attribute — per ASP.NET's own antiforgery guidance, per-endpoint opt-in leaves endpoints
+                // unprotected by mistake. It used to ride inside [AuthGuard], which had exactly that shape.
+                // The guard fails boot if the consumer never adds the middleware.
+                services.AddSingleton<CsrfRegistrationGuard>();
+                services.AddSingleton<IStartupFilter>(sp => sp.GetRequiredService<CsrfRegistrationGuard>());
 
                 // Resolves a provider code to its id-token validator. Built eagerly at first resolution from
                 // the configured providers (+ any consumer-registered custom IExternalAuthProvider), so the
@@ -567,6 +579,23 @@ namespace Spiderly.Shared.Extensions
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API V1");
             });
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpiderlyCsrfMiddleware"/>: state-changing requests authenticated by cookie must carry
+        /// the <c>X-CSRF</c> header. Place it <b>after</b> <c>UseRouting()</c> (it reads endpoint metadata for the
+        /// <c>[IgnoreCsrf]</c> opt-out) and before <c>UseAuthorization()</c>.
+        /// </summary>
+        /// <remarks>
+        /// Required whenever Spiderly authentication is enabled — <c>CsrfRegistrationGuard</c> fails the boot if
+        /// this is missing. See <see cref="SpiderlyCsrfMiddleware"/> for how the defense works and why it depends
+        /// on the app's CORS origin allow-list.
+        /// </remarks>
+        /// <param name="app">The application builder.</param>
+        public static void UseSpiderlyCsrf(this IApplicationBuilder app)
+        {
+            app.ApplicationServices.GetRequiredService<CsrfRegistrationGuard>().MarkRegistered();
+            app.UseMiddleware<SpiderlyCsrfMiddleware>();
         }
 
         public static void SpiderlyConfigureExceptionHandling(this IApplicationBuilder app)

@@ -25,5 +25,12 @@ namespace Spiderly.Shared.Authorization
         /// layer can fail closed (deny) instead of surfacing a server error for an unrecognized caller.
         /// </summary>
         bool TryResolve(string kind, out IPrincipalPermissionResolver resolver);
+
+        /// <summary>
+        /// Whether <paramref name="kind"/> is a human principal kind. A <c>null</c>/empty kind falls back to
+        /// <see cref="DefaultKind"/>. Fails <b>closed</b>: an unresolvable kind is not human, so an identity-scoped
+        /// operation refuses rather than guessing.
+        /// </summary>
+        bool IsHuman(string kind);
     }
 }

@@ -48,7 +48,7 @@ namespace Spiderly.Shared.Exceptions
             httpContext.Response.ContentType = "application/json";
 
             string exceptionString = _env.IsDevelopment() ? ex.ToString() : null;
-            long? userId = _principalAccessor.Current.UserId;
+            long? principalId = _principalAccessor.Current.PrincipalId;
 
             ApiErrorDTO body;
             // Single source of truth for the level — the handler's logging and SpiderlyExceptionClassifier.IsExpected
@@ -87,6 +87,14 @@ namespace Spiderly.Shared.Exceptions
             {
                 httpContext.Response.StatusCode = unauthorizedEx.StatusCode;
                 body = new ApiErrorDTO { Message = unauthorizedEx.Message };
+                logException = false;
+            }
+            else if (ex is PrincipalKindMismatchException)
+            {
+                // Deliberately generic to the caller: which principal kinds a path accepts is not something a
+                // client needs (or should be told). The specifics are in the log line above.
+                httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                body = new ApiErrorDTO { Message = _localizer["UnauthorizedAccessExceptionMessage"] };
                 logException = false;
             }
             else if (ex is SecurityViolationException)
@@ -152,9 +160,9 @@ namespace Spiderly.Shared.Exceptions
             body.Exception = exceptionString;
 
             if (logException)
-                _logger.Log(logLevel, ex, "Currently authenticated user id: {UserId}", userId);
+                _logger.Log(logLevel, ex, "Currently authenticated principal id: {PrincipalId}", principalId);
             else
-                _logger.Log(logLevel, "{ExceptionType}: {Message} (user id: {UserId})", ex.GetType().Name, ex.Message, userId);
+                _logger.Log(logLevel, "{ExceptionType}: {Message} (principal id: {PrincipalId})", ex.GetType().Name, ex.Message, principalId);
 
             await httpContext.Response.WriteAsJsonAsync(body, cancellationToken);
 

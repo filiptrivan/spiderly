@@ -73,13 +73,20 @@ namespace Spiderly.Shared.Tests
                 () => new PrincipalRegistry(new[] { Resolver("User"), Resolver("user") }));
         }
 
-        private static IPrincipalPermissionResolver Resolver(string kind) => new FakeResolver(kind);
+        private static IPrincipalPermissionResolver Resolver(
+            string kind, PrincipalNature nature = PrincipalNature.Human) => new FakeResolver(kind, nature);
 
-        // Only Kind participates in routing; the permission methods are never reached in these tests.
+        // Only Kind and Nature participate in routing; the permission methods are never reached in these tests.
         private sealed class FakeResolver : IPrincipalPermissionResolver
         {
-            public FakeResolver(string kind) => Kind = kind;
+            public FakeResolver(string kind, PrincipalNature nature)
+            {
+                Kind = kind;
+                Nature = nature;
+            }
+
             public string Kind { get; }
+            public PrincipalNature Nature { get; }
             public Task<bool> HasPermissionAsync(IApplicationDbContext context, long principalId, string permissionCode) => throw new NotSupportedException();
             public Task<List<string>> GetPermissionCodesAsync(IApplicationDbContext context, long principalId) => throw new NotSupportedException();
         }

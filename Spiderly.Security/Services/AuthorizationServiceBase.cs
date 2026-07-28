@@ -43,61 +43,23 @@ namespace Spiderly.Security.Services
                 throw new UnauthorizedException(_localizer["UnauthorizedAccessExceptionMessage"]);
         }
 
-        /// <summary>
-        /// Authorization check restricted to a <b>human user</b>: it resolves <paramref name="permissionCode"/>
-        /// against the <typeparamref name="TUser"/> table by the current principal's id, so a non-user principal
-        /// (e.g. an API key) is denied because it isn't in that table. Use this to mark an operation as
-        /// users-only; for an operation any principal kind may perform, use the non-generic
-        /// <see cref="IsAuthorizedAsync(string)"/>.
-        /// </summary>
-        public virtual async Task<bool> IsAuthorizedAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
-        {
-            ArgumentNullException.ThrowIfNull(permissionCode);
-
-            bool result = false;
-            long userId = _authenticationService.GetCurrentUserId();
-
-            await _context.WithTransactionAsync(async () =>
-            {
-                result = await _context.DbSet<TUser>()
-                    .AsNoTracking()
-                    .AnyAsync(user =>
-                        user.Id == userId &&
-                        user.Roles.Any(role => role.Permissions.Any(permission => permission.Code == permissionCode))
-                    );
-            });
-
-            return result;
-        }
-
-        public virtual async Task AuthorizeAndThrowAsync<TUser>(string permissionCode) where TUser : class, IUser, new()
-        {
-            ArgumentNullException.ThrowIfNull(permissionCode);
-
-            bool result = false;
-            long userId = _authenticationService.GetCurrentUserId();
-
-            await _context.WithTransactionAsync(async () =>
-            {
-                result = await _context.DbSet<TUser>()
-                    .AsNoTracking()
-                    .AnyAsync(user =>
-                        user.Id == userId &&
-                        user.Roles.Any(role => role.Permissions.Any(permission => permission.Code == permissionCode))
-                    );
-            });
-
-            if (result == false)
-                throw new UnauthorizedException(_localizer["UnauthorizedAccessExceptionMessage"]);
-        }
+        // The <TUser> overloads of IsAuthorizedAsync / AuthorizeAndThrowAsync were REMOVED. They resolved the
+        // permission against the TUser table by the current principal's id, which denied a machine principal as a
+        // side effect of the lookup — so "humans only" was expressed by a type argument rather than stated. In
+        // practice it was never chosen: the generic form existed alone from 2026-01, every consumer call site was
+        // written against it, and the human-only reading was retro-fitted in a 2026-06 doc edit. Authorization is
+        // now principal-agnostic by default (a role IS the statement of what a caller may do); an operation that
+        // genuinely requires a person states it separately via AuthenticationService.GetCurrentUserId(), which
+        // fails closed on a machine principal.
 
         /// <summary>
         /// Principal-kind-agnostic authorization check. Resolves the current principal (human user, service
         /// account, API key, …) by its kind through the <see cref="IPrincipalRegistry"/> rather than a
         /// compile-time user type, so the same endpoint authorizes correctly whatever kind of principal is
-        /// calling. This is the default — it's what generated CRUD authorization calls. Use the generic
-        /// <see cref="IsAuthorizedAsync{TUser}(string)"/> overload instead only when the operation must be
-        /// performed by a <b>human user</b> (it resolves against the user table, so any non-user principal is denied).
+        /// calling. This is the default, and the only shape: authorization is
+        /// principal-agnostic, because a role is already the statement of what a caller may do. An operation that
+        /// genuinely requires a person asks for one separately, via
+        /// <c>AuthenticationService.GetCurrentUserId()</c>.
         /// </summary>
         public virtual async Task<bool> IsAuthorizedAsync(string permissionCode)
         {
@@ -115,17 +77,21 @@ namespace Spiderly.Security.Services
             if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver resolver) == false)
                 return false;
 
-            long principalId = _authenticationService.GetCurrentUserId();
+            // GetCurrentPrincipalId, NOT GetCurrentUserId: this path authorizes ANY principal kind, and the
+            // user-id accessor refuses a machine principal by design — reading it here would make every API-key
+            // permission check throw instead of resolving.
+            long? principalId = _authenticationService.GetCurrentPrincipalId();
+            if (principalId.HasValue == false)
+                return false;
 
             return await _context.WithTransactionAsync(async () =>
-                await resolver.HasPermissionAsync(_context, principalId, permissionCode));
+                await resolver.HasPermissionAsync(_context, principalId.Value, permissionCode));
         }
 
         /// <summary>
         /// Principal-kind-agnostic authorization check that throws <see cref="UnauthorizedException"/> when the
-        /// current principal lacks <paramref name="permissionCode"/>. This is the default; use the generic
-        /// <c>AuthorizeAndThrowAsync&lt;TUser&gt;</c> overload only when the operation must be performed by a
-        /// <b>human user</b> (a non-user principal is then denied — see <see cref="IsAuthorizedAsync(string)"/>).
+        /// current principal lacks <paramref name="permissionCode"/>. See <see cref="IsAuthorizedAsync(string)"/>
+        /// for why authorization is principal-agnostic.
         /// </summary>
         public virtual async Task AuthorizeAndThrowAsync(string permissionCode)
         {
@@ -171,10 +137,13 @@ namespace Spiderly.Security.Services
             if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver resolver) == false)
                 return new List<string>();
 
-            long principalId = _authenticationService.GetCurrentUserId();
+            // Kind-agnostic for the same reason as IsAuthorizedAsync above.
+            long? principalId = _authenticationService.GetCurrentPrincipalId();
+            if (principalId.HasValue == false)
+                return new List<string>();
 
             return await _context.WithTransactionAsync(async () =>
-                await resolver.GetPermissionCodesAsync(_context, principalId));
+                await resolver.GetPermissionCodesAsync(_context, principalId.Value));
         }
 
     }

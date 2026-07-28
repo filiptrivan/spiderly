@@ -23,7 +23,7 @@ namespace Spiderly.Shared.Tests
             SpiderlyPrincipal current = accessor.Current;
 
             Assert.NotNull(current);
-            Assert.Null(current.UserId);
+            Assert.Null(current.PrincipalId);
             Assert.False(current.IsAuthenticated);
             Assert.False(current.IsSystem);
         }
@@ -33,15 +33,15 @@ namespace Spiderly.Shared.Tests
         {
             SpiderlyPrincipalAccessor accessor = new(new HttpContextAccessor());
 
-            using (accessor.Push(SpiderlyPrincipal.ForUser(42, "User")))
+            using (accessor.Push(SpiderlyPrincipal.ForPrincipal(42, "User")))
             {
-                Assert.Equal(42, accessor.Current.UserId);
+                Assert.Equal(42, accessor.Current.PrincipalId);
                 Assert.Equal("User", accessor.Current.Kind);
                 Assert.True(accessor.Current.IsAuthenticated);
             }
 
             // Scope disposed → back to the empty baseline.
-            Assert.Null(accessor.Current.UserId);
+            Assert.Null(accessor.Current.PrincipalId);
             Assert.False(accessor.Current.IsAuthenticated);
         }
 
@@ -50,19 +50,19 @@ namespace Spiderly.Shared.Tests
         {
             SpiderlyPrincipalAccessor accessor = new(new HttpContextAccessor());
 
-            using (accessor.Push(SpiderlyPrincipal.ForUser(1)))
+            using (accessor.Push(SpiderlyPrincipal.ForPrincipal(1)))
             {
-                Assert.Equal(1, accessor.Current.UserId);
+                Assert.Equal(1, accessor.Current.PrincipalId);
 
-                using (accessor.Push(SpiderlyPrincipal.ForUser(2)))
+                using (accessor.Push(SpiderlyPrincipal.ForPrincipal(2)))
                 {
-                    Assert.Equal(2, accessor.Current.UserId);
+                    Assert.Equal(2, accessor.Current.PrincipalId);
                 }
 
-                Assert.Equal(1, accessor.Current.UserId);
+                Assert.Equal(1, accessor.Current.PrincipalId);
             }
 
-            Assert.Null(accessor.Current.UserId);
+            Assert.Null(accessor.Current.PrincipalId);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace Spiderly.Shared.Tests
 
             using (accessor.Push(SpiderlyPrincipal.System))
             {
-                Assert.Null(accessor.Current.UserId);
+                Assert.Null(accessor.Current.PrincipalId);
                 Assert.False(accessor.Current.IsAuthenticated);
                 Assert.True(accessor.Current.IsSystem);
             }
@@ -88,7 +88,7 @@ namespace Spiderly.Shared.Tests
             };
             SpiderlyPrincipalAccessor accessor = new(httpContextAccessor);
 
-            Assert.Equal(7, accessor.Current.UserId);
+            Assert.Equal(7, accessor.Current.PrincipalId);
             Assert.Equal("User", accessor.Current.Kind);
             Assert.True(accessor.Current.IsAuthenticated);
         }
@@ -106,11 +106,11 @@ namespace Spiderly.Shared.Tests
             using (accessor.Push(SpiderlyPrincipal.System))
             {
                 Assert.True(accessor.Current.IsSystem);
-                Assert.Null(accessor.Current.UserId);
+                Assert.Null(accessor.Current.PrincipalId);
             }
 
             // After dispose, the HTTP fallback applies again.
-            Assert.Equal(7, accessor.Current.UserId);
+            Assert.Equal(7, accessor.Current.PrincipalId);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Spiderly.Shared.Tests
             HttpContextAccessor httpContextAccessor = new() { HttpContext = new DefaultHttpContext() };
             SpiderlyPrincipalAccessor accessor = new(httpContextAccessor);
 
-            Assert.Null(accessor.Current.UserId);
+            Assert.Null(accessor.Current.PrincipalId);
             Assert.False(accessor.Current.IsAuthenticated);
         }
 

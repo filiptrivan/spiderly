@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Primitives;
 using MimeDetective;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
@@ -298,6 +299,24 @@ namespace Spiderly.Shared.Helpers
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Whether the request carries a bearer token, without materializing it. A presence check on a global
+        /// path must not copy the token: <see cref="GetAccessTokenFromHeader"/> allocates a fresh string holding
+        /// the whole JWT (600-1200 chars) only for the caller to compare it to null.
+        /// </summary>
+        public static bool HasBearerToken(HttpContext context)
+        {
+            StringValues authHeader = context.Request.Headers.Authorization;
+            if (authHeader.Count == 0)
+                return false;
+
+            string value = authHeader[0];
+
+            return value != null
+                && value.AsSpan().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                && value.AsSpan("Bearer ".Length).IsWhiteSpace() == false;
         }
 
         /// <summary>

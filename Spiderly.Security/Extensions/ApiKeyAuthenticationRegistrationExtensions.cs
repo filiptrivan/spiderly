@@ -67,7 +67,7 @@ namespace Spiderly.Security.Extensions
                             : JwtBearerDefaults.AuthenticationScheme;
                 });
 
-            // Route UseAuthentication() through the forwarding scheme so a [HasPermission]/[Authorize] endpoint
+            // Route UseAuthentication() through the forwarding scheme so a [AuthGuard(...)]/[Authorize] endpoint
             // accepts either credential. PostConfigure (not Configure) is deliberate and load-bearing: this opt-in
             // call runs *inside* the AddSpiderly builder lambda, but AddSpiderly's mandatory JWT registration
             // (SpiderlyAddAuthentication -> AddAuthentication(JwtBearerDefaults)) runs *after* the lambda returns and

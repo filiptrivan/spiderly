@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Spiderly.Shared.Authorization
 {
     /// <summary>
-    /// Boot-time guard that fails loud when <c>[HasPermission]</c> is usable but unsatisfiable. When
+    /// Boot-time guard that fails loud when <c>[AuthGuard(...)]</c> is usable but unsatisfiable. When
     /// authentication is enabled, <c>AddSpiderly</c> registers the <see cref="PermissionPolicyProvider"/>, which
     /// materializes a <c>perm:&lt;code&gt;</c> policy carrying a <see cref="PermissionRequirement"/>. The handler
     /// that actually satisfies that requirement (<c>PermissionAuthorizationHandler</c>) lives in
@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Authorization
     /// </summary>
     public sealed class PermissionHandlerRegistrationGuard : IStartupFilter
     {
-        private readonly IServiceCollection _services;
+        private IServiceCollection _services;
 
         /// <summary>Creates the guard over the application's service collection.</summary>
         /// <param name="services">
@@ -39,11 +39,15 @@ namespace Spiderly.Shared.Authorization
         {
             if (HasPermissionRequirementHandler(_services) == false)
                 throw new InvalidOperationException(
-                    "Spiderly authentication is enabled, so [HasPermission] materializes a PermissionRequirement policy, " +
+                    "Spiderly authentication is enabled, so [AuthGuard(...)] materializes a PermissionRequirement policy, " +
                     "but no IAuthorizationHandler that satisfies PermissionRequirement is registered. Every permission-gated " +
                     "endpoint would return 403 even for a fully-permissioned principal. Register the handler by calling " +
                     "services.AddSpiderlyAuthorization<TAuthorizationService>() (e.g. AddSpiderlyAuthorization<AuthorizationServiceGenerated>()) " +
                     "after AddSpiderly — the spiderly init template includes this call.");
+
+            // Released after the one-shot check: holding the collection for the process lifetime would root every
+            // ServiceDescriptor (and anything its factory closures captured) long after boot.
+            _services = null;
 
             return next;
         }

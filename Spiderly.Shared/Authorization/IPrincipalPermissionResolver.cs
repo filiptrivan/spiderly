@@ -14,6 +14,13 @@ namespace Spiderly.Shared.Authorization
         /// <summary>Stable discriminator carried in the <c>principal_kind</c> claim.</summary>
         string Kind { get; }
 
+        /// <summary>
+        /// Whether this kind is a person or a machine. Declared at registration; consumed by
+        /// <see cref="PrincipalIdentity"/> so an identity-scoped read cannot resolve a machine's id
+        /// against the user table.
+        /// </summary>
+        PrincipalNature Nature { get; }
+
         /// <summary>Whether the principal with the given id holds <paramref name="permissionCode"/>.</summary>
         Task<bool> HasPermissionAsync(IApplicationDbContext context, long principalId, string permissionCode);
 

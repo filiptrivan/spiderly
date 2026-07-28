@@ -1,4 +1,5 @@
 using System;
+using Spiderly.Shared.Authorization;
 using FluentValidation;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,10 @@ namespace Spiderly.Shared.Exceptions
             ExpiredVerificationException => LogLevel.Information,
             SecurityTokenException => LogLevel.Information,
             UnauthorizedException => LogLevel.Warning,
+            // A machine principal on a human-only path is an authorization refusal, not a server fault. It
+            // derives from InvalidOperationException, so without this arm it would fall through to Error and
+            // page someone every time a partner key touches an identity-scoped endpoint.
+            PrincipalKindMismatchException => LogLevel.Warning,
             SecurityViolationException => LogLevel.Error,
             // DbUpdateConcurrencyException derives from DbUpdateException — match it FIRST so the
             // constraint check below doesn't (it has no constraint inner) drop it through to Error.

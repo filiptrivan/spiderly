@@ -35,6 +35,10 @@ namespace Spiderly.Shared.Authorization
 
         public string DefaultKind { get; }
 
+        public bool IsHuman(string kind) =>
+            TryResolve(kind, out IPrincipalPermissionResolver resolver)
+            && resolver.Nature == PrincipalNature.Human;
+
         public bool TryResolve(string kind, out IPrincipalPermissionResolver resolver)
         {
             string effectiveKind = string.IsNullOrEmpty(kind) ? DefaultKind : kind;

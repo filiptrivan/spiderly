@@ -14,12 +14,15 @@ namespace Spiderly.Security.Authorization
     public sealed class RolePermissionResolver<TPrincipal> : IPrincipalPermissionResolver
         where TPrincipal : class, ISecurityPrincipal, new()
     {
-        public RolePermissionResolver(string kind)
+        public RolePermissionResolver(string kind, PrincipalNature nature)
         {
             Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+            Nature = nature;
         }
 
         public string Kind { get; }
+
+        public PrincipalNature Nature { get; }
 
         public async Task<bool> HasPermissionAsync(IApplicationDbContext context, long principalId, string permissionCode)
         {

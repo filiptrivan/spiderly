@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Exceptions;
 
 namespace Spiderly.Shared.Tests
@@ -25,6 +26,11 @@ namespace Spiderly.Shared.Tests
             new object[] { new ExpiredVerificationException(), LogLevel.Information },
             new object[] { new SecurityTokenException("Token expired"), LogLevel.Information },
             new object[] { new UnauthorizedException(), LogLevel.Warning },
+            // A machine principal reaching a human-only path is "this caller may not do this", not a server
+            // fault: it must degrade to a 403 like any other authorization refusal, not page someone with a
+            // 500. Reachable in normal operation the moment a partner key is issued a role that covers an
+            // identity-scoped endpoint.
+            new object[] { new PrincipalKindMismatchException(PrincipalKinds.ApiKey), LogLevel.Warning },
             new object[] { new DbUpdateConcurrencyException(), LogLevel.Warning },
             new object[] { DbUpdate("23505"), LogLevel.Warning }, // unique_violation
             new object[] { DbUpdate("23503"), LogLevel.Warning }, // foreign_key_violation

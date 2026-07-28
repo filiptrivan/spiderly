@@ -5,7 +5,7 @@ description: Add the API-keys feature to a Spiderly app — per-key authenticati
 
 # Add API Keys
 
-This builds the API-keys feature into a Spiderly consumer app: external clients authenticate with an `X-Api-Key` header, and each key is a **first-class principal** (`PrincipalKinds.ApiKey`) that carries its **own roles** — it is not an impersonation of a user. Authorization resolves a key's permissions through the same principal pipeline as a user, so `[HasPermission]` endpoints accept either a JWT or a key with no per-endpoint change.
+This builds the API-keys feature into a Spiderly consumer app: external clients authenticate with an `X-Api-Key` header, and each key is a **first-class principal** (`PrincipalKinds.ApiKey`) that carries its **own roles** — it is not an impersonation of a user. Authorization resolves a key's permissions through the same principal pipeline as a user, so `[AuthGuard("code")]` endpoints accept either a JWT or a key with no per-endpoint change.
 
 **This is opt-in.** API keys are not part of a default Spiderly app — nothing here exists until you run this skill, and an app without it has zero API-key surface. Don't add it unless the project actually needs machine/partner/agent API access.
 
@@ -117,7 +117,9 @@ public class ApiKeyService : ApiKeyServiceGenerated
             string plainTextKey = ApiKeyHelper.GenerateRandomKey();
             saveBodyDTO.ApiKeyDTO.KeyHash = ApiKeyHelper.ComputeSha256Hash(plainTextKey);
             _generatedPlainTextKey = plainTextKey;
-            saveBodyDTO.ApiKeyDTO.CreatedById = _authenticationService.GetCurrentUserId();
+            // Principal id, not user id: a key can be minted by another key, and GetCurrentUserId()
+            // refuses a machine principal (its id is not a user id).
+            saveBodyDTO.ApiKeyDTO.CreatedById = _authenticationService.GetCurrentPrincipalId().Value;
             saveBodyDTO.ApiKeyDTO.CreatedByPrincipalKind = _authenticationService.GetCurrentPrincipalKind();
         }
         else
@@ -203,11 +205,10 @@ These are the machine-facing REST surface (also what a management skill drives).
 // RevokeApiKeyRequestDTO:    [Required] long ApiKeyId;
 // partial ApiKeyMainUIFormDTO (bare DTO namespace): [UIDoNotGenerate][StringLength(64)] string PlainTextKey;
 
-[HttpPost, AuthGuard]
+[HttpPost, AuthGuard("InsertApiKey")]   // declared at the boundary; any principal kind holding the permission may create a key
 public async Task<GenerateApiKeyResponseDTO> GenerateApiKey([FromBody] GenerateApiKeyRequestDTO request)
 {
-    await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.InsertApiKey);   // principal-agnostic — any principal kind can create a key
-    long currentUserId = _authenticationService.GetCurrentUserId();
+    long createdById = _authenticationService.GetCurrentPrincipalId().Value;
 
     List<Role> roles = new();
     if (request.RoleIds != null && request.RoleIds.Count > 0)
@@ -222,7 +223,7 @@ public async Task<GenerateApiKeyResponseDTO> GenerateApiKey([FromBody] GenerateA
     DateTime? expiresAt = request.ExpiresInDays.HasValue ? DateTime.UtcNow.AddDays(request.ExpiresInDays.Value) : null;
 
     ApiKey apiKey = new() { KeyHash = ApiKeyHelper.ComputeSha256Hash(plainTextKey), Name = request.Name,
-        CreatedById = currentUserId, CreatedByPrincipalKind = _authenticationService.GetCurrentPrincipalKind(),
+        CreatedById = createdById, CreatedByPrincipalKind = _authenticationService.GetCurrentPrincipalKind(),
         ExpiresAt = expiresAt, IsRevoked = false };
     apiKey.Roles.AddRange(roles);
     _context.DbSet<ApiKey>().Add(apiKey);
@@ -256,7 +257,7 @@ To keep the feature **headless** instead, add `[UIDoNotGenerate]` to the `ApiKey
 
 ## Step 9 — Verify
 
-Build the backend (`dotnet build` the Business project, then the WebAPI project). Then sanity-check the flow: generate a key (admin JWT) → call any `[HasPermission]` endpoint the key's roles cover with `X-Api-Key: <key>` → revoke it → confirm the same call now returns 401.
+Build the backend (`dotnet build` the Business project, then the WebAPI project). Then sanity-check the flow: generate a key (admin JWT) → call any `[AuthGuard("code")]` endpoint the key's roles cover with `X-Api-Key: <key>` → revoke it → confirm the same call now returns 401.
 
 ## Invariants to preserve
 

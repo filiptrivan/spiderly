@@ -11,7 +11,7 @@ namespace Spiderly.Security.Extensions
     /// <summary>
     /// One-call registration of the co-required Spiderly security core. A working auth setup is all-or-nothing:
     /// the current-principal/login service, the JWT manager, the human principal kind, and the
-    /// <c>[HasPermission]</c> authorization handler + its <c>AuthorizationServiceBase</c> forwarding are useless
+    /// <c>[AuthGuard(...)]</c> authorization handler + its <c>AuthorizationServiceBase</c> forwarding are useless
     /// apart and silently break the app when any is missing (a forgotten handler 403s every permission-gated
     /// endpoint). Bundling them here makes that drift impossible; the genuinely-optional pieces (API keys) opt in
     /// through the <see cref="SpiderlySecurityBuilder"/> sub-builder.
@@ -39,7 +39,7 @@ namespace Spiderly.Security.Extensions
         /// <typeparam name="TUserExternalLogin">The entity linking a user to an external-provider login.</typeparam>
         /// <typeparam name="TAuthorizationService">
         /// The application's authorization service — its generated <c>AuthorizationServiceGenerated</c> or a
-        /// hand-written subclass. <c>AuthorizationServiceBase</c> is forwarded to it so <c>[HasPermission]</c> honors
+        /// hand-written subclass. <c>AuthorizationServiceBase</c> is forwarded to it so <c>[AuthGuard(...)]</c> honors
         /// its overrides (e.g. an API-key role cap).
         /// </typeparam>
         /// <param name="builder">The Spiderly builder (the lambda parameter of <c>AddSpiderly</c>).</param>
@@ -62,9 +62,9 @@ namespace Spiderly.Security.Extensions
             services.TryAddSingleton<IJwtAuthManager, JwtAuthManagerService>();
 
             // The human principal kind: kind-dispatched authorization resolves it by the principal_kind claim.
-            services.AddSpiderlyPrincipal<TUser>(PrincipalKinds.User);
+            services.AddSpiderlyPrincipal<TUser>(PrincipalKinds.User, PrincipalNature.Human);
 
-            // Authorization service + the [HasPermission] handler that forwards to it. This is the pairing that,
+            // Authorization service + the [AuthGuard(...)] handler that forwards to it. This is the pairing that,
             // when split across the registration surface and forgotten, silently 403s every permission-gated endpoint.
             services.TryAddTransient<TAuthorizationService>();
             services.AddSpiderlyAuthorization<TAuthorizationService>();

@@ -1746,7 +1746,7 @@ namespace {{appName}}.WebAPI.Controllers
         public async Task<UserDTO> GetCurrentUser()
         {
             long userId = _authenticationService.GetCurrentUserId();
-            return await _userService.GetUserDTO(userId); // Current user reading own profile; admin reads are gated by [HasPermission("ReadUser")] on the generated endpoint
+            return await _userService.GetUserDTO(userId); // Current user reading own profile; admin reads are gated by [AuthGuard("ReadUser")] on the generated endpoint
         }
 
     }
@@ -1891,7 +1891,7 @@ namespace {{appName}}.WebAPI.Controllers
         [AuthGuard]
         public async Task<IActionResult> Retry(long id)
         {
-            await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateOutboxMessage);
+            await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.UpdateOutboxMessage);
 
             OutboxMessage row = await _context.DbSet<OutboxMessage>()
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -1917,7 +1917,7 @@ namespace {{appName}}.WebAPI.Controllers
         [AuthGuard]
         public async Task<IActionResult> Dismiss(long id)
         {
-            await _authorizationService.AuthorizeAndThrowAsync<User>(PermissionCodes.UpdateOutboxMessage);
+            await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.UpdateOutboxMessage);
 
             OutboxMessage row = await _context.DbSet<OutboxMessage>()
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -2138,7 +2138,7 @@ public class Startup
             spiderly.UseCulture("en");
             spiderly.UseTranslations();
             // One call wires the co-required auth core (current-user/login/JWT, the User principal, and the
-            // [HasPermission] handler forwarded to AuthorizationService) and enables authentication. Add API keys
+            // [AuthGuard(...)] handler forwarded to AuthorizationService) and enables authentication. Add API keys
             // with .AddApiKeys<ApiKey>() if the app exposes them.
             spiderly.AddSecurity<User, UserExternalLogin, {{appName}}.Business.Services.AuthorizationService>();
             spiderly.AddTokenStorage();
@@ -2191,6 +2191,10 @@ public class Startup
         app.SpiderlyConfigureExceptionHandling();
 
         app.UseRouting();
+
+        // After UseRouting so [IgnoreCsrf] endpoint metadata is resolvable. Global + opt-out by design:
+        // a cookie-authenticated write with no X-CSRF header is rejected here, for every endpoint.
+        app.UseSpiderlyCsrf();
 
         app.UseAuthentication();
 
@@ -2491,7 +2495,7 @@ namespace {{appName}}.WebAPI.Extensions
         {
             #region Spiderly
 
-            // The auth core (current-user/login/JWT, the User principal, and the [HasPermission] handler forwarded
+            // The auth core (current-user/login/JWT, the User principal, and the [AuthGuard(...)] handler forwarded
             // to AuthorizationService) is wired by spiderly.AddSecurity<...>() in Startup; AuthorizationService and its
             // generated base are registered by the generated AddEntityServices(). Only app-specific extras remain here.
             // Narrow current-user slice so domain services depend on the abstraction, not the full HTTP/auth-bound
@@ -2820,7 +2824,7 @@ namespace {{appName}}.Business.Services
                 if (user.Email != userDTO.Email)
                     throw new SecurityViolationException($"No one can change {nameof(userDTO.Email)} from the main UI form.");
 
-                bool hasAdminUpdatePermission = await IsAuthorizedAsync<User>(PermissionCodes.UpdateUser);
+                bool hasAdminUpdatePermission = await IsAuthorizedAsync(PermissionCodes.UpdateUser);
                 if (hasAdminUpdatePermission)
                     return;
 
@@ -2837,7 +2841,7 @@ namespace {{appName}}.Business.Services
         {
             await _context.WithTransactionAsync(async () =>
             {
-                bool hasAdminInsertPermission = await IsAuthorizedAsync<User>(PermissionCodes.InsertUser);
+                bool hasAdminInsertPermission = await IsAuthorizedAsync(PermissionCodes.InsertUser);
                 if (hasAdminInsertPermission)
                     return;
 

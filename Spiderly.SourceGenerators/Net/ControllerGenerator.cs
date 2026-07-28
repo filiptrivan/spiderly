@@ -170,7 +170,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 {
                     string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
                     string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
-                    string readPermissionAttribute = Helpers.GetPermissionAttribute(controllerEntity, CrudCodes.Read);
+                    string readPermissionAttribute = Helpers.GetAuthGuardAttribute(controllerEntity, CrudCodes.Read);
 
                     entityRegion = $$"""
         #region {{controllerEntity.Name}}
@@ -181,7 +181,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns a paginated list of {{controllerEntity.Name}} records.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
         {{readPermissionAttribute}}public virtual async Task<PaginatedResultDTO<{{controllerEntity.Name}}DTO>> GetPaginated{{controllerEntity.Name}}List(FilterDTO filterDTO)
         {
             return await {{entityServiceField}}.GetPaginated{{controllerEntity.Name}}List(filterDTO, _context.DbSet<{{controllerEntity.Name}}>());
@@ -191,7 +190,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Exports {{controllerEntity.Name}} records to an Excel file.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
         {{readPermissionAttribute}}public virtual async Task<IActionResult> Export{{controllerEntity.Name}}ListToExcel(FilterDTO filterDTO)
         {
             byte[] fileContent = await {{entityServiceField}}.Export{{controllerEntity.Name}}ListToExcel(filterDTO, _context.DbSet<{{controllerEntity.Name}}>());
@@ -206,7 +204,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns all {{controllerEntity.Name}} records (non-paginated).
         /// </summary>
         [HttpGet]
-        [AuthGuard]
         {{readPermissionAttribute}}public virtual async Task<List<{{controllerEntity.Name}}DTO>> Get{{controllerEntity.Name}}List()
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}DTOList(_context.DbSet<{{controllerEntity.Name}}>());
@@ -216,7 +213,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns the full form data for a single {{controllerEntity.Name}}, including related entities.
         /// </summary>
         [HttpGet]
-        [AuthGuard]
         {{readPermissionAttribute}}public virtual async Task<{{controllerEntity.Name}}MainUIFormDTO> Get{{controllerEntity.Name}}MainUIFormDTO({{referencedProjectEntityClassIdType}} id)
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}MainUIFormDTO(id);
@@ -226,7 +222,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns a single {{controllerEntity.Name}} by ID.
         /// </summary>
         [HttpGet]
-        [AuthGuard]
         {{readPermissionAttribute}}public virtual async Task<{{controllerEntity.Name}}DTO> Get{{controllerEntity.Name}}({{referencedProjectEntityClassIdType}} id)
         {
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}DTO(id);
@@ -321,8 +316,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns autocomplete options for {{property.Name}} on {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
                 limit,
@@ -353,8 +347,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns dropdown options for {{property.Name}} on {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}()
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}DropdownListFor{{entity.Name}}()
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}DropdownListFor{{entity.Name}}(
                 _context.DbSet<{{manyToOneEntity.Name}}>()
@@ -426,8 +419,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns selected {{property.Name}} IDs for {{entity.Name}} with lazy loading support.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<LazyLoadSelectedIdsResultDTO<{{extractedEntityIdType}}>> LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<LazyLoadSelectedIdsResultDTO<{{extractedEntityIdType}}>> LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(FilterDTO filterDTO)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().LazyLoadSelected{{property.Name}}IdsFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>().OrderBy(x => x.Id));
         }
@@ -443,8 +435,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns a paginated list of {{property.Name}} for {{entity.Name}}.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<PaginatedResultDTO<{{extractedEntity.Name}}DTO>> GetPaginated{{property.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetPaginated{{property.Name}}ListFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>());
         }
@@ -453,8 +444,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Exports {{property.Name}} for {{entity.Name}} to an Excel file.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<IActionResult> Export{{property.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO)
         {
             byte[] fileContent = await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Export{{property.Name}}ListToExcelFor{{entity.Name}}(filterDTO, _context.DbSet<{{extractedEntity.Name}}>());
             return File(
@@ -500,8 +490,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns ordered {{property.Name}} for {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        [AuthGuard]
-        {{Helpers.GetPermissionAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetOrdered{{property.Name}}For{{entity.Name}}(id);
         }
@@ -549,14 +538,13 @@ namespace {{basePartOfNamespace}}.Controllers
                 return null;
 
             string entityIdType = entity.GetIdType(entities);
-            string deletePermissionAttribute = Helpers.GetPermissionAttribute(entity, CrudCodes.Delete);
+            string deletePermissionAttribute = Helpers.GetAuthGuardAttribute(entity, CrudCodes.Delete);
 
             return $$"""
         /// <summary>
         /// Deletes a {{entity.Name}} by ID.
         /// </summary>
         [HttpDelete]
-        [AuthGuard]
         {{deletePermissionAttribute}}public virtual async Task Delete{{entity.Name}}({{entityIdType}} id)
         {
             await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}(id);
@@ -566,7 +554,6 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Deletes multiple {{entity.Name}} entities by their IDs.
         /// </summary>
         [HttpPost]
-        [AuthGuard]
         {{deletePermissionAttribute}}public virtual async Task Delete{{entity.Name}}List([FromBody] List<{{entityIdType}}> ids)
         {
             await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Delete{{entity.Name}}List(ids);

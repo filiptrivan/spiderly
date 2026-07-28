@@ -27,6 +27,7 @@ namespace Spiderly.Security.Services
         private readonly AuthPolicyOptions _authPolicySettings;
         private readonly TokenKeyOptions _tokenKeySettings;
         private readonly CookieManager _cookieManager;
+        private readonly PrincipalIdentity _principalIdentity;
 
         public AuthenticationService(
             IHttpContextAccessor httpContextAccessor,
@@ -35,7 +36,8 @@ namespace Spiderly.Security.Services
             IStringLocalizer localizer,
             IOptions<AuthPolicyOptions> authPolicyOptions,
             IOptions<TokenKeyOptions> tokenKeyOptions,
-            CookieManager cookieManager
+            CookieManager cookieManager,
+            PrincipalIdentity principalIdentity
         )
             : base(context, localizer)
         {
@@ -45,23 +47,46 @@ namespace Spiderly.Security.Services
             _authPolicySettings = authPolicyOptions.Value;
             _tokenKeySettings = tokenKeyOptions.Value;
             _cookieManager = cookieManager;
+            _principalIdentity = principalIdentity;
         }
 
         /// <summary>
-        /// The current principal's user id. Throws <see cref="System.InvalidOperationException"/> when there is
-        /// no authenticated principal in the current execution context — call <see cref="GetCurrentUserIdOrDefault"/>
-        /// on paths that may run anonymously or outside an HTTP request (e.g. background jobs).
+        /// The current <b>human</b> user's id.
         /// </summary>
+        /// <remarks>
+        /// Throws <see cref="PrincipalKindMismatchException"/> when the caller is a machine principal (an API key,
+        /// a service account): its id belongs to its own table and would silently resolve onto an unrelated user
+        /// account. For work that is about the caller rather than about a person's data — authorization, auditing,
+        /// rate limiting — use <see cref="GetCurrentPrincipalId"/>. Throws
+        /// <see cref="System.InvalidOperationException"/> when there is no authenticated principal at all; call
+        /// <see cref="GetCurrentUserIdOrDefault"/> on paths that may run anonymously or outside an HTTP request.
+        /// </remarks>
         public virtual long GetCurrentUserId()
         {
-            return _principalAccessor.Current.UserId
+            return _principalIdentity.GetUserId(_principalAccessor.Current)
                 ?? throw new System.InvalidOperationException("There is no authenticated principal in the current execution context.");
         }
 
-        /// <summary>The current principal's user id, or <c>null</c> when the context is anonymous (no authenticated caller).</summary>
+        /// <summary>
+        /// The current human user's id, or <c>null</c> when there is none — an anonymous context, <b>or</b> a
+        /// machine principal. A machine caller genuinely has no user id, which is the same answer as "nobody is
+        /// logged in", so this soft read degrades rather than throwing.
+        /// </summary>
         public virtual long? GetCurrentUserIdOrDefault()
         {
-            return _principalAccessor.Current.UserId;
+            SpiderlyPrincipal current = _principalAccessor.Current;
+
+            return _principalIdentity.IsHuman(current) ? current.PrincipalId : null;
+        }
+
+        /// <summary>
+        /// The current principal's id whatever its kind — a user id for a person, a key/service-account id for a
+        /// machine. The right accessor for authorization, auditing and rate limiting, which care about the caller
+        /// rather than about whose data is being read.
+        /// </summary>
+        public virtual long? GetCurrentPrincipalId()
+        {
+            return _principalAccessor.Current.PrincipalId;
         }
 
         /// <summary>

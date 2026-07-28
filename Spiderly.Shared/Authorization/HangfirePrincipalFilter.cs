@@ -22,7 +22,9 @@ namespace Spiderly.Shared.Authorization
     /// </summary>
     public sealed class HangfirePrincipalFilter : IClientFilter, IServerFilter
     {
-        private const string UserIdParameter = "SpiderlyPrincipalUserId";
+        // The stored key keeps its original spelling on purpose: jobs enqueued before this rename carry it,
+        // and changing it would silently drop their actor (they would run as System).
+        private const string PrincipalIdParameter = "SpiderlyPrincipalUserId";
         private const string KindParameter = "SpiderlyPrincipalKind";
         private const string ScopeItemKey = "SpiderlyPrincipalScope";
 
@@ -40,10 +42,10 @@ namespace Spiderly.Shared.Authorization
         public void OnCreating(CreatingContext context)
         {
             SpiderlyPrincipal current = _principalAccessor.Current;
-            if (current.UserId.HasValue == false)
+            if (current.PrincipalId.HasValue == false)
                 return;
 
-            context.SetJobParameter(UserIdParameter, current.UserId.Value);
+            context.SetJobParameter(PrincipalIdParameter, current.PrincipalId.Value);
             if (string.IsNullOrEmpty(current.Kind) == false)
                 context.SetJobParameter(KindParameter, current.Kind);
         }
@@ -59,9 +61,9 @@ namespace Spiderly.Shared.Authorization
         /// <param name="context">The Hangfire job-performing context.</param>
         public void OnPerforming(PerformingContext context)
         {
-            long? userId = context.GetJobParameter<long?>(UserIdParameter);
-            SpiderlyPrincipal principal = userId.HasValue
-                ? SpiderlyPrincipal.ForUser(userId.Value, context.GetJobParameter<string>(KindParameter))
+            long? principalId = context.GetJobParameter<long?>(PrincipalIdParameter);
+            SpiderlyPrincipal principal = principalId.HasValue
+                ? SpiderlyPrincipal.ForPrincipal(principalId.Value, context.GetJobParameter<string>(KindParameter))
                 : SpiderlyPrincipal.System;
 
             context.Items[ScopeItemKey] = _principalAccessor.Push(principal);

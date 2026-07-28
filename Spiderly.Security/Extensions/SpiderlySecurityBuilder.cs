@@ -33,7 +33,7 @@ namespace Spiderly.Security.Extensions
         public SpiderlySecurityBuilder AddApiKeys<TApiKey>(Action<ApiKeyAuthenticationOptions> configure = null)
             where TApiKey : class, IApiKey, new()
         {
-            Services.AddSpiderlyPrincipal<TApiKey>(PrincipalKinds.ApiKey);
+            Services.AddSpiderlyPrincipal<TApiKey>(PrincipalKinds.ApiKey, PrincipalNature.Machine);
             Services.AddSpiderlyApiKeyAuthentication<TApiKey>(configure);
             return this;
         }

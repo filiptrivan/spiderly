@@ -262,7 +262,7 @@
     {
       "name": "AuthGuard",
       "target": "Class, Method",
-      "summary": "Provides authentication protection for API endpoints by validating JWT tokens in the request."
+      "summary": "The single declaration that protects an endpoint. Bare, it requires an authenticated principal; with a permission code, it additionally requires the principal to hold that permission: Applies to a controller class as well as an action; ASP.NET Core combines class- and action-level requirements (AND), and [AllowAnonymous] opts an action out."
     },
     {
       "name": "CascadeDelete",
