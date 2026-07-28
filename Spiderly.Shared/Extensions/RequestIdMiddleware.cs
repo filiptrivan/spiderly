@@ -1,26 +1,33 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 
 namespace Spiderly.Shared.Extensions;
 
+/// <summary>
+/// Stamps every response with an <c>X-Request-Id</c> header carrying the request's W3C trace id — the same
+/// single correlation id <see cref="DTO.ApiErrorDTO.TraceId"/> shows users and error trackers index (e.g.
+/// Sentry's <c>trace:</c> search) — so any response in hand (curl, a partner report, a proxy log) leads
+/// straight to the matching server logs and tracker events. Deliberately one id namespace: no generated
+/// GUID, and a client-supplied <c>X-Request-Id</c> is ignored (honoring it would let any caller spoof a
+/// logged correlation field; upstream callers correlate via the standard <c>traceparent</c> header, which
+/// ASP.NET Core continues natively). Falls back to <see cref="HttpContext.TraceIdentifier"/> when no
+/// ambient <see cref="Activity"/> exists.
+/// </summary>
 public class RequestIdMiddleware
 {
     private readonly RequestDelegate _next;
 
+    /// <summary>Standard middleware constructor.</summary>
     public RequestIdMiddleware(RequestDelegate next)
     {
         _next = next;
     }
 
+    /// <summary>Sets the <c>X-Request-Id</c> response header and passes the request on.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!context.Response.Headers.ContainsKey("X-Request-Id"))
-        {
-            string requestId = context.Request.Headers["X-Request-Id"].FirstOrDefault()
-                ?? Guid.NewGuid().ToString("N")[..12];
-
-            context.TraceIdentifier = requestId;
-            context.Response.Headers["X-Request-Id"] = requestId;
-        }
+        context.Response.Headers["X-Request-Id"] =
+            Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
 
         await _next(context);
     }
