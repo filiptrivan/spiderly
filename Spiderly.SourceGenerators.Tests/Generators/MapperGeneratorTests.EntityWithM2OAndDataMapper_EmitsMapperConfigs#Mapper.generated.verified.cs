@@ -25,11 +25,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for CategoryDTOToEntityConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for CategoryDTOToEntityConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeCategoryDTOToEntityConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig CategoryToDTOConfig()
@@ -46,11 +42,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for CategoryToDTOConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for CategoryToDTOConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeCategoryToDTOConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig CategoryProjectToConfig()
@@ -67,11 +59,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for CategoryProjectToConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for CategoryProjectToConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeCategoryProjectToConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig CategoryExcelProjectToConfig()
@@ -88,11 +76,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for CategoryExcelProjectToConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for CategoryExcelProjectToConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeCategoryExcelProjectToConfig(TypeAdapterConfig config);
 
         #endregion
@@ -114,11 +98,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for ProductDTOToEntityConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for ProductDTOToEntityConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeProductDTOToEntityConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig ProductToDTOConfig()
@@ -136,11 +116,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for ProductToDTOConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for ProductToDTOConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeProductToDTOConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig ProductProjectToConfig()
@@ -158,11 +134,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for ProductProjectToConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for ProductProjectToConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeProductProjectToConfig(TypeAdapterConfig config);
 
         public static TypeAdapterConfig ProductExcelProjectToConfig()
@@ -180,11 +152,7 @@ namespace TestApp.Business.DataMappers
             return config;
         }
 
-        /// <summary>
-        /// Optional strongly-typed extension seam for ProductExcelProjectToConfig — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for ProductExcelProjectToConfig — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void CustomizeProductExcelProjectToConfig(TypeAdapterConfig config);
 
         #endregion

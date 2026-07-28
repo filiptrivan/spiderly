@@ -150,7 +150,6 @@ public static partial class Mapper
 | Add computed/custom fields to any config (projection, DTO, save, Excel) | Implement the matching `Customize{Entity}{Method}` partial hook |
 | Mapping through an optional navigation | `Customize*` hook with an explicit null guard |
 | Suppress a generated mapping | `Customize*` hook with `.Ignore(dest => dest.X)` |
-| Change how a *generated* member is mapped | Override the full method in `Mapper.cs` (hook `.Map` on a generated member is a no-op — first wins) |
-| Replace the generated mappings wholesale | Override the full method in `Mapper.cs` |
+| Change or replace generated mappings | Override the full method in `Mapper.cs` |
 
 Most projects never need custom mappers — the generated mappings handle M2O, M2M display names, and standard field-to-field mapping automatically.

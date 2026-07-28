@@ -288,11 +288,7 @@ namespace {{basePartOfNamespace}}.DataMappers
         private static string GetCustomizeHookDeclaration(string methodName)
         {
             return $$"""
-        /// <summary>
-        /// Optional strongly-typed extension seam for {{methodName}} — implement this partial method
-        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
-        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
-        /// </summary>
+        /// <summary>Optional extension seam for {{methodName}} — implement in your hand-written Mapper partial to add custom mappings (see the mapper-customization docs; null-guard optional navigations).</summary>
         static partial void Customize{{methodName}}(TypeAdapterConfig config);
 """;
         }
