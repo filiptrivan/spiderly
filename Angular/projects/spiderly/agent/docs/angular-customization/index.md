@@ -363,6 +363,8 @@ menu: SpiderlyMenuItem[] = [
 </spiderly-layout>
 ```
 
+The side menu's desktop collapse state persists automatically (localStorage key `spiderly-layout:menu-desktop-inactive`), so the sidebar stays collapsed/expanded across reloads.
+
 ## Validation
 
 ### ValidatorAbstractService

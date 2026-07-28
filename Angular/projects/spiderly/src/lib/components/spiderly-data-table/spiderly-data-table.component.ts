@@ -46,6 +46,7 @@ import {
   parseDateOnlyLocal,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
+import { readStoredJson } from '../../services/web-storage';
 import {
   DeleteConfirmationData,
   SpiderlyDeleteConfirmationComponent,
@@ -469,19 +470,7 @@ export class SpiderlyDataTableComponent
     if (!this.columnsStateKey) return;
 
     this.columnVisibilityOverrides =
-      SpiderlyDataTableComponent.readStoredJson(
-        localStorage,
-        this.columnsStateKey,
-      ) ?? {};
-  }
-
-  /** Parses a JSON entry from web storage; missing or corrupted entries read as null. */
-  private static readStoredJson(storage: Storage, key: string): any {
-    try {
-      return JSON.parse(storage.getItem(key) ?? 'null');
-    } catch {
-      return null;
-    }
+      readStoredJson(localStorage, this.columnsStateKey) ?? {};
   }
 
   /**
@@ -491,7 +480,7 @@ export class SpiderlyDataTableComponent
   private persistedTableState(): any {
     if (!this.resolvedStateKey) return null;
 
-    return SpiderlyDataTableComponent.readStoredJson(
+    return readStoredJson(
       this.stateStorage === 'local' ? localStorage : sessionStorage,
       this.resolvedStateKey,
     );
