@@ -11,7 +11,7 @@ namespace Spiderly.Security.DTO
         [Required]
         [StringLength(100, MinimumLength = 5)]
         [Email]
-        public string Email { get; set; }
-        public string BrowserId { get; set; }
+        public string Email { get; set; } = null!;
+        public string? BrowserId { get; set; }
     }
 }

@@ -11,7 +11,7 @@ namespace Spiderly.Security.DTO
     [SpiderlyDTO]
     public class UserBaseDTO
     {
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
         public long Id { get; set; }
     }
 }

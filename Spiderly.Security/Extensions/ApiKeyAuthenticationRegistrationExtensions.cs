@@ -38,7 +38,7 @@ namespace Spiderly.Security.Extensions
         /// <returns>The same <paramref name="services"/> for chaining.</returns>
         public static IServiceCollection AddSpiderlyApiKeyAuthentication<TApiKey>(
             this IServiceCollection services,
-            Action<ApiKeyAuthenticationOptions> configureOptions = null)
+            Action<ApiKeyAuthenticationOptions>? configureOptions = null)
             where TApiKey : class, IApiKey
         {
             // Default key lookup over the app's TApiKey table; a consumer can register its own

@@ -3,7 +3,9 @@ namespace Spiderly.Security.Interfaces
     public interface ITokenStorage<T> where T : class, IExpirableToken
     {
         Task AddOrUpdateAsync(string key, T token);
-        Task<T> TryGetValueAsync(string key);
+
+        /// <summary>Returns the token stored under <paramref name="key"/>, or <c>null</c> when there is none — "not found" is null by design.</summary>
+        Task<T?> TryGetValueAsync(string key);
         Task<bool> TryRemoveAsync(string key);
         Task<IEnumerable<KeyValuePair<string, T>>> GetAllAsync();
         Task<IEnumerable<KeyValuePair<string, T>>> WhereAsync(Func<KeyValuePair<string, T>, bool> predicate);

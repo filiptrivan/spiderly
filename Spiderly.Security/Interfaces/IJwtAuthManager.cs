@@ -12,21 +12,21 @@ namespace Spiderly.Security.Interfaces
 
         #region Refresh
 
-        Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string ipAddress, string browserId);
+        Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string? ipAddress, string? browserId);
         List<Claim> GenerateClaims(long userId);
         Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken);
         Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken);
         Task RemoveExpiredRefreshTokensAsync();
         Task RemoveRefreshTokenByUserIdAsync(long userId);
-        Task LogoutAsync(string browserId, long userId);
-        Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string browserId, long userId);
+        Task LogoutAsync(string? browserId, long userId);
+        Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string? browserId, long userId);
 
         #endregion
 
         #region Login verification
 
-        Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationToken, string browserId, string email);
-        Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string browserId);
+        Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationToken, string? browserId, string email);
+        Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string? browserId);
         Task RemoveLoginVerificationTokensByEmailAsync(string email);
         Task<bool> IsLoginVerificationSendBlockedAsync(string email);
 

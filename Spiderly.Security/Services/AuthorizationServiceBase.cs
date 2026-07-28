@@ -74,7 +74,7 @@ namespace Spiderly.Security.Services
             // An unrecognized principal for THIS request (unknown principal_kind, or a missing claim while
             // multiple kinds are registered) is an authentication-level failure, not a server error: fail
             // closed (deny) so AuthorizeAndThrowAsync surfaces 401/403 rather than a 500.
-            if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver resolver) == false)
+            if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver? resolver) == false)
                 return false;
 
             // GetCurrentPrincipalId, NOT GetCurrentUserId: this path authorizes ANY principal kind, and the
@@ -134,7 +134,7 @@ namespace Spiderly.Security.Services
                     "No principal kinds are registered, so authorization cannot resolve the current principal. " +
                     "Call AddSpiderlyPrincipal<TPrincipal>(\"kind\") (the spiderly init template registers User).");
 
-            if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver resolver) == false)
+            if (_principalRegistry.TryResolve(_authenticationService.GetCurrentPrincipalKind(), out IPrincipalPermissionResolver? resolver) == false)
                 return new List<string>();
 
             // Kind-agnostic for the same reason as IsAuthorizedAsync above.

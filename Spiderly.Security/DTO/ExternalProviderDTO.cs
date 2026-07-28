@@ -12,8 +12,8 @@ namespace Spiderly.Security.DTO
     public class ExternalProviderDTO
     {
         /// <summary>The provider code the client authenticated with (e.g. "google"). Routes the id token to the matching validator.</summary>
-        public string Provider { get; set; }
-        public string IdToken { get; set; }
-        public string BrowserId { get; set; }
+        public string Provider { get; set; } = null!;
+        public string IdToken { get; set; } = null!;
+        public string? BrowserId { get; set; }
     }
 }

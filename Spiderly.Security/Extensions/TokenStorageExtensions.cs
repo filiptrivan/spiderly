@@ -46,12 +46,12 @@ namespace Spiderly.Security.Extensions
             // The token-storage backend selection is read once here at composition time (not injected).
             Settings securitySettings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
 
-            Dictionary<string, Func<RefreshTokenDTO, string>> refreshTokenIndexes = new()
+            Dictionary<string, Func<RefreshTokenDTO, string?>> refreshTokenIndexes = new()
             {
                 [RefreshTokenDTO.UserIdIndex] = token => token.UserId.ToString(),
             };
 
-            Dictionary<string, Func<LoginVerificationTokenDTO, string>> loginVerificationIndexes = new()
+            Dictionary<string, Func<LoginVerificationTokenDTO, string?>> loginVerificationIndexes = new()
             {
                 [LoginVerificationTokenDTO.EmailIndex] = token => token.Email,
             };
@@ -59,7 +59,9 @@ namespace Spiderly.Security.Extensions
             if (securitySettings.UseRedisCache)
             {
                 services.AddSingleton<IConnectionMultiplexer>(sp =>
-                    ConnectionMultiplexer.Connect(securitySettings.RedisConnectionString));
+                    // TODO(nrt): UseRedisCache=true with a missing RedisConnectionString throws ArgumentNullException
+                    // here at boot (same before NRT); a ValidateOnStart-style guard would fail louder.
+                    ConnectionMultiplexer.Connect(securitySettings.RedisConnectionString!));
 
                 services.AddSingleton<ITokenStorage<RefreshTokenDTO>>(sp =>
                     new RedisTokenStorage<RefreshTokenDTO>(

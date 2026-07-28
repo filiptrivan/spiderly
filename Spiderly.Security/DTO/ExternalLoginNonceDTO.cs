@@ -13,6 +13,6 @@ namespace Spiderly.Security.DTO
     public class ExternalLoginNonceDTO
     {
         /// <summary>The raw nonce the SPA must pass to the provider sign-in call.</summary>
-        public string Nonce { get; set; }
+        public string Nonce { get; set; } = null!;
     }
 }

@@ -13,7 +13,7 @@ namespace Spiderly.Security.DTO
         [Required]
         public long userId { get; set; }
         [Required]
-        public string email { get; set; }
+        public string email { get; set; } = null!;
         [Required]
         public DateTime accessTokenExpiresAt { get; set; }
     }

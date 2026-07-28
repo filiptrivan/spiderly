@@ -84,7 +84,7 @@ namespace Spiderly.Security.Services
         {
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
-            TUser user = await Authenticate(loginDTO);
+            TUser? user = await Authenticate(loginDTO);
 
             string userEmail;
 
@@ -161,7 +161,7 @@ namespace Spiderly.Security.Services
             return await _context.WithTransactionAsync(async () =>
             {
                 // Check if the user already exists in the database
-                TUser user = await GetUserByEmailAsync(loginVerificationTokenDTO.Email);
+                TUser? user = await GetUserByEmailAsync(loginVerificationTokenDTO.Email);
                 DbSet<TUser> userDbSet = _context.DbSet<TUser>();
 
                 if (user == null)
@@ -205,7 +205,7 @@ namespace Spiderly.Security.Services
         /// (PKCE + nonce + state) and returns a Data-Protection-signed state blob the caller stores in a
         /// short-lived cookie. <paramref name="redirectUri"/> is the backend callback (must be registered with the provider).
         /// </summary>
-        public virtual async Task<(string AuthorizeUrl, string ProtectedState)> BeginExternalLoginAsync(string provider, string returnUrl, string browserId, string redirectUri)
+        public virtual async Task<(string AuthorizeUrl, string ProtectedState)> BeginExternalLoginAsync(string provider, string? returnUrl, string? browserId, string redirectUri)
         {
             ExternalProviderConfig config = _externalAuthCodeFlow.GetConfig(provider); // throws ExternalProviderNotConfigured if absent
 
@@ -240,9 +240,9 @@ namespace Spiderly.Security.Services
         /// secret), validates the id token + nonce, resolves/links the user, issues the session as HttpOnly
         /// cookies, and returns the original returnUrl for the caller to redirect to.
         /// </summary>
-        public virtual async Task<string> CompleteExternalLoginAsync(string code, string state, string protectedState)
+        public virtual async Task<string> CompleteExternalLoginAsync(string? code, string? state, string protectedState)
         {
-            ExternalLoginState payload = UnprotectExternalLoginState(protectedState);
+            ExternalLoginState? payload = UnprotectExternalLoginState(protectedState);
 
             if (payload == null || string.IsNullOrWhiteSpace(state) || payload.State != state)
                 throw new SecurityViolationException("External login state validation failed.");
@@ -257,7 +257,7 @@ namespace Spiderly.Security.Services
             ExternalIdentity externalIdentity = await _externalAuthProviderRegistry.Get(payload.Provider).ValidateAsync(idToken);
 
             // Nonce binding: the id token must echo the nonce we generated (defeats token injection/replay).
-            string tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().ReadJsonWebToken(idToken).TryGetClaim("nonce", out Claim nonceClaim) ? nonceClaim.Value : null;
+            string? tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().ReadJsonWebToken(idToken).TryGetClaim("nonce", out Claim nonceClaim) ? nonceClaim.Value : null;
             if (tokenNonce != payload.Nonce)
                 throw new SecurityViolationException("External login nonce mismatch.");
 
@@ -313,11 +313,11 @@ namespace Spiderly.Security.Services
             return $"{_frontendUrl.TrimEnd('/')}/?externalAuthError={Uri.EscapeDataString(code)}";
         }
 
-        private string SanitizeReturnUrl(string returnUrl)
+        private string SanitizeReturnUrl(string? returnUrl)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) &&
-                Uri.TryCreate(returnUrl, UriKind.Absolute, out Uri target) &&
-                Uri.TryCreate(_frontendUrl, UriKind.Absolute, out Uri allowed) &&
+                Uri.TryCreate(returnUrl, UriKind.Absolute, out Uri? target) &&
+                Uri.TryCreate(_frontendUrl, UriKind.Absolute, out Uri? allowed) &&
                 Uri.Compare(target, allowed, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
             {
                 return returnUrl;
@@ -332,7 +332,7 @@ namespace Spiderly.Security.Services
 
         private static string Base64UrlEncode(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-        private ExternalLoginState UnprotectExternalLoginState(string protectedState)
+        private ExternalLoginState? UnprotectExternalLoginState(string protectedState)
         {
             if (string.IsNullOrWhiteSpace(protectedState))
                 return null;
@@ -347,15 +347,17 @@ namespace Spiderly.Security.Services
             }
         }
 
+        // Only ever round-tripped through the Data-Protection payload this service itself writes, so the
+        // non-null fields are always present after a successful Unprotect.
         private sealed class ExternalLoginState
         {
-            public string Provider { get; set; }
-            public string State { get; set; }
-            public string Nonce { get; set; }
-            public string CodeVerifier { get; set; }
-            public string ReturnUrl { get; set; }
-            public string BrowserId { get; set; }
-            public string RedirectUri { get; set; }
+            public string Provider { get; set; } = null!;
+            public string State { get; set; } = null!;
+            public string Nonce { get; set; } = null!;
+            public string CodeVerifier { get; set; } = null!;
+            public string ReturnUrl { get; set; } = null!;
+            public string? BrowserId { get; set; }
+            public string RedirectUri { get; set; } = null!;
         }
 
         private const int ExternalLoginNonceLifetimeMinutes = 15;
@@ -388,9 +390,9 @@ namespace Spiderly.Security.Services
         /// nonce is missing, tampered, expired, or doesn't match the token's <c>nonce</c> claim. This is the
         /// id-token path's equivalent of the nonce check the B2 code flow does in <see cref="CompleteExternalLoginAsync"/>.
         /// </summary>
-        private void VerifyExternalLoginNonce(string idToken, string protectedNonce)
+        private void VerifyExternalLoginNonce(string idToken, string? protectedNonce)
         {
-            ExternalLoginNonce payload = null;
+            ExternalLoginNonce? payload = null;
 
             if (string.IsNullOrWhiteSpace(protectedNonce) == false)
             {
@@ -407,7 +409,7 @@ namespace Spiderly.Security.Services
             if (payload == null || payload.ExpiresAt < DateTime.UtcNow)
                 throw new SecurityViolationException("External login nonce is missing or expired.");
 
-            string tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler()
+            string? tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler()
                 .ReadJsonWebToken(idToken)
                 .TryGetClaim("nonce", out Claim nonceClaim) ? nonceClaim.Value : null;
 
@@ -415,9 +417,10 @@ namespace Spiderly.Security.Services
                 throw new SecurityViolationException("External login nonce mismatch.");
         }
 
+        // Only ever round-tripped through the Data-Protection payload this service itself writes.
         private sealed class ExternalLoginNonce
         {
-            public string Nonce { get; set; }
+            public string Nonce { get; set; } = null!;
             public DateTime ExpiresAt { get; set; }
         }
 
@@ -434,7 +437,7 @@ namespace Spiderly.Security.Services
                 .ToList();
         }
 
-        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string protectedNonce)
+        public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO, string? protectedNonce)
         {
             // Localized guard here (the service has the localizer); the registry's own throw is an internal safety net.
             if (_externalAuthProviderRegistry.IsConfigured(externalProviderDTO.Provider) == false)
@@ -488,7 +491,7 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO, string protectedNonce)
+        public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO, string? protectedNonce)
         {
             AuthResultDTO authResultDTO = await LoginExternal(externalProviderDTO, protectedNonce);
 
@@ -510,7 +513,7 @@ namespace Spiderly.Security.Services
 
         #region Helpers
 
-        public virtual async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string accessToken)
+        public virtual async Task<AuthResultDTO> RefreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO, string? accessToken)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequestDTO.RefreshToken))
                 throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]); // It's not realy this reason, but it's easier then realy explaining the user what has happened, this could happen if he deleted the cache from the browser
@@ -521,18 +524,20 @@ namespace Spiderly.Security.Services
             {
                 List<Claim> claims = await _jwtAuthManagerService.GetClaimsForTheAccessTokenAsync(refreshTokenRequestDTO, accessToken);
                 // Raw wire claim from JwtSecurityToken.Claims — the bearer middleware's inbound map (sub → NameIdentifier) has not been applied here.
-                userIdFromAccessToken = long.Parse(claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value);
+                // !: self-issued tokens always carry sub (GenerateClaims), and the signature was just validated in GetClaimsForTheAccessTokenAsync.
+                userIdFromAccessToken = long.Parse(claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value!);
             }
 
             // When access token cookie expired (browser deleted it), RefreshAsync derives user ID from refresh token storage.
             JwtAuthResultDTO jwtResult = await _jwtAuthManagerService.RefreshAsync(refreshTokenRequestDTO, userIdFromAccessToken);
 
-            string emailFromTheDb = await GetUserEmailByIdAsync(jwtResult.UserId);
+            string? emailFromTheDb = await GetUserEmailByIdAsync(jwtResult.UserId);
 
             return new AuthResultDTO
             {
                 UserId = jwtResult.UserId, // Here it will always be user, if there is not, it will break earlier
-                Email = emailFromTheDb,
+                // TODO(nrt): null when the user row was deleted while its refresh token is still live — nothing on the refresh path re-checks the user exists.
+                Email = emailFromTheDb!,
                 AccessToken = jwtResult.AccessTokenDTO.TokenString,
                 AccessTokenExpiresAt = jwtResult.AccessTokenDTO.ExpiresAt,
                 RefreshToken = jwtResult.RefreshTokenDTO.TokenString
@@ -541,14 +546,14 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<AuthResultDTO> RefreshTokenWithHeaders(RefreshTokenRequestDTO refreshTokenRequestDTO)
         {
-            string accessToken = _authenticationService.GetAccessTokenFromHeader();
+            string? accessToken = _authenticationService.GetAccessTokenFromHeader();
             return await RefreshToken(refreshTokenRequestDTO, accessToken);
         }
 
-        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string browserId)
+        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies(string? browserId)
         {
-            string refreshToken = _authenticationService.GetRefreshTokenFromCookie();
-            string accessToken = _authenticationService.GetAccessTokenFromCookie();
+            string? refreshToken = _authenticationService.GetRefreshTokenFromCookie();
+            string? accessToken = _authenticationService.GetAccessTokenFromCookie();
 
             RefreshTokenRequestDTO refreshTokenRequestDTO = new RefreshTokenRequestDTO
             {
@@ -572,7 +577,7 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public virtual async Task<string> GetUserEmailByIdAsync(long id)
+        public virtual async Task<string?> GetUserEmailByIdAsync(long id)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -580,7 +585,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public virtual async Task<TUser> GetUserByEmailAsync(string email)
+        public virtual async Task<TUser?> GetUserByEmailAsync(string email)
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -608,7 +613,7 @@ namespace Spiderly.Security.Services
 
             if (linkedUserId != null)
             {
-                TUser linkedUser = await userDbSet.Where(x => x.Id == linkedUserId.Value).SingleOrDefaultAsync();
+                TUser? linkedUser = await userDbSet.Where(x => x.Id == linkedUserId.Value).SingleOrDefaultAsync();
 
                 if (linkedUser == null)
                     throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
@@ -630,7 +635,7 @@ namespace Spiderly.Security.Services
             if (externalIdentity.EmailVerified != true)
                 throw new BusinessException(_localizer["ExternalEmailNotVerifiedException"], ApiErrorCodes.EmailNotVerified);
 
-            TUser user = await userDbSet.Where(x => x.Email == externalIdentity.Email).SingleOrDefaultAsync();
+            TUser? user = await userDbSet.Where(x => x.Email == externalIdentity.Email).SingleOrDefaultAsync();
 
             if (user != null)
             {
@@ -662,20 +667,20 @@ namespace Spiderly.Security.Services
             return user;
         }
 
-        private async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokens(long userId, string browserId)
+        private async Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokens(long userId, string? browserId)
         {
-            string ipAddress = _authenticationService.GetIPAddress();
+            string? ipAddress = _authenticationService.GetIPAddress();
 
             JwtAuthResultDTO jwtAuthResult = await _jwtAuthManagerService.GenerateAccessAndRefreshTokensAsync(userId, ipAddress, browserId);
 
             return jwtAuthResult;
         }
 
-        private async Task<TUser> Authenticate(LoginDTO loginDTO)
+        private async Task<TUser?> Authenticate(LoginDTO loginDTO)
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                TUser currentUser = await _context.DbSet<TUser>()
+                TUser? currentUser = await _context.DbSet<TUser>()
                     .Where(x => x.Email == loginDTO.Email)
                     .SingleOrDefaultAsync();
 

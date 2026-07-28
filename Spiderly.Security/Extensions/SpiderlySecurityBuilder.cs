@@ -30,7 +30,7 @@ namespace Spiderly.Security.Extensions
         /// </summary>
         /// <typeparam name="TApiKey">The application's API-key entity.</typeparam>
         /// <param name="configure">Optional hook to customize the API-key scheme options (e.g. the header name).</param>
-        public SpiderlySecurityBuilder AddApiKeys<TApiKey>(Action<ApiKeyAuthenticationOptions> configure = null)
+        public SpiderlySecurityBuilder AddApiKeys<TApiKey>(Action<ApiKeyAuthenticationOptions>? configure = null)
             where TApiKey : class, IApiKey, new()
         {
             Services.AddSpiderlyPrincipal<TApiKey>(PrincipalKinds.ApiKey, PrincipalNature.Machine);

@@ -37,7 +37,7 @@ namespace Spiderly.Security.Authentication
         /// <inheritdoc/>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            string presentedKey = Request.Headers[Options.HeaderName].FirstOrDefault();
+            string? presentedKey = Request.Headers[Options.HeaderName].FirstOrDefault();
 
             // No key on the request → this scheme has no opinion; let the pipeline fall through (e.g. to JWT).
             if (string.IsNullOrEmpty(presentedKey))

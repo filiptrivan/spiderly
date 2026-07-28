@@ -81,7 +81,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [UIDoNotGenerate]
         public virtual async Task<AuthResultDTO> LoginExternal(ExternalProviderDTO externalProviderDTO)
         {
-            string protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
+            string? protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
             try
             {
                 return await _securityServiceBase.LoginExternal(externalProviderDTO, protectedNonce);
@@ -110,7 +110,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [UIDoNotGenerate]
         public virtual async Task<AuthResultWithCookiesDTO> LoginExternalWithCookies(ExternalProviderDTO externalProviderDTO)
         {
-            string protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
+            string? protectedNonce = Request.Cookies[ExternalLoginNonceCookieName];
             try
             {
                 return await _securityServiceBase.LoginExternalWithCookies(externalProviderDTO, protectedNonce);
@@ -179,10 +179,11 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// </summary>
         [HttpGet]
         [UIDoNotGenerate]
-        public virtual async Task<ActionResult> ExternalLoginChallenge(string provider, string returnUrl, string browserId)
+        public virtual async Task<ActionResult> ExternalLoginChallenge(string provider, string? returnUrl, string? browserId)
         {
             // The provider redirects back here; this absolute URL must be registered as the provider's redirect URI.
-            string redirectUri = Url.Action(nameof(ExternalLoginCallback), null, null, Request.Scheme);
+            // !: Url.Action for an action on this same controller always resolves.
+            string redirectUri = Url.Action(nameof(ExternalLoginCallback), null, null, Request.Scheme)!;
 
             (string authorizeUrl, string protectedState) = await _securityServiceBase.BeginExternalLoginAsync(provider, returnUrl, browserId, redirectUri);
 
@@ -211,9 +212,9 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// </summary>
         [HttpGet]
         [UIDoNotGenerate]
-        public virtual async Task<ActionResult> ExternalLoginCallback(string code, string state)
+        public virtual async Task<ActionResult> ExternalLoginCallback(string? code, string? state)
         {
-            string protectedState = Request.Cookies[ExternalLoginStateCookieName];
+            string? protectedState = Request.Cookies[ExternalLoginStateCookieName];
             Response.Cookies.Delete(ExternalLoginStateCookieName); // single-use — clear regardless of outcome
 
             // No state cookie => it expired (almost always because the user took too long on the provider's
@@ -229,7 +230,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
             }
             catch (Exception ex)
             {
-                ILogger logger = HttpContext.RequestServices
+                ILogger? logger = HttpContext.RequestServices
                     .GetService<ILogger<SecurityBaseController<TUser, TRole, TUserExternalLogin>>>();
 
                 if (ex is BusinessException || ex is SecurityViolationException)
@@ -255,7 +256,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<ActionResult> Logout(string browserId)
+        public virtual async Task<ActionResult> Logout(string? browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
             await _jwtAuthManagerService.LogoutAsync(browserId, userId); // If the malicious user is deleting browser id, and sending request with refresh token like that we will delete every refresh token for that user
@@ -268,7 +269,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<ActionResult> LogoutWithCookies(string browserId)
+        public virtual async Task<ActionResult> LogoutWithCookies(string? browserId)
         {
             long userId = _authenticationService.GetCurrentUserId();
             await _jwtAuthManagerService.LogoutAsync(browserId, userId);
@@ -299,7 +300,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         /// dashboard after logout); POST is never cached, and the controller-level no-store is belt-and-braces.
         /// </summary>
         [HttpPost]
-        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies([FromQuery] string browserId)
+        public virtual async Task<AuthResultWithCookiesDTO> RefreshTokenWithCookies([FromQuery] string? browserId)
         {
             return await _securityServiceBase.RefreshTokenWithCookies(browserId);
         }
@@ -314,7 +315,7 @@ namespace Spiderly.Security.SecurityControllers // Needs to be other namespace b
         [HttpGet]
         [AuthGuard]
         [SkipSpinner]
-        public virtual async Task<UserBaseDTO> GetCurrentUserBase()
+        public virtual async Task<UserBaseDTO?> GetCurrentUserBase()
         {
             return await _authenticationService.GetCurrentUserBaseDTO<TUser>();
         }

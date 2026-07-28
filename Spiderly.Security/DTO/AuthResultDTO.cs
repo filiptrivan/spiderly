@@ -10,12 +10,12 @@ namespace Spiderly.Security.DTO
         [Required]
         public long UserId { get; set; }
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
         [Required]
-        public string AccessToken { get; set; }
+        public string AccessToken { get; set; } = null!;
         [Required]
         public DateTime AccessTokenExpiresAt { get; set; }
         [Required]
-        public string RefreshToken { get; set; }
+        public string RefreshToken { get; set; } = null!;
     }
 }

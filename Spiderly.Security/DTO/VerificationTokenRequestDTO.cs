@@ -8,11 +8,11 @@ namespace Spiderly.Security.DTO
     {
         [Required]
         [StringLength(6, MinimumLength = 6)]
-        public string VerificationCode { get; set; }
-        public string BrowserId { get; set; }
+        public string VerificationCode { get; set; } = null!;
+        public string? BrowserId { get; set; }
         [Required]
         [StringLength(100, MinimumLength = 5)]
         [Email]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
     }
 }

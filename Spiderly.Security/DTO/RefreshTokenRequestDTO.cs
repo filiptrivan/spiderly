@@ -12,7 +12,9 @@ namespace Spiderly.Security.DTO
     [SpiderlyDTO]
     public class RefreshTokenRequestDTO
     {
-        public string RefreshToken { get; set; }
-        public string BrowserId { get; set; }
+        // Nullable: absence is an expected, handled state (browser cache cleared / cookie expired) that must
+        // reach the service's guard for the friendly "expired" error, not be 400'd by implicit-required binding.
+        public string? RefreshToken { get; set; }
+        public string? BrowserId { get; set; }
     }
 }

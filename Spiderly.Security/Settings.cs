@@ -14,6 +14,6 @@ namespace Spiderly.Security
         public bool UseRedisCache { get; set; }
 
         /// <summary>Redis connection string, used when <see cref="UseRedisCache"/> is enabled.</summary>
-        public string RedisConnectionString { get; set; }
+        public string? RedisConnectionString { get; set; }
     }
 }

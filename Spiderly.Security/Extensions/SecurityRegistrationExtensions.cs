@@ -46,7 +46,7 @@ namespace Spiderly.Security.Extensions
         /// <param name="configure">Optional add-ons (e.g. <c>s => s.AddApiKeys&lt;ApiKey&gt;()</c>).</param>
         public static SpiderlyBuilder AddSecurity<TUser, TUserExternalLogin, TAuthorizationService>(
             this SpiderlyBuilder builder,
-            Action<SpiderlySecurityBuilder> configure = null)
+            Action<SpiderlySecurityBuilder>? configure = null)
             where TUser : class, IUser, new()
             where TUserExternalLogin : class, IUserExternalLogin, new()
             where TAuthorizationService : AuthorizationServiceBase

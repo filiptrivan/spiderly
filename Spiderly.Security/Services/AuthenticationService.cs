@@ -94,7 +94,7 @@ namespace Spiderly.Security.Services
         /// the claim is absent (the single-principal case). The authorization core's registry resolves a
         /// <c>null</c> kind to the single registered kind, so single-principal applications carry no claim ceremony.
         /// </summary>
-        public virtual string GetCurrentPrincipalKind()
+        public virtual string? GetCurrentPrincipalKind()
         {
             return _principalAccessor.Current.Kind;
         }
@@ -117,7 +117,7 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public virtual async Task<UserBaseDTO> GetCurrentUserBaseDTO<TUser>() where TUser : class, IUser, new()
+        public virtual async Task<UserBaseDTO?> GetCurrentUserBaseDTO<TUser>() where TUser : class, IUser, new()
         {
             return await _context.WithTransactionAsync(async () =>
             {
@@ -132,22 +132,25 @@ namespace Spiderly.Security.Services
             });
         }
 
-        public virtual string GetAccessTokenFromHeader()
+        public virtual string? GetAccessTokenFromHeader()
         {
-            return Helper.GetAccessTokenFromHeader(_httpContextAccessor.HttpContext);
+            // !: token/cookie/IP accessors are only reachable from the request pipeline, where HttpContext is present (same NRE before NRT otherwise)
+            return Helper.GetAccessTokenFromHeader(_httpContextAccessor.HttpContext!);
         }
 
-        public virtual string GetAccessTokenFromCookie()
+        public virtual string? GetAccessTokenFromCookie()
         {
-            return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext, _tokenKeySettings.AccessTokenKey);
+            // !: see GetAccessTokenFromHeader
+            return Helper.GetAccessTokenFromCookie(_httpContextAccessor.HttpContext!, _tokenKeySettings.AccessTokenKey);
         }
 
-        public virtual string GetIPAddress()
+        public virtual string? GetIPAddress()
         {
-            return Helper.GetIPAddress(_httpContextAccessor.HttpContext);
+            // !: see GetAccessTokenFromHeader
+            return Helper.GetIPAddress(_httpContextAccessor.HttpContext!);
         }
 
-        public virtual string GetRefreshTokenFromCookie()
+        public virtual string? GetRefreshTokenFromCookie()
         {
             return _httpContextAccessor.HttpContext?.Request.Cookies[_tokenKeySettings.RefreshTokenKey];
         }
@@ -186,12 +189,14 @@ namespace Spiderly.Security.Services
         private void SetCookie(string key, string value, int expirationMinutes, bool httpOnly)
         {
             CookieOptions cookieOptions = _cookieManager.GetCookieOptions(expirationMinutes, httpOnly);
-            _httpContextAccessor.HttpContext.Response.Cookies.Append(key, value, cookieOptions);
+            // !: cookie writes only happen while serving a request, where HttpContext is present
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(key, value, cookieOptions);
         }
 
         private void ClearCookie(string key, bool httpOnly)
         {
-            _cookieManager.ClearCookie(_httpContextAccessor.HttpContext.Response.Cookies, key, httpOnly);
+            // !: cookie writes only happen while serving a request, where HttpContext is present
+            _cookieManager.ClearCookie(_httpContextAccessor.HttpContext!.Response.Cookies, key, httpOnly);
         }
     }
 }

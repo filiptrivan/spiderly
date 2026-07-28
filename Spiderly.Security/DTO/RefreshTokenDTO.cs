@@ -16,9 +16,9 @@ namespace Spiderly.Security.DTO
         public const string UserIdIndex = nameof(UserId);
 
         public long UserId { get; set; }
-        public string IpAddress { get; set; }
-        public string BrowserId { get; set; }
-        public string TokenString { get; set; }
+        public string? IpAddress { get; set; }
+        public string? BrowserId { get; set; }
+        public string TokenString { get; set; } = null!;
         public DateTime ExpiresAt { get; set; }
     }
 }

@@ -9,8 +9,8 @@ namespace Spiderly.Security.DTO
     {
         public const string EmailIndex = nameof(Email);
 
-        public string Email { get; set; }
-        public string BrowserId { get; set; }
+        public string Email { get; set; } = null!;
+        public string? BrowserId { get; set; }
 
         /// <summary>When the code was issued (UTC). Drives the per-address resend cooldown.</summary>
         public DateTime CreatedAt { get; set; }

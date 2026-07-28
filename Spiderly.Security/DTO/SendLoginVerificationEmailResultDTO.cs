@@ -8,8 +8,9 @@ namespace Spiderly.Security.DTO
     public class SendLoginVerificationEmailResultDTO
     {
         [Required]
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
+        /// <summary>Only populated in the development inline-code mode (no emailing configured); null in production.</summary>
         [Required]
-        public string VerificationCode { get; set; }
+        public string? VerificationCode { get; set; }
     }
 }

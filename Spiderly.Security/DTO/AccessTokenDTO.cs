@@ -7,7 +7,7 @@ namespace Spiderly.Security.DTO
     [SpiderlyDTO]
     public class AccessTokenDTO : IExpirableToken
     {
-        public string TokenString { get; set; }
+        public string TokenString { get; set; } = null!;
         public DateTime ExpiresAt { get; set; }
     }
 }

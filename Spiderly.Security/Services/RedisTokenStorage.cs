@@ -9,14 +9,14 @@ namespace Spiderly.Security.Services
         private readonly IConnectionMultiplexer _redis;
         private readonly IDatabase _database;
         private readonly string _keyPrefix;
-        private readonly Dictionary<string, Func<T, string>> _indexExtractors;
+        private readonly Dictionary<string, Func<T, string?>> _indexExtractors;
 
-        public RedisTokenStorage(IConnectionMultiplexer redis, string keyPrefix, Dictionary<string, Func<T, string>> indexExtractors = null)
+        public RedisTokenStorage(IConnectionMultiplexer redis, string keyPrefix, Dictionary<string, Func<T, string?>>? indexExtractors = null)
         {
             _redis = redis;
             _database = redis.GetDatabase();
             _keyPrefix = keyPrefix;
-            _indexExtractors = indexExtractors ?? new Dictionary<string, Func<T, string>>();
+            _indexExtractors = indexExtractors ?? new Dictionary<string, Func<T, string?>>();
         }
 
         public async Task AddOrUpdateAsync(string key, T token)
@@ -27,7 +27,7 @@ namespace Spiderly.Security.Services
             // Old index entries must be removed before writing, otherwise stale set references accumulate if the indexed property changed
             if (_indexExtractors.Count > 0)
             {
-                T existingToken = await TryGetValueAsync(key);
+                T? existingToken = await TryGetValueAsync(key);
                 if (existingToken != null)
                 {
                     await RemoveFromIndexesAsync(key, existingToken);
@@ -40,7 +40,7 @@ namespace Spiderly.Security.Services
             await AddToIndexesAsync(key, token, expiration);
         }
 
-        public async Task<T> TryGetValueAsync(string key)
+        public async Task<T?> TryGetValueAsync(string key)
         {
             string redisKey = _keyPrefix + key;
             RedisValue value = await _database.StringGetAsync(redisKey);
@@ -50,7 +50,7 @@ namespace Spiderly.Security.Services
                 return null;
             }
 
-            return JsonSerializer.Deserialize<T>(value);
+            return JsonSerializer.Deserialize<T>(((string?)value)!); // !: guarded by IsNullOrEmpty above
         }
 
         public async Task<bool> TryRemoveAsync(string key)
@@ -58,7 +58,7 @@ namespace Spiderly.Security.Services
             // Must read before delete — once the key is gone, we can no longer derive which index sets to clean up
             if (_indexExtractors.Count > 0)
             {
-                T token = await TryGetValueAsync(key);
+                T? token = await TryGetValueAsync(key);
                 if (token != null)
                 {
                     await RemoveFromIndexesAsync(key, token);
@@ -89,7 +89,8 @@ namespace Spiderly.Security.Services
             {
                 if (!values[i].IsNullOrEmpty)
                 {
-                    T token = JsonSerializer.Deserialize<T>(values[i]);
+                    // !: guarded by IsNullOrEmpty above; stored values are serialized tokens, never the JSON literal null
+                    T token = JsonSerializer.Deserialize<T>(((string?)values[i])!)!;
                     string tokenKey = keys[i].ToString().Substring(_keyPrefix.Length);
                     result.Add(new KeyValuePair<string, T>(tokenKey, token));
                 }
@@ -134,7 +135,8 @@ namespace Spiderly.Security.Services
                 }
                 else
                 {
-                    T token = JsonSerializer.Deserialize<T>(values[i]);
+                    // !: guarded by IsNullOrEmpty above; stored values are serialized tokens, never the JSON literal null
+                    T token = JsonSerializer.Deserialize<T>(((string?)values[i])!)!;
                     result.Add(new KeyValuePair<string, T>(members[i].ToString(), token));
                 }
             }
@@ -155,9 +157,9 @@ namespace Spiderly.Security.Services
 
         private async Task AddToIndexesAsync(string key, T token, TimeSpan? expiration)
         {
-            foreach (KeyValuePair<string, Func<T, string>> extractor in _indexExtractors)
+            foreach (KeyValuePair<string, Func<T, string?>> extractor in _indexExtractors)
             {
-                string indexValue = extractor.Value(token);
+                string? indexValue = extractor.Value(token);
                 if (indexValue == null)
                     continue;
 
@@ -175,9 +177,9 @@ namespace Spiderly.Security.Services
 
         private async Task RemoveFromIndexesAsync(string key, T token)
         {
-            foreach (KeyValuePair<string, Func<T, string>> extractor in _indexExtractors)
+            foreach (KeyValuePair<string, Func<T, string?>> extractor in _indexExtractors)
             {
-                string indexValue = extractor.Value(token);
+                string? indexValue = extractor.Value(token);
                 if (indexValue == null)
                     continue;
 
