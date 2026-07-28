@@ -207,8 +207,8 @@ internal static class Program
 
             foreach (XElement member in XDocument.Load(xmlPath).Descendants("member"))
             {
-                string id = member.Attribute("name")?.Value;
-                XElement summary = member.Element("summary");
+                string? id = member.Attribute("name")?.Value;
+                XElement? summary = member.Element("summary");
                 if (id is null || summary is null)
                     continue;
 
@@ -279,17 +279,17 @@ internal static class Program
 
     private static string RequireSummary(Dictionary<string, string> docs, string docId, string display)
     {
-        if (docs.TryGetValue(docId, out string summary) && !string.IsNullOrWhiteSpace(summary))
+        if (docs.TryGetValue(docId, out string? summary) && !string.IsNullOrWhiteSpace(summary))
             return summary;
 
         MissingDocs.Add(display);
         return string.Empty;
     }
 
-    private static string GetClassSummary(Dictionary<string, string> docs, Type type)
-        => docs.TryGetValue($"T:{type.FullName}", out string summary) ? summary : null;
+    private static string? GetClassSummary(Dictionary<string, string> docs, Type type)
+        => docs.TryGetValue($"T:{type.FullName}", out string? summary) ? summary : null;
 
-    private static string GetOption(string[] args, string name)
+    private static string? GetOption(string[] args, string name)
     {
         for (int i = 0; i < args.Length - 1; i++)
             if (args[i] == name)
@@ -300,11 +300,11 @@ internal static class Program
 
 internal sealed record Metadata(List<EnumModel> Enums, List<ControllerModel> Controllers, List<AttributeModel> Attributes);
 
-internal sealed record EnumModel(string Name, string Kind, string Namespace, string Summary, List<MemberModel> Members);
+internal sealed record EnumModel(string Name, string Kind, string Namespace, string? Summary, List<MemberModel> Members);
 
-internal sealed record MemberModel(string Name, string Value, string Summary);
+internal sealed record MemberModel(string Name, string? Value, string Summary);
 
-internal sealed record ControllerModel(string Name, string Summary, List<EndpointModel> Endpoints);
+internal sealed record ControllerModel(string Name, string? Summary, List<EndpointModel> Endpoints);
 
 internal sealed record EndpointModel(string Name, string Verb, bool Auth, string Summary);
 
