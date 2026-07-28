@@ -28,19 +28,19 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
         {
-            TypeSyntax baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
+            TypeSyntax? baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
             ClassDeclarationSyntax baseClass = GetClass(baseType, currentProjectClasses);
 
             List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames);
 
-            TypeSyntax typeGeneric = null;
+            TypeSyntax? typeGeneric = null;
 
             while (baseType != null)
             {
                 if (baseType is GenericNameSyntax genericNameSyntax && baseClass == null)
                 {
                     typeGeneric = genericNameSyntax.TypeArgumentList.Arguments.FirstOrDefault(); // long
-                    properties.AddRange(GetPropertiesForBaseClasses(baseType.ToString(), typeGeneric.ToString()));
+                    properties.AddRange(GetPropertiesForBaseClasses(baseType.ToString(), typeGeneric!.ToString())); // A GenericNameSyntax parsed from "Base<T>" syntax always carries >= 1 type argument.
                     break;
                 }
                 else if (baseClass == null)
@@ -67,18 +67,21 @@ namespace Spiderly.SourceGenerators.Shared
             return properties;
         }
 
-        public static List<SpiderlyAttribute> GetAllAttributesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> allClasses)
+        public static List<SpiderlyAttribute>? GetAllAttributesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> allClasses)
         {
             if (c == null) return null;
 
             ClassDeclarationSyntax cHelper = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ClassDeclaration(c.Identifier).WithBaseList(c.BaseList).WithAttributeLists(c.AttributeLists); // Doing this because of reference type, we don't want to change c
             List<SpiderlyAttribute> attributes = new List<SpiderlyAttribute>();
 
-            TypeSyntax baseType = cHelper.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass
+            TypeSyntax? baseType = cHelper.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass
             // Getting the attributes for all base classes also
             do
             {
-                attributes.AddRange(cHelper.AttributeLists
+                // Loop invariant: reaching the top of an iteration means cHelper != null - the only path that
+                // nulls it out (below) breaks immediately, and the other path that could leave it null also
+                // nulls out baseType, which ends the loop via the while condition before we get back here.
+                attributes.AddRange(cHelper!.AttributeLists
                     .SelectMany(x => x.Attributes)
                     .Select(GetSpiderAttribute)
                     .ToList());
@@ -105,7 +108,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// Using this method only when getting all properties of the class, for other situations, we should search SpiderClass.
         /// </summary>
-        private static ClassDeclarationSyntax GetClass(TypeSyntax type, IEnumerable<ClassDeclarationSyntax> classes)
+        private static ClassDeclarationSyntax GetClass(TypeSyntax? type, IEnumerable<ClassDeclarationSyntax> classes)
         {
             string typeName = "";
 
@@ -135,7 +138,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             // Build a HashSet once per class scan; ImmutableArray.Contains is O(N).
             // Nullable enum properties (`OrderStatusCodes?`) need the suffix stripped to match the unadorned name in the set.
-            HashSet<string> enumNameSet = spiderlyEnumNames.IsDefaultOrEmpty
+            HashSet<string>? enumNameSet = spiderlyEnumNames.IsDefaultOrEmpty
                 ? null
                 : new HashSet<string>(spiderlyEnumNames);
 
@@ -181,7 +184,7 @@ namespace Spiderly.SourceGenerators.Shared
                         .Select(parameter => new SpiderParameter
                         {
                             Name = parameter.Identifier.Text,
-                            Type = parameter.Type.ToString(),
+                            Type = parameter.Type!.ToString(), // Regular method parameters always have an explicit type; only implicit-typed lambda parameter lists leave Type null.
                             Attributes = parameter.AttributeLists.SelectMany(x => x.Attributes).Select(x => GetSpiderAttribute(x)).ToList()
                         })
                         .ToList(),
@@ -199,7 +202,9 @@ namespace Spiderly.SourceGenerators.Shared
             SpiderlyAttribute entityDisplayNameAttribute = entity.Attributes.SingleOrDefault(x => x.Name == "DisplayName");
 
             if (entityDisplayNameAttribute != null)
-                return entityDisplayNameAttribute.Value;
+                // TODO(nrt): a bare [DisplayName] with no argument leaves Value null, which would flow out of
+                // this non-null-declared method. Pre-existing gap (not introduced by this annotation pass).
+                return entityDisplayNameAttribute.Value!;
 
             SpiderlyProperty displayNamePropForClass = entity.Properties.SingleOrDefault(x => x.Attributes.Any(x => x.Name == Helpers.DisplayNameAttribute));
 
@@ -214,7 +219,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         internal static SpiderlyAttribute GetSpiderAttribute(AttributeSyntax a)
         {
-            string argumentValue = a?.ArgumentList?.Arguments != null && a.ArgumentList.Arguments.Any()
+            string? argumentValue = a?.ArgumentList?.Arguments != null && a.ArgumentList.Arguments.Any()
                     ? string.Join(", ", a.ArgumentList.Arguments.Select(arg => arg?.ToString()))
                     : null; // FT: Doing this because of Range(0, 5) (long tail because of null pointer exception)
 
@@ -222,12 +227,12 @@ namespace Spiderly.SourceGenerators.Shared
 
             return new SpiderlyAttribute
             {
-                Name = a.Name.ToString(),
+                Name = a!.Name.ToString(), // The defensive 'a?.' above flow-types 'a' nullable; the parameter itself is non-null.
                 Value = argumentValue,
             };
         }
 
-        internal static string GetFormatedAttributeValue(string value)
+        internal static string? GetFormatedAttributeValue(string? value)
         {
             value = value?.Replace("\"", "").Replace("@", "");
 
@@ -237,7 +242,7 @@ namespace Spiderly.SourceGenerators.Shared
             return value;
         }
 
-        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax typeGeneric, ClassDeclarationSyntax baseClass)
+        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax? typeGeneric, ClassDeclarationSyntax baseClass)
         {
             List<SpiderlyAttribute> attributes = GetAllAttributesOfTheMember(prop);
             SpiderlyProperty newProp = new SpiderlyProperty
@@ -252,7 +257,10 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (prop.Type.ToString() == "T") // If some property has type of T, we change it to long for example
             {
-                newProp.Type = typeGeneric.ToString();
+                // TODO(nrt): typeGeneric is only assigned on the branch that immediately breaks the walk in
+                // GetAllPropertiesOfTheClass, so at this call site it is always null today - a "T"-typed
+                // property on a mid-hierarchy class would NRE here. Pre-existing latent gap, not fixing here.
+                newProp.Type = typeGeneric!.ToString();
                 return newProp;
             }
 
@@ -269,7 +277,7 @@ namespace Spiderly.SourceGenerators.Shared
             return attributes;
         }
 
-        internal static string GetXmlDocSummary(SyntaxNode node)
+        internal static string? GetXmlDocSummary(SyntaxNode node)
         {
             SyntaxTrivia docTrivia = node.GetLeadingTrivia()
                 .FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia));
@@ -277,7 +285,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (!docTrivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia))
                 return null;
 
-            DocumentationCommentTriviaSyntax docComment = docTrivia.GetStructure() as DocumentationCommentTriviaSyntax;
+            DocumentationCommentTriviaSyntax? docComment = docTrivia.GetStructure() as DocumentationCommentTriviaSyntax;
             if (docComment == null)
                 return null;
 

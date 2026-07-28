@@ -27,9 +27,11 @@ namespace Spiderly.SourceGenerators.Shared
         /// convention, mirrored by <see cref="SpiderlyNaming"/> for the reverse (entity -> DTO) direction.
         /// </summary>
         public static string RemoveDtoSuffix(string name)
+            // name is non-null per every current caller (SpiderlyClass/DTO .Name); the null check
+            // is defensive legacy style predating nullable reference types, kept as-is for parity.
             => name != null && name.EndsWith(DTONamespaceEnding)
                 ? name.Substring(0, name.Length - DTONamespaceEnding.Length)
-                : name;
+                : name!;
 
         public static List<string> BaseClassNames { get; set; } = new()
         {
@@ -91,15 +93,18 @@ namespace Spiderly.SourceGenerators.Shared
         /// (<c>ExtractTypeFromGenericType(property.Type)</c>) instead of reaching for <c>.Raw</c>.
         /// Delegates to the string implementation, so behavior is identical.
         /// </summary>
-        public static string ExtractTypeFromGenericType(SpiderlyTypeRef input) => input?.CoreName;
+        // input is non-null per every current caller (property.Type is always assigned); the ?. is
+        // defensive legacy style predating nullable reference types, kept as-is for behavior parity.
+        public static string ExtractTypeFromGenericType(SpiderlyTypeRef input) => input?.CoreName!;
 
         /// <summary>
         /// List<long> -> long. Delegates to the single parser (<see cref="SpiderlyTypeRef.CoreName"/>) so the
         /// "inner type" is derived in one place rather than by a separate ad-hoc string split.
         /// </summary>
-        public static string ExtractTypeFromGenericType(string input) => SpiderlyTypeRef.Parse(input)?.CoreName;
+        // SpiderlyTypeRef.Parse only returns null for a null input; input is non-null per current callers.
+        public static string ExtractTypeFromGenericType(string input) => SpiderlyTypeRef.Parse(input)?.CoreName!;
 
-        public static SpiderlyProperty GetOppositeManyToManyProperty(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyClass entity, List<SpiderlyClass> entities)
+        public static SpiderlyProperty? GetOppositeManyToManyProperty(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (oneToManyProperty.Name == "Tags")
             {
@@ -126,7 +131,8 @@ namespace Spiderly.SourceGenerators.Shared
                 .Single(x => x.Attributes
                     .Any(x => x.Name == "M2MWithMany" && x.Value != oneToManyProperty.Name));
 
-            string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single(); // Products
+            // [M2MWithMany] ctor requires a non-optional 'withManyProperty' arg, so Value is always populated.
+            string propertyName = m2mWithManyOppositeProperty.Attributes.Where(x => x.Name == "M2MWithMany").Select(x => x.Value).Single()!; // Products
 
             return extractedPropertyEntity.Properties.SingleOrDefault(x => x.Name == propertyName); // List<Product> Products
         }
@@ -160,7 +166,7 @@ namespace Spiderly.SourceGenerators.Shared
             foreach (EnumMemberDeclarationSyntax member in enume.Members)
             {
                 string name = member.Identifier.Text;
-                string value = member.EqualsValue != null ? member.EqualsValue.Value.ToString() : null;
+                string? value = member.EqualsValue != null ? member.EqualsValue.Value.ToString() : null;
                 enumMembers.Add(new SpiderlyEnumItem { Name = name, Value = value });
             }
 

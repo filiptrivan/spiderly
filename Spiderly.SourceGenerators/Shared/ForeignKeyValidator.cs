@@ -21,7 +21,7 @@ namespace Spiderly.SourceGenerators.Shared
                 ValidateForeignKeyAttributeTargets(navigation, entity);
                 ValidateConventionAmbiguity(navigation, entity);
 
-                string fkName = navigation.ResolveExplicitForeignKeyName(entity);
+                string? fkName = navigation.ResolveExplicitForeignKeyName(entity);
                 if (fkName == null)
                     continue;
 
@@ -33,7 +33,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static void ValidateForeignKeyAttributeTargets(SpiderlyProperty navigation, SpiderlyClass entity)
         {
-            string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
+            string? fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
             if (fkFromNavAttribute != null && entity.Properties.Any(p => p.Name == fkFromNavAttribute) == false)
             {
                 throw SpiderlyDiagnostics.Create(
@@ -44,7 +44,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty scalar in entity.Properties.Where(p => p.Type.IsBaseDataType()))
             {
-                string fkFromScalar = scalar.GetForeignKeyAttributeValue();
+                string? fkFromScalar = scalar.GetForeignKeyAttributeValue();
                 if (fkFromScalar != null && entity.Properties.Any(p => p.Name == fkFromScalar) == false)
                 {
                     throw SpiderlyDiagnostics.Create(

@@ -20,7 +20,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// There is more performant way but this is NET2
         /// </summary>
-        public static string FirstCharToUpper(this string input)
+        public static string? FirstCharToUpper(this string? input)
         {
             switch (input)
             {
@@ -33,7 +33,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// There is more performant way but this is NET2
         /// </summary>
-        public static string FirstCharToLower(this string input)
+        public static string? FirstCharToLower(this string? input)
         {
             switch (input)
             {
@@ -320,7 +320,9 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         public static string WithoutNullableSuffix(this string typeName)
         {
-            return typeName?.TrimEnd().TrimEnd('?');
+            // typeName is non-null per every current caller (SpiderlyTypeRef.Raw, etc.); the ?. is
+            // defensive legacy style predating nullable reference types, kept as-is for behavior parity.
+            return typeName?.TrimEnd().TrimEnd('?')!;
         }
 
 
@@ -338,7 +340,8 @@ namespace Spiderly.SourceGenerators.Shared
             // Unwrap nullability + collection/generic wrappers through the single parser, so this check
             // and every site that emits the enum name (e.g. the Angular enum import) agree on what the
             // underlying type is. Drift between the two was the original duplicate / "Foo?" import bug.
-            return spiderlyEnumNames.Contains(SpiderlyTypeRef.Parse(type).CoreName);
+            // Parse only returns null for a null input; type != null is checked above.
+            return spiderlyEnumNames.Contains(SpiderlyTypeRef.Parse(type)!.CoreName);
         }
 
         /// <summary>
@@ -375,14 +378,17 @@ namespace Spiderly.SourceGenerators.Shared
             return height;
         }
 
-        public static List<string> GetAcceptedFileTypes(this SpiderlyProperty property)
+        public static List<string>? GetAcceptedFileTypes(this SpiderlyProperty property)
         {
             SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "AcceptedFileTypes");
+            string? value = attribute?.Value;
 
-            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
+            if (string.IsNullOrEmpty(value))
                 return null;
 
-            return attribute.Value.Split(',').Select(x => x.Trim()).ToList();
+            // netstandard2.0's BCL reference assembly carries no [NotNullWhen(false)] on IsNullOrEmpty,
+            // so the guard above doesn't narrow 'value' for the compiler.
+            return value!.Split(',').Select(x => x.Trim()).ToList();
         }
 
         public static int GetMaxFileSize(this SpiderlyProperty property)
@@ -404,9 +410,10 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 if (attribute.Name == "UITableColumn")
                 {
-                    List<string> attributeValues = attribute.Value.Split(',').Select(v => v.Trim()).ToList();
+                    // [UITableColumn] ctor requires a non-optional 'field' arg, so Value is always populated here.
+                    List<string> attributeValues = attribute.Value!.Split(',').Select(v => v.Trim()).ToList();
                     string field = attributeValues[0];
-                    string translationKey = attributeValues.Count > 1 ? attributeValues[1] : null;
+                    string? translationKey = attributeValues.Count > 1 ? attributeValues[1] : null;
 
                     result.Add(new UITableColumn
                     {
@@ -578,7 +585,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// The inverse-nav name from [WithOne("...")], or null for a unidirectional 1-1.
         /// Mirrors <see cref="WithMany"/>'s reading of the [WithMany] ctor argument.
         /// </summary>
-        public static string GetWithOneInverseName(this SpiderlyProperty property)
+        public static string? GetWithOneInverseName(this SpiderlyProperty property)
         {
             return property.Attributes.Where(x => x.Name == "WithOne").Select(x => x.Value).SingleOrDefault();
         }
@@ -659,7 +666,7 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "ForeignKey");
         }
 
-        public static string GetForeignKeyAttributeValue(this SpiderlyProperty property)
+        public static string? GetForeignKeyAttributeValue(this SpiderlyProperty property)
         {
             return property.Attributes.Where(x => x.Name == "ForeignKey").Select(x => x.Value).SingleOrDefault();
         }
@@ -695,7 +702,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// public virtual Category ParentCategory { get; set; }
         /// // ResolveExplicitForeignKeyName(ParentCategory) => "ParentCategoryId"
         /// </example>
-        public static string ResolveExplicitForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
+        public static string? ResolveExplicitForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
         {
             // FK resolution is identical for many-to-one and one-to-one ([WithOne]) navigations
             // ([ForeignKey] → scalar [ForeignKey] → {Nav}Id convention). Since [WithOne] navs are
@@ -703,7 +710,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (navigation.IsManyToOneType() == false && navigation.IsOneToOneType() == false)
                 return null;
 
-            string fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
+            string? fkFromNavAttribute = navigation.GetForeignKeyAttributeValue();
             if (fkFromNavAttribute != null && entity.Properties.Any(p => p.Name == fkFromNavAttribute))
                 return fkFromNavAttribute;
 
@@ -737,7 +744,7 @@ namespace Spiderly.SourceGenerators.Shared
                 if (nav.HasWithManyAttribute() == false)
                     continue;
 
-                string fkName = nav.ResolveExplicitForeignKeyName(entity);
+                string? fkName = nav.ResolveExplicitForeignKeyName(entity);
                 if (fkName != null)
                     result.Add(fkName);
             }
@@ -767,7 +774,7 @@ namespace Spiderly.SourceGenerators.Shared
             List<SpiderlyClass> entities,
             string parameterName = "x")
         {
-            string fkName = navigation.ResolveExplicitForeignKeyName(entity);
+            string? fkName = navigation.ResolveExplicitForeignKeyName(entity);
             if (fkName != null)
             {
                 // A nullable explicit FK (long?) breaks List<long>.Contains(...) overload resolution in the
@@ -839,9 +846,9 @@ namespace Spiderly.SourceGenerators.Shared
             return items.GroupBy(property).Select(x => x.First());
         }
 
-        public static string GetDTOBaseType(this SpiderlyClass c)
+        public static string? GetDTOBaseType(this SpiderlyClass c)
         {
-            string baseClass = c.BaseType;
+            string? baseClass = c.BaseType;
             if (baseClass == null)
                 return null;
             else if (baseClass.Contains("<"))
@@ -850,7 +857,7 @@ namespace Spiderly.SourceGenerators.Shared
                 return $"{baseClass}DTO";
         }
 
-        public static string GetTableFilterAdditionalFilterPropertyName(this string idType)
+        public static string? GetTableFilterAdditionalFilterPropertyName(this string idType)
         {
             if (idType == "int" || idType == "int?")
             {
@@ -868,9 +875,9 @@ namespace Spiderly.SourceGenerators.Shared
             return null;
         }
 
-        public static string GetBaseType(this ClassDeclarationSyntax c)
+        public static string? GetBaseType(this ClassDeclarationSyntax c)
         {
-            TypeSyntax baseType = c.BaseList?.Types.FirstOrDefault()?.Type; //BaseClass<long>
+            TypeSyntax? baseType = c.BaseList?.Types.FirstOrDefault()?.Type; //BaseClass<long>
 
             if (baseType != null)
                 return baseType.ToString();
@@ -895,9 +902,13 @@ namespace Spiderly.SourceGenerators.Shared
             return context.AnalyzerConfigOptionsProvider
                 .Select((provider, _) =>
                 {
+                    // TODO(nrt): returns null! when MSBuild doesn't supply build_property.projectdir.
+                    // Should never happen in a real build (it's a standard MSBuild-supplied property), but
+                    // callers (GetRootPath and its consumers) assume a non-null path and would NRE downstream
+                    // if it ever did — kept as-is (not a behavior change) rather than widening the contract.
                     return provider.GlobalOptions.TryGetValue("build_property.projectdir", out var result)
-                        ? result
-                        : null;
+                        ? result!
+                        : null!;
                 });
         }
 
@@ -910,20 +921,28 @@ namespace Spiderly.SourceGenerators.Shared
                 .Where(file => file.Path.Replace('\\', '/').EndsWith(".spiderly/config.json"))
                 .Select((text, cancellationToken) => text.GetText(cancellationToken)?.ToString() ?? string.Empty)
                 .Collect()
-                .Select((texts, _) => SpiderlyConfig.Parse(texts.FirstOrDefault()));
+                // FirstOrDefault() on an empty ImmutableArray<string> yields null; SpiderlyConfig.Parse
+                // already treats null/whitespace/empty identically (returns a default SpiderlyConfig).
+                .Select((texts, _) => SpiderlyConfig.Parse(texts.FirstOrDefault() ?? string.Empty));
         }
 
-        public static string GetDecimalScale(this SpiderlyProperty property)
+        public static string? GetDecimalScale(this SpiderlyProperty property)
         {
             SpiderlyAttribute precissionAttribute = property.Attributes.Where(x => x.Name == "Precision").SingleOrDefault();
 
             if (precissionAttribute == null)
                 return null;
 
-            return precissionAttribute.Value.Split(',').Last();
+            // [Precision] (Microsoft.EntityFrameworkCore.PrecisionAttribute) ctor requires a precision
+            // arg, so Value is always populated when the attribute is present.
+            return precissionAttribute.Value!.Split(',').Last();
         }
 
-        public static string WithMany(this SpiderlyProperty property)
+        /// <summary>
+        /// The target collection name from [WithMany("...")], or null when the navigation carries no
+        /// [WithMany] attribute (e.g. it isn't a many-to-one, or the author forgot it — see SPIDERLY015).
+        /// </summary>
+        public static string? WithMany(this SpiderlyProperty property)
         {
             return property.Attributes.Where(x => x.Name == "WithMany").Select(x => x.Value).SingleOrDefault();
         }
@@ -1004,10 +1023,14 @@ namespace Spiderly.SourceGenerators.Shared
                     "<unknown>", "<null>");
             }
 
+            // TODO(nrt): returns null! for M2M classes despite the non-nullable return type — a real latent
+            // null path if GetIdType is ever called on a many-to-many junction class. Every current call
+            // site (Net/Angular generators) only invokes this on "real" entities, never M2M junctions, so
+            // this is never hit in practice; kept as-is rather than widening the contract to every caller.
             if (c.IsManyToMany())
-                return null;
+                return null!;
 
-            string baseType = c.BaseType; //BaseClass<long>
+            string? baseType = c.BaseType; //BaseClass<long>
 
             while (baseType != null && baseType.Contains("<") == false)
             {
@@ -1103,10 +1126,13 @@ namespace Spiderly.SourceGenerators.Shared
                     backendFolderName, callingProjectDirectory);
             }
 
-            return dir.Parent?.FullName;
+            // TODO(nrt): returns null! if the found "Backend" directory has no parent (i.e. it's a drive
+            // root) — practically never true for a real project layout. Kept as-is (every current caller
+            // assumes a non-null path) rather than widening the contract for a near-impossible edge case.
+            return dir.Parent?.FullName!;
         }
 
-        public static string ReplaceEverythingAfterLast(this string source, string keyForReplace, string valueToInsert)
+        public static string? ReplaceEverythingAfterLast(this string source, string keyForReplace, string valueToInsert)
         {
             if (string.IsNullOrEmpty(source))
                 return null;

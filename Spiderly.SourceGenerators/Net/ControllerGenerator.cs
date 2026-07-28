@@ -116,7 +116,7 @@ namespace {{basePartOfNamespace}}.Controllers
             string routePrefix = config.Api.RoutePrefix;
             List<string> result = new();
 
-            foreach (IGrouping<string, SpiderlyClass> groupedControllerEntities in allEntities.GroupBy(x => x.ControllerName))
+            foreach (IGrouping<string?, SpiderlyClass> groupedControllerEntities in allEntities.GroupBy(x => x.ControllerName))
             {
                 result.Add($$"""
 {{GetControllerAttributes(groupedControllerEntities, customControllers, routePrefix)}}
@@ -146,7 +146,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return result;
         }
 
-        private static string GetControllerAttributes(IGrouping<string, SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> customControllers, string routePrefix)
+        private static string? GetControllerAttributes(IGrouping<string?, SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> customControllers, string routePrefix)
         {
             if (customControllers.Any(x => x.BaseType == $"{groupedControllerEntities.Key}BaseController"))
                 return null;
@@ -305,8 +305,8 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
-                    property.Location ?? entity.Location,
-                    property.EntityName, property.Name, property.Type);
+                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
+                    property.EntityName!, property.Name, property.Type); // EntityName may be null; messageFormat renders a null arg as empty text
             }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
@@ -336,8 +336,8 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
-                    property.Location ?? entity.Location,
-                    property.EntityName, property.Name, property.Type);
+                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
+                    property.EntityName!, property.Name, property.Type); // EntityName may be null; messageFormat renders a null arg as empty text
             }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
@@ -533,7 +533,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
         #region Delete
 
-        private static string GetDeleteControllerMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static string? GetDeleteControllerMethods(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (entity.IsReadonlyObject())
                 return null;
@@ -566,7 +566,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
         #region Save
 
-        private static string GetSaveControllerMethods(SpiderlyClass entity)
+        private static string? GetSaveControllerMethods(SpiderlyClass entity)
         {
             if (entity.IsReadonlyObject())
                 return null;

@@ -15,7 +15,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty DTOproperty in DTOProperties)
             {
-                SpiderValidationRule rule = GetRuleForProperty(DTOproperty, DTOProperties, entity);
+                SpiderValidationRule? rule = GetRuleForProperty(DTOproperty, DTOProperties, entity);
 
                 if (rule != null)
                     rulesOnDTOProperties.Add(rule);
@@ -25,7 +25,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 foreach (SpiderlyProperty property in entity.Properties)
                 {
-                    SpiderValidationRule rule = GetRuleForProperty(property, DTOProperties, entity);
+                    SpiderValidationRule? rule = GetRuleForProperty(property, DTOProperties, entity);
 
                     if (rule != null)
                         rulesOnEntityProperties.Add(rule);
@@ -37,7 +37,7 @@ namespace Spiderly.SourceGenerators.Shared
             return mergedValidationRules;
         }
 
-        private static SpiderValidationRule GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
+        private static SpiderValidationRule? GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
         {
             // [ReadOnly] is server-owned: the client never sends it, so any inbound rule (e.g. the
             // NotEmpty a [Required] would emit) is structurally unsatisfiable and 422s every save.
@@ -99,8 +99,10 @@ namespace Spiderly.SourceGenerators.Shared
                         ruleParts.Add(new NotEmptyRulePart());
                         break;
                     case "StringLength":
-                        string minValue = FindMinValueForStringLength(attribute.Value);
-                        string maxValue = FindMaxValueForStringLength(attribute.Value);
+                        // [StringLength] ctor requires a non-optional maximumLength arg, so Value is
+                        // always populated when the attribute is present.
+                        string? minValue = FindMinValueForStringLength(attribute.Value!);
+                        string maxValue = FindMaxValueForStringLength(attribute.Value!);
                         if (minValue == null)
                         {
                             ruleParts.Add(new MaximumLengthRulePart(int.Parse(maxValue)));
@@ -115,19 +117,25 @@ namespace Spiderly.SourceGenerators.Shared
                         }
                         break;
                     case "Precision":
-                        string[] precisionParts = attribute.Value.Split(',');
+                        // [Precision] (Microsoft.EntityFrameworkCore.PrecisionAttribute) ctor requires a
+                        // precision arg, so Value is always populated.
+                        string[] precisionParts = attribute.Value!.Split(',');
                         ruleParts.Add(new PrecisionScaleRulePart(
                             int.Parse(precisionParts[0].Trim()),
                             int.Parse(precisionParts[1].Trim())
                         ));
                         break;
                     case "Range":
-                        string[] rangeParts = attribute.Value.Split(',');
+                        // [Range] (System.ComponentModel.DataAnnotations.RangeAttribute) ctor requires
+                        // min/max args, so Value is always populated.
+                        string[] rangeParts = attribute.Value!.Split(',');
                         ruleParts.Add(new GreaterThanOrEqualToRulePart(rangeParts[0].Trim()));
                         ruleParts.Add(new LessThanOrEqualToRulePart(rangeParts[1].Trim()));
                         break;
                     case "GreaterThanOrEqualTo":
-                        ruleParts.Add(new GreaterThanOrEqualToRulePart(attribute.Value));
+                        // [GreaterThanOrEqualTo] ctor requires a non-optional 'number' arg, so Value is
+                        // always populated.
+                        ruleParts.Add(new GreaterThanOrEqualToRulePart(attribute.Value!));
                         break;
                     case "Email":
                         ruleParts.Add(new EmailAddressRulePart());
@@ -196,7 +204,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// </summary>
         /// <param name="input">"70, MinimumLength = 5"</param>
         /// <returns></returns>
-        internal static string FindMinValueForStringLength(string input)
+        internal static string? FindMinValueForStringLength(string input)
         {
             string pattern = @"MinimumLength\s*=\s*(\d+)";
 

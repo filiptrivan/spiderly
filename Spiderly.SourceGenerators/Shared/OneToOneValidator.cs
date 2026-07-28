@@ -27,7 +27,7 @@ namespace Spiderly.SourceGenerators.Shared
                 if (principal == null)
                     continue; // type from another project; EF resolves at runtime
 
-                string inverseName = nav.GetWithOneInverseName(); // null => unidirectional, nothing to check
+                string? inverseName = nav.GetWithOneInverseName(); // null => unidirectional, nothing to check
                 if (inverseName != null)
                 {
                     SpiderlyProperty inverse = principal.Properties.FirstOrDefault(p => p.Name == inverseName);

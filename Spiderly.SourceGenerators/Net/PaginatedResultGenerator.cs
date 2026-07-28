@@ -268,10 +268,12 @@ using {{item}};
                             continue;
                         }
 
-                        entityDotNotation = GetDotNotatioOfEntityFromMappers(allEntities, entity, pairDTOClass, entityDotNotation);
+                        string? resolvedEntityDotNotation = GetDotNotatioOfEntityFromMappers(allEntities, entity, pairDTOClass, entityDotNotation);
 
-                        if (entityDotNotation == null)
+                        if (resolvedEntityDotNotation == null)
                             continue;
+
+                        entityDotNotation = resolvedEntityDotNotation;
 
                         DTOpropType = GetPropTypeOfEntityDotNotationProperty(entityDotNotation, entity, allEntities);
                     }
@@ -417,7 +419,7 @@ using {{item}};
         /// <param name="DTOClass">UserDTO</param>
         /// <param name="DTOClassProp">RoleDisplayName</param>
         /// <returns>Role.Id</returns>
-        private static string GetDotNotatioOfEntityFromMappers(List<SpiderlyClass> allClasses, SpiderlyClass entity, SpiderlyClass DTOClass, string DTOClassProp)
+        private static string? GetDotNotatioOfEntityFromMappers(List<SpiderlyClass> allClasses, SpiderlyClass entity, SpiderlyClass DTOClass, string DTOClassProp)
         {
             if (DTOClassProp.EndsWith("DisplayName") && DTOClass.IsGenerated == true) // FT: Doing this thing with the IsGenerated so we can make prop in non generated DTO with "DisplayName" or "Id" sufix 
             {
@@ -438,6 +440,9 @@ using {{item}};
             return null;
         }
 
+        // TODO(nrt): Pre-existing bug (not touched in this NRT pass) — entityDotNotation.Split('.')[i] can
+        // outrun the segment count on some shapes and throws ArgumentOutOfRangeException (reproducible
+        // building Spiderly.Security). Left as-is per NRT-annotation-only scope for this file.
         public static string GetPropTypeOfEntityDotNotationProperty(string entityDotNotation, SpiderlyClass entityClass, List<SpiderlyClass> allClasses)
         {
             // Rolinho.Permission.Id

@@ -19,7 +19,11 @@ namespace Spiderly.SourceGenerators.Shared
                 SpiderlyAttribute displayNameAttr = entity.Attributes
                     .Single(x => x.Name == "DisplayName");
 
-                string[] parts = displayNameAttr.Value.Split('.');
+                // TODO(nrt): [DisplayName]'s ctor arg is optional (bare [DisplayName] is valid syntax), so
+                // Value can genuinely be null here — a bare [DisplayName] on an entity (instead of a property)
+                // would NRE at generation time. Kept as-is (pre-existing risk, not introduced by this pass);
+                // HasDisplayNameAttribute() gates this loop to entities using the path form in practice.
+                string[] parts = displayNameAttr.Value!.Split('.');
                 SpiderlyClass currentEntity = entity;
 
                 for (int i = 0; i < parts.Length; i++)
@@ -40,20 +44,23 @@ namespace Spiderly.SourceGenerators.Shared
 
                     if (i < parts.Length - 1)
                     {
-                        Diagnostic navigationError;
-                        SpiderlyClass targetEntity = ResolveDisplayNameNavigationTarget(currentEntity, property, allEntities, out navigationError);
+                        Diagnostic? navigationError;
+                        SpiderlyClass? targetEntity = ResolveDisplayNameNavigationTarget(currentEntity, property, allEntities, out navigationError);
                         if (navigationError != null)
                         {
                             yield return navigationError;
                             break;
                         }
-                        currentEntity = targetEntity;
+                        // ResolveDisplayNameNavigationTarget returns null exactly when it also sets
+                        // navigationError non-null (which just broke the loop above), so targetEntity
+                        // is guaranteed non-null here.
+                        currentEntity = targetEntity!;
                     }
                 }
             }
         }
 
-        private static SpiderlyClass ResolveDisplayNameNavigationTarget(SpiderlyClass currentEntity, SpiderlyProperty property, List<SpiderlyClass> allEntities, out Diagnostic error)
+        private static SpiderlyClass? ResolveDisplayNameNavigationTarget(SpiderlyClass currentEntity, SpiderlyProperty property, List<SpiderlyClass> allEntities, out Diagnostic? error)
         {
             if (!property.IsManyToOneType())
             {
@@ -105,7 +112,7 @@ namespace Spiderly.SourceGenerators.Shared
                     if (navigation.IsOneToOnePrincipalInverse(entity, allEntities))
                         continue;
 
-                    string withManyValue = navigation.WithMany();
+                    string? withManyValue = navigation.WithMany();
 
                     if (withManyValue == null)
                     {
@@ -151,7 +158,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
         }
 
-        private static Location LocationOrFallback(SpiderlyProperty property, params SpiderlyClass[] entities)
+        private static Location LocationOrFallback(SpiderlyProperty? property, params SpiderlyClass[] entities)
         {
             if (property?.Location != null)
                 return property.Location;

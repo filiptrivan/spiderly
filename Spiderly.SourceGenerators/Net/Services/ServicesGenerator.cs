@@ -199,7 +199,7 @@ namespace {{basePartOfNamespace}}.Services
         {
             if (entity.IsManyToMany())
             {
-                string m2mData = ServiceM2MGenerator.GetManyToManyData(entity, allEntities);
+                string? m2mData = ServiceM2MGenerator.GetManyToManyData(entity, allEntities);
                 if (m2mData == null)
                     return "";
 

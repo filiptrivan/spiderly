@@ -9,7 +9,7 @@ namespace Spiderly.SourceGenerators.Net
 {
     internal static class ServiceSaveGenerator
     {
-        internal static string GetSavingData(SpiderlyClass entity, List<SpiderlyClass> entities)
+        internal static string? GetSavingData(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (entity.IsAbstract || entity.IsReadonlyObject())
                 return null;
@@ -280,7 +280,7 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static string GetOrderedOneToManyRequiredValidation(SpiderlyProperty property, SpiderlyClass entity)
+        private static string? GetOrderedOneToManyRequiredValidation(SpiderlyProperty property, SpiderlyClass entity)
         {
             if (property.HasRequiredAttribute())
             {
@@ -372,7 +372,7 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string saveBodyDTOVariable = null, string servicePrefix = "")
+        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string? saveBodyDTOVariable = null, string servicePrefix = "")
         {
             List<string> result = new();
 
@@ -433,7 +433,7 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty prop in properties)
             {
-                SpiderlyClass classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type.Name, allEntityClasses);
+                SpiderlyClass? classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type.Name, allEntityClasses);
 
                 if (classOfManyToOneProperty == null)
                     continue;
@@ -471,9 +471,9 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static SpiderlyClass GetClassOfManyToOneProperty(string propType, List<SpiderlyClass> allEntityClasses)
+        private static SpiderlyClass? GetClassOfManyToOneProperty(string propType, List<SpiderlyClass> allEntityClasses)
         {
-            SpiderlyClass manyToOneclass = allEntityClasses.SingleOrDefault(x => x.Name == propType);
+            SpiderlyClass? manyToOneclass = allEntityClasses.SingleOrDefault(x => x.Name == propType);
 
             if (manyToOneclass == null)
                 return null;
@@ -699,8 +699,8 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         private static string GetFileTypeValidation(SpiderlyProperty property, SpiderlyClass entity)
         {
-            List<string> attributeValues = property.GetAcceptedFileTypes();
-            List<string> mimeTypes = attributeValues?
+            List<string>? attributeValues = property.GetAcceptedFileTypes();
+            List<string>? mimeTypes = attributeValues?
                 .Where(v => v.Contains('/'))
                 .ToList();
 
@@ -708,7 +708,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.BlobPropertyMissingAcceptedFileTypes,
-                    property.Location ?? entity.Location,
+                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
                     entity.Name, property.Name);
             }
 

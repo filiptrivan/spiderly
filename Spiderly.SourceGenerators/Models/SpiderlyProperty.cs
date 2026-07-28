@@ -12,25 +12,27 @@ namespace Spiderly.SourceGenerators.Models
         /// re-parsing the string by hand; use <c>Type.Raw</c> when the verbatim type string is needed (emission,
         /// literal type-name dispatch). One parser is the single source of truth, so call sites can't drift.
         /// </summary>
-        public SpiderlyTypeRef Type { get; set; }
-        public string Name { get; set; }
+        public SpiderlyTypeRef Type { get; set; } = null!;
+        public string Name { get; set; } = null!;
 
         /// <summary>
         /// Location of the property identifier in source, used to anchor Roslyn diagnostics.
         /// Null for synthesized properties (DTO-generated, base-class stubs).
         /// </summary>
-        public Location Location { get; set; }
+        public Location? Location { get; set; }
 
         /// <summary>
         /// input: public string Name { get; set; } = "Filip"
         /// output: "Filip"
+        /// <para>Null when the property declares no initializer.</para>
         /// </summary>
-        public string StringValue { get; set; }
+        public string? StringValue { get; set; }
 
-        public string EntityName { get; set; } // TODO FT: Add to every case, you didn't finished this, but it works for now.
+        public string? EntityName { get; set; } // TODO FT: Add to every case, you didn't finished this, but it works for now.
         public bool IsSaveBodyMainDTO { get; set; }
 
-        public string Description { get; set; }
+        /// <summary>The property's XML doc summary; null when it carries none.</summary>
+        public string? Description { get; set; }
 
         /// <summary>
         /// True when this property's type is a C# enum decorated with <c>[SpiderlyEnum]</c>.

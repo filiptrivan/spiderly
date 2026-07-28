@@ -30,7 +30,11 @@ namespace Spiderly.SourceGenerators.Shared
         public static ClassDeclarationSyntax GetClassSemanticTargetForGeneration(GeneratorSyntaxContext context, List<ClassCategoryCodes> categories)
         {
             ClassDeclarationSyntax classDeclaration = (ClassDeclarationSyntax)context.Node;
-            return MatchesCategories(classDeclaration, categories) ? classDeclaration : null;
+            // Standard incremental-generator "transform" idiom: every caller of this method immediately
+            // filters the resulting provider via `.Where(c => c is not null)`, so a null result here is
+            // never dereferenced. Keeping the signature non-null avoids rippling a nullable annotation
+            // through the incremental-generator generic pipeline types that consume it.
+            return MatchesCategories(classDeclaration, categories) ? classDeclaration : null!;
         }
 
         private static bool MatchesCategories(ClassDeclarationSyntax classDeclaration, List<ClassCategoryCodes> categories)
@@ -92,7 +96,9 @@ namespace Spiderly.SourceGenerators.Shared
         public static EnumDeclarationSyntax GetEnumSemanticTargetForGeneration(GeneratorSyntaxContext context)
         {
             EnumDeclarationSyntax enumDeclaration = (EnumDeclarationSyntax)context.Node;
-            return IsEnumSyntaxTargetForGeneration(enumDeclaration) ? enumDeclaration : null;
+            // Same incremental-generator idiom as GetClassSemanticTargetForGeneration above: the caller
+            // (NgEnumsGenerator) immediately filters via `.Where(c => c is not null)`.
+            return IsEnumSyntaxTargetForGeneration(enumDeclaration) ? enumDeclaration : null!;
         }
 
         /// <summary>
@@ -149,7 +155,9 @@ namespace Spiderly.SourceGenerators.Shared
             if (namespaceName != null)
                 return classDeclaration;
 
-            return null;
+            // Same incremental-generator idiom as above: no current caller of this method exists in the
+            // codebase, but the contract matches GetClassSemanticTargetForGeneration/GetEnumSemanticTargetForGeneration.
+            return null!;
         }
 
         #endregion

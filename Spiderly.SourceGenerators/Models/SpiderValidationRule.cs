@@ -6,7 +6,7 @@ namespace Spiderly.SourceGenerators.Models
 {
     public class SpiderValidationRule
     {
-        public SpiderlyProperty Property { get; set; }
+        public SpiderlyProperty Property { get; set; } = null!;
         public List<SpiderValidationRulePart> ValidationRuleParts { get; set; } = new();
     }
 }

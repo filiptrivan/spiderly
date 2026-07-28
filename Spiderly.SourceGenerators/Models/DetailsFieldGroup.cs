@@ -11,7 +11,7 @@ namespace Spiderly.SourceGenerators.Models
         /// Transloco translation key used as the group's panel header, or <c>null</c> for the
         /// implicit (headerless) group that collects ungrouped properties.
         /// </summary>
-        public string TranslationKey { get; set; }
+        public string? TranslationKey { get; set; }
 
         /// <summary>
         /// Pre-rendered HTML blocks for the properties belonging to this group, in declaration order.

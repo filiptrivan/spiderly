@@ -72,6 +72,10 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.HasSpiderlyDTOAttribute())
                 .ToList();
 
+            // ControllerName is documented nullable on SpiderlyClass ("set only for controller classes"), but
+            // these entity classes are reconstructed by ReferencedAssemblyAnalyzer, which always populates it
+            // (falls back to the type name when no [Controller] attribute is present) — never null on this
+            // path. The `entity.ControllerName!` uses in the Get*AngularControllerMethod helpers below rely on this.
             List<SpiderlyClass> allEntities = referencedProjectClasses
                 .Where(x => x.HasSpiderlyEntityAttribute())
                 .ToList();
@@ -137,7 +141,10 @@ export class ApiGeneratedService extends ApiSecurityService {
                     if (!alreadyAddedMethods.Add(controllerMethod.Name))
                         continue;
 
-                    ValidateControllerType(context, "return", controllerMethod.ReturnType, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
+                    // ReturnType is a non-null string (SpiderlyMethod.ReturnType), so SpiderlyTypeRef.Parse
+                    // never returns null here — unlike the implicit string->SpiderlyTypeRef? conversion,
+                    // an explicit Parse call lets us assert that with '!' instead of widening the parameter.
+                    ValidateControllerType(context, "return", SpiderlyTypeRef.Parse(controllerMethod.ReturnType)!, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
                     foreach (SpiderParameter parameter in controllerMethod.Parameters)
                         ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
@@ -173,7 +180,7 @@ export class ApiGeneratedService extends ApiSecurityService {
             string methodName,
             HashSet<string> knownTsTypes,
             ImmutableArray<string> spiderlyEnumNames,
-            Location location)
+            Location? location) // Null for methods reconstructed from referenced assemblies; already guarded below via '?? Location.None'.
         {
             if (type.Raw.IsBaseDataType()
                 || type.Raw == "Task"
@@ -314,7 +321,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         /// outer <see cref="SpiderlyTypeRef.Name"/>, not <c>Raw.Contains(...)</c> — a user DTO that merely
         /// contains one of these names as a substring (e.g. <c>BrandNamebookDTO</c>) must not match.
         /// </summary>
-        private static bool IsReadShapedDto(SpiderlyTypeRef type)
+        private static bool IsReadShapedDto(SpiderlyTypeRef? type)
         {
             while (type != null && (type.IsTransportWrapper || type.IsCollection))
                 type = type.ElementType;
@@ -332,14 +339,14 @@ import { {{ngType}} } from '../../entities/entities.generated';
         /// </summary>
         private static bool ReturnsBareScalar(string returnType, ImmutableArray<string> spiderlyEnumNames)
         {
-            SpiderlyTypeRef parsed = SpiderlyTypeRef.Parse(returnType);
+            SpiderlyTypeRef? parsed = SpiderlyTypeRef.Parse(returnType);
 
             if (parsed == null)
                 return false;
 
             // A collection anywhere in the chain (Task<List<int>>, ActionResult<int[]>, ValueTask<List<int>>, …)
             // is not a bare scalar — the outer wrapper hides it from GetAngularType's own collection handling.
-            for (SpiderlyTypeRef node = parsed; node != null; node = node.ElementType)
+            for (SpiderlyTypeRef? node = parsed; node != null; node = node.ElementType)
                 if (node.IsCollection)
                     return false;
 
@@ -388,7 +395,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         private static string GetBaseAngularControllerMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, HashSet<string> alreadyAddedMethods)
         {
             if (entity.IsManyToMany()) // TODO FT: Do something with M2M entities
-                return null;
+                return null!; // Consumed via result.Add(...) in GetAngularHttpMethods, then string.Join'd — null is swallowed as "".
 
             return $$"""
 {{GetBaseTableDataAngularControllerMethod(entity, alreadyAddedMethods)}}
@@ -496,12 +503,12 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"GetOrdered{uiOrderedOneToManyProperty.Name}For{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> getAndDeleteParameter = new Dictionary<string, string> { { "id", "number" } };
 
             return GetAngularControllerMethod(
-                methodName, getAndDeleteParameter, $"{Helpers.ExtractTypeFromGenericType(uiOrderedOneToManyProperty.Type)}[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase
+                methodName, getAndDeleteParameter, $"{Helpers.ExtractTypeFromGenericType(uiOrderedOneToManyProperty.Type)}[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsBase
             );
         }
 
@@ -543,11 +550,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"LazyLoadSelected{property.Name}IdsFor{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, "LazyLoadSelectedIdsResult", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "LazyLoadSelectedIdsResult", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsSkipSpinner);
         }
 
         private static string GetBaseManyToManyTableDataAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities, HashSet<string> alreadyAddedMethods)
@@ -555,13 +562,13 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"GetPaginated{property.Name}ListFor{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
             SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{extractedEntity.Name}>", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{extractedEntity.Name}>", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsSkipSpinner);
         }
 
         private static string GetBaseManyToManyTableDataExportAngularControllerMethod(SpiderlyProperty property, SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
@@ -569,11 +576,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"Export{property.Name}ListToExcelFor{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBlob);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsBlob);
         }
 
         #endregion
@@ -585,12 +592,12 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"Get{property.Name}NamebookListFor{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> getAndDeleteParameter = new Dictionary<string, string> { { "id", "number" } };
 
             return GetAngularControllerMethod(
-                methodName, getAndDeleteParameter, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner
+                methodName, getAndDeleteParameter, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsSkipSpinner
             );
         }
 
@@ -614,7 +621,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
                     continue;
 
                 result.Add(GetAngularControllerMethod(
-                    methodName, null, $"{junctionEntity.Name}[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner
+                    methodName, null, $"{junctionEntity.Name}[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsSkipSpinner
                 ));
             }
 
@@ -623,7 +630,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         #endregion
 
-        private static string GetBaseDeleteAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseDeleteAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             if (entity.IsReadonlyObject())
                 return null;
@@ -635,10 +642,10 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> getAndDeleteParameters = new Dictionary<string, string> { { "id", "number" } };
 
-            return GetAngularControllerMethod(methodName, getAndDeleteParameters, "any", HttpTypeCodes.Delete, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, getAndDeleteParameters, "any", HttpTypeCodes.Delete, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
-        private static string GetBaseDeleteListAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseDeleteListAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             if (entity.IsReadonlyObject())
                 return null;
@@ -650,7 +657,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "ids", "number[]" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
         private static List<string> GetBaseUploadBlobAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
@@ -672,11 +679,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string methodName = $"Upload{blobProperty.Name}For{entity.Name}";
 
             if (alreadyAddedMethods.Contains(methodName))
-                return null;
+                return null!; // Consumed via result.Add(...), then string.Join'd — null is swallowed as "".
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "file", "FormData" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, "string", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsText);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "string", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsText);
         }
 
         private static List<string> GetBaseUploadEditorImageAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
@@ -694,13 +701,13 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
                 Dictionary<string, string> postParameter = new Dictionary<string, string> { { "file", "FormData" } };
 
-                result.Add(GetAngularControllerMethod(methodName, postParameter, "EditorImageUploadResult", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBase));
+                result.Add(GetAngularControllerMethod(methodName, postParameter, "EditorImageUploadResult", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsBase));
             }
 
             return result;
         }
 
-        private static string GetBaseSaveAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseSaveAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             if (entity.IsReadonlyObject())
                 return null;
@@ -712,7 +719,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "saveBodyDTO", $"{entity.Name}SaveBody" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, $"{entity.Name}SaveBody", HttpTypeCodes.Put, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, $"{entity.Name}SaveBody", HttpTypeCodes.Put, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
         private static string GetBaseGetListForAutocompleteAngularControllerMethods(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
@@ -734,7 +741,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
                         { "filter", "string" },
                     };
 
-                    sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
+                    sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsSkipSpinner));
                 }
             }
 
@@ -756,14 +763,14 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
                     Dictionary<string, string> getAndDeleteParameters = new();
 
-                    sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsSkipSpinner));
+                    sb.AppendLine(GetAngularControllerMethod(methodName, getAndDeleteParameters, "Namebook[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsSkipSpinner));
                 }
             }
 
             return sb.ToString();
         }
 
-        private static string GetBaseGetMainUIFormAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseGetMainUIFormAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"Get{entity.Name}MainUIFormDTO";
 
@@ -772,10 +779,10 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> getAndDeleteParameters = new() { { "id", "number" } };
 
-            return GetAngularControllerMethod(methodName, getAndDeleteParameters, returnType: $"{entity.Name}MainUIForm", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, getAndDeleteParameters, returnType: $"{entity.Name}MainUIForm", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
-        private static string GetBaseGetAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseGetAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"Get{entity.Name}";
 
@@ -784,20 +791,20 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> getAndDeleteParameters = new() { { "id", "number" } };
 
-            return GetAngularControllerMethod(methodName, getAndDeleteParameters, $"{entity.Name}", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, getAndDeleteParameters, $"{entity.Name}", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
-        private static string GetBaseGetListAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseGetListAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"Get{entity.Name}List";
 
             if (alreadyAddedMethods.Contains(methodName))
                 return null;
 
-            return GetAngularControllerMethod(methodName, null, $"{entity.Name}[]", HttpTypeCodes.Get, entity.ControllerName, Settings.HttpOptionsBase);
+            return GetAngularControllerMethod(methodName, null, $"{entity.Name}[]", HttpTypeCodes.Get, entity.ControllerName!, Settings.HttpOptionsBase);
         }
 
-        private static string GetBaseExportListToExcelAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseExportListToExcelAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"Export{entity.Name}ListToExcel";
 
@@ -806,10 +813,10 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsBlob);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, "any", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsBlob);
         }
 
-        private static string GetBaseTableDataAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
+        private static string? GetBaseTableDataAngularControllerMethod(SpiderlyClass entity, HashSet<string> alreadyAddedMethods)
         {
             string methodName = $"GetPaginated{entity.Name}List";
 
@@ -818,7 +825,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             Dictionary<string, string> postAndPutParameter = new Dictionary<string, string> { { "filterDTO", "Filter" } };
 
-            return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{entity.Name}>", HttpTypeCodes.Post, entity.ControllerName, Settings.HttpOptionsSkipSpinner);
+            return GetAngularControllerMethod(methodName, postAndPutParameter, $"PaginatedResult<{entity.Name}>", HttpTypeCodes.Post, entity.ControllerName!, Settings.HttpOptionsSkipSpinner);
         }
 
         #endregion
@@ -827,7 +834,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         private static string GetAngularControllerMethod(
             string methodName,
-            Dictionary<string, string> inputParameters,
+            Dictionary<string, string>? inputParameters,
             string returnType,
             HttpTypeCodes httpType,
             string controllerName,
@@ -842,7 +849,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 """;
         }
 
-        private static string GetInputParameters(Dictionary<string, string> inputParameters)
+        private static string? GetInputParameters(Dictionary<string, string>? inputParameters)
         {
             if (inputParameters == null)
                 return null;
@@ -850,7 +857,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return string.Join(", ", inputParameters.Select(x => $"{x.Key}: {x.Value}"));
         }
 
-        private static string GetReturnTypeAfterHttpType(string returnType)
+        private static string? GetReturnTypeAfterHttpType(string returnType)
         {
             if (returnType == "string")
                 return null;
@@ -861,7 +868,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return $"<{returnType}>";
         }
 
-        private static string GetGetAndDeleteParameters(Dictionary<string, string> getAndDeleteParams, HttpTypeCodes httpType)
+        private static string GetGetAndDeleteParameters(Dictionary<string, string>? getAndDeleteParams, HttpTypeCodes httpType)
         {
             if (
                 (httpType != HttpTypeCodes.Get && httpType != HttpTypeCodes.Delete) ||
@@ -887,7 +894,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 """;
         }
 
-        private static string GetPostAndPutParameters(Dictionary<string, string> postAndPutParameter, HttpTypeCodes httpType)
+        private static string? GetPostAndPutParameters(Dictionary<string, string>? postAndPutParameter, HttpTypeCodes httpType)
         {
             if (httpType != HttpTypeCodes.Post && httpType != HttpTypeCodes.Put)
                 return null;

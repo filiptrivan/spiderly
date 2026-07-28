@@ -167,7 +167,7 @@ namespace {{basePartOfNamespace}}.DTO
 
         #region Helpers
 
-        private static string GetDTOBaseTypeExtension(string DTObaseType)
+        private static string GetDTOBaseTypeExtension(string? DTObaseType)
         {
             return DTObaseType == null ? "" : $": {DTObaseType}";
         }

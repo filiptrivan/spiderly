@@ -24,14 +24,20 @@ namespace Spiderly.SourceGenerators.Shared
                     return new SpiderlyClass
                     {
                         Name = x.Identifier.Text,
+                        // TODO(nrt): FirstOrDefault() is null for a class with no enclosing block-scoped
+                        // namespace (global namespace, or a file-scoped `namespace Foo;` declaration, which
+                        // parses to FileScopedNamespaceDeclarationSyntax and isn't matched by this OfType
+                        // filter). Pre-existing gap, not fixing under this task.
                         Namespace = x.Ancestors()
                             .OfType<NamespaceDeclarationSyntax>()
-                            .FirstOrDefault()?.Name.ToString(),
+                            .FirstOrDefault()!.Name.ToString(),
                         BaseType = x.GetBaseType(),
                         IsAbstract = x.IsAbstract(),
                         Description = ClassAnalyzer.GetXmlDocSummary(x),
                         Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames),
-                        Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses),
+                        // GetAllAttributesOfTheClass only returns null for a null `c` argument; x here always
+                        // comes from currentProjectClasses, so it is never null.
+                        Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses)!,
                         Methods = ClassAnalyzer.GetMethodsOfCurrentClass(x),
                         Location = x.Identifier.GetLocation(),
                     };
@@ -350,6 +356,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             return propertyType;
         }
+
 
         #endregion
     }

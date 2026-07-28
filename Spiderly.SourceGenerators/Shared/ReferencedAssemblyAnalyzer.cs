@@ -39,7 +39,7 @@ namespace Spiderly.SourceGenerators.Shared
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
-        private static string ToDisplayName(ITypeSymbol type) => type?.ToDisplayString(ReferencedTypeDisplayFormat);
+        private static string? ToDisplayName(ITypeSymbol type) => type?.ToDisplayString(ReferencedTypeDisplayFormat);
 
         public static IncrementalValueProvider<List<SpiderlyClass>> GetIncrementalValueProviderClassesFromReferencedAssemblies(IncrementalGeneratorInitializationContext context, List<ClassCategoryCodes> categories)
         {
@@ -141,7 +141,7 @@ namespace Spiderly.SourceGenerators.Shared
             return string.Join(".", namespaces);
         }
 
-        private static List<SpiderlyProperty> GetPropertiesFromReferencedAssemblies(INamedTypeSymbol type)
+        private static List<SpiderlyProperty> GetPropertiesFromReferencedAssemblies(INamedTypeSymbol? type)
         {
             List<SpiderlyProperty> properties = new();
 
@@ -157,7 +157,8 @@ namespace Spiderly.SourceGenerators.Shared
 
                     SpiderlyProperty property = new SpiderlyProperty
                     {
-                        Type = ToDisplayName(propertySymbol.Type),
+                        // IPropertySymbol.Type is never null, so ToDisplayName's defensive `?.` always succeeds here.
+                        Type = SpiderlyTypeRef.Parse(ToDisplayName(propertySymbol.Type))!,
                         Name = propertySymbol.Name,
                         EntityName = type.Name,
                         IsEnum = IsSpiderlyEnumType(propertySymbol.Type),
@@ -201,15 +202,15 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (AttributeData attribute in symbol.GetAttributes())
             {
-                string attributeName = attribute.AttributeClass.Name?.Replace("Attribute", "");
+                string? attributeName = attribute.AttributeClass?.Name?.Replace("Attribute", "");
 
-                string argumentValue = null;
+                string? argumentValue = null;
 
                 if (attribute.ConstructorArguments.Length > 0)
                 {
                     if (attributeName == "StringLength")
                     {
-                        List<string> parts = new List<string>
+                        List<string?> parts = new List<string?>
                         {
                             attribute.ConstructorArguments[0].Value?.ToString() // Max length
                         };
@@ -246,7 +247,10 @@ namespace Spiderly.SourceGenerators.Shared
 
                 SpiderlyAttribute spiderAttribute = new SpiderlyAttribute
                 {
-                    Name = attributeName,
+                    // TODO(nrt): AttributeClass can be null for an erroneous/broken attribute reference
+                    // (Roslyn's documented behavior for a symbol-resolution failure), which would make
+                    // attributeName null here too. Pre-existing gap, not fixing under this task.
+                    Name = attributeName!,
                     Value = argumentValue
                 };
 
@@ -268,7 +272,7 @@ namespace Spiderly.SourceGenerators.Shared
                 SpiderlyMethod method = new SpiderlyMethod
                 {
                     Name = methodSymbol.Name,
-                    ReturnType = ToDisplayName(methodSymbol.ReturnType),
+                    ReturnType = ToDisplayName(methodSymbol.ReturnType)!, // IMethodSymbol.ReturnType is never null.
                     Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
                 };
 

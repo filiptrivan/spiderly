@@ -23,12 +23,12 @@ namespace Spiderly.SourceGenerators.Models
     /// </summary>
     public class SpiderlyDTOColumn
     {
-        public string Name { get; set; }
-        public string Type { get; set; }
+        public string Name { get; set; } = null!;
+        public string Type { get; set; } = null!;
         public SpiderlyDTOColumnKind Kind { get; set; }
 
         /// <summary>Set only for <see cref="SpiderlyDTOColumnKind.Scalar"/> columns; null otherwise.</summary>
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         /// <summary>True only for <see cref="SpiderlyDTOColumnKind.Scalar"/> columns whose source is a <c>[SpiderlyEnum]</c>.</summary>
         public bool IsEnum { get; set; }

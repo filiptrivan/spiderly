@@ -261,7 +261,7 @@ namespace Spiderly.SourceGenerators.Net
             return string.Join("\n", result);
         }
 
-        internal static string GetPopulateDTOWithBlobPartsForDTO(List<SpiderlyProperty> propertiesEntityClass)
+        internal static string? GetPopulateDTOWithBlobPartsForDTO(List<SpiderlyProperty> propertiesEntityClass)
         {
             List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
 
@@ -273,7 +273,7 @@ namespace Spiderly.SourceGenerators.Net
 """;
         }
 
-        internal static string GetPopulateDTOWithBlobPartsForDTOList(List<SpiderlyProperty> propertiesEntityClass)
+        internal static string? GetPopulateDTOWithBlobPartsForDTOList(List<SpiderlyProperty> propertiesEntityClass)
         {
             List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
 

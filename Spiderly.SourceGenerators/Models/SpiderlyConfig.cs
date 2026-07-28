@@ -30,7 +30,7 @@ namespace Spiderly.SourceGenerators.Models
 
             try
             {
-                SpiderlyConfig config = JsonSerializer.Deserialize<SpiderlyConfig>(json, _jsonOptions);
+                SpiderlyConfig? config = JsonSerializer.Deserialize<SpiderlyConfig>(json, _jsonOptions);
                 return config ?? new SpiderlyConfig();
             }
             catch
@@ -39,7 +39,7 @@ namespace Spiderly.SourceGenerators.Models
             }
         }
 
-        public bool Equals(SpiderlyConfig other)
+        public bool Equals(SpiderlyConfig? other)
         {
             if (other is null)
                 return false;
@@ -62,7 +62,7 @@ namespace Spiderly.SourceGenerators.Models
             return true;
         }
 
-        public override bool Equals(object obj) => Equals(obj as SpiderlyConfig);
+        public override bool Equals(object? obj) => Equals(obj as SpiderlyConfig);
 
         public override int GetHashCode()
         {
@@ -82,7 +82,7 @@ namespace Spiderly.SourceGenerators.Models
     {
         public string RoutePrefix { get; set; } = "/api";
 
-        public bool Equals(SpiderlyApiConfig other)
+        public bool Equals(SpiderlyApiConfig? other)
         {
             if (other is null)
                 return false;
@@ -93,7 +93,7 @@ namespace Spiderly.SourceGenerators.Models
             return RoutePrefix == other.RoutePrefix;
         }
 
-        public override bool Equals(object obj) => Equals(obj as SpiderlyApiConfig);
+        public override bool Equals(object? obj) => Equals(obj as SpiderlyApiConfig);
 
         public override int GetHashCode() => RoutePrefix?.GetHashCode() ?? 0;
     }

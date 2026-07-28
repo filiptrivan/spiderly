@@ -248,7 +248,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     // Shadow FK fallback → `src.Nav.Id`. Mapster inserts null-checks for nested access, and
                     // EF.Property<>() cannot be used here because the same mapper config runs outside EF
                     // (Mapster.Adapt on materialized entities), where EF.Property throws at runtime.
-                    string fkName = property.ResolveExplicitForeignKeyName(entity);
+                    string? fkName = property.ResolveExplicitForeignKeyName(entity);
                     if (fkName != null)
                     {
                         manyToOneAttributeMappers.Add($".Map(dest => dest.{fkName}, src => src.{fkName})");

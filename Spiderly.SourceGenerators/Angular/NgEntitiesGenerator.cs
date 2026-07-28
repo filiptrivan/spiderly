@@ -122,7 +122,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
             foreach (SpiderlyProperty DTOProp in DTOProperties)
             {
-                string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
+                string? DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
 
                 string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type, spiderlyEnumNames);
                 result.Add($"{DTOPropLowerCase}?: {angularDataType};");
@@ -137,7 +137,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
             foreach (SpiderlyProperty DTOProp in DTOProperties)
             {
-                string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
+                string? DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
                 result.Add($"this.{DTOPropLowerCase} = {DTOPropLowerCase};");
             }
 
@@ -150,7 +150,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
             foreach (SpiderlyProperty DTOProp in DTOProperties)
             {
-                string DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
+                string? DTOPropLowerCase = DTOProp.Name.FirstCharToLower();
                 string angularDataType = AngularTypeMapper.GetAngularType(DTOProp.Type, spiderlyEnumNames);
 
                 result.AppendLine($$"""

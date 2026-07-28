@@ -412,7 +412,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
                 : throw new NotSupportedException($"Translation tag '{t}' is not registered in {nameof(TagCanonicalOrder)} — add it so the emitted key is deterministic.")));
         }
 
-        private static string GenerateNotEmptyMarkers(List<string> ruleNames)
+        private static string? GenerateNotEmptyMarkers(List<string> ruleNames)
         {
             if (ruleNames.Any(x => x == "notEmptyRule"))
             {
@@ -425,7 +425,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             return null;
         }
 
-        private static string GenerateDateValidityUpdate(SpiderlyProperty property)
+        private static string? GenerateDateValidityUpdate(SpiderlyProperty property)
         {
             if (property.Type.Raw == "DateTime" || property.Type.Raw == "DateTime?")
             {

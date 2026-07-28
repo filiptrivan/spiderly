@@ -7,7 +7,7 @@ namespace Spiderly.SourceGenerators.Net
 {
     internal static class ServiceM2MGenerator
     {
-        internal static string GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
+        internal static string? GetManyToManyData(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
         {
             if (entity.Properties.Count == Settings.NumberOfPropertiesWithoutAdditionalManyToManyProperties)
                 return null;

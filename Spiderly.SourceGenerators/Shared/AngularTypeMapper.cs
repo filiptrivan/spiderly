@@ -29,7 +29,13 @@ namespace Spiderly.SourceGenerators.Shared
         /// old code's <c>IsEnumerable()</c> only inspected the outer <c>Task</c> and never saw the list.
         /// </para>
         /// </summary>
-        public static string GetAngularType(SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames)
+        /// <remarks>
+        /// <paramref name="type"/> is nullable: reached both from the string overload above
+        /// (<see cref="SpiderlyTypeRef.Parse"/> may return null) and recursively for a collection/wrapper's
+        /// <c>ElementType</c> (also nullable). The leading null check is the single "any"-for-null fallback,
+        /// so callers don't each need their own null guard.
+        /// </remarks>
+        public static string GetAngularType(SpiderlyTypeRef? type, ImmutableArray<string> spiderlyEnumNames)
         {
             if (type == null)
                 return "any";
@@ -115,7 +121,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <see cref="KnownTsScalars"/>), enums as the bare enum name, DTOs as the emitted class name —
         /// anything else is the unresolvable symbol the diagnostic should report.
         /// </summary>
-        internal static string GetValidationTargetSymbol(SpiderlyTypeRef type, ImmutableArray<string> spiderlyEnumNames)
+        internal static string GetValidationTargetSymbol(SpiderlyTypeRef? type, ImmutableArray<string> spiderlyEnumNames)
         {
             while (type != null && type.ElementType != null
                 && (type.IsTransportWrapper || type.IsCollection || type.Name == "PaginatedResultDTO"))
@@ -123,8 +129,13 @@ namespace Spiderly.SourceGenerators.Shared
                 type = type.ElementType;
             }
 
+            // TODO(nrt): returns null! here despite the non-nullable return type — a real latent null path
+            // if type started null (only possible when the string overload is called with a null
+            // cSharpType, or type.Name is somehow empty). The one known caller (NgControllersGenerator's
+            // ValidateControllerType) always passes a real controller method's return type, so this is
+            // never hit in practice; kept as-is rather than widening the contract.
             if (type == null || string.IsNullOrEmpty(type.Name))
-                return null;
+                return null!;
 
             if (type.CoreName.IsBaseDataType())
                 return GetAngularType(type, spiderlyEnumNames);

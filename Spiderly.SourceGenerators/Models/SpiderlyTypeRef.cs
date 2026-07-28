@@ -66,7 +66,7 @@ namespace Spiderly.SourceGenerators.Models
                 ["double"] = SpiderlyScalarKind.Decimal,
             };
 
-        private SpiderlyTypeRef(string raw, string name, bool isNullable, bool isCollection, SpiderlyTypeRef elementType)
+        private SpiderlyTypeRef(string raw, string name, bool isNullable, bool isCollection, SpiderlyTypeRef? elementType)
         {
             Raw = raw;
             Name = name;
@@ -109,7 +109,7 @@ namespace Spiderly.SourceGenerators.Models
         /// <c>"List&lt;Foo&gt;"</c> -> <c>Foo</c>; <c>"Foo[]"</c> -> <c>Foo</c>;
         /// <c>"NamebookDTO&lt;long&gt;"</c> -> <c>long</c>; <c>"int"</c> -> <c>null</c>.
         /// </summary>
-        public SpiderlyTypeRef ElementType { get; }
+        public SpiderlyTypeRef? ElementType { get; }
 
         /// <summary>
         /// The innermost underlying type name, fully unwrapped of collections, generics and nullability —
@@ -142,7 +142,7 @@ namespace Spiderly.SourceGenerators.Models
 
         public override string ToString() => Raw;
 
-        public override bool Equals(object obj) => obj is SpiderlyTypeRef other && other.Raw == Raw;
+        public override bool Equals(object? obj) => obj is SpiderlyTypeRef other && other.Raw == Raw;
 
         public override int GetHashCode() => Raw == null ? 0 : Raw.GetHashCode();
 
@@ -150,7 +150,12 @@ namespace Spiderly.SourceGenerators.Models
         /// Lets construction sites and existing string-keyed call sites keep assigning a raw type string
         /// (<c>Type = "List&lt;Foo&gt;"</c>) without an explicit <see cref="Parse"/> call.
         /// </summary>
-        public static implicit operator SpiderlyTypeRef(string raw) => Parse(raw);
+        /// <remarks>
+        /// Non-null in, non-null out: <see cref="Parse"/> returns null only for a null input, which this
+        /// conversion's non-nullable parameter excludes. A genuinely-nullable string must call
+        /// <see cref="Parse"/> directly and handle the nullable result.
+        /// </remarks>
+        public static implicit operator SpiderlyTypeRef(string raw) => Parse(raw)!;
 
         /// <summary>
         /// Parses a stringified C# type into its structured parts. Returns <c>null</c> for a <c>null</c> input.
@@ -158,7 +163,7 @@ namespace Spiderly.SourceGenerators.Models
         /// (e.g. <c>Dictionary&lt;,&gt;</c>) are not — they don't occur in generated entity/DTO types,
         /// matching the reach of the legacy string helpers this replaces.
         /// </summary>
-        public static SpiderlyTypeRef Parse(string raw)
+        public static SpiderlyTypeRef? Parse(string? raw)
         {
             if (raw == null)
                 return null;
@@ -171,8 +176,10 @@ namespace Spiderly.SourceGenerators.Models
             // Array: Foo[]
             if (core.EndsWith("[]"))
             {
-                SpiderlyTypeRef element = Parse(core.Substring(0, core.Length - 2).TrimEnd());
-                return new SpiderlyTypeRef(raw, element?.Name, isNullable, isCollection: true, element);
+                // Parse only returns null for a null input, and the substring is never null here —
+                // so the element (and its Name) are non-null on this branch.
+                SpiderlyTypeRef element = Parse(core.Substring(0, core.Length - 2).TrimEnd())!;
+                return new SpiderlyTypeRef(raw, element.Name, isNullable, isCollection: true, element);
             }
 
             // Generic: Outer<Inner>
@@ -182,7 +189,7 @@ namespace Spiderly.SourceGenerators.Models
                 string outerName = core.Substring(0, open).Trim();
                 int close = core.LastIndexOf('>');
                 string innerRaw = close > open ? core.Substring(open + 1, close - open - 1).Trim() : string.Empty;
-                SpiderlyTypeRef element = innerRaw.Length > 0 ? Parse(innerRaw) : null;
+                SpiderlyTypeRef? element = innerRaw.Length > 0 ? Parse(innerRaw) : null;
                 return new SpiderlyTypeRef(raw, outerName, isNullable, CollectionTypeNames.Contains(outerName), element);
             }
 

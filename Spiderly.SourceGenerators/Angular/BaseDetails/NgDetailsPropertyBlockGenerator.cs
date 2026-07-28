@@ -65,7 +65,7 @@ namespace Spiderly.SourceGenerators.Angular
         /// Reads the <c>[UISection("...")]</c> section name (used as a Transloco key) for a property,
         /// or <c>null</c> when the property is not assigned to a section.
         /// </summary>
-        internal static string GetUISectionName(SpiderlyProperty property)
+        internal static string? GetUISectionName(SpiderlyProperty property)
         {
             return property.Attributes.SingleOrDefault(x => x.Name == "UISection")?.Value;
         }
@@ -110,7 +110,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             foreach (SpiderlyProperty property in GetOrderedPropertiesForUIBlocks(allProperties, entity, allEntities))
             {
-                string groupKey = GetUISectionName(property);
+                string? groupKey = GetUISectionName(property);
 
                 DetailsFieldGroup group = groups.FirstOrDefault(x => x.TranslationKey == groupKey);
                 if (group == null)
@@ -148,7 +148,7 @@ namespace Spiderly.SourceGenerators.Angular
                     {
                         Property = property,
                         Entity = entity,
-                        FormControlName = null
+                        FormControlName = null // an ordered-O2M entry carries no control name
                     });
 
                     SpiderlyClass nestedEntity = allEntities.SingleOrDefault(
@@ -165,14 +165,14 @@ namespace Spiderly.SourceGenerators.Angular
                     {
                         Property = property,
                         Entity = entity,
-                        FormControlName = null
+                        FormControlName = null // a complex-M2M-list entry carries no control name
                     });
 
                     continue;
                 }
 
                 UIControlTypeCodes controlType = GetUIControlType(property);
-                string formControlName = controlType == UIControlTypeCodes.Table
+                string? formControlName = controlType == UIControlTypeCodes.Table
                     ? null
                     : GetFormControlName(property);
 
@@ -293,7 +293,7 @@ namespace Spiderly.SourceGenerators.Angular
             }
         }
 
-        internal static string GetFormControlName(SpiderlyProperty property)
+        internal static string? GetFormControlName(SpiderlyProperty property)
         {
             // Enum-typed properties bind directly to the property name (the DTO field is the enum value, not a synthesized FK).
             if (property.IsEnum)
@@ -468,7 +468,7 @@ namespace Spiderly.SourceGenerators.Angular
             {
                 UIControlTypeCodes controlType = GetUIControlType(field);
                 string controlTag = GetUIStringControlType(controlType);
-                string formControlName = field.Name.FirstCharToLower();
+                string? formControlName = field.Name.FirstCharToLower();
 
                 string controlAttr = $"[control]=\"{junctionFormGroupVar}.getControl('{formControlName}')\"";
 
@@ -615,7 +615,7 @@ namespace Spiderly.SourceGenerators.Angular
             return $"{GetMainDTOFormGroupForMainUIForm(entity, isFromOrderedOneToMany, isControlDirectlyOnParent)}.getControl('{GetFormControlName(property)}')";
         }
 
-        internal static string GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
+        internal static string? GetUIControlWidth(SpiderlyProperty property, bool isFromOrderedOneToMany)
         {
             SpiderlyAttribute uiControlWidthAttribute = property.Attributes.SingleOrDefault(x => x.Name == "UIControlWidth");
 
@@ -641,7 +641,7 @@ namespace Spiderly.SourceGenerators.Angular
             return "col-8 md:col-4";
         }
 
-        private static string GetNgIfForPropertyBlock(SpiderlyProperty property, bool isFromOrderedOneToMany)
+        private static string? GetNgIfForPropertyBlock(SpiderlyProperty property, bool isFromOrderedOneToMany)
         {
             if (isFromOrderedOneToMany)
                 return null;
@@ -671,7 +671,7 @@ namespace Spiderly.SourceGenerators.Angular
 
         internal static string GetAcceptedFileTypesHtmlAttribute(SpiderlyProperty property)
         {
-            List<string> fileTypes = property.GetAcceptedFileTypes();
+            List<string>? fileTypes = property.GetAcceptedFileTypes();
 
             if (fileTypes == null || fileTypes.Count == 0)
                 return "";

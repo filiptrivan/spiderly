@@ -6,8 +6,8 @@ namespace Spiderly.SourceGenerators.Models
 {
     public class SpiderParameter
     {
-        public string Name { get; set; }
-        public SpiderlyTypeRef Type { get; set; }
+        public string Name { get; set; } = null!;
+        public SpiderlyTypeRef Type { get; set; } = null!;
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
     }
 }

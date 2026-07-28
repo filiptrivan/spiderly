@@ -354,20 +354,26 @@ namespace Spiderly.SourceGenerators.Angular
             foreach (UITableColumn col in property.GetUITableColumns())
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-                SpiderlyProperty extractedEntityProperty = extractedEntity?.Properties?.Where(x => x.Name == col.Field.Replace("DisplayName", "").Replace("CommaSeparated", ""))?.SingleOrDefault();
+                SpiderlyProperty? extractedEntityProperty = extractedEntity?.Properties?.Where(x => x.Name == col.Field.Replace("DisplayName", "").Replace("CommaSeparated", ""))?.SingleOrDefault();
 
                 SpiderlyClass extractedDTO = customDTOClasses.Where(x => x.Name == $"{Helpers.ExtractTypeFromGenericType(property.Type)}DTO").SingleOrDefault();
-                SpiderlyProperty extractedDTOProperty = extractedDTO?.Properties?.Where(x => x.Name == col.Field)?.SingleOrDefault();
+                SpiderlyProperty? extractedDTOProperty = extractedDTO?.Properties?.Where(x => x.Name == col.Field)?.SingleOrDefault();
+
+                // TODO(nrt): col.Field comes from a hand-authored [UITableColumn("Field", ...)] attribute value
+                // and isn't guaranteed to match a property on either the extracted entity or its DTO. A mismatch
+                // would NRE here (pre-existing behavior — not introduced by this annotation pass).
+                SpiderlyProperty resolvedProperty = (extractedEntityProperty ?? extractedDTOProperty)!;
+                SpiderlyClass resolvedEntity = extractedEntity!; // See TODO(nrt) above; GetEntityByPropertyType can miss too.
 
                 result.Add($$"""
-                {name: this.translocoService.translate('{{col.TranslationKey}}'), filterType: '{{GetTableColFilterType(extractedEntityProperty ?? extractedDTOProperty)}}', field: '{{col.Field.FirstCharToLower()}}' {{GetTableColAdditionalProperties(extractedEntityProperty ?? extractedDTOProperty, extractedEntity)}} }
+                {name: this.translocoService.translate('{{col.TranslationKey}}'), filterType: '{{GetTableColFilterType(resolvedProperty)}}', field: '{{col.Field.FirstCharToLower()}}' {{GetTableColAdditionalProperties(resolvedProperty, resolvedEntity)}} }
 """);
             }
 
             return result;
         }
 
-        internal static string GetTableColAdditionalProperties(SpiderlyProperty property, SpiderlyClass entity)
+        internal static string? GetTableColAdditionalProperties(SpiderlyProperty property, SpiderlyClass entity)
         {
             if (property.IsDropdownControlType())
                 return $", filterField: '{property.Name.FirstCharToLower()}Id', dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
@@ -382,7 +388,7 @@ namespace Spiderly.SourceGenerators.Angular
                 case SpiderlyScalarKind.TimeOnly:
                     return ", showMatchModes: true";
                 case SpiderlyScalarKind.Decimal:
-                    string decimalScale = property.GetDecimalScale();
+                    string? decimalScale = property.GetDecimalScale();
                     return decimalScale != null
                         ? $", showMatchModes: true, decimalPlaces: {decimalScale}"
                         : ", showMatchModes: true";
@@ -395,7 +401,7 @@ namespace Spiderly.SourceGenerators.Angular
             return null;
         }
 
-        internal static string GetTableColFilterType(SpiderlyProperty property)
+        internal static string? GetTableColFilterType(SpiderlyProperty property)
         {
             if (property.IsDropdownControlType())
                 return "multiselect";

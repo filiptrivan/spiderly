@@ -34,7 +34,7 @@ namespace Spiderly.SourceGenerators.Net
                     {
                         throw SpiderlyDiagnostics.Create(
                             SpiderlyDiagnostics.OneToManyMissingM2MWithMany,
-                            oneToManyProperty.Location ?? entity.Location,
+                            (oneToManyProperty.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
                             entity.Name);
                     }
 
@@ -53,7 +53,7 @@ namespace Spiderly.SourceGenerators.Net
                 string extractedPropertyEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(extractedPropertyEntity); // Name
 
                 SpiderlyProperty manyToOneProperty = extractedPropertyEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, oneToManyProperty.Name); // Many to one property from the other side
-                SpiderlyProperty extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
+                SpiderlyProperty? extractedEntityManyToManyProperty = Helpers.GetOppositeManyToManyProperty(oneToManyProperty, extractedPropertyEntity, entity, allEntityClasses);
 
                 if (manyToOneProperty != null) // One To Many
                 {
@@ -366,7 +366,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ComplexManyToManyListWithoutAdditionalFields,
-                    oneToManyProperty.Location ?? entity.Location,
+                    (oneToManyProperty.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
                     junctionEntity.Name,
                     entity.Name);
             }
@@ -492,7 +492,7 @@ namespace Spiderly.SourceGenerators.Net
                         throw new SpiderlyValidationException(new Dictionary<string, string[]> { ["{{propertyName}}"] = new[] { "{{propertyName}} is required." } });
 """;
 
-        private static string GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static string? GetSimpleManyToManyUpdateWithLazyTableSelectionMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (property.HasSimpleManyToManyTableLazyLoadAttribute() == false)
                 return null;
@@ -545,7 +545,7 @@ namespace Spiderly.SourceGenerators.Net
 """;
         }
 
-        private static string GetOrderedOneToManyMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static string? GetOrderedOneToManyMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             if (property.HasUIOrderedOneToManyAttribute() == false)
                 return null;

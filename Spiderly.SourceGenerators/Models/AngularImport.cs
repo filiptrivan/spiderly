@@ -6,7 +6,7 @@ namespace Spiderly.SourceGenerators.Models
 {
     public class AngularImport
     {
-        public string Namespace { get; set; }
-        public string Name { get; set; }
+        public string Namespace { get; set; } = null!;
+        public string Name { get; set; } = null!;
     }
 }
