@@ -77,7 +77,7 @@ import { BaseEntity, Filter, FilterRule, FilterSortMeta, Namebook } from 'spider
                     DTOProperties.AddRange(DTOClass.Properties);
 
                 List<string> angularPropertyDefinitions = GetAllAngularPropertyDefinitions(DTOProperties, spiderlyEnumNames);
-                string angularClassIdentifier = DTOClassGroup.Key.Replace("DTO", "");
+                string angularClassIdentifier = Helpers.RemoveDtoSuffix(DTOClassGroup.Key);
 
                 sb.AppendLine($$"""
 

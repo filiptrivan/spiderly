@@ -65,6 +65,9 @@ public class AngularTypeDispatchCharacterizationTests
     // framework one — the legacy parser's Contains sniffing silently collapses it.
     [InlineData("BrandNamebookDTO", "BrandNamebook")]
     [InlineData("ProductPaginatedResultDTO", "ProductPaginatedResult")]
+    // An entity whose own name legitimately contains "DTO" mid-string keeps that occurrence — only the
+    // trailing suffix is stripped (Helpers.RemoveDtoSuffix, the shared strip this delegates to).
+    [InlineData("ProductDTOResponseDTO", "ProductDTOResponse")]
     // The PaginatedResult type argument is a TS type, so a scalar argument maps like any other
     // scalar — the legacy parser emitted the raw C# name ("PaginatedResult<long>").
     [InlineData("PaginatedResultDTO<long>", "PaginatedResult<number>")]

@@ -97,7 +97,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (type.Name == "PaginatedResultDTO")
                 return $"PaginatedResult<{GetAngularType(type.ElementType, spiderlyEnumNames)}>";
 
-            return type.Name.Substring(0, type.Name.Length - Helpers.DTONamespaceEnding.Length); // UserDTO -> User
+            return Helpers.RemoveDtoSuffix(type.Name); // UserDTO -> User
         }
 
         /// <summary>

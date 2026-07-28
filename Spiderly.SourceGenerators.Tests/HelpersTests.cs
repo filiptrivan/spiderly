@@ -342,4 +342,23 @@ public class HelpersTests
     }
 
     #endregion
+
+    #region RemoveDtoSuffix
+
+    [Theory]
+    [InlineData("UserDTO", "User")]
+    [InlineData("UserSaveBodyDTO", "UserSaveBody")]
+    [InlineData("UserMainUIFormDTO", "UserMainUIForm")]
+    // The bug this locks: an entity whose own name legitimately contains "DTO" mid-string must keep
+    // that occurrence — only the trailing suffix is stripped. `.Replace("DTO", "")` (the idiom this
+    // helper replaces at every call site) would collapse this to "ProductResponse" instead.
+    [InlineData("ProductDTOResponseDTO", "ProductDTOResponse")]
+    [InlineData("User", "User")] // no trailing suffix -> unchanged
+    [InlineData(null, null)]
+    public void RemoveDtoSuffix_VariousInputs_StripsOnlyTrailingSuffix(string name, string expected)
+    {
+        Assert.Equal(expected, Helpers.RemoveDtoSuffix(name));
+    }
+
+    #endregion
 }

@@ -20,7 +20,7 @@ namespace Spiderly.SourceGenerators.Angular
         {
             List<string> result = new();
 
-            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => SpiderlyNaming.IsGeneratedDTOName(x.Name, entity.Name, "DTO"));
 
             if (customDTOClass != null)
                 properties.AddRange(customDTOClass.Properties);
@@ -82,7 +82,7 @@ namespace Spiderly.SourceGenerators.Angular
         )
         {
             List<SpiderlyProperty> allProperties = properties.ToList();
-            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => SpiderlyNaming.IsGeneratedDTOName(x.Name, entity.Name, "DTO"));
             if (customDTOClass != null)
                 allProperties.AddRange(customDTOClass.Properties);
 
@@ -102,7 +102,7 @@ namespace Spiderly.SourceGenerators.Angular
         )
         {
             List<SpiderlyProperty> allProperties = properties.ToList();
-            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => SpiderlyNaming.IsGeneratedDTOName(x.Name, entity.Name, "DTO"));
             if (customDTOClass != null)
                 allProperties.AddRange(customDTOClass.Properties);
 
@@ -134,7 +134,7 @@ namespace Spiderly.SourceGenerators.Angular
             List<PropertyWithContext> result = new();
 
             List<SpiderlyProperty> properties = entity.Properties.ToList();
-            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => x.Name.Replace("DTO", "") == entity.Name);
+            SpiderlyClass customDTOClass = customDTOClasses.SingleOrDefault(x => SpiderlyNaming.IsGeneratedDTOName(x.Name, entity.Name, "DTO"));
             if (customDTOClass != null)
                 properties = properties.Concat(customDTOClass.Properties).ToList();
 

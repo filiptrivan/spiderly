@@ -89,8 +89,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
                 }
 
                 SpiderlyClass entity = currentProjectEntities.SingleOrDefault(x =>
-                    DTOClassGroup.Key.Replace("DTO", "") == x.Name ||
-                    DTOClassGroup.Key.Replace("SaveBodyDTO", "") == x.Name
+                    SpiderlyNaming.IsGeneratedDTOName(DTOClassGroup.Key, x.Name, "DTO", "SaveBodyDTO")
                 ); // If it is null then we only made DTO, without entity class
 
                 List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(DTOProperties, entity);

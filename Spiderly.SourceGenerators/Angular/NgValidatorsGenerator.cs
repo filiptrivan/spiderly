@@ -70,8 +70,7 @@ namespace Spiderly.SourceGenerators.Angular
             foreach (SpiderlyClass dtoClass in dtoClasses)
             {
                 SpiderlyClass entityClass = entities.SingleOrDefault(x =>
-                    dtoClass.Name.Replace("DTO", "") == x.Name ||
-                    dtoClass.Name.Replace("SaveBodyDTO", "") == x.Name
+                    SpiderlyNaming.IsGeneratedDTOName(dtoClass.Name, x.Name, "DTO", "SaveBodyDTO")
                 ); // If it is null then we only made DTO, without entity class
 
                 List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(dtoClass.Properties, entityClass);
@@ -137,7 +136,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
         private static string GenerateFormControlSwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
         {
-            string entityName = dtoClass.Name.Replace("DTO", "");
+            string entityName = Helpers.RemoveDtoSuffix(dtoClass.Name);
 
             StringBuilder sb = new();
 
@@ -154,7 +153,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
         private static string GenerateFormArraySwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
         {
-            string entityName = dtoClass.Name.Replace("DTO", "");
+            string entityName = Helpers.RemoveDtoSuffix(dtoClass.Name);
 
             StringBuilder sb = new();
 
@@ -172,7 +171,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 
         private static string GenerateValidatorMethods(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
         {
-            string entityName = dtoClass.Name.Replace("DTO", "");
+            string entityName = Helpers.RemoveDtoSuffix(dtoClass.Name);
 
             StringBuilder sb = new();
 

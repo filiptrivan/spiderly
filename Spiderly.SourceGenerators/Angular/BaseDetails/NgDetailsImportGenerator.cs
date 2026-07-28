@@ -13,7 +13,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .Select(x => new AngularImport
                 {
                     Namespace = x.Namespace.Replace(".DTO", ""),
-                    Name = x.Name.Replace("DTO", "")
+                    Name = Helpers.RemoveDtoSuffix(x.Name)
                 })
                 .ToList();
 

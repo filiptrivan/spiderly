@@ -76,7 +76,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .ToList();
 
             HashSet<string> knownTsTypes = new(
-                referencedDTOs.Select(d => d.Name.Replace("DTO", ""))
+                referencedDTOs.Select(d => Helpers.RemoveDtoSuffix(d.Name))
                     .Concat(allEntities.Select(e => e.Name))
                     .Concat(Helpers.BaseClassNames));
 
@@ -219,7 +219,7 @@ import { ConfigService } from '../config.service';
                 if (projectName == "Security")
                     continue;
 
-                string ngType = DTO.Name.Replace("DTO", "");
+                string ngType = Helpers.RemoveDtoSuffix(DTO.Name);
 
                 if (Helpers.BaseClassNames.Contains(ngType))
                     continue;
@@ -283,13 +283,8 @@ import { {{ngType}} } from '../../entities/entities.generated';
                 return true;
 
             // Read-shaped DTOs fetched frequently (autocomplete, dropdown, table pagination, M2M).
-            if (controllerMethod.ReturnType.Contains("NamebookDTO") ||
-                controllerMethod.ReturnType.Contains("CodebookDTO") ||
-                controllerMethod.ReturnType.Contains("PaginatedResultDTO") ||
-                controllerMethod.ReturnType.Contains("LazyLoadSelectedIdsResultDTO"))
-            {
+            if (IsReadShapedDto(controllerMethod.ReturnType))
                 return true;
-            }
 
             // A GET returning a bare scalar (count, flag, status, timestamp) is almost always a lightweight
             // or polled read; blacking out the whole screen for a single value is never what the caller wants.
@@ -305,6 +300,25 @@ import { {{ngType}} } from '../../entities/entities.generated';
             }
 
             return false;
+        }
+
+        private static readonly HashSet<string> ReadShapedDtoNames = new()
+        {
+            "NamebookDTO", "CodebookDTO", "PaginatedResultDTO", "LazyLoadSelectedIdsResultDTO"
+        };
+
+        /// <summary>
+        /// True when <paramref name="type"/>, after unwrapping async/MVC transport wrappers and any
+        /// collection nesting, is EXACTLY one of the framework's read-shaped DTOs. Matched on the parsed
+        /// outer <see cref="SpiderlyTypeRef.Name"/>, not <c>Raw.Contains(...)</c> — a user DTO that merely
+        /// contains one of these names as a substring (e.g. <c>BrandNamebookDTO</c>) must not match.
+        /// </summary>
+        private static bool IsReadShapedDto(SpiderlyTypeRef type)
+        {
+            while (type != null && (type.IsTransportWrapper || type.IsCollection))
+                type = type.ElementType;
+
+            return type != null && ReadShapedDtoNames.Contains(type.Name);
         }
 
         /// <summary>
@@ -416,7 +430,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
             string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
             return $$"""
-    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{parameter.Type.Raw.Replace("DTO", "")}}): Observable<{{angularReturnType}}> => { 
+    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{Helpers.RemoveDtoSuffix(parameter.Type.Raw)}}): Observable<{{angularReturnType}}> => {
         let formData = new FormData();
 {{string.Join("\n", GetFormDataAppends(parameterType))}}
         return this.http.post(`${this.config.apiUrl}/{{controllerName}}/{{controllerMethod.Name}}`, formData, this.config.httpOptions);

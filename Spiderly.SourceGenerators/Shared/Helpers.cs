@@ -18,6 +18,19 @@ namespace Spiderly.SourceGenerators.Shared
         public static string EntitiesNamespaceEnding { get; set; } = "Entities";
         public static string DTONamespaceEnding { get; set; } = "DTO";
 
+        /// <summary>
+        /// Strips the generated DTO suffix from a class name (<c>"UserDTO"</c> -> <c>"User"</c>).
+        /// An EXACT trailing-suffix strip, not a global replace — a name that merely contains
+        /// <see cref="DTONamespaceEnding"/> earlier on (e.g. <c>"ProductDTOResponseDTO"</c>) keeps that
+        /// occurrence (-> <c>"ProductDTOResponse"</c>). Returns <paramref name="name"/> unchanged if it
+        /// doesn't end with the suffix. Single source of truth for this direction of the DTO name
+        /// convention, mirrored by <see cref="SpiderlyNaming"/> for the reverse (entity -> DTO) direction.
+        /// </summary>
+        public static string RemoveDtoSuffix(string name)
+            => name != null && name.EndsWith(DTONamespaceEnding)
+                ? name.Substring(0, name.Length - DTONamespaceEnding.Length)
+                : name;
+
         public static List<string> BaseClassNames { get; set; } = new()
         {
             "Filter",

@@ -33,6 +33,16 @@ namespace Spiderly.SourceGenerators.Shared
         /// be mis-resolved.
         /// </summary>
         public static bool IsGeneratedDTOName(string DTOClassName, string entityName)
-            => DTOSuffixes.Any(suffix => DTOClassName == $"{entityName}{suffix}");
+            => IsGeneratedDTOName(DTOClassName, entityName, DTOSuffixes);
+
+        /// <summary>
+        /// Overload for callers that only ever resolve a subset of <see cref="DTOSuffixes"/> (e.g. a
+        /// site that intentionally never resolves an entity for a <c>MainUIFormDTO</c>) — pass exactly
+        /// the suffixes that site means, so migrating it off an inline <c>.Replace(suffix, "")</c>
+        /// comparison fixes the mid-name-DTO false match/miss without also widening which DTO variants
+        /// it resolves.
+        /// </summary>
+        public static bool IsGeneratedDTOName(string DTOClassName, string entityName, params string[] suffixes)
+            => suffixes.Any(suffix => DTOClassName == $"{entityName}{suffix}");
     }
 }
