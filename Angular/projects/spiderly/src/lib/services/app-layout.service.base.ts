@@ -10,7 +10,7 @@ import {
 } from 'rxjs';
 import { InitTopBarData } from '../entities/init-top-bar-data';
 import { ConfigServiceBase } from './config.service.base';
-import { readStoredJson } from './web-storage';
+import { readStoredJson, writeStoredJson } from './web-storage';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Namebook } from '../entities/namebook';
 
@@ -35,9 +35,9 @@ interface LayoutState {
 })
 export class LayoutServiceBase implements OnDestroy {
   /**
-   * The desktop sidebar collapse is a durable preference (like the data table's
-   * column layout), so it survives reloads via localStorage; the rest of
-   * LayoutState is transient interaction state and deliberately resets.
+   * Only the desktop collapse persists across reloads (a durable preference,
+   * like the data table's column layout); the rest of LayoutState is
+   * deliberately transient.
    */
   private static readonly menuDesktopInactiveKey =
     'spiderly-layout:menu-desktop-inactive';
@@ -52,7 +52,9 @@ export class LayoutServiceBase implements OnDestroy {
   };
 
   state: LayoutState = {
-    staticMenuDesktopInactive: false,
+    staticMenuDesktopInactive:
+      readStoredJson(localStorage, LayoutServiceBase.menuDesktopInactiveKey) ===
+      true,
     overlayMenuActive: false,
     profileSidebarVisible: false,
     profileDropdownSidebarVisible: false,
@@ -68,11 +70,7 @@ export class LayoutServiceBase implements OnDestroy {
     protected apiService: ApiSecurityService,
     protected config: ConfigServiceBase,
     protected authService: AuthServiceBase,
-  ) {
-    this.state.staticMenuDesktopInactive =
-      readStoredJson(localStorage, LayoutServiceBase.menuDesktopInactiveKey) ===
-      true;
-  }
+  ) {}
 
   onMenuToggle() {
     if (this.isOverlay()) {
@@ -85,9 +83,10 @@ export class LayoutServiceBase implements OnDestroy {
     if (this.isDesktop()) {
       this.state.staticMenuDesktopInactive =
         !this.state.staticMenuDesktopInactive;
-      localStorage.setItem(
+      writeStoredJson(
+        localStorage,
         LayoutServiceBase.menuDesktopInactiveKey,
-        JSON.stringify(this.state.staticMenuDesktopInactive),
+        this.state.staticMenuDesktopInactive,
       );
     } else {
       this.state.staticMenuMobileActive = !this.state.staticMenuMobileActive;

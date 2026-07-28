@@ -6,3 +6,8 @@ export function readStoredJson(storage: Storage, key: string): any {
     return null;
   }
 }
+
+/** Writes a value to web storage as JSON; the counterpart of readStoredJson. */
+export function writeStoredJson(storage: Storage, key: string, value: any): void {
+  storage.setItem(key, JSON.stringify(value));
+}

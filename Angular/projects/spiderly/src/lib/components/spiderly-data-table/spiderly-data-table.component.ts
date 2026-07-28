@@ -46,7 +46,7 @@ import {
   parseDateOnlyLocal,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
-import { readStoredJson } from '../../services/web-storage';
+import { readStoredJson, writeStoredJson } from '../../services/web-storage';
 import {
   DeleteConfirmationData,
   SpiderlyDeleteConfirmationComponent,
@@ -459,9 +459,10 @@ export class SpiderlyDataTableComponent
     if (Object.keys(this.columnVisibilityOverrides).length === 0) {
       localStorage.removeItem(this.columnsStateKey);
     } else {
-      localStorage.setItem(
+      writeStoredJson(
+        localStorage,
         this.columnsStateKey,
-        JSON.stringify(this.columnVisibilityOverrides),
+        this.columnVisibilityOverrides,
       );
     }
   }
