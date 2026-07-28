@@ -33,6 +33,37 @@
   }
 }
 
+// The chooser lives inside a p-popover that PrimeNG appends to document.body
+// when opened, so these rules must NOT sit under `:host` — the compiled
+// `[_nghost] … [_ngcontent]` descendant selector stops matching once the
+// content leaves the host subtree. Top-level rules keep only the
+// `[_ngcontent]` attribute selector, which travels with the teleported nodes.
+.column-chooser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.column-chooser-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.column-chooser-reset {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--p-primary-color);
+  cursor: pointer;
+  align-self: flex-start;
+  font-size: 0.875rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 :host {
   // The `.clickable` affordance is shared: clickable rows (navigateOnRowClick) and opt-in cells
   // (Column.onCellClick) both get a pointer cursor; cells additionally underline on hover.
@@ -41,32 +72,6 @@
   }
   ::ng-deep td.clickable:hover {
     text-decoration: underline;
-  }
-
-  .column-chooser {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .column-chooser-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-  }
-  .column-chooser-reset {
-    margin-top: 4px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--p-primary-color);
-    cursor: pointer;
-    align-self: flex-start;
-    font-size: 0.875rem;
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 
   ::ng-deep {

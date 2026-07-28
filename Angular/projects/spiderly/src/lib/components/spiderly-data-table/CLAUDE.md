@@ -46,6 +46,10 @@ Consumer-facing behavior is documented in `claude-plugins/docs/angular-customiza
 - v1 scope: the chooser only renders for lazy tables (`hasLazyLoad`); client-side form-array tables keep their declared columns. Reordering/width persistence deliberately out of scope.
 - Spec gotcha: the chooser checkboxes' `[ngModel]` writes resolve in a microtask — tests must `await fixture.whenStable()` after opening/toggling (see `openChooser` in the spec). Once open, PrimeNG appends the popover to `document.body`, so specs query the `Popover` instance's `container`, never the document (stale popovers from earlier fixtures linger there).
 
+## Popover content must not be styled under `:host`
+
+PrimeNG appends the open popover to `document.body` (`appendTo` default), so a `:host .foo` rule — compiled to a `[_nghost] … [_ngcontent]` descendant selector — silently stops matching everything inside it; the chooser once shipped with all three of its rules dead this way (inline checkbox flow, native reset button). Declare popover-content rules at the SCSS top level: they keep only the `[_ngcontent]` attribute selector, which travels with the teleported nodes, and stay encapsulated without `::ng-deep`. Builds and behavior specs are blind to dead overlay CSS — any rule targeting teleported content needs a computed-style assert in the spec (see the "chooser styles survive the body teleport" describe).
+
 ## Filter-state persistence
 
 `@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method also calls `table.clearState()` so the "Clear all filters" caption button wipes the persisted state instead of just resetting the in-memory table.
