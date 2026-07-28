@@ -3699,6 +3699,7 @@ export const ThemePreset = definePreset(Aura, {
   "NotFoundTitle": "Not Found",
   "UnexpectedErrorTitle": "An error occurred",
   "UnexpectedErrorDetails": "Our team has been notified and we are working on a solution. Please try again later.",
+  "ErrorReference": "Error reference",
   "ColorPickerPlaceholder": "e.g., #ff0000",
   "True": "True",
   "False": "False",

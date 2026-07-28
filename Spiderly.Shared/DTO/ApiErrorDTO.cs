@@ -24,5 +24,15 @@ namespace Spiderly.Shared.DTO
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, string[]> FieldErrors { get; set; }
+
+        /// <summary>
+        /// The W3C trace id of the failed request — a support reference the client can show to the user
+        /// ("Error reference: …") that correlates the response with the server's logs and error-tracker event
+        /// (e.g. Sentry's <c>trace:</c> search). Populated only for reportable errors
+        /// (<see cref="Exceptions.SpiderlyExceptionClassifier.IsExpected"/> == false), so expected 4xx
+        /// conditions never look like incidents; null otherwise, or when no ambient <see cref="System.Diagnostics.Activity"/> exists.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string TraceId { get; set; }
     }
 }

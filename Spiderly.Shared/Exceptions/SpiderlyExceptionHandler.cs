@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
@@ -158,6 +159,11 @@ namespace Spiderly.Shared.Exceptions
 
             body.StatusCode = httpContext.Response.StatusCode;
             body.Exception = exceptionString;
+
+            // Reference shown ⟺ event reaches the error tracker: the same classifier gates both, so a user
+            // never reads out a reference that finds nothing, and an expected 4xx never looks like an incident.
+            if (SpiderlyExceptionClassifier.IsExpected(ex) == false)
+                body.TraceId = Activity.Current?.TraceId.ToString();
 
             if (logException)
                 _logger.Log(logLevel, ex, "Currently authenticated principal id: {PrincipalId}", principalId);

@@ -38,6 +38,14 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       }
     }
 
+    // ApiErrorDTO.traceId is present only on reportable errors (SpiderlyExceptionClassifier.IsExpected ==
+    // false), so appending it can never decorate an expected 4xx — the reference lets a user quote an id
+    // that support can look up in the server logs / error tracker.
+    const withReference = (detail: string): string =>
+      errorResponse?.traceId
+        ? `${detail} ${translocoService.translate('ErrorReference')}: ${errorResponse.traceId}`
+        : detail;
+
     if (err.status === 0) {
       // Server unreachable; defer so the message isn't lost during a shutdown/refresh race.
       setTimeout(() => {
@@ -62,7 +70,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       }
     } else if (err.status === 403) {
       messageService.warningMessage(
-        translocoService.translate('PermissionErrorDetails'),
+        withReference(translocoService.translate('PermissionErrorDetails')),
         translocoService.translate('PermissionErrorTitle'),
       );
     } else if (err.status === 404) {
@@ -72,7 +80,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       );
     } else {
       messageService.errorMessage(
-        translocoService.translate('UnexpectedErrorDetails'),
+        withReference(translocoService.translate('UnexpectedErrorDetails')),
         translocoService.translate('UnexpectedErrorTitle'),
       );
     }
