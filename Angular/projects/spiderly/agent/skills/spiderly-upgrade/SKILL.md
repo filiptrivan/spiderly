@@ -31,7 +31,12 @@ Follow Spiderly's fail-loudly convention: every refused-to-start condition exits
 
    > Working tree must be clean before upgrading. Commit or stash your changes first — the upgrade will make many edits, and a clean tree is your `git restore .` safety net.
 
-4. **Detect current version.** Read all `Spiderly.*` `PackageReference` `Version=` values across every csproj, plus the `"spiderly"` value in `Frontend/package.json`. They should agree. If they drift, list the values and ask the user which to treat as "current".
+4. **Detect current version.** Versions live in one of two places — check for **Central Package Management first**:
+
+   - **CPM (`Directory.Packages.props` exists next to or above the csprojs):** versions are `<PackageVersion Include="Spiderly.X" Version="..." />` there, and the csprojs carry **versionless** `<PackageReference Include="Spiderly.X" />`. Reading `Version=` off the csprojs finds nothing — don't conclude "not a Spiderly app".
+   - **Classic:** `Version=` on each csproj's `PackageReference`.
+
+   Read whichever applies, plus the `"spiderly"` value in `Frontend/package.json`. They should agree. If they drift, list the values and ask the user which to treat as "current". Record which layout you found — Step 6 bumps the same place.
 
 5. **Multi-solution monorepo.** If multiple Backend dirs (each with their own Spiderly refs) exist, ask the user which one to upgrade. One app per invocation.
 
@@ -39,7 +44,7 @@ Follow Spiderly's fail-loudly convention: every refused-to-start condition exits
 
 - If arg is `latest` or omitted: WebFetch `https://api.nuget.org/v3-flatcontainer/spiderly.shared/index.json`, parse the `versions` array, pick the highest stable (no `-` suffix), confirm with the user.
 - Otherwise validate the arg as `X.Y.Z` (or `X.Y.Z-preview.N` if the user is explicitly opting into a preview — warn that preview release notes are usually thin).
-- Reject downgrades: if target < current, exit `Downgrades are not supported. To downgrade, edit Spiderly.* PackageReference Version= attributes and the "spiderly" npm dep manually, then run dotnet restore and npm install.`
+- Reject downgrades: if target < current, exit `Downgrades are not supported. To downgrade, edit the Spiderly.* versions (Directory.Packages.props under CPM, otherwise the csproj PackageReference Version= attributes) and the "spiderly" npm dep manually, then run dotnet restore and npm install.`
 - Reject no-op: if target == current, exit `Already on {version}.`
 
 ## Step 3 — Fetch what changed
@@ -94,7 +99,7 @@ Code edits (N items affect you):
 Manual steps after upgrade:
   - <step the agent can't do for you>
 
-Version bumps: Spiderly.*  19.5.0 → 21.2.0  (4 csproj + Frontend/package.json[ + .claude/settings.json legacy-plugin removal])
+Version bumps: Spiderly.*  19.5.0 → 21.2.0  (Directory.Packages.props | 4 csproj + Frontend/package.json[ + .claude/settings.json legacy-plugin removal])
 
 After approval: apply → bump → migrate guidance + config → restore + install (parallel) → build → agent-sync. Up to 2 build-fix retries on failure.
 ```
@@ -108,7 +113,19 @@ Present the plan and ask the user explicitly. Don't proceed without a clear yes.
 In this order. A failure at any step is a hard stop until the recovery procedure in Step 7.
 
 1. **Code edits.** Apply each plan item via Edit. Read each target file first.
-2. **Version bumps.** Iterate the csproj list cached in Step 1: rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />` to the new version. Rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
+2. **Version bumps.** Bump the layout detected in Step 1.4:
+
+   - **CPM:** rewrite each `<PackageVersion Include="Spiderly.X" Version="OLD" />` in `Directory.Packages.props`. The csprojs need no edit — that is the point of CPM, and adding a `Version=` there is an error (`NU1008`).
+   - **Classic:** iterate the csproj list cached in Step 1 and rewrite every `<PackageReference Include="Spiderly.X" Version="OLD" />`.
+
+   Then rewrite `"spiderly": "OLD"` in `Frontend/package.json`. Don't re-glob.
+
+   **If the app commits `packages.lock.json` files** (`RestorePackagesWithLockFile`), the restore in item 5 updates them — but only for the current OS's resolution graph. Apps whose CI restores in `--locked-mode` on linux must regenerate the locks under the **linux SDK image**, or a macOS-only regeneration ships a lock that CI rejects. Add it to the manual steps:
+
+   ```bash
+   docker run --rm -v "$PWD:/src" -v <cache-volume>:/root/.nuget/packages -w /src \
+     mcr.microsoft.com/dotnet/sdk:<version> dotnet restore <Solution>.sln --force
+   ```
 3. **Migrate agent guidance off the legacy plugin.** Spiderly's AI-agent guidance now ships *inside* the `spiderly` npm package (projected by `spiderly agent-sync` in item 7 below), replacing the old `spiderly@spiderly` Claude Code plugin. If `.claude/settings.json` contains `extraKnownMarketplaces.spiderly` and/or `enabledPlugins."spiderly@spiderly"`, remove just those keys (leave any other settings intact; delete the file only if it becomes an empty `{}`). No settings file or no spiderly entries → skip.
 4. **Migrate `spiderly.json` → `.spiderly/config.json`.** Recent Spiderly moved the generator/api config out of a root `spiderly.json` into `.spiderly/config.json`. If the app has a `spiderly.json` registered via `<AdditionalFiles Include="spiderly.json" />`, `git mv` it to `.spiderly/config.json` and rewrite that csproj line to `<AdditionalFiles Include=".spiderly/config.json" />`. No `spiderly.json` → skip.
 5. **Restore packages in parallel.** Same message, two Bash calls: `dotnet restore` in Backend and `npm install` in Frontend. They share no locks. If either fails, surface the actual error and exit.
