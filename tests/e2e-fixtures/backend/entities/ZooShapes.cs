@@ -9,6 +9,10 @@
 // job. Derived from the same axis data the production dispatch reads: adding an axis member grows
 // this fixture automatically. Relational and blob shapes are covered by the hand-written fixture
 // entities (Project, ProjectTask, Product, ...), which carry the semantics a data walk can't invent.
+//
+// ZooShape lives in the app's default (nullable-oblivious) context; ZooShapeNullable sits under a
+// file-level '#nullable enable' and carries the reference-type shapes in NRT-annotated form
+// ('string?'), so both source contexts the generators must handle are compiled end-to-end.
 
 using System.ComponentModel.DataAnnotations;
 using Spiderly.Shared.Attributes;
@@ -83,5 +87,20 @@ namespace __APP_NAME__.Business.Entities
 
         [StringLength(100)]
         public string StringValue { get; set; }
+    }
+
+#nullable enable
+
+    [SpiderlyEntity]
+    [DoNotAuthorize]
+    public class ZooShapeNullable : BusinessObject<int>
+    {
+        [DisplayName]
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string Name { get; set; } = null!;
+
+        [StringLength(100)]
+        public string? StringNullableValue { get; set; }
     }
 }
