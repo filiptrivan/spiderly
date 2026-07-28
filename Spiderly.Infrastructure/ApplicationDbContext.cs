@@ -92,7 +92,7 @@ namespace Spiderly.Infrastructure
                         break;
 
                     Type entityClrType = changedEntity.Entity.GetType();
-                    Type currentType = entityClrType.BaseType;
+                    Type? currentType = entityClrType.BaseType;
                     while (currentType != null && currentType != typeof(object))
                     {
                         if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BusinessObject<>))

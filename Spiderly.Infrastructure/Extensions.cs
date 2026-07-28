@@ -26,20 +26,21 @@ namespace Spiderly.Infrastructure
                     .Where(x => x != null && x.GetCustomAttribute<M2MWithManyAttribute>() != null)
                     .ToList();
 
+                // m2mProperties is pre-filtered to properties carrying [M2MWithMany], so the re-read is non-null.
                 var m2mEntity_1 = m2mProperties
-                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>() })
+                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>()! })
                     .First();
 
                 var m2mEntity_2 = m2mProperties
-                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>() })
+                    .Select(x => new { Property = x, Attribute = x.GetCustomAttribute<M2MWithManyAttribute>()! })
                     .Last();
 
-                PropertyInfo m2mWithManyProperty_1 = mutableEntityTypes
+                PropertyInfo? m2mWithManyProperty_1 = mutableEntityTypes
                     .Where(x => x.Name == m2mEntity_1.Property.PropertyType.FullName)
                     .SelectMany(x => x.ClrType.GetProperties())
                     .Where(x => x.Name == m2mEntity_1.Attribute.WithManyProperty)
                     .SingleOrDefault();
-                PropertyInfo m2mWithManyProperty_2 = mutableEntityTypes
+                PropertyInfo? m2mWithManyProperty_2 = mutableEntityTypes
                     .Where(x => x.Name == m2mEntity_2.Property.PropertyType.FullName)
                     .SelectMany(x => x.ClrType.GetProperties())
                     .Where(x => x.Name == m2mEntity_2.Attribute.WithManyProperty)
@@ -95,7 +96,7 @@ namespace Spiderly.Infrastructure
 
                 foreach (PropertyInfo property in clrType.GetProperties())
                 {
-                    WithManyAttribute withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
+                    WithManyAttribute? withManyAttribute = property.GetCustomAttribute<WithManyAttribute>();
 
                     if (
                         property.IsManyToOneType() == false ||
@@ -111,7 +112,7 @@ namespace Spiderly.Infrastructure
                         continue;
                     }
 
-                    RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
+                    RequiredAttribute? requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 
                     DeleteBehavior deleteBehavior = ResolveDeleteBehavior(property);
 
@@ -151,11 +152,11 @@ namespace Spiderly.Infrastructure
 
                 foreach (PropertyInfo property in clrType.GetProperties())
                 {
-                    WithOneAttribute withOneAttribute = property.GetCustomAttribute<WithOneAttribute>();
+                    WithOneAttribute? withOneAttribute = property.GetCustomAttribute<WithOneAttribute>();
                     if (withOneAttribute == null)
                         continue;
 
-                    RequiredAttribute requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
+                    RequiredAttribute? requiredAttribute = property.GetCustomAttribute<RequiredAttribute>();
 
                     DeleteBehavior deleteBehavior = ResolveDeleteBehavior(property);
 
@@ -196,11 +197,11 @@ namespace Spiderly.Infrastructure
         /// </summary>
         private static string ResolveForeignKeyName(PropertyInfo navigation, Type clrType)
         {
-            ForeignKeyAttribute fkFromNav = navigation.GetCustomAttribute<ForeignKeyAttribute>();
+            ForeignKeyAttribute? fkFromNav = navigation.GetCustomAttribute<ForeignKeyAttribute>();
             if (fkFromNav != null)
                 return fkFromNav.Name;
 
-            PropertyInfo scalarPointingBack = clrType.GetProperties()
+            PropertyInfo? scalarPointingBack = clrType.GetProperties()
                 .FirstOrDefault(p => p.GetCustomAttribute<ForeignKeyAttribute>()?.Name == navigation.Name);
             if (scalarPointingBack != null)
                 return scalarPointingBack.Name;
