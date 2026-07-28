@@ -61,7 +61,8 @@ namespace Spiderly.SourceGenerators.Angular
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var (classesAndEntitiesAndPath, config) = combinedSource;
+                var (withConfig, _) = combinedSource; // nullable context — TS emission is annotation-agnostic
+                var (classesAndEntitiesAndPath, config) = withConfig;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 

@@ -39,12 +39,12 @@ namespace Spiderly.SourceGenerators.Net
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, spc);
+                var (((classes, referencedClasses), config), nullableContext) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -92,7 +92,7 @@ namespace {{basePartOfNamespace}}.DTO
 }
 """;
 
-            context.AddSource($"DTOList.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("DTOList.generated", result, nullableContext);
         }
 
         private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, HashSet<string> handWrittenDTONames)

@@ -38,12 +38,12 @@ namespace Spiderly.SourceGenerators.Net
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, spc);
+                var (((classes, referencedClasses), config), nullableContext) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -72,7 +72,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
 }
 """;
 
-            context.AddSource($"ValidationRules.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("ValidationRules.generated", result, nullableContext);
         }
 
         private static List<string> GetDTOClassesValidationRules(List<SpiderlyClass> currentProjectDTOClasses, List<SpiderlyClass> currentProjectEntities)

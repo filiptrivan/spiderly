@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
@@ -156,9 +157,24 @@ namespace Spiderly.SourceGenerators.Shared
         #region Pipeline
 
         /// <summary>
-        /// Creates a standard generator pipeline: namespace-filtered class declarations + referenced assemblies + spiderly config.
+        /// The consumer compilation's nullable-reference-types context (the <c>&lt;Nullable&gt;</c> project
+        /// setting). A value-equatable enum, so combining it into a pipeline only invalidates incremental
+        /// caching when the setting itself changes. C# emitters key their output on it: explicit
+        /// <c>#nullable disable</c> + nullable-oblivious types for today's consumers, <c>#nullable enable</c>
+        /// + propagated annotations once the consumer turns NRT on.
         /// </summary>
-        public static IncrementalValueProvider<((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), SpiderlyConfig Config)> CreatePipeline(
+        public static IncrementalValueProvider<NullableContextOptions> GetNullableContextProvider(IncrementalGeneratorInitializationContext context)
+        {
+            return context.CompilationProvider.Select(static (compilation, _) =>
+                compilation.Options is CSharpCompilationOptions csharpOptions
+                    ? csharpOptions.NullableContextOptions
+                    : NullableContextOptions.Disable);
+        }
+
+        /// <summary>
+        /// Creates a standard generator pipeline: namespace-filtered class declarations + referenced assemblies + spiderly config + nullable context.
+        /// </summary>
+        public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), SpiderlyConfig Config), NullableContextOptions NullableContext)> CreatePipeline(
             IncrementalGeneratorInitializationContext context,
             List<ClassCategoryCodes> syntaxCategories,
             List<ClassCategoryCodes> referencedCategories)
@@ -171,13 +187,14 @@ namespace Spiderly.SourceGenerators.Shared
 
             return classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
-                .Combine(config);
+                .Combine(config)
+                .Combine(GetNullableContextProvider(context));
         }
 
         /// <summary>
-        /// Creates a generator pipeline with callingPath: namespace-filtered class declarations + referenced assemblies + callingPath + spiderly config.
+        /// Creates a generator pipeline with callingPath: namespace-filtered class declarations + referenced assemblies + callingPath + spiderly config + nullable context.
         /// </summary>
-        public static IncrementalValueProvider<(((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), SpiderlyConfig Config)> CreatePipelineWithCallingPath(
+        public static IncrementalValueProvider<((((ImmutableArray<ClassDeclarationSyntax> Classes, List<SpiderlyClass> ReferencedClasses), string CallingPath), SpiderlyConfig Config), NullableContextOptions NullableContext)> CreatePipelineWithCallingPath(
             IncrementalGeneratorInitializationContext context,
             List<ClassCategoryCodes> syntaxCategories,
             List<ClassCategoryCodes> referencedCategories)
@@ -192,7 +209,8 @@ namespace Spiderly.SourceGenerators.Shared
             return classDeclarations.Collect()
                 .Combine(referencedProjectClasses)
                 .Combine(callingProjectDirectory)
-                .Combine(config);
+                .Combine(config)
+                .Combine(GetNullableContextProvider(context));
         }
 
         #endregion

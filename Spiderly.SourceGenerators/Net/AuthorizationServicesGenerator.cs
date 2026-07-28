@@ -34,12 +34,12 @@ namespace Spiderly.SourceGenerators.Net
 
             context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
             {
-                var ((classes, referencedClasses), config) = source;
-                Execute(classes, referencedClasses, config, spc);
+                var (((classes, referencedClasses), config), nullableContext) = source;
+                Execute(classes, referencedClasses, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -81,7 +81,7 @@ namespace {{basePartOfNamespace}}.Services
 }
 """;
 
-            context.AddSource($"AuthorizationService.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("AuthorizationService.generated", result, nullableContext);
         }
 
         public static string GetAuthorizeRegions(List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)

@@ -31,12 +31,12 @@ namespace Spiderly.SourceGenerators.Net
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, spc);
+                var (((classes, referencedClasses), config), nullableContext) = combinedSource;
+                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -59,19 +59,19 @@ namespace Spiderly.SourceGenerators.Net
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 
             // Generate EntityServiceDependencies
-            context.AddSource("EntityServiceDependencies.generated", SourceText.From(
-                GetEntityServiceDependencies(basePartOfNamespace), Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("EntityServiceDependencies.generated",
+                GetEntityServiceDependencies(basePartOfNamespace), nullableContext);
 
             // Generate one service file per entity
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
                 string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace);
-                context.AddSource($"{entity.Name}Service.generated", SourceText.From(entityServiceCode, Encoding.UTF8));
+                context.AddSpiderlyCSharpSource($"{entity.Name}Service.generated", entityServiceCode, nullableContext);
             }
 
             // Generate DI registration
-            context.AddSource("EntityServiceRegistration.generated", SourceText.From(
-                GetEntityServiceRegistration(currentProjectEntities, userEntityServices, basePartOfNamespace), Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("EntityServiceRegistration.generated",
+                GetEntityServiceRegistration(currentProjectEntities, userEntityServices, basePartOfNamespace), nullableContext);
         }
 
         #region EntityServiceDependencies

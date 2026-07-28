@@ -13,14 +13,14 @@ internal static class GeneratorTestHarness
     // `[SpiderlyEntity]` etc. inline rather than referencing the full Spiderly.Shared assembly.
     private static readonly IReadOnlyList<MetadataReference> References = BuildReferences();
 
-    public static GeneratorDriver Run<TGenerator>(string source)
+    public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable)
         where TGenerator : IIncrementalGenerator, new()
     {
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: "Spiderly.SourceGenerators.Tests.Fixture",
             syntaxTrees: [CSharpSyntaxTree.ParseText(source)],
             references: References,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
         return CSharpGeneratorDriver.Create(new TGenerator()).RunGenerators(compilation);
     }
@@ -34,19 +34,19 @@ internal static class GeneratorTestHarness
     /// Unlike the inline tests, the referenced source must actually compile, so it declares the marker attributes and
     /// base types it uses.
     /// </summary>
-    public static Compilation CreateCompilationWithReference(string mainSource, string referencedSource)
+    public static Compilation CreateCompilationWithReference(string mainSource, string referencedSource, NullableContextOptions nullable = NullableContextOptions.Disable)
     {
         CSharpCompilation referencedCompilation = CSharpCompilation.Create(
             assemblyName: "Spiderly.SourceGenerators.Tests.ReferencedFixture",
             syntaxTrees: [CSharpSyntaxTree.ParseText(referencedSource)],
             references: References,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
         return CSharpCompilation.Create(
             assemblyName: "Spiderly.SourceGenerators.Tests.MainFixture",
             syntaxTrees: [CSharpSyntaxTree.ParseText(mainSource)],
             references: References.Append(referencedCompilation.ToMetadataReference()),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
     }
 
     private static IReadOnlyList<MetadataReference> BuildReferences()

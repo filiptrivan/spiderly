@@ -37,15 +37,16 @@ namespace Spiderly.SourceGenerators.Net
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var (classesAndEntitiesAndPath, config) = combinedSource;
+                var (withConfig, nullableContext) = combinedSource;
+                var (classesAndEntitiesAndPath, config) = withConfig;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, enumNames, callingPath, config, spc);
+                Execute(classes, referencedClasses, enumNames, callingPath, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, ImmutableArray<string> spiderlyEnumNames, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntitiesAndServices, ImmutableArray<string> spiderlyEnumNames, string callingProjectDirectory, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -101,7 +102,7 @@ namespace {{basePartOfNamespace}}.Controllers
 }
 """;
 
-            context.AddSource($"BaseControllers.generated", SourceText.From(result, Encoding.UTF8));
+            context.AddSpiderlyCSharpSource("BaseControllers.generated", result, nullableContext);
         }
 
         // NOTE: We intentionally use IServiceProvider here (service locator pattern).
