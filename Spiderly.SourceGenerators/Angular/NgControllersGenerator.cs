@@ -270,7 +270,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         /// The spinner exists for primary, user-initiated blocking operations (form load, save, delete);
         /// it must never black out the screen for frequent or background fetches.
         /// </summary>
-        private static bool ShouldSkipSpinner(SpiderlyMethod controllerMethod, ImmutableArray<string> spiderlyEnumNames)
+        internal static bool ShouldSkipSpinner(SpiderlyMethod controllerMethod, ImmutableArray<string> spiderlyEnumNames)
         {
             // Explicit attributes always win over inference. [ShowSpinner] is the opt-back-in for the rare
             // case the auto-skip below gets wrong (a deliberately slow scalar GET); checked first so it also
