@@ -62,6 +62,12 @@ M2O/display-name mappings are already on the config when the hook runs. An unimp
 compiles away entirely; implementing a hook whose config method you also fully overrode (see below)
 is a compile error (`CS0759`), so a dead hook can't sit around silently.
 
+**Precedence (verified against Mapster 7.4.0):** `.Map` is *first-registration-wins* — a hook
+`.Map` targeting a member the generator already mapped is a **silent no-op**, not an override.
+`.Ignore` *does* win over an earlier `.Map`. So from a hook you can **add** new member mappings and
+**suppress** generated ones, but you cannot **replace** a generated mapping's expression — that is
+exactly what the full-method override (below) remains for.
+
 ### Convention flattening is OFF — unmapped extension props stay unmapped
 
 Generated configs strip Mapster's flatten-by-name strategy (`NewStrictConfig()` in the generated
@@ -143,6 +149,8 @@ public static partial class Mapper
 |---|---|
 | Add computed/custom fields to any config (projection, DTO, save, Excel) | Implement the matching `Customize{Entity}{Method}` partial hook |
 | Mapping through an optional navigation | `Customize*` hook with an explicit null guard |
+| Suppress a generated mapping | `Customize*` hook with `.Ignore(dest => dest.X)` |
+| Change how a *generated* member is mapped | Override the full method in `Mapper.cs` (hook `.Map` on a generated member is a no-op — first wins) |
 | Replace the generated mappings wholesale | Override the full method in `Mapper.cs` |
 
 Most projects never need custom mappers — the generated mappings handle M2O, M2M display names, and standard field-to-field mapping automatically.
