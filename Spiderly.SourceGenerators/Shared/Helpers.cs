@@ -81,7 +81,7 @@ namespace Spiderly.SourceGenerators.Shared
                     // Collect the [CascadeDelete] edge of every FK-bearing reference nav (M2O + 1-1 dependent).
                     prop.IsForeignKeyReferenceNav() &&
                     prop.Attributes.Any(x => x.Name == "CascadeDelete") &&
-                    prop.Type.Raw == entityName
+                    prop.Type.Name == entityName
                 )
                 .ToList();
         }
@@ -136,7 +136,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             return entities
                 .SingleOrDefault(x => x.HasM2MAttribute() && x.Properties
-                    .Any(x => x.Type.Raw == entity.Name && x.Attributes
+                    .Any(x => x.Type.Name == entity.Name && x.Attributes
                         .Any(x => x.Name == "M2MWithMany" && x.Value == attributeValue)));
         }
 

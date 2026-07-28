@@ -107,7 +107,7 @@ namespace Spiderly.SourceGenerators.Shared
             SpiderlyClass entity,
             List<SpiderlyClass> allEntities)
         {
-            SpiderlyClass targetEntity = allEntities.FirstOrDefault(c => c.Name == navigation.Type.Raw);
+            SpiderlyClass targetEntity = allEntities.FirstOrDefault(c => c.Name == navigation.Type.Name);
             if (targetEntity == null)
                 return;
 

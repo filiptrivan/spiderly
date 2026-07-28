@@ -433,7 +433,7 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty prop in properties)
             {
-                SpiderlyClass classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type.Raw, allEntityClasses);
+                SpiderlyClass classOfManyToOneProperty = GetClassOfManyToOneProperty(prop.Type.Name, allEntityClasses);
 
                 if (classOfManyToOneProperty == null)
                     continue;
@@ -443,7 +443,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 if (dto.{{prop.Name}}Id > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value, null);
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value, null);
                 }
                 else
                 {

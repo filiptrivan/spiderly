@@ -26,7 +26,7 @@ namespace Spiderly.SourceGenerators.Net
                     SpiderlyProperty m2mProperty = extractedPropertyEntity.Properties
                         .SingleOrDefault(x =>
                             x.HasM2MWithManyAttribute() &&
-                            x.Type.Raw == entity.Name &&
+                            x.Type.Name == entity.Name &&
                             x.Attributes.Any(x => x.Name == "M2MWithMany" && x.Value == oneToManyProperty.Name)
                         );
 
@@ -345,7 +345,7 @@ namespace Spiderly.SourceGenerators.Net
                 .Where(x => x.HasM2MWithManyAttribute())
                 .Single(x => x != currentSideM2MProperty);
 
-            SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type.Raw);
+            SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type.Name);
             string otherSideEntityIdType = otherSideEntity.GetIdType(allEntityClasses);
 
             string currentSideFKName = $"{currentSideM2MProperty.Name}Id";

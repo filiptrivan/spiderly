@@ -381,7 +381,7 @@ namespace Spiderly.SourceGenerators.Angular
             // also has WithMany("ProjectTasks") because TaskCategory has its own ProjectTasks
             // collection — checking name alone silently dropped TaskCategory's dropdown).
             List<SpiderlyProperty> propertyBlocks = extractedEntity.Properties
-                .Where(x => !(x.WithMany() == property.Name && x.Type.Raw == entity.Name))
+                .Where(x => !(x.WithMany() == property.Name && x.Type.Name == entity.Name))
                 .ToList();
 
             return $$"""
@@ -427,7 +427,7 @@ namespace Spiderly.SourceGenerators.Angular
             SpiderlyProperty currentSideM2MProperty = junctionEntity.Properties
                 .Single(x =>
                     x.HasM2MWithManyAttribute() &&
-                    x.Type.Raw == entity.Name &&
+                    x.Type.Name == entity.Name &&
                     x.Attributes.Any(a => a.Name == "M2MWithMany" && a.Value == property.Name)
                 );
 
@@ -435,7 +435,7 @@ namespace Spiderly.SourceGenerators.Angular
                 .Where(x => x.HasM2MWithManyAttribute())
                 .Single(x => x != currentSideM2MProperty);
 
-            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type.Raw);
+            SpiderlyClass otherSideEntity = allEntities.Single(x => x.Name == otherSideM2MProperty.Type.Name);
 
             return (junctionEntity, currentSideM2MProperty, otherSideM2MProperty, otherSideEntity);
         }

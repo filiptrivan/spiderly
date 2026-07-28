@@ -141,7 +141,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                     foreach (SpiderParameter parameter in controllerMethod.Parameters)
                         ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
-                    if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type.Raw == "IFormFile") == false)
+                    if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type.Name == "IFormFile") == false)
                     {
                         result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs, spiderlyEnumNames));
                     }
@@ -426,11 +426,11 @@ import { {{ngType}} } from '../../entities/entities.generated';
         private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList, ImmutableArray<string> spiderlyEnumNames)
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
-            SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type.Raw).SingleOrDefault();
+            SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type.Name).SingleOrDefault();
             string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
             return $$"""
-    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{Helpers.RemoveDtoSuffix(parameter.Type.Raw)}}): Observable<{{angularReturnType}}> => {
+    {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{Helpers.RemoveDtoSuffix(parameter.Type.Name)}}): Observable<{{angularReturnType}}> => {
         let formData = new FormData();
 {{string.Join("\n", GetFormDataAppends(parameterType))}}
         return this.http.post(`${this.config.apiUrl}/{{controllerName}}/{{controllerMethod.Name}}`, formData, this.config.httpOptions);
@@ -452,7 +452,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
         });
 """);
                 }
-                else if (property.Type.Raw == "IFormFile")
+                else if (property.Type.Name == "IFormFile")
                 {
                     result.Add($$"""
         formData.append('{{property.Name}}', dto.{{property.Name.FirstCharToLower()}});

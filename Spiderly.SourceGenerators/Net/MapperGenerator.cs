@@ -234,7 +234,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                 if (property.IsForeignKeyReferenceNav())
                 {
                     SpiderlyClass manyToOneEntity = entities
-                        .Where(x => x.Name == property.Type.Raw)
+                        .Where(x => x.Name == property.Type.Name)
                         .SingleOrDefault();
 
                     if (manyToOneEntity == null)

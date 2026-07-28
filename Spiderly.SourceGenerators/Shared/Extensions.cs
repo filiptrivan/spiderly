@@ -594,13 +594,13 @@ namespace Spiderly.SourceGenerators.Shared
             if (nav.HasWithManyAttribute() || nav.HasWithOneAttribute())
                 return false; // dependent side or a real M2O — not a principal inverse
 
-            SpiderlyClass target = allEntities.FirstOrDefault(c => c.Name == nav.Type.Raw);
+            SpiderlyClass target = allEntities.FirstOrDefault(c => c.Name == nav.Type.Name);
             if (target == null)
                 return false;
 
             return target.Properties.Any(d =>
                 d.HasWithOneAttribute()
-                && d.Type.Raw == declaringEntity.Name
+                && d.Type.Name == declaringEntity.Name
                 && d.GetWithOneInverseName() == nav.Name);
         }
 
@@ -781,7 +781,7 @@ namespace Spiderly.SourceGenerators.Shared
                     : $"{parameterName}.{fkName}";
             }
 
-            SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type.Raw);
+            SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type.Name);
             string idType = target != null ? target.GetIdType(entities) : "long";
             return $"EF.Property<{idType}>({parameterName}, \"{navigation.Name}Id\")";
         }
@@ -930,7 +930,7 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static SpiderlyProperty GetManyToOnePropertyWithManyAttribute(this SpiderlyClass entity, string manyToOneType, string withMany)
         {
-            return entity.Properties.SingleOrDefault(x => x.Type.Raw == manyToOneType && x.WithMany() == withMany);
+            return entity.Properties.SingleOrDefault(x => x.Type.Name == manyToOneType && x.WithMany() == withMany);
         }
 
         /// <summary>

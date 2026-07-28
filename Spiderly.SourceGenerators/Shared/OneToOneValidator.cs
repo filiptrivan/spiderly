@@ -16,7 +16,7 @@ namespace Spiderly.SourceGenerators.Shared
         {
             foreach (SpiderlyProperty nav in entity.Properties.Where(p => p.IsOneToOneType()))
             {
-                string targetTypeName = nav.Type.Raw;
+                string targetTypeName = nav.Type.Name;
 
                 // SPIDERLY022 — self-referential 1-1 unsupported
                 if (targetTypeName == entity.Name)
@@ -33,7 +33,7 @@ namespace Spiderly.SourceGenerators.Shared
                     SpiderlyProperty inverse = principal.Properties.FirstOrDefault(p => p.Name == inverseName);
 
                     // SPIDERLY020 — declared inverse nav must exist and be single-valued of this entity's type
-                    if (inverse == null || inverse.Type.Raw != entity.Name)
+                    if (inverse == null || inverse.Type.Name != entity.Name)
                         throw SpiderlyDiagnostics.Create(SpiderlyDiagnostics.OneToOneInverseNavNotFound,
                             nav.Location ?? entity.Location, inverseName, entity.Name, nav.Name, principal.Name);
 

@@ -423,7 +423,7 @@ using {{item}};
             {
                 string baseClassInDotNotation = DTOClassProp.Replace("DisplayName", ""); // "Rolinho"
                 SpiderlyProperty propertyInEntityClass = entity.Properties.Where(x => x.Name == baseClassInDotNotation).Single();
-                string typeOfThePropertyInEntityClass = propertyInEntityClass.Type.Raw; // "Role"
+                string typeOfThePropertyInEntityClass = propertyInEntityClass.Type.Name; // "Role"
                 SpiderlyClass entityClassWhichWeAreSearchingDisplayNameFor = allClasses.Where(x => x.Name == typeOfThePropertyInEntityClass).Single();
                 string displayName = ClassAnalyzer.GetDisplayNameProperty(entityClassWhichWeAreSearchingDisplayNameFor); // Name
                 displayName = displayName.Replace(".ToString()", "");
@@ -448,7 +448,7 @@ using {{item}};
             int i = 1;
             while (prop.Type.IsBaseDataType() == false)
             {
-                SpiderlyClass helperClass = allClasses.Where(x => x.Name == prop.Type.Raw).Single(); // Role
+                SpiderlyClass helperClass = allClasses.Where(x => x.Name == prop.Type.Name).Single(); // Role
 
                 List<SpiderlyProperty> helperProps = helperClass.Properties;
 
@@ -457,7 +457,9 @@ using {{item}};
                 i++;
             }
 
-            return prop.Type.Raw;
+            // A 'string?' NRT annotation must not flow into emitted C# (CS8632 in an oblivious
+            // consumer); Nullable<T> value types keep their '?'.
+            return prop.Type.Name == "string" ? "string" : prop.Type.Raw;
         }
     }
 }

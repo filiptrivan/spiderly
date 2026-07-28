@@ -304,7 +304,7 @@ namespace Spiderly.SourceGenerators.Shared
             // ManyToOneId + ManyToOneDisplayName. (The principal inverse was skipped above.)
             if (property.IsForeignKeyReferenceNav())
             {
-                SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Raw);
+                SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Name);
 
                 yield return new SpiderlyDTOColumn { Name = $"{property.Name}DisplayName", Type = "string", Kind = SpiderlyDTOColumnKind.ManyToOneDisplayName };
 
@@ -322,7 +322,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
             else if (property.Type.IsOneToManyType() && property.HasIncludeInDTOAttribute())
             {
-                yield return new SpiderlyDTOColumn { Name = $"{property.Name}DTOList", Type = property.Type.Raw.Replace(">", "DTO>"), Kind = SpiderlyDTOColumnKind.OneToManyDTOList };
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}DTOList", Type = property.Type.Raw.WithoutNullableSuffix().Replace(">", "DTO>"), Kind = SpiderlyDTOColumnKind.OneToManyDTOList };
             }
             else if (property.IsBlob())
             {
@@ -337,8 +337,16 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static string GetFormatedDTOPropertyType(string propertyType)
         {
-            if (propertyType != "string" && propertyType.IsBaseDataType())
-                return $"{propertyType}?".Replace("??", "?");
+            string core = propertyType.WithoutNullableSuffix();
+
+            // 'string?' is an NRT annotation, not a Nullable<T> — emitting it into a
+            // nullable-oblivious consumer's DTO would raise CS8632. The oblivious DTO string is
+            // already nullable; the NRT-aware emission branch re-introduces the annotation deliberately.
+            if (core == "string")
+                return core;
+
+            if (propertyType.IsBaseDataType())
+                return $"{core}?";
 
             return propertyType;
         }
