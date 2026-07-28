@@ -29,6 +29,8 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       console.error(err);
     }
 
+    // TODO: type this as an ApiError interface (TS mirror of ApiErrorDTO, next to errors/api-error-codes.ts)
+    // so message/errorCode/traceId reads of the cross-language contract are compile-checked, not conventional.
     let errorResponse = err.error;
     if (request.responseType !== 'json' && typeof err.error === 'string') {
       try {
