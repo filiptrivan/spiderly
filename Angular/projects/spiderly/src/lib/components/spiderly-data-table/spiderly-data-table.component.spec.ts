@@ -400,6 +400,37 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
   });
 });
 
+describe('SpiderlyDataTableComponent — chooser styles survive the body teleport', () => {
+  // PrimeNG appends the open popover to document.body, so `:host`-scoped rules
+  // stop matching the chooser content there. Builds and behavior specs stay
+  // green when every chooser rule silently dies — these computed-style asserts
+  // are the only automated check that catches it.
+  it('lays the chooser out as a vertical flex column', async () => {
+    const fixture = createFixture(HostWithHiddenColumnComponent);
+
+    await openChooser(fixture);
+
+    const chooser =
+      chooserContainer(fixture)?.querySelector<HTMLElement>('.column-chooser');
+    expect(chooser).withContext('chooser wrapper should render').toBeTruthy();
+    const style = getComputedStyle(chooser!);
+    expect(style.display).toBe('flex');
+    expect(style.flexDirection).toBe('column');
+  });
+
+  it('styles reset as a borderless link-like button', async () => {
+    const fixture = createFixture(HostWithHiddenColumnComponent);
+
+    await openChooser(fixture);
+
+    const reset = chooserContainer(fixture)?.querySelector<HTMLButtonElement>(
+      '[data-testid="column-chooser-reset"]',
+    );
+    expect(reset).withContext('reset button should render').toBeTruthy();
+    expect(getComputedStyle(reset!).borderTopStyle).toBe('none');
+  });
+});
+
 describe('SpiderlyDataTableComponent — hidden-but-constrained reconciliation on load', () => {
   it('never persists a reconciliation reveal — a later toggle keeps the stored choice intact', async () => {
     // User hid Name, but persisted state still filters by it → revealed on init.
