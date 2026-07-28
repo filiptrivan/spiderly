@@ -108,7 +108,7 @@ namespace Spiderly.Shared.Extensions
             // Optional outbox retry tuning, nested under Spiderly.Shared:Outbox. Every value is optional (falls back to
             // the handler's code-declared RetryPolicy / OutboxRetryPolicy.Default); the guard rejects nonsense overrides
             // (e.g. MaxAttempts 0 would dead-letter every row on first failure) loudly at boot rather than silently.
-            static bool SaneOutboxRetry(OutboxRetryOptions r)
+            static bool SaneOutboxRetry(OutboxRetryOptions? r)
                 => r == null || ((r.MaxAttempts is null or >= 1) && (r.MaxBackoffMinutes is null or >= 1));
             services.AddOptions<OutboxOptions>().Bind(section.GetSection("Outbox"))
                 .Validate(
@@ -203,7 +203,7 @@ namespace Spiderly.Shared.Extensions
 
             if (builder.EmailingEnabled)
             {
-                services.AddTransient(typeof(IEmailingService), builder.EmailingServiceType);
+                services.AddTransient(typeof(IEmailingService), builder.EmailingServiceType!); // Set by every builder method that sets EmailingEnabled
 
                 if (builder.BrevoHttpClientEnabled)
                 {
@@ -231,7 +231,7 @@ namespace Spiderly.Shared.Extensions
                 // Generic over the consumer's concrete outbox entity, so framework code can stage and
                 // sweep rows without a compile-time reference to the consumer assembly. Open generics are
                 // closed here with the runtime type captured by AddOutbox<TOutbox>().
-                Type outboxType = builder.OutboxEntityType;
+                Type outboxType = builder.OutboxEntityType!; // Set by AddOutbox<TOutbox>(), which sets OutboxEnabled
                 services.AddScoped(typeof(IOutbox), typeof(Outbox<>).MakeGenericType(outboxType));
                 services.AddScoped(typeof(OutboxDispatcherJob<>).MakeGenericType(outboxType));
             }
@@ -242,12 +242,12 @@ namespace Spiderly.Shared.Extensions
                 // a duplicate [OutboxCode] fails at boot). Everything else is scoped — channels may depend on
                 // scoped/transient services (e.g. EmailChannel → IEmailingService), so nothing here is a singleton
                 // holding a channel.
-                services.AddSingleton(builder.NotificationRoutingMap);
+                services.AddSingleton(builder.NotificationRoutingMap!); // Set by AddNotifications(...), which sets NotificationsEnabled
 
                 // The route keys ARE the complete deliverable set (an unrouted notification is dropped before serialize),
                 // so the shared delivery-side registry is built directly from them — no assembly scanning. Eager, so a
                 // duplicate [OutboxCode] fails loud at boot.
-                services.AddSingleton(new CodeTypeRegistry<INotification>(builder.NotificationRoutingMap.Routes.Keys));
+                services.AddSingleton(new CodeTypeRegistry<INotification>(builder.NotificationRoutingMap!.Routes.Keys));
                 services.AddScoped<INotificationRouter, DefaultNotificationRouter>();
                 services.AddScoped<NotificationDeliveryExecutor>();
                 services.AddScoped<NotificationDeliveryJob>();
@@ -283,7 +283,7 @@ namespace Spiderly.Shared.Extensions
                 // The harvest interceptor, closed over the consumer's outbox entity and registered as a singleton
                 // ISaveChangesInterceptor so SpiderlyAddDbContext wires it into the context. Stamps raised events into
                 // outbox rows (reading [OutboxCode] off the type) in the same transaction as the entity write.
-                Type interceptorType = typeof(IntegrationEventOutboxInterceptor<>).MakeGenericType(builder.OutboxEntityType);
+                Type interceptorType = typeof(IntegrationEventOutboxInterceptor<>).MakeGenericType(builder.OutboxEntityType!); // OutboxEnabled was checked above
                 services.AddSingleton(typeof(ISaveChangesInterceptor), interceptorType);
             }
 
@@ -328,7 +328,7 @@ namespace Spiderly.Shared.Extensions
                         // SignalR clients can't set HTTP headers, so hubs accept the token via query string
                         if (path.StartsWithSegments("/api/hubs"))
                         {
-                            string accessToken = context.Request.Query[accessTokenKey];
+                            string? accessToken = context.Request.Query[accessTokenKey];
 
                             if (!string.IsNullOrEmpty(accessToken))
                             {
@@ -340,7 +340,7 @@ namespace Spiderly.Shared.Extensions
                         // SSR frameworks (e.g. Next.js) can't set Authorization headers on server-side requests, so fall back to cookie
                         if (string.IsNullOrEmpty(context.Token))
                         {
-                            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string cookieToken) &&
+                            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string? cookieToken) &&
                                 !string.IsNullOrWhiteSpace(cookieToken))
                             {
                                 context.Token = cookieToken;
@@ -446,7 +446,7 @@ namespace Spiderly.Shared.Extensions
                     // unit-testable. The trusted hook is opt-in (null detector ⇒ unchanged behavior) and
                     // requires UseAuthentication before UseRateLimiter for the api-key branch to see the
                     // validated principal — the init template's middleware order.
-                    ITrustedCallerDetector trustedCallerDetector =
+                    ITrustedCallerDetector? trustedCallerDetector =
                         httpContext.RequestServices.GetService<ITrustedCallerDetector>();
                     GlobalRateLimitPartition partition =
                         GlobalRateLimitPartitioner.Resolve(httpContext, settings, trustedCallerDetector);
@@ -465,7 +465,9 @@ namespace Spiderly.Shared.Extensions
                 // Customer apps tune the limits via BlobUploadRequestsLimitNumber/Window in appsettings.
                 options.AddPolicy(SpiderlyRateLimitPolicies.BlobUpload, httpContext =>
                     RateLimitPartition.GetSlidingWindowLimiter(
-                        partitionKey: Helper.GetIPAddress(httpContext),
+                        // TODO(nrt): RemoteIpAddress can be null (non-socket transports), making the partition
+                        // key null — pre-existing behavior surfaced by annotating GetIPAddress.
+                        partitionKey: Helper.GetIPAddress(httpContext)!,
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
                             PermitLimit = settings.BlobUploadRequestsLimitNumber,
@@ -477,12 +479,12 @@ namespace Spiderly.Shared.Extensions
                 {
                     HttpContext httpContext = context.HttpContext;
                     string ip = Helper.GetIPAddress(httpContext) ?? "unknown";
-                    string apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
+                    string? apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
                     string path = httpContext.Request.Path;
                     string method = httpContext.Request.Method;
 
-                    string policyName = "Global";
-                    EnableRateLimitingAttribute rateLimitAttr = httpContext.GetEndpoint()
+                    string? policyName = "Global";
+                    EnableRateLimitingAttribute? rateLimitAttr = httpContext.GetEndpoint()
                         ?.Metadata.GetMetadata<EnableRateLimitingAttribute>();
                     if (rateLimitAttr != null)
                     {
@@ -525,7 +527,7 @@ namespace Spiderly.Shared.Extensions
                     string[] parts = network.Split('/');
 
                     if (parts.Length != 2
-                        || !IPAddress.TryParse(parts[0], out IPAddress address)
+                        || !IPAddress.TryParse(parts[0], out IPAddress? address)
                         || !int.TryParse(parts[1], out int prefixLength))
                     {
                         throw new InvalidOperationException(
@@ -617,7 +619,7 @@ namespace Spiderly.Shared.Extensions
         /// app.SpiderlyUseOutboxRecurringJob&lt;OutboxMessage&gt;();
         /// </code>
         /// </example>
-        public static void SpiderlyUseOutboxRecurringJob<TOutbox>(this IApplicationBuilder app, string cronExpression = null)
+        public static void SpiderlyUseOutboxRecurringJob<TOutbox>(this IApplicationBuilder app, string? cronExpression = null)
             where TOutbox : class, IOutboxMessage, new()
         {
             RecurringJob.AddOrUpdate<OutboxDispatcherJob<TOutbox>>(

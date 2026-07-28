@@ -33,10 +33,10 @@ namespace Spiderly.Shared.Attributes.Entity
     public class WithOneAttribute : Attribute
     {
         /// <summary>The name of the inverse single-valued navigation on the principal entity, or null for a unidirectional 1-1.</summary>
-        public string WithOne { get; set; }
+        public string? WithOne { get; set; }
 
         /// <param name="withOne">The name of the inverse navigation on the principal entity. Omit for unidirectional.</param>
-        public WithOneAttribute(string withOne = null)
+        public WithOneAttribute(string? withOne = null)
         {
             WithOne = withOne;
         }

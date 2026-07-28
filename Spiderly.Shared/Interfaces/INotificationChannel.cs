@@ -37,6 +37,6 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="notification">The notification to render and send.</param>
         /// <param name="recipient">The dynamic recipient, or <c>null</c> for an admin/static-config send.</param>
         /// <param name="cancellationToken">Delivery cancellation token.</param>
-        Task SendAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken);
+        Task SendAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken);
     }
 }

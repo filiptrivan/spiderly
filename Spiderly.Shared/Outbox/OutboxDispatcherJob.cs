@@ -109,7 +109,7 @@ namespace Spiderly.Shared.Outbox
                     Dictionary<string, IOutboxHandler> handlersByCode =
                         BuildHandlerLookup(scope.ServiceProvider.GetServices<IOutboxHandler>());
 
-                    if (!handlersByCode.TryGetValue(msg.HandlerCode, out IOutboxHandler handler))
+                    if (!handlersByCode.TryGetValue(msg.HandlerCode, out IOutboxHandler? handler))
                         throw new InvalidOperationException(
                             $"No IOutboxHandler registered for HandlerCode '{msg.HandlerCode}'.");
 
@@ -179,7 +179,7 @@ namespace Spiderly.Shared.Outbox
         private OutboxRetryPolicy ResolvePolicy(IOutboxHandler handler)
         {
             if (_options.Handlers != null
-                && _options.Handlers.TryGetValue(handler.Code, out OutboxRetryOptions perHandler)
+                && _options.Handlers.TryGetValue(handler.Code, out OutboxRetryOptions? perHandler)
                 && perHandler != null)
                 return Apply(perHandler, handler.RetryPolicy);
 

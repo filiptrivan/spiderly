@@ -40,7 +40,7 @@ namespace Spiderly.Shared.RateLimiting
         public static GlobalRateLimitPartition Resolve(
             HttpContext httpContext,
             Settings settings,
-            ITrustedCallerDetector trustedCallerDetector)
+            ITrustedCallerDetector? trustedCallerDetector)
         {
             if (trustedCallerDetector != null && trustedCallerDetector.IsTrusted(httpContext))
             {
@@ -50,7 +50,7 @@ namespace Spiderly.Shared.RateLimiting
                     settings.TrustedRequestsLimitWindow);
             }
 
-            string apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
+            string? apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
             if (apiKeyId != null)
             {
                 return new GlobalRateLimitPartition(
@@ -60,7 +60,9 @@ namespace Spiderly.Shared.RateLimiting
             }
 
             return new GlobalRateLimitPartition(
-                Helper.GetIPAddress(httpContext),
+                // TODO(nrt): RemoteIpAddress can be null (non-socket transports, e.g. in-memory test servers),
+                // making the partition key null — pre-existing behavior surfaced by annotating GetIPAddress.
+                Helper.GetIPAddress(httpContext)!,
                 settings.RequestsLimitNumber,
                 settings.RequestsLimitWindow);
         }

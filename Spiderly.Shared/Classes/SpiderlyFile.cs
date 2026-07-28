@@ -8,7 +8,7 @@ namespace Spiderly.Shared.Classes
 {
     public class SpiderlyFile
     {
-        public string Name { get; set; }
-        public string Data { get; set; }
+        public string Name { get; set; } = null!; // Always set by the generator constructing the file tree
+        public string Data { get; set; } = null!; // Always set by the generator constructing the file tree
     }
 }

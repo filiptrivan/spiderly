@@ -12,7 +12,7 @@ namespace Spiderly.Shared.IntegrationEvents
     public sealed class IntegrationEventOutboxPayload : OutboxEnvelope
     {
         /// <summary>The <see cref="IIntegrationEventHandler.Code"/> this row delivers to.</summary>
-        public string TargetHandlerCode { get; set; }
+        public string TargetHandlerCode { get; set; } = null!; // Always set at harvest; materialized by the JSON deserializer at delivery
     }
 
     /// <summary>

@@ -11,6 +11,6 @@ namespace Spiderly.Shared.Helpers
     public static class TraceCorrelation
     {
         /// <summary>The current W3C trace id, or null when no ambient <see cref="Activity"/> exists.</summary>
-        public static string CurrentTraceId() => Activity.Current?.TraceId.ToString();
+        public static string? CurrentTraceId() => Activity.Current?.TraceId.ToString();
     }
 }

@@ -18,7 +18,7 @@ namespace Spiderly.Shared
         /// consumer-defined code). Used as the routing key on the login request and as the
         /// <c>Provider</c> value stored against the user. Must be unique across the list.
         /// </summary>
-        public string Code { get; set; }
+        public string Code { get; set; } = null!;
 
         /// <summary>
         /// The provider's OIDC authority / issuer base URL (e.g. <c>https://accounts.google.com</c>),
@@ -26,26 +26,26 @@ namespace Spiderly.Shared
         /// matches a known preset (see <see cref="Spiderly.Shared.ExternalAuth.ExternalProviderPresets"/>),
         /// which supplies the authority automatically.
         /// </summary>
-        public string Authority { get; set; }
+        public string? Authority { get; set; }
 
         /// <summary>
         /// The OAuth/OIDC client id issued by the provider for this application. Validated as the
         /// token audience. Public by OIDC design (safe to expose to the frontend).
         /// </summary>
-        public string ClientId { get; set; }
+        public string ClientId { get; set; } = null!;
 
         /// <summary>
         /// The OAuth client secret, used **only server-side** for the authorization-code → token exchange
         /// (confidential-client flow). **Never** exposed to the frontend. Store via gitignored local secrets /
         /// environment variables, never committed.
         /// </summary>
-        public string ClientSecret { get; set; }
+        public string? ClientSecret { get; set; }
 
         /// <summary>Space-separated OAuth scopes requested at sign-in. Defaults to <c>"openid email profile"</c> when empty.</summary>
-        public string Scopes { get; set; }
+        public string? Scopes { get; set; }
 
         /// <summary>Optional display label for the provider's sign-in button (e.g. <c>"Continue with Google"</c>).</summary>
-        public string Label { get; set; }
+        public string? Label { get; set; }
 
         /// <summary>
         /// When <c>true</c>, the provider's returned email is treated as verified even if the id token carries

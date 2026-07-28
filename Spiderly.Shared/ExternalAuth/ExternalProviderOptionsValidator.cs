@@ -31,7 +31,7 @@ namespace Spiderly.Shared.ExternalAuth
         }
 
         /// <inheritdoc/>
-        public ValidateOptionsResult Validate(string name, ExternalProviderOptions options)
+        public ValidateOptionsResult Validate(string? name, ExternalProviderOptions options)
         {
             List<string> failures = new();
 

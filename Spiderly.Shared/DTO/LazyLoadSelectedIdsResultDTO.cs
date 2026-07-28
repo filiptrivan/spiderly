@@ -12,7 +12,7 @@ namespace Spiderly.Shared.DTO
     /// </summary>
     public class LazyLoadSelectedIdsResultDTO<ID> where ID : struct
     {
-        public List<ID> SelectedIds { get; set; }
+        public List<ID> SelectedIds { get; set; } = new();
         public int TotalRecordsSelected { get; set; }
     }
 }

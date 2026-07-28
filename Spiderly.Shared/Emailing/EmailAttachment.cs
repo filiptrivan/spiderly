@@ -5,9 +5,9 @@ namespace Spiderly.Shared.Emailing
     /// </summary>
     public class EmailAttachment
     {
-        public string Name { get; set; }
-        public string ContentBase64 { get; set; }
-        public string ContentType { get; set; }
+        public string Name { get; set; } = null!;
+        public string ContentBase64 { get; set; } = null!;
+        public string? ContentType { get; set; }
 
         public static EmailAttachment FromBytes(string name, byte[] bytes, string contentType = "application/octet-stream")
         {

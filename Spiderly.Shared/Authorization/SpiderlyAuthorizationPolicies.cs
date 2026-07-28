@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Spiderly.Shared.Authorization
 {
@@ -28,7 +29,7 @@ namespace Spiderly.Shared.Authorization
         /// <param name="policyName">The policy name to inspect.</param>
         /// <param name="permissionCode">The extracted permission code when this is a permission policy; otherwise <c>null</c>.</param>
         /// <returns><c>true</c> when <paramref name="policyName"/> is a permission policy.</returns>
-        public static bool TryGetPermissionCode(string policyName, out string permissionCode)
+        public static bool TryGetPermissionCode(string policyName, [NotNullWhen(true)] out string? permissionCode)
         {
             if (string.IsNullOrEmpty(policyName) == false
                 && policyName.StartsWith(PermissionPolicyPrefix, StringComparison.Ordinal)

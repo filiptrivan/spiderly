@@ -8,7 +8,7 @@ namespace Spiderly.Shared.Emailing
     /// </example>
     public class EmailSender
     {
-        public string Email { get; set; }
-        public string Name { get; set; }
+        public string Email { get; set; } = null!;
+        public string? Name { get; set; }
     }
 }

@@ -45,7 +45,7 @@ namespace Spiderly.Shared.Extensions
         internal string CultureCode { get; private set; } = "en";
         internal List<string> SupportedCultures { get; private set; } = new() { "en" };
         internal bool TranslationsEnabled { get; private set; }
-        internal Type LocalizerType { get; private set; }
+        internal Type? LocalizerType { get; private set; }
 
         internal bool AuthenticationEnabled { get; private set; }
         internal bool ExcelEnabled { get; private set; }
@@ -54,14 +54,14 @@ namespace Spiderly.Shared.Extensions
         internal bool ForwardedHeadersEnabled { get; private set; }
 
         internal bool EmailingEnabled { get; private set; }
-        internal Type EmailingServiceType { get; private set; }
+        internal Type? EmailingServiceType { get; private set; }
         internal bool BrevoHttpClientEnabled { get; private set; }
 
         internal bool OutboxEnabled { get; private set; }
-        internal Type OutboxEntityType { get; private set; }
+        internal Type? OutboxEntityType { get; private set; }
 
         internal bool NotificationsEnabled { get; private set; }
-        internal NotificationRoutingMap NotificationRoutingMap { get; private set; }
+        internal NotificationRoutingMap? NotificationRoutingMap { get; private set; }
 
         internal bool IntegrationEventsEnabled { get; private set; }
         internal List<Type> IntegrationEventTypes { get; private set; } = new();

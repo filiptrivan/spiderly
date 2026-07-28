@@ -70,12 +70,14 @@ namespace Spiderly.Shared.ExternalAuth
             if (result.IsValid == false)
                 throw result.Exception ?? new SecurityTokenException("External provider id token validation failed.");
 
-            string email = GetString(result.Claims, "email");
+            string? email = GetString(result.Claims, "email");
 
             return new ExternalIdentity
             {
                 Provider = Code,
-                Subject = GetString(result.Claims, "sub"),
+                // "sub" is REQUIRED by OIDC Core, so a validated token always carries it in practice.
+                // TODO(nrt): a non-conformant provider omitting "sub" would slip a null Subject through here.
+                Subject = GetString(result.Claims, "sub")!,
                 Email = email,
                 // Providers that verify emails but omit the email_verified claim (e.g. Facebook) opt in via
                 // TrustEmailVerified; for everyone else the strict claim check stands.
@@ -84,14 +86,14 @@ namespace Spiderly.Shared.ExternalAuth
             };
         }
 
-        private static string GetString(IDictionary<string, object> claims, string key)
+        private static string? GetString(IDictionary<string, object>? claims, string key)
         {
-            return claims != null && claims.TryGetValue(key, out object value) ? value?.ToString() : null;
+            return claims != null && claims.TryGetValue(key, out object? value) ? value?.ToString() : null;
         }
 
-        private static bool GetBool(IDictionary<string, object> claims, string key)
+        private static bool GetBool(IDictionary<string, object>? claims, string key)
         {
-            if (claims == null || claims.TryGetValue(key, out object value) == false || value == null)
+            if (claims == null || claims.TryGetValue(key, out object? value) == false || value == null)
                 return false;
 
             // The claim may arrive as a real bool or as the string "true"/"false" depending on the provider.

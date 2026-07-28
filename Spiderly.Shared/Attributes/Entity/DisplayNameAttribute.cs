@@ -35,7 +35,7 @@ namespace Spiderly.Shared.Attributes.Entity
         /// Only needed when the display name property is in a related entity. <br/>
         /// <b>WARNING:</b> Don't use nameof(User.Email) here, use the simple string 
         /// "User.Email" instead.</param>
-        public DisplayNameAttribute(string displayName = null)
+        public DisplayNameAttribute(string? displayName = null)
         {
         }
     }

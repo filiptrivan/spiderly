@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Spiderly.Shared.Helpers
 {
     /// <summary>
@@ -32,7 +34,7 @@ namespace Spiderly.Shared.Helpers
         /// null) when the move should be skipped — either because the key is already permanent
         /// or because no real object id is available yet.
         /// </summary>
-        public static bool TryBuildPromotedKey(string currentKey, string objectType, string objectProperty, string objectId, out string newKey)
+        public static bool TryBuildPromotedKey(string currentKey, string objectType, string objectProperty, string objectId, [NotNullWhen(true)] out string? newKey)
         {
             if (string.IsNullOrEmpty(currentKey)
                 || IsStagingObjectId(objectId)

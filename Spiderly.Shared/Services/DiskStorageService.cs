@@ -37,7 +37,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId,
             Stream content,
-            string newFileName = null
+            string? newFileName = null
         )
         {
 
@@ -65,7 +65,7 @@ namespace Spiderly.Shared.Services
         /// loads the file from disk, base64-encodes its content, and returns
         /// "filename={key};base64,{base64Payload}" — matching the format used by S3/Azure.
         /// </summary>
-        public async Task<string> GetFileDataAsync(string key)
+        public async Task<string?> GetFileDataAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("key cannot be null or empty", nameof(key));
@@ -103,7 +103,7 @@ namespace Spiderly.Shared.Services
             if (!Directory.Exists(entityDir))
                 return Task.CompletedTask;
 
-            string activeFullPath = string.IsNullOrEmpty(activeBlobName)
+            string? activeFullPath = string.IsNullOrEmpty(activeBlobName)
                 ? null
                 : Path.Combine(_rootPath, activeBlobName.Replace('/', Path.DirectorySeparatorChar));
 
@@ -140,7 +140,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId)
         {
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
                 return currentKey;
 
             string sourcePath = Path.Combine(_rootPath, currentKey.Replace('/', Path.DirectorySeparatorChar));

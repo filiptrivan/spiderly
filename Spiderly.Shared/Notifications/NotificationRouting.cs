@@ -36,7 +36,7 @@ namespace Spiderly.Shared.Notifications
         public NotificationRouteBuilder Route<TNotification>()
             where TNotification : INotification
         {
-            if (!_routes.TryGetValue(typeof(TNotification), out List<string> codes))
+            if (!_routes.TryGetValue(typeof(TNotification), out List<string>? codes))
             {
                 codes = new List<string>();
                 _routes[typeof(TNotification)] = codes;

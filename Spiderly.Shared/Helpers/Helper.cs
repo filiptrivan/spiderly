@@ -88,7 +88,7 @@ namespace Spiderly.Shared.Helpers
 
             // Try to convert the string part to the specified struct type
             if (TypeDescriptor.GetConverter(typeof(ID)).IsValid(idPart))
-                return (ID)TypeDescriptor.GetConverter(typeof(ID)).ConvertFromString(idPart);
+                return (ID)TypeDescriptor.GetConverter(typeof(ID)).ConvertFromString(idPart)!; // Non-null: IsValid guarantees the conversion succeeds, and ID is a struct
 
             throw new InvalidCastException($"Cannot convert '{idPart}' to {typeof(ID)}. Id part can't be null, for new objects it should be 0.");
         }
@@ -105,16 +105,16 @@ namespace Spiderly.Shared.Helpers
 
         #region SQL Server
 
-        public static string CreateSqlServerConnectionString(string databaseName)
+        public static string? CreateSqlServerConnectionString(string databaseName)
         {
-            string dockerConnectionString = TryDockerSqlServerConnection(databaseName);
+            string? dockerConnectionString = TryDockerSqlServerConnection(databaseName);
             if (dockerConnectionString != null)
                 return dockerConnectionString;
 
             return TryWindowsAuthSqlServerConnection(databaseName);
         }
 
-        private static string TryDockerSqlServerConnection(string databaseName)
+        private static string? TryDockerSqlServerConnection(string databaseName)
         {
             string dataSource = "localhost,14330";
             Console.WriteLine($"  Trying Docker SQL Server at {dataSource}...");
@@ -130,7 +130,7 @@ namespace Spiderly.Shared.Helpers
             return null;
         }
 
-        private static string TryWindowsAuthSqlServerConnection(string databaseName)
+        private static string? TryWindowsAuthSqlServerConnection(string databaseName)
         {
             List<string> dataSources = new List<string>
             {
@@ -200,7 +200,7 @@ namespace Spiderly.Shared.Helpers
 
         #region PostgreSQL
 
-        public static string CreatePostgreSQLConnectionString(string databaseName)
+        public static string? CreatePostgreSQLConnectionString(string databaseName)
         {
             List<(string password, bool useIntegratedSecurity)> authMethods = new List<(string, bool)>
             {
@@ -214,7 +214,7 @@ namespace Spiderly.Shared.Helpers
             return TryPostgreSQLConnection(databaseName, authMethods);
         }
 
-        public static string CreatePostgreSQLConnectionString(string databaseName, string customPassword)
+        public static string? CreatePostgreSQLConnectionString(string databaseName, string customPassword)
         {
             List<(string password, bool useIntegratedSecurity)> authMethods = new List<(string, bool)>
             {
@@ -224,7 +224,7 @@ namespace Spiderly.Shared.Helpers
             return TryPostgreSQLConnection(databaseName, authMethods);
         }
 
-        private static string TryPostgreSQLConnection(string databaseName, List<(string password, bool useIntegratedSecurity)> authMethods)
+        private static string? TryPostgreSQLConnection(string databaseName, List<(string password, bool useIntegratedSecurity)> authMethods)
         {
             List<(string host, int port)> dataSources = new List<(string, int)>
             {
@@ -286,11 +286,11 @@ namespace Spiderly.Shared.Helpers
         #region JWT
 
         /// <summary>
-        /// Reads the access token from the Authorization: Bearer header.
+        /// Reads the access token from the Authorization: Bearer header, or <c>null</c> when the request carries none.
         /// </summary>
-        public static string GetAccessTokenFromHeader(HttpContext context)
+        public static string? GetAccessTokenFromHeader(HttpContext context)
         {
-            string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            string? authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
             if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 string token = authHeader.Substring("Bearer ".Length).Trim();
@@ -312,7 +312,7 @@ namespace Spiderly.Shared.Helpers
             if (authHeader.Count == 0)
                 return false;
 
-            string value = authHeader[0];
+            string? value = authHeader[0];
 
             return value != null
                 && value.AsSpan().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
@@ -320,11 +320,11 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
-        /// Reads the access token from the cookie.
+        /// Reads the access token from the cookie, or <c>null</c> when the cookie is absent or blank.
         /// </summary>
-        public static string GetAccessTokenFromCookie(HttpContext context, string accessTokenKey)
+        public static string? GetAccessTokenFromCookie(HttpContext context, string accessTokenKey)
         {
-            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string cookieToken) &&
+            if (context.Request.Cookies.TryGetValue(accessTokenKey, out string? cookieToken) &&
                 !string.IsNullOrWhiteSpace(cookieToken))
             {
                 return cookieToken;
@@ -356,7 +356,7 @@ namespace Spiderly.Shared.Helpers
 
         #region IP Address
 
-        public static string GetIPAddress(HttpContext httpContext)
+        public static string? GetIPAddress(HttpContext httpContext)
         {
             return httpContext.Connection.RemoteIpAddress?.ToString();
         }
@@ -367,7 +367,7 @@ namespace Spiderly.Shared.Helpers
         /// middleware — never the raw API-key header, whose unvalidated value must not be trusted as a
         /// partition/identity key. Only meaningful in middleware that runs after <c>UseAuthentication</c>.
         /// </summary>
-        public static string GetAuthenticatedApiKeyId(HttpContext httpContext)
+        public static string? GetAuthenticatedApiKeyId(HttpContext httpContext)
         {
             ClaimsPrincipal user = httpContext.User;
             if (user?.Identity?.IsAuthenticated != true)
@@ -452,7 +452,7 @@ namespace Spiderly.Shared.Helpers
             Stream imageStream,
             int width = 0,
             int height = 0,
-            IStringLocalizer localizer = null
+            IStringLocalizer? localizer = null
         )
         {
             ImageInfo imageInfo = await Image.IdentifyAsync(imageStream);
@@ -468,7 +468,7 @@ namespace Spiderly.Shared.Helpers
                     ?? $"Image height must be exactly {height}px (current: {actualHeight}px).");
         }
 
-        public static void ValidateFileSize(long fileSize, int maxFileSize, IStringLocalizer localizer = null)
+        public static void ValidateFileSize(long fileSize, int maxFileSize, IStringLocalizer? localizer = null)
         {
             if (maxFileSize > 0 && fileSize > maxFileSize)
                 throw new BusinessException(localizer?["FileSizeExceeded", maxFileSize / 1_000_000]
@@ -526,7 +526,7 @@ namespace Spiderly.Shared.Helpers
             Stream content,
             string declaredContentType,
             IReadOnlyCollection<string> allowedMimeTypes,
-            IStringLocalizer localizer = null)
+            IStringLocalizer? localizer = null)
         {
             if (allowedMimeTypes == null || allowedMimeTypes.Count == 0)
                 return Task.CompletedTask;
@@ -583,7 +583,7 @@ namespace Spiderly.Shared.Helpers
         /// DTDs are ignored and external resolution is disabled (XXE-safe) while still accepting the
         /// DOCTYPE line vector editors commonly emit.
         /// </summary>
-        private static void ValidateSvgContent(Stream content, IStringLocalizer localizer)
+        private static void ValidateSvgContent(Stream content, IStringLocalizer? localizer)
         {
             content.Position = 0;
 
@@ -646,11 +646,11 @@ namespace Spiderly.Shared.Helpers
                 throw NotAnSvg(localizer);
         }
 
-        private static BusinessException NotAnSvg(IStringLocalizer localizer) =>
+        private static BusinessException NotAnSvg(IStringLocalizer? localizer) =>
             new(localizer?["FileContentDoesNotMatchType", SvgMimeType]
                 ?? $"File content does not match declared type '{SvgMimeType}'.");
 
-        private static BusinessException ActiveSvgContent(IStringLocalizer localizer) =>
+        private static BusinessException ActiveSvgContent(IStringLocalizer? localizer) =>
             new(localizer?["FileContainsActiveContent"]
                 ?? "The file contains disallowed active content (scripts or event handlers).");
 
@@ -683,8 +683,8 @@ namespace Spiderly.Shared.Helpers
                             return (width, height);
                         }
 
-                        string viewBox = reader.GetAttribute("viewBox");
-                        string[] parts = viewBox?.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+                        string? viewBox = reader.GetAttribute("viewBox");
+                        string[]? parts = viewBox?.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
 
                         if (parts?.Length == 4 &&
                             double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double viewBoxWidth) &&
@@ -715,7 +715,7 @@ namespace Spiderly.Shared.Helpers
         /// percentages and other units have no fixed pixel meaning, so they fail and the caller falls
         /// back to the viewBox.
         /// </summary>
-        private static bool TryParseSvgLength(string value, out int pixels)
+        private static bool TryParseSvgLength(string? value, out int pixels)
         {
             pixels = 0;
 

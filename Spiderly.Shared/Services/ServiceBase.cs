@@ -25,7 +25,7 @@ namespace Spiderly.Shared.Services
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                T poco = await _context.DbSet<T>().FindAsync(id);
+                T? poco = await _context.DbSet<T>().FindAsync(id);
 
                 if (poco == null)
                     throw new BusinessException(_localizer["EntityDoesNotExistInDatabase"]);
@@ -43,7 +43,7 @@ namespace Spiderly.Shared.Services
         {
             return await _context.WithTransactionAsync(async () =>
             {
-                T poco = await _context.DbSet<T>().FindAsync(id);
+                T? poco = await _context.DbSet<T>().FindAsync(id);
 
                 if (poco == null)
                     throw new BusinessException(_localizer["EntityDoesNotExistInDatabase"]);

@@ -34,12 +34,12 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(toEmail, template.Subject, template.Body);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from, attachments);
         }
@@ -70,7 +70,7 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender from = null, IEnumerable<EmailAttachment> attachments = null)
+        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender? from = null, IEnumerable<EmailAttachment>? attachments = null)
         {
             EmailSender sender = from ?? _emailSettings.EmailSender;
 
@@ -83,13 +83,13 @@ namespace Spiderly.Shared.Emailing
 
             payload["sender"] = BuildAddressPayload(sender);
 
-            EmailSender replyTo = _emailSettings.ResolveReplyTo(from);
+            EmailSender? replyTo = _emailSettings.ResolveReplyTo(from);
 
             if (!string.IsNullOrWhiteSpace(replyTo?.Email))
-                payload["replyTo"] = BuildAddressPayload(replyTo);
+                payload["replyTo"] = BuildAddressPayload(replyTo!); // replyTo != null — the guard just checked replyTo?.Email
 
             // Brevo expects attachments as [{ name, content }] with base64 content.
-            object[] brevoAttachments = attachments?
+            object[]? brevoAttachments = attachments?
                 .Where(a => a != null && !string.IsNullOrEmpty(a.ContentBase64))
                 .Select(a => (object)new { name = a.Name, content = a.ContentBase64 })
                 .ToArray();

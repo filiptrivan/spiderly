@@ -8,7 +8,7 @@ namespace Spiderly.Shared.DTO
 {
     public class NamebookDTO<T>
     {
-        public T Id { get; set; }
-        public string DisplayName { get; set; }
+        public T Id { get; set; } = default!;
+        public string DisplayName { get; set; } = null!;
     }
 }

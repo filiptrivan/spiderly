@@ -11,10 +11,10 @@ namespace Spiderly.Shared.Outbox
     public class OutboxEnvelope
     {
         /// <summary>The fact's stable code (see <see cref="OutboxCodeAttribute"/>).</summary>
-        public string Code { get; set; }
+        public string Code { get; set; } = null!; // Always set by For(...) / at enqueue; materialized by the JSON deserializer at delivery
 
         /// <summary>The fact serialized to JSON.</summary>
-        public string Data { get; set; }
+        public string Data { get; set; } = null!; // Always set by For(...) / at enqueue; materialized by the JSON deserializer at delivery
 
         /// <summary>Builds an envelope for a fact: reads its <see cref="OutboxCodeAttribute"/> code and serializes it by runtime type.</summary>
         public static OutboxEnvelope For(object fact) => new()

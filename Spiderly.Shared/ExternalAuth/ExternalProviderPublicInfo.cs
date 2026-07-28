@@ -8,15 +8,17 @@ namespace Spiderly.Shared.ExternalAuth
     public class ExternalProviderPublicInfo
     {
         /// <summary>The provider code (e.g. <c>"google"</c>), sent back as the login request's provider.</summary>
-        public string Code { get; set; }
+        public string Code { get; set; } = null!;
 
-        /// <summary>The OIDC authority / issuer base URL the client runs the flow against.</summary>
-        public string Authority { get; set; }
+        /// <summary>The OIDC authority / issuer base URL the client runs the flow against. Null when the
+        /// provider is handled by a custom <see cref="IExternalAuthProvider"/> that needs no authority.</summary>
+        public string? Authority { get; set; }
 
-        /// <summary>The public OAuth/OIDC client id.</summary>
-        public string ClientId { get; set; }
+        /// <summary>The public OAuth/OIDC client id. Null when the provider is handled by a custom
+        /// <see cref="IExternalAuthProvider"/> that needs no client id.</summary>
+        public string? ClientId { get; set; }
 
         /// <summary>Optional display label for the sign-in button.</summary>
-        public string Label { get; set; }
+        public string? Label { get; set; }
     }
 }

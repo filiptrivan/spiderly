@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Authorization
     /// </summary>
     public sealed class PermissionHandlerRegistrationGuard : IStartupFilter
     {
-        private IServiceCollection _services;
+        private IServiceCollection? _services;
 
         /// <summary>Creates the guard over the application's service collection.</summary>
         /// <param name="services">
@@ -37,7 +37,8 @@ namespace Spiderly.Shared.Authorization
         /// <inheritdoc/>
         public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
         {
-            if (HasPermissionRequirementHandler(_services) == false)
+            // Non-null here: Configure runs once at host build, before the release below.
+            if (HasPermissionRequirementHandler(_services!) == false)
                 throw new InvalidOperationException(
                     "Spiderly authentication is enabled, so [AuthGuard(...)] materializes a PermissionRequirement policy, " +
                     "but no IAuthorizationHandler that satisfies PermissionRequirement is registered. Every permission-gated " +

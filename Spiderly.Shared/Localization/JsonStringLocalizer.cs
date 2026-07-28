@@ -35,7 +35,7 @@ namespace Spiderly.Shared.Localization
                 if (string.IsNullOrWhiteSpace(json))
                     continue;
 
-                Dictionary<string, string> translations = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                Dictionary<string, string>? translations = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
                 if (translations != null)
                     _translations[langCode] = translations;
@@ -46,7 +46,7 @@ namespace Spiderly.Shared.Localization
         {
             get
             {
-                string value = GetTranslation(name);
+                string? value = GetTranslation(name);
                 return value != null
                     ? new LocalizedString(name, value)
                     : new LocalizedString(name, name, resourceNotFound: true);
@@ -57,7 +57,7 @@ namespace Spiderly.Shared.Localization
         {
             get
             {
-                string value = GetTranslation(name);
+                string? value = GetTranslation(name);
                 return value != null
                     ? new LocalizedString(name, string.Format(value, arguments))
                     : new LocalizedString(name, string.Format(name, arguments), resourceNotFound: true);
@@ -68,7 +68,7 @@ namespace Spiderly.Shared.Localization
         {
             string langCode = CultureInfo.CurrentCulture.Name;
 
-            if (_translations.TryGetValue(langCode, out Dictionary<string, string> translations))
+            if (_translations.TryGetValue(langCode, out Dictionary<string, string>? translations))
             {
                 foreach (KeyValuePair<string, string> kvp in translations)
                 {
@@ -77,12 +77,12 @@ namespace Spiderly.Shared.Localization
             }
         }
 
-        private string GetTranslation(string key)
+        private string? GetTranslation(string key)
         {
             string langCode = CultureInfo.CurrentCulture.Name;
 
-            if (_translations.TryGetValue(langCode, out Dictionary<string, string> langDict)
-                && langDict.TryGetValue(key, out string value)
+            if (_translations.TryGetValue(langCode, out Dictionary<string, string>? langDict)
+                && langDict.TryGetValue(key, out string? value)
                 && !string.IsNullOrEmpty(value))
             {
                 return value;

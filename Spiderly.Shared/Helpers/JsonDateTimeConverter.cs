@@ -12,7 +12,9 @@ namespace Spiderly.Shared.Helpers
     {
         public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return DateTime.Parse(reader.GetString());
+            // Non-null: the serializer never routes a JSON null token to a non-null-handling value-type converter,
+            // so when Read is called on a string token GetString() has a value.
+            return DateTime.Parse(reader.GetString()!);
         }
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)

@@ -49,7 +49,7 @@ namespace Spiderly.Shared.Notifications
                 return;
             }
 
-            INotificationRecipient recipient = null;
+            INotificationRecipient? recipient = null;
             if (recipientId.HasValue)
             {
                 INotificationRecipientResolver resolver = _recipientResolvers.FirstOrDefault()

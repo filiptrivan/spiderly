@@ -16,7 +16,7 @@ namespace Spiderly.Shared.Notifications
         public long? RecipientId { get; set; }
 
         /// <summary>The target channel's <see cref="INotificationChannel.Code"/>.</summary>
-        public string ChannelCode { get; set; }
+        public string ChannelCode { get; set; } = null!; // Always set at enqueue; materialized by the JSON deserializer at delivery
     }
 
     /// <summary>

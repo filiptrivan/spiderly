@@ -8,7 +8,7 @@ namespace Spiderly.Shared.DTO
 {
     public class PaginatedResultDTO<T> where T : class
     {
-        public IList<T> Data { get; set; }
+        public IList<T> Data { get; set; } = new List<T>();
         public int TotalRecords { get; set; }
     }
 }

@@ -38,9 +38,9 @@ namespace Spiderly.Shared.Notifications
         public bool IsConfigured => _emailingService.IsConfigured();
 
         /// <inheritdoc/>
-        public async Task SendAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+        public async Task SendAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
         {
-            EmailContent content = await ResolveContentAsync(notification, recipient, cancellationToken);
+            EmailContent? content = await ResolveContentAsync(notification, recipient, cancellationToken);
             if (content == null)
                 return; // no renderer + not an IEmailNotification, or the renderer chose to skip
 
@@ -63,9 +63,9 @@ namespace Spiderly.Shared.Notifications
         }
 
         // Prefer a registered renderer (can load fresh data) over the notification's self-contained ToEmail().
-        private async Task<EmailContent> ResolveContentAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+        private async Task<EmailContent?> ResolveContentAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
         {
-            IEmailRenderer renderer = _renderers.FirstOrDefault(r => r.NotificationType == notification.GetType());
+            IEmailRenderer? renderer = _renderers.FirstOrDefault(r => r.NotificationType == notification.GetType());
             if (renderer != null)
                 return await renderer.RenderAsync(notification, recipient, cancellationToken);
 

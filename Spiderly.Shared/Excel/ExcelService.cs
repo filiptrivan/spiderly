@@ -81,7 +81,7 @@ namespace Spiderly.Shared.Excel
             if (type == typeof(DateTime) || type == typeof(DateOnly)) return 18;
             if (type == typeof(TimeOnly)) return 12;
 
-            StringLengthAttribute strLen = prop.GetCustomAttribute<StringLengthAttribute>();
+            StringLengthAttribute? strLen = prop.GetCustomAttribute<StringLengthAttribute>();
             if (strLen != null)
             {
                 if (strLen.MaximumLength <= 50) return 20;

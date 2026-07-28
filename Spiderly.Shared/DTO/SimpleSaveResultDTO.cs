@@ -11,6 +11,6 @@ namespace Spiderly.Shared.DTO
         /// <summary>
         /// The new id to reroute on the frontend.
         /// </summary>
-        public string Id { get; set; }
+        public string Id { get; set; } = null!;
     }
 }

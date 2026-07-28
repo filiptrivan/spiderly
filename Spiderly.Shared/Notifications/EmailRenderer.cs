@@ -19,9 +19,10 @@ namespace Spiderly.Shared.Notifications
 
         /// <summary>
         /// Builds the email content from the (rebuilt) notification, loading fresh data as needed. Return
-        /// <c>null</c> to skip sending (e.g. the referenced entity no longer exists).
+        /// <c>null</c> to skip sending (e.g. the referenced entity no longer exists). <paramref name="recipient"/>
+        /// is <c>null</c> for admin/static-config sends.
         /// </summary>
-        Task<EmailContent> RenderAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken);
+        Task<EmailContent?> RenderAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken);
     }
 
     /// <summary>
@@ -35,10 +36,10 @@ namespace Spiderly.Shared.Notifications
         public Type NotificationType => typeof(TNotification);
 
         /// <inheritdoc/>
-        public Task<EmailContent> RenderAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+        public Task<EmailContent?> RenderAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
             => RenderAsync((TNotification)notification, recipient, cancellationToken);
 
-        /// <summary>Builds the email content; return <c>null</c> to skip sending.</summary>
-        protected abstract Task<EmailContent> RenderAsync(TNotification notification, INotificationRecipient recipient, CancellationToken cancellationToken);
+        /// <summary>Builds the email content; return <c>null</c> to skip sending. <paramref name="recipient"/> is <c>null</c> for admin/static-config sends.</summary>
+        protected abstract Task<EmailContent?> RenderAsync(TNotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken);
     }
 }

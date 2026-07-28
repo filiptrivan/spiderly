@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Spiderly.Shared.Services
 {
@@ -31,7 +32,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId,
             Stream content,
-            string newFileName = null
+            string? newFileName = null
         )
         {
             if (newFileName == null)
@@ -40,7 +41,7 @@ namespace Spiderly.Shared.Services
             }
 
             FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
-            if (!provider.TryGetContentType(fileName, out string contentType))
+            if (!provider.TryGetContentType(fileName, out string? contentType))
             {
                 contentType = "application/octet-stream";
             }
@@ -91,7 +92,7 @@ namespace Spiderly.Shared.Services
             }
         }
 
-        public async Task<string> GetFileDataAsync(string url)
+        public async Task<string?> GetFileDataAsync(string url)
         {
             string key = ExtractS3KeyFromUrl(url);
 
@@ -134,7 +135,7 @@ namespace Spiderly.Shared.Services
             if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
-            HashSet<string> activeKeys = activeImageUrls
+            HashSet<string?> activeKeys = activeImageUrls
                 .Select(ExtractS3KeyFromUrl)
                 .ToHashSet();
 
@@ -164,7 +165,7 @@ namespace Spiderly.Shared.Services
         {
             string currentKey = ExtractS3KeyFromUrl(currentUrl);
 
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
                 return currentUrl;
 
             await _s3Client.CopyObjectAsync(new CopyObjectRequest
@@ -184,7 +185,8 @@ namespace Spiderly.Shared.Services
         private string BuildUrl(string key) =>
             $"{_endpoint.TrimEnd('/')}/{key}";
 
-        private string ExtractS3KeyFromUrl(string urlOrKey)
+        [return: NotNullIfNotNull(nameof(urlOrKey))]
+        private string? ExtractS3KeyFromUrl(string? urlOrKey)
         {
             if (urlOrKey?.StartsWith("http") == true)
             {

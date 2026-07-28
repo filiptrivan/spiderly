@@ -8,7 +8,7 @@ namespace Spiderly.Shared.Classes
 {
     public class PaginatedResult<T> where T : class
     {
-        public IQueryable<T> Query { get; set; }
+        public IQueryable<T> Query { get; set; } = null!; // Always set by the generated query pipeline that constructs the result
         public int TotalRecords { get; set; }
     }
 }

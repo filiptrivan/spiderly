@@ -13,7 +13,7 @@ namespace Spiderly.Shared
         public const string ConfigurationSection = "AppSettings:Spiderly.Shared";
 
         /// <summary>Database connection string used to configure the application <c>DbContext</c>.</summary>
-        public string ConnectionString { get; set; }
+        public string ConnectionString { get; set; } = null!; // Bound from appsettings at startup; required for any app with a database
 
         /// <summary>Storefront/admin origin allowed by CORS.</summary>
         public string FrontendUrl { get; set; } = "http://localhost:4200";

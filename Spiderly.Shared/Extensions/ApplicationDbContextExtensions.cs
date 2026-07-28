@@ -10,7 +10,7 @@ namespace Spiderly.Shared.Extensions
         /// 0 - begin the new transaction
         /// 1 - work with the first transaction
         /// </summary>
-        private static AsyncLocal<Stack<IDbContextTransaction>> _transactionStack = new();
+        private static AsyncLocal<Stack<IDbContextTransaction>?> _transactionStack = new();
 
         /// <summary>
         /// Explanation why you should use transaction for multiple read operations also: https://stackoverflow.com/questions/308905/should-there-be-a-transaction-for-read-queries

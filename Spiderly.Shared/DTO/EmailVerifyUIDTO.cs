@@ -8,9 +8,9 @@ namespace Spiderly.Shared.DTO
 {
     public class EmailVerifyUIDTO
     {
-        public string Subject { get; set; }
+        public string Subject { get; set; } = null!;
 
-        public string Body { get; set; }
+        public string Body { get; set; } = null!;
     }
 
 }

@@ -36,19 +36,19 @@ namespace Spiderly.Shared.Authorization
         public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallbackPolicyProvider.GetDefaultPolicyAsync();
 
         /// <inheritdoc/>
-        public Task<AuthorizationPolicy> GetFallbackPolicyAsync() => _fallbackPolicyProvider.GetFallbackPolicyAsync();
+        public Task<AuthorizationPolicy?> GetFallbackPolicyAsync() => _fallbackPolicyProvider.GetFallbackPolicyAsync();
 
         /// <inheritdoc/>
-        public Task<AuthorizationPolicy> GetPolicyAsync(string policyName)
+        public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
         {
-            if (SpiderlyAuthorizationPolicies.TryGetPermissionCode(policyName, out string permissionCode))
+            if (SpiderlyAuthorizationPolicies.TryGetPermissionCode(policyName, out string? permissionCode))
             {
                 AuthorizationPolicy policy = new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddRequirements(new PermissionRequirement(permissionCode))
                     .Build();
 
-                return Task.FromResult(policy);
+                return Task.FromResult<AuthorizationPolicy?>(policy);
             }
 
             return _fallbackPolicyProvider.GetPolicyAsync(policyName);

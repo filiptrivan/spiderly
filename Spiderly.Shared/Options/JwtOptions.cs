@@ -8,8 +8,8 @@ namespace Spiderly.Shared
     /// </summary>
     public class JwtOptions
     {
-        /// <summary>Symmetric HMAC-SHA256 signing key for access tokens.</summary>
-        public string JwtKey { get; set; }
+        /// <summary>Symmetric HMAC-SHA256 signing key for access tokens. Guarded by ValidateOnStart (required when authentication is enabled), so consumers can rely on it being set.</summary>
+        public string JwtKey { get; set; } = null!;
 
         /// <summary>Expected token issuer (<c>iss</c>).</summary>
         public string JwtIssuer { get; set; } = "https://localhost:7260";

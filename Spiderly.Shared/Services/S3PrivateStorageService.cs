@@ -24,7 +24,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId,
             Stream content,
-            string newFileName = null
+            string? newFileName = null
         )
         {
             if (newFileName == null)
@@ -72,7 +72,7 @@ namespace Spiderly.Shared.Services
             }
         }
 
-        public async Task<string> GetFileDataAsync(string key)
+        public async Task<string?> GetFileDataAsync(string key)
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentException("S3 key cannot be null or empty.", nameof(key));
@@ -108,7 +108,7 @@ namespace Spiderly.Shared.Services
             string objectProperty,
             string objectId)
         {
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string newKey))
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
                 return currentKey;
 
             await _s3Client.CopyObjectAsync(new CopyObjectRequest

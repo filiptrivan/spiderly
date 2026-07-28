@@ -47,7 +47,7 @@ namespace Spiderly.Shared.Exceptions
         {
             httpContext.Response.ContentType = "application/json";
 
-            string exceptionString = _env.IsDevelopment() ? ex.ToString() : null;
+            string? exceptionString = _env.IsDevelopment() ? ex.ToString() : null;
             long? principalId = _principalAccessor.Current.PrincipalId;
 
             ApiErrorDTO body;

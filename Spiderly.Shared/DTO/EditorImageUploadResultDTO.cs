@@ -12,7 +12,7 @@ namespace Spiderly.Shared.DTO
         /// Publicly addressable URL of the uploaded image after WebP optimization. Safe to embed
         /// directly in the editor's HTML and to expose to crawlers.
         /// </summary>
-        public string Url { get; set; }
+        public string Url { get; set; } = null!;
 
         /// <summary>
         /// Pixel width of the encoded image, measured *after* resize. Callers should write this

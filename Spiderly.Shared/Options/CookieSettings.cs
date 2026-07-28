@@ -13,8 +13,8 @@ namespace Spiderly.Shared
     /// </remarks>
     public class CookieSettings
     {
-        /// <summary>Domain attribute for auth cookies; when empty the cookie is host-only.</summary>
-        public string CookieDomain { get; set; }
+        /// <summary>Domain attribute for auth cookies; when unset or empty the cookie is host-only.</summary>
+        public string? CookieDomain { get; set; }
 
         /// <summary>SameSite mode applied to auth cookies.</summary>
         public SameSiteMode CookieSameSite { get; set; } = SameSiteMode.None;

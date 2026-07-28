@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Spiderly.Shared.Authorization
 {
     /// <summary>
@@ -33,15 +35,15 @@ namespace Spiderly.Shared.Authorization
 
         public bool IsEmpty => _byKind.Count == 0;
 
-        public string DefaultKind { get; }
+        public string? DefaultKind { get; }
 
-        public bool IsHuman(string kind) =>
-            TryResolve(kind, out IPrincipalPermissionResolver resolver)
+        public bool IsHuman(string? kind) =>
+            TryResolve(kind, out IPrincipalPermissionResolver? resolver)
             && resolver.Nature == PrincipalNature.Human;
 
-        public bool TryResolve(string kind, out IPrincipalPermissionResolver resolver)
+        public bool TryResolve(string? kind, [NotNullWhen(true)] out IPrincipalPermissionResolver? resolver)
         {
-            string effectiveKind = string.IsNullOrEmpty(kind) ? DefaultKind : kind;
+            string? effectiveKind = string.IsNullOrEmpty(kind) ? DefaultKind : kind;
 
             if (effectiveKind != null && _byKind.TryGetValue(effectiveKind, out resolver))
                 return true;

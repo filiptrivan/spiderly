@@ -40,7 +40,7 @@ namespace Spiderly.Shared.ExternalAuth
         /// </summary>
         public ExternalProviderConfig GetConfig(string code)
         {
-            ExternalProviderConfig config = (_options.ExternalProviders ?? new())
+            ExternalProviderConfig? config = (_options.ExternalProviders ?? new())
                 .Find(x => string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase));
 
             if (config == null)
@@ -81,7 +81,9 @@ namespace Spiderly.Shared.ExternalAuth
                 ["code"] = code,
                 ["redirect_uri"] = redirectUri,
                 ["client_id"] = config.ClientId,
-                ["client_secret"] = config.ClientSecret,
+                // The confidential-client exchange requires a secret; a missing one already fails at
+                // request build (null form value) — the '!' preserves that config-error behavior.
+                ["client_secret"] = config.ClientSecret!,
                 ["code_verifier"] = codeVerifier,
             };
 
@@ -109,12 +111,14 @@ namespace Spiderly.Shared.ExternalAuth
             if (json.RootElement.TryGetProperty("id_token", out JsonElement idTokenElement) == false)
                 throw new BusinessException("External provider token response did not contain an id_token.", ApiErrorCodes.ExternalProviderNotConfigured);
 
-            return idTokenElement.GetString();
+            // TODO(nrt): TryGetProperty only proves the property exists — a literal-null "id_token" from a
+            // broken provider would still return null here and slip past the non-null contract.
+            return idTokenElement.GetString()!;
         }
 
         private async Task<OpenIdConnectConfiguration> GetOidcConfigAsync(ExternalProviderConfig config)
         {
-            string authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority);
+            string? authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority);
 
             if (string.IsNullOrWhiteSpace(authority))
                 throw new BusinessException($"External provider '{config.Code}' has no authority configured.", ApiErrorCodes.ExternalProviderNotConfigured);

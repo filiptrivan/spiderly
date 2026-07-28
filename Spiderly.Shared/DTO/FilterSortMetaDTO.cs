@@ -8,7 +8,7 @@ namespace Spiderly.Shared.DTO
 {
     public class FilterSortMetaDTO
     {
-        public string Field { get; set; }
+        public string Field { get; set; } = null!;
         public int Order { get; set; }
     }
 }

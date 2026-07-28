@@ -20,7 +20,7 @@ namespace Spiderly.Shared
         /// Not applied when a caller overrides the sender per call — the override owns the whole identity.
         /// Unset (or empty <c>Email</c>) means no Reply-To header.
         /// </summary>
-        public EmailSender EmailReplyTo { get; set; }
+        public EmailSender? EmailReplyTo { get; set; }
 
         /// <summary>
         /// Resolves the Reply-To for a send: the configured <see cref="EmailReplyTo"/> rides with the
@@ -28,13 +28,13 @@ namespace Spiderly.Shared
         /// identity and never inherits it. Every <see cref="Interfaces.IEmailingService"/> implementation
         /// must route through this so the policy can't drift between providers.
         /// </summary>
-        public EmailSender ResolveReplyTo(EmailSender from)
+        public EmailSender? ResolveReplyTo(EmailSender? from)
         {
             return from == null ? EmailReplyTo : null;
         }
 
         /// <summary>SMTP password for the <see cref="EmailSender"/> account.</summary>
-        public string EmailSenderPassword { get; set; }
+        public string? EmailSenderPassword { get; set; }
 
         /// <summary>SMTP host name.</summary>
         public string SmtpHost { get; set; } = "smtp.gmail.com";
@@ -43,6 +43,6 @@ namespace Spiderly.Shared
         public int SmtpPort { get; set; } = 587;
 
         /// <summary>Brevo API key, used by the Brevo emailing implementation.</summary>
-        public string BrevoApiKey { get; set; }
+        public string? BrevoApiKey { get; set; }
     }
 }

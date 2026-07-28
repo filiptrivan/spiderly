@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Spiderly.Shared.Authorization
 {
     /// <summary>
@@ -16,7 +18,7 @@ namespace Spiderly.Shared.Authorization
         /// registered kind when exactly one is registered; <c>null</c> when zero or more than one are
         /// registered (the claim is then required to disambiguate).
         /// </summary>
-        string DefaultKind { get; }
+        string? DefaultKind { get; }
 
         /// <summary>
         /// Resolves a kind to its permission resolver. A <c>null</c>/empty <paramref name="kind"/> falls back
@@ -24,13 +26,13 @@ namespace Spiderly.Shared.Authorization
         /// resolved — unknown kind, or no claim while multiple kinds are registered — so the authorization
         /// layer can fail closed (deny) instead of surfacing a server error for an unrecognized caller.
         /// </summary>
-        bool TryResolve(string kind, out IPrincipalPermissionResolver resolver);
+        bool TryResolve(string? kind, [NotNullWhen(true)] out IPrincipalPermissionResolver? resolver);
 
         /// <summary>
         /// Whether <paramref name="kind"/> is a human principal kind. A <c>null</c>/empty kind falls back to
         /// <see cref="DefaultKind"/>. Fails <b>closed</b>: an unresolvable kind is not human, so an identity-scoped
         /// operation refuses rather than guessing.
         /// </summary>
-        bool IsHuman(string kind);
+        bool IsHuman(string? kind);
     }
 }

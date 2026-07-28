@@ -73,7 +73,7 @@ namespace Spiderly.Shared.Authorization
         /// <param name="context">The Hangfire job-performed context.</param>
         public void OnPerformed(PerformedContext context)
         {
-            if (context.Items.TryGetValue(ScopeItemKey, out object scope) && scope is IDisposable disposable)
+            if (context.Items.TryGetValue(ScopeItemKey, out object? scope) && scope is IDisposable disposable)
                 disposable.Dispose();
         }
     }

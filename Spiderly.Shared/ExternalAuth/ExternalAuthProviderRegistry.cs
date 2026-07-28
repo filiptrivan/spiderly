@@ -59,7 +59,7 @@ namespace Spiderly.Shared.ExternalAuth
                 }
 
                 // A custom provider registered for this code shadows the generic OIDC validator.
-                if (customByCode.TryGetValue(config.Code, out IExternalAuthProvider custom))
+                if (customByCode.TryGetValue(config.Code, out IExternalAuthProvider? custom))
                 {
                     _providersByCode[config.Code] = custom;
                     continue;
@@ -85,7 +85,7 @@ namespace Spiderly.Shared.ExternalAuth
             if (string.IsNullOrWhiteSpace(code))
                 throw new BusinessException("External login request is missing a provider code.", ApiErrorCodes.ExternalProviderNotConfigured);
 
-            if (_providersByCode.TryGetValue(code, out IExternalAuthProvider provider))
+            if (_providersByCode.TryGetValue(code, out IExternalAuthProvider? provider))
                 return provider;
 
             throw new BusinessException($"No external authentication provider is configured for code '{code}'.", ApiErrorCodes.ExternalProviderNotConfigured);
@@ -113,7 +113,7 @@ namespace Spiderly.Shared.ExternalAuth
         private static GenericOidcExternalAuthProvider BuildGenericProvider(ExternalProviderConfig config, IHttpClientFactory httpClientFactory)
         {
             // Authority resolvability + ClientId presence are guaranteed by ExternalProviderOptionsValidator at boot.
-            string authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority);
+            string authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority)!;
             return new GenericOidcExternalAuthProvider(config.Code, authority, config.ClientId, config.TrustEmailVerified, httpClientFactory.CreateClient());
         }
     }

@@ -31,7 +31,7 @@ namespace Spiderly.Shared.Extensions
                 _ => string.Concat(input[0].ToString().ToLower(), input.AsSpan(1))
             };
 
-        public static string ToCommaSeparatedString<T>(this List<T> input, IStringLocalizer localizer = null)
+        public static string? ToCommaSeparatedString<T>(this List<T> input, IStringLocalizer? localizer = null)
         {
             List<string> stringList = input.Select(item => item?.ToString() ?? string.Empty).ToList();
 
@@ -75,7 +75,8 @@ namespace Spiderly.Shared.Extensions
 
             return type.IsClass &&
                type != typeof(string) &&
-               !type.Namespace.StartsWith("System") &&
+               // TODO(nrt): Type.Namespace is null for global-namespace types — this would NRE on one. Entity types always live in a namespace, so keeping the existing behavior.
+               !type.Namespace!.StartsWith("System") &&
                !type.Name.StartsWith("Dictionary") &&
                !type.Name.StartsWith("List");
         }

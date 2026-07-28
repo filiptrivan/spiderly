@@ -52,14 +52,14 @@ namespace Spiderly.Shared.IntegrationEvents
         public override async ValueTask<int> SavedChangesAsync(
             SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
         {
-            int staged = Stage(eventData, out DbContext context);
+            int staged = Stage(eventData, out DbContext? context);
             if (staged == 0)
                 return result;
 
             _harvesting.Value = true;
             try
             {
-                await context.SaveChangesAsync(cancellationToken);
+                await context!.SaveChangesAsync(cancellationToken); // staged > 0 implies Stage saw a non-null context
             }
             finally
             {
@@ -73,14 +73,14 @@ namespace Spiderly.Shared.IntegrationEvents
         /// <inheritdoc/>
         public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
         {
-            int staged = Stage(eventData, out DbContext context);
+            int staged = Stage(eventData, out DbContext? context);
             if (staged == 0)
                 return result;
 
             _harvesting.Value = true;
             try
             {
-                context.SaveChanges();
+                context!.SaveChanges(); // staged > 0 implies Stage saw a non-null context
             }
             finally
             {
@@ -93,7 +93,7 @@ namespace Spiderly.Shared.IntegrationEvents
 
         // Guard + harvest, shared by the sync/async overrides (which differ only in the flush call). Returns the number
         // of outbox rows staged (0 = nothing to flush) and the context to flush.
-        private int Stage(SaveChangesCompletedEventData eventData, out DbContext context)
+        private int Stage(SaveChangesCompletedEventData eventData, out DbContext? context)
         {
             context = eventData.Context;
             if (context == null || _harvesting.Value)
@@ -118,7 +118,7 @@ namespace Spiderly.Shared.IntegrationEvents
             {
                 // Collect the raisers first (allocating only when one is actually found) — we can't Add rows while
                 // enumerating the change tracker.
-                List<EntityEntry<IHasIntegrationEvents>> raisers = null;
+                List<EntityEntry<IHasIntegrationEvents>>? raisers = null;
                 foreach (EntityEntry<IHasIntegrationEvents> entry in tracker.Entries<IHasIntegrationEvents>())
                     if (entry.Entity.IntegrationEvents.Count > 0)
                         (raisers ??= new()).Add(entry);
@@ -165,7 +165,7 @@ namespace Spiderly.Shared.IntegrationEvents
                         // Fan out: one outbox row per registered handler, each addressed by the handler's Code — so a
                         // single handler's failure retries only its own row, not the whole event. No handlers → no rows.
                         IReadOnlyList<string> handlerCodes =
-                            _handlerCodesByEventType.Value.TryGetValue(integrationEvent.GetType(), out IReadOnlyList<string> codes)
+                            _handlerCodesByEventType.Value.TryGetValue(integrationEvent.GetType(), out IReadOnlyList<string>? codes)
                                 ? codes
                                 : Array.Empty<string>();
 
@@ -205,7 +205,7 @@ namespace Spiderly.Shared.IntegrationEvents
             Dictionary<Type, List<string>> map = new();
             foreach (IIntegrationEventHandler handler in scope.ServiceProvider.GetServices<IIntegrationEventHandler>())
             {
-                if (!map.TryGetValue(handler.EventType, out List<string> codes))
+                if (!map.TryGetValue(handler.EventType, out List<string>? codes))
                     map[handler.EventType] = codes = new();
                 if (codes.Contains(handler.Code))
                     throw new InvalidOperationException(
@@ -221,11 +221,11 @@ namespace Spiderly.Shared.IntegrationEvents
         // absent) at 0 — the event simply carries no aggregate id — rather than throwing from inside the post-save harvest.
         private static long GetAggregateId(EntityEntry entry)
         {
-            IReadOnlyList<IProperty> keyProperties = entry.Metadata.FindPrimaryKey()?.Properties;
+            IReadOnlyList<IProperty>? keyProperties = entry.Metadata.FindPrimaryKey()?.Properties;
             if (keyProperties == null || keyProperties.Count != 1)
                 return 0;
 
-            object value = entry.Property(keyProperties[0].Name).CurrentValue;
+            object? value = entry.Property(keyProperties[0].Name).CurrentValue;
             return value switch
             {
                 byte or sbyte or short or ushort or int or uint or long or ulong => Convert.ToInt64(value),

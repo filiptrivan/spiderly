@@ -17,7 +17,7 @@ namespace Spiderly.Shared.Exceptions
         /// in <see cref="Spiderly.Shared.DTO.ApiErrorDTO.ErrorCode"/> so clients can branch on the specific rule.
         /// Null for plain message-only business errors.
         /// </summary>
-        public string ErrorCode { get; }
+        public string? ErrorCode { get; }
 
         public BusinessException() : base() { }
 

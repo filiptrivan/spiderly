@@ -25,7 +25,7 @@ namespace Spiderly.Shared.Authorization
         /// single-principal default. Mirrors the <see cref="PrincipalClaims.PrincipalKind"/> claim; the
         /// authorization core's registry resolves a <c>null</c> kind to the single registered kind.
         /// </summary>
-        public string Kind { get; }
+        public string? Kind { get; }
 
         /// <summary>
         /// True when this is an authenticated caller of <b>any</b> kind — a signed-in person, an API key, a
@@ -40,7 +40,7 @@ namespace Spiderly.Shared.Authorization
         /// </summary>
         public bool IsSystem { get; }
 
-        private SpiderlyPrincipal(long? principalId, string kind, bool isSystem)
+        private SpiderlyPrincipal(long? principalId, string? kind, bool isSystem)
         {
             PrincipalId = principalId;
             Kind = kind;
@@ -65,7 +65,7 @@ namespace Spiderly.Shared.Authorization
         /// <param name="principalId">The authenticated principal's id within its kind.</param>
         /// <param name="kind">The principal kind, or <c>null</c> for the single-principal default.</param>
         /// <returns>A principal with <see cref="IsAuthenticated"/> set to <c>true</c>.</returns>
-        public static SpiderlyPrincipal ForPrincipal(long principalId, string kind = null) =>
+        public static SpiderlyPrincipal ForPrincipal(long principalId, string? kind = null) =>
             new(principalId, kind, isSystem: false);
     }
 }

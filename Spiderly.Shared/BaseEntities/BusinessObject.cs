@@ -22,7 +22,9 @@ namespace Spiderly.Shared.BaseEntities
         [Required]
         public DateTime ModifiedAt { get; set; }
 
-        private List<IIntegrationEvent> _integrationEvents;
+        // Lazily allocated on the first raised event — most materialized entities never raise any,
+        // so an eager initializer would allocate a list per entity for nothing.
+        private List<IIntegrationEvent>? _integrationEvents;
 
         /// <summary>
         /// Integration events raised on this entity during the current command, awaiting harvest into the

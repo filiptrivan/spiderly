@@ -12,7 +12,7 @@ namespace Spiderly.Shared
     public class OutboxOptions
     {
         /// <summary>Global override applied to handlers that don't declare their own policy. Null (or null fields) keeps the framework default <see cref="OutboxRetryPolicy.Default"/>.</summary>
-        public OutboxRetryOptions Default { get; set; }
+        public OutboxRetryOptions? Default { get; set; }
 
         /// <summary>Per-handler-code overrides, keyed by <see cref="IOutboxHandler.Code"/> (e.g. "WingsExport"). An entry wins over both the global <see cref="Default"/> and the handler's code-declared policy.</summary>
         public Dictionary<string, OutboxRetryOptions> Handlers { get; set; } = new();

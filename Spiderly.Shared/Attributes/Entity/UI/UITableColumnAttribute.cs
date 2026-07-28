@@ -34,6 +34,6 @@ namespace Spiderly.Shared.Attributes.Entity.UI
     {
         /// <param name="field">DTO property name (e.g. nameof(PartnerUserDTO.UserDisplayName))</param>
         /// <param name="translateKey">If DTO property name and translate key from en.json are compatible you don't need to pass anything</param>
-        public UITableColumnAttribute(string field, string translateKey = null) { }
+        public UITableColumnAttribute(string field, string? translateKey = null) { }
     }
 }

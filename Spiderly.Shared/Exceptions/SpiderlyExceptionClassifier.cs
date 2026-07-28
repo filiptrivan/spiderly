@@ -66,7 +66,7 @@ namespace Spiderly.Shared.Exceptions
         /// returns <c>null</c> for any other database failure (a genuine 500). The single detector used both to
         /// classify the log level above and to build the 409 response body in <see cref="SpiderlyExceptionHandler"/>.
         /// </summary>
-        public static string GetDbConstraintErrorCode(DbUpdateException exception)
+        public static string? GetDbConstraintErrorCode(DbUpdateException exception)
         {
             // SQL Server ships no named-constant class for these (unlike Npgsql's PostgresErrorCodes), so keep the ints.
             const int sqlServerUniqueConstraint = 2627;

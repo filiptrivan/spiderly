@@ -12,7 +12,7 @@ namespace Spiderly.Shared.Authorization
     {
         /// <summary>Creates the exception for <paramref name="kind"/>.</summary>
         /// <param name="kind">The principal kind that was current, or <c>null</c> when unresolvable.</param>
-        public PrincipalKindMismatchException(string kind)
+        public PrincipalKindMismatchException(string? kind)
             : base($"The current principal kind '{kind ?? "(unresolved)"}' is not a human user, so it has no user " +
                    "id. An identity-scoped operation must not resolve a machine principal's id against the user " +
                    "table — the ids come from independent sequences and would collide onto an unrelated account. " +
@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Authorization
             Kind = kind;
         }
 
-        /// <summary>The principal kind that was current when the mismatch was detected.</summary>
-        public string Kind { get; }
+        /// <summary>The principal kind that was current when the mismatch was detected, or <c>null</c> when unresolvable.</summary>
+        public string? Kind { get; }
     }
 }

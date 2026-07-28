@@ -57,6 +57,6 @@ namespace Spiderly.Shared.Attributes
         }
 
         /// <summary>The required permission code, or <c>null</c> when this guard only requires authentication.</summary>
-        public string PermissionCode { get; }
+        public string? PermissionCode { get; }
     }
 }

@@ -34,7 +34,7 @@ namespace Spiderly.Shared.Outbox
 
         /// <summary>Returns the type for a code, or throws if none is registered for it.</summary>
         public Type ResolveType(string code) =>
-            _byCode.TryGetValue(code, out Type type) ? type
+            _byCode.TryGetValue(code, out Type? type) ? type
             : throw new InvalidOperationException(
                 $"No {typeof(TMarker).Name} registered for outbox code '{code}'. " +
                 $"An [OutboxCode] may have been renamed/removed while a row referencing it is still pending.");
@@ -44,7 +44,7 @@ namespace Spiderly.Shared.Outbox
 
         /// <summary>Rebuilds a fact from its code + JSON data (deserialize against the resolved type).</summary>
         public TMarker Rebuild(string code, string data) =>
-            (TMarker)JsonSerializer.Deserialize(data, ResolveType(code))
+            (TMarker?)JsonSerializer.Deserialize(data, ResolveType(code))
             ?? throw new InvalidOperationException($"Outbox fact '{code}' deserialized to null.");
     }
 }

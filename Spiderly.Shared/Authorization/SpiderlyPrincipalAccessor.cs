@@ -17,7 +17,7 @@ namespace Spiderly.Shared.Authorization
     /// </remarks>
     public sealed class SpiderlyPrincipalAccessor : ISpiderlyPrincipalAccessor
     {
-        private static readonly AsyncLocal<SpiderlyPrincipal> _current = new();
+        private static readonly AsyncLocal<SpiderlyPrincipal?> _current = new();
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>Creates the accessor over the ambient <see cref="IHttpContextAccessor"/> used for the HTTP fallback.</summary>
@@ -40,7 +40,7 @@ namespace Spiderly.Shared.Authorization
             if (principal == null)
                 throw new ArgumentNullException(nameof(principal));
 
-            SpiderlyPrincipal previous = _current.Value;
+            SpiderlyPrincipal? previous = _current.Value;
             _current.Value = principal;
             return new PrincipalScope(previous);
         }
@@ -49,27 +49,27 @@ namespace Spiderly.Shared.Authorization
         /// Builds a principal from the current HTTP request's authenticated claims, or <c>null</c> when there is
         /// no HTTP context (e.g. a background job) or the request is unauthenticated / carries no usable subject.
         /// </summary>
-        private SpiderlyPrincipal ResolveFromHttpContext()
+        private SpiderlyPrincipal? ResolveFromHttpContext()
         {
-            HttpContext httpContext = _httpContextAccessor?.HttpContext;
+            HttpContext? httpContext = _httpContextAccessor?.HttpContext;
             if (httpContext?.User?.Identity?.IsAuthenticated != true)
                 return null;
 
-            string subject = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? subject = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (long.TryParse(subject, out long userId) == false)
                 return null;
 
-            string kind = httpContext.User.FindFirst(PrincipalClaims.PrincipalKind)?.Value;
+            string? kind = httpContext.User.FindFirst(PrincipalClaims.PrincipalKind)?.Value;
             return SpiderlyPrincipal.ForPrincipal(userId, kind);
         }
 
         /// <summary>Restores the previous principal on dispose; idempotent.</summary>
         private sealed class PrincipalScope : IDisposable
         {
-            private readonly SpiderlyPrincipal _previous;
+            private readonly SpiderlyPrincipal? _previous;
             private bool _disposed;
 
-            public PrincipalScope(SpiderlyPrincipal previous)
+            public PrincipalScope(SpiderlyPrincipal? previous)
             {
                 _previous = previous;
             }

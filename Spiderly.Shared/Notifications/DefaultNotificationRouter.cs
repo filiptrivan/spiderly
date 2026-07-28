@@ -23,7 +23,7 @@ namespace Spiderly.Shared.Notifications
         /// <inheritdoc/>
         public IReadOnlyCollection<INotificationChannel> ChannelsFor(INotification notification)
         {
-            if (!_map.Routes.TryGetValue(notification.GetType(), out List<string> codes) || codes.Count == 0)
+            if (!_map.Routes.TryGetValue(notification.GetType(), out List<string>? codes) || codes.Count == 0)
                 return Array.Empty<INotificationChannel>();
 
             return _channels.Where(c => codes.Contains(c.Code)).ToList();

@@ -21,12 +21,12 @@ namespace Spiderly.Shared.ExternalAuth
         /// Resolves the OIDC authority for a provider: the explicitly configured authority wins, otherwise
         /// the preset for the code is used. Returns null when neither is available.
         /// </summary>
-        public static string ResolveAuthority(string code, string configuredAuthority)
+        public static string? ResolveAuthority(string? code, string? configuredAuthority)
         {
             if (string.IsNullOrWhiteSpace(configuredAuthority) == false)
                 return configuredAuthority;
 
-            if (code != null && AuthorityByCode.TryGetValue(code, out string presetAuthority))
+            if (code != null && AuthorityByCode.TryGetValue(code, out string? presetAuthority))
                 return presetAuthority;
 
             return null;
