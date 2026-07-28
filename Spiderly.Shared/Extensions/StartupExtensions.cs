@@ -184,8 +184,7 @@ namespace Spiderly.Shared.Extensions
                 // attribute — per ASP.NET's own antiforgery guidance, per-endpoint opt-in leaves endpoints
                 // unprotected by mistake. It used to ride inside [AuthGuard], which had exactly that shape.
                 // The guard fails boot if the consumer never adds the middleware.
-                services.AddSingleton<CsrfRegistrationGuard>();
-                services.AddSingleton<IStartupFilter>(sp => sp.GetRequiredService<CsrfRegistrationGuard>());
+                services.AddSingleton<IStartupFilter, CsrfRegistrationGuard>();
 
                 // Resolves a provider code to its id-token validator. Built eagerly at first resolution from
                 // the configured providers (+ any consumer-registered custom IExternalAuthProvider), so the
@@ -594,7 +593,9 @@ namespace Spiderly.Shared.Extensions
         /// <param name="app">The application builder.</param>
         public static void UseSpiderlyCsrf(this IApplicationBuilder app)
         {
-            app.ApplicationServices.GetRequiredService<CsrfRegistrationGuard>().MarkRegistered();
+            // Stamped on THIS builder, so a branch-only registration leaves the root unmarked and the guard
+            // fails — see CsrfRegistrationGuard for why that is the correct answer.
+            app.Properties[CsrfRegistrationGuard.RegisteredKey] = true;
             app.UseMiddleware<SpiderlyCsrfMiddleware>();
         }
 

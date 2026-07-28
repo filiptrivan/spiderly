@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using Spiderly.Shared.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
@@ -178,5 +181,48 @@ public class AuthGuardAttributeTests
     {
         Assert.Throws<ArgumentException>(() => new AuthGuardAttribute(""));
         Assert.Throws<ArgumentException>(() => new AuthGuardAttribute(null));
+    }
+}
+
+/// <summary>
+/// The guard exists so a missing <c>UseSpiderlyCsrf()</c> is a loud boot failure rather than silently
+/// unprotected cookie-authenticated writes.
+/// </summary>
+public class CsrfRegistrationGuardTests
+{
+    private static IApplicationBuilder Builder() =>
+        new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
+
+    [Fact]
+    public void Boot_fails_when_the_middleware_was_never_registered()
+    {
+        IApplicationBuilder app = Builder();
+        Action<IApplicationBuilder> pipeline = new CsrfRegistrationGuard().Configure(_ => { });
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => pipeline(app));
+        Assert.Contains("UseSpiderlyCsrf()", ex.Message);
+    }
+
+    [Fact]
+    public void Boot_succeeds_when_the_middleware_is_registered_on_the_main_pipeline()
+    {
+        IApplicationBuilder app = Builder();
+        Action<IApplicationBuilder> pipeline = new CsrfRegistrationGuard()
+            .Configure(builder => builder.UseSpiderlyCsrf());
+
+        pipeline(app);
+    }
+
+    // The reason this guard reads IApplicationBuilder.Properties instead of a DI singleton: a branch builder
+    // gets a COPY of Properties, so registering only inside app.Map(...) leaves the main pipeline unprotected.
+    // A singleton flag would have been set globally and the guard would have passed.
+    [Fact]
+    public void Boot_fails_when_the_middleware_is_only_registered_inside_a_branch()
+    {
+        IApplicationBuilder app = Builder();
+        Action<IApplicationBuilder> pipeline = new CsrfRegistrationGuard()
+            .Configure(builder => builder.Map("/branch", branch => branch.UseSpiderlyCsrf()));
+
+        Assert.Throws<InvalidOperationException>(() => pipeline(app));
     }
 }
