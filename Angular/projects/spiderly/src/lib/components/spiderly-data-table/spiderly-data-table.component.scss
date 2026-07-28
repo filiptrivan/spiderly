@@ -33,11 +33,9 @@
   }
 }
 
-// The chooser lives inside a p-popover that PrimeNG appends to document.body
-// when opened, so these rules must NOT sit under `:host` — the compiled
-// `[_nghost] … [_ngcontent]` descendant selector stops matching once the
-// content leaves the host subtree. Top-level rules keep only the
-// `[_ngcontent]` attribute selector, which travels with the teleported nodes.
+// Chooser content is teleported into document.body with the open p-popover, so
+// its rules must stay top-level — `:host` nesting dies on teleport (see
+// Angular/CLAUDE.md → overlay styling). Each rule is pinned by a spec assert.
 .column-chooser {
   display: flex;
   flex-direction: column;
@@ -65,6 +63,7 @@
 }
 
 :host {
+  // In-template content only — rules for teleported overlay content go at top level (see above).
   // The `.clickable` affordance is shared: clickable rows (navigateOnRowClick) and opt-in cells
   // (Column.onCellClick) both get a pointer cursor; cells additionally underline on hover.
   ::ng-deep .clickable {

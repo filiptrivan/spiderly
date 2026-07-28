@@ -310,6 +310,16 @@ function clickOption(fixture: ComponentFixture<unknown>, label: string): void {
   fixture.detectChanges();
 }
 
+function chooserReset(
+  fixture: ComponentFixture<unknown>,
+): HTMLButtonElement | null {
+  return (
+    chooserContainer(fixture)?.querySelector<HTMLButtonElement>(
+      '[data-testid="column-chooser-reset"]',
+    ) ?? null
+  );
+}
+
 describe('SpiderlyDataTableComponent — column visibility', () => {
   it('does not render a column declared visible: false', () => {
     const el: HTMLElement = createFixture(
@@ -375,9 +385,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
     clickOption(fixture, 'Name'); // hide Name
     clickOption(fixture, 'Stock'); // reveal Stock
 
-    const reset = chooserContainer(fixture)?.querySelector<HTMLButtonElement>(
-      '[data-testid="column-chooser-reset"]',
-    );
+    const reset = chooserReset(fixture);
     expect(reset).withContext('reset button should render').toBeTruthy();
     reset!.click();
     fixture.detectChanges();
@@ -401,33 +409,28 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
 });
 
 describe('SpiderlyDataTableComponent — chooser styles survive the body teleport', () => {
-  // PrimeNG appends the open popover to document.body, so `:host`-scoped rules
-  // stop matching the chooser content there. Builds and behavior specs stay
-  // green when every chooser rule silently dies — these computed-style asserts
-  // are the only automated check that catches it.
-  it('lays the chooser out as a vertical flex column', async () => {
+  // Guards the `:host` overlay-styling trap — see Angular/CLAUDE.md → overlay styling.
+  // One pin per SCSS rule; add a row when a chooser rule is added.
+  const stylePins: [selector: string, property: string, expected: string][] = [
+    ['.column-chooser', 'display', 'flex'],
+    ['.column-chooser', 'flex-direction', 'column'],
+    ['.column-chooser-option', 'display', 'flex'],
+    ['.column-chooser-reset', 'border-top-style', 'none'],
+  ];
+
+  it('keeps every chooser rule matching inside the teleported popover', async () => {
     const fixture = createFixture(HostWithHiddenColumnComponent);
 
     await openChooser(fixture);
 
-    const chooser =
-      chooserContainer(fixture)?.querySelector<HTMLElement>('.column-chooser');
-    expect(chooser).withContext('chooser wrapper should render').toBeTruthy();
-    const style = getComputedStyle(chooser!);
-    expect(style.display).toBe('flex');
-    expect(style.flexDirection).toBe('column');
-  });
-
-  it('styles reset as a borderless link-like button', async () => {
-    const fixture = createFixture(HostWithHiddenColumnComponent);
-
-    await openChooser(fixture);
-
-    const reset = chooserContainer(fixture)?.querySelector<HTMLButtonElement>(
-      '[data-testid="column-chooser-reset"]',
-    );
-    expect(reset).withContext('reset button should render').toBeTruthy();
-    expect(getComputedStyle(reset!).borderTopStyle).toBe('none');
+    const container = chooserContainer(fixture)!;
+    for (const [selector, property, expected] of stylePins) {
+      const el = container.querySelector<HTMLElement>(selector);
+      expect(el).withContext(`${selector} should render`).toBeTruthy();
+      expect(getComputedStyle(el!).getPropertyValue(property))
+        .withContext(`${selector} { ${property} }`)
+        .toBe(expected);
+    }
   });
 });
 

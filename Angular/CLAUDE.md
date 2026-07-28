@@ -12,6 +12,10 @@ All runtime `@angular/*` are pinned **exact `19.2.13`** (matching the init templ
 
 To change a dep: edit `package.json`, run `npm install` under the pinned toolchain, commit `package.json` + `package-lock.json` together.
 
+## Overlay content is teleported to body — never style it under `:host`
+
+PrimeNG appends open overlays to `document.body` (`appendTo` default: `p-popover`, dropdown/calendar/multiselect panels, `p-menu popup`, …). A `:host .foo` rule compiles under emulated encapsulation to a `[_nghost] … [_ngcontent]` descendant selector that stops matching the moment the content leaves the host subtree — the rules die silently, and builds and behavior specs stay green (the data-table column chooser shipped exactly this way). Declare overlay-content rules at the SCSS **top level**: they keep only the `[_ngcontent]` attribute selector, which travels with the teleported nodes, so they stay encapsulated without `::ng-deep`. Any rule targeting teleported content also needs a computed-style assert in the component's spec — see the data-table spec's "chooser styles survive the body teleport" describe for the table-driven pattern.
+
 ## Always translate static UI text in library templates
 
 Any user-facing string baked into a control/component template here (button labels, tab labels, placeholders, headings) **must** go through Transloco — never hardcode English. The admin app this library powers is fully localized (e.g. PACMS runs Serbian), so a hardcoded English word would be the one untranslated thing on the screen.

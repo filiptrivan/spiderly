@@ -205,6 +205,8 @@ new Column({ field: 'total', name: 'Total', filterType: 'numeric',
 
 It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells. (Reusing one popover across rows is the `show()` + `align()` case shown in the snippet above — bare `show()` swaps content but won't move an already-open panel.)
 
+Style the popover's content at your component's SCSS **top level**, never nested under `:host` — PrimeNG appends the open popover to `document.body`, where `:host`-scoped rules (compiled to `[_nghost] … [_ngcontent]` descendant selectors) silently stop matching; top-level rules keep the `[_ngcontent]` scoping that travels with the moved nodes.
+
 ### Custom Toolbar Actions
 
 Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or any markup) to the table's toolbar, alongside the built-in Clear Filters / Export to Excel / Reload / Delete Selected buttons. Import `SpiderlyDataTableActionsDirective` in the consuming component.
