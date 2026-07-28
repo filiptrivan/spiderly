@@ -16,43 +16,27 @@ public class RequestIdMiddlewareTests
     {
         DefaultHttpContext context = new();
         if (inboundRequestId != null)
-            context.Request.Headers["X-Request-Id"] = inboundRequestId;
+            context.Request.Headers[RequestIdMiddleware.HeaderName] = inboundRequestId;
 
         await new RequestIdMiddleware(_ => Task.CompletedTask).InvokeAsync(context);
         return context;
     }
 
-    private static void StopAmbientActivities()
-    {
-        while (Activity.Current != null)
-            Activity.Current.Stop();
-    }
-
-    [Fact]
-    public async Task Response_header_carries_the_current_trace_id()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("spoofed-id")]
+    public async Task Response_header_is_the_trace_id_regardless_of_any_inbound_request_id(string inboundRequestId)
     {
         using Activity activity = new Activity("test-request").Start();
 
-        DefaultHttpContext context = await RunAsync();
+        DefaultHttpContext context = await RunAsync(inboundRequestId);
 
-        Assert.Equal(activity.TraceId.ToString(), context.Response.Headers["X-Request-Id"].ToString());
+        Assert.Equal(activity.TraceId.ToString(), context.Response.Headers[RequestIdMiddleware.HeaderName].ToString());
     }
 
     [Fact]
-    public async Task Client_supplied_request_id_is_ignored()
+    public async Task Client_supplied_request_id_never_becomes_the_trace_identifier()
     {
-        using Activity activity = new Activity("test-request").Start();
-
-        DefaultHttpContext context = await RunAsync(inboundRequestId: "spoofed-id");
-
-        Assert.Equal(activity.TraceId.ToString(), context.Response.Headers["X-Request-Id"].ToString());
-    }
-
-    [Fact]
-    public async Task Trace_identifier_is_left_untouched()
-    {
-        using Activity activity = new Activity("test-request").Start();
-
         DefaultHttpContext context = await RunAsync(inboundRequestId: "spoofed-id");
 
         Assert.NotEqual("spoofed-id", context.TraceIdentifier);
@@ -61,10 +45,10 @@ public class RequestIdMiddlewareTests
     [Fact]
     public async Task Without_an_ambient_activity_the_header_falls_back_to_the_trace_identifier()
     {
-        StopAmbientActivities();
+        TestActivities.StopAmbient();
 
         DefaultHttpContext context = await RunAsync();
 
-        Assert.Equal(context.TraceIdentifier, context.Response.Headers["X-Request-Id"].ToString());
+        Assert.Equal(context.TraceIdentifier, context.Response.Headers[RequestIdMiddleware.HeaderName].ToString());
     }
 }

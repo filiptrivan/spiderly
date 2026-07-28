@@ -2,23 +2,20 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Spiderly.Shared;
 using Spiderly.Shared.Authorization;
 using Spiderly.Shared.Exceptions;
+using Spiderly.Shared.Localization;
 using Spiderly.Shared.Services;
 
 namespace Spiderly.Shared.Tests;
 
 /// <summary>
-/// Pins the customer-facing error reference: the response body carries the W3C trace id exactly when the
-/// exception is one the error tracker keeps (<see cref="SpiderlyExceptionClassifier.IsExpected"/> == false),
-/// so a reference a user reads to support always points at a findable event — and an expected 4xx never
-/// looks like an incident.
+/// Pins the customer-facing error reference: <c>ApiErrorDTO.TraceId</c> is present exactly when the
+/// exception is reportable (<see cref="SpiderlyExceptionClassifier.IsExpected"/> == false), so a reference
+/// a user reads to support always points at a findable event and an expected 4xx never looks like an incident.
 /// </summary>
 public class SpiderlyExceptionHandlerTests
 {
@@ -26,17 +23,16 @@ public class SpiderlyExceptionHandlerTests
     {
         return new SpiderlyExceptionHandler(
             NullLogger<SpiderlyExceptionHandler>.Instance,
-            new PassthroughLocalizer(),
+            new PassthroughStringLocalizer(),
             new ProductionEnvironment(),
             Options.Create(new TokenKeyOptions()),
             new CookieManager(Options.Create(new CookieSettings())),
-            new AnonymousPrincipalAccessor());
+            new SpiderlyPrincipalAccessor(new HttpContextAccessor()));
     }
 
     private static async Task<(int StatusCode, JsonDocument Body)> HandleAsync(Exception exception)
     {
         DefaultHttpContext context = new();
-        context.RequestServices = new ServiceCollection().BuildServiceProvider();
         context.Response.Body = new MemoryStream();
 
         bool handled = await CreateHandler().TryHandleAsync(context, exception, CancellationToken.None);
@@ -47,31 +43,21 @@ public class SpiderlyExceptionHandlerTests
         return (context.Response.StatusCode, JsonDocument.Parse(await reader.ReadToEndAsync()));
     }
 
-    private static void StopAmbientActivities()
+    public static TheoryData<Exception, int> ReportableExceptions => new()
     {
-        while (Activity.Current != null)
-            Activity.Current.Stop();
-    }
+        { new InvalidOperationException("boom"), StatusCodes.Status500InternalServerError },
+        { new SecurityViolationException(), StatusCodes.Status403Forbidden },
+    };
 
-    [Fact]
-    public async Task Unexpected_500_carries_the_current_trace_id()
-    {
-        using Activity activity = new Activity("test-request").Start();
-
-        (int status, JsonDocument body) = await HandleAsync(new InvalidOperationException("boom"));
-
-        Assert.Equal(StatusCodes.Status500InternalServerError, status);
-        Assert.Equal(activity.TraceId.ToString(), body.RootElement.GetProperty("traceId").GetString());
-    }
-
-    [Fact]
-    public async Task Security_violation_403_carries_the_current_trace_id()
+    [Theory]
+    [MemberData(nameof(ReportableExceptions))]
+    public async Task Reportable_error_carries_the_current_trace_id(Exception exception, int expectedStatus)
     {
         using Activity activity = new Activity("test-request").Start();
 
-        (int status, JsonDocument body) = await HandleAsync(new SecurityViolationException());
+        (int status, JsonDocument body) = await HandleAsync(exception);
 
-        Assert.Equal(StatusCodes.Status403Forbidden, status);
+        Assert.Equal(expectedStatus, status);
         Assert.Equal(activity.TraceId.ToString(), body.RootElement.GetProperty("traceId").GetString());
     }
 
@@ -89,19 +75,12 @@ public class SpiderlyExceptionHandlerTests
     [Fact]
     public async Task Unexpected_500_without_an_ambient_activity_omits_the_trace_id()
     {
-        StopAmbientActivities();
+        TestActivities.StopAmbient();
 
         (int status, JsonDocument body) = await HandleAsync(new InvalidOperationException("boom"));
 
         Assert.Equal(StatusCodes.Status500InternalServerError, status);
         Assert.False(body.RootElement.TryGetProperty("traceId", out _));
-    }
-
-    private sealed class PassthroughLocalizer : IStringLocalizer
-    {
-        public LocalizedString this[string name] => new(name, name);
-        public LocalizedString this[string name, params object[] arguments] => new(name, name);
-        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
     }
 
     private sealed class ProductionEnvironment : IWebHostEnvironment
@@ -112,11 +91,5 @@ public class SpiderlyExceptionHandlerTests
         public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string ContentRootPath { get; set; } = string.Empty;
         public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-    }
-
-    private sealed class AnonymousPrincipalAccessor : ISpiderlyPrincipalAccessor
-    {
-        public SpiderlyPrincipal Current => SpiderlyPrincipal.Anonymous;
-        public IDisposable Push(SpiderlyPrincipal principal) => throw new NotSupportedException();
     }
 }

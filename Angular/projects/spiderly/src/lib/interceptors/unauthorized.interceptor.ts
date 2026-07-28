@@ -38,25 +38,24 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       }
     }
 
-    // ApiErrorDTO.traceId is present only on reportable errors (SpiderlyExceptionClassifier.IsExpected ==
-    // false), so appending it can never decorate an expected 4xx — the reference lets a user quote an id
-    // that support can look up in the server logs / error tracker.
+    // ApiErrorDTO.traceId is present only on reportable errors, so this is a no-op everywhere else —
+    // the server decides which responses carry a support reference, never this status-code chain.
     const withReference = (detail: string): string =>
       errorResponse?.traceId
-        ? `${detail} ${translocoService.translate('ErrorReference')}: ${errorResponse.traceId}`
+        ? `${detail} ${translocoService.translate('ErrorReference', { traceId: errorResponse.traceId })}`
         : detail;
 
     if (err.status === 0) {
       // Server unreachable; defer so the message isn't lost during a shutdown/refresh race.
       setTimeout(() => {
         messageService.warningMessage(
-          translocoService.translate('ServerLostConnectionDetails'),
+          withReference(translocoService.translate('ServerLostConnectionDetails')),
           translocoService.translate('ServerLostConnectionTitle'),
         );
       }, 100);
     } else if (err.status === 400) {
       messageService.warningMessage(
-        errorResponse?.message ?? translocoService.translate('BadRequestDetails'),
+        withReference(errorResponse?.message ?? translocoService.translate('BadRequestDetails')),
         translocoService.translate('Warning'),
       );
     } else if (err.status === 401) {
@@ -64,7 +63,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         authService.clearSession(); // expired/invalid session — drop it; guards send the user to login
       } else {
         messageService.warningMessage(
-          errorResponse?.message ?? translocoService.translate('LoginRequired'),
+          withReference(errorResponse?.message ?? translocoService.translate('LoginRequired')),
           translocoService.translate('Warning'),
         );
       }
@@ -75,7 +74,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       );
     } else if (err.status === 404) {
       messageService.warningMessage(
-        translocoService.translate('NotFoundDetails'),
+        withReference(translocoService.translate('NotFoundDetails')),
         translocoService.translate('NotFoundTitle'),
       );
     } else {

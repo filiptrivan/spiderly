@@ -2168,7 +2168,7 @@ public class Startup
                 .AllowAnyHeader()
                 .AllowCredentials()
                 .WithOrigins(new[] { _spiderlySharedSettings.FrontendUrl })
-                .WithExposedHeaders("Content-Disposition"); // Allows frontend to access the 'Content-Disposition' header to retrieve the Excel file name
+                .WithExposedHeaders("Content-Disposition", RequestIdMiddleware.HeaderName); // Content-Disposition: Excel file name; X-Request-Id: cross-origin JS can read the correlation id
         });
 
         app.UseMiddleware<RequestIdMiddleware>();
@@ -3699,7 +3699,7 @@ export const ThemePreset = definePreset(Aura, {
   "NotFoundTitle": "Not Found",
   "UnexpectedErrorTitle": "An error occurred",
   "UnexpectedErrorDetails": "Our team has been notified and we are working on a solution. Please try again later.",
-  "ErrorReference": "Error reference",
+  "ErrorReference": "Error reference: {{traceId}}",
   "ColorPickerPlaceholder": "e.g., #ff0000",
   "True": "True",
   "False": "False",
