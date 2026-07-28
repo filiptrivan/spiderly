@@ -10,9 +10,9 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
         protected override string DockerRunArguments => "run --name spiderly-postgres -e POSTGRES_PASSWORD=postgres -p 54320:5432 -v spiderly_postgres_data:/var/lib/postgresql/data -d postgres:latest";
 
-        protected override string CreateDatabaseConnectionString(string appName)
+        protected override string? CreateDatabaseConnectionString(string appName)
         {
-            string connectionString = Helper.CreatePostgreSQLConnectionString(appName);
+            string? connectionString = Helper.CreatePostgreSQLConnectionString(appName);
 
             if (connectionString != null)
             {

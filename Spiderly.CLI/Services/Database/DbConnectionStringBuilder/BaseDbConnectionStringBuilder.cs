@@ -8,11 +8,11 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
         protected abstract string DockerRunArguments { get; }
         protected abstract string ManualInstallUrl { get; }
 
-        public async Task<string> CreateConnectionString(string appName)
+        public async Task<string?> CreateConnectionString(string appName)
         {
             ConsoleHelper.MarkupLineLoading($"Looking for a running {DbProviderName} instance...");
 
-            string connectionString = CreateDatabaseConnectionString(appName);
+            string? connectionString = CreateDatabaseConnectionString(appName);
 
             if (connectionString != null)
             {
@@ -61,7 +61,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
             return null;
         }
 
-        protected abstract string CreateDatabaseConnectionString(string appName);
+        protected abstract string? CreateDatabaseConnectionString(string appName);
 
         private async Task<bool> IsDockerAvailable()
         {
@@ -83,7 +83,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
             return success;
         }
 
-        private async Task<string> TryCreateDatabaseConnectionString(string appName)
+        private async Task<string?> TryCreateDatabaseConnectionString(string appName)
         {
             int[] delaysInSeconds = [3, 5, 10];
 
@@ -93,7 +93,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
                 ConsoleHelper.MarkupLineLoading($"Connecting to database (attempt {attempt + 1}/{delaysInSeconds.Length})...");
 
-                string connectionString = CreateDatabaseConnectionString(appName);
+                string? connectionString = CreateDatabaseConnectionString(appName);
 
                 if (connectionString != null)
                 {

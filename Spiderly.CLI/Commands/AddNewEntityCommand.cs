@@ -12,7 +12,7 @@ namespace Spiderly.CLI.Commands
 {
     internal static class AddNewEntityCommand
     {
-        public static async Task<int> Execute(bool shouldGenerateDataView, string entityName = null)
+        public static async Task<int> Execute(bool shouldGenerateDataView, string? entityName = null)
         {
             if (string.IsNullOrWhiteSpace(entityName))
             {
@@ -71,11 +71,11 @@ namespace Spiderly.CLI.Commands
 
         private static async Task GenerateEntityFile(string entityName)
         {
-            string entitiesFolderPath = GetEntitiesFolderPath();
+            string? entitiesFolderPath = GetEntitiesFolderPath();
             if (entitiesFolderPath == null)
                 return;
 
-            string appName = GetAppName(entitiesFolderPath);
+            string? appName = GetAppName(entitiesFolderPath);
             if (appName == null)
                 return;
 
@@ -93,7 +93,7 @@ namespace Spiderly.CLI.Commands
 
         private static async Task GenerateAngularPages(string entityName, string kebabEntityName, bool shouldGenerateDataView)
         {
-            string pagesFolderPath = GetPagesFolderPath();
+            string? pagesFolderPath = GetPagesFolderPath();
             if (pagesFolderPath == null)
                 return;
 
@@ -141,7 +141,7 @@ namespace Spiderly.CLI.Commands
 
         private static async Task<bool> AddRoutes(string entityName, string kebabEntityName)
         {
-            string routesFilePath = GetAppRoutesFilePath();
+            string? routesFilePath = GetAppRoutesFilePath();
             if (routesFilePath == null)
                 return ConsoleHelper.IsInteractive(); // Interactive: user can fix manually (success). Non-interactive: unrecoverable (failure).
 
@@ -191,7 +191,7 @@ namespace Spiderly.CLI.Commands
 
         private static async Task<bool> AddMenuItem(string entityName, string kebabEntityName)
         {
-            string layoutFilePath = GetLayoutComponentFilePath();
+            string? layoutFilePath = GetLayoutComponentFilePath();
             if (layoutFilePath == null)
                 return ConsoleHelper.IsInteractive(); // Interactive: user can fix manually (success). Non-interactive: unrecoverable (failure).
 
@@ -264,7 +264,7 @@ namespace Spiderly.CLI.Commands
             return angularOk && backendOk;
         }
 
-        private static async Task<bool> AddTranslationKeysToFolder(string folderPath, Dictionary<string, string> keysToAdd, string label)
+        private static async Task<bool> AddTranslationKeysToFolder(string? folderPath, Dictionary<string, string> keysToAdd, string label)
         {
             if (folderPath == null)
                 return false;
@@ -279,14 +279,14 @@ namespace Spiderly.CLI.Commands
             foreach (string jsonFile in jsonFiles)
             {
                 string json = await File.ReadAllTextAsync(jsonFile, Encoding.UTF8);
-                JsonObject root = JsonNode.Parse(json)?.AsObject();
+                JsonObject? root = JsonNode.Parse(json)?.AsObject();
                 if (root == null)
                     continue;
 
                 bool changed = false;
                 foreach (KeyValuePair<string, string> kvp in keysToAdd)
                 {
-                    JsonNode existing = root[kvp.Key];
+                    JsonNode? existing = root[kvp.Key];
                     if (existing == null || (existing is JsonValue val && string.IsNullOrEmpty(val.ToString())))
                     {
                         root[kvp.Key] = kvp.Value;
@@ -305,7 +305,7 @@ namespace Spiderly.CLI.Commands
             return true;
         }
 
-        private static string GetAngularI18nFolderPath()
+        private static string? GetAngularI18nFolderPath()
         {
             string currentPath = Directory.GetCurrentDirectory();
 
@@ -318,7 +318,7 @@ namespace Spiderly.CLI.Commands
             .Select(Path.GetFullPath)
             .ToList();
 
-            string existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
+            string? existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
             if (existingPath != null)
                 return existingPath;
 
@@ -326,12 +326,12 @@ namespace Spiderly.CLI.Commands
             return null;
         }
 
-        private static string GetBackendTranslationsFolderPath()
+        private static string? GetBackendTranslationsFolderPath()
         {
-            string backendPath = FindBackendPath();
+            string? backendPath = FindBackendPath();
             if (backendPath != null)
             {
-                string sharedFolder = Directory.GetDirectories(backendPath, "*.Shared").FirstOrDefault();
+                string? sharedFolder = Directory.GetDirectories(backendPath, "*.Shared").FirstOrDefault();
                 if (sharedFolder != null)
                 {
                     string translationsPath = Path.Combine(sharedFolder, "Translations");
@@ -364,12 +364,12 @@ namespace {{appName}}.Business.Entities
 """;
         }
 
-        private static string GetEntitiesFolderPath()
+        private static string? GetEntitiesFolderPath()
         {
-            string backendPath = FindBackendPath();
+            string? backendPath = FindBackendPath();
             if (backendPath != null)
             {
-                string businessFolder = Directory.GetDirectories(backendPath, "*.Business").FirstOrDefault();
+                string? businessFolder = Directory.GetDirectories(backendPath, "*.Business").FirstOrDefault();
                 if (businessFolder != null)
                 {
                     string entitiesPath = Path.Combine(businessFolder, "Entities");
@@ -382,9 +382,9 @@ namespace {{appName}}.Business.Entities
             return null;
         }
 
-        private static string GetAppName(string entitiesFolderPath)
+        private static string? GetAppName(string entitiesFolderPath)
         {
-            string businessFolder = Directory.GetParent(entitiesFolderPath)?.FullName;
+            string? businessFolder = Directory.GetParent(entitiesFolderPath)?.FullName;
             if (businessFolder != null)
             {
                 string folderName = Path.GetFileName(businessFolder);
@@ -398,7 +398,7 @@ namespace {{appName}}.Business.Entities
             return null;
         }
 
-        private static string GetPagesFolderPath()
+        private static string? GetPagesFolderPath()
         {
             string currentPath = Directory.GetCurrentDirectory();
 
@@ -412,7 +412,7 @@ namespace {{appName}}.Business.Entities
             .Select(Path.GetFullPath)
             .ToList();
 
-            string existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
+            string? existingPath = candidatePaths.FirstOrDefault(Directory.Exists);
             if (existingPath != null)
                 return existingPath;
 
@@ -426,7 +426,7 @@ namespace {{appName}}.Business.Entities
             return null;
         }
 
-        private static string GetAppRoutesFilePath()
+        private static string? GetAppRoutesFilePath()
         {
             string currentPath = Directory.GetCurrentDirectory();
 
@@ -439,7 +439,7 @@ namespace {{appName}}.Business.Entities
             .Select(Path.GetFullPath)
             .ToList();
 
-            string existingPath = candidatePaths.FirstOrDefault(File.Exists);
+            string? existingPath = candidatePaths.FirstOrDefault(File.Exists);
             if (existingPath != null)
                 return existingPath;
 
@@ -447,7 +447,7 @@ namespace {{appName}}.Business.Entities
             return null;
         }
 
-        private static string GetLayoutComponentFilePath()
+        private static string? GetLayoutComponentFilePath()
         {
             string currentPath = Directory.GetCurrentDirectory();
 
@@ -460,7 +460,7 @@ namespace {{appName}}.Business.Entities
             .Select(Path.GetFullPath)
             .ToList();
 
-            string existingPath = candidatePaths.FirstOrDefault(File.Exists);
+            string? existingPath = candidatePaths.FirstOrDefault(File.Exists);
             if (existingPath != null)
                 return existingPath;
 
@@ -468,7 +468,7 @@ namespace {{appName}}.Business.Entities
             return null;
         }
 
-        private static string FindBackendPath()
+        private static string? FindBackendPath()
         {
             string currentDir = Environment.CurrentDirectory;
 
@@ -479,7 +479,7 @@ namespace {{appName}}.Business.Entities
             if (Directory.Exists(backendInCurrent))
                 return backendInCurrent;
 
-            string parentDir = Directory.GetParent(currentDir)?.FullName;
+            string? parentDir = Directory.GetParent(currentDir)?.FullName;
             if (parentDir != null && Path.GetFileName(parentDir) == "Backend")
                 return parentDir;
 

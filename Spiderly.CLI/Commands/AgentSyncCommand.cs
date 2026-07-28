@@ -34,8 +34,8 @@ namespace Spiderly.CLI.Commands
 
         private sealed class SkillEntry
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = null!; // Always present in manifest.json (the bundle generator fails loud otherwise)
+            public string Description { get; set; } = null!; // Always present in manifest.json (the bundle generator fails loud otherwise)
         }
 
         /// <param name="projectRoot">Consumer project root (where the npm bundle is resolved); defaults to the current directory.</param>
@@ -55,11 +55,11 @@ namespace Spiderly.CLI.Commands
         /// When false (called from <c>init</c>), it's a soft skip — the package may be older or, in
         /// <c>--dev</c> mode, referenced from local source rather than node_modules.
         /// </param>
-        public static int Execute(string projectRoot = null, string agentRoot = null, bool saveAgentRoot = false, bool failIfMissing = true)
+        public static int Execute(string? projectRoot = null, string? agentRoot = null, bool saveAgentRoot = false, bool failIfMissing = true)
         {
             string source = projectRoot ?? Environment.CurrentDirectory;
 
-            string manifestPath = ResolveManifestPath(source);
+            string? manifestPath = ResolveManifestPath(source);
             if (manifestPath == null)
             {
                 const string where = "the Spiderly agent bundle (node_modules/spiderly/agent/manifest.json under the current directory or 'Frontend/')";
@@ -75,7 +75,7 @@ namespace Spiderly.CLI.Commands
                 return 0;
             }
 
-            Manifest manifest;
+            Manifest? manifest;
             try
             {
                 manifest = JsonSerializer.Deserialize<Manifest>(
@@ -114,11 +114,11 @@ namespace Spiderly.CLI.Commands
                     SaveAgentRoot(source, agentRoot);
             }
 
-            string agentDir = Path.GetDirectoryName(manifestPath);
+            string agentDir = Path.GetDirectoryName(manifestPath)!; // manifestPath ends in ".../agent/manifest.json" (built via Path.Combine), so it always has a directory
             string docsDir = Path.Combine(agentDir, "docs");
             string skillsDir = Path.Combine(agentDir, "skills");
             string relDocs = Path.GetRelativePath(target, docsDir).Replace('\\', '/');
-            string version = ReadPackageVersion(agentDir);
+            string? version = ReadPackageVersion(agentDir);
 
             // manifest.json now lists skill-surface entries only — every entry is junctioned.
             List<SkillEntry> skillLinks = manifest.Skills;
@@ -151,7 +151,7 @@ namespace Spiderly.CLI.Commands
         }
 
         /// <summary>Finds <c>node_modules/spiderly/agent/manifest.json</c> from the consumer root or its Frontend/ project.</summary>
-        private static string ResolveManifestPath(string cwd)
+        private static string? ResolveManifestPath(string cwd)
         {
             string[] candidates =
             {
@@ -167,13 +167,13 @@ namespace Spiderly.CLI.Commands
         /// <paramref name="source"/> itself. Relative values resolve against the source project, so
         /// <c>".."</c> targets the parent workspace. Returns an absolute path.
         /// </summary>
-        private static string ResolveAgentRoot(string source, string explicitAgentRoot)
+        private static string ResolveAgentRoot(string source, string? explicitAgentRoot)
             => ResolveAgentRootPath(source, explicitAgentRoot, ReadAgentRootFromConfig(source));
 
         /// <summary>Pure precedence + path resolution (no I/O): explicit > fromConfig > source itself.</summary>
-        internal static string ResolveAgentRootPath(string source, string explicitAgentRoot, string fromConfig)
+        internal static string ResolveAgentRootPath(string source, string? explicitAgentRoot, string? fromConfig)
         {
-            string value = !string.IsNullOrWhiteSpace(explicitAgentRoot) ? explicitAgentRoot
+            string? value = !string.IsNullOrWhiteSpace(explicitAgentRoot) ? explicitAgentRoot
                 : !string.IsNullOrWhiteSpace(fromConfig) ? fromConfig
                 : null;
 
@@ -188,7 +188,7 @@ namespace Spiderly.CLI.Commands
         /// <c>.spiderly/config.json</c> (committed) under <paramref name="source"/>; local overrides
         /// committed. Returns null when neither sets it.
         /// </summary>
-        private static string ReadAgentRootFromConfig(string source)
+        private static string? ReadAgentRootFromConfig(string source)
         {
             foreach (string fileName in new[] { "config.local.json", "config.json" })
             {
@@ -198,7 +198,7 @@ namespace Spiderly.CLI.Commands
                 string content;
                 try { content = File.ReadAllText(path); }
                 catch { continue; }
-                string value = ExtractAgentRoot(content);
+                string? value = ExtractAgentRoot(content);
                 if (!string.IsNullOrWhiteSpace(value))
                     return value;
             }
@@ -206,7 +206,7 @@ namespace Spiderly.CLI.Commands
         }
 
         /// <summary>Pure: extracts <c>agentSync.root</c> from a config JSON string; null if absent/malformed.</summary>
-        internal static string ExtractAgentRoot(string json)
+        internal static string? ExtractAgentRoot(string? json)
         {
             if (string.IsNullOrWhiteSpace(json))
                 return null;
@@ -219,7 +219,7 @@ namespace Spiderly.CLI.Commands
                     agentSync.TryGetProperty("root", out JsonElement root) &&
                     root.ValueKind == JsonValueKind.String)
                 {
-                    string value = root.GetString();
+                    string? value = root.GetString();
                     return string.IsNullOrWhiteSpace(value) ? null : value;
                 }
             }
@@ -240,14 +240,14 @@ namespace Spiderly.CLI.Commands
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, "config.local.json");
 
-            string existing = File.Exists(path) ? File.ReadAllText(path) : null;
+            string? existing = File.Exists(path) ? File.ReadAllText(path) : null;
             File.WriteAllText(path, MergeAgentRoot(existing, agentRoot) + "\n", new UTF8Encoding(false));
 
             EnsureLocalConfigIgnored(source);
         }
 
         /// <summary>Pure: sets <c>agentSync.root</c> in the given config JSON, preserving other keys; returns new JSON.</summary>
-        internal static string MergeAgentRoot(string existingJson, string agentRoot)
+        internal static string MergeAgentRoot(string? existingJson, string agentRoot)
         {
             JsonObject root;
             try
@@ -297,11 +297,11 @@ namespace Spiderly.CLI.Commands
                 .Any(t => t == pattern || t == "**/" + pattern);
         }
 
-        private static string ReadPackageVersion(string agentDir)
+        private static string? ReadPackageVersion(string agentDir)
         {
             try
             {
-                string packageJson = Path.Combine(Path.GetDirectoryName(agentDir), "package.json");
+                string packageJson = Path.Combine(Path.GetDirectoryName(agentDir)!, "package.json"); // agentDir is ".../node_modules/spiderly/agent" — never a filesystem root, so it always has a parent
                 if (!File.Exists(packageJson)) return null;
                 using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJson));
                 return doc.RootElement.TryGetProperty("version", out JsonElement v) ? v.GetString() : null;
@@ -429,13 +429,13 @@ namespace Spiderly.CLI.Commands
             catch { return false; }
         }
 
-        private static string TryResolveLinkTarget(string path)
+        private static string? TryResolveLinkTarget(string path)
         {
             try { return Directory.ResolveLinkTarget(path, returnFinalTarget: false)?.FullName; }
             catch { return null; }
         }
 
-        private static bool PathsEqual(string a, string b)
+        private static bool PathsEqual(string? a, string? b)
         {
             if (a == null || b == null) return false;
             static string Norm(string p) => Path.GetFullPath(p).TrimEnd('\\', '/');
@@ -466,7 +466,7 @@ namespace Spiderly.CLI.Commands
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            using Process p = Process.Start(psi);
+            using Process p = Process.Start(psi)!; // UseShellExecute=false: Start returns a live Process or throws; the null return only applies to shell-executed process reuse
             string err = p.StandardError.ReadToEnd();
             p.WaitForExit();
             if (p.ExitCode != 0)

@@ -9,7 +9,7 @@ namespace Spiderly.CLI.Services.Database.DbConnectionStringBuilder
 
         protected override string DockerRunArguments => "run --name spiderly-sqlserver -e ACCEPT_EULA=Y -e \"MSSQL_SA_PASSWORD=SqlServer123\" -p 14330:1433 -v spiderly_sqlserver_data:/var/opt/mssql -d mcr.microsoft.com/mssql/server:2022-latest";
 
-        protected override string CreateDatabaseConnectionString(string appName)
+        protected override string? CreateDatabaseConnectionString(string appName)
         {
             return Helper.CreateSqlServerConnectionString(appName);
         }

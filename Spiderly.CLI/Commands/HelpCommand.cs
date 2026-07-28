@@ -181,16 +181,16 @@ namespace Spiderly.CLI.Commands
 
         private class CommandInfo
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = null!; // Always set via object initializer
+            public string Description { get; set; } = null!; // Always set via object initializer
             public List<OptionInfo> Options { get; set; } = new();
             public List<string> Examples { get; set; } = new();
         }
 
         private class OptionInfo
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = null!; // Always set via object initializer
+            public string Description { get; set; } = null!; // Always set via object initializer
         }
     }
 }

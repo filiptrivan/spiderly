@@ -15,10 +15,10 @@ namespace Spiderly.CLI
         private static async Task<int> Main(string[] args)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
-            string fullVersion = assembly
+            string? fullVersion = assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
                 .InformationalVersion;
-            string version = fullVersion?.Split('+')[0]; // If we don't split, it will return the full version with the commit hash, which is not needed for the init command.
+            string? version = fullVersion?.Split('+')[0]; // If we don't split, it will return the full version with the commit hash, which is not needed for the init command.
 
             if (args.HasArg("--help") || args.HasArg("-help") || args.HasArg("help"))
             {
@@ -28,23 +28,24 @@ namespace Spiderly.CLI
             else if (args.HasArg("init"))
             {
                 bool isRunningFromNuget = !args.HasArg("--dev");
-                string appName = args.GetArgValue("--name");
-                string dbProvider = args.GetArgValue("--db");
-                string dbConnectionString = args.GetArgValue("--db-connection-string");
-                string packageManager = args.GetArgValue("--pm");
+                string? appName = args.GetArgValue("--name");
+                string? dbProvider = args.GetArgValue("--db");
+                string? dbConnectionString = args.GetArgValue("--db-connection-string");
+                string? packageManager = args.GetArgValue("--pm");
 
-                return await InitCommand.Execute(isRunningFromNuget, version, appName, dbProvider, dbConnectionString, packageManager);
+                // version is never null in practice: the SDK always emits AssemblyInformationalVersionAttribute for this assembly.
+                return await InitCommand.Execute(isRunningFromNuget, version!, appName, dbProvider, dbConnectionString, packageManager);
             }
             else if (args.HasArg("add-new-entity"))
             {
                 bool shouldGenerateDataView = args.HasArg("--data-view");
-                string entityName = args.GetArgValue("--name");
+                string? entityName = args.GetArgValue("--name");
 
                 return await AddNewEntityCommand.Execute(shouldGenerateDataView, entityName);
             }
             else if (args.HasArg("add-migration"))
             {
-                string migrationName = args.GetArgValue("add-migration");
+                string? migrationName = args.GetArgValue("add-migration");
                 return await MigrationCommand.AddMigration(migrationName);
             }
             else if (args.HasArg("update-database"))
@@ -61,8 +62,8 @@ namespace Spiderly.CLI
             }
             else if (args.HasArg("agent-sync"))
             {
-                string agentSyncProjectRoot = args.GetArgValue("--project-root");
-                string agentSyncAgentRoot = args.GetArgValue("--agent-root");
+                string? agentSyncProjectRoot = args.GetArgValue("--project-root");
+                string? agentSyncAgentRoot = args.GetArgValue("--agent-root");
                 bool saveAgentRoot = args.HasArg("--save");
                 return AgentSyncCommand.Execute(agentSyncProjectRoot, agentSyncAgentRoot, saveAgentRoot: saveAgentRoot);
             }
@@ -100,7 +101,7 @@ namespace Spiderly.CLI
             return Array.Exists(args, a => a.Equals(arg, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static string GetArgValue(this string[] args, string arg)
+        private static string? GetArgValue(this string[] args, string arg)
         {
             int index = Array.FindIndex(args, a => a.Equals(arg, StringComparison.OrdinalIgnoreCase));
             if (index >= 0 && index + 1 < args.Length)

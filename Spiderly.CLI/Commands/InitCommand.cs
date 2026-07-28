@@ -18,7 +18,7 @@ namespace Spiderly.CLI.Commands
             Skip
         }
 
-        public static async Task<int> Execute(bool isRunningFromNuget, string version, string appName = null, string dbProviderArg = null, string dbConnectionString = null, string packageManagerArg = null)
+        public static async Task<int> Execute(bool isRunningFromNuget, string version, string? appName = null, string? dbProviderArg = null, string? dbConnectionString = null, string? packageManagerArg = null)
         {
             appName = GetAppName(appName);
             if (appName == null)
@@ -68,7 +68,7 @@ namespace Spiderly.CLI.Commands
             bool hasLocalDevSecretsErrors = false;
 
             string jwtKey = Helper.GenerateJwtSecretKey();
-            string connectionString = null;
+            string? connectionString = null;
 
             if (!skipDatabaseSetup)
             {
@@ -262,7 +262,7 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static bool SetupLocalDevSecrets(string rootPath, string appName, string jwtKey, string connectionString)
+        private static bool SetupLocalDevSecrets(string rootPath, string appName, string jwtKey, string? connectionString)
         {
             string webApiPath = Path.Combine(rootPath, "Backend", $"{appName}.WebAPI");
             string localSecretsFilePath = Path.Combine(webApiPath, "appsettings.Development.local.json");
@@ -297,11 +297,11 @@ namespace Spiderly.CLI.Commands
             }
         }
 
-        private static string GetAppName(string appName)
+        private static string? GetAppName(string? appName)
         {
             if (!string.IsNullOrWhiteSpace(appName))
             {
-                string validationError = ValidateAppName(appName);
+                string? validationError = ValidateAppName(appName);
                 if (validationError != null)
                 {
                     ConsoleHelper.MarkupLineERROR(validationError);
@@ -322,7 +322,7 @@ namespace Spiderly.CLI.Commands
                     .ValidationErrorMessage("[red]Invalid app name[/]")
                     .Validate(name =>
                     {
-                        string error = ValidateAppName(name);
+                        string? error = ValidateAppName(name);
                         if (error != null)
                             return ValidationResult.Error($"[red]{error}[/]");
 
@@ -330,7 +330,7 @@ namespace Spiderly.CLI.Commands
                     }));
         }
 
-        private static string ValidateAppName(string name)
+        private static string? ValidateAppName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return "App name can't be null or empty";
@@ -350,7 +350,7 @@ namespace Spiderly.CLI.Commands
             return null;
         }
 
-        private static (DbProviderCodes provider, bool skipped)? GetDatabaseProvider(string dbProviderArg)
+        private static (DbProviderCodes provider, bool skipped)? GetDatabaseProvider(string? dbProviderArg)
         {
             if (!string.IsNullOrWhiteSpace(dbProviderArg))
             {
@@ -395,7 +395,7 @@ namespace Spiderly.CLI.Commands
             };
         }
 
-        private static PackageManagerCodes? GetPackageManager(string packageManagerArg)
+        private static PackageManagerCodes? GetPackageManager(string? packageManagerArg)
         {
             if (!string.IsNullOrWhiteSpace(packageManagerArg))
             {

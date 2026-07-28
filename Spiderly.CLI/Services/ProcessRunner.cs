@@ -5,7 +5,7 @@ namespace Spiderly.CLI.Services
 {
     internal static class ProcessRunner
     {
-        public static async Task<(bool success, string output)> RunShellCommand(string command, string workingDirectory = null)
+        public static async Task<(bool success, string output)> RunShellCommand(string command, string? workingDirectory = null)
         {
             bool isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string shell = isWin ? "cmd.exe" : "/bin/bash";
@@ -30,7 +30,7 @@ namespace Spiderly.CLI.Services
         public static async Task<(bool success, string output)> RunCommand(
             string shellFileName,
             string arguments,
-            string workingDirectory = null)
+            string? workingDirectory = null)
         {
             if (workingDirectory == null)
                 workingDirectory = Environment.CurrentDirectory;

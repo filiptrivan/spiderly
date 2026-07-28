@@ -54,7 +54,7 @@ namespace Spiderly.CLI.Services
             string versionString = GetFirstLine(output);
             string cleanVersion = versionString.TrimStart('v');
 
-            if (minimumMajorVersion != null && Version.TryParse(ExtractVersionNumber(cleanVersion), out Version version))
+            if (minimumMajorVersion != null && Version.TryParse(ExtractVersionNumber(cleanVersion), out Version? version))
             {
                 if (version.Major < minimumMajorVersion.Value)
                 {
