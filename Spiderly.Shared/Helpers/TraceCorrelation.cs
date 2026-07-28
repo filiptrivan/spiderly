@@ -8,7 +8,7 @@ namespace Spiderly.Shared.Helpers
     /// <see cref="Extensions.RequestIdMiddleware"/> emits as the <c>X-Request-Id</c> header. Both consume
     /// this accessor so the header↔body agreement is structural, not a prose promise.
     /// </summary>
-    internal static class TraceCorrelation
+    public static class TraceCorrelation
     {
         /// <summary>The current W3C trace id, or null when no ambient <see cref="Activity"/> exists.</summary>
         public static string CurrentTraceId() => Activity.Current?.TraceId.ToString();
