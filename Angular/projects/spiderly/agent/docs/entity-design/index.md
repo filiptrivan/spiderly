@@ -67,7 +67,7 @@ public virtual Brand Brand { get; set; }
 ### When to use it
 
 - **Hand-written save/sync code** that builds the entity directly (`new Order { BrandId = id, ... }`) — skips the `FindAsync` + navigation-attach roundtrip that the naive pattern requires
-- **Hot read paths** with `ProjectToDTO` — the mapper emits `x.BrandId` instead of the `EF.Property<long>(x, "BrandId")` workaround for [EF Core #15826](https://github.com/dotnet/efcore/issues/15826), which otherwise still forces a JOIN in some queries
+- **Hot read paths** in mapper projections — the mapper emits `x.BrandId` instead of the `EF.Property<long>(x, "BrandId")` workaround for [EF Core #15826](https://github.com/dotnet/efcore/issues/15826), which otherwise still forces a JOIN in some queries
 
 ### Rules
 
@@ -298,7 +298,6 @@ The complete list of every Spiderly attribute and its valid target is generated 
 | `[ExcludeServiceMethodsFromGeneration]` | Property       | Skip generated service methods (implement custom logic)                                              |
 | `[GreaterThanOrEqualTo(N)]`             | Property       | Numeric minimum validation                                                                           |
 | `[Email]`                               | Property       | Email format validation                                                                              |
-| `[ProjectToDTO(".Map(...)")]`           | Class          | Custom Mapster projection                                                                            |
 | `[GenerateCommaSeparatedDisplayName]`   | Property       | Add comma-separated display names to DTO                                                             |
 | `[ComplexManyToManyList]`               | Property       | Editable list UI for complex M2M junction (small sets only)                                          |
 | `[ComplexManyToManyReadonlyTable]`      | Property       | Read-only table for complex M2M junction                                                             |

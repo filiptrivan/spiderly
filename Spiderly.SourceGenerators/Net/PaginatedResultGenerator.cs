@@ -435,15 +435,6 @@ using {{item}};
                 return $"{baseClassInDotNotation}.Id";
             }
 
-            foreach (SpiderlyAttribute attribute in entity.Attributes.Where(x => x.Name == "ProjectToDTO"))
-            {
-                // ".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)"
-                string wordAfterDest = attribute.Value.Split("dest.")[1].Split(",")[0]; // TransactionPrice
-
-                if (wordAfterDest == DTOClassProp)
-                    return attribute.Value.Split("src.")[1].Split(")")[0]; // Transaction.Price
-            }
-
             return null;
         }
 

@@ -85,11 +85,11 @@ namespace {{basePartOfNamespace}}.DataMappers
 
 {{(entity.IsAbstract ? "" : GetMapperToEntity($"{entity.Name}DTOToEntityConfig", customMapperClass, entity, currentProjectEntities))}}
 
-{{GetMapToDTO($"{entity.Name}ToDTOConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ToDTOConfig", customMapperClass, entity, currentProjectEntities)}}
 
-{{GetProjectToDTO($"{entity.Name}ProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
 
-{{GetExcelProjectToDTO($"{entity.Name}ExcelProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ExcelProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
 
         #endregion
 
@@ -105,6 +105,23 @@ namespace {{basePartOfNamespace}}.DataMappers
             }
 
             sb.AppendLine($$"""
+
+        /// <summary>
+        /// A Mapster config with the convention-FLATTENING member strategy stripped: an unmapped
+        /// DTO property stays at its default instead of silently resolving through a same-named
+        /// navigation chain (e.g. dest.ShippingTierIsBulky -> src.ShippingTier.IsBulky), where an
+        /// optional navigation's LEFT JOIN NULL crashes EF's shaper on a non-nullable member.
+        /// Deliberate custom mappings go through the Customize* partial hooks instead.
+        /// </summary>
+        private static TypeAdapterConfig NewStrictConfig()
+        {
+            TypeAdapterConfig config = new();
+
+            foreach (TypeAdapterRule rule in config.Rules)
+                rule.Settings.ValueAccessingStrategies.Remove(ValueAccessingStrategy.FlattenMember);
+
+            return config;
+        }
     }
 }
 """);
@@ -127,15 +144,19 @@ namespace {{basePartOfNamespace}}.DataMappers
             string result = $$"""
         public static TypeAdapterConfig {{methodName}}()
         {
-            TypeAdapterConfig config = new();
+            TypeAdapterConfig config = NewStrictConfig();
 
             config
                 .NewConfig<{{entity.Name}}DTO, {{entity.Name}}>()
 {{string.Join("\n", mappers)}}
                 ;
 
+            Customize{{methodName}}(config);
+
             return config;
         }
+
+{{GetCustomizeHookDeclaration(methodName)}}
 """;
 
             return result;
@@ -166,29 +187,7 @@ namespace {{basePartOfNamespace}}.DataMappers
 
         #region To DTO
 
-        public static string GetMapToDTO(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities)
-        {
-            return GetToDTOConfig(methodName, customMapperClass, entity, currentProjectEntities, customMappers: []);
-        }
-
-        private static string GetProjectToDTO(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities)
-        {
-            List<string> customMappers = new();
-
-            foreach (SpiderlyAttribute attribute in entity.Attributes.Where(x => x.Name == "ProjectToDTO"))
-            {
-                customMappers.Add(attribute.Value);
-            }
-
-            return GetToDTOConfig(methodName, customMapperClass, entity, currentProjectEntities, customMappers);
-        }
-
-        private static string GetExcelProjectToDTO(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities)
-        {
-            return GetToDTOConfig(methodName, customMapperClass, entity, currentProjectEntities, customMappers: []);
-        }
-
-        public static string GetToDTOConfig(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities, List<string> customMappers)
+        public static string GetToDTOConfig(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities)
         {
             if (customMapperClass == null)
                 return "You didn't define DataMappers";
@@ -198,23 +197,22 @@ namespace {{basePartOfNamespace}}.DataMappers
 
             List<string> manyToOneMappers = GetConfigForManyToOneClass(entity, currentProjectEntities);
 
-            foreach (string manyToOneMapper in manyToOneMappers)
-            {
-                customMappers.Add(manyToOneMapper);
-            }
-
             return $$"""
         public static TypeAdapterConfig {{methodName}}()
         {
-            TypeAdapterConfig config = new();
+            TypeAdapterConfig config = NewStrictConfig();
 
             config
                 .NewConfig<{{entity.Name}}, {{entity.Name}}DTO>()
-                {{string.Join("\n\t\t\t\t", customMappers)}}
+                {{string.Join("\n\t\t\t\t", manyToOneMappers)}}
                 ;
+
+            Customize{{methodName}}(config);
 
             return config;
         }
+
+{{GetCustomizeHookDeclaration(methodName)}}
 """;
         }
 
@@ -286,6 +284,18 @@ namespace {{basePartOfNamespace}}.DataMappers
         #endregion
 
         #region Helpers
+
+        private static string GetCustomizeHookDeclaration(string methodName)
+        {
+            return $$"""
+        /// <summary>
+        /// Optional strongly-typed extension seam for {{methodName}} — implement this partial method
+        /// in your hand-written Mapper class to add compiler-checked custom mappings (null-guard
+        /// optional navigations: <c>config.ForType&lt;X, XDTO&gt;().Map(dest => dest.Y, src => src.Nav != null ? src.Nav.Y : null)</c>).
+        /// </summary>
+        static partial void Customize{{methodName}}(TypeAdapterConfig config);
+""";
+        }
 
         private static bool HasCustomPair(SpiderlyClass customMapperClass, string methodName)
         {

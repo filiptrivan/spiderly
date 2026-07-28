@@ -411,12 +411,6 @@ public virtual List<PartnerUser> Recipients { get; } = new(); // M2M
 - By default, all entities require authorization for CRUD operations.
 - **Warning:** Bypasses security checks. Primarily intended for testing; avoid in production.
 
-#### ProjectToDTO
-
-- Specifies custom Mapster mapping configuration when projecting an entity to its DTO.
-- Class-level attribute, supports multiple instances.
-- e.g. `[ProjectToDTO(".Map(dest => dest.TransactionPrice, src => src.Transaction.Price)")]`
-
 ### Translations
 
 Translations are managed via JSON files in `{Shared}/Translations/`. Each file is named by language code (e.g., `en.json`, `sr-Latn-RS.json`). The `TranslationsGenerator` auto-scaffolds missing keys with empty values on build. To add a new language, create a new JSON file and build.
