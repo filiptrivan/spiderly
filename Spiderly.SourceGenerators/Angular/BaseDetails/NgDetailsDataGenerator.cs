@@ -359,11 +359,19 @@ namespace Spiderly.SourceGenerators.Angular
                 SpiderlyClass extractedDTO = customDTOClasses.Where(x => x.Name == $"{Helpers.ExtractTypeFromGenericType(property.Type)}DTO").SingleOrDefault();
                 SpiderlyProperty? extractedDTOProperty = extractedDTO?.Properties?.Where(x => x.Name == col.Field)?.SingleOrDefault();
 
-                // TODO(nrt): col.Field comes from a hand-authored [UITableColumn("Field", ...)] attribute value
-                // and isn't guaranteed to match a property on either the extracted entity or its DTO. A mismatch
-                // would NRE here (pre-existing behavior — not introduced by this annotation pass).
-                SpiderlyProperty resolvedProperty = (extractedEntityProperty ?? extractedDTOProperty)!;
-                SpiderlyClass resolvedEntity = extractedEntity!; // See TODO(nrt) above; GetEntityByPropertyType can miss too.
+                // col.Field is a hand-authored attribute string, matched against nothing until here — a typo
+                // or a rename that missed it resolves to nothing on either the entity or its DTO.
+                SpiderlyProperty? resolvedProperty = extractedEntityProperty ?? extractedDTOProperty;
+
+                if (resolvedProperty == null || extractedEntity == null)
+                {
+                    throw SpiderlyDiagnostics.Create(
+                        SpiderlyDiagnostics.UITableColumnFieldNotFound,
+                        property.Location,
+                        col.Field, property.Name, property.EntityName ?? entity.Name, Helpers.ExtractTypeFromGenericType(property.Type));
+                }
+
+                SpiderlyClass resolvedEntity = extractedEntity;
 
                 result.Add($$"""
                 {name: this.translocoService.translate('{{col.TranslationKey}}'), filterType: '{{GetTableColFilterType(resolvedProperty)}}', field: '{{col.Field.FirstCharToLower()}}' {{GetTableColAdditionalProperties(resolvedProperty, resolvedEntity)}} }

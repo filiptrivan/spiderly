@@ -78,6 +78,14 @@ namespace Spiderly.SourceGenerators.Shared
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor UITableColumnFieldNotFound = new(
+            id: "SPIDERLY026",
+            title: "[UITableColumn] field does not exist",
+            messageFormat: "[UITableColumn(\"{0}\")] on '{2}.{1}' names a property that exists on neither the '{3}' entity nor its DTO. Check the spelling, or update the attribute if the property was renamed.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorFaulted = new(
             id: "SPIDERLY024",
             title: "A Spiderly source generator faulted",
