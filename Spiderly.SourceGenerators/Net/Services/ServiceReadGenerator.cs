@@ -11,7 +11,7 @@ namespace Spiderly.SourceGenerators.Net
     {
         internal static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            string entityIdType = entity.GetIdType(allEntities);
+            string entityIdType = entity.GetRequiredIdType(allEntities);
 
             return $$"""
         /// <summary>
@@ -198,9 +198,6 @@ namespace Spiderly.SourceGenerators.Net
                 )
             )
             {
-                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
-                string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
-
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     result.Add($$"""
@@ -241,9 +238,6 @@ namespace Spiderly.SourceGenerators.Net
                 )
             )
             {
-                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, allEntities);
-                string extractedEntityIdType = extractedEntity.GetIdType(allEntities);
-
                 if (property.IsMultiSelectControlType())
                 {
                     result.Add($$"""
@@ -358,7 +352,7 @@ namespace Spiderly.SourceGenerators.Net
         private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             SpiderlyClass autocompleteEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-            string autocompleteEntityIdType = autocompleteEntity.GetIdType(allEntities);
+            string autocompleteEntityIdType = autocompleteEntity.GetRequiredIdType(allEntities);
             string autocompleteEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(autocompleteEntity);
 
             return $$"""
@@ -399,7 +393,7 @@ namespace Spiderly.SourceGenerators.Net
         private static string GetDropdownMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             SpiderlyClass dropdownEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-            string dropdownEntityIdType = dropdownEntity.GetIdType(allEntities);
+            string dropdownEntityIdType = dropdownEntity.GetRequiredIdType(allEntities);
             string dropdownDisplayName = ClassAnalyzer.GetDisplayNameProperty(dropdownEntity);
 
             return $$"""

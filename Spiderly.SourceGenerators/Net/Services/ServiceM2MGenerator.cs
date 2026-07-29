@@ -31,10 +31,10 @@ namespace Spiderly.SourceGenerators.Net
                 return null; // It's simple M2M
 
             SpiderlyClass m2mEntity_1 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_1.Type.Name);
-            string m2mEntityIdType_1 = m2mEntity_1.GetIdType(allEntityClasses);
+            string m2mEntityIdType_1 = m2mEntity_1.GetRequiredIdType(allEntityClasses);
 
             SpiderlyClass m2mEntity_2 = allEntityClasses.Single(x => x.Name == m2mWithManyProperty_2.Type.Name);
-            string m2mEntityIdType_2 = m2mEntity_2.GetIdType(allEntityClasses);
+            string m2mEntityIdType_2 = m2mEntity_2.GetRequiredIdType(allEntityClasses);
 
             return $$"""
 {{GetComplexManyToManyAdministrationMethod(m2mWithManyProperty_1, m2mWithManyProperty_2, m2mEntityIdType_1, m2mEntityIdType_2, entity, allEntityClasses)}}

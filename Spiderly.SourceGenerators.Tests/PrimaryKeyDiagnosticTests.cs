@@ -41,7 +41,7 @@ public class PrimaryKeyDiagnosticTests
     {
         SpiderlyClass entity = MakeEntity("Foo", baseType);
 
-        string idType = entity.GetIdType(new List<SpiderlyClass>());
+        string? idType = entity.GetIdType(new List<SpiderlyClass>());
 
         Assert.Equal(expectedIdType, idType);
     }

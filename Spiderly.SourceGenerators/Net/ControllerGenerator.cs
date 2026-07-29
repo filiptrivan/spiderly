@@ -170,7 +170,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 string entityRegion;
                 try
                 {
-                    string referencedProjectEntityClassIdType = controllerEntity.GetIdType(allEntities);
+                    string referencedProjectEntityClassIdType = controllerEntity.GetRequiredIdType(allEntities);
                     string entityServiceField = $"_serviceProvider.GetRequiredService<{controllerEntity.Name}ServiceGenerated>()";
                     string readPermissionAttribute = Helpers.GetAuthGuardAttribute(controllerEntity, CrudCodes.Read);
 
@@ -310,7 +310,7 @@ namespace {{basePartOfNamespace}}.Controllers
                     property.EntityName, property.Name, property.Type);
             }
 
-            string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
+            string manyToOneEntityIdType = manyToOneEntity.GetRequiredIdType(allEntities);
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
@@ -341,7 +341,7 @@ namespace {{basePartOfNamespace}}.Controllers
                     property.EntityName, property.Name, property.Type);
             }
 
-            string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
+            string manyToOneEntityIdType = manyToOneEntity.GetRequiredIdType(allEntities);
             string manyToOneDisplayName = ClassAnalyzer.GetDisplayNameProperty(manyToOneEntity);
 
             return $$"""
@@ -389,7 +389,7 @@ namespace {{basePartOfNamespace}}.Controllers
         private static string GetSimpleManyToManyTableLazyLoadControllerMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-            string extractedEntityIdType = extractedEntity.GetIdType(entities);
+            string extractedEntityIdType = extractedEntity.GetRequiredIdType(entities);
 
             return $$"""
         /// <summary>
@@ -468,7 +468,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpGet]
         [AuthGuard]
-        public virtual async Task<List<NamebookDTO<{{extractedEntity.GetIdType(entities)}}>>> Get{{property.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public virtual async Task<List<NamebookDTO<{{extractedEntity.GetRequiredIdType(entities)}}>>> Get{{property.Name}}NamebookListFor{{entity.Name}}({{entity.GetRequiredIdType(entities)}} id)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}NamebookListFor{{entity.Name}}(id);
         }
@@ -492,7 +492,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns ordered {{property.Name}} for {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<{{Helpers.ExtractTypeFromGenericType(property.Type)}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetRequiredIdType(entities)}} id)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().GetOrdered{{property.Name}}For{{entity.Name}}(id);
         }
@@ -539,7 +539,7 @@ namespace {{basePartOfNamespace}}.Controllers
             if (entity.IsReadonlyObject())
                 return null;
 
-            string entityIdType = entity.GetIdType(entities);
+            string entityIdType = entity.GetRequiredIdType(entities);
             string deletePermissionAttribute = Helpers.GetAuthGuardAttribute(entity, CrudCodes.Delete);
 
             return $$"""

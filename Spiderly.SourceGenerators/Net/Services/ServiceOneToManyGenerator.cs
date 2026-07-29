@@ -12,14 +12,13 @@ namespace Spiderly.SourceGenerators.Net
     {
         internal static List<string> GetOneToManyMethods(SpiderlyClass entity, List<SpiderlyClass> allEntityClasses)
         {
-            string entityIdType = entity.GetIdType(allEntityClasses);
+            string entityIdType = entity.GetRequiredIdType(allEntityClasses);
 
             List<string> result = new();
 
             foreach (SpiderlyProperty oneToManyProperty in entity.Properties.Where(prop => prop.Type.IsOneToManyType())) // List<Role> Roles
             {
                 SpiderlyClass extractedPropertyEntity = allEntityClasses.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(oneToManyProperty.Type)); // Role
-                string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(allEntityClasses); // int
 
                 if (extractedPropertyEntity.HasM2MAttribute()) // Complex M2M
                 {
@@ -49,6 +48,10 @@ namespace Spiderly.SourceGenerators.Net
 
                     continue;
                 }
+
+                // Resolved only past the junction branch above: a [ComplexManyToManyList] property's element
+                // type IS the junction, which has no id type to ask for.
+                string extractedPropertyEntityIdType = extractedPropertyEntity.GetRequiredIdType(allEntityClasses); // int
 
                 string extractedPropertyEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(extractedPropertyEntity); // Name
 
@@ -216,7 +219,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
         /// <returns>List of {{extractedPropertyEntity.Name}} entities</returns>
-        public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public async virtual Task<List<{{extractedPropertyEntity.Name}}>> Get{{oneToManyProperty.Name}}For{{entity.Name}}({{entity.GetRequiredIdType(entities)}} id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -230,7 +233,7 @@ namespace Spiderly.SourceGenerators.Net
 
         private static string GetOneToManyNamebookListForEntity(SpiderlyProperty oneToManyProperty, SpiderlyClass extractedPropertyEntity, SpiderlyProperty manyToOneProperty, SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities);
+            string extractedPropertyEntityIdType = extractedPropertyEntity.GetRequiredIdType(entities);
 
             return $$"""
         /// <summary>
@@ -238,7 +241,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
-        public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public async virtual Task<List<NamebookDTO<{{extractedPropertyEntityIdType}}>>> Get{{oneToManyProperty.Name}}NamebookListFor{{entity.Name}}({{entity.GetRequiredIdType(entities)}} id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -339,14 +342,14 @@ namespace Spiderly.SourceGenerators.Net
             SpiderlyClass entity,
             List<SpiderlyClass> allEntityClasses)
         {
-            string entityIdType = entity.GetIdType(allEntityClasses);
+            string entityIdType = entity.GetRequiredIdType(allEntityClasses);
 
             SpiderlyProperty otherSideM2MProperty = junctionEntity.Properties
                 .Where(x => x.HasM2MWithManyAttribute())
                 .Single(x => x != currentSideM2MProperty);
 
             SpiderlyClass otherSideEntity = allEntityClasses.Single(x => x.Name == otherSideM2MProperty.Type.Name);
-            string otherSideEntityIdType = otherSideEntity.GetIdType(allEntityClasses);
+            string otherSideEntityIdType = otherSideEntity.GetRequiredIdType(allEntityClasses);
 
             string currentSideFKName = $"{currentSideM2MProperty.Name}Id";
             string otherSideFKName = $"{otherSideM2MProperty.Name}Id";
@@ -497,10 +500,10 @@ namespace Spiderly.SourceGenerators.Net
             if (property.HasSimpleManyToManyTableLazyLoadAttribute() == false)
                 return null;
 
-            string entityIdType = entity.GetIdType(entities);
+            string entityIdType = entity.GetRequiredIdType(entities);
             SpiderlyClass extractedPropertyEntity = entities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type)); // Role
 
-            string extractedPropertyEntityIdType = extractedPropertyEntity.GetIdType(entities);
+            string extractedPropertyEntityIdType = extractedPropertyEntity.GetRequiredIdType(entities);
 
             return $$"""
         /// <summary>
@@ -560,7 +563,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="id">The ID of the {{entity.Name}} entity</param>
         /// <returns>List of {{extractedPropertyEntity.Name}}MainUIFormDTO ordered by OrderNumber</returns>
-        public async virtual Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(entities)}} id)
+        public async virtual Task<List<{{extractedPropertyEntity.Name}}MainUIFormDTO>> GetOrdered{{property.Name}}For{{entity.Name}}({{entity.GetRequiredIdType(entities)}} id)
         {
             return await _deps.Context.WithTransactionAsync(async () =>
             {

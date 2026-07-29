@@ -9,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace Spiderly.SourceGenerators.Shared
@@ -789,7 +790,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             SpiderlyClass target = entities.FirstOrDefault(c => c.Name == navigation.Type.Name);
-            string idType = target != null ? target.GetIdType(entities) : "long";
+            string idType = target != null ? target.GetRequiredIdType(entities) : "long";
             return $"EF.Property<{idType}>({parameterName}, \"{navigation.Name}Id\")";
         }
 
@@ -1014,7 +1015,31 @@ namespace Spiderly.SourceGenerators.Shared
             return entity.Properties.Where(x => x.IsIncludedInDetailsUi(entity) && x.HasComplexManyToManyListAttribute()).ToList();
         }
 
-        public static string GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)
+        /// <summary>
+        /// The entity's primary-key type, for a call site that cannot proceed without one. Use this
+        /// wherever the result is emitted into generated code; only a junction-aware caller that
+        /// deliberately tolerates "no id" should call <see cref="GetIdType"/> directly.
+        /// </summary>
+        public static string GetRequiredIdType(
+            this SpiderlyClass c,
+            List<SpiderlyClass> classes,
+            [CallerMemberName] string caller = "")
+        {
+            return c.GetIdType(classes)
+                // Reaching here means a generator asked a many-to-many junction for a key type it cannot
+                // have — a framework bug, not consumer input, so it surfaces as SPIDERLY024 naming the
+                // generator rather than writing the literal text "null" into emitted C#. The caller name
+                // is path-free (so it stays snapshot-stable) and points straight at the offending site.
+                ?? throw new InvalidOperationException(
+                    $"Entity '{c?.Name ?? "<null>"}' has no id type (many-to-many junctions have no primary key), " +
+                    $"but '{caller}' requires one.");
+        }
+
+        /// <summary>
+        /// The entity's primary-key type, or <c>null</c> for a many-to-many junction, which has none.
+        /// Prefer <see cref="GetRequiredIdType"/> unless the caller genuinely handles the null.
+        /// </summary>
+        public static string? GetIdType(this SpiderlyClass c, List<SpiderlyClass> classes)
         {
             if (c == null)
             {

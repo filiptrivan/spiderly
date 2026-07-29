@@ -14,7 +14,7 @@ namespace Spiderly.SourceGenerators.Net
             if (entity.IsAbstract || entity.IsReadonlyObject())
                 return null;
 
-            string entityIdType = entity.GetIdType(entities);
+            string entityIdType = entity.GetRequiredIdType(entities);
 
             return $$"""
 {{GetSaveAndReturnMainUIFormDTOData(entity, entities)}}
@@ -237,7 +237,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="id">The ID of the parent {{entity.Name}} entity</param>
         /// <param name="orderedItemsDTO">List of SaveBodyDTOs in the desired order</param>
         /// <returns>List of saved {{extractedEntity.Name}}MainUIFormDTO in order</returns>
-        public async virtual Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
+        public async virtual Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetRequiredIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
         {
             var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO.Id).ToList();
 
@@ -443,7 +443,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 if (dto.{{prop.Name}}Id > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value, null);
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetRequiredIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value, null);
                 }
                 else
                 {
@@ -457,7 +457,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 if (dto.{{prop.Name}}Id > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value);
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type}}, {{classOfManyToOneProperty.GetRequiredIdType(allEntityClasses)}}>(dto.{{prop.Name}}Id.Value);
                 }
                 else
                 {
@@ -557,7 +557,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             List<string> result = new();
 
-            string entityIdType = entity.GetIdType(allEntities);
+            string entityIdType = entity.GetRequiredIdType(allEntities);
 
             List<SpiderlyProperty> blobProperies = Helpers.GetBlobProperties(entity.Properties);
 
@@ -728,7 +728,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             List<string> result = new();
 
-            string entityIdType = entity.GetIdType(allEntities);
+            string entityIdType = entity.GetRequiredIdType(allEntities);
 
             List<SpiderlyProperty> editorProperties = Helpers.GetEditorImageProperties(entity.Properties);
 
