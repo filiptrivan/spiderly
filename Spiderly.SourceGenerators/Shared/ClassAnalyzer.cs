@@ -200,10 +200,13 @@ namespace Spiderly.SourceGenerators.Shared
         {
             SpiderlyAttribute entityDisplayNameAttribute = entity.Attributes.SingleOrDefault(x => x.Name == "DisplayName");
 
-            if (entityDisplayNameAttribute != null)
-                // TODO(nrt): a bare [DisplayName] with no argument leaves Value null, which would flow out of
-                // this non-null-declared method. Pre-existing gap (not introduced by this annotation pass).
-                return entityDisplayNameAttribute.Value!;
+            // A bare [DisplayName] on the entity names no path (SPIDERLY025 reports it). Fall through to the
+            // property-level lookup rather than faulting: not every generator runs the validator first, and
+            // faulting here would replace that located diagnostic with an opaque one.
+            string? entityDisplayNamePath = entityDisplayNameAttribute?.Value;
+
+            if (string.IsNullOrWhiteSpace(entityDisplayNamePath) == false)
+                return entityDisplayNamePath!;
 
             SpiderlyProperty displayNamePropForClass = entity.Properties.SingleOrDefault(x => x.Attributes.Any(x => x.Name == Helpers.DisplayNameAttribute));
 

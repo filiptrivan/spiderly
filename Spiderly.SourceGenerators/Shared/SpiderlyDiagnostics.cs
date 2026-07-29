@@ -70,6 +70,14 @@ namespace Spiderly.SourceGenerators.Shared
             return type?.Name ?? "<unknown generator>";
         }
 
+        public static readonly DiagnosticDescriptor DisplayNameOnEntityRequiresPath = new(
+            id: "SPIDERLY025",
+            title: "[DisplayName] on an entity requires a property path",
+            messageFormat: "[DisplayName] on entity '{0}' has no argument. On an entity it must name the property path used as the display value (e.g. [DisplayName(nameof(Name))] or [DisplayName(\"Category.Name\")]); the bare form is only valid on a property.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorFaulted = new(
             id: "SPIDERLY024",
             title: "A Spiderly source generator faulted",

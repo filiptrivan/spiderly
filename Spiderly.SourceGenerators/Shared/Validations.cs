@@ -19,11 +19,20 @@ namespace Spiderly.SourceGenerators.Shared
                 SpiderlyAttribute displayNameAttr = entity.Attributes
                     .Single(x => x.Name == "DisplayName");
 
-                // TODO(nrt): [DisplayName]'s ctor arg is optional (bare [DisplayName] is valid syntax), so
-                // Value can genuinely be null here — a bare [DisplayName] on an entity (instead of a property)
-                // would NRE at generation time. Kept as-is (pre-existing risk, not introduced by this pass);
-                // HasDisplayNameAttribute() gates this loop to entities using the path form in practice.
-                string[] parts = displayNameAttr.Value!.Split('.');
+                // [DisplayName]'s ctor arg is optional, so a bare [DisplayName] on the ENTITY compiles and
+                // leaves Value null. On a property that's the correct form; on an entity it names no path.
+                string? displayNamePath = displayNameAttr.Value;
+
+                if (string.IsNullOrWhiteSpace(displayNamePath))
+                {
+                    yield return Diagnostic.Create(
+                        SpiderlyDiagnostics.DisplayNameOnEntityRequiresPath,
+                        LocationOrFallback(null, entity, entity),
+                        entity.Name);
+                    continue;
+                }
+
+                string[] parts = displayNamePath!.Split('.');
                 SpiderlyClass currentEntity = entity;
 
                 for (int i = 0; i < parts.Length; i++)
