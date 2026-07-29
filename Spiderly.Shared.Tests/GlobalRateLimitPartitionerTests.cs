@@ -78,6 +78,30 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
+        public void Null_remote_ip_still_yields_a_usable_partition_key()
+        {
+            // RemoteIpAddress is null on non-socket transports — a Unix-domain-socket Kestrel behind nginx,
+            // and any in-memory TestServer. A null partition key is not something the limiter accepts, so
+            // this is the difference between "over-throttled" and "every request 500s".
+            GlobalRateLimitPartition partition = GlobalRateLimitPartitioner.Resolve(
+                new DefaultHttpContext(), Budgets, trustedCallerDetector: null);
+
+            Assert.Equal("unknown", partition.Key);
+            Assert.Equal(240, partition.PermitLimit);
+        }
+
+        [Fact]
+        public void Null_remote_ip_still_yields_a_usable_trusted_partition_key()
+        {
+            // Interpolation hides the null here rather than crashing, which is worse: "trusted:" silently
+            // collapses every trusted caller into one bucket instead of failing where anyone would notice.
+            GlobalRateLimitPartition partition = GlobalRateLimitPartitioner.Resolve(
+                new DefaultHttpContext(), Budgets, new StubTrustedCallerDetector(trusted: true));
+
+            Assert.Equal("trusted:unknown", partition.Key);
+        }
+
+        [Fact]
         public void Trusted_class_wins_over_api_key_principal()
         {
             // A request that is both marked trusted AND carries an api-key principal takes the trusted

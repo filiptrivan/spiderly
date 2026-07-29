@@ -18,7 +18,9 @@ namespace Spiderly.Shared.Tests
     // unit test can't reach.
     public class TrustedCallerRateLimitIntegrationTests
     {
-        private static TestServer BuildServer(bool trusted)
+        private static TestServer BuildServer(bool trusted) => BuildServer(trusted, stampClientIp: true);
+
+        private static TestServer BuildServer(bool trusted, bool stampClientIp)
         {
             Settings settings = new()
             {
@@ -38,11 +40,14 @@ namespace Spiderly.Shared.Tests
                 {
                     // Pin a stable, non-null client IP so the per-IP partition key is deterministic
                     // (TestServer leaves RemoteIpAddress null, which a partition key can't be).
-                    app.Use(async (ctx, next) =>
+                    if (stampClientIp)
                     {
-                        ctx.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.7");
-                        await next();
-                    });
+                        app.Use(async (ctx, next) =>
+                        {
+                            ctx.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.7");
+                            await next();
+                        });
+                    }
                     app.UseRateLimiter();
                     app.Run(ctx => ctx.Response.WriteAsync("ok"));
                 });
@@ -82,6 +87,19 @@ namespace Spiderly.Shared.Tests
 
             // Trusted bucket is 1000, so every request is admitted.
             Assert.Equal(5, accepted);
+        }
+
+        [Fact]
+        public async Task Requests_with_no_client_ip_are_served_rather_than_faulting()
+        {
+            // The IP-stamping middleware the other tests use is a workaround for exactly this: without it
+            // the partition key is null, which the limiter rejects. A Unix-domain-socket deployment behind
+            // nginx has the same shape in production, where the whole app would 500 on every request.
+            using TestServer server = BuildServer(trusted: false, stampClientIp: false);
+
+            HttpResponseMessage response = await server.CreateClient().GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
     }
 }
