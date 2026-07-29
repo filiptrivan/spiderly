@@ -94,6 +94,21 @@ namespace Spiderly.SourceGenerators.Shared
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        /// <summary>
+        /// Under <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c> the annotation IS the column's nullability:
+        /// nothing configures scalar requiredness, and EF reads a navigation's nullability as the
+        /// relationship's requiredness. So an annotation disagreeing with <c>[Required]</c> rewrites the
+        /// schema without anyone asking — the next migration alters the column, and a save that
+        /// legitimately omits the value writes a default instead of NULL.
+        /// </summary>
+        public static readonly DiagnosticDescriptor NullabilityRequirednessMismatch = new(
+            id: "SPIDERLY028",
+            title: "Nullable annotation disagrees with [Required]",
+            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. Under <Nullable>enable</Nullable> the annotation decides the column's nullability, so this silently makes the column {4}. {5}",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorFaulted = new(
             id: "SPIDERLY024",
             title: "A Spiderly source generator faulted",
