@@ -465,9 +465,7 @@ namespace Spiderly.Shared.Extensions
                 // Customer apps tune the limits via BlobUploadRequestsLimitNumber/Window in appsettings.
                 options.AddPolicy(SpiderlyRateLimitPolicies.BlobUpload, httpContext =>
                     RateLimitPartition.GetSlidingWindowLimiter(
-                        // TODO(nrt): RemoteIpAddress can be null (non-socket transports), making the partition
-                        // key null — pre-existing behavior surfaced by annotating GetIPAddress.
-                        partitionKey: Helper.GetIPAddress(httpContext)!,
+                        partitionKey: Helper.GetIPAddressOrUnknown(httpContext),
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
                             PermitLimit = settings.BlobUploadRequestsLimitNumber,
@@ -478,7 +476,7 @@ namespace Spiderly.Shared.Extensions
                 options.OnRejected = (context, cancellationToken) =>
                 {
                     HttpContext httpContext = context.HttpContext;
-                    string ip = Helper.GetIPAddress(httpContext) ?? "unknown";
+                    string ip = Helper.GetIPAddressOrUnknown(httpContext);
                     string? apiKeyId = Helper.GetAuthenticatedApiKeyId(httpContext);
                     string path = httpContext.Request.Path;
                     string method = httpContext.Request.Method;

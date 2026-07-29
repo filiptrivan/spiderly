@@ -25,6 +25,6 @@ namespace Spiderly.Shared.RateLimiting
         /// limiter and any consumer named policy agree on the key format.
         /// </summary>
         public static string TrustedPartitionKey(this HttpContext httpContext) =>
-            $"trusted:{Helper.GetIPAddress(httpContext)}";
+            $"trusted:{Helper.GetIPAddressOrUnknown(httpContext)}";
     }
 }

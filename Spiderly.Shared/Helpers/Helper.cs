@@ -362,6 +362,24 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
+        /// Fallback used in place of a client IP that could not be determined. A single shared bucket, so a
+        /// deployment where the IP is always null (Kestrel on a Unix socket behind nginx, fixed by
+        /// <c>UseForwardedHeaders</c>) throttles visibly instead of hiding the misconfiguration.
+        /// </summary>
+        public const string UnknownIPAddress = "unknown";
+
+        /// <summary>
+        /// The client IP, or <see cref="UnknownIPAddress"/> when there isn't one. Use this wherever the IP
+        /// becomes a rate-limit partition key: <see cref="GetIPAddress"/> is null on non-socket transports
+        /// (in-memory test servers, Unix-domain sockets), and the limiter keys its partitions in a
+        /// dictionary — a null key throws rather than degrading.
+        /// </summary>
+        public static string GetIPAddressOrUnknown(HttpContext httpContext)
+        {
+            return GetIPAddress(httpContext) ?? UnknownIPAddress;
+        }
+
+        /// <summary>
         /// The authenticated API-key principal's id, or <c>null</c> when the request is anonymous or
         /// carries a non-machine principal. Reads the validated principal stamped by the authentication
         /// middleware — never the raw API-key header, whose unvalidated value must not be trusted as a

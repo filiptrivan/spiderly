@@ -60,9 +60,7 @@ namespace Spiderly.Shared.RateLimiting
             }
 
             return new GlobalRateLimitPartition(
-                // TODO(nrt): RemoteIpAddress can be null (non-socket transports, e.g. in-memory test servers),
-                // making the partition key null — pre-existing behavior surfaced by annotating GetIPAddress.
-                Helper.GetIPAddress(httpContext)!,
+                Helper.GetIPAddressOrUnknown(httpContext),
                 settings.RequestsLimitNumber,
                 settings.RequestsLimitWindow);
         }
