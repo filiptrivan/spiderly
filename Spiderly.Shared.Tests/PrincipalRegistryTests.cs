@@ -18,7 +18,7 @@ namespace Spiderly.Shared.Tests
             Assert.False(registry.IsEmpty);
             Assert.Equal("User", registry.DefaultKind);
 
-            Assert.True(registry.TryResolve(null, out IPrincipalPermissionResolver byDefault));  // no claim → default
+            Assert.True(registry.TryResolve(null, out IPrincipalPermissionResolver? byDefault));  // no claim → default
             Assert.Equal("User", byDefault.Kind);
             Assert.True(registry.TryResolve("", out _));
             Assert.True(registry.TryResolve("user", out _));                                     // claim casing must not matter
@@ -31,11 +31,11 @@ namespace Spiderly.Shared.Tests
 
             Assert.Null(registry.DefaultKind);
 
-            Assert.True(registry.TryResolve("ServiceAccount", out IPrincipalPermissionResolver resolved));
+            Assert.True(registry.TryResolve("ServiceAccount", out IPrincipalPermissionResolver? resolved));
             Assert.Equal("ServiceAccount", resolved.Kind);
 
             // No claim while ambiguous → fail closed (deny), not throw.
-            Assert.False(registry.TryResolve(null, out IPrincipalPermissionResolver none));
+            Assert.False(registry.TryResolve(null, out IPrincipalPermissionResolver? none));
             Assert.Null(none);
         }
 
@@ -44,7 +44,7 @@ namespace Spiderly.Shared.Tests
         {
             PrincipalRegistry registry = new(new[] { Resolver("User") });
 
-            Assert.False(registry.TryResolve("Robot", out IPrincipalPermissionResolver resolver));
+            Assert.False(registry.TryResolve("Robot", out IPrincipalPermissionResolver? resolver));
             Assert.Null(resolver);
         }
 

@@ -128,7 +128,7 @@ namespace Spiderly.Shared.Tests
         {
             SpiderlyPrincipalAccessor accessor = new(new HttpContextAccessor());
 
-            Assert.Throws<ArgumentNullException>(() => accessor.Push(null));
+            Assert.Throws<ArgumentNullException>(() => accessor.Push(null!));
         }
 
         private static DefaultHttpContext BuildAuthenticatedContext(long userId, string kind)

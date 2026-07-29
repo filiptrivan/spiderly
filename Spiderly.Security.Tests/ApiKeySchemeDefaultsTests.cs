@@ -61,7 +61,7 @@ namespace Spiderly.Security.Tests
     /// </summary>
     file sealed class TestApiKey : IApiKey
     {
-        public string KeyHash { get; set; }
+        public string KeyHash { get; set; } = null!;
         public bool? IsRevoked { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public bool? IsDisabled { get; set; }

@@ -50,7 +50,7 @@ public class SpiderlyCsrfMiddlewareTests
 
     private sealed class EndpointFeatureStub(Endpoint endpoint) : IEndpointFeature
     {
-        public Endpoint Endpoint { get; set; } = endpoint;
+        public Endpoint? Endpoint { get; set; } = endpoint;
     }
 
     [Theory]
@@ -180,7 +180,7 @@ public class AuthGuardAttributeTests
     public void Empty_permission_code_is_rejected_rather_than_silently_meaning_authenticated_only()
     {
         Assert.Throws<ArgumentException>(() => new AuthGuardAttribute(""));
-        Assert.Throws<ArgumentException>(() => new AuthGuardAttribute(null));
+        Assert.Throws<ArgumentException>(() => new AuthGuardAttribute(null!));
     }
 }
 

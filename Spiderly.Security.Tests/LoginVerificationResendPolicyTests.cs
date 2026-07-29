@@ -24,7 +24,7 @@ namespace Spiderly.Security.Tests
             JwtOptions jwtOptions = new() { JwtKey = ValidKey, JwtIssuer = "https://test-issuer", JwtAudience = "https://test-audience", ClockSkewMinutes = 0 };
 
             verificationStore = new InMemoryTokenStorage<LoginVerificationTokenDTO>(
-                new Dictionary<string, Func<LoginVerificationTokenDTO, string>>
+                new Dictionary<string, Func<LoginVerificationTokenDTO, string?>>
                 {
                     { LoginVerificationTokenDTO.EmailIndex, t => t.Email },
                 });

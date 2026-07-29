@@ -41,7 +41,7 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task NoHeader_ReturnsNoResult_SoOtherSchemesCanRun()
         {
-            AuthenticateResult result = await AuthenticateAsync(presentedKey: null, resolve: _ => Task.FromResult<long?>(99));
+            AuthenticateResult result = await AuthenticateAsync(presentedKey: null!, resolve: _ => Task.FromResult<long?>(99));
 
             Assert.True(result.None);
             Assert.False(result.Succeeded);
@@ -75,7 +75,7 @@ namespace Spiderly.Security.Tests
         public async Task Handler_HashesPresentedKey_NeverPassesItRaw()
         {
             const string presented = "the-secret-key";
-            string seenByAuthenticator = null;
+            string? seenByAuthenticator = null;
 
             await AuthenticateAsync(presented, resolve: hash =>
             {
@@ -116,8 +116,8 @@ namespace Spiderly.Security.Tests
 
         public T CurrentValue => _value;
 
-        public T Get(string name) => _value;
+        public T Get(string? name) => _value;
 
-        public IDisposable OnChange(Action<T, string> listener) => null;
+        public IDisposable OnChange(Action<T, string> listener) => null!;
     }
 }

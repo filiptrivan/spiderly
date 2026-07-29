@@ -153,7 +153,7 @@ namespace Spiderly.Shared.Tests
             public IServiceProvider ServiceProvider => this;
             public void Dispose() { }
 
-            public object GetService(Type serviceType)
+            public object? GetService(Type serviceType)
                 => serviceType == typeof(IEnumerable<IOutboxHandler>) ? _handlers : null;
         }
 

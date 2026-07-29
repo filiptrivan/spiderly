@@ -16,7 +16,7 @@ public class SpiderlyTypeRefTests
     [InlineData("  List<Foo>  ")] // surrounding whitespace must survive verbatim for emission
     public void Raw_RoundTripsExactInput(string input)
     {
-        SpiderlyTypeRef typeRef = SpiderlyTypeRef.Parse(input);
+        SpiderlyTypeRef typeRef = SpiderlyTypeRef.Parse(input)!;
         Assert.Equal(input, typeRef.Raw);
         Assert.Equal(input, typeRef.ToString());
     }
@@ -34,7 +34,7 @@ public class SpiderlyTypeRefTests
     [InlineData("List<Foo?>", false)] // the ? belongs to the element, not the outer type
     public void IsNullable_DetectsOuterNullabilityOnly(string input, bool expected)
     {
-        Assert.Equal(expected, SpiderlyTypeRef.Parse(input).IsNullable);
+        Assert.Equal(expected, SpiderlyTypeRef.Parse(input)!.IsNullable);
     }
 
     #endregion
@@ -53,7 +53,7 @@ public class SpiderlyTypeRefTests
     [InlineData("NamebookDTO<long>", false)] // a generic, but not a collection
     public void IsCollection_DetectsCollections(string input, bool expected)
     {
-        Assert.Equal(expected, SpiderlyTypeRef.Parse(input).IsCollection);
+        Assert.Equal(expected, SpiderlyTypeRef.Parse(input)!.IsCollection);
     }
 
     #endregion
@@ -68,7 +68,7 @@ public class SpiderlyTypeRefTests
     [InlineData("NamebookDTO<long>", "NamebookDTO")]
     public void Name_ReturnsOuterNominalName(string input, string expected)
     {
-        Assert.Equal(expected, SpiderlyTypeRef.Parse(input).Name);
+        Assert.Equal(expected, SpiderlyTypeRef.Parse(input)!.Name);
     }
 
     #endregion
@@ -85,7 +85,7 @@ public class SpiderlyTypeRefTests
     [InlineData("int", "int")]
     public void CoreName_UnwrapsToInnermostName(string input, string expected)
     {
-        Assert.Equal(expected, SpiderlyTypeRef.Parse(input).CoreName);
+        Assert.Equal(expected, SpiderlyTypeRef.Parse(input)!.CoreName);
     }
 
     #endregion
@@ -95,19 +95,19 @@ public class SpiderlyTypeRefTests
     [Fact]
     public void ElementType_Collection_ReturnsElement()
     {
-        Assert.Equal("Foo", SpiderlyTypeRef.Parse("List<Foo>").ElementType?.Name);
+        Assert.Equal("Foo", SpiderlyTypeRef.Parse("List<Foo>")!.ElementType?.Name);
     }
 
     [Fact]
     public void ElementType_Array_ReturnsElement()
     {
-        Assert.Equal("Foo", SpiderlyTypeRef.Parse("Foo[]").ElementType?.Name);
+        Assert.Equal("Foo", SpiderlyTypeRef.Parse("Foo[]")!.ElementType?.Name);
     }
 
     [Fact]
     public void ElementType_SimpleType_IsNull()
     {
-        Assert.Null(SpiderlyTypeRef.Parse("int").ElementType);
+        Assert.Null(SpiderlyTypeRef.Parse("int")!.ElementType);
     }
 
     #endregion
@@ -132,7 +132,7 @@ public class SpiderlyTypeRefTests
     public void Equality_SameRaw_AreEqual()
     {
         Assert.Equal(SpiderlyTypeRef.Parse("List<Foo>"), SpiderlyTypeRef.Parse("List<Foo>"));
-        Assert.Equal(SpiderlyTypeRef.Parse("List<Foo>").GetHashCode(), SpiderlyTypeRef.Parse("List<Foo>").GetHashCode());
+        Assert.Equal(SpiderlyTypeRef.Parse("List<Foo>")!.GetHashCode(), SpiderlyTypeRef.Parse("List<Foo>")!.GetHashCode());
     }
 
     [Fact]

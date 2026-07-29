@@ -25,15 +25,20 @@ public class StrictMapsterConfigBehaviorTests
     {
         public long Id { get; set; }
         public string Title { get; set; } = "";
-        public Nav Nav { get; set; }
+
+        // Optional by design — the flattening hazard this file pins is exactly a null nav.
+        public Nav? Nav { get; set; }
     }
 
     private class Dst
     {
         public long Id { get; set; }
-        public string Title { get; set; }
+
+        // Both are legitimately null on a mapped instance: Title when a config .Ignore()s it,
+        // NavName when the source nav is null (see the assertions below).
+        public string? Title { get; set; }
         public bool? NavIsBulky { get; set; }
-        public string NavName { get; set; }
+        public string? NavName { get; set; }
     }
 
     // Verbatim body of the helper MapperGenerator emits into every generated Mapper class.
@@ -84,7 +89,7 @@ public class StrictMapsterConfigBehaviorTests
         // The Customize* hook pattern: ForType after NewConfig on the same pair.
         config.ForType<Src, Dst>()
             .Map(dest => dest.NavName, src => "hook") // must be a no-op
-            .Ignore(dest => dest.Title);              // must win
+            .Ignore(dest => dest.Title!);             // must win ('!' only to box a nullable into Mapster's Func<T, object>)
 
         Dst dst = new Src().Adapt<Dst>(config);
 

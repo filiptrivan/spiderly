@@ -43,7 +43,7 @@ namespace Spiderly.Security.Tests
             };
 
             InMemoryTokenStorage<RefreshTokenDTO> refreshStore = new(
-                new Dictionary<string, Func<RefreshTokenDTO, string>>
+                new Dictionary<string, Func<RefreshTokenDTO, string?>>
                 {
                     { RefreshTokenDTO.UserIdIndex, t => t.UserId.ToString() },
                 });

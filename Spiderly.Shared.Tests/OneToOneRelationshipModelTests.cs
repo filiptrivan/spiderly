@@ -71,7 +71,7 @@ namespace Spiderly.Shared.Tests
         {
             IModel model = BuildModel();
 
-            IEntityType dependent = model.FindEntityType(typeof(Conversation));
+            IEntityType? dependent = model.FindEntityType(typeof(Conversation));
             Assert.NotNull(dependent);
 
             IForeignKey foreignKey = Assert.Single(dependent.GetForeignKeys());
@@ -96,7 +96,7 @@ namespace Spiderly.Shared.Tests
         {
             IModel model = BuildModel();
 
-            IEntityType dependent = model.FindEntityType(typeof(Conversation));
+            IEntityType? dependent = model.FindEntityType(typeof(Conversation));
             Assert.NotNull(dependent);
 
             // Exactly one unique index, over the FK column.
@@ -109,7 +109,7 @@ namespace Spiderly.Shared.Tests
             // Declarative index: NULL handling is left to provider conventions, so no explicit
             // HasFilter(...) is applied here. (Relational GetFilter() is unavailable on the InMemory
             // provider, so we assert the absence of an explicit filter annotation instead.)
-            object explicitFilter = index.FindAnnotation("Relational:Filter")?.Value;
+            object? explicitFilter = index.FindAnnotation("Relational:Filter")?.Value;
             Assert.Null(explicitFilter);
         }
     }

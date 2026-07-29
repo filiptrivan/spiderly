@@ -11,7 +11,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 // and ordered/complex helpers previously enumerated entity.Properties raw and leaked artifacts.
 public class IsIncludedInDetailsUiTests
 {
-    private static SpiderlyProperty Prop(string name, string type, params (string Name, string Value)[] attributes) =>
+    private static SpiderlyProperty Prop(string name, string type, params (string Name, string? Value)[] attributes) =>
         new()
         {
             Name = name,

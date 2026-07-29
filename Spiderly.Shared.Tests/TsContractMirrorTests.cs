@@ -63,7 +63,7 @@ namespace Spiderly.Shared.Tests
 
         private static string RepoFile(string relativePath)
         {
-            DirectoryInfo dir = new(AppContext.BaseDirectory);
+            DirectoryInfo? dir = new(AppContext.BaseDirectory);
             while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Spiderly.sln")))
                 dir = dir.Parent;
 

@@ -66,7 +66,7 @@ namespace Spiderly.Shared.Tests
             Dictionary<Type, List<string>> map = new();
             foreach ((Type type, string code) in routes)
             {
-                if (!map.TryGetValue(type, out List<string> codes))
+                if (!map.TryGetValue(type, out List<string>? codes))
                     map[type] = codes = new List<string>();
                 codes.Add(code);
             }
@@ -84,7 +84,7 @@ namespace Spiderly.Shared.Tests
 
             public FakeScopeFactory(
                 IEnumerable<INotificationChannel> channels,
-                IEnumerable<INotificationRecipientResolver> resolvers = null)
+                IEnumerable<INotificationRecipientResolver>? resolvers = null)
             {
                 _channels = channels;
                 _resolvers = resolvers ?? Array.Empty<INotificationRecipientResolver>();
@@ -94,7 +94,7 @@ namespace Spiderly.Shared.Tests
             public IServiceProvider ServiceProvider => this;
             public void Dispose() { }
 
-            public object GetService(Type serviceType)
+            public object? GetService(Type serviceType)
             {
                 if (serviceType == typeof(IEnumerable<INotificationChannel>)) return _channels;
                 if (serviceType == typeof(IEnumerable<INotificationRecipientResolver>)) return _resolvers;
@@ -107,7 +107,7 @@ namespace Spiderly.Shared.Tests
             public StubChannel(string code) => Code = code;
             public string Code { get; }
             public bool IsConfigured => true;
-            public Task SendAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+            public Task SendAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
                 => Task.CompletedTask;
         }
 

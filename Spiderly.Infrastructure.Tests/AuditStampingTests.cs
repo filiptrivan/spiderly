@@ -184,7 +184,7 @@ namespace Spiderly.Infrastructure.Tests
 
         private sealed class TestUser : BusinessObject<long>, IUser
         {
-            public string Email { get; set; }
+            public string Email { get; set; } = null!;
             public bool? IsDisabled { get; set; }
             public IReadOnlyCollection<IRole> Roles => Array.Empty<IRole>();
         }

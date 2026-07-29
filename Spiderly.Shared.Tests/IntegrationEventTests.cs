@@ -77,7 +77,7 @@ namespace Spiderly.Shared.Tests
     [OutboxCode("OrderCreatedTest")]
     public class OrderCreatedTestEvent : IntegrationEvent
     {
-        public string Note { get; set; }
+        public string Note { get; set; } = null!;
     }
 
     [OutboxCode("OtherTest")]

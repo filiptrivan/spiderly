@@ -120,8 +120,11 @@ namespace Spiderly.Shared.Tests
         private static ExternalProviderOptions Options(params ExternalProviderConfig[] configs)
             => new() { ExternalProviders = configs.ToList() };
 
-        private static ExternalProviderConfig Config(string code, string authority = null, string clientId = null)
-            => new() { Code = code, Authority = authority, ClientId = clientId };
+        private static ExternalProviderConfig Config(string code, string? authority = null, string? clientId = null)
+            // ClientId is non-nullable in production, but config binding can still leave it null at
+            // runtime (JSON deserialization doesn't enforce NRT annotations) — that's exactly the case
+            // ExternalProviderOptionsValidator is asserting against here.
+            => new() { Code = code, Authority = authority, ClientId = clientId! };
 
         private sealed class FakeProvider : IExternalAuthProvider
         {

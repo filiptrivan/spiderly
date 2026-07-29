@@ -71,7 +71,7 @@ namespace Spiderly.Shared.Tests
             Assert.Contains("\"RecipientId\":42", json);
             Assert.Contains("\"ChannelCode\":\"Email\"", json);
 
-            NotificationOutboxPayload rebuilt = JsonSerializer.Deserialize<NotificationOutboxPayload>(json);
+            NotificationOutboxPayload rebuilt = JsonSerializer.Deserialize<NotificationOutboxPayload>(json)!;
             Assert.Equal("OrderConfirmed", rebuilt.Code);
             Assert.Equal("{\"OrderId\":42}", rebuilt.Data);
             Assert.Equal(42, rebuilt.RecipientId);

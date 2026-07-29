@@ -76,7 +76,7 @@ namespace Spiderly.Shared.Tests
 
         private static NotificationDeliveryExecutor NewExecutor(
             INotificationChannel[] channels,
-            INotificationRecipientResolver resolver = null)
+            INotificationRecipientResolver? resolver = null)
             => new(
                 new CodeTypeRegistry<INotification>(new[] { typeof(TestNotification) }),
                 channels,
@@ -99,10 +99,10 @@ namespace Spiderly.Shared.Tests
             public string Code { get; }
             public bool IsConfigured { get; }
             public int SendCount { get; private set; }
-            public INotification LastNotification { get; private set; }
-            public INotificationRecipient LastRecipient { get; private set; }
+            public INotification? LastNotification { get; private set; }
+            public INotificationRecipient? LastRecipient { get; private set; }
 
-            public Task SendAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+            public Task SendAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
             {
                 SendCount++;
                 LastNotification = notification;

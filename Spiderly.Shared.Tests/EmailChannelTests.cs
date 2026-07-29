@@ -126,14 +126,14 @@ namespace Spiderly.Shared.Tests
 
         private sealed class FakeEmailRenderer : IEmailRenderer
         {
-            private readonly EmailContent _content;
-            public FakeEmailRenderer(Type notificationType, EmailContent content)
+            private readonly EmailContent? _content;
+            public FakeEmailRenderer(Type notificationType, EmailContent? content)
             {
                 NotificationType = notificationType;
                 _content = content;
             }
             public Type NotificationType { get; }
-            public Task<EmailContent> RenderAsync(INotification notification, INotificationRecipient recipient, CancellationToken cancellationToken)
+            public Task<EmailContent?> RenderAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
                 => Task.FromResult(_content);
         }
 
@@ -165,7 +165,7 @@ namespace Spiderly.Shared.Tests
 
             public bool IsConfigured() => true;
 
-            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender from = null)
+            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null)
             {
                 Single.Add((recipient, subject, body));
                 return Task.CompletedTask;
@@ -177,7 +177,7 @@ namespace Spiderly.Shared.Tests
                 return Task.CompletedTask;
             }
 
-            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender from = null)
+            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null)
                 => throw new NotSupportedException();
 
             public Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body)

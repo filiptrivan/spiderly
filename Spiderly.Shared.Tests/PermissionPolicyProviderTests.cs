@@ -29,7 +29,7 @@ namespace Spiderly.Shared.Tests
         [InlineData(null, false, null)]
         public void TryGetPermissionCode_parses_only_permission_policies(string policyName, bool expected, string expectedCode)
         {
-            bool result = SpiderlyAuthorizationPolicies.TryGetPermissionCode(policyName, out string code);
+            bool result = SpiderlyAuthorizationPolicies.TryGetPermissionCode(policyName, out string? code);
 
             Assert.Equal(expected, result);
             Assert.Equal(expectedCode, code);
@@ -40,7 +40,7 @@ namespace Spiderly.Shared.Tests
         {
             PermissionPolicyProvider provider = new(Options.Create(new AuthorizationOptions()));
 
-            AuthorizationPolicy policy = await provider.GetPolicyAsync(SpiderlyAuthorizationPolicies.ForPermission("UpdateProduct"));
+            AuthorizationPolicy? policy = await provider.GetPolicyAsync(SpiderlyAuthorizationPolicies.ForPermission("UpdateProduct"));
 
             Assert.NotNull(policy);
             PermissionRequirement requirement = policy.Requirements.OfType<PermissionRequirement>().Single();
@@ -55,7 +55,7 @@ namespace Spiderly.Shared.Tests
             PermissionPolicyProvider provider = new(Options.Create(new AuthorizationOptions()));
 
             // Not a "perm:" policy and not registered anywhere → the wrapped default provider returns null.
-            AuthorizationPolicy policy = await provider.GetPolicyAsync("SomeOtherPolicy");
+            AuthorizationPolicy? policy = await provider.GetPolicyAsync("SomeOtherPolicy");
 
             Assert.Null(policy);
         }

@@ -12,7 +12,7 @@ namespace Spiderly.Shared.Tests;
 /// </summary>
 public class RequestIdMiddlewareTests
 {
-    private static async Task<DefaultHttpContext> RunAsync(string inboundRequestId = null)
+    private static async Task<DefaultHttpContext> RunAsync(string? inboundRequestId = null)
     {
         DefaultHttpContext context = new();
         if (inboundRequestId != null)

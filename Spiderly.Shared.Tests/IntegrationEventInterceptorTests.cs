@@ -32,13 +32,13 @@ namespace Spiderly.Shared.Tests
             TestOutboxMessage row = Assert.Single(ctx.Set<TestOutboxMessage>());
             Assert.Equal(IntegrationEventOutboxHandler.HandlerCode, row.HandlerCode);
 
-            IntegrationEventOutboxPayload envelope = JsonSerializer.Deserialize<IntegrationEventOutboxPayload>(row.Payload);
+            IntegrationEventOutboxPayload envelope = JsonSerializer.Deserialize<IntegrationEventOutboxPayload>(row.Payload)!;
             Assert.Equal("WidgetCreated", envelope.Code);
             Assert.Equal("RecordingWidgetHandler", envelope.TargetHandlerCode); // fanned out to the one handler
 
             // The event is rebuilt from the envelope and its AggregateId is the entity's now-assigned id — i.e. the
             // interceptor harvested AFTER the id was generated (the whole reason it runs in SavedChangesAsync).
-            WidgetCreated rebuilt = JsonSerializer.Deserialize<WidgetCreated>(envelope.Data);
+            WidgetCreated rebuilt = JsonSerializer.Deserialize<WidgetCreated>(envelope.Data)!;
             Assert.NotEqual(0, widget.Id);
             Assert.Equal(widget.Id, rebuilt.AggregateId);
         }
@@ -155,7 +155,7 @@ namespace Spiderly.Shared.Tests
             public IServiceScope CreateScope() => this;
             public IServiceProvider ServiceProvider => this;
             public void Dispose() { }
-            public object GetService(Type serviceType)
+            public object? GetService(Type serviceType)
                 => serviceType == typeof(IEnumerable<IIntegrationEventHandler>) ? _handlers : null;
         }
 

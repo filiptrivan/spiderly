@@ -97,13 +97,13 @@ namespace Spiderly.Shared.Tests
 
         private sealed class RecordingHandler : HttpMessageHandler
         {
-            private string _lastBody;
+            private string _lastBody = null!;
 
             public JsonElement LastPayload() => JsonDocument.Parse(_lastBody).RootElement;
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                _lastBody = await request.Content.ReadAsStringAsync(cancellationToken);
+                _lastBody = await request.Content!.ReadAsStringAsync(cancellationToken);
                 return new HttpResponseMessage(HttpStatusCode.Created)
                 {
                     Content = new StringContent("""{"messageId":"test"}"""),

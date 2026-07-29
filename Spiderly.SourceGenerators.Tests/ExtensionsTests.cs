@@ -171,7 +171,7 @@ public class ExtensionsTests
     [Fact]
     public void WithoutNullableSuffix_Null_ReturnsNull()
     {
-        Assert.Null(((string)null).WithoutNullableSuffix());
+        Assert.Null(((string)null!).WithoutNullableSuffix());
     }
 
     #endregion
@@ -214,7 +214,7 @@ public class ExtensionsTests
     public void IsEnum_NullType_ReturnsFalse()
     {
         ImmutableArray<string> registry = ImmutableArray.Create("OrderStatusCodes");
-        Assert.False(((string)null).IsEnum(registry));
+        Assert.False(((string)null!).IsEnum(registry));
     }
 
     #endregion
@@ -308,7 +308,7 @@ public class ExtensionsTests
     [Fact]
     public void FirstCharToUpper_Null_ReturnsNull()
     {
-        Assert.Null(((string)null).FirstCharToUpper());
+        Assert.Null(((string)null!).FirstCharToUpper());
     }
 
     [Fact]
@@ -329,7 +329,7 @@ public class ExtensionsTests
     [Fact]
     public void FirstCharToLower_Null_ReturnsNull()
     {
-        Assert.Null(((string)null).FirstCharToLower());
+        Assert.Null(((string)null!).FirstCharToLower());
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public class ExtensionsTests
     [Fact]
     public void SplitCamelCase_Null_ReturnsNull()
     {
-        Assert.Null(((string)null).SplitCamelCase());
+        Assert.Null(((string)null!).SplitCamelCase());
     }
 
     [Fact]
@@ -420,7 +420,7 @@ public class ExtensionsTests
 
     #region OneToOne detection ([WithOne])
 
-    private static SpiderlyProperty WithOneNav(string type = "TaskItem", string inverseName = null) => new()
+    private static SpiderlyProperty WithOneNav(string type = "TaskItem", string? inverseName = null) => new()
     {
         Name = "OwningTaskItem",
         Type = type,

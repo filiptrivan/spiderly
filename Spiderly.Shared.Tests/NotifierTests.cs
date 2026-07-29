@@ -78,7 +78,7 @@ namespace Spiderly.Shared.Tests
             public StubChannel(string code) => Code = code;
             public string Code { get; }
             public bool IsConfigured => true;
-            public Task SendAsync(INotification n, INotificationRecipient r, CancellationToken ct) => Task.CompletedTask;
+            public Task SendAsync(INotification n, INotificationRecipient? r, CancellationToken ct) => Task.CompletedTask;
         }
 
         private sealed class FakeRouter : INotificationRouter

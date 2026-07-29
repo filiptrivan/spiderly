@@ -104,10 +104,10 @@ namespace Spiderly.Security.Tests
         private static AuthenticationService ServiceFor(SpiderlyPrincipal principal)
         {
             return new AuthenticationService(
-                httpContextAccessor: null,
+                httpContextAccessor: null!,
                 principalAccessor: new StaticPrincipalAccessor(principal),
-                context: null,
-                localizer: null,
+                context: null!,
+                localizer: null!,
                 authPolicyOptions: Options.Create(new AuthPolicyOptions()),
                 tokenKeyOptions: Options.Create(new TokenKeyOptions()),
                 cookieManager: new CookieManager(Options.Create(new CookieSettings())),

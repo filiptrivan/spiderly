@@ -161,7 +161,7 @@ public class ValidationsTests
         return new SpiderlyProperty { Name = name, Type = type };
     }
 
-    private static SpiderlyProperty Nav(string name, string type, string withMany = null, string m2mWithMany = null)
+    private static SpiderlyProperty Nav(string name, string type, string? withMany = null, string? m2mWithMany = null)
     {
         SpiderlyProperty property = new() { Name = name, Type = type };
         if (withMany != null)

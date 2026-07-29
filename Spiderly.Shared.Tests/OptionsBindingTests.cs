@@ -14,7 +14,7 @@ namespace Spiderly.Shared.Tests
     /// </summary>
     public class OptionsBindingTests
     {
-        private static IConfigurationSection Section(Dictionary<string, string> values) =>
+        private static IConfigurationSection Section(Dictionary<string, string?> values) =>
             new ConfigurationBuilder()
                 .AddInMemoryCollection(values)
                 .Build()
@@ -27,7 +27,7 @@ namespace Spiderly.Shared.Tests
             {
                 ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "noreply@example.com",
                 ["AppSettings:Spiderly.Shared:EmailSender:Name"] = "Example",
-            }).Get<EmailOptions>();
+            }).Get<EmailOptions>()!;
 
             Assert.NotNull(options.EmailSender);
             Assert.Equal("noreply@example.com", options.EmailSender.Email);
@@ -42,15 +42,15 @@ namespace Spiderly.Shared.Tests
                 ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "no-reply@example.com",
                 ["AppSettings:Spiderly.Shared:EmailReplyTo:Email"] = "info@example.com",
                 ["AppSettings:Spiderly.Shared:EmailReplyTo:Name"] = "Example Shop",
-            }).Get<EmailOptions>();
+            }).Get<EmailOptions>()!;
 
-            Assert.Equal("info@example.com", options.EmailReplyTo.Email);
+            Assert.Equal("info@example.com", options.EmailReplyTo!.Email);
             Assert.Equal("Example Shop", options.EmailReplyTo.Name);
 
             EmailOptions withoutReplyTo = Section(new()
             {
                 ["AppSettings:Spiderly.Shared:EmailSender:Email"] = "no-reply@example.com",
-            }).Get<EmailOptions>();
+            }).Get<EmailOptions>()!;
 
             // Absent config must stay null — the emailing services treat null as "no Reply-To header".
             Assert.Null(withoutReplyTo.EmailReplyTo);
@@ -65,7 +65,7 @@ namespace Spiderly.Shared.Tests
             EmailOptions options = Section(new()
             {
                 ["AppSettings:Spiderly.Shared:EmailSender"] = "noreply@example.com",
-            }).Get<EmailOptions>();
+            }).Get<EmailOptions>()!;
 
             Assert.True(string.IsNullOrWhiteSpace(options.EmailSender?.Email));
         }
@@ -87,11 +87,11 @@ namespace Spiderly.Shared.Tests
                 ["AppSettings:Spiderly.Shared:AdminRecipients:0"] = "ops@example.com",
             });
 
-            Assert.Equal("test-jwt-signing-key", section.Get<JwtOptions>().JwtKey);
-            Assert.Equal("noreply@example.com", section.Get<EmailOptions>().EmailSender.Email);
-            Assert.Equal("test-brevo-key", section.Get<EmailOptions>().BrevoApiKey);
-            Assert.Equal("access_token", section.Get<TokenKeyOptions>().AccessTokenKey);
-            Assert.Equal("ops@example.com", Assert.Single(section.Get<NotificationOptions>().AdminRecipients));
+            Assert.Equal("test-jwt-signing-key", section.Get<JwtOptions>()!.JwtKey);
+            Assert.Equal("noreply@example.com", section.Get<EmailOptions>()!.EmailSender.Email);
+            Assert.Equal("test-brevo-key", section.Get<EmailOptions>()!.BrevoApiKey);
+            Assert.Equal("access_token", section.Get<TokenKeyOptions>()!.AccessTokenKey);
+            Assert.Equal("ops@example.com", Assert.Single(section.Get<NotificationOptions>()!.AdminRecipients));
         }
 
         [Fact]
@@ -102,9 +102,10 @@ namespace Spiderly.Shared.Tests
                 ["AppSettings:Spiderly.Shared:Outbox:Default:MaxAttempts"] = "15",
                 ["AppSettings:Spiderly.Shared:Outbox:Default:MaxBackoffMinutes"] = "90",
                 ["AppSettings:Spiderly.Shared:Outbox:Handlers:WingsExport:MaxAttempts"] = "20",
-            }).GetSection("Outbox").Get<OutboxOptions>();
+            }).GetSection("Outbox").Get<OutboxOptions>()!;
 
-            Assert.Equal(15, options.Default.MaxAttempts);
+            // Default is optional on the options type; this config sets it, so the test can rely on it.
+            Assert.Equal(15, options.Default!.MaxAttempts);
             Assert.Equal(90, options.Default.MaxBackoffMinutes);
             Assert.Equal(20, options.Handlers["WingsExport"].MaxAttempts);
             // Unset field stays null so it falls through to the next layer at resolution time.
