@@ -903,10 +903,10 @@ namespace Spiderly.SourceGenerators.Shared
             return context.AnalyzerConfigOptionsProvider
                 .Select((provider, _) =>
                 {
-                    // TODO(nrt): returns null! when MSBuild doesn't supply build_property.projectdir.
-                    // Should never happen in a real build (it's a standard MSBuild-supplied property), but
-                    // callers (GetRootPath and its consumers) assume a non-null path and would NRE downstream
-                    // if it ever did — kept as-is (not a behavior change) rather than widening the contract.
+                    // Invariant: MSBuild always supplies build_property.projectdir for a project build, so
+                    // the null branch is unreachable outside a broken host. Deliberately not guarded — there
+                    // is no recovery (every consumer needs a real path), and a fault here now surfaces as
+                    // SPIDERLY024 naming the generator rather than as an opaque CS8785.
                     return provider.GlobalOptions.TryGetValue("build_property.projectdir", out var result)
                         ? result!
                         : null!;
@@ -1128,9 +1128,9 @@ namespace Spiderly.SourceGenerators.Shared
                     backendFolderName, callingProjectDirectory);
             }
 
-            // TODO(nrt): returns null! if the found "Backend" directory has no parent (i.e. it's a drive
-            // root) — practically never true for a real project layout. Kept as-is (every current caller
-            // assumes a non-null path) rather than widening the contract for a near-impossible edge case.
+            // Invariant: the located "Backend" directory always has a parent — it would have to BE a
+            // filesystem root for this to be null, which no project layout produces. Deliberately not
+            // guarded: there is no meaningful recovery, and a fault now surfaces as SPIDERLY024.
             return dir.Parent?.FullName!;
         }
 

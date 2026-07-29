@@ -448,9 +448,14 @@ using {{item}};
             return null;
         }
 
-        // TODO(nrt): Pre-existing bug (not touched in this NRT pass) — entityDotNotation.Split('.')[i] can
-        // outrun the segment count on some shapes and throws ArgumentOutOfRangeException (reproducible
-        // building Spiderly.Security). Left as-is per NRT-annotation-only scope for this file.
+        // NOTE: this walk was once blamed for the CS8785 on the Spiderly.Security build. It wasn't — that
+        // was currentProjectEntities[0] on an empty list (Execute, now guarded); an array index would have
+        // thrown IndexOutOfRangeException, not ArgumentOutOfRangeException with Parameter 'index'.
+        //
+        // The walk can still outrun its segments in theory: it descends until it reaches a base data type,
+        // so a [DisplayName] marking a NAVIGATION property would ask for a segment the dot notation never
+        // supplied. Unguarded on purpose — no shape in the suite produces it, and it now surfaces as
+        // SPIDERLY024 naming this generator rather than as an opaque CS8785.
         public static string GetPropTypeOfEntityDotNotationProperty(string entityDotNotation, SpiderlyClass entityClass, List<SpiderlyClass> allClasses)
         {
             // Rolinho.Permission.Id

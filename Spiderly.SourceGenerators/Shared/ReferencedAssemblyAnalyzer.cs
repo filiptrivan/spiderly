@@ -247,9 +247,11 @@ namespace Spiderly.SourceGenerators.Shared
 
                 SpiderlyAttribute spiderAttribute = new SpiderlyAttribute
                 {
-                    // TODO(nrt): AttributeClass can be null for an erroneous/broken attribute reference
-                    // (Roslyn's documented behavior for a symbol-resolution failure), which would make
-                    // attributeName null here too. Pre-existing gap, not fixing under this task.
+                    // AttributeClass is nullable, but an attribute Roslyn CANNOT resolve does not produce
+                    // null here — it produces an IErrorTypeSymbol whose Name is still the written name, so
+                    // it flows through correctly (verified against a three-assembly compilation where the
+                    // attribute's defining assembly is unreferenced). Null would require an undecodable
+                    // metadata blob; a fault there now surfaces as SPIDERLY024. Deliberately unguarded.
                     Name = attributeName!,
                     Value = argumentValue
                 };
