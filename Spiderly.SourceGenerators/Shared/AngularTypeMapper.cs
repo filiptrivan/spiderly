@@ -129,13 +129,10 @@ namespace Spiderly.SourceGenerators.Shared
                 type = type.ElementType;
             }
 
-            // TODO(nrt): returns null! here despite the non-nullable return type — a real latent null path
-            // if type started null (only possible when the string overload is called with a null
-            // cSharpType, or type.Name is somehow empty). The one known caller (NgControllersGenerator's
-            // ValidateControllerType) always passes a real controller method's return type, so this is
-            // never hit in practice; kept as-is rather than widening the contract.
+            // The result feeds a diagnostic message, so a null would render as "type ''". The sentinel keeps
+            // the declared contract true and the message readable.
             if (type == null || string.IsNullOrEmpty(type.Name))
-                return null!;
+                return "<unknown>";
 
             if (type.CoreName.IsBaseDataType())
                 return GetAngularType(type, spiderlyEnumNames);

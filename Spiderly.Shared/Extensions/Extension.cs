@@ -75,8 +75,9 @@ namespace Spiderly.Shared.Extensions
 
             return type.IsClass &&
                type != typeof(string) &&
-               // TODO(nrt): Type.Namespace is null for global-namespace types — this would NRE on one. Entity types always live in a namespace, so keeping the existing behavior.
-               !type.Namespace!.StartsWith("System") &&
+               // Type.Namespace is null for a type declared in the global namespace, which is simply not a
+               // System type — so it classifies like any other reference type rather than NRE-ing here.
+               type.Namespace?.StartsWith("System") != true &&
                !type.Name.StartsWith("Dictionary") &&
                !type.Name.StartsWith("List");
         }

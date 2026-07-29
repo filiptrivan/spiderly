@@ -86,6 +86,14 @@ namespace Spiderly.SourceGenerators.Shared
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor GenericTypeArgumentUnresolved = new(
+            id: "SPIDERLY027",
+            title: "Generic type argument could not be resolved for a base-class property",
+            messageFormat: "Property '{0}' on base class '{1}' is typed as the generic parameter T, but its type argument could not be resolved. A generic base entity declared inside your own project is not supported — declare the property with a concrete type, or inherit BusinessObject<T> directly.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor GeneratorFaulted = new(
             id: "SPIDERLY024",
             title: "A Spiderly source generator faulted",

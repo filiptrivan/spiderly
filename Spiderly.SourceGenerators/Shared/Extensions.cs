@@ -1024,10 +1024,11 @@ namespace Spiderly.SourceGenerators.Shared
                     "<unknown>", "<null>");
             }
 
-            // TODO(nrt): returns null! for M2M classes despite the non-nullable return type — a real latent
-            // null path if GetIdType is ever called on a many-to-many junction class. Every current call
-            // site (Net/Angular generators) only invokes this on "real" entities, never M2M junctions, so
-            // this is never hit in practice; kept as-is rather than widening the contract to every caller.
+            // A many-to-many junction has no Id, so there is no id type — and null is the ESTABLISHED
+            // contract, not an oversight. Generators iterate every entity, junctions included, and simply
+            // don't use the result on the junction branch (ComplexManyToManyList emission depends on this).
+            // Throwing here instead breaks that generation outright; pinned by
+            // LatentNullContractTests.GetIdType_OnAManyToManyJunction_ReturnsNull.
             if (c.IsManyToMany())
                 return null!;
 

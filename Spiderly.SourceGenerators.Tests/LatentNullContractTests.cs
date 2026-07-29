@@ -18,10 +18,12 @@ namespace Spiderly.SourceGenerators.Tests;
 public class LatentNullContractTests
 {
     [Fact]
-    public void GetIdType_OnAManyToManyJunction_ThrowsALocatedDiagnostic()
+    public void GetIdType_OnAManyToManyJunction_ReturnsNull()
     {
-        // A junction has no Id, so there is no id type to return. The same method already throws a located
-        // diagnostic for its other impossible input eight lines up.
+        // Making this throw a located diagnostic looked obviously right and was wrong: generators iterate
+        // EVERY entity, junctions included, and skip the result on the junction branch — throwing killed
+        // ComplexManyToManyList generation outright. Null is the contract, so pin it rather than assert it
+        // in a comment.
         SpiderlyClass junction = new()
         {
             Name = "CourseStudent",
@@ -34,7 +36,7 @@ public class LatentNullContractTests
             },
         };
 
-        Assert.Throws<SpiderlyGenerationException>(() => junction.GetIdType(new List<SpiderlyClass> { junction }));
+        Assert.Null(junction.GetIdType(new List<SpiderlyClass> { junction }));
     }
 
     [Fact]

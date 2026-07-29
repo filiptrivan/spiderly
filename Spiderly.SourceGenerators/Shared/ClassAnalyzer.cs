@@ -259,10 +259,20 @@ namespace Spiderly.SourceGenerators.Shared
 
             if (prop.Type.ToString() == "T") // If some property has type of T, we change it to long for example
             {
-                // TODO(nrt): typeGeneric is only assigned on the branch that immediately breaks the walk in
-                // GetAllPropertiesOfTheClass, so at this call site it is always null today - a "T"-typed
-                // property on a mid-hierarchy class would NRE here. Pre-existing latent gap, not fixing here.
-                newProp.Type = typeGeneric!.ToString();
+                // typeGeneric is only captured on the branch that ends the walk immediately, so it is always
+                // null here — reachable whenever a consumer declares their own generic base entity INSIDE
+                // their project (Spiderly's BusinessObject<T> escapes only by living in a referenced
+                // assembly). Substituting T correctly through a multi-level hierarchy is real work — an
+                // intermediate `B<T> : C<T>` re-projects the parameter — so say so instead of guessing.
+                if (typeGeneric == null)
+                {
+                    throw SpiderlyDiagnostics.Create(
+                        SpiderlyDiagnostics.GenericTypeArgumentUnresolved,
+                        prop.Identifier.GetLocation(),
+                        prop.Identifier.Text, baseClass.Identifier.Text);
+                }
+
+                newProp.Type = typeGeneric.ToString();
                 return newProp;
             }
 
