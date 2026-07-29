@@ -25,6 +25,24 @@ namespace Foo.Business.Entities
 
 Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}SaveBodyDTO`, `{Entity}MainUIFormDTO`) need no marker. The `spiderly add-new-entity` CLI emits `[SpiderlyEntity]` automatically.
 
+### Generated DTO nullability
+
+`[Required]` on the entity property decides it — the same attribute EF turns into a NOT NULL column:
+
+| Entity property             | Generated DTO property           |
+| --------------------------- | -------------------------------- |
+| `[Required] string Name`    | `string Name { get; set; } = null!;` |
+| `string Slug`               | `string? Slug` (bare `string` for a nullable-oblivious app) |
+| `[Required] int Quantity`   | `int Quantity`                   |
+| `int Stock`                 | `int? Stock`                     |
+| `[Required]` navigation     | `long CategoryId` (the FK follows the nav; `CategoryDisplayName` stays nullable — it projects out of the *other* entity) |
+| any collection              | unchanged, with `= new()`        |
+
+Two consequences worth knowing before you write against a generated DTO:
+
+- **A required value type is non-nullable, so an explicit JSON `null` for it is a 400 at model binding**, not a 422 — `null` cannot be assigned to `int`. A *missing* property is fine (it lands as `default`). Required reference types have no such problem: `null` assigns, and the generated `.NotEmpty()` rule returns the usual 422 with field errors.
+- **The C# annotation is invisible to the OpenAPI spec unless the app opts in** with `spiderly.AddSwagger(supportNonNullableReferenceTypes: true)`. Off by default: turning it on narrows the published contract (members become `required`), which regenerates every consumer's typed client — schedule it as its own deploy. `spiderly init` scaffolds it on, since a new app has no consumers yet.
+
 ## Base Classes
 
 | Base Class          | Use When               | Generated                                        |
