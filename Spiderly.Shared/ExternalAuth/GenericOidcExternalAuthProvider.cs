@@ -82,12 +82,18 @@ namespace Spiderly.Shared.ExternalAuth
         internal static ExternalIdentity MapClaimsToIdentity(
             string code, IDictionary<string, object>? claims, bool trustEmailVerified)
         {
+            // "sub" is REQUIRED by OIDC Core, so this rejects only a non-conformant provider — but it is
+            // the key the external login is linked by, and the rest of the flow treats it as present.
+            string? subject = GetString(claims, "sub");
+            if (string.IsNullOrWhiteSpace(subject))
+                throw new SecurityTokenException($"External provider '{code}' id token has no 'sub' claim.");
+
             string? email = GetString(claims, "email");
 
             return new ExternalIdentity
             {
                 Provider = code,
-                Subject = GetString(claims, "sub")!,
+                Subject = subject,
                 Email = email,
                 // Providers that verify emails but omit the email_verified claim (e.g. Facebook) opt in via
                 // TrustEmailVerified; for everyone else the strict claim check stands.
