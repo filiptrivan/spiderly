@@ -27,8 +27,12 @@ namespace __APP_NAME__.Business.Entities
         [WithMany(nameof(User.TaskComments))]
         public virtual User? Author { get; set; }
 
+        // Nullable, not '= null!': no [Required], so this is an OPTIONAL relationship and its FK column
+        // is nullable. Annotating the navigation non-nullable makes EF infer a required relationship
+        // instead, and a comment saved without a category then writes 0 rather than NULL — a foreign-key
+        // violation. The annotation is not cosmetic here; it is schema.
         [UIControlType(nameof(UIControlTypeCodes.Dropdown))]
         [WithMany(nameof(TaskCategory.TaskComments))]
-        public virtual TaskCategory Category { get; set; } = null!;
+        public virtual TaskCategory? Category { get; set; }
     }
 }
