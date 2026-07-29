@@ -40,6 +40,8 @@ public class DtoRequirednessNullabilityTests
                 public string Name { get; set; }
 
                 public virtual List<Product> Products { get; } = new();
+
+                public virtual List<Product> SecondaryProducts { get; } = new();
             }
 
             [SpiderlyEntity]
@@ -75,6 +77,9 @@ public class DtoRequirednessNullabilityTests
                 [Required]
                 [WithMany(nameof(Category.Products))]
                 public virtual Category Category { get; set; }
+
+                [WithMany(nameof(Category.SecondaryProducts))]
+                public virtual Category SecondaryCategory { get; set; }
             }
         }
         """;
@@ -175,6 +180,37 @@ public class DtoRequirednessNullabilityTests
         string dtos = RunDtoGenerator(NullableContextOptions.Enable);
 
         Assert.Contains("public string? CategoryDisplayName { get; set; }", dtos);
+    }
+
+    // --- Sibling generators must read the flattened FK at its ACTUAL nullability ---
+
+    // Regression: the FK column is Nullable<T> only for an OPTIONAL nav, so emitting '.Value'
+    // unconditionally is a CS1061 on the required side. Nothing local caught it — the DTO tests assert
+    // the DTO's own text, and GeneratedCodeCompilesUnderNrtTests filters diagnostics to the CS86xx/CS87xx
+    // nullable bands. It surfaced only when CI compiled the e2e fixture app.
+    [Fact]
+    public void SaveService_ReadsARequiredNavsForeignKey_WithoutValueAccess()
+    {
+        string services = RunServicesGenerator();
+
+        Assert.DoesNotContain("dto.CategoryId.Value", services);
+        Assert.Contains("dto.CategoryId,", services);
+    }
+
+    [Fact]
+    public void SaveService_StillUnwrapsAnOptionalNavsForeignKey()
+    {
+        // The other half of the rule — proves the fix keyed on requiredness rather than dropping
+        // '.Value' everywhere, which would have been a CS0029 on the optional side.
+        Assert.Contains("dto.SecondaryCategoryId.Value", RunServicesGenerator());
+    }
+
+    private static string RunServicesGenerator()
+    {
+        var driver = GeneratorTestHarness.Run<ServicesGenerator>(Source);
+
+        return driver.GetRunResult().Results.Single().GeneratedSources
+            .Single(s => s.HintName == "ProductService.generated.cs").SourceText.ToString();
     }
 
     // --- Collections keep their = new() exemption ---
