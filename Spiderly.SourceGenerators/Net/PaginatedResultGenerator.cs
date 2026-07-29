@@ -60,6 +60,12 @@ namespace Spiderly.SourceGenerators.Net
             List<SpiderlyClass> currentProjectEntities = spiderlyClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = allClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
 
+            // This generator's pipeline also collects DTOs and data mappers, so `classes` can be non-empty
+            // in a project that declares no entities at all — there is simply nothing to paginate there.
+            // Same guard EntitiesToDTOGenerator and ServicesGenerator already carry.
+            if (currentProjectEntities.Count == 0)
+                return;
+
             StringBuilder sb = new();
             List<string> usings = new();
             StringBuilder sbUsings = new();
