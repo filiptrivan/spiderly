@@ -51,6 +51,15 @@ namespace Spiderly.SourceGenerators.Models
         /// </summary>
         public bool IsOneToOnePrincipalInverseNav { get; set; }
 
+        /// <summary>
+        /// Set on generated DTO properties only, from <see cref="SpiderlyDTOColumn.IsRequired"/> — the
+        /// entity-property → DTO-column mapping is where requiredness is decided, and it does not survive
+        /// as an attribute (a DTO column can be synthesized from a navigation, so it has no declaring
+        /// property of its own to carry <c>[Required]</c>). Drives the DTO's emitted nullability.
+        /// Always false for entity properties; ask <c>IsEffectivelyRequired()</c> for those.
+        /// </summary>
+        public bool IsRequired { get; set; }
+
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
     }
 }

@@ -32,5 +32,22 @@ namespace Spiderly.SourceGenerators.Models
 
         /// <summary>True only for <see cref="SpiderlyDTOColumnKind.Scalar"/> columns whose source is a <c>[SpiderlyEnum]</c>.</summary>
         public bool IsEnum { get; set; }
+
+        /// <summary>
+        /// The column is guaranteed to carry a value — the DTO emits it non-nullable (a reference type
+        /// additionally gets <c>= null!</c>). Derived from <c>[Required]</c>, which is already the signal
+        /// EF turns into NOT NULL, Swashbuckle turns into a required schema member, and FluentValidation
+        /// turns into <c>.NotEmpty()</c>.
+        /// <para>
+        /// Deliberately false for <see cref="SpiderlyDTOColumnKind.ManyToOneDisplayName"/> and
+        /// <see cref="SpiderlyDTOColumnKind.OneToManyCommaSeparated"/> even when the source navigation is
+        /// required: those project a value out of a DIFFERENT entity, so deriving requiredness would make
+        /// adding <c>[Required]</c> over there a silent wire-contract change here, with nothing to see at
+        /// the edit site. <see cref="SpiderlyDTOColumnKind.ManyToOneId"/> has no such problem — the FK is
+        /// this entity's own column, and <c>ForeignKeyValidator</c> already fails the build when its
+        /// nullability disagrees with the navigation's requiredness.
+        /// </para>
+        /// </summary>
+        public bool IsRequired { get; set; }
     }
 }

@@ -279,6 +279,7 @@ namespace Spiderly.SourceGenerators.Shared
                         EntityName = $"{property.EntityName}DTO",
                         Description = column.Description,
                         IsEnum = column.IsEnum,
+                        IsRequired = column.IsRequired,
                     });
                 }
             }
@@ -308,6 +309,8 @@ namespace Spiderly.SourceGenerators.Shared
 
             // FK-bearing reference navs (M2O + 1-1 dependent) flatten to the same read-DTO columns —
             // ManyToOneId + ManyToOneDisplayName. (The principal inverse was skipped above.)
+            bool isRequired = property.IsEffectivelyRequired();
+
             if (property.IsForeignKeyReferenceNav())
             {
                 SpiderlyClass manyToOneClass = entities.SingleOrDefault(x => x.Name == property.Type.Name);
@@ -320,7 +323,11 @@ namespace Spiderly.SourceGenerators.Shared
                 // The 1-1 dependent always declares its FK explicitly today, so it takes this skip and
                 // its FK column is emitted exactly once, by the scalar branch.
                 if (property.ResolveExplicitForeignKeyName(entity) == null)
-                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", Kind = SpiderlyDTOColumnKind.ManyToOneId };
+                {
+                    string idType = manyToOneClass.GetIdType(entities);
+
+                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = isRequired ? idType : $"{idType}?", Kind = SpiderlyDTOColumnKind.ManyToOneId, IsRequired = isRequired };
+                }
             }
             else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
             {
@@ -332,29 +339,38 @@ namespace Spiderly.SourceGenerators.Shared
             }
             else if (property.IsBlob())
             {
-                yield return new SpiderlyDTOColumn { Name = $"{property.Name}Data", Type = "string", Kind = SpiderlyDTOColumnKind.BlobData };
-                yield return new SpiderlyDTOColumn { Name = property.Name, Type = "string", Kind = SpiderlyDTOColumnKind.BlobValue };
+                yield return new SpiderlyDTOColumn { Name = $"{property.Name}Data", Type = "string", Kind = SpiderlyDTOColumnKind.BlobData, IsRequired = isRequired };
+                yield return new SpiderlyDTOColumn { Name = property.Name, Type = "string", Kind = SpiderlyDTOColumnKind.BlobValue, IsRequired = isRequired };
             }
             else
             {
-                yield return new SpiderlyDTOColumn { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw), Kind = SpiderlyDTOColumnKind.Scalar, Description = property.Description, IsEnum = property.IsEnum };
+                yield return new SpiderlyDTOColumn { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw, isRequired), Kind = SpiderlyDTOColumnKind.Scalar, Description = property.Description, IsEnum = property.IsEnum, IsRequired = isRequired };
             }
         }
 
-        public static string GetFormatedDTOPropertyType(string propertyType)
+        /// <summary>
+        /// The DTO type for a scalar entity property, keyed on <paramref name="isRequired"/>.
+        /// <para>
+        /// The reference/value split is not cosmetic: <c>int?</c> IS the type (a <c>Nullable&lt;T&gt;</c>
+        /// the CLR knows about), so requiredness is settled here and reaches nullable-oblivious consumers
+        /// too. A reference type's <c>?</c> is only an ANNOTATION — illegal in an oblivious context
+        /// (CS8632) — so it is left bare here and re-introduced, keyed on the same requiredness, by
+        /// <c>EntitiesToDTOGenerator.GetEmittedDTOPropertyType</c> under an annotated context.
+        /// </para>
+        /// </summary>
+        public static string GetFormatedDTOPropertyType(string propertyType, bool isRequired)
         {
             string core = propertyType.WithoutNullableSuffix();
 
-            // A reference-type scalar's '?' is an NRT annotation, not a Nullable<T> — emitting it into a
-            // nullable-oblivious consumer's DTO would raise CS8632. The oblivious DTO string is
-            // already nullable; the NRT-aware emission branch re-introduces the annotation deliberately.
             if (SpiderlyTypeRef.ReferenceTypeScalarNames.Contains(core))
                 return core;
 
             if (propertyType.IsBaseDataType())
-                return $"{core}?";
+                return isRequired ? core : $"{core}?";
 
-            return propertyType;
+            // Enums and any other value-typed scalar mirror the entity's own declaration; [Required]
+            // strips an annotation the schema contradicts (EF makes such a column NOT NULL).
+            return isRequired ? core : propertyType;
         }
 
 
