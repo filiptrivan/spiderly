@@ -95,16 +95,22 @@ namespace Spiderly.SourceGenerators.Shared
             isEnabledByDefault: true);
 
         /// <summary>
-        /// Under <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c> the annotation IS the column's nullability:
-        /// nothing configures scalar requiredness, and EF reads a navigation's nullability as the
-        /// relationship's requiredness. So an annotation disagreeing with <c>[Required]</c> rewrites the
-        /// schema without anyone asking — the next migration alters the column, and a save that
-        /// legitimately omits the value writes a default instead of NULL.
+        /// <c>[Required]</c> is what Spiderly turns into a column's nullability, so an entity property whose
+        /// nullable annotation contradicts it has a C# type that lies about the schema — in one direction or
+        /// the other, depending on the property kind.
+        /// <para>
+        /// For SCALARS the annotation currently wins outright: nothing configures scalar requiredness (see
+        /// <c>Spiderly.Infrastructure.Extensions</c>, where <c>IsRequired</c> appears only in the navigation
+        /// passes), so EF convention reads the annotation and a disagreement silently alters the column. For
+        /// NAVIGATIONS <c>ConfigureManyToOneRelationships</c> configures <c>.IsRequired([Required] != null)</c>
+        /// explicitly, so there the attribute wins and it is the annotation that misinforms the reader.
+        /// Either way the two must tell the same story.
+        /// </para>
         /// </summary>
         public static readonly DiagnosticDescriptor NullabilityRequirednessMismatch = new(
             id: "SPIDERLY028",
             title: "Nullable annotation disagrees with [Required]",
-            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. Under <Nullable>enable</Nullable> the annotation decides the column's nullability, so this silently makes the column {4}. {5}",
+            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. [Required] is what decides the column's nullability, so the annotation contradicts the schema. {4}",
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

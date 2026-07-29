@@ -42,10 +42,7 @@ namespace __APP_NAME__.Business.Entities
         [StringLength(5000, MinimumLength = 1)]
         public string? InternalNotes { get; set; }
 
-        // Nullable, not '= null!': neither nav carries [Required], so both are OPTIONAL relationships
-        // with nullable FK columns. EF reads requiredness off the navigation's nullability, so annotating
-        // them non-nullable flips those columns to NOT NULL — the annotation is schema, not documentation.
-        // (Tightening either one is a deliberate change: add [Required] and take the migration.)
+        // Nullable because neither nav carries [Required] — SPIDERLY028 now enforces the agreement.
         [CascadeDelete]
         [WithMany(nameof(Project.ProjectTasks))]
         public virtual Project? Project { get; set; }

@@ -86,9 +86,9 @@ namespace {{basePartOfNamespace}}.DataMappers
                 string entityRegion;
                 try
                 {
-                    // Once per entity, here rather than inside the mapper helpers: nullableContext is in
-                    // scope only at this level, and the helpers run three times per entity.
-                    ForeignKeyValidator.ValidateNullabilityMatchesRequiredness(entity, nullableContext.AnnotationsEnabled());
+                    // Once per entity — the mapper helpers below run three times per entity, and this
+                    // also covers abstract entities, which the helpers skip.
+                    NullabilityValidator.ValidateEntity(entity, nullableContext);
 
                     entityRegion = $$"""
 
