@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
                     {
                         itemWarehouse = TypeAdapter.Adapt<ItemWarehouse>(selectedItemWarehouseDTO, Mapper.ItemWarehouseDTOToEntityConfig());
                         itemWarehouse.Warehouse = await GetInstanceAsync<Warehouse, byte>(warehouseId, null);
-                        itemWarehouse.Item = await GetInstanceAsync<Item, long>(selectedItemWarehouseDTO.ItemId.Value, null);
+                        itemWarehouse.Item = await GetInstanceAsync<Item, long>(selectedItemWarehouseDTO.ItemId, null);
                         dbSet.Add(itemWarehouse);
                     }
                     else
@@ -128,7 +128,7 @@ namespace TestApp.Business.Services
                     {
                         itemWarehouse = TypeAdapter.Adapt<ItemWarehouse>(selectedItemWarehouseDTO, Mapper.ItemWarehouseDTOToEntityConfig());
                         itemWarehouse.Item = await GetInstanceAsync<Item, long>(itemId, null);
-                        itemWarehouse.Warehouse = await GetInstanceAsync<Warehouse, byte>(selectedItemWarehouseDTO.WarehouseId.Value, null);
+                        itemWarehouse.Warehouse = await GetInstanceAsync<Warehouse, byte>(selectedItemWarehouseDTO.WarehouseId, null);
                         dbSet.Add(itemWarehouse);
                     }
                     else

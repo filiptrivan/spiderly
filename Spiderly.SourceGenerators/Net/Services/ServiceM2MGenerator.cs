@@ -85,7 +85,7 @@ namespace Spiderly.SourceGenerators.Net
                     {
                         {{entity.Name.FirstCharToLower()}} = TypeAdapter.Adapt<{{entity.Name}}>(selected{{entity.Name}}DTO, Mapper.{{entity.Name}}DTOToEntityConfig());
                         {{entity.Name.FirstCharToLower()}}.{{m2mWithManyProperty_2.Name}} = await GetInstanceAsync<{{m2mWithManyProperty_2.Type}}, {{m2mEntityIdType_2}}>({{m2mWithManyProperty_2.Name.FirstCharToLower()}}Id, null);
-                        {{entity.Name.FirstCharToLower()}}.{{m2mWithManyProperty_1.Name}} = await GetInstanceAsync<{{m2mWithManyProperty_1.Type}}, {{m2mEntityIdType_1}}>(selected{{entity.Name}}DTO.{{m2mWithManyProperty_1.Name}}Id.Value, null);
+                        {{entity.Name.FirstCharToLower()}}.{{m2mWithManyProperty_1.Name}} = await GetInstanceAsync<{{m2mWithManyProperty_1.Type}}, {{m2mEntityIdType_1}}>({{m2mWithManyProperty_1.GetDTOForeignKeyAccessExpression($"selected{entity.Name}DTO")}}, null);
                         dbSet.Add({{entity.Name.FirstCharToLower()}});
                     }
                     else

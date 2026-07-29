@@ -794,6 +794,24 @@ namespace Spiderly.SourceGenerators.Shared
             return $"EF.Property<{idType}>({parameterName}, \"{navigation.Name}Id\")";
         }
 
+        /// <summary>
+        /// How generated code reads a navigation's flattened <c>{Nav}Id</c> column off a DTO, as a plain
+        /// <c>{IdType}</c> either way.
+        /// <para>
+        /// The column is a <c>Nullable&lt;T&gt;</c> only when the navigation is OPTIONAL — a required nav
+        /// (including a <c>[M2MWithMany]</c> junction side, which is implicitly required) flattens to a bare
+        /// value type, where <c>.Value</c> is a CS1061. Emitters must ask rather than assume; this is the
+        /// one place that knows, and it mirrors <see cref="SpiderlyClassFactory.GetDTOColumns"/>, which
+        /// decides the column's type from the same <c>IsEffectivelyRequired()</c>.
+        /// </para>
+        /// </summary>
+        public static string GetDTOForeignKeyAccessExpression(this SpiderlyProperty navigation, string dtoExpression)
+        {
+            string column = $"{dtoExpression}.{navigation.Name}Id";
+
+            return navigation.IsEffectivelyRequired() ? column : $"{column}.Value";
+        }
+
         #endregion
 
         #region IsControlType
