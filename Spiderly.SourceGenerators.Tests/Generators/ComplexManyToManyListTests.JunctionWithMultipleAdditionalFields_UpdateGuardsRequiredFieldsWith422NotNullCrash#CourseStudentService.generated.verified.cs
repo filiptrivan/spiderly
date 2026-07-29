@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
                     {
                         courseStudent = TypeAdapter.Adapt<CourseStudent>(selectedCourseStudentDTO, Mapper.CourseStudentDTOToEntityConfig());
                         courseStudent.Student = await GetInstanceAsync<Student, long>(studentId, null);
-                        courseStudent.Course = await GetInstanceAsync<Course, long>(selectedCourseStudentDTO.CourseId, null);
+                        courseStudent.Course = await GetInstanceAsync<Course, long>(selectedCourseStudentDTO.CourseId.Value, null);
                         dbSet.Add(courseStudent);
                     }
                     else
@@ -128,7 +128,7 @@ namespace TestApp.Business.Services
                     {
                         courseStudent = TypeAdapter.Adapt<CourseStudent>(selectedCourseStudentDTO, Mapper.CourseStudentDTOToEntityConfig());
                         courseStudent.Course = await GetInstanceAsync<Course, long>(courseId, null);
-                        courseStudent.Student = await GetInstanceAsync<Student, long>(selectedCourseStudentDTO.StudentId, null);
+                        courseStudent.Student = await GetInstanceAsync<Student, long>(selectedCourseStudentDTO.StudentId.Value, null);
                         dbSet.Add(courseStudent);
                     }
                     else

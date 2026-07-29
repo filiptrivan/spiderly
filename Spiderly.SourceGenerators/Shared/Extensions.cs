@@ -795,21 +795,55 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// How generated code reads a navigation's flattened <c>{Nav}Id</c> column off a DTO, as a plain
-        /// <c>{IdType}</c> either way.
+        /// Whether the DTO column derived from this entity property is a <c>Nullable&lt;T&gt;</c> — i.e.
+        /// whether generated code must unwrap it with <c>.Value</c> before assigning to the entity.
         /// <para>
-        /// The column is a <c>Nullable&lt;T&gt;</c> only when the navigation is OPTIONAL — a required nav
-        /// (including a <c>[M2MWithMany]</c> junction side, which is implicitly required) flattens to a bare
-        /// value type, where <c>.Value</c> is a CS1061. Emitters must ask rather than assume; this is the
-        /// one place that knows, and it mirrors <see cref="SpiderlyClassFactory.GetDTOColumns"/>, which
-        /// decides the column's type from the same <c>IsEffectivelyRequired()</c>.
+        /// Reads the answer from <see cref="SpiderlyClassFactory.GetFormatedDTOPropertyType"/>, the mapping
+        /// that decides the column's type, so an emitter cannot disagree with it. Inferring the column's
+        /// shape from the entity property's own type instead is what broke when DTO nullability started
+        /// keying off <c>[Required]</c>: an emitter's guess and the mapping's answer drifted apart.
         /// </para>
         /// </summary>
-        public static string GetDTOForeignKeyAccessExpression(this SpiderlyProperty navigation, string dtoExpression)
+        public static bool IsDTOColumnNullable(this SpiderlyProperty entityProperty)
         {
-            string column = $"{dtoExpression}.{navigation.Name}Id";
+            return SpiderlyClassFactory
+                .GetFormatedDTOPropertyType(entityProperty.Type.Raw, entityProperty.IsEffectivelyRequired())
+                .EndsWith("?");
+        }
 
-            return navigation.IsEffectivelyRequired() ? column : $"{column}.Value";
+        /// <summary>
+        /// How generated code reads a navigation's foreign key off a DTO, as a plain <c>{IdType}</c>
+        /// either way.
+        /// <para>
+        /// Mirrors the branch in <see cref="SpiderlyClassFactory.GetDTOColumns"/>. With no explicit FK, the
+        /// synthesized <c>{Nav}Id</c> column follows the NAVIGATION's requiredness. With an explicit FK
+        /// scalar on the entity, no <c>{Nav}Id</c> is synthesized — the scalar flows through the scalar
+        /// branch under ITS OWN requiredness, which routinely differs: the <c>spiderly init</c> template's
+        /// <c>UserExternalLogin</c> declares a bare <c>long UserId</c> beside a <c>[Required]</c> nav, and
+        /// every <c>[M2MWithMany]</c> junction does the same. Asking the wrong one is a CS1061 one way and
+        /// a CS1503 the other, so it is resolved here once.
+        /// </para>
+        /// </summary>
+        public static string GetDTOForeignKeyAccessExpression(
+            this SpiderlyProperty navigation,
+            SpiderlyClass entity,
+            string dtoExpression)
+        {
+            string? explicitFkName = navigation.ResolveExplicitForeignKeyName(entity);
+
+            SpiderlyProperty? fkProperty = explicitFkName == null
+                ? null
+                : entity.Properties.FirstOrDefault(p => p.Name == explicitFkName);
+
+            // The column is named for the explicit FK when there is one — a [ForeignKey]-renamed scalar
+            // is not reachable as '{Nav}Id'.
+            string column = $"{dtoExpression}.{explicitFkName ?? $"{navigation.Name}Id"}";
+
+            bool nullable = fkProperty != null
+                ? fkProperty.IsDTOColumnNullable()
+                : navigation.IsEffectivelyRequired() == false;
+
+            return nullable ? $"{column}.Value" : column;
         }
 
         #endregion

@@ -114,6 +114,16 @@ public class GeneratedCodeCompilesUnderNrtTests
     /// Asserts the generator's OWN output compiles without nullable warnings. Diagnostics are filtered
     /// to syntax trees the generator produced — the fixture's hand-written entities are deliberately
     /// un-annotated (that's what a consumer writes) and their warnings belong to the consumer, not here.
+    /// <para>
+    /// SCOPE WARNING — this does NOT prove the output compiles. The filter is the CS86xx/CS87xx nullable
+    /// bands only, so ordinary type errors pass straight through, and it cannot be widened: the harness
+    /// doesn't link the real Spiderly assemblies, so emitted references to <c>_deps</c>,
+    /// <c>GetInstanceAsync</c>, base services and DTO types are unresolved by construction. A generator
+    /// emitting <c>.Value</c> on a non-nullable column (CS1061) is invisible here and green locally — it
+    /// surfaces only in CI's e2e job, which builds a real scaffolded app. When you change what a
+    /// generator emits for a TYPE, pin the emitted text explicitly (see
+    /// <see cref="DtoRequirednessNullabilityTests"/>) rather than trusting this.
+    /// </para>
     /// </summary>
     private static void AssertGeneratedOutputIsNullableClean<TGenerator>(NullableContextOptions nullable)
         where TGenerator : IIncrementalGenerator, new()

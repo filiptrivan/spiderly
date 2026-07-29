@@ -443,7 +443,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 if (dto.{{prop.Name}}Id > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression("dto")}}, null);
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, "dto")}}, null);
                 }
                 else
                 {
@@ -457,7 +457,7 @@ namespace Spiderly.SourceGenerators.Net
                     result.Add($$"""
                 if (dto.{{prop.Name}}Id > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression("dto")}});
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, "dto")}});
                 }
                 else
                 {

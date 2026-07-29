@@ -80,6 +80,25 @@ public class DtoRequirednessNullabilityTests
 
                 [WithMany(nameof(Category.SecondaryProducts))]
                 public virtual Category SecondaryCategory { get; set; }
+
+                public virtual List<Review> Reviews { get; } = new();
+            }
+
+            // The init template's UserExternalLogin shape: an explicit FK scalar beside a [Required]
+            // nav. No {Nav}Id is synthesized here — the scalar flows through the scalar branch under
+            // its OWN requiredness, which is not the nav's.
+            [SpiderlyEntity]
+            public class Review : BusinessObject<long>
+            {
+                [DisplayName]
+                [Required]
+                public string Title { get; set; }
+
+                public long ProductId { get; set; }
+
+                [Required]
+                [WithMany(nameof(Product.Reviews))]
+                public virtual Product Product { get; set; }
             }
         }
         """;
@@ -205,12 +224,21 @@ public class DtoRequirednessNullabilityTests
         Assert.Contains("dto.SecondaryCategoryId.Value", RunServicesGenerator());
     }
 
-    private static string RunServicesGenerator()
+    // An explicit FK suppresses {Nav}Id synthesis, so the column is the SCALAR — and its requiredness
+    // is its own, not the navigation's. Reading the nav here emits a CS1503 ('long?' -> 'long'); this
+    // is the shape the init template's UserExternalLogin ships, so every scaffolded app hits it.
+    [Fact]
+    public void SaveService_ReadsAnExplicitForeignKeyAtTheScalarsNullability()
+    {
+        Assert.Contains("dto.ProductId.Value", RunServicesGenerator("ReviewService.generated.cs"));
+    }
+
+    private static string RunServicesGenerator(string hintName = "ProductService.generated.cs")
     {
         var driver = GeneratorTestHarness.Run<ServicesGenerator>(Source);
 
         return driver.GetRunResult().Results.Single().GeneratedSources
-            .Single(s => s.HintName == "ProductService.generated.cs").SourceText.ToString();
+            .Single(s => s.HintName == hintName).SourceText.ToString();
     }
 
     // --- Collections keep their = new() exemption ---

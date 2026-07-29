@@ -380,7 +380,10 @@ namespace Spiderly.SourceGenerators.Net
             List<string> fieldAssignments = new();
             foreach (SpiderlyProperty field in additionalFields)
             {
-                bool needsValueAccess = field.Type.Raw != "string" && field.Type.IsBaseDataType() && !field.Type.Raw.EndsWith("?");
+                // Ask the DTO-column mapping, don't infer from the entity type: since DTO nullability
+                // keys off [Required], a '[Required] int' field is 'int' on both sides and '.Value'
+                // there is a CS1061.
+                bool needsValueAccess = !field.Type.IsNullable && field.IsDTOColumnNullable();
                 // With a single additional field the placeholder skip already guarantees it's non-null;
                 // with several, a partially-filled row must 422 on missing required fields, not 500 on .Value.
                 if (needsValueAccess && additionalFields.Count > 1)
