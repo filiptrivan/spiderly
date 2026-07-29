@@ -24,12 +24,12 @@ namespace Spiderly.SourceGenerators.Shared
                     return new SpiderlyClass
                     {
                         Name = x.Identifier.Text,
-                        // TODO(nrt): FirstOrDefault() is null for a class with no enclosing block-scoped
-                        // namespace (global namespace, or a file-scoped `namespace Foo;` declaration, which
-                        // parses to FileScopedNamespaceDeclarationSyntax and isn't matched by this OfType
-                        // filter). Pre-existing gap, not fixing under this task.
+                        // BaseNamespaceDeclarationSyntax covers both forms: block-scoped `namespace Foo { }`
+                        // and file-scoped `namespace Foo;`. Filtering on NamespaceDeclarationSyntax alone
+                        // misses the file-scoped one, which is the IDE default for a hand-added entity.
+                        // Still null for a type in the global namespace — entities always declare one.
                         Namespace = x.Ancestors()
-                            .OfType<NamespaceDeclarationSyntax>()
+                            .OfType<BaseNamespaceDeclarationSyntax>()
                             .FirstOrDefault()!.Name.ToString(),
                         BaseType = x.GetBaseType(),
                         IsAbstract = x.IsAbstract(),

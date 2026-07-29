@@ -887,9 +887,10 @@ namespace Spiderly.SourceGenerators.Shared
 
         public static string GetNamespace(this BaseTypeDeclarationSyntax baseTypeDeclarationSyntax)
         {
+            // BaseNamespaceDeclarationSyntax covers both block-scoped and file-scoped declarations.
             return baseTypeDeclarationSyntax
                 .Ancestors()
-                .OfType<NamespaceDeclarationSyntax>()
+                .OfType<BaseNamespaceDeclarationSyntax>()
                 .Select(ns => ns.Name.ToString())
                 .FirstOrDefault();
         }
