@@ -51,7 +51,12 @@ namespace Spiderly.Shared.ExternalAuth
                 .Find(x => string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase));
 
             if (config == null)
-                throw new BusinessException($"No external authentication provider is configured for code '{code}'.", ApiErrorCodes.ExternalProviderNotConfigured);
+            {
+                // The provider code is a config identifier: useful in a log, meaningless in a toast. The
+                // customer gets a localized "try another method"; the operator gets the code here.
+                _logger.LogWarning("No external authentication provider is configured for code '{Provider}'.", code);
+                throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
+            }
 
             return config;
         }
@@ -136,7 +141,10 @@ namespace Spiderly.Shared.ExternalAuth
             string? authority = ExternalProviderPresets.ResolveAuthority(config.Code, config.Authority);
 
             if (string.IsNullOrWhiteSpace(authority))
-                throw new BusinessException($"External provider '{config.Code}' has no authority configured.", ApiErrorCodes.ExternalProviderNotConfigured);
+            {
+                _logger.LogWarning("External provider '{Provider}' has no authority configured.", config.Code);
+                throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
+            }
 
             ConfigurationManager<OpenIdConnectConfiguration> manager = _configManagers.GetOrAdd(authority, a =>
                 new ConfigurationManager<OpenIdConnectConfiguration>(

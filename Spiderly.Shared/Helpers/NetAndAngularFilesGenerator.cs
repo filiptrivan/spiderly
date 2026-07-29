@@ -1416,6 +1416,7 @@ namespace {{appName}}.Shared.FluentValidation
   "EntityDoesNotExistInDatabaseForDeleteRequest": "Your deletion request couldn't be completed as the entity doesn't exist in our database. Maybe it's already deleted.",
   "ExpiredRefreshTokenException": "Your session has expired, please login again.",
   "ExpiredVerificationCodeException": "Your verification code has expired. Please request a new code to continue.",
+  "ExternalProviderNotConfiguredException": "Signing in with this provider is currently unavailable. Please try another sign-in method.",
   "FileContainsActiveContent": "The file contains disallowed active content (scripts or event handlers).",
   "FileContentDoesNotMatchType": "File content does not match declared type '{0}'.",
   "FileIsEmpty": "File is empty.",
