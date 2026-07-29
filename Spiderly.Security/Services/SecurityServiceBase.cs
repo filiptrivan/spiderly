@@ -531,13 +531,24 @@ namespace Spiderly.Security.Services
             // When access token cookie expired (browser deleted it), RefreshAsync derives user ID from refresh token storage.
             JwtAuthResultDTO jwtResult = await _jwtAuthManagerService.RefreshAsync(refreshTokenRequestDTO, userIdFromAccessToken);
 
-            string? emailFromTheDb = await GetUserEmailByIdAsync(jwtResult.UserId);
+            // RefreshAsync validates the token and derives the user id from it, but never reads the user
+            // row — so without this check anything that invalidates a user between issuance and refresh
+            // (row deleted, account disabled) stays invisible and the session survives until the refresh
+            // token's own expiry. Login (Authenticate) and external login (ResolveExternalUser) both
+            // reject a disabled user; refresh has to agree with them. Revoke rather than only reject:
+            // a bare throw leaves the token valid and the client simply retries.
+            TUser? user = await GetUserByIdAsync(jwtResult.UserId);
+
+            if (user == null || user.IsDisabled == true)
+            {
+                await _jwtAuthManagerService.RemoveRefreshTokenByUserIdAsync(jwtResult.UserId);
+                throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
+            }
 
             return new AuthResultDTO
             {
-                UserId = jwtResult.UserId, // Here it will always be user, if there is not, it will break earlier
-                // TODO(nrt): null when the user row was deleted while its refresh token is still live — nothing on the refresh path re-checks the user exists.
-                Email = emailFromTheDb!,
+                UserId = jwtResult.UserId,
+                Email = user.Email,
                 AccessToken = jwtResult.AccessTokenDTO.TokenString,
                 AccessTokenExpiresAt = jwtResult.AccessTokenDTO.ExpiresAt,
                 RefreshToken = jwtResult.RefreshTokenDTO.TokenString
@@ -582,6 +593,18 @@ namespace Spiderly.Security.Services
             return await _context.WithTransactionAsync(async () =>
             {
                 return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Id == id).Select(x => x.Email).SingleOrDefaultAsync();
+            });
+        }
+
+        /// <summary>
+        /// The user row for <paramref name="id"/>, or <c>null</c> when it no longer exists. Used by the
+        /// refresh path, which needs the whole row (email <b>and</b> disabled state) rather than a single column.
+        /// </summary>
+        public virtual async Task<TUser?> GetUserByIdAsync(long id)
+        {
+            return await _context.WithTransactionAsync(async () =>
+            {
+                return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Id == id).SingleOrDefaultAsync();
             });
         }
 
