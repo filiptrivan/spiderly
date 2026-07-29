@@ -88,14 +88,14 @@ namespace Spiderly.SourceGenerators.Net
 
 namespace {{basePartOfNamespace}}.DTO
 {
-{{GetDTOClasses(currentProjectDTOClasses, handWrittenDTONames)}}
+{{GetDTOClasses(currentProjectDTOClasses, handWrittenDTONames, nullableContext)}}
 }
 """;
 
             context.AddSpiderlyCSharpSource("DTOList.generated", result, nullableContext);
         }
 
-        private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, HashSet<string> handWrittenDTONames)
+        private static string GetDTOClasses(List<SpiderlyClass> currentProjectDTOClasses, HashSet<string> handWrittenDTONames, NullableContextOptions nullableContext)
         {
             List<string> result = new();
 
@@ -113,7 +113,7 @@ namespace {{basePartOfNamespace}}.DTO
     /// </summary>
     {{attributeLine}}public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
     {
-{{GetDTOProperties(currentProjectDTOClass)}}
+{{GetDTOProperties(currentProjectDTOClass, nullableContext)}}
     }
 """);
                 }
@@ -122,7 +122,7 @@ namespace {{basePartOfNamespace}}.DTO
                     result.Add($$"""
     {{attributeLine}}public partial class {{currentProjectDTOClass.Name}} {{GetDTOBaseTypeExtension(currentProjectDTOClass.BaseType)}}
     {
-{{GetDTOProperties(currentProjectDTOClass)}}
+{{GetDTOProperties(currentProjectDTOClass, nullableContext)}}
     }
 """);
                 }
@@ -134,7 +134,7 @@ namespace {{basePartOfNamespace}}.DTO
         /// <summary>
         /// Getting the properties of the DTO based on the entity class, we don't include base type properties because of the inheritance
         /// </summary>
-        private static string GetDTOProperties(SpiderlyClass currentProjectDTOClass)
+        private static string GetDTOProperties(SpiderlyClass currentProjectDTOClass, NullableContextOptions nullableContext)
         {
             List<string> result = new();
 
@@ -144,6 +144,7 @@ namespace {{basePartOfNamespace}}.DTO
                     continue;
 
                 string listInitializer = property.Type.IsEnumerable() ? " = new();" : "";
+                string propertyType = GetEmittedDTOPropertyType(property, nullableContext);
 
                 if (property.Description != null)
                 {
@@ -151,18 +152,60 @@ namespace {{basePartOfNamespace}}.DTO
         /// <summary>
         /// {{property.Description}}
         /// </summary>
-        public {{property.Type}} {{property.Name}} { get; set; }{{listInitializer}}
+        public {{propertyType}} {{property.Name}} { get; set; }{{listInitializer}}
 """);
                 }
                 else
                 {
                     result.Add($$"""
-        public {{property.Type}} {{property.Name}} { get; set; }{{listInitializer}}
+        public {{propertyType}} {{property.Name}} { get; set; }{{listInitializer}}
 """);
                 }
             }
 
             return string.Join("\n", result);
+        }
+
+        /// <summary>
+        /// The DTO property type as emitted. A DTO is the wire shape: it is deserialized field-by-field and
+        /// validated afterwards by the generated FluentValidation rules, so every field is optional on arrival.
+        /// The nullable-oblivious emission already encodes that for value types (<c>int</c> -&gt; <c>int?</c>,
+        /// see <see cref="SpiderlyClassFactory.GetFormatedDTOPropertyType"/>); under an annotated context the
+        /// same truth is extended to reference types (<c>string</c> -&gt; <c>string?</c>, a nested DTO ->
+        /// <c>FooDTO?</c>) rather than asserting non-null with <c>= null!</c>, which would let a missing JSON
+        /// field surface as a null hiding behind a non-nullable type.
+        /// <para>
+        /// Collections are exempt: they carry a <c>= new()</c> initializer, so an absent field yields an empty
+        /// list, never null.
+        /// </para>
+        /// </summary>
+        private static string GetEmittedDTOPropertyType(SpiderlyProperty property, NullableContextOptions nullableContext)
+        {
+            string declaredType = property.Type.Raw;
+
+            bool annotationsEnabled = nullableContext == NullableContextOptions.Enable
+                || nullableContext == NullableContextOptions.Annotations;
+
+            if (!annotationsEnabled)
+                return declaredType;
+
+            // Already nullable (value-type '?' from the DTO column mapping, or an annotated reference type).
+            if (declaredType.EndsWith("?"))
+                return declaredType;
+
+            // Initialized to an empty instance on construction — never null.
+            if (property.Type.IsEnumerable())
+                return declaredType;
+
+            // Value types can't take a reference annotation; 'int'/'decimal'/... already came through the
+            // oblivious mapping as 'int?' above, and an enum stays a non-null value type.
+            if (property.Type.IsBaseDataType() && property.Type.Name != "string")
+                return declaredType;
+
+            if (property.IsEnum)
+                return declaredType;
+
+            return $"{declaredType}?";
         }
 
         #region Helpers

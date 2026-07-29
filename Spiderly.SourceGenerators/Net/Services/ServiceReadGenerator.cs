@@ -94,7 +94,7 @@ namespace Spiderly.SourceGenerators.Net
         public async virtual Task<PaginatedResultDTO<{{entity.Name}}DTO>> GetPaginated{{entity.Name}}List(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query)
         {
             PaginatedResult<{{entity.Name}}> paginationResult = new();
-            List<{{entity.Name}}DTO> dtoList = null;
+            List<{{entity.Name}}DTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -121,7 +121,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> Export{{entity.Name}}ListToExcel(FilterDTO filterDTO, IQueryable<{{entity.Name}}> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<{{entity.Name}}DTO> exportQuery = null;
+            IQueryable<{{entity.Name}}DTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {

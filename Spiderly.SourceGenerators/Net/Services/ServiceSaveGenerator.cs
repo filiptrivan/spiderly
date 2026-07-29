@@ -53,7 +53,7 @@ namespace Spiderly.SourceGenerators.Net
             {{entity.Name}}DTOValidationRules validationRules = new {{entity.Name}}DTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            {{entity.Name}} poco = null;
+            {{entity.Name}} poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBefore{{entity.Name}}IsMapped(dto);
@@ -448,7 +448,7 @@ namespace Spiderly.SourceGenerators.Net
                 else
                 {
                     var _ = poco.{{prop.Name}}; // HACK
-                    poco.{{prop.Name}} = null;
+                    poco.{{prop.Name}} = null!;
                 }
 """);
                 }
@@ -462,7 +462,7 @@ namespace Spiderly.SourceGenerators.Net
                 else
                 {
                     var _ = poco.{{prop.Name}}; // HACK
-                    poco.{{prop.Name}} = null;
+                    poco.{{prop.Name}} = null!;
                 }
 """);
                 }

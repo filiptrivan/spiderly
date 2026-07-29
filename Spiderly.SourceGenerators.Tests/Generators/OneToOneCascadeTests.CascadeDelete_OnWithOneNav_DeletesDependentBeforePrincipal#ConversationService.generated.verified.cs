@@ -126,7 +126,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<ConversationDTO>> GetPaginatedConversationList(FilterDTO filterDTO, IQueryable<Conversation> query)
         {
             PaginatedResult<Conversation> paginationResult = new();
-            List<ConversationDTO> dtoList = null;
+            List<ConversationDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -153,7 +153,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportConversationListToExcel(FilterDTO filterDTO, IQueryable<Conversation> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<ConversationDTO> exportQuery = null;
+            IQueryable<ConversationDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -337,7 +337,7 @@ namespace TestApp.Business.Services
             ConversationDTOValidationRules validationRules = new ConversationDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            Conversation poco = null;
+            Conversation poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeConversationIsMapped(dto);
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
                 else
                 {
                     var _ = poco.OwningTaskItem; // HACK
-                    poco.OwningTaskItem = null;
+                    poco.OwningTaskItem = null!;
                 }
 
                 await _deps.Context.SaveChangesAsync();

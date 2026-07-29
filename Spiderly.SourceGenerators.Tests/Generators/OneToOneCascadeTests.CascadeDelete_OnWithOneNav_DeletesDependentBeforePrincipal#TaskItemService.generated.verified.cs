@@ -126,7 +126,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<TaskItemDTO>> GetPaginatedTaskItemList(FilterDTO filterDTO, IQueryable<TaskItem> query)
         {
             PaginatedResult<TaskItem> paginationResult = new();
-            List<TaskItemDTO> dtoList = null;
+            List<TaskItemDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -153,7 +153,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportTaskItemListToExcel(FilterDTO filterDTO, IQueryable<TaskItem> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<TaskItemDTO> exportQuery = null;
+            IQueryable<TaskItemDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -306,7 +306,7 @@ namespace TestApp.Business.Services
             TaskItemDTOValidationRules validationRules = new TaskItemDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            TaskItem poco = null;
+            TaskItem poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeTaskItemIsMapped(dto);

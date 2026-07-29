@@ -26,6 +26,26 @@ internal static class GeneratorTestHarness
     }
 
     /// <summary>
+    /// Runs <typeparamref name="TGenerator"/> and returns the compilation INCLUDING its generated
+    /// output, so a test can assert on diagnostics the emitted code itself raises (a consumer can't
+    /// edit generated files, so warnings there are the framework's bug, not theirs).
+    /// </summary>
+    public static Compilation CompileGeneratedOutput<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable)
+        where TGenerator : IIncrementalGenerator, new()
+    {
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            assemblyName: "Spiderly.SourceGenerators.Tests.Fixture",
+            syntaxTrees: [CSharpSyntaxTree.ParseText(source)],
+            references: References,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
+
+        CSharpGeneratorDriver.Create(new TGenerator())
+            .RunGeneratorsAndUpdateCompilation(compilation, out Compilation withGenerated, out _);
+
+        return withGenerated;
+    }
+
+    /// <summary>
     /// Builds a compilation whose entities live in a *referenced* compilation rather than its own source — the
     /// metadata path exercised by <see cref="Spiderly.SourceGenerators.Shared.ReferencedAssemblyAnalyzer"/> (e.g.
     /// PACMS.WebAPI referencing PACMS.Business). <paramref name="referencedSource"/> is compiled to its own assembly

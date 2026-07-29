@@ -127,7 +127,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<CourseDTO>> GetPaginatedCourseList(FilterDTO filterDTO, IQueryable<Course> query)
         {
             PaginatedResult<Course> paginationResult = new();
-            List<CourseDTO> dtoList = null;
+            List<CourseDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -154,7 +154,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportCourseListToExcel(FilterDTO filterDTO, IQueryable<Course> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<CourseDTO> exportQuery = null;
+            IQueryable<CourseDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -307,7 +307,7 @@ namespace TestApp.Business.Services
             CourseDTOValidationRules validationRules = new CourseDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            Course poco = null;
+            Course poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeCourseIsMapped(dto);

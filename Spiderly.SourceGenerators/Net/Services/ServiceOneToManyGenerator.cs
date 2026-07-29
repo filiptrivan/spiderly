@@ -284,7 +284,7 @@ namespace Spiderly.SourceGenerators.Net
         public async virtual Task<PaginatedResultDTO<{{listEntitty.Name}}DTO>> GetPaginated{{oneToManyProperty.Name}}ListFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query)
         {
             PaginatedResult<{{listEntitty.Name}}> paginationResult = new();
-            List<{{listEntitty.Name}}DTO> dtoList = null;
+            List<{{listEntitty.Name}}DTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -311,7 +311,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> Export{{oneToManyProperty.Name}}ListToExcelFor{{entity.Name}}(FilterDTO filterDTO, IQueryable<{{listEntitty.Name}}> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<{{listEntitty.Name}}DTO> exportQuery = null;
+            IQueryable<{{listEntitty.Name}}DTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -514,7 +514,7 @@ namespace Spiderly.SourceGenerators.Net
         {
             await _deps.Context.WithTransactionAsync(async () =>
             {
-                List<{{extractedPropertyEntityIdType}}> listToInsert = null;
+                List<{{extractedPropertyEntityIdType}}> listToInsert = null!;
 
                 if (saveBodyDTO.AreAll{{property.Name}}Selected == true)
                 {

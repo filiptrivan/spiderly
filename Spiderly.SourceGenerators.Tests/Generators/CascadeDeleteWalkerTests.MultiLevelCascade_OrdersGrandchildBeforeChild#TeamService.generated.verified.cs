@@ -126,7 +126,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<TeamDTO>> GetPaginatedTeamList(FilterDTO filterDTO, IQueryable<Team> query)
         {
             PaginatedResult<Team> paginationResult = new();
-            List<TeamDTO> dtoList = null;
+            List<TeamDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -153,7 +153,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportTeamListToExcel(FilterDTO filterDTO, IQueryable<Team> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<TeamDTO> exportQuery = null;
+            IQueryable<TeamDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -337,7 +337,7 @@ namespace TestApp.Business.Services
             TeamDTOValidationRules validationRules = new TeamDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            Team poco = null;
+            Team poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeTeamIsMapped(dto);
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
                 else
                 {
                     var _ = poco.Org; // HACK
-                    poco.Org = null;
+                    poco.Org = null!;
                 }
 
                 await _deps.Context.SaveChangesAsync();

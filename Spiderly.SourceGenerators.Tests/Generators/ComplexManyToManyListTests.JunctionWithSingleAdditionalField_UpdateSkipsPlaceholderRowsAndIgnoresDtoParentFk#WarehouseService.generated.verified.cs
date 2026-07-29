@@ -126,7 +126,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<WarehouseDTO>> GetPaginatedWarehouseList(FilterDTO filterDTO, IQueryable<Warehouse> query)
         {
             PaginatedResult<Warehouse> paginationResult = new();
-            List<WarehouseDTO> dtoList = null;
+            List<WarehouseDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -153,7 +153,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportWarehouseListToExcel(FilterDTO filterDTO, IQueryable<Warehouse> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<WarehouseDTO> exportQuery = null;
+            IQueryable<WarehouseDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -306,7 +306,7 @@ namespace TestApp.Business.Services
             WarehouseDTOValidationRules validationRules = new WarehouseDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            Warehouse poco = null;
+            Warehouse poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeWarehouseIsMapped(dto);

@@ -126,7 +126,7 @@ namespace TestApp.Business.Services
         public async virtual Task<PaginatedResultDTO<OrgDTO>> GetPaginatedOrgList(FilterDTO filterDTO, IQueryable<Org> query)
         {
             PaginatedResult<Org> paginationResult = new();
-            List<OrgDTO> dtoList = null;
+            List<OrgDTO> dtoList = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -153,7 +153,7 @@ namespace TestApp.Business.Services
         /// <returns>Excel file as byte array</returns>
         public async virtual Task<byte[]> ExportOrgListToExcel(FilterDTO filterDTO, IQueryable<Org> query, CancellationToken cancellationToken = default)
         {
-            IQueryable<OrgDTO> exportQuery = null;
+            IQueryable<OrgDTO> exportQuery = null!;
 
             await _deps.Context.WithTransactionAsync(async () =>
             {
@@ -306,7 +306,7 @@ namespace TestApp.Business.Services
             OrgDTOValidationRules validationRules = new OrgDTOValidationRules();
             validationRules.ValidateAndThrow(dto);
 
-            Org poco = null;
+            Org poco = null!;
             await _deps.Context.WithTransactionAsync(async () =>
             {
                 await OnBeforeOrgIsMapped(dto);
