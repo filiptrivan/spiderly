@@ -18,6 +18,32 @@ const TEST_PRODUCT_BODY = {
   },
 };
 
+/**
+ * TEMPORARY DIAGNOSTIC — remove once the table-filter 400 is fixed.
+ *
+ * The failing table test only reports "the loading mask never hid", and the server logs the 400
+ * without an exception (so it is model binding, not application code). Neither end tells us the
+ * request body or the rejection reason. Playwright holds both, so print them.
+ */
+function logFailedApiCalls(page: import('@playwright/test').Page) {
+  page.on('response', async (response) => {
+    if (response.ok() || !response.url().includes('/api/')) return;
+
+    let body = '<unreadable>';
+    try {
+      body = await response.text();
+    } catch {
+      /* response already consumed or navigation raced it */
+    }
+
+    console.log(
+      `[api-failure] ${response.status()} ${response.url()}\n` +
+        `  request : ${response.request().postData() ?? '<no body>'}\n` +
+        `  response: ${body}`,
+    );
+  });
+}
+
 test.describe('Product CRUD Operations', () => {
   let accessToken: string;
   let productId: number;
@@ -222,6 +248,7 @@ test.describe('Product CRUD Operations', () => {
       tableTestSeedIds.push((await res.json()).productDTO.id);
     }
 
+    logFailedApiCalls(page); // TEMPORARY — see the comment on this helper.
     await authenticateBrowser(page, request);
     await page.goto('/product-list');
     await expect(page.locator('thead th').filter({ hasText: /^\s*Name\s*$/ }).first()).toBeVisible({ timeout: 15000 });
