@@ -68,6 +68,15 @@ test.describe('TaskComment CRUD + Cascade Delete', () => {
       `${API_BASE_URL}/api/TaskComment/SaveTaskComment`,
       { headers: { Authorization: `Bearer ${accessToken}` }, data: commentBodyFor(taskId) }
     );
+    // TEMPORARY DIAGNOSTIC — remove once the CategoryId FK violation is understood. The bare
+    // ok() assertion reports only "false"; the server's message is what identifies the column.
+    if (!commentResponse.ok()) {
+      console.log(
+        `[save-comment-failed] ${commentResponse.status()}\n` +
+          `  request : ${JSON.stringify(commentBodyFor(taskId))}\n` +
+          `  response: ${await commentResponse.text()}`,
+      );
+    }
     expect(commentResponse.ok()).toBeTruthy();
     commentId = (await commentResponse.json()).taskCommentDTO.id;
   });
