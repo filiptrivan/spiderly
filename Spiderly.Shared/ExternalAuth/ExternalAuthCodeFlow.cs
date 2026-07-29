@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
@@ -25,13 +26,19 @@ namespace Spiderly.Shared.ExternalAuth
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ExternalProviderOptions _options;
         private readonly ILogger<ExternalAuthCodeFlow> _logger;
+        private readonly IStringLocalizer _localizer;
         private readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>> _configManagers = new(StringComparer.OrdinalIgnoreCase);
 
-        public ExternalAuthCodeFlow(IHttpClientFactory httpClientFactory, IOptions<ExternalProviderOptions> options, ILogger<ExternalAuthCodeFlow> logger)
+        public ExternalAuthCodeFlow(
+            IHttpClientFactory httpClientFactory,
+            IOptions<ExternalProviderOptions> options,
+            ILogger<ExternalAuthCodeFlow> logger,
+            IStringLocalizer localizer)
         {
             _httpClientFactory = httpClientFactory;
             _options = options.Value;
             _logger = logger;
+            _localizer = localizer;
         }
 
         /// <summary>

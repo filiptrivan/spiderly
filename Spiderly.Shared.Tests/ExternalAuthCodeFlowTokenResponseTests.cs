@@ -2,7 +2,10 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Spiderly.Shared.Contracts;
+using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.ExternalAuth;
+using Spiderly.Shared.Localization;
 
 namespace Spiderly.Shared.Tests
 {
@@ -57,7 +60,47 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("the.id.token", idToken);
         }
 
-        #region Harness
+        [Fact]
+    public void GetConfig_forAnUnconfiguredProvider_throwsALocalizedMessage()
+    {
+        // BusinessException maps to 400, and the Angular interceptor renders its message verbatim — so a
+        // hardcoded English string here is shown to a Serbian customer. BusinessException's own XML doc
+        // documents the intended usage as _localizer["Key"].
+        ExternalAuthCodeFlow sut = NewSut("{}");
+
+        BusinessException exception = Assert.Throws<BusinessException>(() => sut.GetConfig("not-configured"));
+
+        // The passthrough localizer echoes the key, so this asserts the message went through localization
+        // rather than being English prose.
+        Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
+        Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
+    }
+
+    [Fact]
+    public async Task ExchangeCodeForIdToken_withNoAuthorityConfigured_throwsALocalizedMessage()
+    {
+        ExternalProviderConfig noAuthority = new() { Code = "no-authority", ClientId = "client-id" };
+        ExternalAuthCodeFlow sut = NewSut("{}", noAuthority);
+
+        BusinessException exception = await Assert.ThrowsAsync<BusinessException>(
+            () => sut.ExchangeCodeForIdTokenAsync(noAuthority, "auth-code", "verifier", "https://app.test/callback"));
+
+        Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
+        Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
+    }
+
+    [Fact]
+    public void ProviderMessages_doNotLeakTheProviderCodeToTheCustomer()
+    {
+        // The code is a config identifier, useful in a log and meaningless in a toast.
+        ExternalAuthCodeFlow sut = NewSut("{}");
+
+        BusinessException exception = Assert.Throws<BusinessException>(() => sut.GetConfig("not-configured"));
+
+        Assert.DoesNotContain("not-configured", exception.Message);
+    }
+
+    #region Harness
 
         private static ExternalProviderConfig NewConfig() => new()
         {
@@ -67,14 +110,18 @@ namespace Spiderly.Shared.Tests
             ClientSecret = "client-secret",
         };
 
-        private static ExternalAuthCodeFlow NewSut(string tokenResponseBody)
+        private static ExternalAuthCodeFlow NewSut(string tokenResponseBody, params ExternalProviderConfig[] extraProviders)
         {
-            ExternalProviderOptions options = new() { ExternalProviders = new() { NewConfig() } };
+            ExternalProviderOptions options = new()
+            {
+                ExternalProviders = new List<ExternalProviderConfig> { NewConfig() }.Concat(extraProviders).ToList(),
+            };
 
             return new ExternalAuthCodeFlow(
                 new StubHttpClientFactory(new FakeIdpHandler(tokenResponseBody)),
                 Options.Create(options),
-                NullLogger<ExternalAuthCodeFlow>.Instance);
+                NullLogger<ExternalAuthCodeFlow>.Instance,
+                new PassthroughStringLocalizer());
         }
 
         /// <summary>
