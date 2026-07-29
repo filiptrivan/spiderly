@@ -43,6 +43,17 @@ namespace Spiderly.Security.Extensions
                 .Bind(configuration.GetSection(Settings.ConfigurationSection))
                 .ValidateOnStart();
 
+            // Redis is selected at composition time but CONNECTED lazily, so a missing connection string
+            // would otherwise surface as a 500 on the first login rather than at boot. Validate the value
+            // only — not reachability: eagerly connecting would make the app refuse to start whenever Redis
+            // is momentarily down, and StackExchange.Redis reconnects on its own.
+            services.AddOptions<Settings>()
+                .Bind(configuration.GetSection(Settings.ConfigurationSection))
+                .Validate(
+                    o => !o.UseRedisCache || !string.IsNullOrWhiteSpace(o.RedisConnectionString),
+                    $"Spiderly: '{Settings.ConfigurationSection}:RedisConnectionString' is required when UseRedisCache is enabled.")
+                .ValidateOnStart();
+
             // The token-storage backend selection is read once here at composition time (not injected).
             Settings securitySettings = configuration.GetSection(Settings.ConfigurationSection).Get<Settings>() ?? new();
 
@@ -59,8 +70,7 @@ namespace Spiderly.Security.Extensions
             if (securitySettings.UseRedisCache)
             {
                 services.AddSingleton<IConnectionMultiplexer>(sp =>
-                    // TODO(nrt): UseRedisCache=true with a missing RedisConnectionString throws ArgumentNullException
-                    // here at boot (same before NRT); a ValidateOnStart-style guard would fail louder.
+                    // !: the ValidateOnStart guard above fails the boot when this is null or empty.
                     ConnectionMultiplexer.Connect(securitySettings.RedisConnectionString!));
 
                 services.AddSingleton<ITokenStorage<RefreshTokenDTO>>(sp =>
