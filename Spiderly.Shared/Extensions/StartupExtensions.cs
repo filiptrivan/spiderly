@@ -384,7 +384,21 @@ namespace Spiderly.Shared.Extensions
         public static void SpiderlyAddControllers(this IServiceCollection services)
         {
             services
-                .AddControllers()
+                .AddControllers(options =>
+                {
+                    // Under <Nullable>enable</Nullable>, MVC makes every non-nullable reference-typed
+                    // property implicitly [Required] and 400s when a client sends null for it — so an NRT
+                    // annotation, which is a compile-time assertion, would silently change what the API
+                    // accepts. In Spiderly requiredness comes from [Required] and is enforced by the
+                    // generated FluentValidation rules, which return 422 + ApiErrorDTO.fieldErrors that the
+                    // admin renders per field; an implicit model-state 400 bypasses that layer and produces
+                    // an error shape no client can display.
+                    //
+                    // Not hypothetical: enabling NRT in the init scaffold made the admin data-table's own
+                    // request fail, because it posts "multiSortMeta": null and FilterDTO.MultiSortMeta is a
+                    // non-nullable List<FilterSortMetaDTO>.
+                    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+                })
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
