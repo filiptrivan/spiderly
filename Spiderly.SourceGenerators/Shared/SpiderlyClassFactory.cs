@@ -323,11 +323,7 @@ namespace Spiderly.SourceGenerators.Shared
                 // The 1-1 dependent always declares its FK explicitly today, so it takes this skip and
                 // its FK column is emitted exactly once, by the scalar branch.
                 if (property.ResolveExplicitForeignKeyName(entity) == null)
-                {
-                    string idType = manyToOneClass.GetIdType(entities);
-
-                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = isRequired ? idType : $"{idType}?", Kind = SpiderlyDTOColumnKind.ManyToOneId, IsRequired = isRequired };
-                }
+                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = GetFormatedDTOPropertyType(manyToOneClass.GetIdType(entities), isRequired), Kind = SpiderlyDTOColumnKind.ManyToOneId, IsRequired = isRequired };
             }
             else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
             {
@@ -365,12 +361,13 @@ namespace Spiderly.SourceGenerators.Shared
             if (SpiderlyTypeRef.ReferenceTypeScalarNames.Contains(core))
                 return core;
 
-            if (propertyType.IsBaseDataType())
-                return isRequired ? core : $"{core}?";
+            // Required strips nullability whatever the value type is — EF makes such a column NOT NULL.
+            if (isRequired)
+                return core;
 
-            // Enums and any other value-typed scalar mirror the entity's own declaration; [Required]
-            // strips an annotation the schema contradicts (EF makes such a column NOT NULL).
-            return isRequired ? core : propertyType;
+            // Optional: a base scalar becomes Nullable<T>; an enum or other value type mirrors the
+            // entity's own declaration.
+            return propertyType.IsBaseDataType() ? $"{core}?" : propertyType;
         }
 
 

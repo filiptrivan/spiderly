@@ -2150,9 +2150,9 @@ public class Startup
             // pre-registered in AppServiceExtensions; opt in to S3 adapters there when needed.
             // Scaffolded apps are <Nullable>enable</Nullable> and have no deployed API consumers yet, so
             // the spec reflects C# nullability from day one: a required member is `required` and
-            // non-nullable in the generated client instead of optional-and-nullable. Existing apps leave
-            // this off and flip it as a deliberate contract tightening.
-            spiderly.AddSwagger(supportNonNullableReferenceTypes: true);
+            // non-nullable in the generated client instead of optional-and-nullable. An existing app
+            // adds this as a deliberate contract tightening, on its own deploy.
+            spiderly.AddSwagger(options => options.SupportNonNullableReferenceTypes());
             spiderly.AddRateLimiting();
             spiderly.AddForwardedHeaders();
             spiderly.AddOutbox<OutboxMessage>();

@@ -41,7 +41,7 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 Two consequences worth knowing before you write against a generated DTO:
 
 - **A required value type is non-nullable, so an explicit JSON `null` for it is a 400 at model binding**, not a 422 — `null` cannot be assigned to `int`. A *missing* property is fine (it lands as `default`). Required reference types have no such problem: `null` assigns, and the generated `.NotEmpty()` rule returns the usual 422 with field errors.
-- **The C# annotation is invisible to the OpenAPI spec unless the app opts in** with `spiderly.AddSwagger(supportNonNullableReferenceTypes: true)`. Off by default: turning it on narrows the published contract (members become `required`), which regenerates every consumer's typed client — schedule it as its own deploy. `spiderly init` scaffolds it on, since a new app has no consumers yet.
+- **The C# annotation is invisible to the OpenAPI spec unless the app opts in** with `spiderly.AddSwagger(options => options.SupportNonNullableReferenceTypes())`. Not on by default: it narrows the published contract (members become `required`), which regenerates every consumer's typed client — schedule it as its own deploy. `spiderly init` scaffolds it, since a new app has no consumers yet. `AddSwagger`'s callback runs after Spiderly's defaults and is the seam for any other Swashbuckle option too.
 
 ## Base Classes
 

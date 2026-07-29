@@ -1,5 +1,6 @@
 using System.Text;
 using Spiderly.SourceGenerators.Models;
+using Spiderly.SourceGenerators.Shared;
 
 namespace Spiderly.ZooGenerator;
 
@@ -65,14 +66,11 @@ public static class ZooFixtureSource
 
         foreach (string scalar in SpiderlyTypeRef.ScalarKindByName.Keys.OrderBy(x => x, StringComparer.Ordinal))
         {
-            // Invariant casing on purpose — Extensions.FirstCharToUpper is culture-sensitive and
-            // would break the byte-identical output contract on e.g. tr-TR machines ("int" -> "İnt").
-            string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
-            properties.Add((scalar, $"{pascal}Value"));
+            properties.Add((scalar, $"{Pascal(scalar)}Value"));
 
             // Reference-type '?' variants live on ZooShapeNullable (see NullableReferenceShapeProperties).
             if (!ReferenceTypeScalars.Contains(scalar))
-                properties.Add(($"{scalar}?", $"{pascal}NullableValue"));
+                properties.Add(($"{scalar}?", $"{Pascal(scalar)}NullableValue"));
         }
 
         return properties;
@@ -84,8 +82,7 @@ public static class ZooFixtureSource
 
         foreach (string scalar in SpiderlyTypeRef.ScalarKindByName.Keys.OrderBy(x => x, StringComparer.Ordinal))
         {
-            string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
-            properties.Add((scalar, $"{pascal}RequiredValue"));
+            properties.Add((scalar, $"{Pascal(scalar)}RequiredValue"));
         }
 
         return properties;
@@ -100,11 +97,43 @@ public static class ZooFixtureSource
             if (!ReferenceTypeScalars.Contains(scalar))
                 continue;
 
-            string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
-            properties.Add(($"{scalar}?", $"{pascal}NullableValue"));
+            properties.Add(($"{scalar}?", $"{Pascal(scalar)}NullableValue"));
         }
 
         return properties;
+    }
+
+    /// <summary>
+    /// Invariant casing on purpose — <c>Extensions.FirstCharToUpper</c> is culture-sensitive and would
+    /// break the byte-identical output contract on e.g. tr-TR machines ("int" -&gt; "İnt"). Do not route
+    /// this through that helper.
+    /// </summary>
+    private static string Pascal(string scalar) => char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
+
+    /// <summary>
+    /// Renders one fixture property. Every emitted shape goes through here so the property form exists
+    /// once — the only differences between the three axes are the two arguments.
+    /// </summary>
+    private static void AppendShapeProperty(StringBuilder body, string type, string name, bool required)
+    {
+        body.AppendLine();
+
+        if (required)
+            body.AppendLine("        [Required]");
+
+        if (type.WithoutNullableSuffix() == "string")
+            // MinimumLength pairs with the NotEmpty that [Required] emits, mirroring the Name property
+            // both fixture entities declare — so the required twin exercises that rule combination.
+            body.AppendLine(required
+                ? "        [StringLength(100, MinimumLength = 1)]"
+                : "        [StringLength(100)]");
+
+        // A non-nullable reference type needs the '= null!;' initializer the framework's own convention
+        // prescribes — apps scaffolded by `spiderly init` compile under NRT, so an un-initialized
+        // 'string' here would warn (CS8618) in the e2e fixture app.
+        string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
+
+        body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
     }
 
     /// <summary>
@@ -117,44 +146,15 @@ public static class ZooFixtureSource
         StringBuilder body = new();
 
         foreach ((string type, string name) in ShapeProperties)
-        {
-            body.AppendLine();
-
-            if (type == "string")
-                body.AppendLine("        [StringLength(100)]");
-
-            // A non-nullable reference type needs the '= null!;' initializer the framework's own
-            // convention prescribes — apps scaffolded by `spiderly init` compile under NRT, so an
-            // un-initialized 'string' here would warn (CS8618) in the e2e fixture app.
-            string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
-
-            body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
-        }
+            AppendShapeProperty(body, type, name, required: false);
 
         foreach ((string type, string name) in RequiredShapeProperties)
-        {
-            body.AppendLine();
-            body.AppendLine("        [Required]");
-
-            if (type == "string")
-                body.AppendLine("        [StringLength(100, MinimumLength = 1)]");
-
-            string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
-
-            body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
-        }
+            AppendShapeProperty(body, type, name, required: true);
 
         StringBuilder nullableBody = new();
 
         foreach ((string type, string name) in NullableReferenceShapeProperties)
-        {
-            nullableBody.AppendLine();
-
-            if (type.StartsWith("string"))
-                nullableBody.AppendLine("        [StringLength(100)]");
-
-            nullableBody.AppendLine($"        public {type} {name} {{ get; set; }}");
-        }
+            AppendShapeProperty(nullableBody, type, name, required: false);
 
         return $$"""
 // <auto-generated>

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Spiderly.Shared.Extensions;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -37,8 +38,22 @@ public class SwaggerNonNullableOptInTests
     [Fact]
     public void SwaggerGen_ReflectsCSharpNullability_WhenOptedIn()
     {
-        SwaggerGenOptions options = Resolve(services => services.SpiderlyAddSwaggerGen(supportNonNullableReferenceTypes: true));
+        SwaggerGenOptions options = Resolve(services =>
+            services.SpiderlyAddSwaggerGen(o => o.SupportNonNullableReferenceTypes()));
 
         Assert.True(options.SchemaGeneratorOptions.SupportNonNullableReferenceTypes);
+    }
+
+    [Fact]
+    public void ConfigureRunsAfterSpiderlysDefaults()
+    {
+        // Ordering is the seam's whole contract: a consumer's callback has to see the configured
+        // options, not a blank slate it would then have to re-establish.
+        bool sawSpiderlyDefaults = false;
+
+        Resolve(services => services.SpiderlyAddSwaggerGen(o =>
+            sawSpiderlyDefaults = o.SwaggerGeneratorOptions.SwaggerDocs.ContainsKey("v1")));
+
+        Assert.True(sawSpiderlyDefaults);
     }
 }

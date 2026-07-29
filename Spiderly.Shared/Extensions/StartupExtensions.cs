@@ -16,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Authorization;
@@ -213,7 +214,7 @@ namespace Spiderly.Shared.Extensions
 
             if (builder.SwaggerEnabled)
             {
-                services.SpiderlyAddSwaggerGen(builder.SwaggerSupportsNonNullableReferenceTypes);
+                services.SpiderlyAddSwaggerGen(builder.SwaggerConfigure);
             }
 
             if (builder.RateLimitingEnabled)
@@ -415,19 +416,21 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Registers Swashbuckle with Spiderly's defaults.
         /// </summary>
-        /// <param name="supportNonNullableReferenceTypes">
-        /// When true, the OpenAPI spec reflects C# nullability: a non-nullable reference-typed member
-        /// becomes <c>required</c> and <c>nullable: false</c> instead of optional-and-nullable. This is a
-        /// WIRE-CONTRACT tightening that regenerates every consumer's typed client, so it is opt-in and
-        /// off by default — schedule it as its own deploy rather than inheriting it from an upgrade.
+        /// <param name="configure">
+        /// Applied after Spiderly's defaults, so it observes them. The knob most apps want here is
+        /// <c>options.SupportNonNullableReferenceTypes()</c>, which makes the OpenAPI spec reflect C#
+        /// nullability: a non-nullable reference-typed member becomes <c>required</c> and
+        /// <c>nullable: false</c> instead of optional-and-nullable. That is a WIRE-CONTRACT tightening
+        /// which regenerates every consumer's typed client, so Spiderly does not turn it on for you —
+        /// schedule it as its own deploy rather than inheriting it from a framework upgrade.
         /// <para>
-        /// It is a no-op for a nullable-oblivious consumer: Swashbuckle reads runtime
-        /// <c>NullabilityInfo</c>, and generated code for such a consumer is emitted under
-        /// <c>#nullable disable</c>, which reports Unknown and is treated as nullable. So the tightening
-        /// arrives only once a consumer is on <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c> AND opts in.
+        /// It is a no-op for a nullable-oblivious app: Swashbuckle reads runtime <c>NullabilityInfo</c>,
+        /// and generated code for such a consumer is emitted under <c>#nullable disable</c>, which
+        /// reports Unknown and is treated as nullable. So the tightening arrives only once the app is on
+        /// <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c> AND opts in.
         /// </para>
         /// </param>
-        public static void SpiderlyAddSwaggerGen(this IServiceCollection services, bool supportNonNullableReferenceTypes = false)
+        public static void SpiderlyAddSwaggerGen(this IServiceCollection services, Action<SwaggerGenOptions>? configure = null)
         {
             services.AddSwaggerGen(options =>
             {
@@ -437,9 +440,6 @@ namespace Spiderly.Shared.Extensions
                     Version = "v1"
                 });
 
-                if (supportNonNullableReferenceTypes)
-                    options.SupportNonNullableReferenceTypes();
-
                 options.DocumentFilter<ErrorResponseFilter>();
 
                 string basePath = AppContext.BaseDirectory;
@@ -448,6 +448,10 @@ namespace Spiderly.Shared.Extensions
                     try { options.IncludeXmlComments(xmlFile); }
                     catch (InvalidOperationException) { }
                 }
+
+                // Last, so a consumer's callback sees the defaults above rather than a blank slate.
+                // (Not every default is *replaceable* — SwaggerDoc, for one, is Add-only in Swashbuckle.)
+                configure?.Invoke(options);
             });
         }
 

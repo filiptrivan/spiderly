@@ -140,13 +140,15 @@ namespace {{basePartOfNamespace}}.DTO
         {
             List<string> result = new();
 
+            // Fixed for the whole compilation — resolved once rather than per property.
+            bool annotationsEnabled = nullableContext.AnnotationsEnabled();
+
             foreach (SpiderlyProperty property in currentProjectDTOClass.Properties)
             {
                 if (property.EntityName != currentProjectDTOClass.Name)
                     continue;
 
-                string propertyType = GetEmittedDTOPropertyType(property, nullableContext);
-                string listInitializer = GetEmittedDTOPropertyInitializer(property, propertyType, nullableContext);
+                (string propertyType, string listInitializer) = GetEmittedDTOProperty(property, annotationsEnabled);
 
                 if (property.Description != null)
                 {
@@ -169,72 +171,56 @@ namespace {{basePartOfNamespace}}.DTO
         }
 
         /// <summary>
-        /// The DTO property type as emitted. Nullability is keyed off <c>[Required]</c> — the same signal EF
-        /// turns into NOT NULL and Swashbuckle turns into a required schema member — so the C# type asserts
-        /// what the schema already guarantees instead of declaring every field optional on the grounds that
-        /// JSON could omit it. Required reference types are non-nullable and carry <c>= null!</c> (see
-        /// <see cref="GetEmittedDTOPropertyInitializer"/>); optional ones are <c>string?</c> / <c>FooDTO?</c>.
+        /// The DTO property's emitted type and its initializer — decided together, because they answer one
+        /// question. Nullability is keyed off <c>[Required]</c>, the same signal EF turns into NOT NULL and
+        /// Swashbuckle turns into a required schema member, so the C# type asserts what the schema already
+        /// guarantees instead of declaring every field optional on the grounds that JSON could omit it.
+        /// <para>
+        /// A required reference type needs <c>= null!</c> or the emitted file raises CS8618 in a consumer who
+        /// cannot edit it (and, with <c>&lt;WarningsAsErrors&gt;Nullable&lt;/WarningsAsErrors&gt;</c>, fails
+        /// their build). The assertion is backed the same way it is on entities: the column is NOT NULL for a
+        /// read, and the generated FluentValidation <c>.NotEmpty()</c> rejects the request before business
+        /// code sees it for a write.
+        /// </para>
         /// <para>
         /// Value types are settled earlier, in <see cref="SpiderlyClassFactory.GetFormatedDTOPropertyType"/>:
         /// <c>int?</c> IS the type, so it applies in an oblivious context too. This method only re-introduces
         /// the reference-type ANNOTATION, which is illegal (CS8632) for an oblivious consumer.
         /// </para>
-        /// <para>
-        /// Collections are exempt in both directions: they carry <c>= new()</c>, so an absent field yields an
-        /// empty list, never null.
-        /// </para>
         /// </summary>
-        private static string GetEmittedDTOPropertyType(SpiderlyProperty property, NullableContextOptions nullableContext)
+        private static (string Type, string Initializer) GetEmittedDTOProperty(SpiderlyProperty property, bool annotationsEnabled)
         {
             string declaredType = property.Type.Raw;
 
-            if (!nullableContext.AnnotationsEnabled())
-                return declaredType;
-
-            // Already nullable (value-type '?' from the DTO column mapping, or an annotated reference type).
-            if (declaredType.EndsWith("?"))
-                return declaredType;
-
-            // Initialized to an empty instance on construction — never null.
+            // Collections are exempt in both directions: '= new()' makes an absent field an empty list,
+            // never null, so there is nothing for an annotation to say.
             if (property.Type.IsEnumerable())
-                return declaredType;
+                return (declaredType, " = new();");
+
+            if (!annotationsEnabled || !TakesReferenceAnnotation(property))
+                return (declaredType, "");
+
+            return property.IsRequired
+                ? (declaredType, " = null!;")
+                : ($"{declaredType}?", "");
+        }
+
+        /// <summary>
+        /// Whether this property's nullability is expressed as an NRT ANNOTATION (<c>string?</c>,
+        /// <c>FooDTO?</c>) rather than being part of the type itself. Kept as one predicate so the emitted
+        /// type and its <c>= null!</c> can never disagree about what a property is.
+        /// </summary>
+        private static bool TakesReferenceAnnotation(SpiderlyProperty property)
+        {
+            // Already nullable: a value-type '?' settled by the DTO column mapping, or a reference type the
+            // hand-written source annotated itself.
+            if (property.Type.IsNullable || property.IsEnum)
+                return false;
 
             // Value-type scalars can't take a reference annotation. Generated ones already came through the
             // column mapping with their final nullability; a hand-written [SpiderlyDTO] class's properties
             // bypass that mapping entirely, so this guard is what keeps its 'int' from becoming 'int?'.
-            if (property.Type.IsBaseDataType() && !property.Type.IsReferenceTypeScalar)
-                return declaredType;
-
-            if (property.IsEnum)
-                return declaredType;
-
-            return property.IsRequired ? declaredType : $"{declaredType}?";
-        }
-
-        /// <summary>
-        /// The initializer trailing an emitted DTO property, or an empty string.
-        /// <para>
-        /// Collections get <c>= new()</c> in every context — that is what makes an absent JSON array an empty
-        /// list. A non-nullable reference type additionally needs <c>= null!</c> under an annotated context,
-        /// or the emitted file raises CS8618 in a consumer who cannot edit it (and, with
-        /// <c>&lt;WarningsAsErrors&gt;Nullable&lt;/WarningsAsErrors&gt;</c>, fails their build). The assertion
-        /// is backed the same way it is on entities: the column is NOT NULL for a read, and the generated
-        /// FluentValidation <c>.NotEmpty()</c> rejects the request before business code sees it for a write.
-        /// </para>
-        /// </summary>
-        private static string GetEmittedDTOPropertyInitializer(SpiderlyProperty property, string emittedType, NullableContextOptions nullableContext)
-        {
-            if (property.Type.IsEnumerable())
-                return " = new();";
-
-            if (!nullableContext.AnnotationsEnabled() || emittedType.EndsWith("?"))
-                return "";
-
-            // Value types and enums are already definitely-assigned by their default.
-            if (property.IsEnum || (property.Type.IsBaseDataType() && !property.Type.IsReferenceTypeScalar))
-                return "";
-
-            return " = null!;";
+            return !property.Type.IsBaseDataType() || property.Type.IsReferenceTypeScalar;
         }
 
         #region Helpers
