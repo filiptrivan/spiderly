@@ -39,7 +39,7 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(100, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         public ZooCodes CodesValue { get; set; }
 
@@ -86,7 +86,7 @@ namespace __APP_NAME__.Business.Entities
         public long? LongNullableValue { get; set; }
 
         [StringLength(100)]
-        public string StringValue { get; set; }
+        public string StringValue { get; set; } = null!;
     }
 
 #nullable enable

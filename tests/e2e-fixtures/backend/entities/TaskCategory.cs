@@ -13,12 +13,12 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(50, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.ColorPicker))]
         [Required]
         [StringLength(10, MinimumLength = 4)]
-        public string Color { get; set; }
+        public string Color { get; set; } = null!;
 
         [UIDoNotGenerate]
         public virtual List<ProjectTask> ProjectTasks { get; } = new();

@@ -1493,7 +1493,7 @@ namespace {{appName}}.Business.Entities
         [Email]
         [StringLength(70, MinimumLength = 5)]
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
 
         public bool? IsDisabled { get; set; }
 
@@ -1529,17 +1529,17 @@ namespace {{appName}}.Business.Entities
     {
         [Required]
         [StringLength(50, MinimumLength = 1)]
-        public string Provider { get; set; }
+        public string Provider { get; set; } = null!;
 
         [Required]
         [StringLength(255, MinimumLength = 1)]
-        public string ProviderKey { get; set; }
+        public string ProviderKey { get; set; } = null!;
 
         public long UserId { get; set; }
 
         [Required]
         [WithMany(nameof(User.ExternalLogins))]
-        public virtual User User { get; set; }
+        public virtual User User { get; set; } = null!;
     }
 }
 """;
@@ -1563,7 +1563,7 @@ namespace {{appName}}.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(255, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
         public virtual List<User> Users { get; } = new(); // M2M
@@ -1597,11 +1597,11 @@ namespace {{appName}}.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(100, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [Required]
         [StringLength(100, MinimumLength = 1)]
-        public string Code { get; set; }
+        public string Code { get; set; } = null!;
 
         public virtual List<Role> Roles { get; } = new(); // M2M
         IReadOnlyCollection<IRole> IPermission.Roles => Roles;
@@ -1623,10 +1623,10 @@ namespace {{appName}}.Business.Entities
     public class RolePermission
     {
         [M2MWithMany(nameof(Role.Permissions))]
-        public virtual Role Role { get; set; }
+        public virtual Role Role { get; set; } = null!;
 
         [M2MWithMany(nameof(Permission.Roles))]
-        public virtual Permission Permission { get; set; }
+        public virtual Permission Permission { get; set; } = null!;
     }
 }
 
@@ -1645,10 +1645,10 @@ namespace {{appName}}.Business.Entities
     public class UserRole
     {
         [M2MWithMany(nameof(User.Roles))]
-        public virtual User User { get; set; }
+        public virtual User User { get; set; } = null!;
 
         [M2MWithMany(nameof(Role.Users))]
-        public virtual Role Role { get; set; }
+        public virtual Role Role { get; set; } = null!;
     }
 }
 
@@ -1779,11 +1779,11 @@ namespace {{appName}}.Business.Entities
     {
         [Required]
         [StringLength(100, MinimumLength = 1)]
-        public string HandlerCode { get; set; }
+        public string HandlerCode { get; set; } = null!;
 
         [Required]
         [StringLength(4000, MinimumLength = 1)]
-        public string Payload { get; set; }
+        public string Payload { get; set; } = null!;
 
         public DateTime? DispatchedAt { get; set; }
 
@@ -1793,7 +1793,7 @@ namespace {{appName}}.Business.Entities
         public DateTime? LastAttemptedAt { get; set; }
 
         [StringLength(2000)]
-        public string LastError { get; set; }
+        public string? LastError { get; set; }
 
         public DateTime? NextAttemptAt { get; set; }
 
@@ -1893,7 +1893,7 @@ namespace {{appName}}.WebAPI.Controllers
         {
             await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.UpdateOutboxMessage);
 
-            OutboxMessage row = await _context.DbSet<OutboxMessage>()
+            OutboxMessage? row = await _context.DbSet<OutboxMessage>()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (row == null)
@@ -1919,7 +1919,7 @@ namespace {{appName}}.WebAPI.Controllers
         {
             await _authorizationService.AuthorizeAndThrowAsync(PermissionCodes.UpdateOutboxMessage);
 
-            OutboxMessage row = await _context.DbSet<OutboxMessage>()
+            OutboxMessage? row = await _context.DbSet<OutboxMessage>()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (row == null)
@@ -2277,6 +2277,7 @@ namespace {{appName}}.WebAPI
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>1591</NoWarn>
 	</PropertyGroup>
@@ -2533,6 +2534,7 @@ namespace {{appName}}.WebAPI.Extensions
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
@@ -2607,6 +2609,7 @@ namespace {{appName}}.Infrastructure
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>1591</NoWarn>
 	</PropertyGroup>
@@ -2653,6 +2656,7 @@ namespace {{appName}}.Infrastructure
 		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -2742,6 +2746,7 @@ namespace {{appName}}.Business
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
@@ -2908,10 +2913,10 @@ namespace {{appName}}.Business.Services
             bool isFirstUserEver = await _context.DbSet<User>().CountAsync() == 1;
             if (isFirstUserEver)
             {
-                Role adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
+                Role? adminRole = await _context.DbSet<Role>().FirstOrDefaultAsync(x => x.Name == "Admin");
                 if (adminRole != null)
                 {
-                    User user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
+                    User? user = await _context.DbSet<User>().FirstOrDefaultAsync(x => x.Id == authResultDTO.UserId);
                     if (user != null && !user.Roles.Any())
                     {
                         user.Roles.Add(adminRole);

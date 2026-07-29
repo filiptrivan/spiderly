@@ -13,11 +13,11 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [MaxLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.TextArea))]
         [MaxLength(500)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
         [Range(0.01, 999999.99)]
@@ -31,6 +31,6 @@ namespace __APP_NAME__.Business.Entities
         [DiskStorage]
         [AcceptedFileTypes("video/mp4")]
         [StringLength(1000)]
-        public string VideoUrl { get; set; }
+        public string? VideoUrl { get; set; }
     }
 }

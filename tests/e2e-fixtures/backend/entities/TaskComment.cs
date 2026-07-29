@@ -16,19 +16,19 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(2000, MinimumLength = 1)]
-        public string Content { get; set; }
+        public string Content { get; set; } = null!;
 
         [CascadeDelete]
         [WithMany(nameof(ProjectTask.TaskComments))]
-        public virtual ProjectTask ProjectTask { get; set; }
+        public virtual ProjectTask ProjectTask { get; set; } = null!;
 
         [SetNull]
         [UIControlType(nameof(UIControlTypeCodes.Autocomplete))]
         [WithMany(nameof(User.TaskComments))]
-        public virtual User Author { get; set; }
+        public virtual User? Author { get; set; }
 
         [UIControlType(nameof(UIControlTypeCodes.Dropdown))]
         [WithMany(nameof(TaskCategory.TaskComments))]
-        public virtual TaskCategory Category { get; set; }
+        public virtual TaskCategory Category { get; set; } = null!;
     }
 }

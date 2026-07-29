@@ -8,9 +8,9 @@ namespace __APP_NAME__.Business.Entities
     public class ProjectMember : BusinessObject<long>
     {
         [M2MWithMany(nameof(Project.Members))]
-        public virtual Project Project { get; set; }
+        public virtual Project Project { get; set; } = null!;
 
         [M2MWithMany(nameof(User.Projects))]
-        public virtual User User { get; set; }
+        public virtual User User { get; set; } = null!;
     }
 }

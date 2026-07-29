@@ -16,7 +16,7 @@ namespace __APP_NAME__.Business.Entities
         [Email]
         [StringLength(70, MinimumLength = 5)]
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
 
         public bool? IsDisabled { get; set; }
 

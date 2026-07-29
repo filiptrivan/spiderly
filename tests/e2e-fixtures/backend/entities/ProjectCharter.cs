@@ -19,17 +19,17 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(200, MinimumLength = 1)]
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.TextArea))]
         [StringLength(2000, MinimumLength = 1)]
-        public string Scope { get; set; }
+        public string? Scope { get; set; }
 
         // Optional explicit FK — nullable so most projects have no charter and many NULLs must be allowed.
         public long? CharteredProjectId { get; set; }
 
         [WithOne(nameof(Project.ProjectCharter))]
         [CascadeDelete]
-        public virtual Project CharteredProject { get; set; }
+        public virtual Project? CharteredProject { get; set; }
     }
 }

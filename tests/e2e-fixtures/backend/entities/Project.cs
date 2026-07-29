@@ -13,11 +13,11 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(200, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.TextArea))]
         [StringLength(1000, MinimumLength = 1)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
         [Precision(18, 2)]
@@ -33,11 +33,11 @@ namespace __APP_NAME__.Business.Entities
 
         [UIControlType(nameof(UIControlTypeCodes.Editor))]
         [StringLength(10000, MinimumLength = 1)]
-        public string Documentation { get; set; }
+        public string? Documentation { get; set; }
 
         [UIControlType(nameof(UIControlTypeCodes.Markdown))]
         [StringLength(10000, MinimumLength = 1)]
-        public string Readme { get; set; }
+        public string? Readme { get; set; }
 
         [UIControlType(nameof(UIControlTypeCodes.CheckBox))]
         public bool? IsArchived { get; set; }
@@ -52,6 +52,6 @@ namespace __APP_NAME__.Business.Entities
         // Principal inverse of the optional one-to-one with ProjectCharter (the FK + [WithOne] live on
         // ProjectCharter). A plain single-valued nav with no attribute — the 1-1 principal-inverse rule
         // excludes it from Project's generated DTO/UI, so project-crud.spec.ts is unaffected.
-        public virtual ProjectCharter ProjectCharter { get; set; }
+        public virtual ProjectCharter? ProjectCharter { get; set; }
     }
 }

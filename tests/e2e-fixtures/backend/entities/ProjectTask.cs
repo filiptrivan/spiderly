@@ -18,11 +18,11 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(300, MinimumLength = 1)]
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.TextArea))]
         [StringLength(2000, MinimumLength = 1)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
         [Precision(18, 2)]
@@ -36,24 +36,24 @@ namespace __APP_NAME__.Business.Entities
         public bool? IsCompleted { get; set; }
 
         [StringLength(70, MinimumLength = 1)]
-        public string CreatedByUserEmail { get; set; }
+        public string? CreatedByUserEmail { get; set; }
 
         [ExcludeFromDTO]
         [StringLength(5000, MinimumLength = 1)]
-        public string InternalNotes { get; set; }
+        public string? InternalNotes { get; set; }
 
         [CascadeDelete]
         [WithMany(nameof(Project.ProjectTasks))]
-        public virtual Project Project { get; set; }
+        public virtual Project Project { get; set; } = null!;
 
         [UIControlType(nameof(UIControlTypeCodes.Dropdown))]
         [WithMany(nameof(TaskCategory.ProjectTasks))]
-        public virtual TaskCategory TaskCategory { get; set; }
+        public virtual TaskCategory TaskCategory { get; set; } = null!;
 
         [SetNull]
         [UIControlType(nameof(UIControlTypeCodes.Autocomplete))]
         [WithMany(nameof(User.AssignedTasks))]
-        public virtual User AssignedTo { get; set; }
+        public virtual User? AssignedTo { get; set; }
 
         [UIOrderedOneToMany]
         public virtual List<TaskComment> TaskComments { get; } = new();

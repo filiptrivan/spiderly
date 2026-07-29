@@ -102,7 +102,12 @@ public static class ZooFixtureSource
             if (type == "string")
                 body.AppendLine("        [StringLength(100)]");
 
-            body.AppendLine($"        public {type} {name} {{ get; set; }}");
+            // A non-nullable reference type needs the '= null!;' initializer the framework's own
+            // convention prescribes — apps scaffolded by `spiderly init` compile under NRT, so an
+            // un-initialized 'string' here would warn (CS8618) in the e2e fixture app.
+            string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
+
+            body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
         }
 
         StringBuilder nullableBody = new();
@@ -159,7 +164,7 @@ namespace __APP_NAME__.Business.Entities
         [DisplayName]
         [Required]
         [StringLength(100, MinimumLength = 1)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 {{body.ToString().TrimEnd('\n', '\r')}}
     }
 
