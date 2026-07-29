@@ -87,6 +87,43 @@ namespace __APP_NAME__.Business.Entities
 
         [StringLength(100)]
         public string StringValue { get; set; } = null!;
+
+        [Required]
+        public ZooCodes CodesRequiredValue { get; set; }
+
+        [Required]
+        public DateOnly DateOnlyRequiredValue { get; set; }
+
+        [Required]
+        public DateTime DateTimeRequiredValue { get; set; }
+
+        [Required]
+        public TimeOnly TimeOnlyRequiredValue { get; set; }
+
+        [Required]
+        public bool BoolRequiredValue { get; set; }
+
+        [Required]
+        public byte ByteRequiredValue { get; set; }
+
+        [Required]
+        public decimal DecimalRequiredValue { get; set; }
+
+        [Required]
+        public double DoubleRequiredValue { get; set; }
+
+        [Required]
+        public float FloatRequiredValue { get; set; }
+
+        [Required]
+        public int IntRequiredValue { get; set; }
+
+        [Required]
+        public long LongRequiredValue { get; set; }
+
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string StringRequiredValue { get; set; } = null!;
     }
 
 #nullable enable

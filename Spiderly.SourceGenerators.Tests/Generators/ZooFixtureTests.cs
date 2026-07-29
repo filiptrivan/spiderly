@@ -33,10 +33,11 @@ public class ZooFixtureTests
     [Fact]
     public void ZooShapeProperties_EmitValidTsPropertyDefinitions()
     {
-        // Both fixture entities' axes go through the real TS emission seam: the oblivious shapes
-        // (ZooShape) and the NRT-annotated reference shapes (ZooShapeNullable, e.g. 'string?') —
-        // the annotated '?' must never leak into TS any more than the Nullable<T> one does.
+        // Every fixture axis goes through the real TS emission seam: the oblivious shapes (ZooShape),
+        // their [Required] twins, and the NRT-annotated reference shapes (ZooShapeNullable, e.g.
+        // 'string?') — the annotated '?' must never leak into TS any more than the Nullable<T> one does.
         List<SpiderlyProperty> properties = ZooFixtureSource.ShapeProperties
+            .Concat(ZooFixtureSource.RequiredShapeProperties)
             .Concat(ZooFixtureSource.NullableReferenceShapeProperties)
             .Select(x => new SpiderlyProperty { Name = x.Name, Type = x.Type })
             .ToList();

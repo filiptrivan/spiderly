@@ -46,6 +46,15 @@ public static class ZooFixtureSource
     /// </summary>
     public static readonly IReadOnlyList<(string Type, string Name)> NullableReferenceShapeProperties = BuildNullableReferenceShapeProperties();
 
+    /// <summary>
+    /// The REQUIREDNESS half of the axis: one <c>[Required]</c> property per scalar (plus the enum).
+    /// Requiredness is a shape axis for DTO emission — it decides whether the generated DTO member is
+    /// <c>int</c> or <c>int?</c>, and whether a reference type carries <c>= null!</c> — so the fixture
+    /// has to compile both sides of it, not just the optional one. Rendered onto <c>ZooShape</c>
+    /// alongside <see cref="ShapeProperties"/>; auto-grows with the axis like everything else here.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Type, string Name)> RequiredShapeProperties = BuildRequiredShapeProperties();
+
     private static IReadOnlyList<(string Type, string Name)> BuildShapeProperties()
     {
         List<(string, string)> properties = new()
@@ -64,6 +73,19 @@ public static class ZooFixtureSource
             // Reference-type '?' variants live on ZooShapeNullable (see NullableReferenceShapeProperties).
             if (!ReferenceTypeScalars.Contains(scalar))
                 properties.Add(($"{scalar}?", $"{pascal}NullableValue"));
+        }
+
+        return properties;
+    }
+
+    private static IReadOnlyList<(string Type, string Name)> BuildRequiredShapeProperties()
+    {
+        List<(string, string)> properties = new() { (EnumTypeName, "CodesRequiredValue") };
+
+        foreach (string scalar in SpiderlyTypeRef.ScalarKindByName.Keys.OrderBy(x => x, StringComparer.Ordinal))
+        {
+            string pascal = char.ToUpperInvariant(scalar[0]) + scalar.Substring(1);
+            properties.Add((scalar, $"{pascal}RequiredValue"));
         }
 
         return properties;
@@ -104,6 +126,19 @@ public static class ZooFixtureSource
             // A non-nullable reference type needs the '= null!;' initializer the framework's own
             // convention prescribes — apps scaffolded by `spiderly init` compile under NRT, so an
             // un-initialized 'string' here would warn (CS8618) in the e2e fixture app.
+            string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
+
+            body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
+        }
+
+        foreach ((string type, string name) in RequiredShapeProperties)
+        {
+            body.AppendLine();
+            body.AppendLine("        [Required]");
+
+            if (type == "string")
+                body.AppendLine("        [StringLength(100, MinimumLength = 1)]");
+
             string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
 
             body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
