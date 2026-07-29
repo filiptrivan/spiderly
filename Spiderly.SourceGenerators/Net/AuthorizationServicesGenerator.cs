@@ -95,7 +95,7 @@ namespace {{basePartOfNamespace}}.Services
                 if (entity.BaseType == null) // Handling many to many, maybe you should do something else in the future
                     continue;
 
-                string entityIdType = entity.GetRequiredIdType(allEntities);
+                string entityIdType = entity.GetIdType(allEntities);
 
                 sb.AppendLine($$"""
         #region {{entity.Name}}

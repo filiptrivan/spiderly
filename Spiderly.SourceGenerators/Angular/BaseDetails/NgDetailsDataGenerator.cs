@@ -371,10 +371,9 @@ namespace Spiderly.SourceGenerators.Angular
                         col.Field, property.Name, property.EntityName ?? entity.Name, Helpers.ExtractTypeFromGenericType(property.Type));
                 }
 
-                SpiderlyClass resolvedEntity = extractedEntity;
 
                 result.Add($$"""
-                {name: this.translocoService.translate('{{col.TranslationKey}}'), filterType: '{{GetTableColFilterType(resolvedProperty)}}', field: '{{col.Field.FirstCharToLower()}}' {{GetTableColAdditionalProperties(resolvedProperty, resolvedEntity)}} }
+                {name: this.translocoService.translate('{{col.TranslationKey}}'), filterType: '{{GetTableColFilterType(resolvedProperty)}}', field: '{{col.Field.FirstCharToLower()}}' {{GetTableColAdditionalProperties(resolvedProperty, extractedEntity)}} }
 """);
             }
 

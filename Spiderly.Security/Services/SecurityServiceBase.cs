@@ -588,14 +588,6 @@ namespace Spiderly.Security.Services
             return authResultWithCookiesDTO;
         }
 
-        public virtual async Task<string?> GetUserEmailByIdAsync(long id)
-        {
-            return await _context.WithTransactionAsync(async () =>
-            {
-                return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Id == id).Select(x => x.Email).SingleOrDefaultAsync();
-            });
-        }
-
         /// <summary>
         /// The user row for <paramref name="id"/>, or <c>null</c> when it no longer exists. Used by the
         /// refresh path, which needs the whole row (email <b>and</b> disabled state) rather than a single column.

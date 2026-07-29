@@ -25,28 +25,24 @@ namespace Spiderly.Security.Tests
             return services.BuildServiceProvider().GetRequiredService<IStartupValidator>();
         }
 
-        [Fact]
-        public void UseRedisCache_withoutAConnectionString_failsAtStartup()
+        [Theory]
+        [InlineData(null)]      // key absent entirely
+        [InlineData("")]
+        [InlineData("   ")]     // whitespace binds to a non-null but unusable value
+        public void UseRedisCache_withoutAUsableConnectionString_failsAtStartup(string? connectionString)
         {
-            IStartupValidator validator = BuildAndGetValidator(new()
+            Dictionary<string, string?> config = new()
             {
                 ["AppSettings:Spiderly.Security:UseRedisCache"] = "true",
-            });
+            };
+
+            if (connectionString != null)
+                config["AppSettings:Spiderly.Security:RedisConnectionString"] = connectionString;
+
+            IStartupValidator validator = BuildAndGetValidator(config);
 
             OptionsValidationException exception = Assert.Throws<OptionsValidationException>(validator.Validate);
             Assert.Contains("RedisConnectionString", string.Join(" ", exception.Failures));
-        }
-
-        [Fact]
-        public void UseRedisCache_withAnEmptyConnectionString_failsAtStartup()
-        {
-            IStartupValidator validator = BuildAndGetValidator(new()
-            {
-                ["AppSettings:Spiderly.Security:UseRedisCache"] = "true",
-                ["AppSettings:Spiderly.Security:RedisConnectionString"] = "   ",
-            });
-
-            Assert.Throws<OptionsValidationException>(validator.Validate);
         }
 
         [Fact]

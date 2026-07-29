@@ -109,7 +109,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// String overload — parses once, then delegates to the structured implementation.
         /// </summary>
-        internal static string GetValidationTargetSymbol(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
+        internal static string? GetValidationTargetSymbol(string cSharpType, ImmutableArray<string> spiderlyEnumNames)
             => GetValidationTargetSymbol(SpiderlyTypeRef.Parse(cSharpType), spiderlyEnumNames);
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <see cref="KnownTsScalars"/>), enums as the bare enum name, DTOs as the emitted class name —
         /// anything else is the unresolvable symbol the diagnostic should report.
         /// </summary>
-        internal static string GetValidationTargetSymbol(SpiderlyTypeRef? type, ImmutableArray<string> spiderlyEnumNames)
+        internal static string? GetValidationTargetSymbol(SpiderlyTypeRef? type, ImmutableArray<string> spiderlyEnumNames)
         {
             while (type != null && type.ElementType != null
                 && (type.IsTransportWrapper || type.IsCollection || type.Name == "PaginatedResultDTO"))
@@ -129,10 +129,11 @@ namespace Spiderly.SourceGenerators.Shared
                 type = type.ElementType;
             }
 
-            // The result feeds a diagnostic message, so a null would render as "type ''". The sentinel keeps
-            // the declared contract true and the message readable.
+            // No resolvable symbol. The caller (NgControllersGenerator.ValidateControllerType) already owns
+            // the policy for this — it skips reporting rather than raising SPIDERLY001 on a type it could
+            // not name — so surface it as null rather than inventing a sentinel that bypasses that guard.
             if (type == null || string.IsNullOrEmpty(type.Name))
-                return "<unknown>";
+                return null;
 
             if (type.CoreName.IsBaseDataType())
                 return GetAngularType(type, spiderlyEnumNames);

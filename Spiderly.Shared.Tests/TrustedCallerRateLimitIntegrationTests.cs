@@ -18,9 +18,7 @@ namespace Spiderly.Shared.Tests
     // unit test can't reach.
     public class TrustedCallerRateLimitIntegrationTests
     {
-        private static TestServer BuildServer(bool trusted) => BuildServer(trusted, stampClientIp: true);
-
-        private static TestServer BuildServer(bool trusted, bool stampClientIp)
+        private static TestServer BuildServer(bool trusted, bool stampClientIp = true)
         {
             Settings settings = new()
             {

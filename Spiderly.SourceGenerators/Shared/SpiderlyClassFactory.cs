@@ -178,7 +178,7 @@ namespace Spiderly.SourceGenerators.Shared
             )
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-                string extractedEntityIdType = extractedEntity.GetRequiredIdType(entities);
+                string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
 
                 if (property.HasUIOrderedOneToManyAttribute())
@@ -233,7 +233,7 @@ namespace Spiderly.SourceGenerators.Shared
             )
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-                string extractedEntityIdType = extractedEntity.GetRequiredIdType(entities);
+                string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
@@ -320,7 +320,7 @@ namespace Spiderly.SourceGenerators.Shared
                 // The 1-1 dependent always declares its FK explicitly today, so it takes this skip and
                 // its FK column is emitted exactly once, by the scalar branch.
                 if (property.ResolveExplicitForeignKeyName(entity) == null)
-                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetRequiredIdType(entities)}?", Kind = SpiderlyDTOColumnKind.ManyToOneId };
+                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = $"{manyToOneClass.GetIdType(entities)}?", Kind = SpiderlyDTOColumnKind.ManyToOneId };
             }
             else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
             {

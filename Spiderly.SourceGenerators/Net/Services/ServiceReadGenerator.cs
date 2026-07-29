@@ -11,7 +11,7 @@ namespace Spiderly.SourceGenerators.Net
     {
         internal static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            string entityIdType = entity.GetRequiredIdType(allEntities);
+            string entityIdType = entity.GetIdType(allEntities);
 
             return $$"""
         /// <summary>
@@ -352,7 +352,7 @@ namespace Spiderly.SourceGenerators.Net
         private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             SpiderlyClass autocompleteEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-            string autocompleteEntityIdType = autocompleteEntity.GetRequiredIdType(allEntities);
+            string autocompleteEntityIdType = autocompleteEntity.GetIdType(allEntities);
             string autocompleteEntityDisplayName = ClassAnalyzer.GetDisplayNameProperty(autocompleteEntity);
 
             return $$"""
@@ -393,7 +393,7 @@ namespace Spiderly.SourceGenerators.Net
         private static string GetDropdownMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
             SpiderlyClass dropdownEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
-            string dropdownEntityIdType = dropdownEntity.GetRequiredIdType(allEntities);
+            string dropdownEntityIdType = dropdownEntity.GetIdType(allEntities);
             string dropdownDisplayName = ClassAnalyzer.GetDisplayNameProperty(dropdownEntity);
 
             return $$"""

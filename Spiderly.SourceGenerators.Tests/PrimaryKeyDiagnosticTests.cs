@@ -23,7 +23,7 @@ public class PrimaryKeyDiagnosticTests
         SpiderlyClass entity = MakeEntity("Foo", baseType);
 
         SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => entity.GetIdType(new List<SpiderlyClass>()));
+            () => entity.GetIdTypeOrNull(new List<SpiderlyClass>()));
 
         Assert.Equal("SPIDERLY018", ex.Diagnostic.Id);
         Assert.Contains($"<{badIdType}>", ex.Diagnostic.GetMessage());
@@ -41,7 +41,7 @@ public class PrimaryKeyDiagnosticTests
     {
         SpiderlyClass entity = MakeEntity("Foo", baseType);
 
-        string? idType = entity.GetIdType(new List<SpiderlyClass>());
+        string? idType = entity.GetIdTypeOrNull(new List<SpiderlyClass>());
 
         Assert.Equal(expectedIdType, idType);
     }
@@ -53,7 +53,7 @@ public class PrimaryKeyDiagnosticTests
         SpiderlyClass entity = MakeEntity("Foo", "Intermediate");
 
         SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => entity.GetIdType(new List<SpiderlyClass> { intermediate }));
+            () => entity.GetIdTypeOrNull(new List<SpiderlyClass> { intermediate }));
 
         Assert.Equal("SPIDERLY018", ex.Diagnostic.Id);
     }

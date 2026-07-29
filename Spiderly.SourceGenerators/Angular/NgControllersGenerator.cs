@@ -193,9 +193,12 @@ export class ApiGeneratedService extends ApiSecurityService {
                 || type.Raw.IsEnum(spiderlyEnumNames))
                 return;
 
-            string target = AngularTypeMapper.GetValidationTargetSymbol(type, spiderlyEnumNames);
+            string? target = AngularTypeMapper.GetValidationTargetSymbol(type, spiderlyEnumNames);
 
-            if (string.IsNullOrEmpty(target))
+            // Unresolvable symbol: report nothing rather than raise SPIDERLY001 on a type we can't name.
+            // Spelled out rather than string.IsNullOrEmpty so the null-state narrows — netstandard2.0's
+            // reference assembly carries no [NotNullWhen] annotation on it.
+            if (target == null || target.Length == 0)
                 return;
 
             if (AngularTypeMapper.IsKnownTsScalar(target) || target.IsEnum(spiderlyEnumNames) || knownTsTypes.Contains(target))

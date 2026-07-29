@@ -37,7 +37,7 @@ namespace Spiderly.SourceGenerators.Net
 
         private static string GetDeleteEntityData(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            string entityIdType = entity.GetRequiredIdType(allEntities);
+            string entityIdType = entity.GetIdType(allEntities);
             int deleteIterator = 1;
 
             return $$"""
@@ -87,7 +87,7 @@ namespace Spiderly.SourceGenerators.Net
 
         private static string GetDeleteEntityListData(SpiderlyClass entity, List<SpiderlyClass> allEntities)
         {
-            string entityIdType = entity.GetRequiredIdType(allEntities);
+            string entityIdType = entity.GetIdType(allEntities);
             int deleteIterator = 1;
 
             return $$"""

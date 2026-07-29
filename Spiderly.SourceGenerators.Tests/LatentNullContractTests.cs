@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -36,15 +37,15 @@ public class LatentNullContractTests
             },
         };
 
-        Assert.Null(junction.GetIdType(new List<SpiderlyClass> { junction }));
+        Assert.Null(junction.GetIdTypeOrNull(new List<SpiderlyClass> { junction }));
     }
 
     [Fact]
-    public void GetValidationTargetSymbol_WithNoType_ReturnsTheUnknownSentinel()
+    public void GetValidationTargetSymbol_WithNoType_ReturnsNull()
     {
-        // Feeds a diagnostic message, so a null would render as "type ''" — the sentinel is the vocabulary
-        // the diagnostics in Extensions already use.
-        Assert.Equal("<unknown>", AngularTypeMapper.GetValidationTargetSymbol((SpiderlyTypeRef?)null, ImmutableArrayOfNoEnums));
+        // Declared string? rather than handing back a sentinel: the one caller already skips reporting when
+        // it cannot name a type, and a sentinel would bypass that guard and raise SPIDERLY001 instead.
+        Assert.Null(AngularTypeMapper.GetValidationTargetSymbol((SpiderlyTypeRef?)null, ImmutableArray<string>.Empty));
     }
 
     [Fact]
@@ -81,7 +82,4 @@ public class LatentNullContractTests
         Assert.Equal("SPIDERLY027", exception.Diagnostic.Id);
         Assert.Contains("ExtraKey", exception.Diagnostic.GetMessage());
     }
-
-    private static System.Collections.Immutable.ImmutableArray<string> ImmutableArrayOfNoEnums =>
-        System.Collections.Immutable.ImmutableArray<string>.Empty;
 }

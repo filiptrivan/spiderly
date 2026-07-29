@@ -111,7 +111,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (targetEntity == null)
                 return;
 
-            string targetIdType = targetEntity.GetRequiredIdType(allEntities);
+            string targetIdType = targetEntity.GetIdType(allEntities);
             string fkType = fkProperty.Type.Raw.WithoutNullableSuffix();
 
             if (fkType != targetIdType)

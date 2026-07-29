@@ -121,7 +121,7 @@ namespace {{basePartOfNamespace}}.Filtering
                         string entityPropName = prop.DTOPropName.Replace("CommaSeparated", ""); // "SegmentationItems"
                         SpiderlyProperty listProp = efClassProps.First(x => x.Name == entityPropName);
                         SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(listProp, allEntities);
-                        string childIdType = childEntity.GetRequiredIdType(allEntities);
+                        string childIdType = childEntity.GetIdType(allEntities);
                         sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
                         continue;
                     }

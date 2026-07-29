@@ -103,7 +103,7 @@ public class AngularTypeGrammarSweepTests
     [MemberData(nameof(AllShapes))]
     public void GetValidationTargetSymbol_EmitsABareSymbol(string cSharp)
     {
-        string result = AngularTypeMapper.GetValidationTargetSymbol(cSharp, Enums);
+        string? result = AngularTypeMapper.GetValidationTargetSymbol(cSharp, Enums);
 
         Assert.False(string.IsNullOrWhiteSpace(result));
         Assert.Matches(@"^[A-Za-z_][A-Za-z0-9_]*$", result);

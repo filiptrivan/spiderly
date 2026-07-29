@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Contracts;
 using Spiderly.Shared.Exceptions;
@@ -23,6 +24,7 @@ namespace Spiderly.Shared.ExternalAuth
     {
         private readonly Dictionary<string, IExternalAuthProvider> _providersByCode;
         private readonly List<ExternalProviderPublicInfo> _publicConfigs;
+        private readonly IStringLocalizer _localizer;
 
         /// <summary>
         /// Builds the registry from the configured providers and any consumer-registered custom providers.
@@ -30,11 +32,14 @@ namespace Spiderly.Shared.ExternalAuth
         /// <param name="customProviders">Custom <see cref="IExternalAuthProvider"/> implementations registered in DI.</param>
         /// <param name="options">The bound <see cref="ExternalProviderOptions"/>.</param>
         /// <param name="httpClientFactory">Factory for the HTTP client used by the generic OIDC validator.</param>
+        /// <param name="localizer">Localizer for the customer-facing rejection message.</param>
         public ExternalAuthProviderRegistry(
             IEnumerable<IExternalAuthProvider> customProviders,
             IOptions<ExternalProviderOptions> options,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IStringLocalizer localizer)
         {
+            _localizer = localizer;
             _providersByCode = new Dictionary<string, IExternalAuthProvider>(StringComparer.OrdinalIgnoreCase);
             _publicConfigs = new List<ExternalProviderPublicInfo>();
 
@@ -82,13 +87,15 @@ namespace Spiderly.Shared.ExternalAuth
             // A missing/unknown code comes from the client request, so it's a bad request (400 with a
             // machine-readable code) rather than a server fault. Misconfiguration (duplicate codes, missing
             // authority/client id) is caught at boot by ExternalProviderOptionsValidator, never here.
+            // The message is localized and code-free: the provider code is a config identifier, meaningless
+            // to the customer reading the toast. ExternalAuthCodeFlow.GetConfig rejects the same way.
             if (string.IsNullOrWhiteSpace(code))
-                throw new BusinessException("External login request is missing a provider code.", ApiErrorCodes.ExternalProviderNotConfigured);
+                throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
 
             if (_providersByCode.TryGetValue(code, out IExternalAuthProvider? provider))
                 return provider;
 
-            throw new BusinessException($"No external authentication provider is configured for code '{code}'.", ApiErrorCodes.ExternalProviderNotConfigured);
+            throw new BusinessException(_localizer["ExternalProviderNotConfiguredException"], ApiErrorCodes.ExternalProviderNotConfigured);
         }
 
         /// <inheritdoc/>

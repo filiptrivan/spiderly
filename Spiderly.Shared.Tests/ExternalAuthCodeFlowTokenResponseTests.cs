@@ -21,30 +21,15 @@ namespace Spiderly.Shared.Tests
         private const string Authority = "https://idp.test";
         private const string TokenEndpoint = "https://idp.test/token";
 
-        [Fact]
-        public async Task ExchangeCodeForIdToken_whenIdTokenIsLiterallyNull_faultsAsAServerError()
+        // TryGetProperty proves only that the property exists — a literal null passes it and yields null
+        // from GetString() — so all three shapes of "no usable token" must fail the same way.
+        [Theory]
+        [InlineData("""{"id_token": null}""")]
+        [InlineData("""{"id_token": ""}""")]
+        [InlineData("""{"access_token": "at"}""")]
+        public async Task ExchangeCodeForIdToken_withNoUsableIdToken_faultsAsAServerError(string tokenResponseBody)
         {
-            // TryGetProperty proves only that the property exists; a literal null passes it and yields
-            // null from GetString().
-            ExternalAuthCodeFlow sut = NewSut("""{"id_token": null}""");
-
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => sut.ExchangeCodeForIdTokenAsync(NewConfig(), "auth-code", "verifier", "https://app.test/callback"));
-        }
-
-        [Fact]
-        public async Task ExchangeCodeForIdToken_whenIdTokenIsEmpty_faultsAsAServerError()
-        {
-            ExternalAuthCodeFlow sut = NewSut("""{"id_token": ""}""");
-
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => sut.ExchangeCodeForIdTokenAsync(NewConfig(), "auth-code", "verifier", "https://app.test/callback"));
-        }
-
-        [Fact]
-        public async Task ExchangeCodeForIdToken_whenIdTokenIsAbsent_faultsAsAServerError()
-        {
-            ExternalAuthCodeFlow sut = NewSut("""{"access_token": "at"}""");
+            ExternalAuthCodeFlow sut = NewSut(tokenResponseBody);
 
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => sut.ExchangeCodeForIdTokenAsync(NewConfig(), "auth-code", "verifier", "https://app.test/callback"));
@@ -61,46 +46,36 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
-    public void GetConfig_forAnUnconfiguredProvider_throwsALocalizedMessage()
-    {
-        // BusinessException maps to 400, and the Angular interceptor renders its message verbatim — so a
-        // hardcoded English string here is shown to a Serbian customer. BusinessException's own XML doc
-        // documents the intended usage as _localizer["Key"].
-        ExternalAuthCodeFlow sut = NewSut("{}");
+        public void GetConfig_forAnUnconfiguredProvider_throwsALocalizedMessage()
+        {
+            // BusinessException maps to 400, and the Angular interceptor renders its message verbatim — so a
+            // hardcoded English string here is shown to a Serbian customer. BusinessException's own XML doc
+            // documents the intended usage as _localizer["Key"].
+            ExternalAuthCodeFlow sut = NewSut("{}");
 
-        BusinessException exception = Assert.Throws<BusinessException>(() => sut.GetConfig("not-configured"));
+            BusinessException exception = Assert.Throws<BusinessException>(() => sut.GetConfig("not-configured"));
 
-        // The passthrough localizer echoes the key, so this asserts the message went through localization
-        // rather than being English prose.
-        Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
-        Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
-    }
+            // Exact equality does double duty: it pins that the message went through localization (the
+            // passthrough localizer echoes the key) and that the provider code — a config identifier,
+            // meaningless in a toast — never reaches the customer.
+            Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
+            Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
+        }
 
-    [Fact]
-    public async Task ExchangeCodeForIdToken_withNoAuthorityConfigured_throwsALocalizedMessage()
-    {
-        ExternalProviderConfig noAuthority = new() { Code = "no-authority", ClientId = "client-id" };
-        ExternalAuthCodeFlow sut = NewSut("{}", noAuthority);
+        [Fact]
+        public async Task ExchangeCodeForIdToken_withNoAuthorityConfigured_throwsALocalizedMessage()
+        {
+            ExternalProviderConfig noAuthority = new() { Code = "no-authority", ClientId = "client-id" };
+            ExternalAuthCodeFlow sut = NewSut("{}", noAuthority);
 
-        BusinessException exception = await Assert.ThrowsAsync<BusinessException>(
-            () => sut.ExchangeCodeForIdTokenAsync(noAuthority, "auth-code", "verifier", "https://app.test/callback"));
+            BusinessException exception = await Assert.ThrowsAsync<BusinessException>(
+                () => sut.ExchangeCodeForIdTokenAsync(noAuthority, "auth-code", "verifier", "https://app.test/callback"));
 
-        Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
-        Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
-    }
+            Assert.Equal("ExternalProviderNotConfiguredException", exception.Message);
+            Assert.Equal(ApiErrorCodes.ExternalProviderNotConfigured, exception.ErrorCode);
+        }
 
-    [Fact]
-    public void ProviderMessages_doNotLeakTheProviderCodeToTheCustomer()
-    {
-        // The code is a config identifier, useful in a log and meaningless in a toast.
-        ExternalAuthCodeFlow sut = NewSut("{}");
-
-        BusinessException exception = Assert.Throws<BusinessException>(() => sut.GetConfig("not-configured"));
-
-        Assert.DoesNotContain("not-configured", exception.Message);
-    }
-
-    #region Harness
+        #region Harness
 
         private static ExternalProviderConfig NewConfig() => new()
         {

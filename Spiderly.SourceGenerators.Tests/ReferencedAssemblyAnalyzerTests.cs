@@ -84,7 +84,7 @@ public class ReferencedAssemblyAnalyzerTests
         List<SpiderlyClass> entities = GetReferencedEntities();
         SpiderlyClass brand = entities.Single(c => c.Name == "Brand");
 
-        Assert.Equal("long", brand.GetIdType(entities));
+        Assert.Equal("long", brand.GetIdTypeOrNull(entities));
     }
 
     [Fact]
