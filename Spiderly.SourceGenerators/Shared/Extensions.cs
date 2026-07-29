@@ -807,7 +807,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static bool IsDTOColumnNullable(this SpiderlyProperty entityProperty)
         {
             return SpiderlyClassFactory
-                .GetFormatedDTOPropertyType(entityProperty.Type.Raw, entityProperty.IsEffectivelyRequired())
+                .GetFormatedDTOPropertyType(entityProperty.Type.Raw)
                 .EndsWith("?");
         }
 
@@ -827,6 +827,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static string GetDTOForeignKeyAccessExpression(
             this SpiderlyProperty navigation,
             SpiderlyClass entity,
+            string idType,
             string dtoExpression)
         {
             string? explicitFkName = navigation.ResolveExplicitForeignKeyName(entity);
@@ -839,9 +840,11 @@ namespace Spiderly.SourceGenerators.Shared
             // is not reachable as '{Nav}Id'.
             string column = $"{dtoExpression}.{explicitFkName ?? $"{navigation.Name}Id"}";
 
+            // Both branches ASK the mapping for the column's type rather than inferring it from the
+            // navigation or the entity — that inference is what produced a CS1061 and a CS1503 in turn.
             bool nullable = fkProperty != null
                 ? fkProperty.IsDTOColumnNullable()
-                : navigation.IsEffectivelyRequired() == false;
+                : SpiderlyClassFactory.GetFormatedDTOPropertyType(idType).EndsWith("?");
 
             return nullable ? $"{column}.Value" : column;
         }

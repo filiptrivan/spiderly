@@ -27,21 +27,20 @@ Hand-written DTOs use `[SpiderlyDTO]`. Generated DTOs (`{Entity}DTO`, `{Entity}S
 
 ### Generated DTO nullability
 
-`[Required]` on the entity property decides it — the same attribute EF turns into a NOT NULL column:
+`[Required]` decides it for **reference types only**:
 
-| Entity property             | Generated DTO property           |
-| --------------------------- | -------------------------------- |
-| `[Required] string Name`    | `string Name { get; set; } = null!;` |
-| `string Slug`               | `string? Slug` (bare `string` for a nullable-oblivious app) |
-| `[Required] int Quantity`   | `int Quantity`                   |
-| `int Stock`                 | `int? Stock`                     |
-| `[Required]` navigation     | `long CategoryId` (the FK follows the nav; `CategoryDisplayName` stays nullable — it projects out of the *other* entity) |
-| any collection              | unchanged, with `= new()`        |
+| Entity property           | Generated DTO property                                    |
+| ------------------------- | --------------------------------------------------------- |
+| `[Required] string Name`  | `string Name { get; set; } = null!;`                       |
+| `string Slug`             | `string? Slug` (bare `string` for a nullable-oblivious app) |
+| `[Required] int Quantity` | `int? Quantity` — value types stay nullable, see below      |
+| `int Stock`               | `int? Stock`                                                |
+| any navigation            | `long? CategoryId` + `string? CategoryDisplayName`          |
+| any collection            | unchanged, with `= new()`                                   |
 
-Two consequences worth knowing before you write against a generated DTO:
+**Value types stay nullable even under `[Required]`, deliberately.** A generated `{Entity}DTO` serves four roles at once: response shape, request shape, the Angular form model (an empty numeric input posts `null`), and the sparse placeholder carrier for `[ComplexManyToManyList]` grids, where an all-null row *is* the "no record" sentinel. The last two need `null` to be representable, and `int` cannot hold it. Reference types are safe to tighten because, with `RespectNullableAnnotations` off, a non-nullable `string` still accepts `null` at runtime — `= null!` is an assertion for the compiler and for humans, not a runtime constraint.
 
-- **A required value type is non-nullable, so an explicit JSON `null` for it is a 400 at model binding**, not a 422 — `null` cannot be assigned to `int`. A *missing* property is fine (it lands as `default`). Required reference types have no such problem: `null` assigns, and the generated `.NotEmpty()` rule returns the usual 422 with field errors.
-- **The C# annotation is invisible to the OpenAPI spec unless the app opts in** with `spiderly.AddSwagger(options => options.SupportNonNullableReferenceTypes())`. Not on by default: it narrows the published contract (members become `required`), which regenerates every consumer's typed client — schedule it as its own deploy. `spiderly init` scaffolds it, since a new app has no consumers yet. `AddSwagger`'s callback runs after Spiderly's defaults and is the seam for any other Swashbuckle option too.
+**The C# annotation is invisible to the OpenAPI spec unless the app opts in** with `spiderly.AddSwagger(options => options.SupportNonNullableReferenceTypes())`. Not on by default: it narrows the published contract (members become `required`), which regenerates every consumer's typed client — schedule it as its own deploy. `spiderly init` scaffolds it, since a new app has no consumers yet. `AddSwagger`'s callback runs after Spiderly's defaults and is the seam for any other Swashbuckle option too.
 
 ## Base Classes
 

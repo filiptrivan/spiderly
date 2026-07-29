@@ -142,17 +142,19 @@ public class DtoRequirednessNullabilityTests
         Assert.DoesNotContain("= null!;", dtos);
     }
 
-    // --- Value types: 'int?' IS the type, so requiredness reaches BOTH contexts ---
+    // --- Value types stay nullable, [Required] or not ---
 
+    // Tried the other way and reverted: a generated {Entity}DTO is also the Angular form model (an
+    // empty numeric input posts null) and the sparse placeholder carrier for [ComplexManyToManyList]
+    // grids, where an all-null row IS the "no record" sentinel. 'int' can't hold null, so both
+    // protocols break. Reference types are safe to tighten because, with RespectNullableAnnotations
+    // off, a non-nullable 'string' still accepts null at runtime.
     [Theory]
     [InlineData(NullableContextOptions.Disable)]
     [InlineData(NullableContextOptions.Enable)]
-    public void RequiredValueType_IsNonNullable(NullableContextOptions nullable)
+    public void RequiredValueType_StaysNullable(NullableContextOptions nullable)
     {
-        string dtos = RunDtoGenerator(nullable);
-
-        Assert.Contains("public int Quantity { get; set; }", dtos);
-        Assert.DoesNotContain("public int? Quantity { get; set; }", dtos);
+        Assert.Contains("public int? Quantity { get; set; }", RunDtoGenerator(nullable));
     }
 
     [Theory]
@@ -179,14 +181,11 @@ public class DtoRequirednessNullabilityTests
     [Theory]
     [InlineData(NullableContextOptions.Disable)]
     [InlineData(NullableContextOptions.Enable)]
-    public void RequiredNav_FlattensToANonNullableForeignKey(NullableContextOptions nullable)
+    public void RequiredNav_StillFlattensToANullableForeignKey(NullableContextOptions nullable)
     {
-        string dtos = RunDtoGenerator(nullable);
-
-        // ForeignKeyValidator already fails the build when nav-requiredness and FK-nullability
-        // disagree, so [Required] on the nav IS a declared fact about this entity's FK column.
-        Assert.Contains("public long CategoryId { get; set; }", dtos);
-        Assert.DoesNotContain("public long? CategoryId { get; set; }", dtos);
+        // A flattened FK is a value type, so it follows the rule above. It is also exactly where
+        // tightening hurt most: the ComplexManyToManyList placeholder rows carry null FKs by design.
+        Assert.Contains("public long? CategoryId { get; set; }", RunDtoGenerator(nullable));
     }
 
     [Fact]
@@ -203,30 +202,22 @@ public class DtoRequirednessNullabilityTests
 
     // --- Sibling generators must read the flattened FK at its ACTUAL nullability ---
 
-    // Regression: the FK column is Nullable<T> only for an OPTIONAL nav, so emitting '.Value'
-    // unconditionally is a CS1061 on the required side. Nothing local caught it — the DTO tests assert
-    // the DTO's own text, and GeneratedCodeCompilesUnderNrtTests filters diagnostics to the CS86xx/CS87xx
-    // nullable bands. It surfaced only when CI compiled the e2e fixture app.
+    // Both FK shapes unwrap, because both columns are nullable — but the emitters must DERIVE that
+    // from the column rather than assume it, which is what GetDTOForeignKeyAccessExpression does.
+    // These pin the derivation so a future tightening can't silently emit '.Value' on a bare value
+    // type (CS1061) or omit it on a Nullable<T> (CS1503) — both of which reached CI once.
     [Fact]
-    public void SaveService_ReadsARequiredNavsForeignKey_WithoutValueAccess()
+    public void SaveService_UnwrapsASynthesizedForeignKey()
     {
         string services = RunServicesGenerator();
 
-        Assert.DoesNotContain("dto.CategoryId.Value", services);
-        Assert.Contains("dto.CategoryId,", services);
+        Assert.Contains("dto.CategoryId.Value", services);
+        Assert.Contains("dto.SecondaryCategoryId.Value", services);
     }
 
-    [Fact]
-    public void SaveService_StillUnwrapsAnOptionalNavsForeignKey()
-    {
-        // The other half of the rule — proves the fix keyed on requiredness rather than dropping
-        // '.Value' everywhere, which would have been a CS0029 on the optional side.
-        Assert.Contains("dto.SecondaryCategoryId.Value", RunServicesGenerator());
-    }
-
-    // An explicit FK suppresses {Nav}Id synthesis, so the column is the SCALAR — and its requiredness
-    // is its own, not the navigation's. Reading the nav here emits a CS1503 ('long?' -> 'long'); this
-    // is the shape the init template's UserExternalLogin ships, so every scaffolded app hits it.
+    // An explicit FK suppresses {Nav}Id synthesis, so the column is the SCALAR, under its own name and
+    // its own nullability — not the navigation's. This is the shape the init template's
+    // UserExternalLogin ships, so every scaffolded app exercises it.
     [Fact]
     public void SaveService_ReadsAnExplicitForeignKeyAtTheScalarsNullability()
     {

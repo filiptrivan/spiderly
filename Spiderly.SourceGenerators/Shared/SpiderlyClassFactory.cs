@@ -323,7 +323,7 @@ namespace Spiderly.SourceGenerators.Shared
                 // The 1-1 dependent always declares its FK explicitly today, so it takes this skip and
                 // its FK column is emitted exactly once, by the scalar branch.
                 if (property.ResolveExplicitForeignKeyName(entity) == null)
-                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = GetFormatedDTOPropertyType(manyToOneClass.GetIdType(entities), isRequired), Kind = SpiderlyDTOColumnKind.ManyToOneId, IsRequired = isRequired };
+                    yield return new SpiderlyDTOColumn { Name = $"{property.Name}Id", Type = GetFormatedDTOPropertyType(manyToOneClass.GetIdType(entities)), Kind = SpiderlyDTOColumnKind.ManyToOneId, IsRequired = isRequired };
             }
             else if (property.Type.IsOneToManyType() && property.HasGenerateCommaSeparatedDisplayNameAttribute())
             {
@@ -340,34 +340,42 @@ namespace Spiderly.SourceGenerators.Shared
             }
             else
             {
-                yield return new SpiderlyDTOColumn { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw, isRequired), Kind = SpiderlyDTOColumnKind.Scalar, Description = property.Description, IsEnum = property.IsEnum, IsRequired = isRequired };
+                yield return new SpiderlyDTOColumn { Name = property.Name, Type = GetFormatedDTOPropertyType(property.Type.Raw), Kind = SpiderlyDTOColumnKind.Scalar, Description = property.Description, IsEnum = property.IsEnum, IsRequired = isRequired };
             }
         }
 
         /// <summary>
-        /// The DTO type for a scalar entity property, keyed on <paramref name="isRequired"/>.
+        /// The DTO type for a scalar entity property.
         /// <para>
-        /// The reference/value split is not cosmetic: <c>int?</c> IS the type (a <c>Nullable&lt;T&gt;</c>
-        /// the CLR knows about), so requiredness is settled here and reaches nullable-oblivious consumers
-        /// too. A reference type's <c>?</c> is only an ANNOTATION — illegal in an oblivious context
-        /// (CS8632) — so it is left bare here and re-introduced, keyed on the same requiredness, by
-        /// <c>EntitiesToDTOGenerator.GetEmittedDTOPropertyType</c> under an annotated context.
+        /// Value-typed scalars are ALWAYS <c>Nullable&lt;T&gt;</c>, even under <c>[Required]</c>. This looks
+        /// like the DTO understating what the schema guarantees, and it is — deliberately. A generated
+        /// <c>{Entity}DTO</c> serves four roles at once: response shape, request shape, the Angular form
+        /// model (an empty numeric input posts <c>null</c>), and the sparse placeholder carrier for
+        /// <c>[ComplexManyToManyList]</c> grids, where an all-null row IS the sentinel for "no record"
+        /// (see <c>ServiceOneToManyGenerator</c>'s placeholder skip). The last two need <c>null</c> to be
+        /// representable, and <c>int</c> cannot hold it. Making value types follow <c>[Required]</c> was
+        /// tried and reverted: it broke the FK unwrap, the placeholder protocol, and paginated filtering.
+        /// Value-type honesty needs the read/write DTO split first.
+        /// </para>
+        /// <para>
+        /// Reference types are different and DO follow <c>[Required]</c>: their <c>?</c> is only an
+        /// ANNOTATION (illegal in an oblivious context, CS8632), applied by
+        /// <c>EntitiesToDTOGenerator</c>. With <c>RespectNullableAnnotations</c> off, a non-nullable
+        /// <c>string</c> still accepts <c>null</c> at runtime, so the form and placeholder protocols are
+        /// untouched by it.
         /// </para>
         /// </summary>
-        public static string GetFormatedDTOPropertyType(string propertyType, bool isRequired)
+        public static string GetFormatedDTOPropertyType(string propertyType)
         {
             string core = propertyType.WithoutNullableSuffix();
 
             if (SpiderlyTypeRef.ReferenceTypeScalarNames.Contains(core))
                 return core;
 
-            // Required strips nullability whatever the value type is — EF makes such a column NOT NULL.
-            if (isRequired)
-                return core;
+            if (propertyType.IsBaseDataType())
+                return $"{core}?";
 
-            // Optional: a base scalar becomes Nullable<T>; an enum or other value type mirrors the
-            // entity's own declaration.
-            return propertyType.IsBaseDataType() ? $"{core}?" : propertyType;
+            return propertyType;
         }
 
 

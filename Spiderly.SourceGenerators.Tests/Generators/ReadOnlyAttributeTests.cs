@@ -102,9 +102,9 @@ public class ReadOnlyAttributeTests
             .Single(t => t.FilePath.EndsWith("DTOList.generated.cs"));
         string dtos = generated.ToString();
 
-        // Non-nullable: [Required] documents the NOT NULL column, and DTO nullability is keyed off it
-        // (GetFormatedDTOPropertyType). [ReadOnly] closes the write path, it doesn't relax the type.
-        Assert.Contains("public int TimesUsed", dtos);
+        // Force-nullable scalar in the read DTO (GetFormatedDTOPropertyType: int -> int?), [Required]
+        // notwithstanding — see that method for why value types stay nullable.
+        Assert.Contains("public int? TimesUsed", dtos);
     }
 
     // A [ReadOnly] scalar has no editable control in the details form: with the write path closed
