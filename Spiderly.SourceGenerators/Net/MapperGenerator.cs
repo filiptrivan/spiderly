@@ -60,6 +60,11 @@ namespace Spiderly.SourceGenerators.Net
 
             SpiderlyClass customMapperClass = Helpers.GetManualyWrittenMapperClass(currentProjectClasses);
 
+            // The pipeline also collects data mappers, so `classes` can be non-empty in a project that
+            // declares no entities — nothing to map there.
+            if (currentProjectEntities.Count == 0)
+                return;
+
             StringBuilder sb = new();
 
             string namespaceValue = currentProjectEntities[0].Namespace;
