@@ -50,6 +50,7 @@ namespace Spiderly.Shared.Extensions
         internal bool AuthenticationEnabled { get; private set; }
         internal bool ExcelEnabled { get; private set; }
         internal bool SwaggerEnabled { get; private set; }
+        internal bool SwaggerSupportsNonNullableReferenceTypes { get; private set; }
         internal bool RateLimitingEnabled { get; private set; }
         internal bool ForwardedHeadersEnabled { get; private set; }
 
@@ -265,9 +266,17 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Enables Swagger/OpenAPI documentation generation.
         /// </summary>
-        public SpiderlyBuilder AddSwagger()
+        /// <param name="supportNonNullableReferenceTypes">
+        /// When true, the spec reflects C# nullability — a non-nullable reference-typed member becomes
+        /// <c>required</c> / <c>nullable: false</c> rather than optional-and-nullable. Off by default
+        /// because it is a wire-contract tightening that regenerates every consumer's typed client;
+        /// turn it on as its own deploy, once those consumers are ready for the narrower shape.
+        /// No-op until the app is on <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c>.
+        /// </param>
+        public SpiderlyBuilder AddSwagger(bool supportNonNullableReferenceTypes = false)
         {
             SwaggerEnabled = true;
+            SwaggerSupportsNonNullableReferenceTypes = supportNonNullableReferenceTypes;
             return this;
         }
 

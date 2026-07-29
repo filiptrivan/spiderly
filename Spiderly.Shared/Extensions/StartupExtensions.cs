@@ -213,7 +213,7 @@ namespace Spiderly.Shared.Extensions
 
             if (builder.SwaggerEnabled)
             {
-                services.SpiderlyAddSwaggerGen();
+                services.SpiderlyAddSwaggerGen(builder.SwaggerSupportsNonNullableReferenceTypes);
             }
 
             if (builder.RateLimitingEnabled)
@@ -412,7 +412,22 @@ namespace Spiderly.Shared.Extensions
             });
         }
 
-        public static void SpiderlyAddSwaggerGen(this IServiceCollection services)
+        /// <summary>
+        /// Registers Swashbuckle with Spiderly's defaults.
+        /// </summary>
+        /// <param name="supportNonNullableReferenceTypes">
+        /// When true, the OpenAPI spec reflects C# nullability: a non-nullable reference-typed member
+        /// becomes <c>required</c> and <c>nullable: false</c> instead of optional-and-nullable. This is a
+        /// WIRE-CONTRACT tightening that regenerates every consumer's typed client, so it is opt-in and
+        /// off by default — schedule it as its own deploy rather than inheriting it from an upgrade.
+        /// <para>
+        /// It is a no-op for a nullable-oblivious consumer: Swashbuckle reads runtime
+        /// <c>NullabilityInfo</c>, and generated code for such a consumer is emitted under
+        /// <c>#nullable disable</c>, which reports Unknown and is treated as nullable. So the tightening
+        /// arrives only once a consumer is on <c>&lt;Nullable&gt;enable&lt;/Nullable&gt;</c> AND opts in.
+        /// </para>
+        /// </param>
+        public static void SpiderlyAddSwaggerGen(this IServiceCollection services, bool supportNonNullableReferenceTypes = false)
         {
             services.AddSwaggerGen(options =>
             {
@@ -421,6 +436,9 @@ namespace Spiderly.Shared.Extensions
                     Title = "WebAPI",
                     Version = "v1"
                 });
+
+                if (supportNonNullableReferenceTypes)
+                    options.SupportNonNullableReferenceTypes();
 
                 options.DocumentFilter<ErrorResponseFilter>();
 
