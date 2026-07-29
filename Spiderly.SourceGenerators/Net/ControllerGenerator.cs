@@ -32,13 +32,14 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Controllers },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.Services });
 
-            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+            var combinedWithEnums = combined
+                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
+                .Combine(PipelineFactory.GetNullableContextProvider(context));
 
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var (combinedSource, enumNames) = source;
-                var (withConfig, nullableContext) = combinedSource;
-                var (classesAndEntitiesAndPath, config) = withConfig;
+                var ((combinedSource, enumNames), nullableContext) = source;
+                var (classesAndEntitiesAndPath, config) = combinedSource;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
@@ -305,8 +306,8 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
-                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
-                    property.EntityName!, property.Name, property.Type); // EntityName may be null; messageFormat renders a null arg as empty text
+                    property.Location ?? entity.Location,
+                    property.EntityName, property.Name, property.Type);
             }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);
@@ -336,8 +337,8 @@ namespace {{basePartOfNamespace}}.Controllers
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ControllerPropertyTypeUnresolvable,
-                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
-                    property.EntityName!, property.Name, property.Type); // EntityName may be null; messageFormat renders a null arg as empty text
+                    property.Location ?? entity.Location,
+                    property.EntityName, property.Name, property.Type);
             }
 
             string manyToOneEntityIdType = manyToOneEntity.GetIdType(allEntities);

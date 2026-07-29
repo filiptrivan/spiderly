@@ -210,7 +210,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
         }
 
-        private static bool ListEquals<T>(IReadOnlyList<T> x, IReadOnlyList<T> y, System.Func<T, T, bool> equals)
+        private static bool ListEquals<T>(IReadOnlyList<T>? x, IReadOnlyList<T>? y, System.Func<T, T, bool> equals)
         {
             if (ReferenceEquals(x, y))
                 return true;
@@ -227,7 +227,7 @@ namespace Spiderly.SourceGenerators.Shared
             return true;
         }
 
-        private static int AddList<T>(int hash, IReadOnlyList<T> items, System.Func<T, int> getHashCode)
+        private static int AddList<T>(int hash, IReadOnlyList<T>? items, System.Func<T, int> getHashCode)
         {
             unchecked
             {

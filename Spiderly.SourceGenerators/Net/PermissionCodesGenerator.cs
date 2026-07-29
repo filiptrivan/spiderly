@@ -30,7 +30,9 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            context.RegisterSafeImplementationSourceOutput(combined, static (spc, source) =>
+            var combinedWithNullable = combined.Combine(PipelineFactory.GetNullableContextProvider(context));
+
+            context.RegisterSafeImplementationSourceOutput(combinedWithNullable, static (spc, source) =>
             {
                 var (((classes, referencedClasses), config), nullableContext) = source;
                 Execute(classes, referencedClasses, config, nullableContext, spc);

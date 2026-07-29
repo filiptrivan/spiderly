@@ -15,7 +15,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// Builds a <see cref="SpiderlyGenerationException"/> carrying a located diagnostic.
         /// Pass <paramref name="location"/> as <c>null</c> to use <see cref="Location.None"/>.
         /// </summary>
-        public static SpiderlyGenerationException Create(DiagnosticDescriptor descriptor, Location? location, params object[] args)
+        public static SpiderlyGenerationException Create(DiagnosticDescriptor descriptor, Location? location, params object?[] args)
             => new SpiderlyGenerationException(Diagnostic.Create(descriptor, location ?? Location.None, args));
 
         /// <summary>

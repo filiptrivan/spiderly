@@ -91,8 +91,8 @@ public class NullableAnnotatedEntityTests
     [InlineData(typeof(FluentValidationGenerator))]
     public void ObliviousOutput_IsIdentical_WithAndWithoutNrtAnnotations(Type generatorType)
     {
-        var annotated = RunGenerator(generatorType, AnnotatedSource);
-        var plain = RunGenerator(generatorType, PlainSource);
+        var annotated = GeneratorTestHarness.Run(generatorType, AnnotatedSource).GetRunResult();
+        var plain = GeneratorTestHarness.Run(generatorType, PlainSource).GetRunResult();
 
         Assert.All(annotated.Results, r => Assert.Null(r.Exception));
         Assert.DoesNotContain(annotated.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
@@ -111,15 +111,4 @@ public class NullableAnnotatedEntityTests
         }
     }
 
-    private static GeneratorDriverRunResult RunGenerator(Type generatorType, string source)
-    {
-        return generatorType switch
-        {
-            var t when t == typeof(MapperGenerator) => GeneratorTestHarness.Run<MapperGenerator>(source).GetRunResult(),
-            var t when t == typeof(EntitiesToDTOGenerator) => GeneratorTestHarness.Run<EntitiesToDTOGenerator>(source).GetRunResult(),
-            var t when t == typeof(ServicesGenerator) => GeneratorTestHarness.Run<ServicesGenerator>(source).GetRunResult(),
-            var t when t == typeof(FluentValidationGenerator) => GeneratorTestHarness.Run<FluentValidationGenerator>(source).GetRunResult(),
-            _ => throw new NotSupportedException(generatorType.Name)
-        };
-    }
 }

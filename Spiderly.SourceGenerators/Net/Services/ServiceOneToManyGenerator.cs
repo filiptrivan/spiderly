@@ -34,7 +34,7 @@ namespace Spiderly.SourceGenerators.Net
                     {
                         throw SpiderlyDiagnostics.Create(
                             SpiderlyDiagnostics.OneToManyMissingM2MWithMany,
-                            (oneToManyProperty.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
+                            oneToManyProperty.Location ?? entity.Location,
                             entity.Name);
                     }
 
@@ -366,7 +366,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.ComplexManyToManyListWithoutAdditionalFields,
-                    (oneToManyProperty.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
+                    oneToManyProperty.Location ?? entity.Location,
                     junctionEntity.Name,
                     entity.Name);
             }

@@ -24,13 +24,12 @@ public static class ZooFixtureSource
     public const string EnumTypeName = "ZooCodes";
 
     /// <summary>
-    /// The axis members that are reference types — their <c>?</c> form is an NRT annotation, only
-    /// legal syntax in an annotated context, so they render into <see cref="NullableReferenceShapeProperties"/>
+    /// The axis members that are reference types — their <c>?</c> form is an NRT annotation, only legal
+    /// syntax in an annotated context, so they render into <see cref="NullableReferenceShapeProperties"/>
     /// (the <c>#nullable enable</c> entity) instead of the oblivious <see cref="ShapeProperties"/>.
-    /// Per-name knowledge kept in ONE place; if the axis ever gains a second reference-type scalar,
-    /// consider moving this into the axis table itself.
+    /// Read from the axis itself, so adding a reference-type scalar there grows this fixture automatically.
     /// </summary>
-    private static readonly HashSet<string> ReferenceTypeScalars = new() { "string" };
+    private static HashSet<string> ReferenceTypeScalars => SpiderlyTypeRef.ReferenceTypeScalarNames;
 
     /// <summary>
     /// The full shape axis as (C# type, property name) pairs, in the exact order

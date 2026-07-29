@@ -188,7 +188,6 @@ namespace Spiderly.SourceGenerators.Shared
                             Attributes = parameter.AttributeLists.SelectMany(x => x.Attributes).Select(x => GetSpiderAttribute(x)).ToList()
                         })
                         .ToList(),
-                    DescendantNodes = method.DescendantNodes(),
                     Attributes = method.AttributeLists.SelectMany(x => x.Attributes).Select(x => GetSpiderAttribute(x)).ToList(),
                     Location = method.Identifier.GetLocation()
                 })

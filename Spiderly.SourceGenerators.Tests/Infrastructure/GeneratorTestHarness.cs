@@ -15,14 +15,24 @@ internal static class GeneratorTestHarness
 
     public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable)
         where TGenerator : IIncrementalGenerator, new()
+        => Run(typeof(TGenerator), source, nullable);
+
+    /// <summary>
+    /// Type-keyed overload for <c>[Theory]</c> cases, which can't carry a generic type argument.
+    /// Instantiates by reflection so there is no per-generator dispatch list to keep in sync with the
+    /// theory data — adding a generator to a theory needs no change here.
+    /// </summary>
+    public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable)
     {
+        IIncrementalGenerator generator = (IIncrementalGenerator)Activator.CreateInstance(generatorType)!;
+
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: "Spiderly.SourceGenerators.Tests.Fixture",
             syntaxTrees: [CSharpSyntaxTree.ParseText(source)],
             references: References,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
-        return CSharpGeneratorDriver.Create(new TGenerator()).RunGenerators(compilation);
+        return CSharpGeneratorDriver.Create(generator).RunGenerators(compilation);
     }
 
     /// <summary>

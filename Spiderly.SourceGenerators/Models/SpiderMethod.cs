@@ -13,12 +13,13 @@ namespace Spiderly.SourceGenerators.Models
         /// <summary>Null for a bodiless method (abstract / expression-bodied-less declarations).</summary>
         public string? Body { get; set; }
 
-        // Parameters/DescendantNodes are populated only on the syntax path (ClassAnalyzer); methods
-        // reconstructed from referenced assemblies leave them unset. Left as '= null!' rather than
-        // '= new()' so runtime behavior is byte-identical — only syntax-derived methods are consumed
-        // by the generators that read these.
-        public List<SpiderParameter> Parameters { get; set; } = null!;
-        public IEnumerable<SyntaxNode> DescendantNodes { get; set; } = null!;
+        /// <summary>
+        /// Populated only on the syntax path (<c>ClassAnalyzer</c>); methods reconstructed from referenced
+        /// assemblies leave it null, and <c>ReferencedSpiderlyClassListComparer</c> compares it in that
+        /// state — so the null is real, not a placeholder.
+        /// </summary>
+        public List<SpiderParameter>? Parameters { get; set; }
+
         public List<SpiderlyAttribute> Attributes { get; set; } = new();
 
         /// <summary>

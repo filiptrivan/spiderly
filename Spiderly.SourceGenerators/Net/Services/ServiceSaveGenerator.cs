@@ -708,7 +708,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 throw SpiderlyDiagnostics.Create(
                     SpiderlyDiagnostics.BlobPropertyMissingAcceptedFileTypes,
-                    (property.Location ?? entity.Location)!, // Both nullable; Create() falls back to Location.None internally
+                    property.Location ?? entity.Location,
                     entity.Name, property.Name);
             }
 

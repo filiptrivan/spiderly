@@ -345,10 +345,10 @@ namespace Spiderly.SourceGenerators.Shared
         {
             string core = propertyType.WithoutNullableSuffix();
 
-            // 'string?' is an NRT annotation, not a Nullable<T> — emitting it into a
+            // A reference-type scalar's '?' is an NRT annotation, not a Nullable<T> — emitting it into a
             // nullable-oblivious consumer's DTO would raise CS8632. The oblivious DTO string is
             // already nullable; the NRT-aware emission branch re-introduces the annotation deliberately.
-            if (core == "string")
+            if (SpiderlyTypeRef.ReferenceTypeScalarNames.Contains(core))
                 return core;
 
             if (propertyType.IsBaseDataType())

@@ -34,12 +34,14 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+            var combinedWithEnums = combined
+                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
+                .Combine(PipelineFactory.GetNullableContextProvider(context));
 
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var (combinedSource, enumNames) = source;
-                var (((classes, referencedClasses), config), nullableContext) = combinedSource;
+                var ((combinedSource, enumNames), nullableContext) = source;
+                var ((classes, referencedClasses), config) = combinedSource;
                 Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
             });
         }
@@ -183,10 +185,7 @@ namespace {{basePartOfNamespace}}.DTO
         {
             string declaredType = property.Type.Raw;
 
-            bool annotationsEnabled = nullableContext == NullableContextOptions.Enable
-                || nullableContext == NullableContextOptions.Annotations;
-
-            if (!annotationsEnabled)
+            if (!nullableContext.AnnotationsEnabled())
                 return declaredType;
 
             // Already nullable (value-type '?' from the DTO column mapping, or an annotated reference type).
@@ -197,9 +196,10 @@ namespace {{basePartOfNamespace}}.DTO
             if (property.Type.IsEnumerable())
                 return declaredType;
 
-            // Value types can't take a reference annotation; 'int'/'decimal'/... already came through the
-            // oblivious mapping as 'int?' above, and an enum stays a non-null value type.
-            if (property.Type.IsBaseDataType() && property.Type.Name != "string")
+            // Value-type scalars can't take a reference annotation. Generated ones already came through the
+            // oblivious mapping as 'int?' above; a hand-written [SpiderlyDTO] class's properties bypass that
+            // mapping entirely, so this guard is what keeps its 'int' from becoming 'int?'.
+            if (property.Type.IsBaseDataType() && !property.Type.IsReferenceTypeScalar)
                 return declaredType;
 
             if (property.IsEnum)

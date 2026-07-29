@@ -76,7 +76,7 @@ public class GeneratedCSharpNullablePragmaTests
     [MemberData(nameof(Cases))]
     public void EveryGeneratedCSharpFile_DeclaresItsNullableContext(Type generatorType, NullableContextOptions nullable)
     {
-        var runResult = RunGenerator(generatorType, nullable);
+        var runResult = GeneratorTestHarness.Run(generatorType, Source, nullable).GetRunResult();
         var sources = runResult.Results.Single().GeneratedSources;
 
         Assert.NotEmpty(sources);
@@ -90,19 +90,4 @@ public class GeneratedCSharpNullablePragmaTests
         }
     }
 
-    private static GeneratorDriverRunResult RunGenerator(Type generatorType, NullableContextOptions nullable)
-    {
-        return generatorType switch
-        {
-            var t when t == typeof(EntitiesToDTOGenerator) => GeneratorTestHarness.Run<EntitiesToDTOGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(MapperGenerator) => GeneratorTestHarness.Run<MapperGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(ServicesGenerator) => GeneratorTestHarness.Run<ServicesGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(FluentValidationGenerator) => GeneratorTestHarness.Run<FluentValidationGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(PaginatedResultGenerator) => GeneratorTestHarness.Run<PaginatedResultGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(AuthorizationServicesGenerator) => GeneratorTestHarness.Run<AuthorizationServicesGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(ExcelPropertiesGenerator) => GeneratorTestHarness.Run<ExcelPropertiesGenerator>(Source, nullable).GetRunResult(),
-            var t when t == typeof(PermissionCodesGenerator) => GeneratorTestHarness.Run<PermissionCodesGenerator>(Source, nullable).GetRunResult(),
-            _ => throw new NotSupportedException(generatorType.Name)
-        };
-    }
 }

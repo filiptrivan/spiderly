@@ -38,8 +38,7 @@ namespace Spiderly.SourceGenerators.Angular
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
                 var (combinedSource, enumNames) = source;
-                var (withConfig, _) = combinedSource; // nullable context — TS emission is annotation-agnostic
-                var (classesAndEntitiesAndPath, config) = withConfig;
+                var (classesAndEntitiesAndPath, config) = combinedSource;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
@@ -146,10 +145,14 @@ export class ApiGeneratedService extends ApiSecurityService {
                     // an explicit Parse call lets us assert that with '!' instead of widening the parameter.
                     ValidateControllerType(context, "return", SpiderlyTypeRef.Parse(controllerMethod.ReturnType)!, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
-                    foreach (SpiderParameter parameter in controllerMethod.Parameters)
+                    // Controllers are enrolled from syntax (ClassCategoryCodes.Controllers), and only the
+                    // referenced-assembly path leaves Parameters unset — so it is populated here.
+                    List<SpiderParameter> methodParameters = controllerMethod.Parameters!;
+
+                    foreach (SpiderParameter parameter in methodParameters)
                         ValidateControllerType(context, $"parameter '{parameter.Name}'", parameter.Type, controllerClass.Name, controllerMethod.Name, knownTsTypes, spiderlyEnumNames, controllerMethod.Location);
 
-                    if (controllerMethod.Parameters.Any(x => x.HasFromFormAttribute()) && controllerMethod.Parameters.Any(x => x.Type.Name == "IFormFile") == false)
+                    if (methodParameters.Any(x => x.HasFromFormAttribute()) && methodParameters.Any(x => x.Type.Name == "IFormFile") == false)
                     {
                         result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs, spiderlyEnumNames));
                     }

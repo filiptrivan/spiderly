@@ -66,6 +66,16 @@ namespace Spiderly.SourceGenerators.Models
                 ["double"] = SpiderlyScalarKind.Decimal,
             };
 
+        /// <summary>
+        /// The <see cref="ScalarKindByName"/> members that are REFERENCE types — the ones whose <c>?</c> is a
+        /// nullable-reference ANNOTATION (legal only in an annotated context) rather than a <c>Nullable&lt;T&gt;</c>
+        /// value type. Lives beside the axis so the reference/value split fans out from the same single
+        /// change: the DTO type mapping, the annotated DTO emission, and the type-zoo fixture all read it
+        /// instead of each hard-coding <c>"string"</c>.
+        /// </summary>
+        internal static readonly HashSet<string> ReferenceTypeScalarNames =
+            new HashSet<string> { "string" };
+
         private SpiderlyTypeRef(string raw, string name, bool isNullable, bool isCollection, SpiderlyTypeRef? elementType)
         {
             Raw = raw;
@@ -139,6 +149,12 @@ namespace Spiderly.SourceGenerators.Models
                     : SpiderlyScalarKind.Other;
             }
         }
+
+        /// <summary>
+        /// This type is a scalar whose <c>?</c> would be a nullable-reference annotation rather than
+        /// <c>Nullable&lt;T&gt;</c> — see <see cref="ReferenceTypeScalarNames"/>.
+        /// </summary>
+        internal bool IsReferenceTypeScalar => Name != null && ReferenceTypeScalarNames.Contains(Name);
 
         public override string ToString() => Raw;
 

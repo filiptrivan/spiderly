@@ -32,12 +32,14 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO, ClassCategoryCodes.DataMappers },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+            var combinedWithEnums = combined
+                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
+                .Combine(PipelineFactory.GetNullableContextProvider(context));
 
             context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
             {
-                var (combinedSource, enumNames) = source;
-                var (((classes, referencedClasses), config), nullableContext) = combinedSource;
+                var ((combinedSource, enumNames), nullableContext) = source;
+                var ((classes, referencedClasses), config) = combinedSource;
                 Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
             });
         }
