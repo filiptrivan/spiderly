@@ -29,6 +29,9 @@
     <Folder Include="Emailing\Templates\" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Spiderly.Shared.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="Hangfire.Core" />
     <PackageReference Include="CaseConverter" />

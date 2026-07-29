@@ -70,19 +70,29 @@ namespace Spiderly.Shared.ExternalAuth
             if (result.IsValid == false)
                 throw result.Exception ?? new SecurityTokenException("External provider id token validation failed.");
 
-            string? email = GetString(result.Claims, "email");
+            return MapClaimsToIdentity(Code, result.Claims, _trustEmailVerified);
+        }
+
+        /// <summary>
+        /// Maps a validated token's claims onto an <see cref="ExternalIdentity"/>. Split out from
+        /// <see cref="ValidateAsync"/> so the provider-agnostic mapping is unit-testable without a
+        /// discovery document, a JWKS, or a signed token — signature validation is Microsoft's concern,
+        /// this is ours.
+        /// </summary>
+        internal static ExternalIdentity MapClaimsToIdentity(
+            string code, IDictionary<string, object>? claims, bool trustEmailVerified)
+        {
+            string? email = GetString(claims, "email");
 
             return new ExternalIdentity
             {
-                Provider = Code,
-                // "sub" is REQUIRED by OIDC Core, so a validated token always carries it in practice.
-                // TODO(nrt): a non-conformant provider omitting "sub" would slip a null Subject through here.
-                Subject = GetString(result.Claims, "sub")!,
+                Provider = code,
+                Subject = GetString(claims, "sub")!,
                 Email = email,
                 // Providers that verify emails but omit the email_verified claim (e.g. Facebook) opt in via
                 // TrustEmailVerified; for everyone else the strict claim check stands.
-                EmailVerified = _trustEmailVerified ? string.IsNullOrWhiteSpace(email) == false : GetBool(result.Claims, "email_verified"),
-                Name = GetString(result.Claims, "name"),
+                EmailVerified = trustEmailVerified ? string.IsNullOrWhiteSpace(email) == false : GetBool(claims, "email_verified"),
+                Name = GetString(claims, "name"),
             };
         }
 
