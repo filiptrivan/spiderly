@@ -18,9 +18,10 @@ namespace __APP_NAME__.Business.Entities
         [StringLength(2000, MinimumLength = 1)]
         public string Content { get; set; } = null!;
 
+        // Nullable for the same reason as Category below: no [Required], so the FK column is nullable.
         [CascadeDelete]
         [WithMany(nameof(ProjectTask.TaskComments))]
-        public virtual ProjectTask ProjectTask { get; set; } = null!;
+        public virtual ProjectTask? ProjectTask { get; set; }
 
         [SetNull]
         [UIControlType(nameof(UIControlTypeCodes.Autocomplete))]
