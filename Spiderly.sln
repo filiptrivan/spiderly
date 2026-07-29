@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.Infrastructure.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.ZooGenerator", "Spiderly.ZooGenerator\Spiderly.ZooGenerator.csproj", "{0E89C058-1FA2-4438-9A02-57CE622502F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spiderly.Security.Tests", "Spiderly.Security.Tests\Spiderly.Security.Tests.csproj", "{C72B9C96-F013-490E-AF1B-764C01425076}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{0E89C058-1FA2-4438-9A02-57CE622502F7}.Release|x64.Build.0 = Release|Any CPU
 		{0E89C058-1FA2-4438-9A02-57CE622502F7}.Release|x86.ActiveCfg = Release|Any CPU
 		{0E89C058-1FA2-4438-9A02-57CE622502F7}.Release|x86.Build.0 = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|x64.Build.0 = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Debug|x86.Build.0 = Debug|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|x64.ActiveCfg = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|x64.Build.0 = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|x86.ActiveCfg = Release|Any CPU
+		{C72B9C96-F013-490E-AF1B-764C01425076}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
