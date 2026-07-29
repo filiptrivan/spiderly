@@ -73,4 +73,27 @@ public class MapperGeneratorTests
         var driver = GeneratorTestHarness.Run<MapperGenerator>(M2OSource);
         return Verify(driver);
     }
+
+    /// <summary>
+    /// This generator's pipeline collects entities AND data mappers, so a project holding only the
+    /// [SpiderlyDataMapper] partial gets past the `classes.Count == 0` return and then indexes
+    /// currentProjectEntities[0] on an empty list — the same shape that made PaginatedResultGenerator
+    /// fault on Spiderly.Security, where it surfaces as an opaque, warning-level CS8785.
+    /// </summary>
+    [Fact]
+    public void DataMapperOnlyProject_WithNoEntities_DoesNotFaultTheGenerator()
+    {
+        const string mapperOnlySource = """
+            namespace TestApp.Business.DataMappers
+            {
+                [SpiderlyDataMapper]
+                public partial class Mapper { }
+            }
+            """;
+
+        Microsoft.CodeAnalysis.GeneratorRunResult result =
+            GeneratorTestHarness.Run<MapperGenerator>(mapperOnlySource).GetRunResult().Results.Single();
+
+        Assert.Null(result.Exception);
+    }
 }
