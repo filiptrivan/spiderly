@@ -37,8 +37,46 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     spc.ReportDiagnostic(ex.Diagnostic);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Roslyn cancels generators routinely (every keystroke in the IDE). Swallowing that
+                    // would report a fake build error for ordinary editing.
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    // Anything unexpected would otherwise become Roslyn's CS8785: a warning naming only
+                    // the generator, with the generator silently contributing nothing. A build missing
+                    // code it was promised must fail, and must say what died and why.
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        GeneratorFaulted,
+                        Location.None,
+                        GeneratorNameOf(body), ex.GetType().Name, ex.Message));
+                }
             });
         }
+
+        /// <summary>
+        /// The generator type a handler belongs to. The delegate is declared inside the generator, so its
+        /// declaring type is that generator (or its compiler-generated closure, whose parent it is).
+        /// </summary>
+        private static string GeneratorNameOf(Delegate body)
+        {
+            Type? type = body.Method.DeclaringType;
+
+            while (type != null && type.Name.StartsWith("<", StringComparison.Ordinal))
+                type = type.DeclaringType;
+
+            return type?.Name ?? "<unknown generator>";
+        }
+
+        public static readonly DiagnosticDescriptor GeneratorFaulted = new(
+            id: "SPIDERLY024",
+            title: "A Spiderly source generator faulted",
+            messageFormat: "Spiderly generator '{0}' faulted with {1}: {2}. It contributed no output, so code it generates is missing from this compilation. This is a bug in Spiderly — please report it with the entity shape that triggered it.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
 
         public static readonly DiagnosticDescriptor UnresolvableControllerType = new(
             id: "SPIDERLY001",
