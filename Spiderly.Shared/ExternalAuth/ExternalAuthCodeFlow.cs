@@ -108,12 +108,20 @@ namespace Spiderly.Shared.ExternalAuth
             }
 
             using JsonDocument json = JsonDocument.Parse(body);
-            if (json.RootElement.TryGetProperty("id_token", out JsonElement idTokenElement) == false)
-                throw new BusinessException("External provider token response did not contain an id_token.", ApiErrorCodes.ExternalProviderNotConfigured);
 
-            // TODO(nrt): TryGetProperty only proves the property exists — a literal-null "id_token" from a
-            // broken provider would still return null here and slip past the non-null contract.
-            return idTokenElement.GetString()!;
+            // Same class of fault as the failed-exchange branch above: the user authenticated fine, so a
+            // 200 with no usable id_token means OUR config is wrong or the provider is broken. Throw a
+            // non-BusinessException so it maps to 500 and logs at Error, rather than surfacing as a 4xx
+            // whose message the client renders verbatim. TryGetProperty only proves the property exists,
+            // so a literal null is folded into the same guard.
+            string? idToken = json.RootElement.TryGetProperty("id_token", out JsonElement idTokenElement)
+                ? idTokenElement.GetString()
+                : null;
+
+            if (string.IsNullOrWhiteSpace(idToken))
+                throw new InvalidOperationException($"External provider '{config.Code}' token response contained no usable id_token.");
+
+            return idToken;
         }
 
         private async Task<OpenIdConnectConfiguration> GetOidcConfigAsync(ExternalProviderConfig config)
