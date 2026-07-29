@@ -76,6 +76,33 @@ public class PaginatedResultGeneratorTests
         Assert.DoesNotContain("ApplySort(x => x.Id", BuildMethodOf("ItemWarehouse"));
     }
 
+    /// <summary>
+    /// A project can hold [SpiderlyDTO] classes without a single [SpiderlyEntity] — Spiderly.Security is
+    /// exactly that shape. This generator's pipeline collects entities, DTOs and data mappers, so the
+    /// early `classes.Count == 0` return doesn't fire, and it then indexes `currentProjectEntities[0]`
+    /// on an empty list. EntitiesToDTOGenerator and ServicesGenerator already guard this; the failure
+    /// surfaces as a warning-level CS8785 with the generator silently contributing nothing.
+    /// </summary>
+    [Fact]
+    public void DtoOnlyProject_WithNoEntities_DoesNotFaultTheGenerator()
+    {
+        const string dtoOnlySource = """
+            namespace TestApp.Business.DTO
+            {
+                [SpiderlyDTO]
+                public class SomeDTO
+                {
+                    public string Name { get; set; }
+                }
+            }
+            """;
+
+        GeneratorRunResult result = GeneratorTestHarness.Run<PaginatedResultGenerator>(dtoOnlySource)
+            .GetRunResult().Results.Single();
+
+        Assert.Null(result.Exception);
+    }
+
     private static readonly Lazy<SyntaxTree> GeneratedTree = new(() =>
         GeneratorTestHarness.Run<PaginatedResultGenerator>(Source).GetRunResult().GeneratedTrees
             .Single(t => t.FilePath.EndsWith("PaginatedResultGenerator.generated.cs")));
