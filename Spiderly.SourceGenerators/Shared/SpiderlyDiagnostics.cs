@@ -95,22 +95,29 @@ namespace Spiderly.SourceGenerators.Shared
             isEnabledByDefault: true);
 
         /// <summary>
-        /// <c>[Required]</c> is what Spiderly turns into a column's nullability, so an entity property whose
-        /// nullable annotation contradicts it has a C# type that lies about the schema — in one direction or
-        /// the other, depending on the property kind.
+        /// <c>[Required]</c> is the intended source of truth for a column's nullability, so an entity property
+        /// whose nullable annotation contradicts it has a C# type that lies about the schema.
         /// <para>
-        /// For SCALARS the annotation currently wins outright: nothing configures scalar requiredness (see
-        /// <c>Spiderly.Infrastructure.Extensions</c>, where <c>IsRequired</c> appears only in the navigation
-        /// passes), so EF convention reads the annotation and a disagreement silently alters the column. For
-        /// NAVIGATIONS <c>ConfigureManyToOneRelationships</c> configures <c>.IsRequired([Required] != null)</c>
-        /// explicitly, so there the attribute wins and it is the annotation that misinforms the reader.
-        /// Either way the two must tell the same story.
+        /// Which of the two actually wins is NOT uniform. For NAVIGATIONS the attribute always wins:
+        /// <c>ConfigureManyToOneRelationships</c> / <c>ConfigureOneToOneRelationships</c> call
+        /// <c>.IsRequired([Required] != null)</c> explicitly (<c>Spiderly.Infrastructure.Extensions</c>) and
+        /// explicit fluent config outranks convention, so there the annotation only misinforms the reader.
+        /// For SCALARS nothing in Spiderly configures requiredness, so it falls to EF's own conventions and
+        /// they split by direction: <c>[Required]</c> on a nullable-annotated property still yields NOT NULL
+        /// (<c>RequiredPropertyAttributeConvention</c> — a DataAnnotation source, which outranks the NRT
+        /// convention), while a non-nullable annotation with no <c>[Required]</c> has nothing opposing
+        /// <c>NonNullableReferencePropertyConvention</c> and silently makes the column NOT NULL.
+        /// </para>
+        /// <para>
+        /// So the annotation wins in exactly one case — a SCALAR claiming MORE requiredness than
+        /// <c>[Required]</c> does. Either way the two must tell the same story: a disagreement either
+        /// silently alters the column or leaves the C# type lying about it.
         /// </para>
         /// </summary>
         public static readonly DiagnosticDescriptor NullabilityRequirednessMismatch = new(
             id: "SPIDERLY028",
             title: "Nullable annotation disagrees with [Required]",
-            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. [Required] is what decides the column's nullability, so the annotation contradicts the schema. {4}",
+            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. The annotation and [Required] are two statements about one column and must agree; a disagreement either silently alters the column's nullability or leaves the C# type lying about it. {4}",
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

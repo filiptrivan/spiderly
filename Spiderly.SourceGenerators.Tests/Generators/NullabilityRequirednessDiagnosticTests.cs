@@ -104,7 +104,8 @@ public class NullabilityRequirednessDiagnosticTests
         """));
     }
 
-    // --- Scalars: nothing configures their requiredness either, so the same rule applies ---
+    // --- Scalars: Spiderly configures no scalar requiredness, so EF's conventions decide (and disagree by
+    // direction — see the descriptor). Same rule either way: the two must agree. ---
 
     [Fact]
     public void OptionalScalar_AnnotatedNonNullable_IsReported()
