@@ -173,7 +173,7 @@ namespace Spiderly.Infrastructure.Tests
         /// any future entity marked with it in THIS test assembly joins this model. Keep test entities in
         /// this project unmarked unless they belong here.
         /// </summary>
-        private sealed class RequirednessTestDbContext : ApplicationDbContext<RequirednessTestUser>
+        private sealed class RequirednessTestDbContext : ApplicationDbContext<TestUser>
         {
             public RequirednessTestDbContext(DbContextOptions options) : base(options) { }
         }
@@ -250,11 +250,5 @@ namespace Spiderly.Infrastructure.Tests
             public string OptionalButNonNullableScalar { get; set; } = null!;
         }
 
-        public class RequirednessTestUser : BusinessObject<long>, IUser
-        {
-            public string Email { get; set; } = null!;
-            public bool? IsDisabled { get; set; }
-            public IReadOnlyCollection<IRole> Roles => Array.Empty<IRole>();
-        }
     }
 }

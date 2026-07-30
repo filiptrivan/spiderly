@@ -90,8 +90,6 @@ public class GeneratedCodeCompilationTests
 
         Assert.True(errors.Length == 0, $"Generated code did not compile — {errors.Length} error(s):\n{string.Join("\n", errors)}");
 
-        // A warning in generated code is the framework's bug: the consumer cannot edit the file to suppress
-        // it, and <WarningsAsErrors>Nullable</WarningsAsErrors> already makes a subset fatal for them.
         string[] generatedWarnings = diagnostics
             .Where(d => d.Severity == DiagnosticSeverity.Warning)
             .Where(d => d.Location.SourceTree is not null && generatedTrees.Contains(d.Location.SourceTree))

@@ -29,12 +29,12 @@ namespace Spiderly.SourceGenerators.Shared
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // Mirrors MapperGenerator's pipeline so entities are constructed identically — same categories,
-            // same enum names, same referenced-assembly resolution. Divergence here would mean the shapes
-            // being validated are not the shapes being generated from.
+            // Entities only: this generator reads nothing else, and collecting DataMappers as well (which
+            // MapperGenerator must, and which this was copied from) would re-validate every entity on any
+            // edit to a mapper file.
             var combined = PipelineFactory.CreatePipeline(context,
-                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DataMappers },
-                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DataMappers });
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities },
+                new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
             var combinedWithEnums = combined
                 .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))

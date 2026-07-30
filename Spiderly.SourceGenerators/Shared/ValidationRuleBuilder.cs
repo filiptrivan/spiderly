@@ -73,7 +73,7 @@ namespace Spiderly.SourceGenerators.Shared
             // dependent has [WithOne] (not [WithMany]) and IsManyToOneType() is false for it by design,
             // so it's mapped here via IsOneToOneType().
             if ((property.HasWithManyAttribute() && property.IsManyToOneType()) || property.IsOneToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
-                return property.ResolveExplicitForeignKeyName(entity) ?? $"{property.Name}Id";
+                return property.ResolveDTOForeignKeyName(entity);
 
             if (property.HasUIOrderedOneToManyAttribute())
                 return $"Ordered{property.Name}SaveBodyDTO";

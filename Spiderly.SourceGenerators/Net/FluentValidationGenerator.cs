@@ -101,7 +101,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
     {
         public {{DTOClassGroup.Key}}ValidationRules()
         {
-{{GetNestedEntityDTORequiredRule(DTOClassGroup.Key, DTOProperties)}}
+{{GetNestedEntityDTORequiredRule(DTOProperties)}}
 {{GetDTOValidationRules(rules)}}
             ConfigureCustomRules();
         }
@@ -123,25 +123,25 @@ namespace {{basePartOfNamespace}}.ValidationRules
         /// where every other missing-required-field failure in the framework is a 422 carrying
         /// <c>ApiErrorDTO.fieldErrors</c>.
         /// <para>
-        /// Emitting the rule here rather than suppressing the resulting CS8604 at the call site is what makes
-        /// the non-null assumption downstream actually true: validation runs before the dereference.
+        /// Keys off <see cref="SpiderlyProperty.IsSaveBodyMainDTO"/>, which
+        /// <c>SpiderlyClassFactory</c> already stamps on exactly this property, rather than re-deriving the
+        /// name from the class's suffix — a hand-written <c>[SpiderlyDTO]</c> SaveBodyDTO that happens to
+        /// declare an unrelated <c>{Something}DTO</c> member must not pick up a rule it never asked for.
+        /// </para>
+        /// <para>
+        /// Emitting the rule is what makes the non-null assumption in the save emitter true: validation runs
+        /// before the dereference. Suppressing the resulting CS8604 at the call site instead would have left a
+        /// client-reachable null.
         /// </para>
         /// </summary>
-        private static string GetNestedEntityDTORequiredRule(string DTOClassName, List<SpiderlyProperty> DTOProperties)
+        private static string GetNestedEntityDTORequiredRule(List<SpiderlyProperty> DTOProperties)
         {
-            const string SaveBodySuffix = "SaveBodyDTO";
+            SpiderlyProperty mainDTOProperty = DTOProperties.FirstOrDefault(x => x.IsSaveBodyMainDTO);
 
-            if (DTOClassName.EndsWith(SaveBodySuffix) == false)
+            if (mainDTOProperty == null)
                 return "";
 
-            string nestedDTOName = $"{DTOClassName.Substring(0, DTOClassName.Length - SaveBodySuffix.Length)}DTO";
-
-            // Guard on the property really being there: a hand-written SaveBodyDTO need not carry one, and a
-            // rule for a member that does not exist would not compile.
-            if (DTOProperties.Any(x => x.Name == nestedDTOName) == false)
-                return "";
-
-            return $"            RuleFor(x => x.{nestedDTOName}).NotEmpty();";
+            return $"            RuleFor(x => x.{mainDTOProperty.Name}).NotEmpty();";
         }
 
         private static string GetDTOValidationRules(List<SpiderValidationRule> rules)

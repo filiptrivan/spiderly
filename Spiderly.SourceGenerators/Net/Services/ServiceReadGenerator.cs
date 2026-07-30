@@ -372,7 +372,7 @@ namespace Spiderly.SourceGenerators.Net
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (!string.IsNullOrEmpty(filter))
-                    query = query.Where(x => x.{{autocompleteEntityDisplayName.ToNullForgivingPath(true)}}.ToLower().Contains(filter.ToLower()));
+                    query = query.Where(x => x.{{autocompleteEntityDisplayName.AsNullForgivingDereference()}}.ToLower().Contains(filter.ToLower()));
 
                 var result = await query
                     .AsNoTracking()
@@ -380,7 +380,7 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => new NamebookDTO<{{autocompleteEntityIdType}}>
                     {
                         Id = x.Id,
-                        DisplayName = x.{{autocompleteEntityDisplayName.ToNullForgivingPath(false)}},
+                        DisplayName = x.{{autocompleteEntityDisplayName.AsNullForgivingProjection()}},
                     })
                     .ToListAsync();
 
@@ -413,7 +413,7 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => new NamebookDTO<{{dropdownEntityIdType}}>
                     {
                         Id = x.Id,
-                        DisplayName = x.{{dropdownDisplayName.ToNullForgivingPath(false)}},
+                        DisplayName = x.{{dropdownDisplayName.AsNullForgivingProjection()}},
                     })
                     .ToListAsync();
 

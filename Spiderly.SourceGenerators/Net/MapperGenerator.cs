@@ -89,17 +89,23 @@ namespace {{basePartOfNamespace}}.DataMappers
                     // Entity-shape validation is NOT here: it runs in EntityValidationGenerator, which no
                     // .spiderly/config.json toggle can switch off. The catch below stays — emission itself
                     // can still fault on one entity, and the rest must keep generating.
+                    // Once per entity: the three ToDTO configs differ only by method name, so recomputing an
+                    // identical mapper list for each was O(props x entities) work done three times over. Safe
+                    // to collapse only now that the entity validators no longer live inside this helper —
+                    // their 3x invocation was what kept the HasCustomPair gap shut.
+                    List<string> manyToOneMappers = GetConfigForManyToOneClass(entity, currentProjectEntities);
+
                     entityRegion = $$"""
 
         #region {{entity.Name}}
 
 {{(entity.IsAbstract ? "" : GetMapperToEntity($"{entity.Name}DTOToEntityConfig", customMapperClass, entity, currentProjectEntities))}}
 
-{{GetToDTOConfig($"{entity.Name}ToDTOConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ToDTOConfig", customMapperClass, entity, manyToOneMappers)}}
 
-{{GetToDTOConfig($"{entity.Name}ProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ProjectToConfig", customMapperClass, entity, manyToOneMappers)}}
 
-{{GetToDTOConfig($"{entity.Name}ExcelProjectToConfig", customMapperClass, entity, currentProjectEntities)}}
+{{GetToDTOConfig($"{entity.Name}ExcelProjectToConfig", customMapperClass, entity, manyToOneMappers)}}
 
         #endregion
 
@@ -197,15 +203,13 @@ namespace {{basePartOfNamespace}}.DataMappers
 
         #region To DTO
 
-        public static string GetToDTOConfig(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<SpiderlyClass> currentProjectEntities)
+        public static string GetToDTOConfig(string methodName, SpiderlyClass customMapperClass, SpiderlyClass entity, List<string> manyToOneMappers)
         {
             if (customMapperClass == null)
                 return "You didn't define DataMappers";
 
             if (HasCustomPair(customMapperClass, methodName))
                 return "";
-
-            List<string> manyToOneMappers = GetConfigForManyToOneClass(entity, currentProjectEntities);
 
             return $$"""
         public static TypeAdapterConfig {{methodName}}()
@@ -264,12 +268,11 @@ namespace {{basePartOfNamespace}}.DataMappers
                     {
                         manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => src.{property.Name}!.Id)");
                     }
-                    // `!` on the navigation: an optional nav is legitimately null, and BOTH consumers of this
-                    // config handle that — Mapster inserts null-checks for nested access (see above), and EF
-                    // Core's ProjectTo translates the chain to a LEFT JOIN yielding SQL NULL. Without it every
-                    // optional nav raises CS8602 in generated code the consumer cannot edit. Erased at compile
-                    // time, so the expression tree and the SQL are unchanged.
-                    manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}DisplayName, src => src.{property.Name}!.{manyToOneEntityDisplayName.ToNullForgivingPath(false)})"); // "dest.TierDisplayName", "src.Tier!.Name"
+                    // The whole path goes through the helper, nav included — the nav is just the first
+                    // intermediate segment, and [DisplayName("Project.Name")] means the tail can walk one too.
+                    // Both consumers handle a null chain: Mapster null-checks nested access (see above), EF
+                    // Core LEFT JOINs it. See Extensions.AsNullForgivingProjection.
+                    manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}DisplayName, src => src.{$"{property.Name}.{manyToOneEntityDisplayName}".AsNullForgivingProjection()})"); // "dest.TierDisplayName", "src.Tier!.Name"
                 }
 
                 if (property.Type.IsOneToManyType())
@@ -285,7 +288,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                     {
                         // FT: eg. ".Map(dest => dest.SegmentationItemsCommaSeparated, src => string.Join(", ", src.CheckedSegmentationItems.Select(x => x.Name)))"
-                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}CommaSeparated, src => string.Join(\", \", src.{property.Name}.Select(x => x.{extractedEntityDisplayName.ToNullForgivingPath(false)})))");
+                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}CommaSeparated, src => string.Join(\", \", src.{property.Name}.Select(x => x.{extractedEntityDisplayName.AsNullForgivingProjection()})))");
                     }
                 }
             }

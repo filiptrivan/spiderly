@@ -5,7 +5,6 @@ using Spiderly.Shared.Helpers;
 using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,10 +13,10 @@ namespace Spiderly.SourceGenerators.Tests.Infrastructure;
 
 /// <summary>
 /// Runs every .NET generator over one entity graph and COMPILES the combined output against the real
-/// Spiderly assemblies. Separate from <see cref="GeneratorTestHarness"/> on purpose: that one deliberately
-/// links no Spiderly assembly (its inputs declare marker attributes inline), so emitted references to
-/// <c>ServiceBase</c>, <c>IApplicationDbContext</c> or a DTO type are unresolved BY CONSTRUCTION and every
-/// type error in generated code is invisible to it.
+/// Spiderly assemblies. Separate from <see cref="GeneratorTestHarness"/> because that one only ever calls
+/// <c>RunGenerators</c> — it inspects the generator's DIAGNOSTICS and its emitted TEXT, and never compiles the
+/// result, so a type error in generated code is invisible to it. It also runs a single generator over an inline
+/// source, where the cross-generator references generated code makes (a DTO type, a base service) cannot resolve.
 /// <para>
 /// That gap is why two CI failures — a <c>CS1061</c> and a <c>CS1503</c> — could only be found by the e2e job
 /// building a real scaffolded app, minutes per cycle. This finds the same class of bug in seconds.
@@ -54,7 +53,7 @@ internal static class GeneratedCodeCompilationHarness
     /// compilation, so they are out of scope here (and are covered by their own snapshot tests).
     /// Deliberately no exclusions: an excluded generator is an allowlist with extra steps.
     /// </summary>
-    internal static readonly IReadOnlyList<IIncrementalGenerator> DotNetGenerators =
+    private static readonly IReadOnlyList<IIncrementalGenerator> DotNetGenerators =
     [
         new EntitiesToDTOGenerator(),
         new MapperGenerator(),
@@ -109,7 +108,7 @@ internal static class GeneratedCodeCompilationHarness
     /// <summary>
     /// Fixture entities keyed by file name, then template entities for any name the fixtures do not override.
     /// </summary>
-    internal static IReadOnlyList<string> EntitySources()
+    private static IReadOnlyList<string> EntitySources()
     {
         Dictionary<string, string> byFileName = new();
 
@@ -143,7 +142,7 @@ internal static class GeneratedCodeCompilationHarness
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: $"{AppName}.Business",
             syntaxTrees: sources.Select(s => CSharpSyntaxTree.ParseText(s, ParseOptions)),
-            references: FullFrameworkReferences,
+            references: TestMetadataReferences.All,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
         // parseOptions must be passed explicitly: the driver parses GENERATED trees with its own options,
@@ -155,26 +154,4 @@ internal static class GeneratedCodeCompilationHarness
         return withGenerated;
     }
 
-
-    /// <summary>
-    /// The full runtime closure of THIS test assembly, which now includes Spiderly.Shared / .Security /
-    /// .Infrastructure, ASP.NET Core and Mapster because the test project references them. Taking the whole
-    /// closure rather than naming assemblies keeps the list from drifting as generated code starts emitting
-    /// references to something new.
-    /// </summary>
-    private static readonly IReadOnlyList<MetadataReference> FullFrameworkReferences = BuildFullReferences();
-
-    private static IReadOnlyList<MetadataReference> BuildFullReferences()
-    {
-        HashSet<string> paths = new();
-
-        string trustedPlatform = (string)System.AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
-        foreach (string path in trustedPlatform.Split(Path.PathSeparator))
-        {
-            if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                paths.Add(path);
-        }
-
-        return paths.Select(p => (MetadataReference)MetadataReference.CreateFromFile(p)).ToImmutableArray();
-    }
 }

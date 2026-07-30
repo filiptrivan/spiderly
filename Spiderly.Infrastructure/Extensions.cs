@@ -92,15 +92,12 @@ namespace Spiderly.Infrastructure
         /// Configures many-to-one relationships declared with <c>[WithMany]</c>, making <c>[Required]</c> the
         /// authority on the foreign key's nullability.
         /// <para>
-        /// SCALAR requiredness is DELIBERATELY not configured here, or anywhere. EF's own conventions already
-        /// land it correctly in every case a consumer can legally write: <c>RequiredPropertyAttributeConvention</c>
-        /// maps <c>[Required]</c> to NOT NULL, and the one case where they diverge — a non-nullable annotation
-        /// with no <c>[Required]</c>, where the nullable-reference convention silently wins — is rejected at
-        /// build time by SPIDERLY028. A runtime pass mirroring that would therefore be unreachable code, and
-        /// would manufacture the very disagreement the diagnostic exists to prevent. Do not add one; see
-        /// <c>SpiderlyDiagnostics.NullabilityRequirednessMismatch</c> for the full case table, and
-        /// <c>Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests</c> for all eight cases pinned
-        /// against a real Npgsql model.
+        /// SCALAR requiredness is DELIBERATELY not configured here, or anywhere: EF's own conventions already
+        /// land every case a consumer can legally write, and the single case where they diverge is rejected at
+        /// build time by SPIDERLY028. <b>Do not add a scalar pass</b> — it would be unreachable code that also
+        /// manufactures the very disagreement the diagnostic exists to prevent. Case table:
+        /// <c>SpiderlyDiagnostics.NullabilityRequirednessMismatch</c>; all eight cases pinned against a real
+        /// Npgsql model: <c>Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests</c>.
         /// </para>
         /// </summary>
         public static void ConfigureManyToOneRelationships(this List<IMutableEntityType> mutableEntityTypes, ModelBuilder modelBuilder)

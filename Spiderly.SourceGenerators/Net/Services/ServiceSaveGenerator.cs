@@ -244,8 +244,9 @@ namespace Spiderly.SourceGenerators.Net
             // validation ever running, and its nested {{extractedEntity.Name}}DTO is dereferenced immediately
             // below — so without this a payload omitting one is an ArgumentNullException 500 instead of a 422
             // carrying fieldErrors. The .NotEmpty() rule on that nested DTO is what the `!` below rests on.
+            {{extractedEntity.Name}}SaveBodyDTOValidationRules orderedItemValidationRules = new {{extractedEntity.Name}}SaveBodyDTOValidationRules();
             foreach ({{extractedEntity.Name}}SaveBodyDTO orderedItemDTO in orderedItemsDTO)
-                new {{extractedEntity.Name}}SaveBodyDTOValidationRules().ValidateAndThrow(orderedItemDTO);
+                orderedItemValidationRules.ValidateAndThrow(orderedItemDTO);
 
             var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO!.Id).ToList();
 
@@ -446,17 +447,24 @@ namespace Spiderly.SourceGenerators.Net
                 if (classOfManyToOneProperty == null)
                     continue;
 
-                // The guard must read the SAME property the access expression below resolves. It used the
-                // {Nav}Id convention while GetDTOForeignKeyAccessExpression resolved the real name, so a
-                // [ForeignKey]-renamed scalar emitted a reference to a DTO member that does not exist (CS1061).
-                string dtoForeignKeyName = prop.ResolveExplicitForeignKeyName(entityClass) ?? $"{prop.Name}Id";
+                // The guard and the access expression MUST read the same DTO property, so both go through
+                // ResolveDTOForeignKeyName. Deriving them separately is what emitted a reference to a
+                // non-existent member for a [ForeignKey]-renamed scalar (CS1061).
+                string dtoForeignKeyName = prop.ResolveDTOForeignKeyName(entityClass);
+                string idType = classOfManyToOneProperty.GetIdType(allEntityClasses);
 
-                if (classOfManyToOneProperty.IsBusinessObject() || classOfManyToOneProperty.IsReadonlyObject() == false)
-                {
-                    result.Add($$"""
+                // A BusinessObject is version-checked elsewhere in the save, so its lookup passes an explicit
+                // null version; a ReadonlyObject has no version to check. That argument is the ONLY difference
+                // between the two shapes — they were two copies of this block until one was edited alone.
+                string versionArgument =
+                    classOfManyToOneProperty.IsBusinessObject() || classOfManyToOneProperty.IsReadonlyObject() == false
+                        ? ", null"
+                        : "";
+
+                result.Add($$"""
                 if (dto.{{dtoForeignKeyName}} > 0)
                 {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, classOfManyToOneProperty.GetIdType(allEntityClasses), "dto")}}, null);
+                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{idType}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, idType, "dto")}}{{versionArgument}});
                 }
                 else
                 {
@@ -464,21 +472,6 @@ namespace Spiderly.SourceGenerators.Net
                     poco.{{prop.Name}} = null!;
                 }
 """);
-                }
-                else
-                {
-                    result.Add($$"""
-                if (dto.{{dtoForeignKeyName}} > 0)
-                {
-                    poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, classOfManyToOneProperty.GetIdType(allEntityClasses), "dto")}});
-                }
-                else
-                {
-                    var _ = poco.{{prop.Name}}; // HACK
-                    poco.{{prop.Name}} = null!;
-                }
-""");
-                }
             }
 
             return result;

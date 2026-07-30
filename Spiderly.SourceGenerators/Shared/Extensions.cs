@@ -788,7 +788,7 @@ namespace Spiderly.SourceGenerators.Shared
                 // Without it the emitted code raises CS8629 in the consumer's build.
                 SpiderlyProperty fkProperty = entity.Properties.FirstOrDefault(p => p.Name == fkName);
                 return fkProperty?.Type.IsNullable == true
-                    ? $"{parameterName}.{fkName}!.Value"
+                    ? $"{parameterName}.{$"{fkName}.Value".AsNullForgivingProjection()}"
                     : $"{parameterName}.{fkName}";
             }
 
@@ -827,6 +827,19 @@ namespace Spiderly.SourceGenerators.Shared
         /// a CS1503 the other, so it is resolved here once.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// The name of the DTO property carrying this navigation's foreign key: the explicit
+        /// <c>[ForeignKey]</c> scalar when there is one, otherwise the <c>{Nav}Id</c> convention.
+        /// <para>
+        /// One accessor because callers that derive it separately DRIFT: the save emitter's guard read
+        /// <c>{Nav}Id</c> while the access expression beside it resolved the real name, so a
+        /// <c>[ForeignKey]</c>-renamed scalar emitted a reference to a DTO member that does not exist
+        /// (CS1061). Anything needing this name must call here rather than repeat the <c>??</c>.
+        /// </para>
+        /// </summary>
+        public static string ResolveDTOForeignKeyName(this SpiderlyProperty navigation, SpiderlyClass entity)
+            => navigation.ResolveExplicitForeignKeyName(entity) ?? $"{navigation.Name}Id";
+
         public static string GetDTOForeignKeyAccessExpression(
             this SpiderlyProperty navigation,
             SpiderlyClass entity,
@@ -839,9 +852,7 @@ namespace Spiderly.SourceGenerators.Shared
                 ? null
                 : entity.Properties.FirstOrDefault(p => p.Name == explicitFkName);
 
-            // The column is named for the explicit FK when there is one — a [ForeignKey]-renamed scalar
-            // is not reachable as '{Nav}Id'.
-            string column = $"{dtoExpression}.{explicitFkName ?? $"{navigation.Name}Id"}";
+            string column = $"{dtoExpression}.{navigation.ResolveDTOForeignKeyName(entity)}";
 
             // Both branches ASK the mapping for the column's type rather than inferring it from the
             // navigation or the entity — that inference is what produced a CS1061 and a CS1503 in turn.
@@ -977,24 +988,43 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// A dot-notation property path made null-forgiving, for emission into an expression the consumer
-        /// cannot edit. Every INTERMEDIATE segment gets <c>!</c> because any navigation in the chain may be
-        /// optional (<c>[DisplayName("Project.Name")]</c> walks one); the final segment gets one only when the
-        /// emitted code dereferences it, since a bare projection never dereferences and <c>!</c> on a value
-        /// type would be noise.
+        /// A dot-notation property path made null-forgiving for PROJECTION — read but not dereferenced, e.g.
+        /// <c>Project.Name</c> → <c>Project!.Name</c>. Only intermediate segments get <c>!</c>, because any
+        /// navigation in the chain may be optional while the final segment is merely read.
         /// <para>
-        /// Safe because these paths only ever land inside an EF-translated <c>Expression&lt;Func&lt;&gt;&gt;</c>
-        /// or a Mapster config: EF turns the chain into a LEFT JOIN yielding SQL NULL, and Mapster inserts its
-        /// own null-checks for nested access. The operator is erased at compile time, so neither the expression
-        /// tree nor the SQL changes — the alternative, emitting real null checks, would rewrite the SQL of
-        /// every generated query.
+        /// Safe because these paths only land inside an EF-translated <c>Expression&lt;Func&lt;&gt;&gt;</c> or a
+        /// Mapster config: EF turns the chain into a LEFT JOIN yielding SQL NULL, and Mapster inserts its own
+        /// null-checks for nested access. The operator is erased at compile time, so neither the expression tree
+        /// nor the SQL changes — emitting real null checks instead would rewrite the SQL of every generated query.
         /// </para>
         /// </summary>
-        public static string ToNullForgivingPath(this string dotNotation, bool dereferenced)
-        {
-            string joined = string.Join("!.", dotNotation.Split('.'));
+        public static string AsNullForgivingProjection(this string dotNotation)
+            => NullForgiving(dotNotation, dereferenced: false);
 
-            return dereferenced ? $"{joined}!" : joined;
+        /// <summary>
+        /// As <see cref="AsNullForgivingProjection"/>, but for a path whose FINAL segment is dereferenced —
+        /// a member is called on it, e.g. <c>Project.Name</c> → <c>Project!.Name!</c> ahead of <c>.ToLower()</c>.
+        /// </summary>
+        public static string AsNullForgivingDereference(this string dotNotation)
+            => NullForgiving(dotNotation, dereferenced: true);
+
+        private static string NullForgiving(string dotNotation, bool dereferenced)
+        {
+            string[] segments = dotNotation.Split('.');
+
+            // A segment can be a call rather than a property — ClassAnalyzer.GetDisplayNameProperty returns
+            // "Id.ToString()" for an entity with no string [DisplayName]. `!` belongs on values, not on calls,
+            // so those segments are left alone instead of emitting "Id!.ToString()!".
+            for (int i = 0; i < segments.Length; i++)
+            {
+                bool isFinal = i == segments.Length - 1;
+                bool needsOperator = isFinal ? dereferenced : true;
+
+                if (needsOperator && segments[i].Contains("(") == false)
+                    segments[i] += "!";
+            }
+
+            return string.Join(".", segments);
         }
 
         public static string? GetDecimalScale(this SpiderlyProperty property)

@@ -3,18 +3,14 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 
 namespace Spiderly.SourceGenerators.Tests.Infrastructure;
 
 internal static class GeneratorTestHarness
 {
-    // Spiderly attributes are matched by syntax name only, so test inputs declare
-    // `[SpiderlyEntity]` etc. inline rather than referencing the full Spiderly.Shared assembly.
-    private static readonly IReadOnlyList<MetadataReference> References = BuildReferences();
+    private static readonly IReadOnlyList<MetadataReference> References = TestMetadataReferences.All;
 
     public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null)
         where TGenerator : IIncrementalGenerator, new()
@@ -65,7 +61,6 @@ internal static class GeneratorTestHarness
         public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
     }
 
-
     /// <summary>
     /// Builds a compilation whose entities live in a *referenced* compilation rather than its own source — the
     /// metadata path exercised by <see cref="Spiderly.SourceGenerators.Shared.ReferencedAssemblyAnalyzer"/> (e.g.
@@ -90,25 +85,4 @@ internal static class GeneratorTestHarness
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
     }
 
-    private static IReadOnlyList<MetadataReference> BuildReferences()
-    {
-        HashSet<string> paths = new()
-        {
-            typeof(object).Assembly.Location,
-            typeof(List<>).Assembly.Location,
-            typeof(System.Linq.Enumerable).Assembly.Location,
-            typeof(System.ComponentModel.DataAnnotations.Schema.ForeignKeyAttribute).Assembly.Location,
-        };
-
-        // Pull in the rest of the BCL so anything the input source happens to reference
-        // (Guid, DateTime, …) resolves cleanly; otherwise CS-warnings leak into the snapshot's diagnostics.
-        string trustedPlatform = (string)System.AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
-        foreach (string path in trustedPlatform.Split(Path.PathSeparator))
-        {
-            if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                paths.Add(path);
-        }
-
-        return paths.Select(p => (MetadataReference)MetadataReference.CreateFromFile(p)).ToList();
-    }
 }
