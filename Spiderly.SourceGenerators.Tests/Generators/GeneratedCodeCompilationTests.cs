@@ -40,6 +40,78 @@ public class GeneratedCodeCompilationTests
         AssertCompilesClean(withGenerated, generatorDiagnostics);
     }
 
+    /// <summary>
+    /// A <c>[ComplexManyToManyList]</c> over a KEYLESS <c>[M2M]</c> junction — the one collection control
+    /// whose extracted entity IS the junction, so it is the shape that asks a keyless class for an id type.
+    /// The entity SSOT could not catch this on its own: its only junction, <c>ProjectMember</c>, is
+    /// <c>[M2M]</c> but <b>keyed</b> (<c>BusinessObject&lt;long&gt;</c>), payload-free, and reached by a
+    /// MultiAutocomplete — so the keyless axis was structurally absent, and a release shipped that faulted
+    /// six generators and left a consumer with ~1200 CS0246s.
+    /// <para>
+    /// Lives here rather than as a per-generator theory so it covers all ten generators with no
+    /// hand-maintained list, and compiles the output instead of only asserting the absence of a fault. That
+    /// is what caught the SECOND defect in this shape — the junction's own M2M service emitted
+    /// <c>dto.FkId.Value</c> on a always-nullable DTO column, CS8629 under NRT-on.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(NullableContextOptions.Disable)]
+    [InlineData(NullableContextOptions.Enable)]
+    public void EveryDotNetGenerator_HandlesAComplexManyToManyListOverAKeylessJunction(NullableContextOptions nullable)
+    {
+        const string KeylessJunctionWithPayload = $$"""
+            using System.Collections.Generic;
+            using System.ComponentModel.DataAnnotations;
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Depot : BusinessObject<long>
+                {
+                    [DisplayName]
+                    [Required]
+                    public string Name { get; set; } = null!;
+
+                    [ComplexManyToManyList]
+                    public virtual List<DepotArticle> DepotArticles { get; } = new();
+                }
+
+                [SpiderlyEntity]
+                public class Article : BusinessObject<byte>
+                {
+                    [DisplayName]
+                    [Required]
+                    public string Name { get; set; } = null!;
+
+                    public virtual List<DepotArticle> DepotArticles { get; } = new();
+                }
+
+                [M2M]
+                [SpiderlyEntity]
+                public class DepotArticle
+                {
+                    public long DepotId { get; set; }
+                    [M2MWithMany(nameof(Depot.DepotArticles))]
+                    public virtual Depot Depot { get; set; } = null!;
+
+                    public byte ArticleId { get; set; }
+                    [M2MWithMany(nameof(Article.DepotArticles))]
+                    public virtual Article Article { get; set; } = null!;
+
+                    public int Stock { get; set; }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [KeylessJunctionWithPayload], nullable);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
     [Fact]
     public void NegativeControl_ABrokenEntityIsReported()
     {
