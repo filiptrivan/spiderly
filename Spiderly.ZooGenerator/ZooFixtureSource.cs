@@ -128,12 +128,21 @@ public static class ZooFixtureSource
                 ? "        [StringLength(100, MinimumLength = 1)]"
                 : "        [StringLength(100)]");
 
-        // A non-nullable reference type needs the '= null!;' initializer the framework's own convention
-        // prescribes — apps scaffolded by `spiderly init` compile under NRT, so an un-initialized
-        // 'string' here would warn (CS8618) in the e2e fixture app.
-        string initializer = ReferenceTypeScalars.Contains(type) ? " = null!;" : "";
+        // A reference-type scalar has exactly TWO legal shapes, because `spiderly init` scaffolds NRT-on
+        // apps and SPIDERLY028 rejects an annotation that disagrees with [Required]: required is
+        // non-nullable + '= null!' (the initializer the convention prescribes, and without which the entity
+        // would warn CS8618), optional is annotated '?'. Emitting a non-nullable OPTIONAL reference scalar —
+        // which this did, since the initializer keyed off the type alone — is that third, illegal shape, and
+        // it failed the e2e build once the template flipped to NRT.
+        bool isReferenceType = ReferenceTypeScalars.Contains(type.WithoutNullableSuffix());
 
-        body.AppendLine($"        public {type} {name} {{ get; set; }}{initializer}");
+        string renderedType = isReferenceType && required == false && type.EndsWith("?") == false
+            ? $"{type}?"
+            : type;
+
+        string initializer = isReferenceType && required ? " = null!;" : "";
+
+        body.AppendLine($"        public {renderedType} {name} {{ get; set; }}{initializer}");
     }
 
     /// <summary>

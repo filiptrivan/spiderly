@@ -86,7 +86,7 @@ namespace __APP_NAME__.Business.Entities
         public long? LongNullableValue { get; set; }
 
         [StringLength(100)]
-        public string StringValue { get; set; } = null!;
+        public string? StringValue { get; set; }
 
         [Required]
         public ZooCodes CodesRequiredValue { get; set; }
