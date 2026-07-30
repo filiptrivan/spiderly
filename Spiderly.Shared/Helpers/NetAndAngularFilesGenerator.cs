@@ -8,6 +8,29 @@ namespace Spiderly.Shared.Helpers
     public static class NetAndAngularFilesGenerator
     {
         /// <summary>
+        /// The entity source files <c>spiderly init</c> scaffolds into
+        /// <c>Backend/{AppName}.Business/Entities/</c>.
+        /// <para>
+        /// Public so a test can compile the REAL template entities rather than keep a copy that drifts. They
+        /// carry relational shapes no other fixture has — <c>UserExternalLogin</c> is the only
+        /// <c>[Required]</c> navigation beside an explicit non-nullable foreign-key scalar in the whole
+        /// codebase, and the reason an explicit-FK generator bug was caught at all was that
+        /// <c>spiderly init</c> happens to scaffold it. A second copy of these in a test project is the same
+        /// drift that once broke CI with <c>CS1729</c> (see <c>tests/e2e-fixtures/CLAUDE.md</c>).
+        /// </para>
+        /// </summary>
+        public static List<SpiderlyFile> GetEntityFiles(string appName) => new()
+        {
+            new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
+            new SpiderlyFile { Name = "Role.cs", Data = GetRoleCsData(appName) },
+            new SpiderlyFile { Name = "Permission.cs", Data = GetPermissionCsData(appName) },
+            new SpiderlyFile { Name = "RolePermission.cs", Data = GetRolePermissionCsData(appName) },
+            new SpiderlyFile { Name = "UserRole.cs", Data = GetUserRoleCsData(appName) },
+            new SpiderlyFile { Name = "UserExternalLogin.cs", Data = GetUserExternalLoginCsData(appName) },
+            new SpiderlyFile { Name = "OutboxMessage.cs", Data = GetOutboxMessageCsData(appName) },
+        };
+
+        /// <summary>
         /// Generates the starter project template for a Spiderly application, including both backend and frontend components.
         /// </summary>
         public static void Generate(string outputPath, ProjectGenerationOptions options)
@@ -327,16 +350,7 @@ namespace Spiderly.Shared.Helpers
                             new SpiderlyFolder
                             {
                                 Name = "Entities",
-                                Files =
-                                {
-                                    new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
-                                    new SpiderlyFile { Name = "Role.cs", Data = GetRoleCsData(appName) },
-                                    new SpiderlyFile { Name = "Permission.cs", Data = GetPermissionCsData(appName) },
-                                    new SpiderlyFile { Name = "RolePermission.cs", Data = GetRolePermissionCsData(appName) },
-                                    new SpiderlyFile { Name = "UserRole.cs", Data = GetUserRoleCsData(appName) },
-                                    new SpiderlyFile { Name = "UserExternalLogin.cs", Data = GetUserExternalLoginCsData(appName) },
-                                    new SpiderlyFile { Name = "OutboxMessage.cs", Data = GetOutboxMessageCsData(appName) },
-                                }
+                                Files = GetEntityFiles(appName)
                             },
                             new SpiderlyFolder
                             {

@@ -20,9 +20,27 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
+  <!-- GeneratedCodeCompilationTests compiles generator output against the REAL framework surface, so the
+       emitted references to ServiceBase, IApplicationDbContext, SpiderlyBaseController etc. must resolve.
+       AspNetCore is needed for the generated controllers. -->
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spiderly.Infrastructure\Spiderly.Infrastructure.csproj" />
+    <ProjectReference Include="..\Spiderly.Security\Spiderly.Security.csproj" />
+    <ProjectReference Include="..\Spiderly.Shared\Spiderly.Shared.csproj" />
     <ProjectReference Include="..\Spiderly.SourceGenerators\Spiderly.SourceGenerators.csproj" />
     <ProjectReference Include="..\Spiderly.ZooGenerator\Spiderly.ZooGenerator.csproj" />
+  </ItemGroup>
+
+  <!-- The e2e fixture entities are the SSOT for relational/attribute shapes; embedding them means every
+       entity added for the Playwright suite gains compile coverage with no second copy to maintain. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\tests\e2e-fixtures\backend\entities\*.cs">
+      <LogicalName>E2eFixtureEntities.%(Filename).cs</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
