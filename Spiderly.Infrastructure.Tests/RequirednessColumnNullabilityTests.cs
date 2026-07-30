@@ -104,6 +104,22 @@ namespace Spiderly.Infrastructure.Tests
             Assert.False(ColumnIsNullable<ScalarShapes>(nameof(ScalarShapes.OptionalButNonNullableScalar)));
         }
 
+        // --- The nullable-oblivious consumer: [Required] is the only signal, and it must be enough ---
+
+        [Fact]
+        public void ObliviousConsumer_RequiredNavigation_HasNonNullableForeignKey()
+        {
+            // Load-bearing for UPGRADES, not for correctness: every existing Spiderly app is oblivious, so
+            // if this ever flips, a package bump alters FK columns in a live database.
+            Assert.False(ColumnIsNullable<ObliviousNavShapes>("RequiredNavId"));
+        }
+
+        [Fact]
+        public void ObliviousConsumer_OptionalNavigation_HasNullableForeignKey()
+        {
+            Assert.True(ColumnIsNullable<ObliviousNavShapes>("OptionalNavId"));
+        }
+
         // --- The axes that separate this harness from the in-memory test ---
 
         [Fact]
@@ -174,7 +190,28 @@ namespace Spiderly.Infrastructure.Tests
             public virtual List<NavShapes> ViaOptional { get; } = new();
             public virtual List<NavShapes> ViaRequiredButNullable { get; } = new();
             public virtual List<NavShapes> ViaOptionalButNonNullable { get; } = new();
+
+            public virtual List<ObliviousNavShapes> ViaObliviousRequired { get; } = new();
+            public virtual List<ObliviousNavShapes> ViaObliviousOptional { get; } = new();
         }
+
+#nullable disable
+        /// <summary>
+        /// What an NRT-off consumer writes: no annotations anywhere, so <c>[Required]</c> is the only signal
+        /// EF has. This is the shape every existing Spiderly app is in today, which makes it the one that
+        /// decides whether a change to the relationship configuration is schema-affecting on upgrade.
+        /// </summary>
+        [SpiderlyEntity]
+        public class ObliviousNavShapes : BusinessObject<long>
+        {
+            [Required]
+            [WithMany(nameof(NavTarget.ViaObliviousRequired))]
+            public virtual NavTarget RequiredNav { get; set; }
+
+            [WithMany(nameof(NavTarget.ViaObliviousOptional))]
+            public virtual NavTarget OptionalNav { get; set; }
+        }
+#nullable restore
 
         [SpiderlyEntity]
         public class NavShapes : BusinessObject<long>
