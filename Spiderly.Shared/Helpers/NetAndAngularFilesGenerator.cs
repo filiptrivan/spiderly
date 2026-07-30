@@ -11,7 +11,9 @@ namespace Spiderly.Shared.Helpers
         /// The entity source files <c>spiderly init</c> scaffolds into
         /// <c>Backend/{AppName}.Business/Entities/</c>.
         /// <para>
-        /// Public so a test can compile the REAL template entities rather than keep a copy that drifts. They
+        /// Internal (not public) so a test can compile the REAL template entities rather than keep a copy that
+        /// drifts, without that need widening a shipped package's public API — see the
+        /// <c>InternalsVisibleTo</c> in <c>Spiderly.Shared.csproj</c>. They
         /// carry relational shapes no other fixture has — <c>UserExternalLogin</c> is the only
         /// <c>[Required]</c> navigation beside an explicit non-nullable foreign-key scalar in the whole
         /// codebase, and the reason an explicit-FK generator bug was caught at all was that
@@ -19,7 +21,7 @@ namespace Spiderly.Shared.Helpers
         /// drift that once broke CI with <c>CS1729</c> (see <c>tests/e2e-fixtures/CLAUDE.md</c>).
         /// </para>
         /// </summary>
-        public static List<SpiderlyFile> GetEntityFiles(string appName) => new()
+        internal static List<SpiderlyFile> GetEntityFiles(string appName) => new()
         {
             new SpiderlyFile { Name = "User.cs", Data = GetUserCsData(appName) },
             new SpiderlyFile { Name = "Role.cs", Data = GetRoleCsData(appName) },

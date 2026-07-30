@@ -30,6 +30,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Spiderly.Shared.Tests" />
+    <!-- GeneratedCodeCompilationHarness compiles the init template's real entities. -->
+    <InternalsVisibleTo Include="Spiderly.SourceGenerators.Tests" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />
