@@ -9,10 +9,19 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// SPIDERLY028 — see <c>SpiderlyDiagnostics.NullabilityRequirednessMismatch</c> for why a disagreement
 /// between the annotation and <c>[Required]</c> matters.
 /// <para>
-/// Why it earns tests: it shipped. Annotating the e2e fixture's <c>TaskComment.Category</c> (no
-/// <c>[Required]</c>) non-nullable made every comment insert die on <c>23503 violates foreign key
-/// constraint "FK_TaskComment_TaskCategory_CategoryId"</c>, and an audit found three more latent
-/// instances, invisible only because every test happened to supply the FK.
+/// Why it earns tests: the disagreement it rejects shipped four times. The instance that surfaced
+/// (<c>TaskComment.Category</c> — no <c>[Required]</c>, annotated non-nullable) made every comment insert
+/// die on <c>23503 violates foreign key constraint "FK_TaskComment_TaskCategory_CategoryId"</c>, and an
+/// audit found three more latent ones, invisible only because every test happened to supply the FK.
+/// </para>
+/// <para>
+/// That foreign-key violation's actual cause was an ordering bug in <c>ConfigureManyToOneRelationships</c>
+/// (<c>.IsRequired()</c> called before <c>.HasForeignKey()</c>), since fixed and pinned by
+/// <c>Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests</c> — so this diagnostic is NOT what
+/// stands between a consumer and that schema bug, and must not be described as if it were. It earns its
+/// keep on the two costs in the descriptor: a lying NAVIGATION annotation still hands the consumer a
+/// <c>null</c> materialized into a non-nullable property, and a lying SCALAR annotation still alters the
+/// column.
 /// </para>
 /// <para>
 /// The Disable case is the load-bearing guard: a nullable-oblivious consumer writes

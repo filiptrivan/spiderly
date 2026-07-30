@@ -95,23 +95,31 @@ namespace Spiderly.SourceGenerators.Shared
             isEnabledByDefault: true);
 
         /// <summary>
-        /// <c>[Required]</c> is the intended source of truth for a column's nullability, so an entity property
-        /// whose nullable annotation contradicts it has a C# type that lies about the schema.
+        /// <c>[Required]</c> is the source of truth for a column's nullability, so an entity property whose
+        /// nullable annotation contradicts it has a C# type that lies. The two property kinds lie about
+        /// different things, and both are worth failing a build over.
         /// <para>
-        /// Which of the two actually wins is NOT uniform. For NAVIGATIONS the attribute always wins:
-        /// <c>ConfigureManyToOneRelationships</c> / <c>ConfigureOneToOneRelationships</c> call
-        /// <c>.IsRequired([Required] != null)</c> explicitly (<c>Spiderly.Infrastructure.Extensions</c>) and
-        /// explicit fluent config outranks convention, so there the annotation only misinforms the reader.
-        /// For SCALARS nothing in Spiderly configures requiredness, so it falls to EF's own conventions and
-        /// they split by direction: <c>[Required]</c> on a nullable-annotated property still yields NOT NULL
-        /// (<c>RequiredPropertyAttributeConvention</c> — a DataAnnotation source, which outranks the NRT
-        /// convention), while a non-nullable annotation with no <c>[Required]</c> has nothing opposing
-        /// <c>NonNullableReferencePropertyConvention</c> and silently makes the column NOT NULL.
+        /// NAVIGATIONS — the attribute decides outright. <c>ConfigureManyToOneRelationships</c> /
+        /// <c>ConfigureOneToOneRelationships</c> call <c>.IsRequired([Required] != null)</c> AFTER
+        /// <c>.HasForeignKey()</c>, and that position is what makes it authoritative (measured in
+        /// <c>Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests</c>). So the annotation cannot
+        /// move the column. What it does instead: a navigation annotated non-nullable over a NULLABLE foreign
+        /// key makes EF materialize <c>null</c> into a non-nullable property, handing the consumer a
+        /// NullReferenceException exactly where the type promised there could not be one.
         /// </para>
         /// <para>
-        /// So the annotation wins in exactly one case — a SCALAR claiming MORE requiredness than
-        /// <c>[Required]</c> does. Either way the two must tell the same story: a disagreement either
-        /// silently alters the column or leaves the C# type lying about it.
+        /// SCALARS — Spiderly configures no requiredness at all, so EF's conventions decide and they split by
+        /// direction. <c>[Required]</c> on a nullable-annotated property still yields NOT NULL
+        /// (<c>RequiredPropertyAttributeConvention</c> — a DataAnnotation source, which outranks the NRT
+        /// convention). A non-nullable annotation with NO <c>[Required]</c> has nothing opposing
+        /// <c>NonNullableReferencePropertyConvention</c>, so it silently makes the column NOT NULL: the next
+        /// migration alters the schema, and a save that legitimately omits the value writes a default instead
+        /// of NULL. Rejecting that disagreement here is what keeps <c>[Required]</c> authoritative for
+        /// scalars too, and is why there is deliberately no runtime scalar-requiredness pass.
+        /// </para>
+        /// <para>
+        /// Skipped entirely for a nullable-oblivious consumer, where a bare <c>Category</c> is the ABSENCE of
+        /// an annotation rather than a claim of non-nullability.
         /// </para>
         /// </summary>
         public static readonly DiagnosticDescriptor NullabilityRequirednessMismatch = new(

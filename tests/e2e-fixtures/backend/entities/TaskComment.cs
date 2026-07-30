@@ -28,8 +28,11 @@ namespace __APP_NAME__.Business.Entities
         [WithMany(nameof(User.TaskComments))]
         public virtual User? Author { get; set; }
 
-        // Annotating this one non-nullable (it has no [Required]) broke every comment insert with a
-        // foreign-key violation — the incident SPIDERLY028 exists to prevent.
+        // Nullable because it carries no [Required]. Annotating it non-nullable once broke every comment
+        // insert with a foreign-key violation; that cause was an ordering bug in
+        // ConfigureManyToOneRelationships (.IsRequired before .HasForeignKey), since fixed. SPIDERLY028
+        // still rejects the annotation, for the remaining reason: over a nullable FK it would have EF
+        // materialize null into a non-nullable property.
         [UIControlType(nameof(UIControlTypeCodes.Dropdown))]
         [WithMany(nameof(TaskCategory.TaskComments))]
         public virtual TaskCategory? Category { get; set; }
