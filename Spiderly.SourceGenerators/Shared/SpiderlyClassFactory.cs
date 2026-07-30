@@ -178,9 +178,12 @@ namespace Spiderly.SourceGenerators.Shared
             )
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-                string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
-
+                // The id type is resolved INSIDE the branches that emit one, never up front. The
+                // [ComplexManyToManyList] branch's extracted entity IS the junction, which has no primary
+                // key, and that branch emits the junction's DTOs rather than an id list — so an eager
+                // GetIdType (which throws by contract) faulted every generator that builds DTO shapes on a
+                // perfectly legal shape. Same reasoning in GetMainUIFormDTOProperties.
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" };
@@ -192,14 +195,16 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else if (property.IsMultiSelectControlType())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntity.GetIdType(entities)}>", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
                 else if (property.IsMultiAutocompleteControlType())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}SaveBodyDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntity.GetIdType(entities)}>>", EntityName = $"{entity.Name}SaveBodyDTO" });
                 }
                 else if (property.HasSimpleManyToManyTableLazyLoadAttribute())
                 {
+                    string extractedEntityIdType = extractedEntity.GetIdType(entities);
+
                     result.Add(new SpiderlyProperty { Name = $"Selected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
                     result.Add(new SpiderlyProperty { Name = $"Unselected{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}SaveBodyDTO" });
                     result.Add(new SpiderlyProperty { Name = $"AreAll{property.Name}Selected", Type = "bool?", EntityName = $"{entity.Name}SaveBodyDTO" });
@@ -233,8 +238,8 @@ namespace Spiderly.SourceGenerators.Shared
             )
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-                string extractedEntityIdType = extractedEntity.GetIdType(entities);
 
+                // Resolved per branch, not eagerly — see GetSaveBodyDTOProperties for why.
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}MainUIFormDTO", Type = $"List<{extractedEntity.Name}MainUIFormDTO>", EntityName = $"{entity.Name}MainUIFormDTO" };
@@ -246,11 +251,11 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else if (property.IsMultiSelectControlType())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"{property.Name}Ids", Type = $"List<{extractedEntityIdType}>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}Ids", Type = $"List<{extractedEntity.GetIdType(entities)}>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
                 else if (property.IsMultiAutocompleteControlType())
                 {
-                    result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntityIdType}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
+                    result.Add(new SpiderlyProperty { Name = $"{property.Name}NamebookDTOList", Type = $"List<NamebookDTO<{extractedEntity.GetIdType(entities)}>>", EntityName = $"{entity.Name}MainUIFormDTO" });
                 }
                 else if (property.HasComplexManyToManyListAttribute())
                 {
