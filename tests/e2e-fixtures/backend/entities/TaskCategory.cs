@@ -25,5 +25,8 @@ namespace __APP_NAME__.Business.Entities
 
         [UIDoNotGenerate]
         public virtual List<TaskComment> TaskComments { get; } = new();
+
+        [UIDoNotGenerate]
+        public virtual List<TaskAttachment> TaskAttachments { get; } = new();
     }
 }

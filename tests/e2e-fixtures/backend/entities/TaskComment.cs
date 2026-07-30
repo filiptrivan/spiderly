@@ -18,10 +18,14 @@ namespace __APP_NAME__.Business.Entities
         [StringLength(2000, MinimumLength = 1)]
         public string Content { get; set; } = null!;
 
-        // Nullable for the same reason as Category below: no [Required], so the FK column is nullable.
+        // [Required]: a comment with no task is not a meaningful row, and this is the fixture's ONLY
+        // required reference navigation — without it the NOT NULL foreign-key path has no coverage that any
+        // spec actually drives (UserExternalLogin carries the other one, but it is [UIDoNotGenerate] and only
+        // ever touched through auth).
+        [Required]
         [CascadeDelete]
         [WithMany(nameof(ProjectTask.TaskComments))]
-        public virtual ProjectTask? ProjectTask { get; set; }
+        public virtual ProjectTask ProjectTask { get; set; } = null!;
 
         [SetNull]
         [UIControlType(nameof(UIControlTypeCodes.Autocomplete))]
