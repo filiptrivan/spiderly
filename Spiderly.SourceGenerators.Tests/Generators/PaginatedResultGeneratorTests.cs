@@ -82,13 +82,16 @@ public class PaginatedResultGeneratorTests
     /// and a keyless junction has none. Unlike the collection controls in <c>SpiderlyClassFactory</c>, there
     /// is no branch to move the lookup into — the answer is required.
     /// <para>
-    /// So the consumer must be told which property is at fault. Today they get an
-    /// <c>InvalidOperationException</c> wrapped as SPIDERLY024, whose text is "This is a bug in Spiderly —
-    /// please report it" with no location, for what is actually their own modelling mistake.
+    /// The consumer must be told which property is at fault — SPIDERLY029, raised by
+    /// <c>CommaSeparatedDisplayNameValidator</c> from <c>EntityValidationGenerator</c> (see
+    /// <c>CommaSeparatedDisplayNameDiagnosticTests</c>). THIS test owns the other half: that this generator
+    /// merely omits the filter case and keeps emitting. It previously threw the diagnostic itself, which
+    /// aborted <c>Execute</c> — the Filtering file was never emitted, so every entity lost <c>Build()</c>
+    /// and the consumer got a CS0103 wall instead of the located error.
     /// </para>
     /// </summary>
     [Fact]
-    public void CommaSeparatedDisplayName_OverAKeylessJunction_IsReportedAtTheProperty()
+    public void CommaSeparatedDisplayName_OverAKeylessJunction_DegradesWithoutKillingTheFile()
     {
         const string source = """
             using System.Collections.Generic;
@@ -136,14 +139,15 @@ public class PaginatedResultGeneratorTests
             .GetRunResult().Results.Single();
 
         Assert.Null(result.Exception);
+        Assert.Empty(result.Diagnostics);
 
-        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+        // One bad property must not delete Build() for every OTHER entity in the project.
+        string generated = Assert.Single(result.GeneratedSources).SourceText.ToString();
 
-        Assert.Equal("SPIDERLY029", diagnostic.Id);
-        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("ItemWarehouses", diagnostic.GetMessage());
-        // Located at the consumer's property — the whole point, versus SPIDERLY024's locationless fault.
-        Assert.NotEqual(Location.None, diagnostic.Location);
+        Assert.Contains("Build(IQueryable<Item> query", generated);
+        Assert.Contains("Build(IQueryable<Warehouse> query", generated);
+        // ...but the unfilterable column is simply absent, rather than emitting a broken case.
+        Assert.DoesNotContain("itemWarehousesCommaSeparated", generated);
     }
 
     /// <summary>

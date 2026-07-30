@@ -122,15 +122,18 @@ namespace {{basePartOfNamespace}}.Filtering
                         SpiderlyProperty listProp = efClassProps.First(x => x.Name == entityPropName);
                         SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(listProp, allEntities);
 
-                        // The id is genuinely required here (GetCaseForEnumerable emits values.Contains(x.Id)),
-                        // so a keyless junction target is an unsupported SHAPE, not a mis-sequenced lookup —
-                        // it gets a located diagnostic rather than the throwing GetIdType's SPIDERLY024.
-                        string childIdType = childEntity.GetIdTypeOrNull(allEntities)
-                            ?? throw SpiderlyDiagnostics.Create(
-                                SpiderlyDiagnostics.CommaSeparatedDisplayNameOverKeylessJunction,
-                                listProp.Location ?? entity.Location,
-                                entity.Name, listProp.Name, childEntity.Name);
-                        sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
+                        // GetCaseForEnumerable emits values.Contains(x.Id), so a keyless junction child has
+                        // nothing to filter by. DEGRADE rather than throw: CommaSeparatedDisplayNameValidator
+                        // already reports SPIDERLY029 for this shape, located at the property, and it does so
+                        // from EntityValidationGenerator where a per-entity catch keeps the rest generating.
+                        // Throwing here instead aborted this whole Execute, so the Filtering file was never
+                        // emitted and EVERY entity lost Build() — a CS0103 wall hiding the real diagnostic.
+                        // Omitting the case simply leaves the column unfilterable (the switch has a default).
+                        string? childIdType = childEntity.GetIdTypeOrNull(allEntities);
+
+                        if (childIdType != null)
+                            sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
+
                         continue;
                     }
 

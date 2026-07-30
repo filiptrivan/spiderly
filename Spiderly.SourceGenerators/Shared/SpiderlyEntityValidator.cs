@@ -43,6 +43,7 @@ namespace Spiderly.SourceGenerators.Shared
             NullabilityValidator.ValidateEntity(entity, nullableContext);
             ForeignKeyValidator.ValidateEntity(entity, entities);
             OneToOneValidator.ValidateEntity(entity, entities);
+            CommaSeparatedDisplayNameValidator.ValidateEntity(entity, entities);
         }
     }
 }
