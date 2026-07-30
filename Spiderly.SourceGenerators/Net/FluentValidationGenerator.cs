@@ -101,6 +101,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
     {
         public {{DTOClassGroup.Key}}ValidationRules()
         {
+{{GetNestedEntityDTORequiredRule(DTOClassGroup.Key, DTOProperties)}}
 {{GetDTOValidationRules(rules)}}
             ConfigureCustomRules();
         }
@@ -111,6 +112,36 @@ namespace {{basePartOfNamespace}}.ValidationRules
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// A <c>{Entity}SaveBodyDTO</c>'s nested <c>{Entity}DTO</c> is the payload the save pipeline cannot
+        /// proceed without, and nothing else declares it required: generated DTO properties carry no
+        /// attributes, so <c>ValidationRuleBuilder</c> produces no rule for it and this rules class came out
+        /// empty. <c>Save{Entity}AndReturnMainUIFormDTO</c> then handed the null straight to
+        /// <c>ValidateAndThrow</c>, which throws <c>ArgumentNullException</c> — a 500 for a malformed request,
+        /// where every other missing-required-field failure in the framework is a 422 carrying
+        /// <c>ApiErrorDTO.fieldErrors</c>.
+        /// <para>
+        /// Emitting the rule here rather than suppressing the resulting CS8604 at the call site is what makes
+        /// the non-null assumption downstream actually true: validation runs before the dereference.
+        /// </para>
+        /// </summary>
+        private static string GetNestedEntityDTORequiredRule(string DTOClassName, List<SpiderlyProperty> DTOProperties)
+        {
+            const string SaveBodySuffix = "SaveBodyDTO";
+
+            if (DTOClassName.EndsWith(SaveBodySuffix) == false)
+                return "";
+
+            string nestedDTOName = $"{DTOClassName.Substring(0, DTOClassName.Length - SaveBodySuffix.Length)}DTO";
+
+            // Guard on the property really being there: a hand-written SaveBodyDTO need not carry one, and a
+            // rule for a member that does not exist would not compile.
+            if (DTOProperties.Any(x => x.Name == nestedDTOName) == false)
+                return "";
+
+            return $"            RuleFor(x => x.{nestedDTOName}).NotEmpty();";
         }
 
         private static string GetDTOValidationRules(List<SpiderValidationRule> rules)

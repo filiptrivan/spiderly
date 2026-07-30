@@ -144,7 +144,7 @@ namespace Spiderly.SourceGenerators.Net
             {
                 await OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await Save{{entity.Name}}AndReturnDTO(saveBodyDTO.{{entity.Name}}DTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await Save{{entity.Name}}AndReturnDTO(saveBodyDTO.{{entity.Name}}DTO!, authorizeUpdate, authorizeInsert);
 
 {{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, allEntities))}}
 {{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, allEntities))}}
@@ -239,7 +239,15 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of saved {{extractedEntity.Name}}MainUIFormDTO in order</returns>
         public async virtual Task<List<{{extractedEntity.Name}}MainUIFormDTO>> UpdateOrdered{{property.Name}}For{{entity.Name}}({{entity.GetIdType(allEntities)}} id, List<{{extractedEntity.Name}}SaveBodyDTO> orderedItemsDTO)
         {
-            var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO.Id).ToList();
+            // A public entry point validates its own input, exactly as Save{{extractedEntity.Name}} does on its
+            // first line. This method is public virtual and reachable without the parent's SaveBodyDTO
+            // validation ever running, and its nested {{extractedEntity.Name}}DTO is dereferenced immediately
+            // below — so without this a payload omitting one is an ArgumentNullException 500 instead of a 422
+            // carrying fieldErrors. The .NotEmpty() rule on that nested DTO is what the `!` below rests on.
+            foreach ({{extractedEntity.Name}}SaveBodyDTO orderedItemDTO in orderedItemsDTO)
+                new {{extractedEntity.Name}}SaveBodyDTOValidationRules().ValidateAndThrow(orderedItemDTO);
+
+            var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO!.Id).ToList();
 
 {{GetOrderedOneToManyRequiredValidation(property, entity)}}
 
@@ -253,7 +261,7 @@ namespace Spiderly.SourceGenerators.Net
                 for (int i = 0; i < orderedItemsDTO.Count; i++)
                 {
                     var saveBodyDTO = orderedItemsDTO[i];
-                    var DTO = saveBodyDTO.{{extractedEntity.Name}}DTO;
+                    var DTO = saveBodyDTO.{{extractedEntity.Name}}DTO!;
 
                     DTO.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
                     DTO.OrderNumber = i + 1;

@@ -231,7 +231,7 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeSaveOrgAndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await SaveOrgAndReturnDTO(saveBodyDTO.OrgDTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await SaveOrgAndReturnDTO(saveBodyDTO.OrgDTO!, authorizeUpdate, authorizeInsert);
 
 
 

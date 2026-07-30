@@ -232,7 +232,7 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeSaveCourseAndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await SaveCourseAndReturnDTO(saveBodyDTO.CourseDTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await SaveCourseAndReturnDTO(saveBodyDTO.CourseDTO!, authorizeUpdate, authorizeInsert);
 
 
 

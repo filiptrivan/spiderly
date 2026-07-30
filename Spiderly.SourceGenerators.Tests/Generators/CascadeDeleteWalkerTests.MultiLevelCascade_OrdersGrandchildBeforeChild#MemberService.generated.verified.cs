@@ -262,7 +262,7 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeSaveMemberAndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await SaveMemberAndReturnDTO(saveBodyDTO.MemberDTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await SaveMemberAndReturnDTO(saveBodyDTO.MemberDTO!, authorizeUpdate, authorizeInsert);
 
 
 

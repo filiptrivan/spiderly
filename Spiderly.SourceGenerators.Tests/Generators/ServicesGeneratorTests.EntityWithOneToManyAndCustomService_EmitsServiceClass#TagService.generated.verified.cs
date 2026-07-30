@@ -231,7 +231,7 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeSaveTagAndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await SaveTagAndReturnDTO(saveBodyDTO.TagDTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await SaveTagAndReturnDTO(saveBodyDTO.TagDTO!, authorizeUpdate, authorizeInsert);
 
 
 

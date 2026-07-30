@@ -231,7 +231,7 @@ namespace TestApp.Business.Services
             {
                 await OnBeforeSaveTaskItemAndReturnMainUIFormDTO(saveBodyDTO);
 
-                var savedDTO = await SaveTaskItemAndReturnDTO(saveBodyDTO.TaskItemDTO, authorizeUpdate, authorizeInsert);
+                var savedDTO = await SaveTaskItemAndReturnDTO(saveBodyDTO.TaskItemDTO!, authorizeUpdate, authorizeInsert);
 
 
 
