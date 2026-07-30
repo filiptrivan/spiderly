@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
@@ -14,53 +15,107 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// </summary>
 public class ComplexManyToManyListTests
 {
+    /// <summary>
+    /// A [ComplexManyToManyList] over a KEYLESS [M2M] junction carrying one payload column — the shape
+    /// PACMS ships as ProductVariant -> ProductVariantWarehouse(Stock).
+    /// </summary>
+    private const string KeylessJunctionWithPayloadSource = """
+        using System.Collections.Generic;
+
+        namespace TestApp.Business.Entities
+        {
+            [SpiderlyEntity]
+            public class Item : BusinessObject<long>
+            {
+                [DisplayName]
+                public string Name { get; set; }
+
+                [ComplexManyToManyList]
+                public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
+            }
+
+            [SpiderlyEntity]
+            public class Warehouse : BusinessObject<byte>
+            {
+                [DisplayName]
+                [Required]
+                public string Name { get; set; }
+
+                public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
+            }
+
+            [M2M]
+            [SpiderlyEntity]
+            public class ItemWarehouse
+            {
+                public long ItemId { get; set; }
+                [M2MWithMany(nameof(Item.ItemWarehouses))]
+                public virtual Item Item { get; set; }
+
+                public byte WarehouseId { get; set; }
+                [M2MWithMany(nameof(Warehouse.ItemWarehouses))]
+                public virtual Warehouse Warehouse { get; set; }
+
+                public int Stock { get; set; }
+            }
+        }
+        """;
+
     [Fact]
     public Task JunctionWithSingleAdditionalField_UpdateSkipsPlaceholderRowsAndIgnoresDtoParentFk()
     {
-        const string source = """
-            using System.Collections.Generic;
-
-            namespace TestApp.Business.Entities
-            {
-                [SpiderlyEntity]
-                public class Item : BusinessObject<long>
-                {
-                    [DisplayName]
-                    public string Name { get; set; }
-
-                    [ComplexManyToManyList]
-                    public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
-                }
-
-                [SpiderlyEntity]
-                public class Warehouse : BusinessObject<byte>
-                {
-                    [DisplayName]
-                    [Required]
-                    public string Name { get; set; }
-
-                    public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
-                }
-
-                [M2M]
-                [SpiderlyEntity]
-                public class ItemWarehouse
-                {
-                    public long ItemId { get; set; }
-                    [M2MWithMany(nameof(Item.ItemWarehouses))]
-                    public virtual Item Item { get; set; }
-
-                    public byte WarehouseId { get; set; }
-                    [M2MWithMany(nameof(Warehouse.ItemWarehouses))]
-                    public virtual Warehouse Warehouse { get; set; }
-
-                    public int Stock { get; set; }
-                }
-            }
-            """;
-
-        var driver = GeneratorTestHarness.Run<ServicesGenerator>(source);
+        var driver = GeneratorTestHarness.Run<ServicesGenerator>(KeylessJunctionWithPayloadSource);
         return Verify(driver);
+    }
+
+    /// <summary>
+    /// The junction has no primary key, and the DTO-shape factory must not ask it for one. Building
+    /// <c>ItemSaveBodyDTO</c>/<c>ItemMainUIFormDTO</c> walks Item's collection-control properties, and for
+    /// the [ComplexManyToManyList] branch the control carries the junction's own DTOs — an id type is
+    /// never emitted. Computing it eagerly anyway (before the branch that needs it) made the throwing
+    /// <c>GetIdType</c> kill the whole DTO-building path: six generators died with SPIDERLY024 and the
+    /// consumer saw ~1200 CS0246s for DTOs that were never emitted.
+    /// <para>
+    /// <see cref="JunctionWithSingleAdditionalField_UpdateSkipsPlaceholderRowsAndIgnoresDtoParentFk"/>
+    /// covers the same shape but runs only ServicesGenerator, which reaches the class factory by a path
+    /// that never builds the SaveBody/MainUIForm shapes — which is why it stayed green through this.
+    /// </para>
+    /// <para>
+    /// NOT covered here: <c>NgEntitiesGenerator</c>, which faulted on the same root cause in a real build.
+    /// It builds its pipeline with <c>CreatePipelineWithCallingPath</c> and writes to a real
+    /// <c>Frontend/src/...</c> file, so the in-memory harness gives it no calling path and it dies with
+    /// <c>ArgumentNullException (path)</c> for ANY entity shape — structurally unreachable from here, same
+    /// as <c>ControllerGenerator</c>. The fix it needs is the shared one in <c>SpiderlyClassFactory</c>.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(EntitiesToDTOGenerator))]
+    [InlineData(typeof(ExcelPropertiesGenerator))]
+    [InlineData(typeof(FluentValidationGenerator))]
+    [InlineData(typeof(MapperGenerator))]
+    [InlineData(typeof(PaginatedResultGenerator))]
+    public void ComplexManyToManyListOverAKeylessJunction_DoesNotFaultTheDTOBuildingGenerators(Type generatorType)
+    {
+        GeneratorRunResult result = GeneratorTestHarness.Run(generatorType, KeylessJunctionWithPayloadSource)
+            .GetRunResult().Results.Single();
+
+        Assert.Null(result.Exception);
+        Assert.Empty(result.Diagnostics.Where(d => d.Id == "SPIDERLY024"));
+    }
+
+    [Fact]
+    public void ComplexManyToManyListOverAKeylessJunction_StillEmitsTheDTOs()
+    {
+        // Guards the assertion above against passing because nothing was generated at all.
+        GeneratorRunResult result = GeneratorTestHarness.Run<EntitiesToDTOGenerator>(KeylessJunctionWithPayloadSource)
+            .GetRunResult().Results.Single();
+
+        string generated = string.Join("\n", result.GeneratedSources.Select(x => x.SourceText.ToString()));
+
+        Assert.Contains("class ItemWarehouseDTO", generated);
+        Assert.Contains("class ItemSaveBodyDTO", generated);
+        // The control that faulted: it carries junction DTOs, never an id list.
+        Assert.Contains("List<ItemWarehouseDTO> ItemWarehouses", generated);
     }
 
     [Fact]
