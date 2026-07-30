@@ -6,7 +6,7 @@ namespace Spiderly.Shared.Interfaces
         Task<string> UploadFileAsync(string fileName, string objectType, string objectProperty, string objectId, Stream content, string? newFileName = null);
 
         // Before this in save method the authorization is being done, so we don't need to do it here also
-        Task DeleteNonActiveBlobs(string activeBlobName, string objectType, string objectProperty, string objectId);
+        Task DeleteNonActiveBlobs(string? activeBlobName, string objectType, string objectProperty, string objectId);
 
         Task DeleteNonActiveEditorImages(List<string> activeImageUrls, string objectType, string objectProperty, string objectId);
 

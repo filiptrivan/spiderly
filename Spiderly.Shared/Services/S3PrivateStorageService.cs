@@ -46,7 +46,7 @@ namespace Spiderly.Shared.Services
         }
 
         public async Task DeleteNonActiveBlobs(
-            string activeKey,
+            string? activeKey,
             string objectType,
             string objectProperty,
             string objectId)

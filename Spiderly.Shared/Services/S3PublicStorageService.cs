@@ -64,7 +64,7 @@ namespace Spiderly.Shared.Services
         }
 
         public async Task DeleteNonActiveBlobs(
-            string url,
+            string? url,
             string objectType,
             string objectProperty,
             string objectId)
@@ -72,7 +72,9 @@ namespace Spiderly.Shared.Services
             if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
-            string activeKey = ExtractS3KeyFromUrl(url);
+            // Nullable in step with the parameter: no active blob means every object under the prefix is
+            // stale, and the != comparison below already treats null as "matches nothing".
+            string? activeKey = ExtractS3KeyFromUrl(url);
 
             string prefix = $"{objectType}/{objectProperty}/{objectId}/";
 

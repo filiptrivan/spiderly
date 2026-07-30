@@ -88,7 +88,7 @@ namespace Spiderly.Shared.Services
         /// lifecycle rule, not by this method.
         /// </summary>
         public Task DeleteNonActiveBlobs(
-            string activeBlobName,
+            string? activeBlobName,
             string objectType,
             string objectProperty,
             string objectId
