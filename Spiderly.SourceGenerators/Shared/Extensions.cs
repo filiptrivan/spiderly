@@ -1145,10 +1145,24 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// The entity's primary-key type, or <c>null</c> for a many-to-many junction, which has none.
+        /// The entity's primary-key type, or <c>null</c> for a keyless many-to-many junction, which has none.
         /// Prefer <see cref="GetIdType"/> unless the caller genuinely handles the null.
+        /// <para>
+        /// Reads <see cref="SpiderlyClass.IdType"/> when the factory has already resolved it — the normal
+        /// path — and falls back to resolving on the spot for a hand-built <see cref="SpiderlyClass"/> that
+        /// never went through <see cref="SpiderlyClassFactory.GetSpiderlyClasses"/> (tests, and the
+        /// referenced-assembly instances a generator may inspect before that pass runs).
+        /// </para>
         /// </summary>
         public static string? GetIdTypeOrNull(this SpiderlyClass c, List<SpiderlyClass> classes)
+            => c?.IdType ?? c.ResolveIdType(classes);
+
+        /// <summary>
+        /// Walks the base chain to the <c>BusinessObject&lt;T&gt;</c> type argument. Call this only to POPULATE
+        /// <see cref="SpiderlyClass.IdType"/>; everything else should read that property (directly, or through
+        /// <see cref="GetIdType"/> / <see cref="GetIdTypeOrNull"/>) so the walk happens once per compilation.
+        /// </summary>
+        public static string? ResolveIdType(this SpiderlyClass? c, List<SpiderlyClass> classes)
         {
             if (c == null)
             {

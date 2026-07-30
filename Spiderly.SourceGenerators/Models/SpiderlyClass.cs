@@ -23,6 +23,20 @@ namespace Spiderly.SourceGenerators.Models
         /// </summary>
         public string? BaseType { get; set; }
 
+        /// <summary>
+        /// The entity's primary-key type, resolved ONCE by <see cref="Shared.SpiderlyClassFactory"/> instead
+        /// of re-walked at each of the ~39 sites that used to ask. Set only for <c>[SpiderlyEntity]</c>
+        /// classes; left null on DTOs, controllers, services and mappers, which have no key.
+        /// <para>
+        /// On an entity, <c>null</c> means exactly one thing: a KEYLESS many-to-many junction. A class that
+        /// is merely missing its <c>BusinessObject&lt;T&gt;</c> base does not land here as null — it fails
+        /// resolution with SPIDERLY010 at construction. Keeping "legitimately keyless" and "malformed"
+        /// distinguishable is the whole point: a null that meant either would leave every consumer guessing,
+        /// which is the bug this property exists to retire.
+        /// </para>
+        /// </summary>
+        public string? IdType { get; set; }
+
         public bool IsAbstract { get; set; }
 
         /// <summary>Set only for controller classes; null otherwise.</summary>

@@ -59,6 +59,15 @@ namespace Spiderly.SourceGenerators.Shared
                 foreach (SpiderlyProperty prop in cls.Properties)
                     prop.IsOneToOnePrincipalInverseNav = prop.IsOneToOnePrincipalInverse(cls, allClasses);
 
+            // Resolve each entity's primary-key type once, here, rather than re-walking the base chain at
+            // every site that needs it. Same both-sets reasoning as the loop above: generators running in
+            // .WebAPI see entities as *referenced*, and these are the instances they consume.
+            //
+            // ENTITIES ONLY — a DTO, controller, service or mapper has no key, and asking would report
+            // SPIDERLY010 against a class that is correct as written.
+            foreach (SpiderlyClass cls in allClasses.Where(x => x.HasSpiderlyEntityAttribute()))
+                cls.IdType = cls.ResolveIdType(allClasses);
+
             return result;
         }
 

@@ -89,6 +89,77 @@ public class LatentNullContractTests
         Assert.Equal("long", keyedJunction.GetIdType(new List<SpiderlyClass> { keyedJunction }));
     }
 
+    /// <summary>
+    /// The factory must actually POPULATE <see cref="SpiderlyClass.IdType"/>. Without this, the property
+    /// could stay null on every class and every read would silently fall back to re-walking the base chain —
+    /// the accessors would still return the right answers, so the whole suite would stay green while the
+    /// refactor did nothing. Asserts the resolved values, that a keyless junction is null (the one legal
+    /// null), and that non-entities are left alone.
+    /// </summary>
+    [Fact]
+    public void GetSpiderlyClasses_ResolvesIdTypeForEntitiesOnly()
+    {
+        const string source = """
+            using System.Collections.Generic;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Item : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+                }
+
+                [SpiderlyEntity]
+                public class Warehouse : BusinessObject<byte>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+                }
+
+                [M2M]
+                [SpiderlyEntity]
+                public class ItemWarehouse
+                {
+                    public long ItemId { get; set; }
+                    [M2MWithMany(nameof(Item.ItemWarehouses))]
+                    public virtual Item Item { get; set; }
+
+                    public byte WarehouseId { get; set; }
+                    [M2MWithMany(nameof(Warehouse.ItemWarehouses))]
+                    public virtual Warehouse Warehouse { get; set; }
+
+                    public int Stock { get; set; }
+                }
+            }
+
+            namespace TestApp.Business.DTO
+            {
+                [SpiderlyDTO]
+                public class ReportDTO
+                {
+                    public string Title { get; set; }
+                }
+            }
+            """;
+
+        List<ClassDeclarationSyntax> classes = CSharpSyntaxTree.ParseText(source)
+            .GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
+
+        List<SpiderlyClass> resolved = SpiderlyClassFactory.GetSpiderlyClasses(classes, new List<SpiderlyClass>());
+
+        Assert.Equal("long", Single(resolved, "Item").IdType);
+        Assert.Equal("byte", Single(resolved, "Warehouse").IdType);
+        // The one legal null: a keyless junction genuinely has no key.
+        Assert.Null(Single(resolved, "ItemWarehouse").IdType);
+        // Not an entity — never asked, so never reported as missing a BusinessObject base.
+        Assert.Null(Single(resolved, "ReportDTO").IdType);
+
+        static SpiderlyClass Single(List<SpiderlyClass> classes, string name)
+            => classes.Single(x => x.Name == name);
+    }
+
     [Fact]
     public void GetValidationTargetSymbol_WithNoType_ReturnsNull()
     {
