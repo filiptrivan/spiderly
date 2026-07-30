@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Net;
+using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
@@ -99,23 +100,30 @@ public class ComplexManyToManyListTests
         GeneratorRunResult result = GeneratorTestHarness.Run(generatorType, KeylessJunctionWithPayloadSource)
             .GetRunResult().Results.Single();
 
+        // A fault inside the source-output stage becomes SPIDERLY024 with a null Exception
+        // (RegisterSafeImplementationSourceOutput); one inside a pipeline Select stage still lands in
+        // Exception. Both are worth asserting.
         Assert.Null(result.Exception);
-        Assert.Empty(result.Diagnostics.Where(d => d.Id == "SPIDERLY024"));
+        Assert.DoesNotContain(result.Diagnostics, x => x.Id == SpiderlyDiagnostics.GeneratorFaulted.Id);
+        // "No fault" would also hold for a generator that silently emitted nothing.
+        Assert.NotEmpty(result.GeneratedSources);
     }
 
     [Fact]
-    public void ComplexManyToManyListOverAKeylessJunction_StillEmitsTheDTOs()
+    public void ComplexManyToManyListOverAKeylessJunction_EmitsJunctionDTOsAndNoIdList()
     {
-        // Guards the assertion above against passing because nothing was generated at all.
-        GeneratorRunResult result = GeneratorTestHarness.Run<EntitiesToDTOGenerator>(KeylessJunctionWithPayloadSource)
-            .GetRunResult().Results.Single();
+        GeneratedSourceResult generated = GeneratorTestHarness.Run<EntitiesToDTOGenerator>(KeylessJunctionWithPayloadSource)
+            .GetRunResult().Results.Single()
+            .GeneratedSources.Single(x => x.HintName == "DTOList.generated.cs");
 
-        string generated = string.Join("\n", result.GeneratedSources.Select(x => x.SourceText.ToString()));
+        string dtos = generated.SourceText.ToString();
 
-        Assert.Contains("class ItemWarehouseDTO", generated);
-        Assert.Contains("class ItemSaveBodyDTO", generated);
-        // The control that faulted: it carries junction DTOs, never an id list.
-        Assert.Contains("List<ItemWarehouseDTO> ItemWarehouses", generated);
+        Assert.Contains("class ItemWarehouseDTO", dtos);
+        Assert.Contains("class ItemSaveBodyDTO", dtos);
+        // The control that faulted carries the junction's DTOs...
+        Assert.Contains("List<ItemWarehouseDTO> ItemWarehouses", dtos);
+        // ...and never an id list, which is why asking the junction for an id type was the bug.
+        Assert.DoesNotContain("SelectedItemWarehousesIds", dtos);
     }
 
     [Fact]

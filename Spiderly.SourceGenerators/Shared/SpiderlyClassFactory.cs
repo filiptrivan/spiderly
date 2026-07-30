@@ -179,11 +179,9 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
-                // The id type is resolved INSIDE the branches that emit one, never up front. The
-                // [ComplexManyToManyList] branch's extracted entity IS the junction, which has no primary
-                // key, and that branch emits the junction's DTOs rather than an id list — so an eager
-                // GetIdType (which throws by contract) faulted every generator that builds DTO shapes on a
-                // perfectly legal shape. Same reasoning in GetMainUIFormDTOProperties.
+                // Resolved inside the branches that emit one, never up front: the [ComplexManyToManyList]
+                // branch's extracted entity IS the keyless junction, and GetIdType throws for it. Pinned by
+                // ComplexManyToManyListOverAKeylessJunction_DoesNotFaultTheDTOBuildingGenerators.
                 if (property.HasUIOrderedOneToManyAttribute())
                 {
                     SpiderlyProperty orderedProp = new SpiderlyProperty { Name = $"Ordered{property.Name}SaveBodyDTO", Type = $"List<{extractedEntity.Name}SaveBodyDTO>", EntityName = $"{entity.Name}SaveBodyDTO" };
