@@ -10,8 +10,13 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <!-- Proxies + Npgsql are what make RequirednessColumnNullabilityTests faithful: the real app runs
+         UseLazyLoadingProxies over a RELATIONAL provider, and column nullability is decided by relational
+         conventions the in-memory provider never runs. No connection is ever opened. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
