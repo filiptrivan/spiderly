@@ -852,8 +852,7 @@ namespace Spiderly.SourceGenerators.Shared
                 ? null
                 : entity.Properties.FirstOrDefault(p => p.Name == explicitFkName);
 
-            string columnName = navigation.ResolveDTOForeignKeyName(entity);
-            string column = $"{dtoExpression}.{columnName}";
+            string column = $"{dtoExpression}.{navigation.ResolveDTOForeignKeyName(entity)}";
 
             // Both branches ASK the mapping for the column's type rather than inferring it from the
             // navigation or the entity — that inference is what produced a CS1061 and a CS1503 in turn.
@@ -861,15 +860,12 @@ namespace Spiderly.SourceGenerators.Shared
                 ? fkProperty.IsDTOColumnNullable()
                 : SpiderlyClassFactory.GetFormatedDTOPropertyType(idType).EndsWith("?");
 
-            // Null-forgiving, not a bare .Value: a generated DTO's value-type columns are ALWAYS nullable by
-            // design, so under #nullable enable a bare unwrap is CS8629 in every consumer that emits this —
-            // a warning they cannot suppress, and fatal under <WarningsAsErrors>Nullable</WarningsAsErrors>.
-            // The `!` changes nothing at runtime (a genuinely null column still throws on .Value, as before);
-            // it records that the caller has already established presence. Same form as the synthesized-FK
-            // branch of GetForeignKeyAccessExpression above.
-            return nullable
-                ? $"{dtoExpression}.{$"{columnName}.Value".AsNullForgivingProjection()}"
-                : column;
+            // Null-forgiving, not a bare .Value — see GetForeignKeyAccessExpression above, which emits the
+            // same form for the same reason. Presence is established by the caller: either an `if (dto.FkId
+            // > 0)` guard, or (on the ComplexManyToManyList path, which has none) the FluentValidation rule
+            // generated for the junction's [M2MWithMany] navs. If that rule ever stops being emitted, the `!`
+            // turns a compiler warning into a runtime InvalidOperationException inside generated code.
+            return nullable ? $"{column}!.Value" : column;
         }
 
         #endregion
@@ -1154,7 +1150,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// referenced-assembly instances a generator may inspect before that pass runs).
         /// </para>
         /// </summary>
-        public static string? GetIdTypeOrNull(this SpiderlyClass c, List<SpiderlyClass> classes)
+        public static string? GetIdTypeOrNull(this SpiderlyClass? c, List<SpiderlyClass> classes)
             => c?.IdType ?? c.ResolveIdType(classes);
 
         /// <summary>
@@ -1162,7 +1158,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <see cref="SpiderlyClass.IdType"/>; everything else should read that property (directly, or through
         /// <see cref="GetIdType"/> / <see cref="GetIdTypeOrNull"/>) so the walk happens once per compilation.
         /// </summary>
-        public static string? ResolveIdType(this SpiderlyClass? c, List<SpiderlyClass> classes)
+        internal static string? ResolveIdType(this SpiderlyClass? c, List<SpiderlyClass> classes)
         {
             if (c == null)
             {
@@ -1210,10 +1206,12 @@ namespace Spiderly.SourceGenerators.Shared
             if (baseType != null && baseType.Contains("<"))
             {
                 string idType = Helpers.ExtractTypeFromGenericType(baseType);
-                string baseClassName = baseType.Substring(0, baseType.IndexOf('<'));
 
                 if (!idType.IsAllowedPrimaryKeyType())
                 {
+                    // Only needed for the message, so it is not allocated on the success path.
+                    string baseClassName = baseType.Substring(0, baseType.IndexOf('<'));
+
                     throw SpiderlyDiagnostics.Create(
                         SpiderlyDiagnostics.UnsupportedPrimaryKeyType,
                         c.Location,

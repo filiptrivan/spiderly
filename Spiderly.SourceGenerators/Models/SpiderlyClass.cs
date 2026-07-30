@@ -24,15 +24,22 @@ namespace Spiderly.SourceGenerators.Models
         public string? BaseType { get; set; }
 
         /// <summary>
-        /// The entity's primary-key type, resolved ONCE by <see cref="Shared.SpiderlyClassFactory"/> instead
-        /// of re-walked at each of the ~39 sites that used to ask. Set only for <c>[SpiderlyEntity]</c>
-        /// classes; left null on DTOs, controllers, services and mappers, which have no key.
+        /// The entity's primary-key type, resolved by <see cref="Shared.SpiderlyClassFactory"/> for every
+        /// <c>[SpiderlyEntity]</c> class. Left null on DTOs, controllers, services and mappers, which have no
+        /// key — so read it only on an entity.
         /// <para>
-        /// On an entity, <c>null</c> means exactly one thing: a KEYLESS many-to-many junction. A class that
-        /// is merely missing its <c>BusinessObject&lt;T&gt;</c> base does not land here as null — it fails
-        /// resolution with SPIDERLY010 at construction. Keeping "legitimately keyless" and "malformed"
-        /// distinguishable is the whole point: a null that meant either would leave every consumer guessing,
-        /// which is the bug this property exists to retire.
+        /// The point is MEANING, not caching. On an entity, <c>null</c> means exactly one thing: a KEYLESS
+        /// many-to-many junction. A class merely missing its <c>BusinessObject&lt;T&gt;</c> base never lands
+        /// here as null — it fails resolution with SPIDERLY010 during construction. That is what lets a
+        /// caller branch on the null instead of choosing between two similarly-named accessors, one of which
+        /// throws on a shape that legitimately reaches it.
+        /// </para>
+        /// <para>
+        /// Do NOT read this as a performance cache. Resolution was measured at roughly 6 allocations and no
+        /// list scan (entities derive from <c>BusinessObject&lt;T&gt;</c> directly, so the base-chain walk
+        /// never iterates), i.e. tens of microseconds per compilation across every generator. Eager
+        /// resolution is deliberate anyway: it is what makes the null unambiguous above, and it costs the
+        /// generators that never ask one resolution per entity.
         /// </para>
         /// </summary>
         public string? IdType { get; set; }

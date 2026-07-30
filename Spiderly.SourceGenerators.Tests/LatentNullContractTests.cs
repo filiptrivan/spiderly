@@ -41,12 +41,12 @@ public class LatentNullContractTests
     }
 
     /// <summary>
-    /// "Has no primary key" and "forgot to declare a base class" are different facts, and
-    /// <c>GetIdTypeOrNull</c> keys its junction early-return on <c>IsManyToMany()</c>, which is literally
-    /// <c>BaseType == null</c>. So a consumer who simply omits <c>: BusinessObject&lt;long&gt;</c> is judged a
-    /// junction, and the <c>SPIDERLY010</c> throw at the BOTTOM of that method — which exists for exactly
-    /// this and says the right thing — is unreachable for the case it was written for. Wrapped by
-    /// SPIDERLY024, the consumer reads "This is a bug in Spiderly — please report it" for their own typo.
+    /// "Has no primary key" and "forgot to declare a base class" are different facts. The junction
+    /// early-return USED to key on <c>IsManyToMany()</c>, which is literally <c>BaseType == null</c>, so a
+    /// consumer who simply omitted <c>: BusinessObject&lt;long&gt;</c> was judged a junction and the
+    /// <c>SPIDERLY010</c> throw at the bottom of the same method — written for exactly that — was
+    /// unreachable; wrapped by SPIDERLY024 they read "This is a bug in Spiderly — please report it" for
+    /// their own typo. It now keys on <c>BaseType == null &amp;&amp; HasM2MAttribute()</c>, and this pins it.
     /// </summary>
     [Fact]
     public void GetIdType_OnAnEntityThatForgotItsBase_ReportsTheMissingBase_NotAJunction()
@@ -109,6 +109,8 @@ public class LatentNullContractTests
                 {
                     [DisplayName]
                     public string Name { get; set; }
+
+                    public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
                 }
 
                 [SpiderlyEntity]
@@ -116,6 +118,8 @@ public class LatentNullContractTests
                 {
                     [DisplayName]
                     public string Name { get; set; }
+
+                    public virtual List<ItemWarehouse> ItemWarehouses { get; } = new();
                 }
 
                 [M2M]
@@ -149,15 +153,14 @@ public class LatentNullContractTests
 
         List<SpiderlyClass> resolved = SpiderlyClassFactory.GetSpiderlyClasses(classes, new List<SpiderlyClass>());
 
-        Assert.Equal("long", Single(resolved, "Item").IdType);
-        Assert.Equal("byte", Single(resolved, "Warehouse").IdType);
+        Assert.Equal("long", IdTypeOf("Item"));
+        Assert.Equal("byte", IdTypeOf("Warehouse"));
         // The one legal null: a keyless junction genuinely has no key.
-        Assert.Null(Single(resolved, "ItemWarehouse").IdType);
+        Assert.Null(IdTypeOf("ItemWarehouse"));
         // Not an entity — never asked, so never reported as missing a BusinessObject base.
-        Assert.Null(Single(resolved, "ReportDTO").IdType);
+        Assert.Null(IdTypeOf("ReportDTO"));
 
-        static SpiderlyClass Single(List<SpiderlyClass> classes, string name)
-            => classes.Single(x => x.Name == name);
+        string? IdTypeOf(string name) => resolved.Single(x => x.Name == name).IdType;
     }
 
     [Fact]
