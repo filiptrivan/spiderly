@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetMemberMainUIFormDTO(MemberMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetMemberMainUIFormDTO(MemberMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Member entity as a DTO with blob data populated.
@@ -292,7 +292,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveMemberAndReturnMainUIFormDTO(MemberSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveMemberAndReturnMainUIFormDTO(MemberSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Member and after updating related collections.
@@ -301,7 +301,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveMemberAndReturnMainUIFormDTO(MemberSaveBodyDTO saveBodyDTO, MemberMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveMemberAndReturnMainUIFormDTO(MemberSaveBodyDTO saveBodyDTO, MemberMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Member entity and returns the DTO with blob data populated.
@@ -395,7 +395,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="memberDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeMemberIsMapped(MemberDTO memberDTO) { }
+        protected virtual Task OnBeforeMemberIsMapped(MemberDTO memberDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Member entity.
@@ -404,7 +404,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="member">The existing entity being updated</param>
         /// <param name="memberDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeMemberUpdate(Member member, MemberDTO memberDTO) { }
+        protected virtual Task OnBeforeMemberUpdate(Member member, MemberDTO memberDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Member entity.
@@ -413,7 +413,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="member">The new entity being inserted</param>
         /// <param name="memberDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeMemberInsert(Member member, MemberDTO memberDTO) { }
+        protected virtual Task OnBeforeMemberInsert(Member member, MemberDTO memberDTO) => Task.CompletedTask;
 
 
 
@@ -478,7 +478,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeMemberListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeMemberListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Member entities (cascades included),
@@ -493,7 +493,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterMemberListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterMemberListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Member entities with cascade delete handling for dependent entities.

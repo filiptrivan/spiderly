@@ -96,7 +96,7 @@ namespace Spiderly.SourceGenerators.Net
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBefore{{entity.Name}}ListDelete(List<{{entityIdType}}> listForDelete) { }
+        public virtual Task OnBefore{{entity.Name}}ListDelete(List<{{entityIdType}}> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of {{entity.Name}} entities (cascades included),
@@ -111,7 +111,7 @@ namespace Spiderly.SourceGenerators.Net
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfter{{entity.Name}}ListDelete(List<{{entityIdType}}> deletedIds) { }
+        public virtual Task OnAfter{{entity.Name}}ListDelete(List<{{entityIdType}}> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple {{entity.Name}} entities with cascade delete handling for dependent entities.

@@ -103,7 +103,7 @@ namespace Spiderly.SourceGenerators.Net
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBefore{{entity.Name}}IsMapped({{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
+        protected virtual Task OnBefore{{entity.Name}}IsMapped({{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing {{entity.Name}} entity.
@@ -112,7 +112,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}">The existing entity being updated</param>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing new data</param>
-        protected virtual async Task OnBefore{{entity.Name}}Update({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
+        protected virtual Task OnBefore{{entity.Name}}Update({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new {{entity.Name}} entity.
@@ -121,7 +121,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="{{entity.Name.FirstCharToLower()}}">The new entity being inserted</param>
         /// <param name="{{entity.Name.FirstCharToLower()}}DTO">The DTO containing the data</param>
-        protected virtual async Task OnBefore{{entity.Name}}Insert({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) { }
+        protected virtual Task OnBefore{{entity.Name}}Insert({{entity.Name}} {{entity.Name.FirstCharToLower()}}, {{entity.Name}}DTO {{entity.Name.FirstCharToLower()}}DTO) => Task.CompletedTask;
 """;
         }
 
@@ -174,7 +174,7 @@ namespace Spiderly.SourceGenerators.Net
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving {{entity.Name}} and after updating related collections.
@@ -183,7 +183,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, {{entity.Name}}MainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSave{{entity.Name}}AndReturnMainUIFormDTO({{entity.Name}}SaveBodyDTO saveBodyDTO, {{entity.Name}}MainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 """;
         }
 
@@ -609,7 +609,7 @@ namespace Spiderly.SourceGenerators.Net
         /// </summary>
         /// <param name="file">The file being uploaded</param>
         /// <param name="id">The entity ID</param>
-        public virtual async Task OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized (IFormFile file, {{entityIdType}} id) { }
+        public virtual Task OnBefore{{property.Name}}BlobFor{{entity.Name}}UploadIsAuthorized (IFormFile file, {{entityIdType}} id) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before blob is uploaded to storage.
@@ -640,10 +640,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <param name="stream">The image stream</param>
         /// <param name="file">The form file</param>
         /// <param name="id">The entity ID</param>
-        public virtual async Task ValidateImageFor{{property.Name}}Of{{entity.Name}}(Stream stream, IFormFile file, {{entityIdType}} id)
-        {
-{{GetImageDimensionsValidation(property)}}
-        }
+        {{GetValidateImageMember(property, entity.Name, entityIdType)}}
 
         /// <summary>
         /// Optimizes the image for the {{property.Name}} property.
@@ -662,6 +659,30 @@ namespace Spiderly.SourceGenerators.Net
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// The image-validation hook. Its body exists only when the property declares dimensions, so emitting
+        /// <c>async Task</c> unconditionally left an <c>async</c> method with no <c>await</c> — a CS1998 in
+        /// generated code, which a consumer cannot suppress. Expression-bodied when there is nothing to
+        /// validate; still overridable as <c>async</c> either way, since the override's signature is
+        /// <c>Task</c>.
+        /// </summary>
+        private static string GetValidateImageMember(SpiderlyProperty property, string entityName, string entityIdType)
+        {
+            string dimensionsValidation = GetImageDimensionsValidation(property);
+
+            if (string.IsNullOrWhiteSpace(dimensionsValidation))
+            {
+                return $"public virtual Task ValidateImageFor{property.Name}Of{entityName}(Stream stream, IFormFile file, {entityIdType} id) => Task.CompletedTask;";
+            }
+
+            return $$"""
+public virtual async Task ValidateImageFor{{property.Name}}Of{{entityName}}(Stream stream, IFormFile file, {{entityIdType}} id)
+        {
+{{dimensionsValidation}}
+        }
+""";
         }
 
         private static string GetImageDimensionsValidation(SpiderlyProperty property)

@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetTeamMainUIFormDTO(TeamMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetTeamMainUIFormDTO(TeamMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Team entity as a DTO with blob data populated.
@@ -292,7 +292,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveTeamAndReturnMainUIFormDTO(TeamSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveTeamAndReturnMainUIFormDTO(TeamSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Team and after updating related collections.
@@ -301,7 +301,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveTeamAndReturnMainUIFormDTO(TeamSaveBodyDTO saveBodyDTO, TeamMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveTeamAndReturnMainUIFormDTO(TeamSaveBodyDTO saveBodyDTO, TeamMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Team entity and returns the DTO with blob data populated.
@@ -395,7 +395,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="teamDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeTeamIsMapped(TeamDTO teamDTO) { }
+        protected virtual Task OnBeforeTeamIsMapped(TeamDTO teamDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Team entity.
@@ -404,7 +404,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="team">The existing entity being updated</param>
         /// <param name="teamDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeTeamUpdate(Team team, TeamDTO teamDTO) { }
+        protected virtual Task OnBeforeTeamUpdate(Team team, TeamDTO teamDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Team entity.
@@ -413,7 +413,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="team">The new entity being inserted</param>
         /// <param name="teamDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeTeamInsert(Team team, TeamDTO teamDTO) { }
+        protected virtual Task OnBeforeTeamInsert(Team team, TeamDTO teamDTO) => Task.CompletedTask;
 
 
 
@@ -486,7 +486,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeTeamListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeTeamListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Team entities (cascades included),
@@ -501,7 +501,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterTeamListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterTeamListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Team entities with cascade delete handling for dependent entities.

@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetProductMainUIFormDTO(ProductMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetProductMainUIFormDTO(ProductMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Product entity as a DTO with blob data populated.
@@ -261,7 +261,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveProductAndReturnMainUIFormDTO(ProductSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveProductAndReturnMainUIFormDTO(ProductSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Product and after updating related collections.
@@ -270,7 +270,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveProductAndReturnMainUIFormDTO(ProductSaveBodyDTO saveBodyDTO, ProductMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveProductAndReturnMainUIFormDTO(ProductSaveBodyDTO saveBodyDTO, ProductMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Product entity and returns the DTO with blob data populated.
@@ -356,7 +356,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="productDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeProductIsMapped(ProductDTO productDTO) { }
+        protected virtual Task OnBeforeProductIsMapped(ProductDTO productDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Product entity.
@@ -365,7 +365,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="product">The existing entity being updated</param>
         /// <param name="productDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeProductUpdate(Product product, ProductDTO productDTO) { }
+        protected virtual Task OnBeforeProductUpdate(Product product, ProductDTO productDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Product entity.
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="product">The new entity being inserted</param>
         /// <param name="productDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeProductInsert(Product product, ProductDTO productDTO) { }
+        protected virtual Task OnBeforeProductInsert(Product product, ProductDTO productDTO) => Task.CompletedTask;
 
 
 
@@ -439,7 +439,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeProductListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeProductListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Product entities (cascades included),
@@ -454,7 +454,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterProductListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterProductListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Product entities with cascade delete handling for dependent entities.

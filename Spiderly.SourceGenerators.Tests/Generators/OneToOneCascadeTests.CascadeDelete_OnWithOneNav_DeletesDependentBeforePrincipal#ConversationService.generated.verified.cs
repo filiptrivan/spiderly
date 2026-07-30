@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetConversationMainUIFormDTO(ConversationMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetConversationMainUIFormDTO(ConversationMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Conversation entity as a DTO with blob data populated.
@@ -292,7 +292,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveConversationAndReturnMainUIFormDTO(ConversationSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveConversationAndReturnMainUIFormDTO(ConversationSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Conversation and after updating related collections.
@@ -301,7 +301,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveConversationAndReturnMainUIFormDTO(ConversationSaveBodyDTO saveBodyDTO, ConversationMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveConversationAndReturnMainUIFormDTO(ConversationSaveBodyDTO saveBodyDTO, ConversationMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Conversation entity and returns the DTO with blob data populated.
@@ -395,7 +395,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="conversationDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeConversationIsMapped(ConversationDTO conversationDTO) { }
+        protected virtual Task OnBeforeConversationIsMapped(ConversationDTO conversationDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Conversation entity.
@@ -404,7 +404,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="conversation">The existing entity being updated</param>
         /// <param name="conversationDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeConversationUpdate(Conversation conversation, ConversationDTO conversationDTO) { }
+        protected virtual Task OnBeforeConversationUpdate(Conversation conversation, ConversationDTO conversationDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Conversation entity.
@@ -413,7 +413,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="conversation">The new entity being inserted</param>
         /// <param name="conversationDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeConversationInsert(Conversation conversation, ConversationDTO conversationDTO) { }
+        protected virtual Task OnBeforeConversationInsert(Conversation conversation, ConversationDTO conversationDTO) => Task.CompletedTask;
 
 
 
@@ -478,7 +478,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeConversationListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeConversationListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Conversation entities (cascades included),
@@ -493,7 +493,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterConversationListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterConversationListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Conversation entities with cascade delete handling for dependent entities.

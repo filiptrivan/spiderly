@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetOrgMainUIFormDTO(OrgMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetOrgMainUIFormDTO(OrgMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Org entity as a DTO with blob data populated.
@@ -261,7 +261,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Org and after updating related collections.
@@ -270,7 +270,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO, OrgMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveOrgAndReturnMainUIFormDTO(OrgSaveBodyDTO saveBodyDTO, OrgMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Org entity and returns the DTO with blob data populated.
@@ -356,7 +356,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="orgDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeOrgIsMapped(OrgDTO orgDTO) { }
+        protected virtual Task OnBeforeOrgIsMapped(OrgDTO orgDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Org entity.
@@ -365,7 +365,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="org">The existing entity being updated</param>
         /// <param name="orgDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeOrgUpdate(Org org, OrgDTO orgDTO) { }
+        protected virtual Task OnBeforeOrgUpdate(Org org, OrgDTO orgDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Org entity.
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="org">The new entity being inserted</param>
         /// <param name="orgDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeOrgInsert(Org org, OrgDTO orgDTO) { }
+        protected virtual Task OnBeforeOrgInsert(Org org, OrgDTO orgDTO) => Task.CompletedTask;
 
 
 
@@ -457,7 +457,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeOrgListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeOrgListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Org entities (cascades included),
@@ -472,7 +472,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterOrgListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterOrgListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Org entities with cascade delete handling for dependent entities.

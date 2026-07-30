@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetStudentMainUIFormDTO(StudentMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetStudentMainUIFormDTO(StudentMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Student entity as a DTO with blob data populated.
@@ -261,7 +261,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveStudentAndReturnMainUIFormDTO(StudentSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveStudentAndReturnMainUIFormDTO(StudentSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Student and after updating related collections.
@@ -270,7 +270,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveStudentAndReturnMainUIFormDTO(StudentSaveBodyDTO saveBodyDTO, StudentMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveStudentAndReturnMainUIFormDTO(StudentSaveBodyDTO saveBodyDTO, StudentMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Student entity and returns the DTO with blob data populated.
@@ -356,7 +356,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="studentDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeStudentIsMapped(StudentDTO studentDTO) { }
+        protected virtual Task OnBeforeStudentIsMapped(StudentDTO studentDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Student entity.
@@ -365,7 +365,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="student">The existing entity being updated</param>
         /// <param name="studentDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeStudentUpdate(Student student, StudentDTO studentDTO) { }
+        protected virtual Task OnBeforeStudentUpdate(Student student, StudentDTO studentDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Student entity.
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="student">The new entity being inserted</param>
         /// <param name="studentDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeStudentInsert(Student student, StudentDTO studentDTO) { }
+        protected virtual Task OnBeforeStudentInsert(Student student, StudentDTO studentDTO) => Task.CompletedTask;
 
 
 
@@ -439,7 +439,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeStudentListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeStudentListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Student entities (cascades included),
@@ -454,7 +454,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterStudentListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterStudentListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Student entities with cascade delete handling for dependent entities.

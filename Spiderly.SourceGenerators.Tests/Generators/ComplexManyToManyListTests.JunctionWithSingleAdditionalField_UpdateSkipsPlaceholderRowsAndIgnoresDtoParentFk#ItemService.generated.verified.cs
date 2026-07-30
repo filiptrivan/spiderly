@@ -79,7 +79,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetItemMainUIFormDTO(ItemMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetItemMainUIFormDTO(ItemMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Item entity as a DTO with blob data populated.
@@ -262,7 +262,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveItemAndReturnMainUIFormDTO(ItemSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveItemAndReturnMainUIFormDTO(ItemSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Item and after updating related collections.
@@ -271,7 +271,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveItemAndReturnMainUIFormDTO(ItemSaveBodyDTO saveBodyDTO, ItemMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveItemAndReturnMainUIFormDTO(ItemSaveBodyDTO saveBodyDTO, ItemMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Item entity and returns the DTO with blob data populated.
@@ -357,7 +357,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="itemDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeItemIsMapped(ItemDTO itemDTO) { }
+        protected virtual Task OnBeforeItemIsMapped(ItemDTO itemDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Item entity.
@@ -366,7 +366,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="item">The existing entity being updated</param>
         /// <param name="itemDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeItemUpdate(Item item, ItemDTO itemDTO) { }
+        protected virtual Task OnBeforeItemUpdate(Item item, ItemDTO itemDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Item entity.
@@ -375,7 +375,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="item">The new entity being inserted</param>
         /// <param name="itemDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeItemInsert(Item item, ItemDTO itemDTO) { }
+        protected virtual Task OnBeforeItemInsert(Item item, ItemDTO itemDTO) => Task.CompletedTask;
 
 
 
@@ -440,7 +440,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeItemListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeItemListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Item entities (cascades included),
@@ -455,7 +455,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterItemListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterItemListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Item entities with cascade delete handling for dependent entities.

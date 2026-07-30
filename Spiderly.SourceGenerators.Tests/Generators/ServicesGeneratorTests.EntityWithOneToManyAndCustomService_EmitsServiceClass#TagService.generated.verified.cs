@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetTagMainUIFormDTO(TagMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetTagMainUIFormDTO(TagMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Tag entity as a DTO with blob data populated.
@@ -261,7 +261,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveTagAndReturnMainUIFormDTO(TagSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveTagAndReturnMainUIFormDTO(TagSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Tag and after updating related collections.
@@ -270,7 +270,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveTagAndReturnMainUIFormDTO(TagSaveBodyDTO saveBodyDTO, TagMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveTagAndReturnMainUIFormDTO(TagSaveBodyDTO saveBodyDTO, TagMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Tag entity and returns the DTO with blob data populated.
@@ -356,7 +356,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="tagDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeTagIsMapped(TagDTO tagDTO) { }
+        protected virtual Task OnBeforeTagIsMapped(TagDTO tagDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Tag entity.
@@ -365,7 +365,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="tag">The existing entity being updated</param>
         /// <param name="tagDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeTagUpdate(Tag tag, TagDTO tagDTO) { }
+        protected virtual Task OnBeforeTagUpdate(Tag tag, TagDTO tagDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Tag entity.
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="tag">The new entity being inserted</param>
         /// <param name="tagDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeTagInsert(Tag tag, TagDTO tagDTO) { }
+        protected virtual Task OnBeforeTagInsert(Tag tag, TagDTO tagDTO) => Task.CompletedTask;
 
 
 
@@ -439,7 +439,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeTagListDelete(List<long> listForDelete) { }
+        public virtual Task OnBeforeTagListDelete(List<long> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Tag entities (cascades included),
@@ -454,7 +454,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterTagListDelete(List<long> deletedIds) { }
+        public virtual Task OnAfterTagListDelete(List<long> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Tag entities with cascade delete handling for dependent entities.

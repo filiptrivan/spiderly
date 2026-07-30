@@ -78,7 +78,7 @@ namespace TestApp.Business.Services
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGetWarehouseMainUIFormDTO(WarehouseMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGetWarehouseMainUIFormDTO(WarehouseMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single Warehouse entity as a DTO with blob data populated.
@@ -261,7 +261,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="saveBodyDTO">The SaveBodyDTO containing entity and related data</param>
-        protected virtual async Task OnBeforeSaveWarehouseAndReturnMainUIFormDTO(WarehouseSaveBodyDTO saveBodyDTO) { }
+        protected virtual Task OnBeforeSaveWarehouseAndReturnMainUIFormDTO(WarehouseSaveBodyDTO saveBodyDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after saving Warehouse and after updating related collections.
@@ -270,7 +270,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="saveBodyDTO">The original SaveBodyDTO</param>
         /// <param name="mainUIFormDTO">The save result and DTO sent to the UI</param>
-        protected virtual async Task OnAfterSaveWarehouseAndReturnMainUIFormDTO(WarehouseSaveBodyDTO saveBodyDTO, WarehouseMainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterSaveWarehouseAndReturnMainUIFormDTO(WarehouseSaveBodyDTO saveBodyDTO, WarehouseMainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Saves a Warehouse entity and returns the DTO with blob data populated.
@@ -356,7 +356,7 @@ namespace TestApp.Business.Services
         /// This method runs inside a database transaction.
         /// </summary>
         /// <param name="warehouseDTO">The DTO about to be mapped</param>
-        protected virtual async Task OnBeforeWarehouseIsMapped(WarehouseDTO warehouseDTO) { }
+        protected virtual Task OnBeforeWarehouseIsMapped(WarehouseDTO warehouseDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before updating an existing Warehouse entity.
@@ -365,7 +365,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="warehouse">The existing entity being updated</param>
         /// <param name="warehouseDTO">The DTO containing new data</param>
-        protected virtual async Task OnBeforeWarehouseUpdate(Warehouse warehouse, WarehouseDTO warehouseDTO) { }
+        protected virtual Task OnBeforeWarehouseUpdate(Warehouse warehouse, WarehouseDTO warehouseDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called before inserting a new Warehouse entity.
@@ -374,7 +374,7 @@ namespace TestApp.Business.Services
         /// </summary>
         /// <param name="warehouse">The new entity being inserted</param>
         /// <param name="warehouseDTO">The DTO containing the data</param>
-        protected virtual async Task OnBeforeWarehouseInsert(Warehouse warehouse, WarehouseDTO warehouseDTO) { }
+        protected virtual Task OnBeforeWarehouseInsert(Warehouse warehouse, WarehouseDTO warehouseDTO) => Task.CompletedTask;
 
 
 
@@ -439,7 +439,7 @@ namespace TestApp.Business.Services
         /// Override this to add custom validation or business logic before batch deletion.
         /// </summary>
         /// <param name="listForDelete">The list of entity IDs being deleted</param>
-        public virtual async Task OnBeforeWarehouseListDelete(List<byte> listForDelete) { }
+        public virtual Task OnBeforeWarehouseListDelete(List<byte> listForDelete) => Task.CompletedTask;
 
         /// <summary>
         /// Lifecycle hook called after deleting a list of Warehouse entities (cascades included),
@@ -454,7 +454,7 @@ namespace TestApp.Business.Services
         ///     await RecalculateAggregatesAsync(); // reads the post-delete state
         /// }
         /// </example>
-        public virtual async Task OnAfterWarehouseListDelete(List<byte> deletedIds) { }
+        public virtual Task OnAfterWarehouseListDelete(List<byte> deletedIds) => Task.CompletedTask;
 
         /// <summary>
         /// Deletes multiple Warehouse entities with cascade delete handling for dependent entities.

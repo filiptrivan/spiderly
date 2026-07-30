@@ -46,7 +46,7 @@ namespace Spiderly.SourceGenerators.Net
         /// }
         /// </example>
         /// <param name="mainUIFormDTO">The MainUIFormDTO that was just constructed with entity and related data</param>
-        protected virtual async Task OnAfterGet{{entity.Name}}MainUIFormDTO({{entity.Name}}MainUIFormDTO mainUIFormDTO) { }
+        protected virtual Task OnAfterGet{{entity.Name}}MainUIFormDTO({{entity.Name}}MainUIFormDTO mainUIFormDTO) => Task.CompletedTask;
 
         /// <summary>
         /// Retrieves a single {{entity.Name}} entity as a DTO with blob data populated.
