@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
@@ -33,7 +34,10 @@ public class GeneratedCodeCompilationTests
     [InlineData(NullableContextOptions.Enable)]
     public void EveryDotNetGenerator_EmitsCodeThatCompiles(NullableContextOptions nullable)
     {
-        AssertCompilesClean(GeneratedCodeCompilationHarness.CompileAllGenerators(nullable: nullable));
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, nullable: nullable);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
     }
 
     [Fact]
@@ -55,15 +59,28 @@ public class GeneratedCodeCompilationTests
             }
             """;
 
-        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators([BrokenEntity]);
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(out _, [BrokenEntity]);
 
         Assert.Contains(
             withGenerated.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error),
             d => d.Id == "CS0246");
     }
 
-    private static void AssertCompilesClean(Compilation withGenerated)
+    private static void AssertCompilesClean(Compilation withGenerated, ImmutableArray<Diagnostic> generatorDiagnostics)
     {
+        // The GENERATORS' own diagnostics (SPIDERLY### and generator faults) are reported by the driver and
+        // never reach the compilation, so they must be asserted separately. Omitting them is how a
+        // SPIDERLY028 against the type-zoo fixture passed here and failed CI's real build.
+        string[] generatorErrors = generatorDiagnostics
+            .Where(d => d.Severity >= DiagnosticSeverity.Warning)
+            .Select(Describe)
+            .Distinct()
+            .ToArray();
+
+        Assert.True(
+            generatorErrors.Length == 0,
+            $"Generators reported {generatorErrors.Length} diagnostic(s):\n{string.Join("\n", generatorErrors)}");
+
         // Generated trees carry a generator-derived FilePath; trees parsed from a string have none. Without
         // this check "zero errors" would also pass for a harness that silently generated NOTHING, which is
         // the placebo the negative control alone does not rule out (its error comes from an input tree).

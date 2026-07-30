@@ -5,6 +5,7 @@ using Spiderly.Shared.Helpers;
 using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Shared;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -133,7 +134,11 @@ internal static class GeneratedCodeCompilationHarness
     /// Compiles all generator output plus the input sources in ONE compilation, the way a real build does
     /// (no generator sees another's output; the final compilation contains all of it).
     /// </summary>
+    /// <param name="generatorDiagnostics">Diagnostics the GENERATORS reported — SPIDERLY### ids and any
+    /// generator fault. These do NOT appear in the returned compilation's own diagnostics, so discarding them
+    /// let a SPIDERLY028 on the type-zoo fixture pass this harness and fail CI's real build instead.</param>
     internal static Compilation CompileAllGenerators(
+        out ImmutableArray<Diagnostic> generatorDiagnostics,
         IEnumerable<string>? extraSources = null,
         NullableContextOptions nullable = NullableContextOptions.Enable)
     {
@@ -149,7 +154,7 @@ internal static class GeneratedCodeCompilationHarness
         // and mixing them with the inputs' language version throws "Inconsistent language versions".
         CSharpGeneratorDriver
             .Create(DotNetGenerators.Select(g => g.AsSourceGenerator()), parseOptions: ParseOptions)
-            .RunGeneratorsAndUpdateCompilation(compilation, out Compilation withGenerated, out _);
+            .RunGeneratorsAndUpdateCompilation(compilation, out Compilation withGenerated, out generatorDiagnostics);
 
         return withGenerated;
     }
