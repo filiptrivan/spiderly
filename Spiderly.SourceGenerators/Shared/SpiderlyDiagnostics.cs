@@ -125,7 +125,9 @@ namespace Spiderly.SourceGenerators.Shared
         public static readonly DiagnosticDescriptor NullabilityRequirednessMismatch = new(
             id: "SPIDERLY028",
             title: "Nullable annotation disagrees with [Required]",
-            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. The annotation and [Required] are two statements about one column and must agree; a disagreement either silently alters the column's nullability or leaves the C# type lying about it. {4}",
+            // Hint ({4}) sits before the rationale so the actionable half is adjacent to the problem, and so
+            // the format ends on a period — RS1032 requires a multi-sentence message to be terminated.
+            messageFormat: "'{0}.{1}' is {2} but is annotated '{3}'. {4} The annotation and [Required] are two statements about one column and must agree: a disagreement either silently alters the column's nullability or leaves the C# type lying about it.",
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
