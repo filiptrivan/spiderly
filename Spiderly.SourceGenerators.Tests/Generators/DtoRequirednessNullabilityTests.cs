@@ -206,13 +206,15 @@ public class DtoRequirednessNullabilityTests
     // from the column rather than assume it, which is what GetDTOForeignKeyAccessExpression does.
     // These pin the derivation so a future tightening can't silently emit '.Value' on a bare value
     // type (CS1061) or omit it on a Nullable<T> (CS1503) — both of which reached CI once.
+    // The '!' is part of the emitted form: a generated DTO's value-type columns are always nullable, so a
+    // bare unwrap is CS8629 in an NRT-on consumer, on a line they cannot edit.
     [Fact]
     public void SaveService_UnwrapsASynthesizedForeignKey()
     {
         string services = RunServicesGenerator();
 
-        Assert.Contains("dto.CategoryId.Value", services);
-        Assert.Contains("dto.SecondaryCategoryId.Value", services);
+        Assert.Contains("dto.CategoryId!.Value", services);
+        Assert.Contains("dto.SecondaryCategoryId!.Value", services);
     }
 
     // An explicit FK suppresses {Nav}Id synthesis, so the column is the SCALAR, under its own name and
@@ -221,7 +223,7 @@ public class DtoRequirednessNullabilityTests
     [Fact]
     public void SaveService_ReadsAnExplicitForeignKeyAtTheScalarsNullability()
     {
-        Assert.Contains("dto.ProductId.Value", RunServicesGenerator("ReviewService.generated.cs"));
+        Assert.Contains("dto.ProductId!.Value", RunServicesGenerator("ReviewService.generated.cs"));
     }
 
     private static string RunServicesGenerator(string hintName = "ProductService.generated.cs")

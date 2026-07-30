@@ -121,7 +121,15 @@ namespace {{basePartOfNamespace}}.Filtering
                         string entityPropName = prop.DTOPropName.Replace("CommaSeparated", ""); // "SegmentationItems"
                         SpiderlyProperty listProp = efClassProps.First(x => x.Name == entityPropName);
                         SpiderlyClass childEntity = Helpers.GetEntityByPropertyType(listProp, allEntities);
-                        string childIdType = childEntity.GetIdType(allEntities);
+
+                        // The id is genuinely required here (GetCaseForEnumerable emits values.Contains(x.Id)),
+                        // so a keyless junction target is an unsupported SHAPE, not a mis-sequenced lookup —
+                        // it gets a located diagnostic rather than the throwing GetIdType's SPIDERLY024.
+                        string childIdType = childEntity.GetIdTypeOrNull(allEntities)
+                            ?? throw SpiderlyDiagnostics.Create(
+                                SpiderlyDiagnostics.CommaSeparatedDisplayNameOverKeylessJunction,
+                                listProp.Location ?? entity.Location,
+                                entity.Name, listProp.Name, childEntity.Name);
                         sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
                         continue;
                     }

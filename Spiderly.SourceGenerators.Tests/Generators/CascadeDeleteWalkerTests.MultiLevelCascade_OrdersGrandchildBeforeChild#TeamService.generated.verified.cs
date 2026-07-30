@@ -369,7 +369,7 @@ namespace TestApp.Business.Services
 
                 if (dto.OrgId > 0)
                 {
-                    poco.Org = await GetInstanceAsync<Org, long>(dto.OrgId.Value, null);
+                    poco.Org = await GetInstanceAsync<Org, long>(dto.OrgId!.Value, null);
                 }
                 else
                 {

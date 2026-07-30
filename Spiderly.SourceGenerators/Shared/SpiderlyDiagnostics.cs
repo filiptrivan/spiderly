@@ -323,5 +323,20 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        /// <summary>
+        /// Unlike the collection controls in <c>SpiderlyClassFactory</c> — where the id lookup was simply
+        /// asked for too early and the fix was to move it into the branches that emit one — this generator
+        /// genuinely requires the child's id: the emitted filter case is <c>values.Contains(x.Id)</c>. So the
+        /// shape is unsupported rather than mis-sequenced, and the consumer needs a located diagnostic
+        /// instead of SPIDERLY024's "This is a bug in Spiderly — please report it".
+        /// </summary>
+        public static readonly DiagnosticDescriptor CommaSeparatedDisplayNameOverKeylessJunction = new(
+            id: "SPIDERLY029",
+            title: "[GenerateCommaSeparatedDisplayName] targets a junction with no primary key",
+            messageFormat: "[GenerateCommaSeparatedDisplayName] on '{0}.{1}' targets '{2}', a many-to-many junction with no primary key. The generated table filter matches the collection by child Id, which '{2}' does not have. Give '{2}' a BusinessObject<T> base so it has one, or drop the attribute.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

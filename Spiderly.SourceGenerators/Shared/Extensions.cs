@@ -852,7 +852,8 @@ namespace Spiderly.SourceGenerators.Shared
                 ? null
                 : entity.Properties.FirstOrDefault(p => p.Name == explicitFkName);
 
-            string column = $"{dtoExpression}.{navigation.ResolveDTOForeignKeyName(entity)}";
+            string columnName = navigation.ResolveDTOForeignKeyName(entity);
+            string column = $"{dtoExpression}.{columnName}";
 
             // Both branches ASK the mapping for the column's type rather than inferring it from the
             // navigation or the entity — that inference is what produced a CS1061 and a CS1503 in turn.
@@ -860,7 +861,15 @@ namespace Spiderly.SourceGenerators.Shared
                 ? fkProperty.IsDTOColumnNullable()
                 : SpiderlyClassFactory.GetFormatedDTOPropertyType(idType).EndsWith("?");
 
-            return nullable ? $"{column}.Value" : column;
+            // Null-forgiving, not a bare .Value: a generated DTO's value-type columns are ALWAYS nullable by
+            // design, so under #nullable enable a bare unwrap is CS8629 in every consumer that emits this —
+            // a warning they cannot suppress, and fatal under <WarningsAsErrors>Nullable</WarningsAsErrors>.
+            // The `!` changes nothing at runtime (a genuinely null column still throws on .Value, as before);
+            // it records that the caller has already established presence. Same form as the synthesized-FK
+            // branch of GetForeignKeyAccessExpression above.
+            return nullable
+                ? $"{dtoExpression}.{$"{columnName}.Value".AsNullForgivingProjection()}"
+                : column;
         }
 
         #endregion
@@ -1149,12 +1158,22 @@ namespace Spiderly.SourceGenerators.Shared
                     "<unknown>", "<null>");
             }
 
-            // A many-to-many junction has no Id, so there is no id type — and null is the ESTABLISHED
-            // contract, not an oversight. Generators iterate every entity, junctions included, and simply
-            // don't use the result on the junction branch (ComplexManyToManyList emission depends on this).
-            // Throwing here instead breaks that generation outright; pinned by
+            // A KEYLESS many-to-many junction has no Id, so there is no id type — and null is the
+            // ESTABLISHED contract, not an oversight. Generators iterate every entity, junctions included,
+            // and simply don't use the result on the junction branch (ComplexManyToManyList emission depends
+            // on this). Throwing here instead breaks that generation outright; pinned by
             // LatentNullContractTests.GetIdType_OnAManyToManyJunction_ReturnsNull.
-            if (c.IsManyToMany())
+            //
+            // BOTH halves of this condition are load-bearing, and neither alone is correct:
+            //   - Without HasM2MAttribute(), "no base class" alone means junction — so a consumer who merely
+            //     forgot ': BusinessObject<long>' is reported as one, and the SPIDERLY010 throw at the bottom
+            //     of this method (written for exactly that) becomes unreachable. They then read SPIDERLY024's
+            //     "This is a bug in Spiderly — please report it" for their own typo.
+            //   - Without the BaseType check, a DECLARED junction that carries a key is nulled out. That is a
+            //     real shape: the e2e fixture ProjectMember is [M2M] and BusinessObject<long>.
+            // Pinned in both directions by GetIdType_OnAnEntityThatForgotItsBase_ReportsTheMissingBase_NotAJunction
+            // and GetIdType_OnAKeyedManyToManyJunction_ReturnsItsDeclaredIdType.
+            if (c.BaseType == null && c.HasM2MAttribute())
                 return null;
 
             string? baseType = c.BaseType; //BaseClass<long>

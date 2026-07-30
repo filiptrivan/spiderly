@@ -369,7 +369,7 @@ namespace TestApp.Business.Services
 
                 if (dto.TeamId > 0)
                 {
-                    poco.Team = await GetInstanceAsync<Team, long>(dto.TeamId.Value, null);
+                    poco.Team = await GetInstanceAsync<Team, long>(dto.TeamId!.Value, null);
                 }
                 else
                 {

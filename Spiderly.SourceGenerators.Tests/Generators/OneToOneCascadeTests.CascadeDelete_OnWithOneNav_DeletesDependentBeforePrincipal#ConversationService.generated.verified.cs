@@ -369,7 +369,7 @@ namespace TestApp.Business.Services
 
                 if (dto.OwningTaskItemId > 0)
                 {
-                    poco.OwningTaskItem = await GetInstanceAsync<TaskItem, long>(dto.OwningTaskItemId.Value, null);
+                    poco.OwningTaskItem = await GetInstanceAsync<TaskItem, long>(dto.OwningTaskItemId!.Value, null);
                 }
                 else
                 {
