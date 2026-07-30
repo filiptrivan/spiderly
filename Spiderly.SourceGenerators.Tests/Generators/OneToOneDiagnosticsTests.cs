@@ -1,24 +1,27 @@
 using Microsoft.CodeAnalysis;
-using Spiderly.SourceGenerators.Net;
+using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 using System.Collections.Immutable;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
 
 /// <summary>
-/// Each test runs <see cref="MapperGenerator"/> over a minimal entity graph that exhibits exactly
-/// one [WithOne] one-to-one violation, then asserts the matching SPIDERLY### diagnostic is emitted.
-/// The MapperGenerator surfaces SPIDERLY019-022 because it calls
-/// <c>OneToOneValidator.ValidateEntity</c> (beside <c>ForeignKeyValidator.ValidateEntity</c>) during
-/// mapper-config generation; the thrown <c>SpiderlyGenerationException</c> is caught per-entity and
-/// reported as a diagnostic. A <c>[SpiderlyDataMapper]</c> class is required in each fixture so the
-/// generator reaches the validation path.
+/// Each test runs <see cref="EntityValidationGenerator"/> over a minimal entity graph that exhibits
+/// exactly one [WithOne] one-to-one violation, then asserts the matching SPIDERLY### diagnostic is emitted.
+/// It surfaces SPIDERLY019-022 via <c>SpiderlyEntityValidator.Validate</c>; the thrown
+/// <c>SpiderlyGenerationException</c> is caught per entity and reported as a diagnostic.
+/// <para>
+/// These used to run <c>MapperGenerator</c>, which hosted the validators — so they also silently depended
+/// on a <c>[SpiderlyDataMapper]</c> class being present in every fixture, and would have gone quiet for any
+/// consumer who disabled that generator. The fixtures still declare one because the pipeline collects the
+/// same categories, but validation no longer rides on mapper emission.
+/// </para>
 /// </summary>
 public class OneToOneDiagnosticsTests
 {
     private static void AssertEmits(string expectedId, string source)
     {
-        GeneratorDriver driver = GeneratorTestHarness.Run<MapperGenerator>(source);
+        GeneratorDriver driver = GeneratorTestHarness.Run<EntityValidationGenerator>(source);
         ImmutableArray<Diagnostic> diagnostics = driver.GetRunResult().Diagnostics;
 
         Assert.Contains(diagnostics, d => d.Id == expectedId);
@@ -167,6 +170,51 @@ public class OneToOneDiagnosticsTests
             {
                 [SpiderlyDataMapper]
                 public partial class Mapper { }
+            }
+            """;
+
+        AssertEmits("SPIDERLY022", source);
+    }
+
+    [Fact]
+    public void SelfReferential_IsStillReported_WhenEveryMapperPairIsHandWritten()
+    {
+        // The second hole the move closed, in its measured shape. These diagnostics used to be reached only
+        // through MapperGenerator.GetToDTOConfig, which early-returns on HasCustomPair — so hand-writing all
+        // THREE *ToDTOConfig pairs exempted the entity from one-to-one and foreign-key validation entirely.
+        // Hand-writing a mapper is a mapping decision, not a waiver on entity shape.
+        //
+        // All three, not one: that helper is called three times per entity, so a single custom pair still
+        // left two calls reaching the validator. The redundant invocation was accidentally masking this —
+        // which means collapsing it to once per entity would have OPENED the hole had validation stayed
+        // inside the mapper. Moving it out is what makes running it once safe.
+        const string source = """
+            using System.Collections.Generic;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Node : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+
+                    public long? OtherId { get; set; }
+
+                    [WithOne(nameof(Node.Other))]
+                    public virtual Node Other { get; set; }
+                }
+            }
+
+            namespace TestApp.Business.DataMappers
+            {
+                [SpiderlyDataMapper]
+                public partial class Mapper
+                {
+                    public static TypeAdapterConfig NodeToDTOConfig() => null;
+                    public static TypeAdapterConfig NodeProjectToConfig() => null;
+                    public static TypeAdapterConfig NodeExcelProjectToConfig() => null;
+                }
             }
             """;
 

@@ -86,10 +86,9 @@ namespace {{basePartOfNamespace}}.DataMappers
                 string entityRegion;
                 try
                 {
-                    // Once per entity — the mapper helpers below run three times per entity, and this
-                    // also covers abstract entities, which the helpers skip.
-                    NullabilityValidator.ValidateEntity(entity, nullableContext);
-
+                    // Entity-shape validation is NOT here: it runs in EntityValidationGenerator, which no
+                    // .spiderly/config.json toggle can switch off. The catch below stays — emission itself
+                    // can still fault on one entity, and the rest must keep generating.
                     entityRegion = $$"""
 
         #region {{entity.Name}}
@@ -229,9 +228,6 @@ namespace {{basePartOfNamespace}}.DataMappers
 
         public static List<string> GetConfigForManyToOneClass(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
-            ForeignKeyValidator.ValidateEntity(entity, entities);
-            OneToOneValidator.ValidateEntity(entity, entities);
-
             List<string> manyToOneAttributeMappers = new();
 
             foreach (SpiderlyProperty property in entity.Properties)

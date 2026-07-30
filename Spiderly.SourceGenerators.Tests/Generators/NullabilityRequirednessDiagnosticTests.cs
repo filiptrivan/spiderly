@@ -1,6 +1,6 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Spiderly.SourceGenerators.Net;
+using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
@@ -68,7 +68,7 @@ public class NullabilityRequirednessDiagnosticTests
 
     private static bool Emits(string members, NullableContextOptions nullable = NullableContextOptions.Enable)
     {
-        var driver = GeneratorTestHarness.Run<MapperGenerator>(EntityWith(members), nullable);
+        var driver = GeneratorTestHarness.Run<EntityValidationGenerator>(EntityWith(members), nullable);
 
         return driver.GetRunResult().Diagnostics.Any(d => d.Id == Id);
     }
@@ -141,6 +141,37 @@ public class NullabilityRequirednessDiagnosticTests
         Assert.False(Emits("""
                 public int Stock { get; set; }
         """));
+    }
+
+    // --- Not switchable off: the reason these live in EntityValidationGenerator ---
+
+    [Fact]
+    public void Reported_EvenWhenEveryArtifactGeneratorIsDisabled()
+    {
+        // The hole this move closed. While these validators lived in MapperGenerator, one line in
+        // .spiderly/config.json silently disabled every entity diagnostic Spiderly has. Declining a
+        // generated ARTIFACT must not decline the checks that say the entities are well-formed.
+        const string AllDisabled = """
+            {
+              "generators": {
+                "MapperGenerator": false,
+                "EntitiesToDTOGenerator": false,
+                "ServicesGenerator": false,
+                "ControllerGenerator": false,
+                "FluentValidationGenerator": false
+              }
+            }
+            """;
+
+        var driver = GeneratorTestHarness.Run<EntityValidationGenerator>(
+            EntityWith("""
+                    [WithMany(nameof(Category.Products))]
+                    public virtual Category Category { get; set; } = null!;
+            """),
+            NullableContextOptions.Enable,
+            spiderlyConfigJson: AllDisabled);
+
+        Assert.Contains(driver.GetRunResult().Diagnostics, d => d.Id == Id);
     }
 
     // --- The oblivious guard: no annotations exist, so nothing can disagree ---

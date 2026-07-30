@@ -1,9 +1,12 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace Spiderly.SourceGenerators.Tests.Infrastructure;
 
@@ -13,16 +16,20 @@ internal static class GeneratorTestHarness
     // `[SpiderlyEntity]` etc. inline rather than referencing the full Spiderly.Shared assembly.
     private static readonly IReadOnlyList<MetadataReference> References = BuildReferences();
 
-    public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable)
+    public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null)
         where TGenerator : IIncrementalGenerator, new()
-        => Run(typeof(TGenerator), source, nullable);
+        => Run(typeof(TGenerator), source, nullable, spiderlyConfigJson);
 
     /// <summary>
     /// Type-keyed overload for <c>[Theory]</c> cases, which can't carry a generic type argument.
     /// Instantiates by reflection so there is no per-generator dispatch list to keep in sync with the
     /// theory data — adding a generator to a theory needs no change here.
     /// </summary>
-    public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable)
+    /// <param name="spiderlyConfigJson">Contents of the consumer's <c>.spiderly/config.json</c>, supplied as
+    /// an <see cref="AdditionalText"/> exactly as MSBuild does. Omit for the default config (every generator
+    /// enabled) — which is what every test did before this existed, meaning config gating had no end-to-end
+    /// coverage at all.</param>
+    public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null)
     {
         IIncrementalGenerator generator = (IIncrementalGenerator)Activator.CreateInstance(generatorType)!;
 
@@ -32,7 +39,30 @@ internal static class GeneratorTestHarness
             references: References,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
-        return CSharpGeneratorDriver.Create(generator).RunGenerators(compilation);
+        ImmutableArray<AdditionalText> additionalTexts = spiderlyConfigJson is null
+            ? ImmutableArray<AdditionalText>.Empty
+            // Extensions.GetSpiderlyConfig matches on a path ENDING in ".spiderly/config.json"
+            // (separator-normalized), so this must keep that suffix to be picked up.
+            : [new InMemoryAdditionalText(".spiderly/config.json", spiderlyConfigJson)];
+
+        return CSharpGeneratorDriver
+            .Create([generator.AsSourceGenerator()], additionalTexts)
+            .RunGenerators(compilation);
+    }
+
+    private sealed class InMemoryAdditionalText : AdditionalText
+    {
+        private readonly SourceText _text;
+
+        public InMemoryAdditionalText(string path, string content)
+        {
+            Path = path;
+            _text = SourceText.From(content);
+        }
+
+        public override string Path { get; }
+
+        public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
     }
 
     /// <summary>
