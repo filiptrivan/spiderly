@@ -102,9 +102,13 @@ Spiderly's per-project config lives under `.spiderly/` at the app root (replaces
 
 ## Regression tests must fail on the commit that adds them
 
-If you write a regression test for a bug, that test **must demonstrably fail on its commit and pass on the immediately-following fix commit** — never the reverse, never both in one commit. A green-on-its-own-commit regression test is a placebo: it codifies the bug's existence without proving the suite actually catches it. The nested-O2M dropdown regression test (`8a2714f`) was authored aspirationally — added without the matching generator fix — and a separate `if (!setupVar) test.skip()` retry-mask kept CI green for a month while the underlying bug existed. The discipline: add the test, watch it fail in CI, then push the fix.
+If you write a regression test **for a specific bug**, that test **must demonstrably fail on its commit and pass on the immediately-following fix commit** — never the reverse, never both in one commit. A green-on-its-own-commit regression test is a placebo: it codifies the bug's existence without proving the suite actually catches it. The nested-O2M dropdown regression test (`8a2714f`) was authored aspirationally — added without the matching generator fix — and a separate `if (!setupVar) test.skip()` retry-mask kept CI green for a month while the underlying bug existed. The discipline: add the test, watch it fail in CI, then push the fix.
 
 Corollary: never write `if (!setupVar) test.skip()` guards. Either seed the variable in a `beforeAll` (which is preserved across Playwright retries) or let the test fail loudly with a clear assertion error. Skip guards on missing setup state silently convert consistent failures into "flaky → exit 0" CI passes.
+
+**A new DETECTOR is validated by a negative control instead** — harnesses, gates, lint rules, diagnostics: anything whose job is to find a class of problem rather than to pin one known defect. Its red is not evidence about itself. If it lands red on some pre-existing bug you can't tell whether the detector works and found something or is miswired and failed for its own reasons, and a broad detector has no narrow assertion to make that legible. So land it **green**, and add a test that feeds it input known to be bad and asserts it fires (`GeneratedCodeCompilationTests.NegativeControl_ABrokenEntityIsReported`). That proves it isn't a placebo on every run, not once in history. Pair it with an assertion that it actually inspected something — "zero problems found" must not also pass when the detector silently examined nothing.
+
+Both rules can apply to one batch, in this order: fix the bugs the detector found as their own red-then-fix pairs, then land the detector green on top.
 
 ## AI-Agentic Philosophy
 
