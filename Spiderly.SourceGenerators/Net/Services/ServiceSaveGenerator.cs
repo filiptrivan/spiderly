@@ -446,10 +446,15 @@ namespace Spiderly.SourceGenerators.Net
                 if (classOfManyToOneProperty == null)
                     continue;
 
+                // The guard must read the SAME property the access expression below resolves. It used the
+                // {Nav}Id convention while GetDTOForeignKeyAccessExpression resolved the real name, so a
+                // [ForeignKey]-renamed scalar emitted a reference to a DTO member that does not exist (CS1061).
+                string dtoForeignKeyName = prop.ResolveExplicitForeignKeyName(entityClass) ?? $"{prop.Name}Id";
+
                 if (classOfManyToOneProperty.IsBusinessObject() || classOfManyToOneProperty.IsReadonlyObject() == false)
                 {
                     result.Add($$"""
-                if (dto.{{prop.Name}}Id > 0)
+                if (dto.{{dtoForeignKeyName}} > 0)
                 {
                     poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, classOfManyToOneProperty.GetIdType(allEntityClasses), "dto")}}, null);
                 }
@@ -463,7 +468,7 @@ namespace Spiderly.SourceGenerators.Net
                 else
                 {
                     result.Add($$"""
-                if (dto.{{prop.Name}}Id > 0)
+                if (dto.{{dtoForeignKeyName}} > 0)
                 {
                     poco.{{prop.Name}} = await GetInstanceAsync<{{prop.Type.Name}}, {{classOfManyToOneProperty.GetIdType(allEntityClasses)}}>({{prop.GetDTOForeignKeyAccessExpression(entityClass, classOfManyToOneProperty.GetIdType(allEntityClasses), "dto")}});
                 }
