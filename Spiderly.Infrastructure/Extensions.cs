@@ -119,13 +119,24 @@ namespace Spiderly.Infrastructure
                     string foreignKeyName = ResolveForeignKeyName(property, clrType);
 
                     // ORDER MATTERS: .IsRequired() must come AFTER .HasForeignKey(). HasForeignKey
-                    // re-resolves the relationship's foreign-key properties, which discards an earlier
-                    // explicit requiredness — the shadow FK then falls back to EF's nullable-reference
-                    // convention and a navigation annotated non-nullable without [Required] silently gets a
-                    // NOT NULL column. An insert omitting that relationship then writes a default 0 and
-                    // dies on a foreign-key violation instead of storing NULL. Pinned by
-                    // Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests; ConfigureOneToOneRelationships
-                    // below already had the correct order, which is why one-to-one was never affected.
+                    // re-resolves the relationship's foreign-key properties, which discards requiredness
+                    // configured before it; EF's conventions then decide instead of us.
+                    //
+                    // That went unnoticed for so long because the conventions AGREE with us in three of the
+                    // four cases: [Required] is picked up by RequiredNavigationAttributeConvention, so
+                    // required navigations came out NOT NULL anyway. The gap was the fourth — no [Required],
+                    // annotated non-nullable, which is what a consumer writes by reflex when flipping to
+                    // <Nullable>enable</Nullable>. There the discarded .IsRequired(false) left
+                    // NonNullableNavigationConvention unopposed, the column became NOT NULL, and an insert
+                    // legitimately omitting the relationship wrote a default 0 into the shadow FK and died
+                    // on 23503 foreign_key_violation instead of storing NULL.
+                    //
+                    // Position, not the attribute, is what makes this authoritative: measured by forcing
+                    // .IsRequired(false) here, which turns every required navigation nullable and so
+                    // outranks the [Required] convention. Pinned by
+                    // Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests.
+                    // ConfigureOneToOneRelationships below already had the correct order, which is why
+                    // one-to-one was never affected and why the bug looked like it had no cause.
                     modelBuilder.Entity(clrType)
                         .HasOne(property.PropertyType, property.Name)
                         .WithMany(withManyAttribute.WithMany)
