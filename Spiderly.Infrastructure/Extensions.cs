@@ -118,12 +118,20 @@ namespace Spiderly.Infrastructure
 
                     string foreignKeyName = ResolveForeignKeyName(property, clrType);
 
+                    // ORDER MATTERS: .IsRequired() must come AFTER .HasForeignKey(). HasForeignKey
+                    // re-resolves the relationship's foreign-key properties, which discards an earlier
+                    // explicit requiredness — the shadow FK then falls back to EF's nullable-reference
+                    // convention and a navigation annotated non-nullable without [Required] silently gets a
+                    // NOT NULL column. An insert omitting that relationship then writes a default 0 and
+                    // dies on a foreign-key violation instead of storing NULL. Pinned by
+                    // Spiderly.Infrastructure.Tests.RequirednessColumnNullabilityTests; ConfigureOneToOneRelationships
+                    // below already had the correct order, which is why one-to-one was never affected.
                     modelBuilder.Entity(clrType)
                         .HasOne(property.PropertyType, property.Name)
                         .WithMany(withManyAttribute.WithMany)
                         .OnDelete(deleteBehavior)
-                        .IsRequired(requiredAttribute != null)
-                        .HasForeignKey(foreignKeyName);
+                        .HasForeignKey(foreignKeyName)
+                        .IsRequired(requiredAttribute != null);
                 }
             }
         }
