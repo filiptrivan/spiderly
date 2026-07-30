@@ -110,8 +110,8 @@ namespace TestApp.Business.DataMappers
 
             config
                 .NewConfig<Product, ProductDTO>()
-                .Map(dest => dest.CategoryId, src => src.Category.Id)
-				.Map(dest => dest.CategoryDisplayName, src => src.Category.Name)
+                .Map(dest => dest.CategoryId, src => src.Category!.Id)
+				.Map(dest => dest.CategoryDisplayName, src => src.Category!.Name)
                 ;
 
             CustomizeProductToDTOConfig(config);
@@ -128,8 +128,8 @@ namespace TestApp.Business.DataMappers
 
             config
                 .NewConfig<Product, ProductDTO>()
-                .Map(dest => dest.CategoryId, src => src.Category.Id)
-				.Map(dest => dest.CategoryDisplayName, src => src.Category.Name)
+                .Map(dest => dest.CategoryId, src => src.Category!.Id)
+				.Map(dest => dest.CategoryDisplayName, src => src.Category!.Name)
                 ;
 
             CustomizeProductProjectToConfig(config);
@@ -146,8 +146,8 @@ namespace TestApp.Business.DataMappers
 
             config
                 .NewConfig<Product, ProductDTO>()
-                .Map(dest => dest.CategoryId, src => src.Category.Id)
-				.Map(dest => dest.CategoryDisplayName, src => src.Category.Name)
+                .Map(dest => dest.CategoryId, src => src.Category!.Id)
+				.Map(dest => dest.CategoryDisplayName, src => src.Category!.Name)
                 ;
 
             CustomizeProductExcelProjectToConfig(config);

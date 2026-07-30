@@ -88,8 +88,9 @@ public class OneToOneDependentDtoTests
             .Single(t => t.FilePath.EndsWith("Mapper.generated.cs"));
         string mapperSource = generated.ToString();
 
-        // DisplayName mapped from the principal's [DisplayName] prop (Title), through the nav.
-        Assert.Contains(".Map(dest => dest.OwningTaskItemDisplayName, src => src.OwningTaskItem.Title)", mapperSource);
+        // DisplayName mapped from the principal's [DisplayName] prop (Title), through the nav. `!` because
+        // the nav is optional and both Mapster and EF handle a null chain; it is erased at compile time.
+        Assert.Contains(".Map(dest => dest.OwningTaskItemDisplayName, src => src.OwningTaskItem!.Title)", mapperSource);
 
         // FK mapped from the explicit scalar directly (avoids EF's spurious JOIN on src.Nav.Id).
         Assert.Contains(".Map(dest => dest.OwningTaskItemId, src => src.OwningTaskItemId)", mapperSource);

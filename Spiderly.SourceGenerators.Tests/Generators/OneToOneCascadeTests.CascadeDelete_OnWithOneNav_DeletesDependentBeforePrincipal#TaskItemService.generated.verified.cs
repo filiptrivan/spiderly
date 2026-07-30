@@ -422,7 +422,7 @@ namespace TestApp.Business.Services
 
                 var conversationListForDeleteBecauseOwningTaskItem_2 = await _deps.Context.DbSet<Conversation>()
                     .AsNoTracking()
-                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId.Value))
+                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId!.Value))
                     .Select(x => x.Id)
                     .ToListAsync();
 
@@ -482,7 +482,7 @@ namespace TestApp.Business.Services
 
                 var conversationListForDeleteBecauseOwningTaskItem_2 = await _deps.Context.DbSet<Conversation>()
                     .AsNoTracking()
-                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId.Value))
+                    .Where(x => listForDelete_1.Contains(x.OwningTaskItemId!.Value))
                     .Select(x => x.Id)
                     .ToListAsync();
 

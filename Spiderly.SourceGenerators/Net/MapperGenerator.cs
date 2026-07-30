@@ -262,9 +262,14 @@ namespace {{basePartOfNamespace}}.DataMappers
                     }
                     else
                     {
-                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => src.{property.Name}.Id)");
+                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}Id, src => src.{property.Name}!.Id)");
                     }
-                    manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}DisplayName, src => src.{property.Name}.{manyToOneEntityDisplayName})"); // "dest.TierDisplayName", "src.Tier.Name"
+                    // `!` on the navigation: an optional nav is legitimately null, and BOTH consumers of this
+                    // config handle that — Mapster inserts null-checks for nested access (see above), and EF
+                    // Core's ProjectTo translates the chain to a LEFT JOIN yielding SQL NULL. Without it every
+                    // optional nav raises CS8602 in generated code the consumer cannot edit. Erased at compile
+                    // time, so the expression tree and the SQL are unchanged.
+                    manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}DisplayName, src => src.{property.Name}!.{manyToOneEntityDisplayName.ToNullForgivingPath(false)})"); // "dest.TierDisplayName", "src.Tier!.Name"
                 }
 
                 if (property.Type.IsOneToManyType())
@@ -280,7 +285,7 @@ namespace {{basePartOfNamespace}}.DataMappers
                     if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                     {
                         // FT: eg. ".Map(dest => dest.SegmentationItemsCommaSeparated, src => string.Join(", ", src.CheckedSegmentationItems.Select(x => x.Name)))"
-                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}CommaSeparated, src => string.Join(\", \", src.{property.Name}.Select(x => x.{extractedEntityDisplayName})))");
+                        manyToOneAttributeMappers.Add($".Map(dest => dest.{property.Name}CommaSeparated, src => string.Join(\", \", src.{property.Name}.Select(x => x.{extractedEntityDisplayName.ToNullForgivingPath(false)})))");
                     }
                 }
             }

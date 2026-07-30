@@ -68,9 +68,12 @@ public class NullableAnnotatedEntityTests
 
         // The nav lookup must resolve "Category?" to the Category entity: the DisplayName
         // projection exists, and a string? DisplayName is still a string (no .ToString() fallback).
+        // The nav carries `!` because an optional nav is legitimately null and both consumers of this
+        // config handle that (Mapster null-checks nested access, EF LEFT JOINs it) — emitted regardless of
+        // the entity's annotations, which is what keeps ObliviousOutput_IsIdentical_* below valid.
         Assert.Contains("dest.CategoryDisplayName", mapper);
-        Assert.Contains("src.Category.Name", mapper);
-        Assert.DoesNotContain("src.Category.Name.ToString()", mapper);
+        Assert.Contains("src.Category!.Name", mapper);
+        Assert.DoesNotContain("src.Category!.Name.ToString()", mapper);
     }
 
     [Fact]

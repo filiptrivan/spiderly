@@ -225,7 +225,7 @@ namespace TestApp.Business.Services
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 if (!string.IsNullOrEmpty(filter))
-                    query = query.Where(x => x.Name.ToLower().Contains(filter.ToLower()));
+                    query = query.Where(x => x.Name!.ToLower().Contains(filter.ToLower()));
 
                 var result = await query
                     .AsNoTracking()

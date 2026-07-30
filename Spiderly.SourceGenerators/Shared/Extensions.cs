@@ -783,9 +783,12 @@ namespace Spiderly.SourceGenerators.Shared
                 // NULL cells return false, so rows with no parent are correctly excluded — mirroring the
                 // non-nullable generic on the shadow branch below. Optional-1-1 + [CascadeDelete] is the
                 // first case to declare a nullable cascade FK (M2O [CascadeDelete] FKs are always required).
+                // `!` before .Value for the same reason the comment above gives: this only ever appears inside
+                // an EF-translated Where, where the nullable column is a predicate rather than a dereference.
+                // Without it the emitted code raises CS8629 in the consumer's build.
                 SpiderlyProperty fkProperty = entity.Properties.FirstOrDefault(p => p.Name == fkName);
                 return fkProperty?.Type.IsNullable == true
-                    ? $"{parameterName}.{fkName}.Value"
+                    ? $"{parameterName}.{fkName}!.Value"
                     : $"{parameterName}.{fkName}";
             }
 
@@ -971,6 +974,27 @@ namespace Spiderly.SourceGenerators.Shared
                 // FirstOrDefault() on an empty ImmutableArray<string> yields null; SpiderlyConfig.Parse
                 // already treats null/whitespace/empty identically (returns a default SpiderlyConfig).
                 .Select((texts, _) => SpiderlyConfig.Parse(texts.FirstOrDefault() ?? string.Empty));
+        }
+
+        /// <summary>
+        /// A dot-notation property path made null-forgiving, for emission into an expression the consumer
+        /// cannot edit. Every INTERMEDIATE segment gets <c>!</c> because any navigation in the chain may be
+        /// optional (<c>[DisplayName("Project.Name")]</c> walks one); the final segment gets one only when the
+        /// emitted code dereferences it, since a bare projection never dereferences and <c>!</c> on a value
+        /// type would be noise.
+        /// <para>
+        /// Safe because these paths only ever land inside an EF-translated <c>Expression&lt;Func&lt;&gt;&gt;</c>
+        /// or a Mapster config: EF turns the chain into a LEFT JOIN yielding SQL NULL, and Mapster inserts its
+        /// own null-checks for nested access. The operator is erased at compile time, so neither the expression
+        /// tree nor the SQL changes — the alternative, emitting real null checks, would rewrite the SQL of
+        /// every generated query.
+        /// </para>
+        /// </summary>
+        public static string ToNullForgivingPath(this string dotNotation, bool dereferenced)
+        {
+            string joined = string.Join("!.", dotNotation.Split('.'));
+
+            return dereferenced ? $"{joined}!" : joined;
         }
 
         public static string? GetDecimalScale(this SpiderlyProperty property)

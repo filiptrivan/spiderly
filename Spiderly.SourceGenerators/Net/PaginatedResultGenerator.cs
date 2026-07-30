@@ -307,7 +307,7 @@ using {{item}};
         {
             return $$"""
                             case "{{DTOIdentifier.FirstCharToLower()}}":
-                                query = query.ApplySort(x => x.{{NullForgivingPath(entityDotNotation, false)}}, ascending, i == 0);
+                                query = query.ApplySort(x => x.{{entityDotNotation.ToNullForgivingPath(false)}}, ascending, i == 0);
                                 break;
 """;
         }
@@ -325,23 +325,6 @@ using {{item}};
         /// </summary>
         private const string FilterValueAsString = "filterRuleDTO.Value!.ToString()!";
 
-        /// <summary>
-        /// An entity dot-notation path made null-forgiving so generated predicates compile clean under NRT.
-        /// Every INTERMEDIATE segment gets <c>!</c> because any navigation in the chain may be optional; the
-        /// final segment gets one only when the emitted code dereferences it (calls a member on it), since a
-        /// bare comparison never dereferences and <c>!</c> on a value type would be noise.
-        /// <para>
-        /// Safe by EF Core's own semantics: these paths only ever appear inside
-        /// <c>Expression&lt;Func&lt;T, bool&gt;&gt;</c> translated to SQL, where a null in the chain yields SQL
-        /// NULL rather than throwing. Same reasoning as the sanctioned <c>nav!.Prop</c> pattern in the EF docs.
-        /// </para>
-        /// </summary>
-        private static string NullForgivingPath(string entityDotNotation, bool dereferenced)
-        {
-            string joined = string.Join("!.", entityDotNotation.Split('.'));
-
-            return dereferenced ? $"{joined}!" : joined;
-        }
 
         private static string GetCaseForString(string DTOIdentifier, string entityDotNotation)
         {
@@ -350,13 +333,13 @@ using {{item}};
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.StartsWith:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, true)}}.ToLower().StartsWith({{FilterValueAsString}}.ToLower());
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(true)}}.ToLower().StartsWith({{FilterValueAsString}}.ToLower());
                                         break;
                                     case MatchModeCodes.Contains:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, true)}}.ToLower().Contains({{FilterValueAsString}}.ToLower());
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(true)}}.ToLower().Contains({{FilterValueAsString}}.ToLower());
                                         break;
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, true)}}.ToLower().Equals({{FilterValueAsString}}.ToLower());
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(true)}}.ToLower().Equals({{FilterValueAsString}}.ToLower());
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid string match mode!");
@@ -373,7 +356,7 @@ using {{item}};
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, true)}}.Equals(Convert.ToBoolean({{FilterValueAsString}}));
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(true)}}.Equals(Convert.ToBoolean({{FilterValueAsString}}));
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid bool match mode!");
@@ -390,13 +373,13 @@ using {{item}};
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} == {{parseExpr}};
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} == {{parseExpr}};
                                         break;
                                     case MatchModeCodes.LessThan:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} < {{parseExpr}};
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} < {{parseExpr}};
                                         break;
                                     case MatchModeCodes.GreaterThan:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} > {{parseExpr}};
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} > {{parseExpr}};
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid {{typeLabel}} match mode!");
@@ -415,17 +398,17 @@ using {{item}};
                                 switch (filterRuleDTO.MatchMode)
                                 {
                                     case MatchModeCodes.Equals:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} == {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} == {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
                                         break;
                                     case MatchModeCodes.LessThan:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} < {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} < {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
                                         break;
                                     case MatchModeCodes.GreaterThan:
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, false)}} > {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(false)}} > {{numberTypeWithoutQuestion}}.Parse({{FilterValueAsString}});
                                         break;
                                     case MatchModeCodes.In:
                                         {{numberType}}[] values = JsonSerializer.Deserialize<{{numberType}}[]>({{FilterValueAsString}}) ?? Array.Empty<{{numberType}}>();
-                                        condition = x => values.Contains(x.{{NullForgivingPath(entityDotNotation, false)}});
+                                        condition = x => values.Contains(x.{{entityDotNotation.ToNullForgivingPath(false)}});
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid numeric match mode!");
@@ -443,7 +426,7 @@ using {{item}};
                                 {
                                     case MatchModeCodes.In:
                                         {{idType}}[] values = JsonSerializer.Deserialize<{{idType}}[]>({{FilterValueAsString}}) ?? Array.Empty<{{idType}}>();
-                                        condition = x => x.{{NullForgivingPath(entityDotNotation, true)}}.Any(x => values.Contains(x.Id));
+                                        condition = x => x.{{entityDotNotation.ToNullForgivingPath(true)}}.Any(x => values.Contains(x.Id));
                                         break;
                                     default:
                                         throw new ArgumentException("Invalid Enumerable match mode!");

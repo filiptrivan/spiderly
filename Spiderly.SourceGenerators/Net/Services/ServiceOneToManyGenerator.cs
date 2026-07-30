@@ -86,7 +86,7 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => new NamebookDTO<{{extractedPropertyEntityIdType}}>
                     {
                         Id = x.Id,
-                        DisplayName = x.{{extractedPropertyEntityDisplayName}},
+                        DisplayName = x.{{extractedPropertyEntityDisplayName.ToNullForgivingPath(false)}},
                     })
                     .ToListAsync();
             });
@@ -251,7 +251,7 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => new NamebookDTO<{{extractedPropertyEntityIdType}}>
                     {
                         Id = x.Id,
-                        DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(extractedPropertyEntity)}},
+                        DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(extractedPropertyEntity).ToNullForgivingPath(false)}},
                     })
                     .ToListAsync();
             });
@@ -408,7 +408,7 @@ namespace Spiderly.SourceGenerators.Net
                 var allOtherSideEntries = await _deps.Context.DbSet<{{otherSideEntity.Name}}>()
                     .AsNoTracking()
                     .OrderBy(x => x.Id)
-                    .Select(x => new { x.Id, DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(otherSideEntity)}} })
+                    .Select(x => new { x.Id, DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(otherSideEntity).ToNullForgivingPath(false)}} })
                     .ToListAsync();
 
                 var existingRecords = await _deps.Context.DbSet<{{junctionEntity.Name}}>()
@@ -481,7 +481,7 @@ namespace Spiderly.SourceGenerators.Net
                     .Select(x => new {{junctionEntity.Name}}DTO
                     {
                         {{otherSideFKName}} = x.Id,
-                        {{otherSideM2MProperty.Name}}DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(otherSideEntity)}},
+                        {{otherSideM2MProperty.Name}}DisplayName = x.{{ClassAnalyzer.GetDisplayNameProperty(otherSideEntity).ToNullForgivingPath(false)}},
                     })
                     .ToListAsync();
             });
