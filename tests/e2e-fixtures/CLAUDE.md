@@ -28,7 +28,7 @@ playwright test              → exercises the resulting app
 
 | Source | Target |
 |---|---|
-| `backend/entities/*.cs` | `$APP_FOLDER/Backend/$APP_NAME.Business/Entities/` |
+| `backend/entities/*.cs` — **enumerated one `cp` per file, NOT globbed**: a new fixture entity that is not added to `setup.sh` is silently absent, and the e2e fails on whatever references it | `$APP_FOLDER/Backend/$APP_NAME.Business/Entities/` |
 | `backend/infrastructure/ApplicationDbContext.SeedData.cs` | `$APP_FOLDER/Backend/$APP_NAME.Infrastructure/${APP_NAME}ApplicationDbContext.SeedData.cs` |
 | `frontend/tests/e2e/{helpers,specs,page-objects,fixtures}/` | `$APP_FOLDER/Frontend/e2e/` |
 | `frontend/app/<entity>/<entity>-list.component.ts` | `$APP_FOLDER/Frontend/src/app/pages/<entity>/...` (overrides generated minimal list) |
