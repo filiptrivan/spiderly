@@ -155,12 +155,6 @@ internal static class GeneratedCodeCompilationHarness
         return withGenerated;
     }
 
-    /// <summary>
-    /// True for a syntax tree a generator produced. Generated trees have no on-disk path in this harness, so
-    /// membership is decided by identity against the input trees rather than by a path substring.
-    /// </summary>
-    internal static bool IsGenerated(this Compilation withGenerated, SyntaxTree tree, int inputTreeCount)
-        => withGenerated.SyntaxTrees.ToList().IndexOf(tree) >= inputTreeCount;
 
     /// <summary>
     /// The full runtime closure of THIS test assembly, which now includes Spiderly.Shared / .Security /

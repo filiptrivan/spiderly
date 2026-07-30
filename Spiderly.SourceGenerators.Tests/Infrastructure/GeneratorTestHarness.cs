@@ -65,25 +65,6 @@ internal static class GeneratorTestHarness
         public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
     }
 
-    /// <summary>
-    /// Runs <typeparamref name="TGenerator"/> and returns the compilation INCLUDING its generated
-    /// output, so a test can assert on diagnostics the emitted code itself raises (a consumer can't
-    /// edit generated files, so warnings there are the framework's bug, not theirs).
-    /// </summary>
-    public static Compilation CompileGeneratedOutput<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable)
-        where TGenerator : IIncrementalGenerator, new()
-    {
-        CSharpCompilation compilation = CSharpCompilation.Create(
-            assemblyName: "Spiderly.SourceGenerators.Tests.Fixture",
-            syntaxTrees: [CSharpSyntaxTree.ParseText(source)],
-            references: References,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
-
-        CSharpGeneratorDriver.Create(new TGenerator())
-            .RunGeneratorsAndUpdateCompilation(compilation, out Compilation withGenerated, out _);
-
-        return withGenerated;
-    }
 
     /// <summary>
     /// Builds a compilation whose entities live in a *referenced* compilation rather than its own source — the

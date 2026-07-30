@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,10 +21,19 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// </summary>
 public class GeneratedCodeCompilationTests
 {
-    [Fact]
-    public void EveryDotNetGenerator_EmitsCodeThatCompiles()
+    /// <summary>
+    /// Both nullable contexts, because the generators emit differently for each: an NRT-off consumer gets
+    /// <c>#nullable disable</c> headers and un-annotated DTO properties. The Disable branch had no coverage
+    /// beyond a two-entity fixture whose references did not resolve, which is exactly the gap
+    /// <c>docs/TODO.md</c> records — one entity SSOT compiled twice closes it without a second fixture to
+    /// keep in step.
+    /// </summary>
+    [Theory]
+    [InlineData(NullableContextOptions.Disable)]
+    [InlineData(NullableContextOptions.Enable)]
+    public void EveryDotNetGenerator_EmitsCodeThatCompiles(NullableContextOptions nullable)
     {
-        AssertCompilesClean(GeneratedCodeCompilationHarness.CompileAllGenerators());
+        AssertCompilesClean(GeneratedCodeCompilationHarness.CompileAllGenerators(nullable: nullable));
     }
 
     [Fact]
