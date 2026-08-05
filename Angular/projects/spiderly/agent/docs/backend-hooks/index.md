@@ -36,6 +36,8 @@ The generated service receives `EntityServiceDependencies` (bundles `IApplicatio
 
 Step 2 runs **before** step 3 — this means `OnBeforeSave` can set server-generated fields (e.g., `[UIDoNotGenerate]` + `[Required]` properties like hashes or computed values) before DTO validation runs.
 
+This same pipeline also runs **per child** when children are saved inline through a parent's `[UIOrderedOneToMany]` list — the parent's step 7 delegates each kept child to the child's own MainUIForm save, so a child entity's hooks (including steps 2 and 8) fire regardless of which page saved it. The child save runs with authorization off (`authorizeUpdate`/`authorizeInsert` = false): the parent's save carries the authorization decision.
+
 On the **update path**, the entity load before step 5b goes through `GetInstanceAsync(id, dto.Version)` — it throws a localized `ConcurrencyException` (HTTP 409) when the client's `Version` is stale, and the whole flow runs in a transaction. Generated saves are therefore protected by optimistic concurrency out of the box; don't add manual race-condition guards to hooks for plain concurrent edits. Mechanism and limits: `entity-design` skill, *Base Classes* (`BusinessObject` `Version`).
 
 **Signatures:**
