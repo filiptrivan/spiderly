@@ -110,11 +110,17 @@ export class BaseFormService {
         } else {
           let control: SpiderlyFormControl;
 
+          // Array-valued controls (multiselect/multiautocomplete selections) must
+          // commit on change: their value mutates through overlay/chip interactions
+          // that can end without the control ever having focus (PrimeNG's chip
+          // remove stops propagation before the host focuses its hidden input), so
+          // a blur-deferred commit leaves the deselect pending forever and the save
+          // reads the OLD selection while the UI already shows the item removed.
           if (
             updateOnChangeControls?.includes(formControlName as keyof T) ||
             (formControlName.endsWith('Id') && formControlName.length > 2) ||
             propSchema.type === 'Date' ||
-            propSchema.type === 'Namebook[]'
+            propSchema.type.endsWith('[]')
           ) {
             control = new SpiderlyFormControl(propInitialValue, {
               updateOn: 'change',
