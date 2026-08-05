@@ -28,16 +28,16 @@ async function sendVerificationCode(request: APIRequestContext): Promise<string>
  * {@link authenticateBrowser} — the admin's session restoration is
  * cookie-based and ignores body tokens.
  */
-export async function login(request: APIRequestContext): Promise<{ accessToken: string; refreshToken: string }> {
+export async function login(request: APIRequestContext): Promise<{ accessToken: string; refreshToken: string; userId: number }> {
   const verificationCode = await sendVerificationCode(request);
   const loginResponse = await request.post(
     `${API_BASE_URL}/api/Security/Login`,
     { data: { email: TEST_EMAIL, browserId: TEST_BROWSER_ID, verificationCode } }
   );
   expect(loginResponse.ok()).toBeTruthy();
-  const { accessToken, refreshToken } = await loginResponse.json();
+  const { accessToken, refreshToken, userId } = await loginResponse.json();
   expect(accessToken).toBeTruthy();
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, userId };
 }
 
 /**

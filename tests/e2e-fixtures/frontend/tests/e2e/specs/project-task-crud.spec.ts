@@ -143,4 +143,58 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     );
     expect(response.ok()).toBeTruthy();
   });
+
+  // The generated admin edits ordered children INLINE on the parent form — their multiselects save
+  // through SaveProject's ordered list, never through the standalone SaveProjectTask the tests above
+  // use. Regression (PACMS IntegrationRuleGroup.Brands): that path saved the child's scalars but
+  // silently dropped selectedWatchersIds, and its response omitted watchersIds, so a successful save
+  // also visually cleared the selection. Self-contained (own project, own login) so the parent-path
+  // save replacing the project's ordered children can't clobber the shared taskId above.
+  test('should persist child M2M selections saved through the parent ordered path', async ({ request }) => {
+    const { accessToken: token, userId } = await login(request);
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const saveResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
+      headers,
+      data: {
+        projectDTO: { name: 'Watcher Test Project', budget: 500, maxMembers: 3 },
+        selectedMembersNamebookDTOList: [],
+        orderedProjectTasksSaveBodyDTO: [
+          {
+            // No projectId: the parent save stamps it, which is exactly the
+            // insert-parent-with-children flow the inline UI uses.
+            projectTaskDTO: {
+              title: 'Watched task',
+              estimatedHours: 2,
+              orderNumber: 1,
+              taskCategoryId: 1,
+            },
+            selectedWatchersIds: [userId],
+            orderedTaskCommentsSaveBodyDTO: [],
+          },
+        ],
+      },
+    });
+    expect(saveResponse.ok()).toBeTruthy();
+    const saved = await saveResponse.json();
+    const watchedProjectId = saved.projectDTO.id;
+
+    try {
+      // The form repopulates from the save response, so it must echo the selection...
+      expect(saved.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+
+      // ...and a fresh read must prove it persisted.
+      const formResponse = await request.get(
+        `${API_BASE_URL}/api/Project/GetProjectMainUIFormDTO?id=${watchedProjectId}`,
+        { headers }
+      );
+      expect(formResponse.ok()).toBeTruthy();
+      const form = await formResponse.json();
+      expect(form.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+    } finally {
+      await request.delete(`${API_BASE_URL}/api/Project/DeleteProject?id=${watchedProjectId}`, {
+        headers,
+      });
+    }
+  });
 });

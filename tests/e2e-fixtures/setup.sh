@@ -22,6 +22,7 @@ cp "$SCRIPT_DIR/backend/entities/TaskCategory.cs" "$ENTITIES_DIR/TaskCategory.cs
 cp "$SCRIPT_DIR/backend/entities/Project.cs" "$ENTITIES_DIR/Project.cs"
 cp "$SCRIPT_DIR/backend/entities/ProjectMember.cs" "$ENTITIES_DIR/ProjectMember.cs"
 cp "$SCRIPT_DIR/backend/entities/ProjectTask.cs" "$ENTITIES_DIR/ProjectTask.cs"
+cp "$SCRIPT_DIR/backend/entities/ProjectTaskWatcher.cs" "$ENTITIES_DIR/ProjectTaskWatcher.cs"
 cp "$SCRIPT_DIR/backend/entities/TaskComment.cs" "$ENTITIES_DIR/TaskComment.cs"
 cp "$SCRIPT_DIR/backend/entities/ProjectCharter.cs" "$ENTITIES_DIR/ProjectCharter.cs"
 cp "$SCRIPT_DIR/backend/entities/TaskAttachment.cs" "$ENTITIES_DIR/TaskAttachment.cs"

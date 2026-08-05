@@ -33,6 +33,9 @@ namespace __APP_NAME__.Business.Entities
         public virtual List<ProjectTask> AssignedTasks { get; } = new();
 
         [UIDoNotGenerate]
+        public virtual List<ProjectTask> WatchedTasks { get; } = new(); // M2M
+
+        [UIDoNotGenerate]
         public virtual List<TaskComment> TaskComments { get; } = new();
 
         [UIDoNotGenerate]
