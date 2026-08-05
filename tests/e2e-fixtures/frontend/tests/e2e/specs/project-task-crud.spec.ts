@@ -179,70 +179,60 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
     const saved = await saveResponse.json();
     const watchedProjectId = saved.projectDTO.id;
 
-    try {
-      // The form repopulates from the save response, so it must echo the selection...
-      expect(saved.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+    const watchersOf = (form: any): number[] =>
+      form.orderedProjectTasksMainUIFormDTO[0].watchersIds;
 
-      // ...and a fresh read must prove it persisted.
-      const formResponse = await request.get(
+    // Re-saves the same child through the parent path, threading the previous
+    // response's DTOs forward for the version checks. taskPatch carries the one
+    // thing each leg varies: selectedWatchersIds absent (null no-op) or [] (removal).
+    const resaveWatchedTask = (from: any, taskPatch: object) =>
+      request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
+        headers,
+        data: {
+          projectDTO: from.projectDTO,
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [
+            {
+              projectTaskDTO: from.orderedProjectTasksMainUIFormDTO[0].projectTaskDTO,
+              ...taskPatch,
+              orderedTaskCommentsSaveBodyDTO: [],
+            },
+          ],
+        },
+      });
+
+    const readForm = async (): Promise<any> => {
+      const response = await request.get(
         `${API_BASE_URL}/api/Project/GetProjectMainUIFormDTO?id=${watchedProjectId}`,
         { headers }
       );
-      expect(formResponse.ok()).toBeTruthy();
-      const form = await formResponse.json();
-      expect(form.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+      expect(response.ok()).toBeTruthy();
+      return response.json();
+    };
 
-      // Coverage is per OPERATION as well as per composition: the add leg above
-      // says nothing about removal (the 2026-08-06 deselect regression shipped
-      // with every add-path check green). Re-save the same child through the
-      // parent, threading each response's DTOs forward for the version checks.
+    try {
+      // The form repopulates from the save response, so it must echo the selection...
+      expect(watchersOf(saved)).toEqual([userId]);
+      // ...and a fresh read must prove it persisted.
+      expect(watchersOf(await readForm())).toEqual([userId]);
+
+      // Remove/no-op legs — rationale: tests/e2e-fixtures/CLAUDE.md, the OPERATION axis.
 
       // Omitted selection list (null) is the documented no-op: Update...For...
       // must leave the junction rows untouched, never clear them.
-      const noOpResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
-        headers,
-        data: {
-          projectDTO: saved.projectDTO,
-          selectedMembersNamebookDTOList: [],
-          orderedProjectTasksSaveBodyDTO: [
-            {
-              projectTaskDTO: saved.orderedProjectTasksMainUIFormDTO[0].projectTaskDTO,
-              orderedTaskCommentsSaveBodyDTO: [],
-            },
-          ],
-        },
-      });
+      const noOpResponse = await resaveWatchedTask(saved, {});
       expect(noOpResponse.ok()).toBeTruthy();
       const afterNoOp = await noOpResponse.json();
-      expect(afterNoOp.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+      expect(watchersOf(afterNoOp)).toEqual([userId]);
 
       // An explicit empty list is a removal: the junction rows must go, and both
       // the echoed response and a fresh read must show the watcher gone.
-      const removalResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
-        headers,
-        data: {
-          projectDTO: afterNoOp.projectDTO,
-          selectedMembersNamebookDTOList: [],
-          orderedProjectTasksSaveBodyDTO: [
-            {
-              projectTaskDTO: afterNoOp.orderedProjectTasksMainUIFormDTO[0].projectTaskDTO,
-              selectedWatchersIds: [],
-              orderedTaskCommentsSaveBodyDTO: [],
-            },
-          ],
-        },
+      const removalResponse = await resaveWatchedTask(afterNoOp, {
+        selectedWatchersIds: [],
       });
       expect(removalResponse.ok()).toBeTruthy();
-      const afterRemoval = await removalResponse.json();
-      expect(afterRemoval.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([]);
-
-      const rereadResponse = await request.get(
-        `${API_BASE_URL}/api/Project/GetProjectMainUIFormDTO?id=${watchedProjectId}`,
-        { headers }
-      );
-      expect(rereadResponse.ok()).toBeTruthy();
-      const reread = await rereadResponse.json();
-      expect(reread.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([]);
+      expect(watchersOf(await removalResponse.json())).toEqual([]);
+      expect(watchersOf(await readForm())).toEqual([]);
     } finally {
       await request.delete(`${API_BASE_URL}/api/Project/DeleteProject?id=${watchedProjectId}`, {
         headers,

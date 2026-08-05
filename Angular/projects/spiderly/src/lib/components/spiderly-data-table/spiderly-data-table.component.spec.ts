@@ -3,15 +3,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import {
-  TranslocoTestingModule,
-  TranslocoTestingOptions,
-} from '@jsverse/transloco';
+import { TranslocoTestingModule } from '@jsverse/transloco';
 import { DialogService } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
+import { translocoTesting } from '../../testing/spec-support.spec';
 import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
@@ -21,14 +19,6 @@ import {
   Column,
   SpiderlyDataTableComponent,
 } from './spiderly-data-table.component';
-
-function translocoTesting(): TranslocoTestingOptions {
-  return {
-    langs: { en: {} },
-    translocoConfig: { availableLangs: ['en'], defaultLang: 'en' },
-    preloadLangs: true,
-  };
-}
 
 const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
 

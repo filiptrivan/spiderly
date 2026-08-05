@@ -96,12 +96,14 @@ export class BaseFormService {
           formGroup.setControl(formControlName, control);
         }
       } else {
+        const isArrayValued = propSchema.type.endsWith('[]');
+
         // HACK: Because on the backend id type is not nullable on generated DTOs, we need to do this, it's ugly hack and we should make it better.
         if (formControlName === 'id' && !propInitialValue) {
           propInitialValue = 0;
         }
 
-        if (propSchema.type.endsWith('[]') && propInitialValue == null) {
+        if (isArrayValued && propInitialValue == null) {
           propInitialValue = [];
         }
 
@@ -120,7 +122,7 @@ export class BaseFormService {
             updateOnChangeControls?.includes(formControlName as keyof T) ||
             (formControlName.endsWith('Id') && formControlName.length > 2) ||
             propSchema.type === 'Date' ||
-            propSchema.type.endsWith('[]')
+            isArrayValued
           ) {
             control = new SpiderlyFormControl(propInitialValue, {
               updateOn: 'change',

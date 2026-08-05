@@ -346,13 +346,6 @@ export function ReflectProp(target: any, propertyKey: string) {
   Reflect.defineMetadata(PROPS_KEY, [...props, propertyKey], target);
 }
 
-export const primitiveArrayTypes = [
-  'Namebook[]',
-  'number[]',
-  'Date[]',
-  'string[]',
-];
-
 export function getImageDimensions(
   file: File,
 ): Promise<{ width: number; height: number }> {
