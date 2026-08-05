@@ -189,7 +189,7 @@ namespace Spiderly.SourceGenerators.Net
 
         #region Ordered One To Many
 
-        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity, List<SpiderlyClass> entities, string servicePrefix = "")
+        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
         {
             List<string> result = new();
 
@@ -198,7 +198,7 @@ namespace Spiderly.SourceGenerators.Net
                 SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
 
                 result.Add($$"""
-                var savedOrdered{{property.Name}}MainUIFormDTO = await {{servicePrefix}}UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
+                var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
 """);
             }
 
@@ -232,7 +232,10 @@ namespace Spiderly.SourceGenerators.Net
                 result.Add($$"""
         /// <summary>
         /// Updates ordered child entities for a one-to-many relationship.
-        /// Deletes items not in the list, updates existing items, and maintains order via OrderNumber.
+        /// Deletes items not in the list, then saves each kept item through the child's own
+        /// Save{{extractedEntity.Name}}AndReturnMainUIFormDTO — so the child's related collections and
+        /// save hooks behave identically whether it is saved standalone or inline through its parent —
+        /// stamping OrderNumber from the list position.
         /// </summary>
         /// <param name="id">The ID of the parent {{entity.Name}} entity</param>
         /// <param name="orderedItemsDTO">List of SaveBodyDTOs in the desired order</param>
@@ -267,17 +270,12 @@ namespace Spiderly.SourceGenerators.Net
                     DTO.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
                     DTO.OrderNumber = i + 1;
 
-                    var savedDTO = await childService.Save{{extractedEntity.Name}}AndReturnDTO(DTO, false, false);
-
-{{string.Join("\n", GetOrderedOneToManyUpdateVariables(extractedEntity, allEntities, "childService."))}}
-{{string.Join("\n", GetComplexManyToManyListUpdateCalls(extractedEntity, "saveBodyDTO", "childService."))}}
-
-                    savedOrderedItemsDTO.Add(new {{extractedEntity.Name}}MainUIFormDTO
-                    {
-                        {{extractedEntity.Name}}DTO = savedDTO,
-{{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(extractedEntity, allEntities))}}
-{{string.Join("\n", GetComplexManyToManyListResultProperties(extractedEntity, "childService."))}}
-                    });
+                    // Delegate to the child's standalone MainUIForm save so both save paths are the same
+                    // code by construction: the child's collections (multi-control M2M selections, complex
+                    // M2M lists, nested ordered children), its OnBefore/OnAfterSave hooks, and the
+                    // response's id lists (the form repopulates from them) cannot drift between the
+                    // standalone page and the inline-on-parent page.
+                    savedOrderedItemsDTO.Add(await childService.Save{{extractedEntity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, false, false));
                 }
 
                 return savedOrderedItemsDTO;
@@ -381,30 +379,28 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity, string? saveBodyDTOVariable = null, string servicePrefix = "")
+        private static List<string> GetComplexManyToManyListUpdateCalls(SpiderlyClass entity)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
-                string saveBodyAccess = saveBodyDTOVariable ?? "saveBodyDTO";
-
                 result.Add($$"""
-                await {{servicePrefix}}Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, {{saveBodyAccess}}.{{property.Name}});
+                await Update{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.{{property.Name}});
 """);
             }
 
             return result;
         }
 
-        private static List<string> GetComplexManyToManyListResultProperties(SpiderlyClass entity, string servicePrefix = "")
+        private static List<string> GetComplexManyToManyListResultProperties(SpiderlyClass entity)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetComplexManyToManyListProperties())
             {
                 result.Add($$"""
-                    {{property.Name}} = await {{servicePrefix}}Get{{property.Name}}For{{entity.Name}}(savedDTO.Id),
+                    {{property.Name}} = await Get{{property.Name}}For{{entity.Name}}(savedDTO.Id),
 """);
             }
 

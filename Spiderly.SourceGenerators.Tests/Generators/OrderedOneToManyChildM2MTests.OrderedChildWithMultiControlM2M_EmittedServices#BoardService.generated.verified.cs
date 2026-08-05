@@ -255,7 +255,10 @@ namespace TestApp.Business.Services
 
         /// <summary>
         /// Updates ordered child entities for a one-to-many relationship.
-        /// Deletes items not in the list, updates existing items, and maintains order via OrderNumber.
+        /// Deletes items not in the list, then saves each kept item through the child's own
+        /// SaveBoardLaneAndReturnMainUIFormDTO — so the child's related collections and
+        /// save hooks behave identically whether it is saved standalone or inline through its parent —
+        /// stamping OrderNumber from the list position.
         /// </summary>
         /// <param name="id">The ID of the parent Board entity</param>
         /// <param name="orderedItemsDTO">List of SaveBodyDTOs in the desired order</param>
@@ -290,17 +293,12 @@ namespace TestApp.Business.Services
                     DTO.BoardId = id;
                     DTO.OrderNumber = i + 1;
 
-                    var savedDTO = await childService.SaveBoardLaneAndReturnDTO(DTO, false, false);
-
-
-
-
-                    savedOrderedItemsDTO.Add(new BoardLaneMainUIFormDTO
-                    {
-                        BoardLaneDTO = savedDTO,
-
-
-                    });
+                    // Delegate to the child's standalone MainUIForm save so both save paths are the same
+                    // code by construction: the child's collections (multi-control M2M selections, complex
+                    // M2M lists, nested ordered children), its OnBefore/OnAfterSave hooks, and the
+                    // response's id lists (the form repopulates from them) cannot drift between the
+                    // standalone page and the inline-on-parent page.
+                    savedOrderedItemsDTO.Add(await childService.SaveBoardLaneAndReturnMainUIFormDTO(saveBodyDTO, false, false));
                 }
 
                 return savedOrderedItemsDTO;
