@@ -151,7 +151,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   // use (regression background: tests/e2e-fixtures/CLAUDE.md, the composition paragraph). Uses its
   // own project because the parent-path save replaces the project's ordered children, which would
   // clobber the shared taskId above.
-  test('should persist child M2M selections saved through the parent ordered path', async ({ request }) => {
+  test('should persist child M2M selections through the parent ordered path across add, null no-op, and removal', async ({ request }) => {
     const headers = { Authorization: `Bearer ${accessToken}` };
 
     const saveResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
@@ -191,6 +191,58 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
       expect(formResponse.ok()).toBeTruthy();
       const form = await formResponse.json();
       expect(form.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+
+      // Coverage is per OPERATION as well as per composition: the add leg above
+      // says nothing about removal (the 2026-08-06 deselect regression shipped
+      // with every add-path check green). Re-save the same child through the
+      // parent, threading each response's DTOs forward for the version checks.
+
+      // Omitted selection list (null) is the documented no-op: Update...For...
+      // must leave the junction rows untouched, never clear them.
+      const noOpResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
+        headers,
+        data: {
+          projectDTO: saved.projectDTO,
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [
+            {
+              projectTaskDTO: saved.orderedProjectTasksMainUIFormDTO[0].projectTaskDTO,
+              orderedTaskCommentsSaveBodyDTO: [],
+            },
+          ],
+        },
+      });
+      expect(noOpResponse.ok()).toBeTruthy();
+      const afterNoOp = await noOpResponse.json();
+      expect(afterNoOp.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([userId]);
+
+      // An explicit empty list is a removal: the junction rows must go, and both
+      // the echoed response and a fresh read must show the watcher gone.
+      const removalResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
+        headers,
+        data: {
+          projectDTO: afterNoOp.projectDTO,
+          selectedMembersNamebookDTOList: [],
+          orderedProjectTasksSaveBodyDTO: [
+            {
+              projectTaskDTO: afterNoOp.orderedProjectTasksMainUIFormDTO[0].projectTaskDTO,
+              selectedWatchersIds: [],
+              orderedTaskCommentsSaveBodyDTO: [],
+            },
+          ],
+        },
+      });
+      expect(removalResponse.ok()).toBeTruthy();
+      const afterRemoval = await removalResponse.json();
+      expect(afterRemoval.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([]);
+
+      const rereadResponse = await request.get(
+        `${API_BASE_URL}/api/Project/GetProjectMainUIFormDTO?id=${watchedProjectId}`,
+        { headers }
+      );
+      expect(rereadResponse.ok()).toBeTruthy();
+      const reread = await rereadResponse.json();
+      expect(reread.orderedProjectTasksMainUIFormDTO[0].watchersIds).toEqual([]);
     } finally {
       await request.delete(`${API_BASE_URL}/api/Project/DeleteProject?id=${watchedProjectId}`, {
         headers,
