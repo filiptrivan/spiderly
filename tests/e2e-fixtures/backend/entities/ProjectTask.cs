@@ -56,9 +56,8 @@ namespace __APP_NAME__.Business.Entities
         [WithMany(nameof(User.AssignedTasks))]
         public virtual User? AssignedTo { get; set; }
 
-        // Multi-control M2M on an ORDERED child — the composition whose selections the parent's ordered
-        // save path silently dropped (the PACMS IntegrationRuleGroup.Brands regression). Kept here so the
-        // ordered-path e2e in project-task-crud.spec.ts and the compilation harness both exercise it.
+        // Multi-control M2M on an ORDERED child — exercised by the ordered-path e2e in
+        // project-task-crud.spec.ts (see tests/e2e-fixtures/CLAUDE.md, the composition paragraph).
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
         public virtual List<User> Watchers { get; } = new(); // M2M
 

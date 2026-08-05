@@ -146,7 +146,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 var savedDTO = await Save{{entity.Name}}AndReturnDTO(saveBodyDTO.{{entity.Name}}DTO!, authorizeUpdate, authorizeInsert);
 
-{{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity, allEntities))}}
+{{string.Join("\n", GetOrderedOneToManyUpdateVariables(entity))}}
 {{string.Join("\n", GetManyToManyMultiControlTypesUpdateMethods(entity, allEntities))}}
 {{string.Join("\n", GetSimpleManyToManyTableLazyLoad(entity, allEntities))}}
 {{string.Join("\n", GetComplexManyToManyListUpdateCalls(entity))}}
@@ -154,7 +154,7 @@ namespace Spiderly.SourceGenerators.Net
                 var result = new {{entity.Name}}MainUIFormDTO
                 {
                     {{entity.Name}}DTO = savedDTO,
-{{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(entity, allEntities))}}
+{{string.Join("\n", GetOrderedOneToManySaveBodyDTOVariables(entity))}}
 {{ServiceReadGenerator.GetMainUIFormDTOInitializationManyToManyPropertiesAfterSave(entity, allEntities)}}
 {{string.Join("\n", GetComplexManyToManyListResultProperties(entity))}}
                 };
@@ -189,14 +189,12 @@ namespace Spiderly.SourceGenerators.Net
 
         #region Ordered One To Many
 
-        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOrderedOneToManyUpdateVariables(SpiderlyClass entity)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-
                 result.Add($$"""
                 var savedOrdered{{property.Name}}MainUIFormDTO = await UpdateOrdered{{property.Name}}For{{entity.Name}}(savedDTO.Id, saveBodyDTO.Ordered{{property.Name}}SaveBodyDTO);
 """);
@@ -205,14 +203,12 @@ namespace Spiderly.SourceGenerators.Net
             return result;
         }
 
-        private static List<string> GetOrderedOneToManySaveBodyDTOVariables(SpiderlyClass entity, List<SpiderlyClass> entities)
+        private static List<string> GetOrderedOneToManySaveBodyDTOVariables(SpiderlyClass entity)
         {
             List<string> result = new();
 
             foreach (SpiderlyProperty property in entity.GetOrderedOneToManyProperties())
             {
-                SpiderlyClass extractedEntity = Helpers.GetEntityByPropertyType(property, entities);
-
                 result.Add($$"""
                     Ordered{{property.Name}}MainUIFormDTO = savedOrdered{{property.Name}}MainUIFormDTO,
 """);
@@ -270,11 +266,8 @@ namespace Spiderly.SourceGenerators.Net
                     DTO.{{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name)?.Name}}Id = id;
                     DTO.OrderNumber = i + 1;
 
-                    // Delegate to the child's standalone MainUIForm save so both save paths are the same
-                    // code by construction: the child's collections (multi-control M2M selections, complex
-                    // M2M lists, nested ordered children), its OnBefore/OnAfterSave hooks, and the
-                    // response's id lists (the form repopulates from them) cannot drift between the
-                    // standalone page and the inline-on-parent page.
+                    // The delegation is load-bearing (see this method's summary) — don't swap back to the
+                    // scalars-only Save{{extractedEntity.Name}}AndReturnDTO.
                     savedOrderedItemsDTO.Add(await childService.Save{{extractedEntity.Name}}AndReturnMainUIFormDTO(saveBodyDTO, false, false));
                 }
 

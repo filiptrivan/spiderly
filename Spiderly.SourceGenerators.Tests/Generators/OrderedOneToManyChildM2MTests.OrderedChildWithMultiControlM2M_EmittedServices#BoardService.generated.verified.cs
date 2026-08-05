@@ -293,11 +293,8 @@ namespace TestApp.Business.Services
                     DTO.BoardId = id;
                     DTO.OrderNumber = i + 1;
 
-                    // Delegate to the child's standalone MainUIForm save so both save paths are the same
-                    // code by construction: the child's collections (multi-control M2M selections, complex
-                    // M2M lists, nested ordered children), its OnBefore/OnAfterSave hooks, and the
-                    // response's id lists (the form repopulates from them) cannot drift between the
-                    // standalone page and the inline-on-parent page.
+                    // The delegation is load-bearing (see this method's summary) — don't swap back to the
+                    // scalars-only SaveBoardLaneAndReturnDTO.
                     savedOrderedItemsDTO.Add(await childService.SaveBoardLaneAndReturnMainUIFormDTO(saveBodyDTO, false, false));
                 }
 

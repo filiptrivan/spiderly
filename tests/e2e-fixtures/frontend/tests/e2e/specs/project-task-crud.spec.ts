@@ -19,12 +19,14 @@ const taskBodyFor = (projectId: number) => ({
 
 test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   let accessToken: string;
+  let userId: number;
   let projectId: number;
   let taskId: number;
 
   test.beforeAll(async ({ request }) => {
     const tokens = await login(request);
     accessToken = tokens.accessToken;
+    userId = tokens.userId;
 
     // Create a project to hold tasks
     const projectResponse = await request.put(
@@ -146,13 +148,11 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
 
   // The generated admin edits ordered children INLINE on the parent form — their multiselects save
   // through SaveProject's ordered list, never through the standalone SaveProjectTask the tests above
-  // use. Regression (PACMS IntegrationRuleGroup.Brands): that path saved the child's scalars but
-  // silently dropped selectedWatchersIds, and its response omitted watchersIds, so a successful save
-  // also visually cleared the selection. Self-contained (own project, own login) so the parent-path
-  // save replacing the project's ordered children can't clobber the shared taskId above.
+  // use (regression background: tests/e2e-fixtures/CLAUDE.md, the composition paragraph). Uses its
+  // own project because the parent-path save replaces the project's ordered children, which would
+  // clobber the shared taskId above.
   test('should persist child M2M selections saved through the parent ordered path', async ({ request }) => {
-    const { accessToken: token, userId } = await login(request);
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = { Authorization: `Bearer ${accessToken}` };
 
     const saveResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
       headers,

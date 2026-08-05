@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
@@ -102,6 +101,19 @@ public class OrderedOneToManyChildM2MTests
         }
         """;
 
+    // One generator drive shared by every test (the PaginatedResultGeneratorTests Lazy pattern), with
+    // the driver's own GeneratedTrees — no round-trip through text and a second parse.
+    private static readonly Lazy<GeneratorDriver> Driver =
+        new(() => GeneratorTestHarness.Run<ServicesGenerator>(OrderedChildWithMultiControlM2MSource));
+
+    private static readonly Lazy<IReadOnlyList<MethodDeclarationSyntax>> GeneratedMethods =
+        new(() => Driver.Value.GetRunResult().GeneratedTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
+            .ToList());
+
+    private static readonly Lazy<Dictionary<string, HashSet<string>>> CallGraph =
+        new(() => BuildCallGraph(GeneratedMethods.Value));
+
     /// <summary>
     /// The behavioral pin, asserted as call-graph reachability over the emitted services rather than as
     /// emitted-text matching, so it survives reshaping the template (direct Update* calls in the loop and
@@ -112,13 +124,8 @@ public class OrderedOneToManyChildM2MTests
     [InlineData("UpdateMembersForBoardLane")]
     public void OrderedChildM2MSelections_AreAppliedOnTheParentOrderedSavePath(string junctionUpdateMethod)
     {
-        GeneratorRunResult result = GeneratorTestHarness.Run<ServicesGenerator>(OrderedChildWithMultiControlM2MSource)
-            .GetRunResult().Results.Single();
-
-        Dictionary<string, HashSet<string>> callGraph = BuildCallGraph(result);
-
         Assert.True(
-            Reaches(callGraph, from: "UpdateOrderedLanesForBoard", to: junctionUpdateMethod),
+            ReachableFrom(CallGraph.Value, "UpdateOrderedLanesForBoard").Contains(junctionUpdateMethod),
             $"The ordered-children save path (UpdateOrderedLanesForBoard) never reaches {junctionUpdateMethod} — " +
             "the child's multi-control M2M selections sent in its SaveBodyDTO are silently dropped.");
     }
@@ -126,18 +133,22 @@ public class OrderedOneToManyChildM2MTests
     /// <summary>
     /// The form repopulates from the save response, so besides persisting, the ordered path's response
     /// must carry the child's M2M id lists — otherwise a successful save visually clears the selection.
-    /// The assignment is not a call, so this one is pinned on the method's own text: however the ordered
-    /// path produces its result (building the DTO itself or delegating), the selections must flow into it.
+    /// The assignment is not a call, so this one is pinned on the method's own body text: however the
+    /// ordered path produces its result (building the DTO itself or delegating), the selections must
+    /// flow into it.
     /// </summary>
     [Fact]
     public void OrderedChildM2MSelections_AreEchoedInTheSaveResponse()
     {
-        GeneratorRunResult result = GeneratorTestHarness.Run<ServicesGenerator>(OrderedChildWithMultiControlM2MSource)
-            .GetRunResult().Results.Single();
+        // Overloads collapse onto one key (any overload counts), and taking only the BODY text keeps
+        // doc-comment trivia from ever satisfying the substrings.
+        Dictionary<string, string> methodBodies = GeneratedMethods.Value
+            .GroupBy(x => x.Identifier.Text)
+            .ToDictionary(
+                x => x.Key,
+                x => string.Concat(x.Select(m => m.Body?.ToString() ?? m.ExpressionBody?.ToString() ?? string.Empty)));
 
-        Dictionary<string, string> methodBodies = GetMethodBodies(result);
-
-        HashSet<string> reachable = ReachableFrom(BuildCallGraph(result), "UpdateOrderedLanesForBoard");
+        HashSet<string> reachable = ReachableFrom(CallGraph.Value, "UpdateOrderedLanesForBoard");
         bool responseCarriesSelections = reachable
             .Where(methodBodies.ContainsKey)
             // MultiSelect echoes as {Property}Ids, MultiAutocomplete as {Property}NamebookDTOList.
@@ -151,18 +162,15 @@ public class OrderedOneToManyChildM2MTests
 
     [Fact]
     public Task OrderedChildWithMultiControlM2M_EmittedServices()
-    {
-        var driver = GeneratorTestHarness.Run<ServicesGenerator>(OrderedChildWithMultiControlM2MSource);
-        return Verify(driver);
-    }
+        => Verify(Driver.Value);
 
     #region Call-graph plumbing
 
-    private static Dictionary<string, HashSet<string>> BuildCallGraph(GeneratorRunResult result)
+    private static Dictionary<string, HashSet<string>> BuildCallGraph(IReadOnlyList<MethodDeclarationSyntax> methods)
     {
         Dictionary<string, HashSet<string>> graph = new();
 
-        foreach (MethodDeclarationSyntax method in GeneratedMethods(result))
+        foreach (MethodDeclarationSyntax method in methods)
         {
             HashSet<string> callees = graph.TryGetValue(method.Identifier.Text, out HashSet<string>? existing)
                 ? existing
@@ -184,20 +192,6 @@ public class OrderedOneToManyChildM2MTests
 
         return graph;
     }
-
-    private static Dictionary<string, string> GetMethodBodies(GeneratorRunResult result)
-        => GeneratedMethods(result)
-            // Overloads collapse onto one key; concatenating keeps the assertion conservative (any overload counts).
-            .GroupBy(x => x.Identifier.Text)
-            .ToDictionary(x => x.Key, x => string.Concat(x.Select(m => m.ToString())));
-
-    private static IEnumerable<MethodDeclarationSyntax> GeneratedMethods(GeneratorRunResult result)
-        => result.GeneratedSources
-            .Select(source => CSharpSyntaxTree.ParseText(source.SourceText.ToString()))
-            .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>());
-
-    private static bool Reaches(Dictionary<string, HashSet<string>> graph, string from, string to)
-        => ReachableFrom(graph, from).Contains(to);
 
     private static HashSet<string> ReachableFrom(Dictionary<string, HashSet<string>> graph, string start)
     {
