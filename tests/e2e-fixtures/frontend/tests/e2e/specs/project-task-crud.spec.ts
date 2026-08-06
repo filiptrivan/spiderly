@@ -151,7 +151,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
   // use (regression background: tests/e2e-fixtures/CLAUDE.md, the composition paragraph). Uses its
   // own project because the parent-path save replaces the project's ordered children, which would
   // clobber the shared taskId above.
-  test('should persist child M2M selections through the parent ordered path across add, null no-op, and removal', async ({ request }) => {
+  test('should persist child M2M selections through the parent ordered path across add and removal', async ({ request }) => {
     const headers = { Authorization: `Bearer ${accessToken}` };
 
     const saveResponse = await request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
@@ -184,7 +184,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
 
     // Re-saves the same child through the parent path, threading the previous
     // response's DTOs forward for the version checks. taskPatch carries the one
-    // thing each leg varies: selectedWatchersIds absent (null no-op) or [] (removal).
+    // thing a leg varies (e.g. selectedWatchersIds).
     const resaveWatchedTask = (from: any, taskPatch: object) =>
       request.put(`${API_BASE_URL}/api/Project/SaveProject`, {
         headers,
@@ -216,18 +216,13 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
       // ...and a fresh read must prove it persisted.
       expect(watchersOf(await readForm())).toEqual([userId]);
 
-      // Remove/no-op legs — rationale: tests/e2e-fixtures/CLAUDE.md, the OPERATION axis.
-
-      // Omitted selection list (null) is the documented no-op: Update...For...
-      // must leave the junction rows untouched, never clear them.
-      const noOpResponse = await resaveWatchedTask(saved, {});
-      expect(noOpResponse.ok()).toBeTruthy();
-      const afterNoOp = await noOpResponse.json();
-      expect(watchersOf(afterNoOp)).toEqual([userId]);
-
-      // An explicit empty list is a removal: the junction rows must go, and both
-      // the echoed response and a fresh read must show the watcher gone.
-      const removalResponse = await resaveWatchedTask(afterNoOp, {
+      // Removal leg — rationale: tests/e2e-fixtures/CLAUDE.md, the OPERATION axis.
+      // NOTE there is no omitted-list no-op at this boundary: generated SaveBody
+      // DTOs initialize selection lists to empty, so an omitted key deserializes
+      // to [] and CLEARS the selections (this leg's first CI run proved it). The
+      // null guard in Update...For... is reachable only by an explicit JSON null
+      // or an internal call — do not add an omission leg expecting a no-op.
+      const removalResponse = await resaveWatchedTask(saved, {
         selectedWatchersIds: [],
       });
       expect(removalResponse.ok()).toBeTruthy();
