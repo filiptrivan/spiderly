@@ -9,7 +9,6 @@ import { throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ApiErrorCodes } from '../errors/api-error-codes';
 import { AuthServiceBase } from '../services/auth.service.base';
-import { ConfigServiceBase } from '../services/config.service.base';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
 
 /**
@@ -21,13 +20,13 @@ import { SpiderlyMessageService } from '../services/spiderly-message.service';
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(SpiderlyMessageService);
   const translocoService = inject(TranslocoService);
-  const config = inject(ConfigServiceBase);
   const authService = inject(AuthServiceBase);
 
   const reactToError = (err: HttpErrorResponse, request: HttpRequest<any>): void => {
-    if (!config.production) {
-      console.error(err);
-    }
+    // Unconditional, production included: the toast the user gets is deliberately vague, so
+    // this is where a developer reads which request failed and how. See SpiderlyErrorHandler
+    // for why silence in production cost more than the console noise saves.
+    console.error(err);
 
     // TODO: type this as an ApiError interface (TS mirror of ApiErrorDTO, next to errors/api-error-codes.ts)
     // so message/errorCode/traceId reads of the cross-language contract are compile-checked, not conventional.

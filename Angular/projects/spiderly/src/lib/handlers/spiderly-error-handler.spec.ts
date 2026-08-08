@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslocoService } from '@jsverse/transloco';
 
-import { ConfigServiceBase } from '../services/config.service.base';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
 import { SpiderlyErrorHandler } from './spiderly-error-handler';
 
-// Constructed directly: the handler's three collaborators are all injected, so a TestBed
-// would only add ceremony around the one decision under test.
-function createHandler(production: boolean) {
+// Constructed directly: both of the handler's collaborators are injected, so a TestBed
+// would only add ceremony around the decisions under test.
+function createHandler() {
   const messageService = {
     errorMessage: jasmine.createSpy('errorMessage'),
   } as unknown as SpiderlyMessageService;
@@ -16,10 +15,8 @@ function createHandler(production: boolean) {
     translate: (key: string) => key,
   } as unknown as TranslocoService;
 
-  const config = { production } as unknown as ConfigServiceBase;
-
   return {
-    handler: new SpiderlyErrorHandler(messageService, translocoService, config),
+    handler: new SpiderlyErrorHandler(messageService, translocoService),
     messageService,
   };
 }
@@ -29,14 +26,13 @@ describe('SpiderlyErrorHandler', () => {
     spyOn(console, 'error');
   });
 
-  // The toast says the team was notified, and unless the consumer wired an error tracker
-  // this console line is the ONLY place the error exists. Gating it on !production made a
-  // deployed app's client errors unreachable: nothing in the console, nothing in a tracker,
-  // nothing in a log — a red toast and no way to find out what it was. The console is a
-  // developer surface (a user never opens it), so there is nothing to protect by staying
-  // silent there.
-  it('logs the error in production too', () => {
-    const { handler } = createHandler(true);
+  // Logging used to be gated on `config.production == false`. The toast says the team was
+  // notified, and unless the app wires an error tracker this line is the ONLY place the error
+  // exists — so a deployed app gave a red toast and nothing to open: not the console, not a
+  // log, not a tracker. The console is a developer surface (a user never opens it), so silence
+  // there protected nothing. There is no production flag on this class any more, by design.
+  it('logs every error, with no environment condition', () => {
+    const { handler } = createHandler();
     const error = new TypeError('Cannot read properties of undefined');
 
     handler.handleError(error);
@@ -44,17 +40,8 @@ describe('SpiderlyErrorHandler', () => {
     expect(console.error).toHaveBeenCalledWith(error);
   });
 
-  it('logs the error in development', () => {
-    const { handler } = createHandler(false);
-    const error = new TypeError('boom');
-
-    handler.handleError(error);
-
-    expect(console.error).toHaveBeenCalledWith(error);
-  });
-
   it('shows the generic toast for a non-HTTP error', () => {
-    const { handler, messageService } = createHandler(true);
+    const { handler, messageService } = createHandler();
 
     handler.handleError(new TypeError('boom'));
 
@@ -66,13 +53,14 @@ describe('SpiderlyErrorHandler', () => {
 
   // HTTP-error UX belongs to unauthorizedInterceptor, which has already shown the message
   // matched to the status by the time an unhandled HttpErrorResponse reaches here. Toasting
-  // again would double up, and with the wrong (generic) copy.
-  it('leaves HTTP errors to the interceptor', () => {
-    const { handler, messageService } = createHandler(true);
+  // again would double up, and with the wrong (generic) copy — but it still gets logged.
+  it('leaves HTTP errors to the interceptor, but still logs them', () => {
+    const { handler, messageService } = createHandler();
+    const error = new HttpErrorResponse({ status: 500 });
 
-    handler.handleError(new HttpErrorResponse({ status: 500 }));
+    handler.handleError(error);
 
     expect(messageService.errorMessage).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(error);
   });
 });
