@@ -5,6 +5,12 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class ConfigServiceBase {
+  /**
+   * Consumer-facing only — nothing in the library reads it. The error handler and the HTTP
+   * interceptor used to gate their `console.error` on it, which left a deployed app's client
+   * errors with nowhere to go; both now log unconditionally. `spiderly init` still scaffolds the
+   * `override`, so apps keep branching on it.
+   */
   production = false;
   apiUrl: string;
   frontendUrl = 'http://localhost:4200';

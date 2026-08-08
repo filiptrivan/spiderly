@@ -31,14 +31,15 @@ export class BaseControl {
   ngAfterViewInit() {}
 
   /**
-   * A control is allowed to be absent, and every control's template already binds for it
-   * (`*ngIf="control"`, `control?.errors`, spiderly-file's no-control custom uploads). Two ways
-   * it happens: a consumer projects a control into a generated `below{Field}For{Entity}` slot —
-   * projected content is created with the PARENT view, so it renders before the details page's
-   * form group is built and `controls.{entity}DTO` is briefly undefined — and spiderly-file used
-   * without a form control at all. This is the ONE place that reached through it, and since every
-   * template calls it for the label, it took the whole page down: an unhandled TypeError per
-   * change-detection pass, which the global ErrorHandler turns into the generic error toast.
+   * Every control's TEMPLATE renders without a control (`*ngIf="control"`, `control?.errors`,
+   * spiderly-file's no-control custom uploads), and this was the one shared read that did not —
+   * so an absent control took the whole page down through the label rather than rendering
+   * label-less: an unhandled TypeError per change-detection pass, which the global ErrorHandler
+   * turns into the generic error toast.
+   *
+   * That fixes the shared path only. `spiderly-autocomplete`, `spiderly-colorpicker` and
+   * `spiderly-checkbox` (with `initializeToFalse`) still dereference `control` in their own
+   * `ngOnInit`, so those three are not yet safe to hand an absent control.
    */
   getTranslatedLabel(): string {
     return this.label ?? this.control?.labelForDisplay;

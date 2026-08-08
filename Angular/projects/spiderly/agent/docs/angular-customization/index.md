@@ -157,7 +157,7 @@ Each property block also emits an `<ng-content select="[below{PropertyName}For{E
 Two details that decide whether the guard actually works:
 
 - **Keep the slot attribute on a real element and put the `@if` inside it.** An `@if` anchor node carries no attribute selector, so wrapping the `<div belowEmailForUser>` in an `@if` drops the content into the default slot instead. (Same rule as conditional `[buttons]`, which needs `<ng-container ngProjectAs="[buttons]">`.)
-- **`?.` alone is not a substitute** when you project a Spiderly control: it hands the control `undefined`, which is a state every control template is written for. Your own component must be equally tolerant if you rely on `?.` instead of the guard.
+- **`?.` alone is not a substitute.** It hands the control `undefined`, which every control's *template* renders fine, but `spiderly-autocomplete`, `spiderly-colorpicker` and `spiderly-checkbox` (with `initializeToFalse`) dereference the control in their own `ngOnInit` and still throw. A component of your own has to be equally tolerant if you rely on `?.` instead of the guard.
 
 ## Data Table
 

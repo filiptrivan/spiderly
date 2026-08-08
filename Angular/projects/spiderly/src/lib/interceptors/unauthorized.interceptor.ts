@@ -23,10 +23,13 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthServiceBase);
 
   const reactToError = (err: HttpErrorResponse, request: HttpRequest<any>): void => {
-    // Unconditional, production included: the toast the user gets is deliberately vague, so
-    // this is where a developer reads which request failed and how. See SpiderlyErrorHandler
-    // for why silence in production cost more than the console noise saves.
-    console.error(err);
+    // Unconditional, production included, and the only log for a failed request (the global
+    // ErrorHandler skips HTTP errors): the toast the user gets is deliberately vague, so this is
+    // where a developer reads which request failed and how. See SpiderlyErrorHandler for why
+    // silence in production cost more than the console noise saves. The summary leads because an
+    // HttpErrorResponse on its own stringifies to "[object HttpErrorResponse]" in an error
+    // tracker's console breadcrumb; the object still follows, to expand in devtools.
+    console.error(`HTTP ${err.status} ${request.method} ${request.url}`, err);
 
     // TODO: type this as an ApiError interface (TS mirror of ApiErrorDTO, next to errors/api-error-codes.ts)
     // so message/errorCode/traceId reads of the cross-language contract are compile-checked, not conventional.

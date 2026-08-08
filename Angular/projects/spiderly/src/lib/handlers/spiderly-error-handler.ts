@@ -4,9 +4,9 @@ import { SpiderlyMessageService } from '../services/spiderly-message.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
 /**
- * The app's global {@link ErrorHandler}: logs every error and shows the generic error toast for
- * the ones no other layer owns. HTTP errors are excluded on purpose — `unauthorizedInterceptor`
- * has already shown the message matched to the status by the time one reaches here.
+ * The app's global {@link ErrorHandler}: logs the error and shows the generic error toast. HTTP
+ * errors are skipped entirely — `unauthorizedInterceptor` owns them end to end and has already
+ * logged the failed request and shown the message matched to its status.
  *
  * Logging is unconditional, production included. The toast tells the user the team was notified,
  * and unless the app wires an error tracker this line is the only place the error exists — so
@@ -26,13 +26,13 @@ export class SpiderlyErrorHandler implements ErrorHandler {
   ) {}
 
   handleError(error: any): void {
+    if (error instanceof HttpErrorResponse) return;
+
     console.error(error);
 
-    if (error instanceof HttpErrorResponse == false) {
-      this.messageService.errorMessage(
-        this.translocoService.translate('UnexpectedErrorDetails'),
-        this.translocoService.translate('UnexpectedErrorTitle'),
-      );
-    }
+    this.messageService.errorMessage(
+      this.translocoService.translate('UnexpectedErrorDetails'),
+      this.translocoService.translate('UnexpectedErrorTitle'),
+    );
   }
 }

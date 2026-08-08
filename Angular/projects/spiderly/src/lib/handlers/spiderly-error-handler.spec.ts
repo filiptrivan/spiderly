@@ -28,39 +28,29 @@ describe('SpiderlyErrorHandler', () => {
 
   // Logging used to be gated on `config.production == false`. The toast says the team was
   // notified, and unless the app wires an error tracker this line is the ONLY place the error
-  // exists — so a deployed app gave a red toast and nothing to open: not the console, not a
-  // log, not a tracker. The console is a developer surface (a user never opens it), so silence
-  // there protected nothing. There is no production flag on this class any more, by design.
-  it('logs every error, with no environment condition', () => {
-    const { handler } = createHandler();
+  // exists — so a deployed app gave a red toast and nothing to open. There is no production flag
+  // on this class any more, by design; see its docstring.
+  it('logs and toasts a non-HTTP error', () => {
+    const { handler, messageService } = createHandler();
     const error = new TypeError('Cannot read properties of undefined');
 
     handler.handleError(error);
 
     expect(console.error).toHaveBeenCalledWith(error);
-  });
-
-  it('shows the generic toast for a non-HTTP error', () => {
-    const { handler, messageService } = createHandler();
-
-    handler.handleError(new TypeError('boom'));
-
     expect(messageService.errorMessage).toHaveBeenCalledWith(
       'UnexpectedErrorDetails',
       'UnexpectedErrorTitle',
     );
   });
 
-  // HTTP-error UX belongs to unauthorizedInterceptor, which has already shown the message
-  // matched to the status by the time an unhandled HttpErrorResponse reaches here. Toasting
-  // again would double up, and with the wrong (generic) copy — but it still gets logged.
-  it('leaves HTTP errors to the interceptor, but still logs them', () => {
+  // unauthorizedInterceptor owns HTTP errors end to end — it has already logged the failed
+  // request and toasted the message matched to its status.
+  it('ignores HTTP errors entirely, logging included', () => {
     const { handler, messageService } = createHandler();
-    const error = new HttpErrorResponse({ status: 500 });
 
-    handler.handleError(error);
+    handler.handleError(new HttpErrorResponse({ status: 500 }));
 
     expect(messageService.errorMessage).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalledWith(error);
+    expect(console.error).not.toHaveBeenCalled();
   });
 });
