@@ -22,7 +22,7 @@ Keep admin UI **responsive and mobile-first**, matching the layout/grid conventi
 Two cross-cutting behaviors ship with every Spiderly admin and cover **every** generated-client call automatically. Re-implementing them per call is the most common needless boilerplate in admin code:
 
 - **Loading:** an HTTP interceptor shows the global full-screen blocking spinner for every request and hides it when the request settles. Read-shaped responses (autocomplete, dropdowns, table pagination, bare-scalar GETs) are exempted server-side via `[SkipSpinner]` inference — see the `custom-endpoints` skill to tune that per endpoint. Don't add per-component spinners around API calls; for layout placeholders use `card-skeleton` (catalog below).
-- **Errors:** an HTTP interceptor toasts every failed request — server-unreachable warning, the server's `BusinessException` message on 400, login/permission/not-found messages on 401/403/404, a generic error toast for the rest — then **rethrows**, so callers only ever run their success path. Uncaught non-HTTP runtime errors get a generic toast from the global `ErrorHandler`. So: **subscribe to the success path only** — no per-call `catchError` toasts, no `try/catch` around generated client calls. Add `catchError` only when you need to *react* to a specific failure (e.g. roll back optimistic UI state); the user-facing message has already been shown by the time your handler runs.
+- **Errors:** an HTTP interceptor toasts every failed request — server-unreachable warning, the server's `BusinessException` message on 400, login/permission/not-found messages on 401/403/404, a generic error toast for the rest — then **rethrows**, so callers only ever run their success path. Uncaught non-HTTP runtime errors get a generic toast from the global `ErrorHandler`. Both surfaces `console.error` every error, production included — the toast is deliberately vague, so the console is where a developer reads what actually broke. That toast tells the user the team was notified, which is only true if you make it so: **wire an error tracker** by providing an `ErrorHandler` that reports and then delegates to `SpiderlyErrorHandler` (inject it) for the toast. Report non-HTTP errors only — the interceptor already owns HTTP-error UX, and a server 5xx is in your backend's tracker under the same `traceId` the toast shows the user. So: **subscribe to the success path only** — no per-call `catchError` toasts, no `try/catch` around generated client calls. Add `catchError` only when you need to *react* to a specific failure (e.g. roll back optimistic UI state); the user-facing message has already been shown by the time your handler runs.
 
 ## Generated File Structure
 
@@ -137,6 +137,27 @@ Every property block the generator emits into `{Entity}BaseDetailsComponent` is 
 Names are PascalCase: `show{PropertyName}For{EntityName}` (plus `showTimeOn{PropertyName}For{EntityName}` for calendar controls).
 
 Library components/controls also expose their own `show*` `@Input()`s (e.g. `showLabel` on every control, `showAddButton` on the data table, `showPanelHeader` on the panel) — each a plain boolean, bound the same way: `[showAddButton]="canCreate"`. See the *UI Controls Reference* and *Presentational & Layout Components* tables below for the available inputs.
+
+### Replacing a field with your own control (`below*` slots)
+
+Each property block also emits an `<ng-content select="[below{PropertyName}For{EntityName}]">` right where the field sits. Pair it with the `show*` input to swap a generated control for your own without editing generated code: hide the generated one, project yours into its slot, and bind yours to the same form control so the save body picks the value up unchanged.
+
+```html
+<user-base-details [parentFormGroup]="parentFormGroup" [showEmailForUser]="false" (onSave)="onSave()">
+  <div belowEmailForUser>
+    @if (parentFormGroup.controls.userDTO; as userDTO) {
+      <spiderly-textbox [control]="userDTO.getControl('email')"></spiderly-textbox>
+    }
+  </div>
+</user-base-details>
+```
+
+**The `@if` is required, not defensive.** Projected content belongs to *your* view, and Angular creates it with your view — the `@defer` the generated form sits behind does not defer it. So your control renders while `parentFormGroup` is still the empty group `BaseFormComponent` starts with, before `get{Entity}MainUIFormDTO` answers, and `controls.{entity}DTO` is undefined for those first change-detection passes. Unguarded, `controls.{entity}DTO.getControl(...)` throws on each one, and the global `ErrorHandler` turns every throw into the generic error toast. It stops once the data lands, so the symptom is a burst of error toasts on entering the page and then a form that works — easy to misread as a server problem.
+
+Two details that decide whether the guard actually works:
+
+- **Keep the slot attribute on a real element and put the `@if` inside it.** An `@if` anchor node carries no attribute selector, so wrapping the `<div belowEmailForUser>` in an `@if` drops the content into the default slot instead. (Same rule as conditional `[buttons]`, which needs `<ng-container ngProjectAs="[buttons]">`.)
+- **`?.` alone is not a substitute** when you project a Spiderly control: it hands the control `undefined`, which is a state every control template is written for. Your own component must be equally tolerant if you rely on `?.` instead of the guard.
 
 ## Data Table
 
