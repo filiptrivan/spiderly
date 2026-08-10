@@ -27,7 +27,11 @@ namespace Spiderly.Shared.Extensions
             if (isFirst)
                 return ascending ? query.OrderBy(keySelector) : query.OrderByDescending(keySelector);
 
-            if (query is IOrderedQueryable<T> orderedQuery)
+            // "Ordered" must be decided on the EXPRESSION TREE's static type — the layer Queryable.ThenBy*
+            // validates. The runtime object lies: EF's EntityQueryable and LINQ's EnumerableQuery implement
+            // IOrderedQueryable<T> whether ordered or not, so a runtime `is` check alone waves an unordered
+            // query into ThenBy*, which throws ArgumentException (Sentry BACKEND-RS-1F).
+            if (query is IOrderedQueryable<T> orderedQuery && typeof(IOrderedQueryable<T>).IsAssignableFrom(query.Expression.Type))
                 return ascending ? orderedQuery.ThenBy(keySelector) : orderedQuery.ThenByDescending(keySelector);
 
             // Defensive fallback: if called with isFirst=false on an unordered query, treat as first sort
