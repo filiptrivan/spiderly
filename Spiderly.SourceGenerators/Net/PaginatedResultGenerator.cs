@@ -80,6 +80,7 @@ using Microsoft.EntityFrameworkCore;
 using Spiderly.Shared.DTO;
 using Spiderly.Shared.Classes;
 using Spiderly.Shared.Enums;
+using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Extensions;
 using System.Text.Json;
 using {{basePartOfNamespace}}.Entities;
@@ -114,6 +115,10 @@ namespace {{basePartOfNamespace}}.Filtering
                 List<(string DTOPropName, string EntityDotNotation, string ResolvedType, bool IsCommaSeparated)> resolvedProps =
                     ResolveDTOProperties(pairDTOClasses, efClassProps, entity, allEntities);
 
+                // Every field that gets a case below, in emission order — interpolated into the
+                // unknown-field error messages so a client (human or agent) can self-correct.
+                List<string> filterableFields = new();
+
                 foreach (var prop in resolvedProps)
                 {
                     if (prop.IsCommaSeparated)
@@ -132,7 +137,10 @@ namespace {{basePartOfNamespace}}.Filtering
                         string? childIdType = childEntity.GetIdTypeOrNull(allEntities);
 
                         if (childIdType != null)
+                        {
                             sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
+                            filterableFields.Add(prop.DTOPropName);
+                        }
 
                         continue;
                     }
@@ -141,22 +149,27 @@ namespace {{basePartOfNamespace}}.Filtering
                     {
                         case "string":
                             sb.AppendLine(GetCaseForString(prop.DTOPropName, prop.EntityDotNotation));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         case "bool":
                         case "bool?":
                             sb.AppendLine(GetCaseForBool(prop.DTOPropName, prop.EntityDotNotation));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         case "DateTime":
                         case "DateTime?":
                             sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateTime", $"Convert.ToDateTime({FilterValueAsString})"));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         case "DateOnly":
                         case "DateOnly?":
                             sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateOnly", $"DateOnly.Parse({FilterValueAsString})"));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         case "TimeOnly":
                         case "TimeOnly?":
                             sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "TimeOnly", $"TimeOnly.Parse({FilterValueAsString})"));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         case "long":
                         case "long?":
@@ -171,6 +184,7 @@ namespace {{basePartOfNamespace}}.Filtering
                         case "byte":
                         case "byte?":
                             sb.AppendLine(GetCaseForNumber(prop.DTOPropName, prop.EntityDotNotation, prop.ResolvedType));
+                            filterableFields.Add(prop.DTOPropName);
                             break;
                         default:
                             //sb.AppendLine(GetCaseForManyToOneFromMapping(prop, c, classes)); // FT: it's already done in other cases
@@ -178,9 +192,14 @@ namespace {{basePartOfNamespace}}.Filtering
                     }
                 }
 
+                // Unknown filter/sort fields THROW (400) instead of silently no-opping — a silently
+                // ignored filter returns UNFILTERED rows the caller treats as filtered, and a silently
+                // ignored sort left the query unordered under the Id tie-breaker's isFirst: false
+                // (the BACKEND-RS-1F 500). Hand-written overrides that consume pseudo filter keys must
+                // Filters.Remove(...) them before delegating to the generated base.
                 sb.AppendLine($$"""
                             default:
-                                break;
+                                throw new BusinessException($"Unknown filter field '{filter.Key}'. Filterable fields: {{string.Join(", ", filterableFields.Select(f => f.FirstCharToLower()))}}.");
                         }
                     }
                 }
@@ -191,6 +210,7 @@ namespace {{basePartOfNamespace}}.Filtering
 """);
                 // Generate sorting
                 StringBuilder sbSort = new();
+                List<string> sortableFields = new();
 
                 foreach (var prop in resolvedProps)
                 {
@@ -199,12 +219,15 @@ namespace {{basePartOfNamespace}}.Filtering
                         continue;
 
                     if (prop.ResolvedType.IsBaseDataType())
+                    {
                         sbSort.AppendLine(GetSortCase(prop.DTOPropName, prop.EntityDotNotation));
+                        sortableFields.Add(prop.DTOPropName);
+                    }
                 }
 
-                if (sbSort.Length > 0)
-                {
-                    sb.AppendLine($$"""
+                // Emitted even when sbSort is empty (a switch with only a default is valid C#), so an
+                // entity with no sortable fields still rejects a client sort instead of ignoring it.
+                sb.AppendLine($$"""
             if (filterDTO.MultiSortMeta?.Count > 0)
             {
                 for (int i = 0; i < filterDTO.MultiSortMeta.Count; i++)
@@ -213,13 +236,12 @@ namespace {{basePartOfNamespace}}.Filtering
                     switch (filterDTO.MultiSortMeta[i].Field)
                     {
 {{sbSort}}                        default:
-                            break;
+                            throw new BusinessException($"Unknown sort field '{filterDTO.MultiSortMeta[i].Field}'. Sortable fields: {{string.Join(", ", sortableFields.Select(f => f.FirstCharToLower()))}}.");
                     }
                 }
             }
 
 """);
-                }
 
                 // Skip/Take on an unordered query returns rows in arbitrary heap/plan order (PostgreSQL),
                 // so pages can repeat/drop rows. Always end with Id: as the whole ORDER BY when the client
@@ -352,7 +374,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.ToLower().Equals({{FilterValueAsString}}.ToLower());
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid string match mode!");
+                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -369,7 +391,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.Equals(Convert.ToBoolean({{FilterValueAsString}}));
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid bool match mode!");
+                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -392,7 +414,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingProjection()}} > {{parseExpr}};
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid {{typeLabel}} match mode!");
+                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -421,7 +443,7 @@ using {{item}};
                                         condition = x => values.Contains(x.{{entityDotNotation.AsNullForgivingProjection()}});
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid numeric match mode!");
+                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -439,7 +461,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.Any(x => values.Contains(x.Id));
                                         break;
                                     default:
-                                        throw new ArgumentException("Invalid Enumerable match mode!");
+                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
                                 }
                                 predicate = predicate.And(condition);
                                 break;

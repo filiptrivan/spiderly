@@ -77,6 +77,24 @@ public class PaginatedResultGeneratorTests
     }
 
     /// <summary>
+    /// Unknown filter/sort fields throw a 400 <c>BusinessException</c> instead of silently no-opping
+    /// (behavior spec: <see cref="PaginatedBuildRuntimeBehaviorTests"/>). The text pin exists for the
+    /// shape the runtime harness doesn't execute — the M2M junction, which must reject unknown fields
+    /// like every other entity even though it has no Id fallback.
+    /// </summary>
+    [Fact]
+    public void Build_EmitsThrowingDefaults_ForEveryEntityIncludingM2M()
+    {
+        foreach (string entityName in new[] { "Item", "Warehouse", "ItemWarehouse" })
+        {
+            string build = BuildMethodOf(entityName);
+
+            Assert.Contains("throw new BusinessException($\"Unknown filter field '{filter.Key}'", build);
+            Assert.Contains("throw new BusinessException($\"Unknown sort field '{filterDTO.MultiSortMeta[i].Field}'", build);
+        }
+    }
+
+    /// <summary>
     /// [GenerateCommaSeparatedDisplayName] over a KEYLESS junction is genuinely unsupported: the emitted
     /// filter case is <c>values.Contains(x.Id)</c>, so this generator really does need the child's id type,
     /// and a keyless junction has none. Unlike the collection controls in <c>SpiderlyClassFactory</c>, there
