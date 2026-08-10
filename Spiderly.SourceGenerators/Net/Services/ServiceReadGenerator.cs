@@ -257,7 +257,7 @@ namespace Spiderly.SourceGenerators.Net
 
         internal static string? GetPopulateDTOWithBlobPartsForDTO(List<SpiderlyProperty> propertiesEntityClass)
         {
-            List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
+            List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass, includePrivateBlobData: true);
 
             if (blobParts.Count == 0)
                 return null;
@@ -267,9 +267,16 @@ namespace Spiderly.SourceGenerators.Net
 """;
         }
 
+        /// <summary>
+        /// List reads deliberately skip private-blob data. Populating it costs one storage
+        /// round-trip and one base64 encode <em>per row</em>, on the request path of every table
+        /// page — while no list surface renders blob content; only the details form does, and it
+        /// loads a single row through <c>Get{Entity}DTO</c>. Public blobs stay: their "data" is
+        /// the URL that is already in hand, so passing it through is free.
+        /// </summary>
         internal static string? GetPopulateDTOWithBlobPartsForDTOList(List<SpiderlyProperty> propertiesEntityClass)
         {
-            List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass);
+            List<string> blobParts = GetPopulateDTOWithBlobParts(propertiesEntityClass, includePrivateBlobData: false);
 
             if (blobParts.Count == 0)
                 return null;
@@ -282,7 +289,7 @@ namespace Spiderly.SourceGenerators.Net
 """;
         }
 
-        private static List<string> GetPopulateDTOWithBlobParts(List<SpiderlyProperty> propertiesEntityClass)
+        private static List<string> GetPopulateDTOWithBlobParts(List<SpiderlyProperty> propertiesEntityClass, bool includePrivateBlobData)
         {
             List<string> blobParts = new();
 
@@ -300,7 +307,7 @@ namespace Spiderly.SourceGenerators.Net
                     }
 """);
                 }
-                else
+                else if (includePrivateBlobData)
                 {
                     // TODO: For private S3 storage, generate presigned URLs instead of downloading + base64-encoding.
                     // Private storage: download and base64-encode.
