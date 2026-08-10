@@ -77,21 +77,18 @@ public class PaginatedResultGeneratorTests
     }
 
     /// <summary>
-    /// Unknown filter/sort fields throw a 400 <c>BusinessException</c> instead of silently no-opping
-    /// (behavior spec: <see cref="PaginatedBuildRuntimeBehaviorTests"/>). The text pin exists for the
+    /// Unknown filter/sort fields throw a 400 via <c>PaginationErrors</c> instead of silently no-opping
+    /// (behavior spec: <see cref="PaginatedBuildRuntimeBehaviorTests"/>). The text pin covers only the
     /// shape the runtime harness doesn't execute — the M2M junction, which must reject unknown fields
     /// like every other entity even though it has no Id fallback.
     /// </summary>
     [Fact]
-    public void Build_EmitsThrowingDefaults_ForEveryEntityIncludingM2M()
+    public void Build_EmitsThrowingDefaults_ForTheM2MJunction()
     {
-        foreach (string entityName in new[] { "Item", "Warehouse", "ItemWarehouse" })
-        {
-            string build = BuildMethodOf(entityName);
+        string build = BuildMethodOf("ItemWarehouse");
 
-            Assert.Contains("throw new BusinessException($\"Unknown filter field '{filter.Key}'", build);
-            Assert.Contains("throw new BusinessException($\"Unknown sort field '{filterDTO.MultiSortMeta[i].Field}'", build);
-        }
+        Assert.Contains("throw PaginationErrors.UnknownFilterField(filter.Key,", build);
+        Assert.Contains("throw PaginationErrors.UnknownSortField(filterDTO.MultiSortMeta[i].Field,", build);
     }
 
     /// <summary>

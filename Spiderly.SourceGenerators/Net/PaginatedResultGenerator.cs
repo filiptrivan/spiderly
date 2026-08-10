@@ -115,12 +115,14 @@ namespace {{basePartOfNamespace}}.Filtering
                 List<(string DTOPropName, string EntityDotNotation, string ResolvedType, bool IsCommaSeparated)> resolvedProps =
                     ResolveDTOProperties(pairDTOClasses, efClassProps, entity, allEntities);
 
-                // Every field that gets a case below, in emission order — interpolated into the
-                // unknown-field error messages so a client (human or agent) can self-correct.
+                // Every field that gets a case below, in emission order — the pre-joined list is baked
+                // into the unknown-field error so a client (human or agent) can self-correct.
                 List<string> filterableFields = new();
 
                 foreach (var prop in resolvedProps)
                 {
+                    string? caseText;
+
                     if (prop.IsCommaSeparated)
                     {
                         string entityPropName = prop.DTOPropName.Replace("CommaSeparated", ""); // "SegmentationItems"
@@ -136,59 +138,32 @@ namespace {{basePartOfNamespace}}.Filtering
                         // Omitting the case simply leaves the column unfilterable (the switch has a default).
                         string? childIdType = childEntity.GetIdTypeOrNull(allEntities);
 
-                        if (childIdType != null)
+                        caseText = childIdType != null
+                            ? GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType)
+                            : null;
+                    }
+                    else
+                    {
+                        caseText = prop.ResolvedType switch
                         {
-                            sb.AppendLine(GetCaseForEnumerable(prop.DTOPropName, entityPropName, childIdType));
-                            filterableFields.Add(prop.DTOPropName);
-                        }
-
-                        continue;
+                            "string" => GetCaseForString(prop.DTOPropName, prop.EntityDotNotation),
+                            "bool" or "bool?" => GetCaseForBool(prop.DTOPropName, prop.EntityDotNotation),
+                            "DateTime" or "DateTime?" => GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, $"Convert.ToDateTime({FilterValueAsString})"),
+                            "DateOnly" or "DateOnly?" => GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, $"DateOnly.Parse({FilterValueAsString})"),
+                            "TimeOnly" or "TimeOnly?" => GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, $"TimeOnly.Parse({FilterValueAsString})"),
+                            "long" or "long?" or "int" or "int?" or "decimal" or "decimal?"
+                                or "float" or "float?" or "double" or "double?" or "byte" or "byte?"
+                                => GetCaseForNumber(prop.DTOPropName, prop.EntityDotNotation, prop.ResolvedType),
+                            _ => null,
+                        };
                     }
 
-                    switch (prop.ResolvedType)
+                    // The ONE site that pairs "a case was emitted" with "the field is listed in the error
+                    // message" — structurally, so a newly supported type can't silently fall out of the list.
+                    if (caseText != null)
                     {
-                        case "string":
-                            sb.AppendLine(GetCaseForString(prop.DTOPropName, prop.EntityDotNotation));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        case "bool":
-                        case "bool?":
-                            sb.AppendLine(GetCaseForBool(prop.DTOPropName, prop.EntityDotNotation));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        case "DateTime":
-                        case "DateTime?":
-                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateTime", $"Convert.ToDateTime({FilterValueAsString})"));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        case "DateOnly":
-                        case "DateOnly?":
-                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "DateOnly", $"DateOnly.Parse({FilterValueAsString})"));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        case "TimeOnly":
-                        case "TimeOnly?":
-                            sb.AppendLine(GetCaseForTemporal(prop.DTOPropName, prop.EntityDotNotation, "TimeOnly", $"TimeOnly.Parse({FilterValueAsString})"));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        case "long":
-                        case "long?":
-                        case "int":
-                        case "int?":
-                        case "decimal":
-                        case "decimal?":
-                        case "float":
-                        case "float?":
-                        case "double":
-                        case "double?":
-                        case "byte":
-                        case "byte?":
-                            sb.AppendLine(GetCaseForNumber(prop.DTOPropName, prop.EntityDotNotation, prop.ResolvedType));
-                            filterableFields.Add(prop.DTOPropName);
-                            break;
-                        default:
-                            //sb.AppendLine(GetCaseForManyToOneFromMapping(prop, c, classes)); // FT: it's already done in other cases
-                            break;
+                        sb.AppendLine(caseText);
+                        filterableFields.Add(prop.DTOPropName);
                     }
                 }
 
@@ -199,7 +174,7 @@ namespace {{basePartOfNamespace}}.Filtering
                 // Filters.Remove(...) them before delegating to the generated base.
                 sb.AppendLine($$"""
                             default:
-                                throw new BusinessException($"Unknown filter field '{filter.Key}'. Filterable fields: {{string.Join(", ", filterableFields.Select(f => f.FirstCharToLower()))}}.");
+                                throw PaginationErrors.UnknownFilterField(filter.Key, "{{JoinForErrorMessage(filterableFields)}}");
                         }
                     }
                 }
@@ -208,25 +183,15 @@ namespace {{basePartOfNamespace}}.Filtering
             query = query.Where(predicate);
 
 """);
-                // Generate sorting
-                StringBuilder sbSort = new();
-                List<string> sortableFields = new();
+                // Generate sorting — collections (CommaSeparated) are not sortable.
+                var sortableProps = resolvedProps
+                    .Where(p => p.IsCommaSeparated == false && p.ResolvedType.IsBaseDataType())
+                    .ToList();
 
-                foreach (var prop in resolvedProps)
-                {
-                    // Collections (CommaSeparated) are not sortable
-                    if (prop.IsCommaSeparated)
-                        continue;
+                string sortCases = string.Concat(sortableProps.Select(p => GetSortCase(p.DTOPropName, p.EntityDotNotation) + "\n"));
 
-                    if (prop.ResolvedType.IsBaseDataType())
-                    {
-                        sbSort.AppendLine(GetSortCase(prop.DTOPropName, prop.EntityDotNotation));
-                        sortableFields.Add(prop.DTOPropName);
-                    }
-                }
-
-                // Emitted even when sbSort is empty (a switch with only a default is valid C#), so an
-                // entity with no sortable fields still rejects a client sort instead of ignoring it.
+                // Emitted even when there are no sortable fields (a switch with only a default is valid C#),
+                // so such an entity still rejects a client sort instead of ignoring it.
                 sb.AppendLine($$"""
             if (filterDTO.MultiSortMeta?.Count > 0)
             {
@@ -235,8 +200,8 @@ namespace {{basePartOfNamespace}}.Filtering
                     bool ascending = filterDTO.MultiSortMeta[i].Order == 1;
                     switch (filterDTO.MultiSortMeta[i].Field)
                     {
-{{sbSort}}                        default:
-                            throw new BusinessException($"Unknown sort field '{filterDTO.MultiSortMeta[i].Field}'. Sortable fields: {{string.Join(", ", sortableFields.Select(f => f.FirstCharToLower()))}}.");
+{{sortCases}}                        default:
+                            throw PaginationErrors.UnknownSortField(filterDTO.MultiSortMeta[i].Field, "{{JoinForErrorMessage(sortableProps.Select(p => p.DTOPropName))}}");
                     }
                 }
             }
@@ -357,6 +322,18 @@ using {{item}};
         /// </summary>
         private const string FilterValueAsString = "filterRuleDTO.Value!.ToString()!";
 
+        /// <summary>
+        /// The emitted invalid-match-mode throw, shared by all five case emitters so the call shape
+        /// can't drift between them. Wording and error code live in <c>PaginationErrors</c> (Spiderly.Shared).
+        /// </summary>
+        private const string InvalidMatchModeThrow = """throw PaginationErrors.InvalidMatchMode(filterRuleDTO.MatchMode, filter.Key);""";
+
+        /// <summary>
+        /// camelCases and joins field names for baking into an emitted <c>PaginationErrors</c> argument.
+        /// </summary>
+        private static string JoinForErrorMessage(IEnumerable<string> fieldNames) =>
+            string.Join(", ", fieldNames.Select(f => f.FirstCharToLower()));
+
 
         private static string GetCaseForString(string DTOIdentifier, string entityDotNotation)
         {
@@ -374,7 +351,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.ToLower().Equals({{FilterValueAsString}}.ToLower());
                                         break;
                                     default:
-                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
+                                        {{InvalidMatchModeThrow}}
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -391,14 +368,14 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.Equals(Convert.ToBoolean({{FilterValueAsString}}));
                                         break;
                                     default:
-                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
+                                        {{InvalidMatchModeThrow}}
                                 }
                                 predicate = predicate.And(condition);
                                 break;
 """;
         }
 
-        private static string GetCaseForTemporal(string DTOIdentifier, string entityDotNotation, string typeLabel, string parseExpr)
+        private static string GetCaseForTemporal(string DTOIdentifier, string entityDotNotation, string parseExpr)
         {
             return $$"""
                             case "{{DTOIdentifier.FirstCharToLower()}}":
@@ -414,7 +391,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingProjection()}} > {{parseExpr}};
                                         break;
                                     default:
-                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
+                                        {{InvalidMatchModeThrow}}
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -443,7 +420,7 @@ using {{item}};
                                         condition = x => values.Contains(x.{{entityDotNotation.AsNullForgivingProjection()}});
                                         break;
                                     default:
-                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
+                                        {{InvalidMatchModeThrow}}
                                 }
                                 predicate = predicate.And(condition);
                                 break;
@@ -461,7 +438,7 @@ using {{item}};
                                         condition = x => x.{{entityDotNotation.AsNullForgivingDereference()}}.Any(x => values.Contains(x.Id));
                                         break;
                                     default:
-                                        throw new BusinessException($"Invalid match mode '{filterRuleDTO.MatchMode}' for filter field '{filter.Key}'.");
+                                        {{InvalidMatchModeThrow}}
                                 }
                                 predicate = predicate.And(condition);
                                 break;

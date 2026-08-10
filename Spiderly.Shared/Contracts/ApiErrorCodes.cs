@@ -58,5 +58,25 @@ namespace Spiderly.Shared.Contracts
         /// email was returned but not verified.
         /// </summary>
         public const string ExternalEmailMissing = "external_email_missing";
+
+        /// <summary>
+        /// A pagination request filtered on a key with no generated filter case. Returned with
+        /// HTTP 400; the message names the key and lists the filterable fields. Thrown via
+        /// <see cref="Spiderly.Shared.Exceptions.PaginationErrors"/>.
+        /// </summary>
+        public const string UnknownFilterField = "unknown_filter_field";
+
+        /// <summary>
+        /// A pagination request sorted on a field with no generated sort case (misspelled, or a
+        /// non-sortable collection column). Returned with HTTP 400; the message names the field and
+        /// lists the sortable fields. Thrown via <see cref="Spiderly.Shared.Exceptions.PaginationErrors"/>.
+        /// </summary>
+        public const string UnknownSortField = "unknown_sort_field";
+
+        /// <summary>
+        /// A pagination filter rule used a match mode that is not valid for the field's type.
+        /// Returned with HTTP 400. Thrown via <see cref="Spiderly.Shared.Exceptions.PaginationErrors"/>.
+        /// </summary>
+        public const string InvalidMatchMode = "invalid_match_mode";
     }
 }

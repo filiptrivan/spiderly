@@ -32,6 +32,11 @@
           "summary": "A database foreign-key constraint was violated — e.g. referencing a row that does not exist, or deleting a row that is still referenced by dependent rows."
         },
         {
+          "name": "InvalidMatchMode",
+          "value": "invalid_match_mode",
+          "summary": "A pagination filter rule used a match mode that is not valid for the field's type. Returned with HTTP 400. Thrown via PaginationErrors."
+        },
+        {
           "name": "InvalidToken",
           "value": "invalid_token",
           "summary": "The JWT bearer token is missing, malformed, or expired. Returned with HTTP 401 (also surfaced in the WWW-Authenticate header); the client should refresh the token or re-authenticate."
@@ -40,6 +45,16 @@
           "name": "UniqueViolation",
           "value": "unique_violation",
           "summary": "A database unique constraint (or unique index) was violated — e.g. saving a duplicate value for a column that must be unique."
+        },
+        {
+          "name": "UnknownFilterField",
+          "value": "unknown_filter_field",
+          "summary": "A pagination request filtered on a key with no generated filter case. Returned with HTTP 400; the message names the key and lists the filterable fields. Thrown via PaginationErrors."
+        },
+        {
+          "name": "UnknownSortField",
+          "value": "unknown_sort_field",
+          "summary": "A pagination request sorted on a field with no generated sort case (misspelled, or a non-sortable collection column). Returned with HTTP 400; the message names the field and lists the sortable fields. Thrown via PaginationErrors."
         },
         {
           "name": "ValidationFailed",

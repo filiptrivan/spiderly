@@ -250,10 +250,12 @@ class HostWithColumnsStateKeyComponent {
   getList = emptyList;
 }
 
+function headerCells(el: HTMLElement): HTMLTableCellElement[] {
+  return Array.from(el.querySelectorAll('th'));
+}
+
 function headerTexts(el: HTMLElement): string[] {
-  return Array.from(el.querySelectorAll('th')).map(
-    (th) => th.textContent?.trim() ?? '',
-  );
+  return headerCells(el).map((th) => th.textContent?.trim() ?? '');
 }
 
 // Async because the checkboxes' [ngModel] writes resolve in a microtask.
@@ -682,12 +684,12 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
     fixture: ComponentFixture<unknown>,
     name: string,
   ): HTMLTableCellElement =>
-    Array.from(
-      fixture.nativeElement.querySelectorAll('th') as NodeListOf<HTMLTableCellElement>,
-    ).find((th) => (th.textContent ?? '').includes(name))!;
+    headerCells(fixture.nativeElement).find((th) =>
+      (th.textContent ?? '').includes(name),
+    )!;
 
   it('disables click-to-sort and hides the sort icon on a CommaSeparated field', () => {
-    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+    const fixture = createFixture(HostWithCommaSeparatedColumnComponent);
 
     const skuHeader = headerOf(fixture, 'Sku');
 
@@ -696,7 +698,7 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
   });
 
   it('keeps ordinary columns sortable', () => {
-    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+    const fixture = createFixture(HostWithCommaSeparatedColumnComponent);
 
     const titleHeader = headerOf(fixture, 'Title');
 
@@ -705,11 +707,68 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
   });
 
   it('still honors an explicit sortable: false', () => {
-    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+    const fixture = createFixture(HostWithCommaSeparatedColumnComponent);
 
     const notesHeader = headerOf(fixture, 'Notes');
 
     expect(notesHeader.classList.contains('p-datatable-sortable-column')).toBeFalse();
     expect(notesHeader.querySelector('p-sorticon')).toBeNull();
+  });
+});
+
+const STALE_SORT_STATE_KEY = 'sdt-stale-sort-spec';
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [stateKey]="stateKey"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithPersistedCommaSeparatedSortComponent {
+  cols: Column[] = [
+    { name: 'Title', field: 'title', filterType: 'text' },
+    { name: 'Sku', field: 'productVariantsCommaSeparated', filterType: 'text' },
+  ];
+  stateKey = STALE_SORT_STATE_KEY;
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+describe('SpiderlyDataTableComponent — persisted sort on a non-sortable column', () => {
+  // Persisted state outlives the rule that produced it: a sort stored before the column became
+  // non-sortable would ride every lazy load, and the backend answers an unknown sort field with a
+  // 400 — unclearable from the UI, since the header that would clear it is no longer clickable.
+
+  it('drops the stale sort instead of sending it', () => {
+    sessionStorage.setItem(
+      STALE_SORT_STATE_KEY,
+      JSON.stringify({
+        multiSortMeta: [{ field: 'productVariantsCommaSeparated', order: 1 }],
+      }),
+    );
+
+    const fixture = createFixture(HostWithPersistedCommaSeparatedSortComponent);
+    const host = fixture.componentInstance;
+
+    expect(host.captured.length).toBe(1);
+    expect(host.captured[0].multiSortMeta ?? null).toBeNull();
+  });
+
+  it('keeps a persisted sort on a sortable column', () => {
+    sessionStorage.setItem(
+      STALE_SORT_STATE_KEY,
+      JSON.stringify({ multiSortMeta: [{ field: 'title', order: -1 }] }),
+    );
+
+    const fixture = createFixture(HostWithPersistedCommaSeparatedSortComponent);
+    const host = fixture.componentInstance;
+
+    expect(host.captured[0].multiSortMeta).toEqual([
+      { field: 'title', order: -1 },
+    ]);
   });
 });

@@ -529,13 +529,35 @@ export class SpiderlyDataTableComponent
       (col) => col.field === this.defaultSortField,
     );
     if (defaultSortCol && !this.isColumnVisible(defaultSortCol)) return null;
+    // A declared default on a non-sortable column is a consumer mistake the backend answers
+    // with a 400 on every load; fall back to its implicit Id DESC instead (see keepSortableMeta).
+    if (defaultSortCol && !this.isColumnSortable(defaultSortCol)) return null;
 
     return [{ field: this.defaultSortField, order: this.defaultSortOrder }];
   }
 
   private persistedMultiSortMeta(): SortMeta[] | null {
     const state = this.persistedTableState();
-    return state?.multiSortMeta?.length ? state.multiSortMeta : null;
+    const sortable = this.keepSortableMeta(state?.multiSortMeta);
+    return sortable.length ? sortable : null;
+  }
+
+  /**
+   * Drops sort meta the backend has no sort case for. Persisted state outlives the rule that
+   * produced it — a sort stored before a column became non-sortable (or before the library
+   * started disabling `*CommaSeparated` headers) would otherwise ride every lazy load, and the
+   * generated `Build` answers an unknown sort field with a 400. There would be no way out from
+   * the UI either: the header that could clear it is exactly the one no longer clickable.
+   * Unknown fields (no matching column) are left alone — a consumer may sort on something it
+   * declares no column for.
+   */
+  private keepSortableMeta(
+    multiSortMeta: SortMeta[] | null | undefined,
+  ): SortMeta[] {
+    return (multiSortMeta ?? []).filter((sortMeta) => {
+      const col = this.cols?.find((c) => c.field === sortMeta?.field);
+      return col == null || this.isColumnSortable(col);
+    });
   }
 
   // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()

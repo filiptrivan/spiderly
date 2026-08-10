@@ -131,6 +131,19 @@ internal static class GeneratedCodeCompilationHarness
     }
 
     /// <summary>
+    /// The invariant sources (implicit usings + fixture/template entities + scaffolding), parsed once per
+    /// test run. Syntax trees are immutable and safely shared across compilations; the only per-call
+    /// variation — <c>NullableContextOptions</c> — lives on the compilation, not the tree. Without this,
+    /// every caller re-read the embedded resources and re-parsed ~18 sources (multiple callers per run).
+    /// </summary>
+    private static readonly Lazy<ImmutableArray<SyntaxTree>> BaseTrees = new(() =>
+        new[] { ImplicitUsings }
+            .Concat(EntitySources())
+            .Append(HandWrittenScaffolding)
+            .Select(s => CSharpSyntaxTree.ParseText(s, ParseOptions))
+            .ToImmutableArray());
+
+    /// <summary>
     /// Compiles all generator output plus the input sources in ONE compilation, the way a real build does
     /// (no generator sees another's output; the final compilation contains all of it).
     /// </summary>
@@ -142,11 +155,12 @@ internal static class GeneratedCodeCompilationHarness
         IEnumerable<string>? extraSources = null,
         NullableContextOptions nullable = NullableContextOptions.Enable)
     {
-        List<string> sources = [ImplicitUsings, .. EntitySources(), HandWrittenScaffolding, .. extraSources ?? []];
+        IEnumerable<SyntaxTree> trees = BaseTrees.Value
+            .Concat((extraSources ?? []).Select(s => CSharpSyntaxTree.ParseText(s, ParseOptions)));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: $"{AppName}.Business",
-            syntaxTrees: sources.Select(s => CSharpSyntaxTree.ParseText(s, ParseOptions)),
+            syntaxTrees: trees,
             references: TestMetadataReferences.All,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(nullable));
 
@@ -159,4 +173,15 @@ internal static class GeneratedCodeCompilationHarness
         return withGenerated;
     }
 
+    /// <summary>
+    /// Uniform diagnostic rendering for harness failures (<c>id file(line): message</c>) — one shape for
+    /// every consumer of this harness, so failure output doesn't fork per test class.
+    /// </summary>
+    internal static string Describe(Diagnostic diagnostic)
+    {
+        FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
+        string file = string.IsNullOrEmpty(span.Path) ? "<generated>" : span.Path;
+
+        return $"{diagnostic.Id} {file}{span.StartLinePosition}: {diagnostic.GetMessage()}";
+    }
 }

@@ -218,11 +218,5 @@ public class GeneratedCodeCompilationTests
         "AuthorizationService.generated.cs",
     ];
 
-    private static string Describe(Diagnostic diagnostic)
-    {
-        FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
-        string file = string.IsNullOrEmpty(span.Path) ? "<generated>" : span.Path;
-
-        return $"{diagnostic.Id} {file}{span.StartLinePosition}: {diagnostic.GetMessage()}";
-    }
+    private static string Describe(Diagnostic diagnostic) => GeneratedCodeCompilationHarness.Describe(diagnostic);
 }

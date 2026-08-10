@@ -11,6 +11,9 @@ export const ApiErrorCodes = {
   EmailNotVerified: 'email_not_verified',
   ExternalProviderNotConfigured: 'external_provider_not_configured',
   ExternalEmailMissing: 'external_email_missing',
+  UnknownFilterField: 'unknown_filter_field',
+  UnknownSortField: 'unknown_sort_field',
+  InvalidMatchMode: 'invalid_match_mode',
 } as const;
 
 export type ApiErrorCode = (typeof ApiErrorCodes)[keyof typeof ApiErrorCodes];

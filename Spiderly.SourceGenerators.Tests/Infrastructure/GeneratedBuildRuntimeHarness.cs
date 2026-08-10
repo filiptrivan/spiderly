@@ -64,9 +64,16 @@ internal static class GeneratedBuildRuntimeHarness
             out ImmutableArray<Diagnostic> generatorDiagnostics,
             extraSources: [EntitySource]);
 
-        Diagnostic[] generatorErrors = generatorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
-        if (generatorErrors.Length > 0)
-            throw new InvalidOperationException($"Generator errors:\n{string.Join("\n", generatorErrors.Select(d => d.ToString()))}");
+        // Warning+ threshold and Describe formatting match AssertCompilesClean's no-allowlist rule —
+        // a SPIDERLY### warning must not pass the runtime harness while failing the compilation one.
+        string[] generatorFailures = generatorDiagnostics
+            .Where(d => d.Severity >= DiagnosticSeverity.Warning)
+            .Select(GeneratedCodeCompilationHarness.Describe)
+            .Distinct()
+            .ToArray();
+
+        if (generatorFailures.Length > 0)
+            throw new InvalidOperationException($"Generators reported {generatorFailures.Length} diagnostic(s):\n{string.Join("\n", generatorFailures)}");
 
         using MemoryStream peStream = new();
         var emitResult = compilation.Emit(peStream);
@@ -75,7 +82,9 @@ internal static class GeneratedBuildRuntimeHarness
         {
             string errors = string.Join("\n", emitResult.Diagnostics
                 .Where(d => d.Severity == DiagnosticSeverity.Error)
-                .Select(d => d.ToString()));
+                .Select(GeneratedCodeCompilationHarness.Describe)
+                .Distinct());
+
             throw new InvalidOperationException($"Emit failed:\n{errors}");
         }
 
@@ -85,19 +94,21 @@ internal static class GeneratedBuildRuntimeHarness
         return Assembly.Load(peStream.ToArray());
     }
 
-    private static Type EntityType =>
+    private static readonly Lazy<Type> EntityType = new(() =>
         Emitted.Value.GetType($"{GeneratedCodeCompilationHarness.AppName}.Business.Entities.{EntityName}")
-            ?? throw new InvalidOperationException($"{EntityName} not found in the emitted assembly.");
+            ?? throw new InvalidOperationException($"{EntityName} not found in the emitted assembly."));
 
-    private static MethodInfo BuildMethod =>
+    private static readonly Lazy<MethodInfo> BuildMethod = new(() =>
         Emitted.Value.GetType($"{GeneratedCodeCompilationHarness.AppName}.Business.Filtering.PaginatedResultGenerator")!
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Single(m => m.Name == "Build" && m.GetParameters()[0].ParameterType.GenericTypeArguments[0] == EntityType);
+            .Single(m => m.Name == "Build" && m.GetParameters()[0].ParameterType.GenericTypeArguments[0] == EntityType.Value));
 
     /// <summary>
     /// Seeds <paramref name="rows"/> (Ids are assigned 1..N in order), runs the generated
     /// <c>Build</c> with <paramref name="filterDTO"/>, and materializes the resulting query. Exceptions
     /// thrown by <c>Build</c> surface unwrapped — the async state machine faults the returned task.
+    /// The emitted types are public, so member access goes through <c>dynamic</c> rather than
+    /// hand-rolled <c>PropertyInfo</c> lookups.
     /// </summary>
     internal static async Task<BuildOutcome> RunBuildAsync(FilterDTO filterDTO, params (string Title, int Rank)[] rows)
     {
@@ -108,50 +119,36 @@ internal static class GeneratedBuildRuntimeHarness
             .UseSqlite(connection)
             .Options;
 
-        using ProbeDbContext context = new(options, EntityType);
+        using ProbeDbContext context = new(options);
         context.Database.EnsureCreated();
-
-        PropertyInfo title = EntityType.GetProperty("Title")!;
-        PropertyInfo rank = EntityType.GetProperty("Rank")!;
 
         foreach ((string Title, int Rank) row in rows)
         {
-            object entity = Activator.CreateInstance(EntityType)!;
-            title.SetValue(entity, row.Title);
-            rank.SetValue(entity, row.Rank);
-            context.Add(entity);
+            dynamic entity = Activator.CreateInstance(EntityType.Value)!;
+            entity.Title = row.Title;
+            entity.Rank = row.Rank;
+            context.Add((object)entity);
         }
 
         context.SaveChanges();
 
         object queryable = typeof(DbContext).GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
-            .MakeGenericMethod(EntityType)
+            .MakeGenericMethod(EntityType.Value)
             .Invoke(context, null)!;
 
-        Task task = (Task)BuildMethod.Invoke(null, [queryable, filterDTO])!;
-        await task;
+        dynamic paginated = await (dynamic)BuildMethod.Value.Invoke(null, [queryable, filterDTO])!;
 
-        object paginated = task.GetType().GetProperty("Result")!.GetValue(task)!;
-        int totalRecords = (int)paginated.GetType().GetProperty("TotalRecords")!.GetValue(paginated)!;
-        IEnumerable query = (IEnumerable)paginated.GetType().GetProperty("Query")!.GetValue(paginated)!;
+        List<ProbeRow> materialized = new();
+        foreach (dynamic row in (IEnumerable)paginated.Query)
+            materialized.Add(new ProbeRow((int)row.Id, (string)row.Title, (int)row.Rank));
 
-        PropertyInfo id = EntityType.GetProperty("Id")!;
-        List<ProbeRow> materialized = query.Cast<object>()
-            .Select(row => new ProbeRow((int)id.GetValue(row)!, (string)title.GetValue(row)!, (int)rank.GetValue(row)!))
-            .ToList();
-
-        return new BuildOutcome(totalRecords, materialized);
+        return new BuildOutcome((int)paginated.TotalRecords, materialized);
     }
 
     private sealed class ProbeDbContext : DbContext
     {
-        private readonly Type _entityType;
+        public ProbeDbContext(DbContextOptions<ProbeDbContext> options) : base(options) { }
 
-        public ProbeDbContext(DbContextOptions<ProbeDbContext> options, Type entityType) : base(options)
-        {
-            _entityType = entityType;
-        }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity(_entityType);
+        protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity(EntityType.Value);
     }
 }
