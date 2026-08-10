@@ -653,3 +653,63 @@ describe('SpiderlyDataTableComponent — no declared default sort', () => {
     expect(captured[0].multiSortMeta ?? null).toBeNull();
   });
 });
+
+describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable', () => {
+  // The backend's PaginatedResultGenerator never emits a sort case for *CommaSeparated collection
+  // columns (the same naming convention decides both sides), and unknown sort fields are rejected
+  // with a 400 — so the header must not offer the click. Before this rule, clicking such a header
+  // (e.g. an admin SKU column) 500'd: Sentry BACKEND-RS-1F.
+
+  @Component({
+    imports: [SpiderlyDataTableComponent],
+    template: `
+      <spiderly-data-table
+        [cols]="cols"
+        [getPaginatedListObservableMethod]="getList"
+      ></spiderly-data-table>
+    `,
+  })
+  class HostWithCommaSeparatedColumnComponent {
+    cols: Column[] = [
+      { name: 'Title', field: 'title', filterType: 'text' },
+      { name: 'Sku', field: 'productVariantsCommaSeparated', filterType: 'text' },
+      { name: 'Notes', field: 'notes', filterType: 'text', sortable: false },
+    ];
+    getList = emptyList;
+  }
+
+  const headerOf = (
+    fixture: ComponentFixture<unknown>,
+    name: string,
+  ): HTMLTableCellElement =>
+    Array.from(
+      fixture.nativeElement.querySelectorAll('th') as NodeListOf<HTMLTableCellElement>,
+    ).find((th) => (th.textContent ?? '').includes(name))!;
+
+  it('disables click-to-sort and hides the sort icon on a CommaSeparated field', () => {
+    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+
+    const skuHeader = headerOf(fixture, 'Sku');
+
+    expect(skuHeader.classList.contains('p-datatable-sortable-column')).toBeFalse();
+    expect(skuHeader.querySelector('p-sorticon')).toBeNull();
+  });
+
+  it('keeps ordinary columns sortable', () => {
+    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+
+    const titleHeader = headerOf(fixture, 'Title');
+
+    expect(titleHeader.classList.contains('p-datatable-sortable-column')).toBeTrue();
+    expect(titleHeader.querySelector('p-sorticon')).not.toBeNull();
+  });
+
+  it('still honors an explicit sortable: false', () => {
+    const { fixture } = createWithDataTable(HostWithCommaSeparatedColumnComponent);
+
+    const notesHeader = headerOf(fixture, 'Notes');
+
+    expect(notesHeader.classList.contains('p-datatable-sortable-column')).toBeFalse();
+    expect(notesHeader.querySelector('p-sorticon')).toBeNull();
+  });
+});

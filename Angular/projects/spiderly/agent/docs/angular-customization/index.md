@@ -203,6 +203,8 @@ cols: Column<ProductDTO>[] = [
 ];
 ```
 
+Headers are click-to-sort by default; disable with `sortable: false`. Columns whose `field` ends in `CommaSeparated` are auto-disabled — the backend generates no sort case for collection columns and rejects unknown sort fields with a 400, so the table never offers the click.
+
 ### Column chooser (show/hide columns)
 
 Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Because a column's header is the table's only filter surface, showing a column is what makes it filterable — declare rarely-needed but filter-worthy columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Rules the table enforces: hiding a column clears its active filter + sort (one reload; plain hides don't hit the server), choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.

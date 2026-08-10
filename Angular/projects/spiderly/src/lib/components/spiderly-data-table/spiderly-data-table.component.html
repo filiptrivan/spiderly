@@ -100,7 +100,7 @@
           <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
             <th
               [pSortableColumn]="col.field"
-              [pSortableColumnDisabled]="col.sortable === false || !col.field"
+              [pSortableColumnDisabled]="!isColumnSortable(col)"
               [style]="getColHeaderWidth(col.filterType)"
             >
               <div
@@ -113,7 +113,7 @@
                 <span style="display: flex; align-items: center; gap: 4px">
                   {{ col.name }}
                   <p-sortIcon
-                    *ngIf="col.sortable !== false && col.field"
+                    *ngIf="isColumnSortable(col)"
                     [field]="col.field!"
                   ></p-sortIcon>
                 </span>

@@ -666,6 +666,21 @@ export class SpiderlyDataTableComponent
     });
   }
 
+  /**
+   * Single source for whether a column header offers click-to-sort (drives both
+   * `pSortableColumnDisabled` and the sort icon). Beyond the consumer's explicit `sortable: false`,
+   * `*CommaSeparated` fields are auto-disabled: the backend's `PaginatedResultGenerator` never emits
+   * a sort case for collection columns (the same naming convention decides both), and since unknown
+   * sort fields are rejected with a 400, a clickable header here would be a guaranteed error toast.
+   */
+  isColumnSortable(col: Column): boolean {
+    return (
+      col.sortable !== false &&
+      !!col.field &&
+      !col.field.endsWith('CommaSeparated')
+    );
+  }
+
   getColHeaderWidth(filterType: string) {
     switch (filterType) {
       case 'text':

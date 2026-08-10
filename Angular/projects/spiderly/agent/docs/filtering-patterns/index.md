@@ -31,6 +31,8 @@ public class FilterRuleDTO
 
 Filter dictionary keys are **camelCase DTO property names**. The generated `PaginatedResultGenerator` auto-resolves them to entity paths (e.g., `categoryDisplayName` → `x.Category.Name`).
 
+**Unknown fields are rejected, not ignored.** A filter key or `MultiSortMeta.Field` that matches no generated case, and any invalid `MatchMode`, throws `BusinessException` (HTTP 400) with a message naming the offender and listing the valid fields — never a silent no-op (a silently ignored filter would return unfiltered rows the caller treats as filtered). `*CommaSeparated` collection fields are filterable but **not sortable**. If a hand-written override consumes a pseudo filter key the generated switch doesn't know, it must `filterDTO.Filters.Remove("...")` that key before calling `base.GetPaginated{Entity}List(...)`, or the base will reject it.
+
 ## Override `GetPaginated{Entity}List` (Most Common)
 
 The most common customization — pre-filter the query before pagination:
