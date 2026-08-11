@@ -101,7 +101,7 @@
             <th
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="!isColumnSortable(col)"
-              [style]="getColHeaderWidth(col.filterType)"
+              [style]="getColHeaderWidth(col)"
             >
               <div
                 style="
@@ -175,6 +175,17 @@
         let-index="rowIndex"
         let-editing="editing"
       >
+        <!-- The cell rendering every column gets unless it projects a spiderlyCellTemplate. Declared
+             once here rather than inside the column loop, and fed the same context the projected
+             template gets, so getRowData is evaluated exactly once per cell either way. -->
+        <ng-template #defaultCell let-col="col" let-displayValue="displayValue">
+          <ng-container *ngIf="col.filterType === 'blob'">
+            <img width="45" [src]="displayValue" alt="" />
+          </ng-container>
+          <ng-container *ngIf="col.filterType !== 'blob'">
+            {{ displayValue }}
+          </ng-container>
+        </ng-template>
         <tr
           [class.clickable]="navigateOnRowClick"
           (click)="onRowClick(rowData)"
@@ -213,12 +224,15 @@
                   ></span>
                 </ng-container>
               </div>
-              <ng-container *ngIf="col.filterType === 'blob'">
-                <img width="45" [src]="getRowData(rowData, col)" alt="" />
-              </ng-container>
-              <ng-container *ngIf="col.filterType !== 'blob'">
-                {{ getRowData(rowData, col) }}
-              </ng-container>
+              <ng-container
+                [ngTemplateOutlet]="getCellTemplate(col) ?? defaultCell"
+                [ngTemplateOutletContext]="{
+                  $implicit: rowData,
+                  value: rowData[col.field],
+                  displayValue: getRowData(rowData, col),
+                  col: col
+                }"
+              ></ng-container>
             </td>
             <td *ngIf="col.editable">
               <spiderly-number

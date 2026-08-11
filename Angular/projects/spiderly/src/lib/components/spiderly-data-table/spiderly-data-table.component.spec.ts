@@ -12,6 +12,7 @@ import { delay } from 'rxjs/operators';
 import { translocoTesting } from '../../testing/spec-support.spec';
 import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
+import { SpiderlyCellTemplateDirective } from '../../directives/spiderly-cell-template.directive';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
@@ -770,5 +771,125 @@ describe('SpiderlyDataTableComponent — persisted sort on a non-sortable column
     expect(host.captured[0].multiSortMeta).toEqual([
       { field: 'title', order: -1 },
     ]);
+  });
+});
+
+// ── per-column cell templates ────────────────────────────────────────────────
+// The point of the slot is that a column opts in ALONE: everything not named by a template keeps
+// rendering exactly as before, and the column's header, filter and sort are untouched by it.
+
+const idAndNameCols: Column[] = [
+  { name: 'Id', field: 'id', filterType: 'numeric' },
+  { name: 'Name', field: 'name', filterType: 'text' },
+];
+
+// id is fractional and four digits so the FORMATTED value ("1,234.5" under the test locale) is
+// distinguishable from the raw one (1234.5) — that is what tells the two context members apart.
+const oneRow = (): Observable<PaginatedResult> =>
+  of({
+    data: [{ id: 1234.5, name: 'Ana' }],
+    totalRecords: 1,
+  } as PaginatedResult).pipe(delay(0));
+
+@Component({
+  imports: [SpiderlyDataTableComponent, SpiderlyCellTemplateDirective],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    >
+      <ng-template
+        spiderlyCellTemplate="id"
+        let-row
+        let-value="value"
+        let-displayValue="displayValue"
+      >
+        <span data-testid="custom-cell"
+          >{{ displayValue }} / {{ value }} / {{ row.name }}</span
+        >
+      </ng-template>
+    </spiderly-data-table>
+  `,
+})
+class HostWithCellTemplateComponent {
+  cols = idAndNameCols;
+  getList = oneRow;
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithoutCellTemplateComponent {
+  cols = idAndNameCols;
+  getList = oneRow;
+}
+
+async function renderRows(
+  fixture: ComponentFixture<unknown>,
+): Promise<HTMLElement> {
+  await fixture.whenStable();
+  fixture.detectChanges();
+  return fixture.nativeElement as HTMLElement;
+}
+
+describe('SpiderlyDataTableComponent — per-column cell templates', () => {
+  // displayValue carries the formatting the table would have applied (so a template decorating a
+  // value never re-implements it) and value the raw one — the same two words CellClickEvent uses,
+  // which matters because one column can carry both a click handler and a template.
+  it('renders the projected template, with the row and both forms of the value', async () => {
+    const el = await renderRows(createFixture(HostWithCellTemplateComponent));
+
+    const cell = el.querySelector('[data-testid="custom-cell"]');
+    expect(cell).withContext('projected template should render').toBeTruthy();
+    expect(cell!.textContent!.trim()).toBe('1,234.5 / 1234.5 / Ana');
+  });
+
+  it('leaves the columns it does not name alone', async () => {
+    const el = await renderRows(createFixture(HostWithCellTemplateComponent));
+
+    const cells = Array.from(el.querySelectorAll('tbody td')).map((td) =>
+      td.textContent!.trim(),
+    );
+    expect(cells).toContain('Ana');
+  });
+
+  it('renders the built-in cell when no template is projected', async () => {
+    const el = await renderRows(createFixture(HostWithoutCellTemplateComponent));
+
+    const cells = Array.from(el.querySelectorAll('tbody td')).map((td) =>
+      td.textContent!.trim(),
+    );
+    expect(cells).toContain('1,234.5');
+    expect(el.querySelector('[data-testid="custom-cell"]')).toBeNull();
+  });
+
+  // The template replaces the CELL. If it ever swallowed the header the column would lose its
+  // only filter surface, which is the one thing a data table must not trade for looks.
+  it('leaves the templated column its header filter', async () => {
+    const fixture = createFixture(HostWithCellTemplateComponent);
+    const el = await renderRows(fixture);
+
+    const headers = Array.from(el.querySelectorAll('thead th'));
+    const idHeader = headers.find((th) => th.textContent!.includes('Id'))!;
+    expect(idHeader.querySelector('p-columnfilter')).toBeTruthy();
+  });
+});
+
+describe('SpiderlyDataTableComponent — Column.minWidth', () => {
+  it('overrides the filter type default, and only when declared', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(dataTable.getColHeaderWidth({ filterType: 'numeric' })).toBe(
+      'min-width: 12rem;',
+    );
+    expect(
+      dataTable.getColHeaderWidth({ filterType: 'numeric', minWidth: '8rem' }),
+    ).toBe('min-width: 8rem;');
   });
 });

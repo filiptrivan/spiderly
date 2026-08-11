@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   Component,
   ContentChild,
+  ContentChildren,
   EventEmitter,
   Inject,
   Input,
@@ -10,6 +11,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  QueryList,
   TemplateRef,
   ViewChild,
 } from '@angular/core';
@@ -33,6 +35,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SpiderlyControlsModule } from '../../controls/spiderly-controls.module';
+import {
+  CellTemplateContext,
+  SpiderlyCellTemplateDirective,
+} from '../../directives/spiderly-cell-template.directive';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
 import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
@@ -84,6 +90,13 @@ export class SpiderlyDataTableComponent
    */
   @ContentChild(SpiderlyDataTableActionsDirective, { read: TemplateRef })
   actionsTemplate: TemplateRef<any>;
+
+  /**
+   * Per-column cell templates projected via `<ng-template spiderlyCellTemplate="field">`.
+   * A column with no template keeps the built-in rendering.
+   */
+  @ContentChildren(SpiderlyCellTemplateDirective)
+  cellTemplates: QueryList<SpiderlyCellTemplateDirective>;
 
   @Input() tableTitle: string;
   @Input() tableIcon: string = 'pi pi-list';
@@ -218,6 +231,22 @@ export class SpiderlyDataTableComponent
 
   ngAfterViewInit(): void {
     this.setupRemovableSort();
+  }
+
+  /**
+   * The template that renders this column's cells, or null to use the built-in rendering.
+   * Actions columns have no `field`, so they never match one.
+   *
+   * Read straight off the QueryList, which is live — a consumer declaring its templates inside a
+   * `@for`/`@if` is served with no subscription and nothing to invalidate. The scan is over the
+   * TEMPLATED columns only (typically one or two), not over `cols`.
+   */
+  getCellTemplate(col: Column): TemplateRef<CellTemplateContext> | null {
+    if (col.field == null) return null;
+    return (
+      this.cellTemplates?.find((directive) => directive.field === col.field)
+        ?.template ?? null
+    );
   }
 
   // PrimeNG v19 removed the removableSort property. This overrides the table's
@@ -703,8 +732,11 @@ export class SpiderlyDataTableComponent
     );
   }
 
-  getColHeaderWidth(filterType: string) {
-    switch (filterType) {
+  /** The column's declared {@link Column.minWidth}, or the default for its filter type. */
+  getColHeaderWidth(col: Column) {
+    if (col.minWidth != null) return `min-width: ${col.minWidth};`;
+
+    switch (col.filterType) {
       case 'text':
         return 'min-width: 12rem;';
       case 'date':
@@ -1208,6 +1240,13 @@ export class Column<T = any> {
    */
   lockVisible?: boolean;
   /**
+   * CSS length overriding this column's default minimum width (e.g. `'8rem'`). The defaults are
+   * per filter type and sized for the HEADER — filter input plus match-mode dropdown — so they
+   * are generous for a column of short values. It is a MINIMUM, not a width: the table still
+   * distributes the leftover space.
+   */
+  minWidth?: string;
+  /**
    * Fired when this column's cell is clicked. Receives a {@link CellClickEvent} with the row id,
    * the column field, the full row, the raw and formatted cell value, the clicked `<td>` element
    * (use it to anchor an overlay/popover), and the original `MouseEvent`.
@@ -1234,6 +1273,7 @@ export class Column<T = any> {
     sortable,
     visible,
     lockVisible,
+    minWidth,
     onCellClick,
   }: {
     name?: string;
@@ -1251,6 +1291,7 @@ export class Column<T = any> {
     sortable?: boolean;
     visible?: boolean;
     lockVisible?: boolean;
+    minWidth?: string;
     onCellClick?: (event: CellClickEvent) => void;
   } = {}) {
     this.name = name;
@@ -1268,6 +1309,7 @@ export class Column<T = any> {
     this.sortable = sortable;
     this.visible = visible;
     this.lockVisible = lockVisible;
+    this.minWidth = minWidth;
     this.onCellClick = onCellClick;
   }
 }

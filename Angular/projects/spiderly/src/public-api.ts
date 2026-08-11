@@ -102,5 +102,6 @@ export * from './lib/services/spiderly-message.service';
 export * from './lib/services/spiderly-transloco-loader';
 export * from './lib/services/validator-abstract.service';
 
+export * from './lib/directives/spiderly-cell-template.directive';
 export * from './lib/directives/spiderly-data-table-actions.directive';
 export * from './lib/directives/template-type.directive';

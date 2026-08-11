@@ -205,6 +205,8 @@ cols: Column<ProductDTO>[] = [
 
 Headers are click-to-sort by default; disable with `sortable: false`. Columns whose `field` ends in `CommaSeparated` are auto-disabled — the backend generates no sort case for collection columns and rejects unknown sort fields with a 400, so the table never offers the click.
 
+Column widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `minWidth: '8rem'` overrides that floor for one column; it stays a minimum, so the table still distributes the leftover space.
+
 ### Column chooser (show/hide columns)
 
 Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Because a column's header is the table's only filter surface, showing a column is what makes it filterable — declare rarely-needed but filter-worthy columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Rules the table enforces: hiding a column clears its active filter + sort (one reload; plain hides don't hit the server), choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
@@ -215,20 +217,55 @@ For a click on the cell value itself (not an action icon), set a column's `onCel
 
 ```typescript
 new Column({ field: 'total', name: 'Total', filterType: 'numeric',
-  // Reusing one popover across cells: show() updates the anchor element, but it will NOT move a
-  // popover that is already open — PrimeNG re-positions via align() only during the open animation,
-  // which an already-open popover never re-enters (and hide()+show() in the same tick collapses to
-  // no state change). So after show(), call align() to re-anchor it to the new cell.
-  onCellClick: (e) => {
-    const wasOpen = this.itemsPopover.overlayVisible;
-    this.itemsPopover.show(e.originalEvent, e.element);
-    if (wasOpen) this.itemsPopover.align();
-  } }),
+  onCellClick: (e) => this.showItems(e) }),
 ```
 
-It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells. (Reusing one popover across rows is the `show()` + `align()` case shown in the snippet above — bare `show()` swaps content but won't move an already-open panel.)
+It receives a `CellClickEvent` — `{ id, field, row, value, displayValue, element, originalEvent }`, where `value` is the raw cell value and `displayValue` is the formatted text shown. Only columns that set it become clickable (they get a `cursor`/hover affordance), and the click stops propagation so it does **not** also trigger `navigateOnRowClick`. Anchor overlays with `element` — it's the clicked `<td>`, captured synchronously, so it stays valid inside an async handler (`originalEvent.currentTarget` is null once dispatch ends). Not applied to editable cells.
+
+**Reusing ONE popover across cells: close it and reopen it, never re-anchor in place.** Two PrimeNG 19.1.3 bugs make the in-place move (`show()` then `align()`) unfixable from outside the library: `align()` only ever *adds* its flip class and arrow offset and never clears them, so moving from a cell the panel opened above to one it opens below leaves the arrow pointing the wrong way; and PrimeNG emits `(onHide)` from inside its own animation callback, one step *before* it clears `isOverlayAnimationInProgress`, so a `show()` fired from there hits the library's own guard and silently does nothing. Stash the new anchor, `hide()`, and reopen from `(onHide)` deferred by one microtask — every open then runs `align()` once on a fresh container:
+
+```typescript
+onCellClick: (e) => {
+  if (this.popover.overlayVisible) {
+    this.reopenAnchor = e.element;   // re-anchor: close first, reopen from (onHide)
+    this.popover.hide();
+  } else {
+    this.popover.show(e.originalEvent, e.element);
+  }
+},
+```
+
+```typescript
+onPopoverHide(): void {
+  const el = this.reopenAnchor;
+  if (el == null) return;            // ordinary dismiss (outside click / Esc)
+  this.reopenAnchor = null;
+  queueMicrotask(() => this.popover.show(null, el));
+}
+```
+
+The cost is a fade-out/fade-in instead of a slide. Re-check on each PrimeNG bump and delete the dance once both bugs are fixed upstream.
 
 Style the popover's content at your component's SCSS **top level**, never nested under `:host` — PrimeNG appends the open popover to `document.body`, where `:host`-scoped rules (compiled to `[_nghost] … [_ngcontent]` descendant selectors) silently stop matching; top-level rules keep the `[_ngcontent]` scoping that travels with the moved nodes.
+
+### Custom Cell Content (per-column templates)
+
+Project an `<ng-template spiderlyCellTemplate="field">` to render one column's cells yourself instead of the plain formatted value. Import `SpiderlyCellTemplateDirective` in the consuming component. Columns with no matching template keep the built-in rendering, so a table opts in one column at a time.
+
+```html
+<spiderly-data-table [cols]="cols" [getPaginatedListObservableMethod]="getListMethod">
+  <ng-template spiderlyCellTemplate="orderNumber" let-row let-displayValue="displayValue">
+    <a [routerLink]="['/orders', row.id]">{{ displayValue }}</a>
+    <div class="secondary">{{ row.itemCount }} items</div>
+  </ng-template>
+</spiderly-data-table>
+```
+
+- Context: `let-row` (`$implicit`, the full row), `let-value="value"` (raw), `let-displayValue="displayValue"` (**what the table would have rendered** — formatted for the column's `filterType` and the app's `LOCALE_ID`, so a template that only decorates the value never re-implements that), `let-col="col"`. `value` / `displayValue` mean the same here as on `CellClickEvent`, so a column carrying both a click handler and a template reads one vocabulary.
+- **Cells only.** The header, its filter and its sorting are untouched, and the filter still works on the underlying `field` whatever the template draws.
+- The template binds to the **consuming component**, so its handlers and pipes are yours.
+- A real `<a [routerLink]>` here beats `onCellClick` for navigation — middle-click and Ctrl+click open a new tab, which a JavaScript `navigate()` does not.
+- This is also the way out of the enum-cell limit: a `multiselect` column renders the raw stored value in its cell (the table does not map it through `dropdownOrMultiselectValues`), so a template that draws the label from the row's id gets the checkbox filter *and* readable cells.
 
 ### Custom Toolbar Actions
 
