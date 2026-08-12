@@ -23,6 +23,26 @@ namespace Spiderly.Security
         /// </summary>
         public int VerificationTokenExpiration { get; set; } = 5;
 
+        /// <summary>
+        /// How long a rotated refresh token keeps resolving to the token that replaced it, in seconds.
+        /// <para>
+        /// Refreshing rotates the refresh token, and a browser composes concurrent requests with the cookie
+        /// value it had before either response's <c>Set-Cookie</c> arrived. Two refreshes started at the same
+        /// moment therefore carry the same token string, and without this window the slower one fails on a
+        /// token the faster one has already replaced — which ends the session rather than the request, since
+        /// the 401 handler clears the auth cookies. Concurrent refreshes are ordinary (a second tab, or
+        /// another app sharing the cookie domain), so the previous token is kept as a pointer to its
+        /// successor for this long instead of being deleted outright; presenting it returns that same
+        /// successor rather than rotating again.
+        /// </para>
+        /// <para>
+        /// The cost is that a stolen refresh token stays usable for this long after the legitimate client has
+        /// rotated it, so keep the window at the scale of a request round-trip. Set to <c>0</c> to delete the
+        /// previous token immediately (and accept that concurrent refreshes log the user out).
+        /// </para>
+        /// </summary>
+        public int RefreshTokenGraceSeconds { get; set; } = 60;
+
         /// <summary>Number of consecutive failed login attempts that disables a user.</summary>
         public int NumberOfFailedLoginAttemptsInARowToDisableUser { get; set; } = 40;
 
