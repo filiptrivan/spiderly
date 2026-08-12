@@ -8,12 +8,12 @@ using Spiderly.Shared.Localization;
 namespace Spiderly.Security.Tests
 {
     /// <summary>
-    /// Every refresh rotates the refresh token, so two refreshes that the browser composed before either
-    /// response's <c>Set-Cookie</c> came back both carry the same token string. Without a grace window the
-    /// second one finds a token that the first has already replaced and fails — and because the 401 handler
-    /// clears the auth cookies, the loser of that race destroys the session the winner just established.
-    /// Concurrent refreshes are normal here (a second tab, or another app under the same cookie domain), so
-    /// these tests pin that the superseded token keeps resolving to its successor for a short window.
+    /// Two refreshes a browser composed before either response's <c>Set-Cookie</c> came back carry the same
+    /// token string, so the second one meets a token the first has already rotated. That is routine (a second
+    /// tab, or another app under the same cookie domain) and it used to end the session rather than the
+    /// request, because the 401 handler clears the auth cookies. These tests pin the grace window that keeps
+    /// the superseded token resolving to the one that replaced it — see
+    /// <see cref="AuthPolicyOptions.RefreshTokenGraceSeconds"/> for the rationale.
     /// </summary>
     public class RefreshTokenRotationGraceTests
     {
@@ -25,7 +25,7 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task Refresh_WithASupersededToken_ReturnsTheSuccessorInsteadOfThrowing()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut();
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
 
             // First tab wins the race and rotates the token.
@@ -40,7 +40,7 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task Refresh_WithASupersededToken_IssuesAWorkingAccessToken()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut();
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
             await RefreshAsync(sut, original);
 
@@ -56,36 +56,49 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task Refresh_WithASupersededToken_DoesNotRotateAgain()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut(out InMemoryTokenStorage<RefreshTokenDTO> store);
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
             string successor = (await RefreshAsync(sut, original)).RefreshTokenDTO.TokenString;
 
             await RefreshAsync(sut, original);
 
-            // A replay that rotated would leave the winning tab holding a token that is itself superseded,
-            // so the very next refresh would race again and the cascade would never settle.
-            JwtAuthResultDTO next = await RefreshAsync(sut, successor);
-            Assert.NotEqual(successor, next.RefreshTokenDTO.TokenString);
+            // Rotating on a replay would retire the successor too, so the client that won the race would end
+            // up holding a superseded token in turn and the two would never settle.
+            Assert.Equal(new[] { successor }, await LiveTokenStringsAsync(store));
         }
 
         [Fact]
-        public async Task Refresh_ResolvesThroughAChainOfSupersededTokens()
+        public async Task Refresh_WithATokenFromSeveralRotationsAgo_ReturnsTheLiveToken()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut();
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
             string second = (await RefreshAsync(sut, original)).RefreshTokenDTO.TokenString;
             string third = (await RefreshAsync(sut, second)).RefreshTokenDTO.TokenString;
 
-            // A tab that slept through two rotations still holds the original.
+            // A tab that slept through two rotations still holds the original. How far back it is must not
+            // matter: resolution is a lookup of the one live token, not a walk back through the rotations.
             JwtAuthResultDTO replay = await RefreshAsync(sut, original);
 
             Assert.Equal(third, replay.RefreshTokenDTO.TokenString);
         }
 
         [Fact]
+        public async Task Refresh_WithASupersededToken_WhoseSessionIsGone_Throws()
+        {
+            JwtAuthManagerService sut = BuildSut(out InMemoryTokenStorage<RefreshTokenDTO> store);
+            string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
+            string successor = (await RefreshAsync(sut, original)).RefreshTokenDTO.TokenString;
+            await store.TryRemoveAsync(successor);
+
+            // Nothing live left to resolve to: the session ended (logout, revocation) while a predecessor was
+            // still inside its window, and a grace record must not outlive the session it belonged to.
+            await Assert.ThrowsAsync<SecurityTokenException>(() => RefreshAsync(sut, original));
+        }
+
+        [Fact]
         public async Task Refresh_WithASupersededToken_PastTheGraceWindow_Throws()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out InMemoryTokenStorage<RefreshTokenDTO> store);
+            JwtAuthManagerService sut = BuildSut(out InMemoryTokenStorage<RefreshTokenDTO> store);
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
             await RefreshAsync(sut, original);
             await ExpireAsync(store, original);
@@ -98,7 +111,7 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task Refresh_WithAnUnknownToken_Throws()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut();
             await LoginAsync(sut);
 
             await Assert.ThrowsAsync<SecurityTokenException>(() => RefreshAsync(sut, "never-issued"));
@@ -107,7 +120,7 @@ namespace Spiderly.Security.Tests
         [Fact]
         public async Task Login_WhileASupersededTokenIsStillStored_DoesNotThrow()
         {
-            JwtAuthManagerService sut = BuildSut(new AuthPolicyOptions(), out _);
+            JwtAuthManagerService sut = BuildSut(out InMemoryTokenStorage<RefreshTokenDTO> store);
             string original = (await LoginAsync(sut)).RefreshTokenDTO.TokenString;
             await RefreshAsync(sut, original);
 
@@ -115,7 +128,7 @@ namespace Spiderly.Security.Tests
             // token for a browser has to tolerate that instead of blowing up on the second one.
             JwtAuthResultDTO relogin = await LoginAsync(sut);
 
-            Assert.False(string.IsNullOrWhiteSpace(relogin.RefreshTokenDTO.TokenString));
+            Assert.Equal(new[] { relogin.RefreshTokenDTO.TokenString }, await LiveTokenStringsAsync(store));
         }
 
         [Fact]
@@ -136,6 +149,9 @@ namespace Spiderly.Security.Tests
         private static Task<JwtAuthResultDTO> RefreshAsync(JwtAuthManagerService sut, string refreshToken)
             => sut.RefreshAsync(new RefreshTokenRequestDTO { RefreshToken = refreshToken, BrowserId = BrowserId }, UserId);
 
+        private static async Task<List<string>> LiveTokenStringsAsync(InMemoryTokenStorage<RefreshTokenDTO> store)
+            => (await store.GetAllAsync()).Select(x => x.Value).Where(x => x.IsSuperseded == false).Select(x => x.TokenString).ToList();
+
         /// <summary>Ages a stored token out of its grace window without waiting for the clock.</summary>
         private static async Task ExpireAsync(InMemoryTokenStorage<RefreshTokenDTO> store, string tokenString)
         {
@@ -143,6 +159,11 @@ namespace Spiderly.Security.Tests
             token.ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
             await store.AddOrUpdateAsync(tokenString, token);
         }
+
+        private static JwtAuthManagerService BuildSut() => BuildSut(new AuthPolicyOptions(), out _);
+
+        private static JwtAuthManagerService BuildSut(out InMemoryTokenStorage<RefreshTokenDTO> refreshStore)
+            => BuildSut(new AuthPolicyOptions(), out refreshStore);
 
         /// <summary>Builds a manager over a fresh in-memory refresh store wired with the same user index as production.</summary>
         private static JwtAuthManagerService BuildSut(AuthPolicyOptions policy, out InMemoryTokenStorage<RefreshTokenDTO> refreshStore)

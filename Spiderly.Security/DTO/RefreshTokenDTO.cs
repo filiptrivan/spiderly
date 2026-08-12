@@ -22,12 +22,11 @@ namespace Spiderly.Security.DTO
         public DateTime ExpiresAt { get; set; }
 
         /// <summary>
-        /// Set when this token has been rotated away: it holds the token string that replaced it, and
-        /// <see cref="ExpiresAt"/> has been shortened to the end of the grace window. A request still
-        /// carrying it (one the browser composed before the rotation's cookie arrived) is answered with the
-        /// successor instead of being rejected. <c>null</c> on a live token.
-        /// See <see cref="AuthPolicyOptions.RefreshTokenGraceSeconds"/>.
+        /// Marks a token that has been rotated away, with <see cref="ExpiresAt"/> shortened to the end of its
+        /// grace window. Exactly one token per (user, browser) is not superseded, so the token that replaced
+        /// this one is found by looking that live one up rather than by storing a pointer to it here.
+        /// See <see cref="AuthPolicyOptions.RefreshTokenGraceSeconds"/> for why the record is kept at all.
         /// </summary>
-        public string? SupersededByTokenString { get; set; }
+        public bool IsSuperseded { get; set; }
     }
 }

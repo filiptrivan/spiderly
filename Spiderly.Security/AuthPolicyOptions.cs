@@ -31,9 +31,9 @@ namespace Spiderly.Security
         /// moment therefore carry the same token string, and without this window the slower one fails on a
         /// token the faster one has already replaced — which ends the session rather than the request, since
         /// the 401 handler clears the auth cookies. Concurrent refreshes are ordinary (a second tab, or
-        /// another app sharing the cookie domain), so the previous token is kept as a pointer to its
-        /// successor for this long instead of being deleted outright; presenting it returns that same
-        /// successor rather than rotating again.
+        /// another app sharing the cookie domain), so the previous token is kept for this long instead of
+        /// being deleted outright; presenting it returns the token that replaced it rather than rotating
+        /// again.
         /// </para>
         /// <para>
         /// The cost is that a stolen refresh token stays usable for this long after the legitimate client has

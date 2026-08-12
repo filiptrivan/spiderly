@@ -105,9 +105,6 @@ namespace Spiderly.Security.Services
 
             long userId = userIdFromAccessToken ?? existingRefreshToken.UserId;
 
-            // We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
-            await RemoveTokensForMoreThenAllowedBrowsersAsync(userId);
-
             // Unauthenticating both user, this could happen if someone stoled access token (aleksa.trivan), and has own valid refresh token (filip.trivan), he could indefinedly generate access tokens for the (aleksa.trivan) then
             // This is not solving this problem (hacker can not change claims in the jwt token): https://stackoverflow.com/questions/27301557/if-you-can-decode-jwt-how-are-they-secure we are doing that with Decoding JWT token.
             // It is not posible for the user to change the email of the refresh token, even if it is, if the user change the email in the refresh token, it doesn't matter, we will find based on the refresh token code not email
@@ -127,11 +124,21 @@ namespace Spiderly.Security.Services
 
             // Presenting a superseded token means this request was composed before the rotation's cookie came
             // back — routine with a second tab, or with another app under the same cookie domain. Answer with
-            // the successor instead of rotating again: a second rotation would leave the client that won the
-            // race holding a token that is itself superseded, and the two would keep chasing each other.
-            if (existingRefreshToken.SupersededByTokenString != null)
+            // the token that replaced it instead of rotating again: a second rotation would leave the client
+            // that won the race holding a token that is itself superseded, and the two would keep chasing
+            // each other. No new token is issued here, so the browser cap below cannot have been exceeded.
+            if (existingRefreshToken.IsSuperseded)
             {
-                RefreshTokenDTO successorRefreshToken = await ResolveSuccessorRefreshTokenAsync(existingRefreshToken);
+                // Retiring always leaves exactly one live token per (user, browser), so "the token that
+                // replaced this one" is that live token — however many rotations the caller slept through.
+                RefreshTokenDTO? successorRefreshToken = (await GetBrowserRefreshTokensAsync(existingRefreshToken.UserId, existingRefreshToken.BrowserId))
+                    .Select(x => x.Value)
+                    .FirstOrDefault(x => x.IsSuperseded == false);
+
+                // No live token left means the session itself is gone (logged out or revoked), which is the
+                // same dead end as an unknown token.
+                if (successorRefreshToken == null)
+                    throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
 
                 return new JwtAuthResultDTO
                 {
@@ -141,36 +148,10 @@ namespace Spiderly.Security.Services
                 };
             }
 
+            // We can assume that userEmailFromAccessToken and refreshTokenEmail are the same, because if they are not anyway we will go through and delete everything
+            await RemoveTokensForMoreThenAllowedBrowsersAsync(userId);
+
             return await GenerateAccessAndRefreshTokensAsync(userId, existingRefreshToken.IpAddress, request.BrowserId); // need to recover the original claims
-        }
-
-        /// <summary>
-        /// Walks a superseded token to the live token at the end of its chain. A client that slept through
-        /// several rotations holds a token some hops back, so one step is not always enough. The chain is
-        /// bounded rather than trusted: a cycle in storage would otherwise hang the request.
-        /// </summary>
-        private async Task<RefreshTokenDTO> ResolveSuccessorRefreshTokenAsync(RefreshTokenDTO supersededRefreshToken)
-        {
-            const int maxChainLength = 10;
-
-            RefreshTokenDTO currentRefreshToken = supersededRefreshToken;
-
-            for (int hop = 0; hop < maxChainLength; hop++)
-            {
-                RefreshTokenDTO? successorRefreshToken = await _usersRefreshTokens.TryGetValueAsync(currentRefreshToken.SupersededByTokenString!);
-
-                // The successor is gone (logged out, revoked, or expired), so the session it pointed at no
-                // longer exists — the same dead end as an unknown token.
-                if (successorRefreshToken == null)
-                    throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
-
-                if (successorRefreshToken.SupersededByTokenString == null)
-                    return successorRefreshToken;
-
-                currentRefreshToken = successorRefreshToken;
-            }
-
-            throw new SecurityTokenException(_localizer["ExpiredRefreshTokenException"]);
         }
 
         protected readonly SemaphoreSlim _generateAccessAndRefreshTokensLock = new(1, 1);
@@ -196,7 +177,7 @@ namespace Spiderly.Security.Services
             await _generateAccessAndRefreshTokensLock.WaitAsync();
             try
             {
-                await SupersedeLastRefreshTokenFromTheSameBrowserAndUserIdAsync(browserId, userId, refreshTokenDTO.TokenString); // userId also because the hacker could manipulate browserId, but he can't userId
+                await SupersedeLastRefreshTokenFromTheSameBrowserAndUserIdAsync(browserId, userId); // userId also because the hacker could manipulate browserId, but he can't userId
 
                 // It will always generate new token,
                 // it is beneficial if the user open the application from different devices
@@ -306,22 +287,32 @@ namespace Spiderly.Security.Services
             }
         }
 
+        /// <summary>Every refresh token stored for this (user, browser) pair, superseded ones included.</summary>
+        private async Task<List<KeyValuePair<string, RefreshTokenDTO>>> GetBrowserRefreshTokensAsync(long userId, string? browserId)
+        {
+            return (await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString()))
+                .Where(x => x.Value.BrowserId == browserId)
+                .ToList();
+        }
+
         /// <summary>
-        /// Retires the live refresh token of this (user, browser) in favour of
-        /// <paramref name="successorTokenString"/>. With a grace window configured the old token is kept,
-        /// pointing at its successor and expiring at the end of the window, so a request that was already in
-        /// flight with it is answered rather than rejected; at zero it is deleted outright. Tokens that are
-        /// themselves already superseded are left to expire on their own, so a chain is never broken from
-        /// behind. See <see cref="AuthPolicyOptions.RefreshTokenGraceSeconds"/>.
+        /// Retires the live refresh token of this (user, browser) in favour of the one being issued. With a
+        /// grace window configured the old token is kept, marked superseded and expiring at the end of the
+        /// window, so a request that was already in flight with it is answered rather than rejected; at zero
+        /// it is deleted outright. Either way exactly one live token per pair survives, which is what lets a
+        /// superseded token be resolved by lookup instead of by a stored pointer.
+        /// Override to hook token retirement (audit, device records); see
+        /// <see cref="AuthPolicyOptions.RefreshTokenGraceSeconds"/>.
         /// </summary>
-        private async Task SupersedeLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string? browserId, long userId, string successorTokenString)
+        protected virtual async Task SupersedeLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string? browserId, long userId)
         {
             // TODO Log if the email or browser id is null
 
-            // Normally exactly one, but iterate: two logins racing on the same browser can leave a second one
-            // behind, and this used to be a SingleOrDefault that turned that into a 500 on every later login.
-            List<KeyValuePair<string, RefreshTokenDTO>> liveBrowserTokens = (await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString()))
-                .Where(x => x.Value.BrowserId == browserId && x.Value.SupersededByTokenString == null)
+            // Normally exactly one — the semaphore around the caller keeps rotation atomic — but iterate
+            // anyway: this used to be a SingleOrDefault, which turned any second token into a 500 on every
+            // later login, and a second backend instance has no shared lock to prevent one.
+            List<KeyValuePair<string, RefreshTokenDTO>> liveBrowserTokens = (await GetBrowserRefreshTokensAsync(userId, browserId))
+                .Where(x => x.Value.IsSuperseded == false)
                 .ToList();
 
             int graceSeconds = _authPolicySettings.RefreshTokenGraceSeconds;
@@ -334,9 +325,10 @@ namespace Spiderly.Security.Services
                     continue;
                 }
 
-                liveBrowserToken.Value.SupersededByTokenString = successorTokenString;
+                liveBrowserToken.Value.IsSuperseded = true;
                 // Shortening ExpiresAt is what ends the grace window: the storage TTL follows it, so the
-                // token cleans itself up and needs no separate sweep.
+                // token cleans itself up and needs no separate sweep. Keep the window well under
+                // AccessTokenExpiration, or superseded records outnumber live ones.
                 liveBrowserToken.Value.ExpiresAt = DateTime.UtcNow.AddSeconds(graceSeconds);
                 await _usersRefreshTokens.AddOrUpdateAsync(liveBrowserToken.Key, liveBrowserToken.Value);
             }
@@ -350,9 +342,7 @@ namespace Spiderly.Security.Services
         {
             // Every token for this (user, browser) goes, superseded ones included: logging out has to end the
             // session, not just its newest hop, and a grace window routinely leaves a predecessor behind.
-            List<KeyValuePair<string, RefreshTokenDTO>> browserTokens = (await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString()))
-                .Where(x => x.Value.BrowserId == browserId)
-                .ToList();
+            List<KeyValuePair<string, RefreshTokenDTO>> browserTokens = await GetBrowserRefreshTokensAsync(userId, browserId);
 
             if (browserTokens.Count == 0)
             {
@@ -402,9 +392,10 @@ namespace Spiderly.Security.Services
         private async Task RemoveTokensForMoreThenAllowedBrowsersAsync(long userId)
         {
             IEnumerable<KeyValuePair<string, RefreshTokenDTO>> tokens = await _usersRefreshTokens.GetByIndexAsync(RefreshTokenDTO.UserIdIndex, userId.ToString());
-            // Superseded tokens are hops of a browser's session, not extra browsers — counting them would let
-            // a burst of refreshes look like the user exceeded the cap and evict a session that is still live.
-            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = tokens.Where(x => x.Value.SupersededByTokenString == null).ToList();
+            // Superseded tokens are the retired half of a browser's session, not extra browsers, and exactly
+            // one live token survives per browser — so counting live ones counts browsers, which is what the
+            // cap is named after. Counting every record would let a burst of refreshes evict a live session.
+            List<KeyValuePair<string, RefreshTokenDTO>> refreshTokens = tokens.Where(x => x.Value.IsSuperseded == false).ToList();
             if (refreshTokens.Count > _authPolicySettings.AllowedBrowsersForTheSingleUser)
             {
                 List<KeyValuePair<string, RefreshTokenDTO>> excessBrowserRefreshTokens = refreshTokens.OrderBy(x => x.Value.ExpiresAt).Take(refreshTokens.Count - _authPolicySettings.AllowedBrowsersForTheSingleUser).ToList();
