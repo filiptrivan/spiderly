@@ -893,3 +893,46 @@ describe('SpiderlyDataTableComponent — Column.minWidth', () => {
     ).toBe('min-width: 8rem;');
   });
 });
+
+describe('SpiderlyDataTableComponent — multiselect cells show the label, not the raw value', () => {
+  const severity: Column = {
+    name: 'Severity',
+    field: 'severityId',
+    filterType: 'multiselect',
+    dropdownOrMultiselectValues: [
+      { label: 'Info', code: 1 },
+      { label: 'Critical', code: 3 },
+    ],
+  };
+
+  it('translates the stored value through the column options', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(dataTable.getRowData({ severityId: 1 }, severity)).toBe('Info');
+    expect(dataTable.getRowData({ severityId: 3 }, severity)).toBe('Critical');
+  });
+
+  // The options arrive asynchronously in most apps (a namebook request that resolves after the
+  // first paint), so an unmatched value must render as it did before rather than blanking the
+  // column. Same for a value the list genuinely does not cover.
+  it('falls back to the raw value when the options cannot name it', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    // Cast because the declared return is `string` while the untranslated branch hands back
+    // whatever the row held — that mismatch predates this change and the fallback preserves it.
+    expect(dataTable.getRowData({ severityId: 2 }, severity) as unknown).toBe(2);
+    expect(
+      dataTable.getRowData(
+        { severityId: 1 },
+        { ...severity, dropdownOrMultiselectValues: [] },
+      ) as unknown,
+    ).toBe(1);
+  });
+
+  it('leaves an empty cell empty', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(dataTable.getRowData({ severityId: null }, severity)).toBeNull();
+    expect(dataTable.getRowData({}, severity)).toBeNull();
+  });
+});

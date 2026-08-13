@@ -990,8 +990,23 @@ export class SpiderlyDataTableComponent
         const raw = rowData[col.field];
         const local = typeof raw === 'string' ? parseDateOnlyLocal(raw) : null;
         return formatDate(local ?? raw, 'shortDate', this.locale);
-      case 'multiselect':
-        return rowData[col.field];
+      case 'multiselect': {
+        // Translate through the column's own option list — the same list its filter dropdown
+        // already renders labels from. Without this the cell shows the stored value, so an enum
+        // column reads `1` while its filter offers "Info", and an FK column reads the id.
+        //
+        // Match on `code`, not `value`: that is the property PrimengOption carries (see the note
+        // on the class). The raw value is the fallback rather than an empty cell, because the
+        // options are usually filled asynchronously after the first paint — blanking the column
+        // until they land would be a worse regression than the number this replaces.
+        const multiselectValue = rowData[col.field];
+        if (multiselectValue == null) return null;
+
+        const option = col.dropdownOrMultiselectValues?.find(
+          (x) => x.code === multiselectValue,
+        );
+        return option?.label ?? multiselectValue;
+      }
       case 'boolean':
         return rowData[col.field] == true
           ? this.translocoService.translate('Yes')
