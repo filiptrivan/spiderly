@@ -10,6 +10,16 @@ Consumers add their own toolbar buttons/markup by projecting an `<ng-template sp
 - **No context is passed** to the template (it binds to the consumer's component). This is deliberate: lazy-load selection has no clean flat-id representation (`newlySelectedItems`/`unselectedItems` under select-all). If a future need appears, add `ngTemplateOutletContext` keys — that's non-breaking, existing templates ignore unknown `let-` vars.
 - The contract is covered by `spiderly-data-table.component.spec.ts` (the library's TestBed suite; runs via the `Unit Tests (Angular)` CI job, `karma.conf.js` → `ChromeHeadlessNoSandbox`).
 
+## Shift-click range selection — anchor model
+
+Selection checkboxes support Gmail-style ranges: shift+click applies the clicked checkbox's new state to every row between it and the anchor (`rangeAnchorId`). Consumer-facing behavior: `claude-plugins/docs/angular-customization/index.md` → "Row selection". Editing notes:
+
+- **The shift state lives on the mousedown, not on the checkbox event.** `p-checkbox` emits the DOM `change` event as `onChange.originalEvent`, and `change` carries no `shiftKey` — so `onSelectionCellMouseDown` captures it into `pendingShiftRange`, which the same click's `selectRow` consumes-and-clears. A keyboard toggle (Space) never sets it. Don't "simplify" back to reading the event.
+- **Range positions resolve by id over `items` at click time** (`findIndex`), never via `rowData.index` — only `loadFormArrayItems` stamps `.index`; lazy rows never carry one.
+- **Every change goes through `toggleRow`** (the former `selectRow` body): that is what keeps the lazy delta model (`newlySelectedItems`/`unselectedItems`) and per-row event emissions identical to manual clicks. Rows already in the target state are skipped — the skip is what prevents duplicate ids in the delta arrays.
+- **The anchor resets wherever the rendered rows change**: `lazyLoad`, `loadFormArrayItems`, and `onPageChange` (client-side page flips re-render different rows without touching `items`). A new path that swaps rows must reset it too.
+- The selection `<td>` stops click propagation (a selection gesture must never double as `navigateOnRowClick` navigation) and suppresses the browser text selection at shift-mousedown, with `user-select: none` as belt.
+
 ## `showMatchModes` defaults to false on every column
 
 The match-mode `<p-select>` rendered next to text/numeric/date filter inputs is gated by **two** conditions in PrimeNG (`*ngIf="showMatchModes && matchModes"`). Spiderly always supplies `matchModeOptions` (`matchModeNumberOptions`, `matchModeDateOptions`), so the second condition is satisfied — but the binding `[showMatchModes]="col.showMatchModes"` resolves to `undefined` when a column omits the flag, and PrimeNG's `booleanAttribute` coerces that to `false`. Net effect: the dropdown does not render and the column filters with the default match mode (`Equals` for numeric, `Contains` for text) only.

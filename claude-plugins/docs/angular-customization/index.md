@@ -284,6 +284,12 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 - The template binds to the **consuming component** (`(click)` calls your method), and root-level buttons inherit the toolbar's spacing + responsive stacking.
 - No table state is passed as context — read it from the table's outputs (`onLazyLoad` for the current `Filter`, `onTotalRecordsChange`, `onRowSelect`) when an action needs it.
 
+### Row selection (checkbox column + shift-click ranges)
+
+`selectionMode: 'multiple'` renders a checkbox column (auto-enabled when `deleteListFromTableObservableMethod` is set). Clicking a checkbox never triggers `navigateOnRowClick` — the selection cell stops the click.
+
+**Shift+click selects a range**: click one checkbox, hold Shift, click another — every row between receives the *clicked checkbox's new state* (shift-checking selects the range, shift-unchecking clears it). The anchor is the last clicked checkbox and resets whenever the rendered rows change (page, sort, filter) — ranges never span pages. Rows already in the target state are skipped; each actual change emits `onRowSelect`/`onRowUnselect` exactly as a single click would, so delta-based consumers (`newlySelectedItems`/`unselectedItems`) need no changes.
+
 ### Key Inputs
 
 | Input                              | Type                     | Default | Purpose                 |

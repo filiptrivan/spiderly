@@ -936,3 +936,192 @@ describe('SpiderlyDataTableComponent — multiselect cells show the label, not t
     expect(dataTable.getRowData({}, severity)).toBeNull();
   });
 });
+
+const fourSelectableRows = (): Observable<PaginatedResult> =>
+  of({
+    data: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+    totalRecords: 4,
+  } as PaginatedResult).pipe(delay(0));
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithSelectionComponent {
+  cols = cols;
+  getList = fourSelectableRows;
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [hasLazyLoad]="false"
+      [getFormArrayItems]="getItems"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithClientSideSelectionComponent {
+  cols = cols;
+  getItems = () => [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+}
+
+/**
+ * Presses the selection checkbox of the given rendered row the way a user does: mousedown on the
+ * cell (where the shift state is captured — the checkbox's own change event carries none) followed
+ * by a click on the checkbox input.
+ */
+function clickRowCheckbox(
+  fixture: ComponentFixture<unknown>,
+  rowIndex: number,
+  { shift = false } = {},
+): void {
+  const el = fixture.nativeElement as HTMLElement;
+  const cell = el.querySelectorAll('tbody td.selection-cell')[
+    rowIndex
+  ] as HTMLElement;
+  cell.dispatchEvent(
+    new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: shift,
+    }),
+  );
+  (cell.querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+  fixture.detectChanges();
+}
+
+describe('SpiderlyDataTableComponent — shift-click range selection', () => {
+  async function renderSelectionTable() {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithSelectionComponent,
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return { fixture, dataTable };
+  }
+
+  it('selects every row between the anchor and the shift-clicked checkbox', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+    const selected: number[] = [];
+    dataTable.onRowSelect.subscribe((e) => selected.push(e.id));
+
+    clickRowCheckbox(fixture, 0);
+    clickRowCheckbox(fixture, 3, { shift: true });
+
+    expect(dataTable.newlySelectedItems).toEqual([1, 2, 3, 4]);
+    expect(dataTable.rowsSelectedNumber).toBe(4);
+    expect(selected).toEqual([1, 2, 3, 4]);
+  });
+
+  it('applies the clicked checkbox state, so a shift-uncheck clears the range', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    clickRowCheckbox(fixture, 0);
+    clickRowCheckbox(fixture, 3, { shift: true }); // all four on
+    clickRowCheckbox(fixture, 3); // uncheck the end; anchor moves there
+    clickRowCheckbox(fixture, 0, { shift: true }); // shift-uncheck back to the top
+
+    expect(dataTable.newlySelectedItems).toEqual([]);
+    expect(dataTable.rowsSelectedNumber).toBe(0);
+  });
+
+  it('skips rows already in the target state — no duplicate delta entries', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+    const selected: number[] = [];
+    dataTable.onRowSelect.subscribe((e) => selected.push(e.id));
+
+    clickRowCheckbox(fixture, 1); // id 2 pre-selected
+    clickRowCheckbox(fixture, 0); // id 1 — the anchor
+    clickRowCheckbox(fixture, 3, { shift: true });
+
+    expect([...dataTable.newlySelectedItems].sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(dataTable.rowsSelectedNumber).toBe(4);
+    // The range emitted only for ids 3 and 4 — 1 and 2 already held the target state.
+    expect(selected).toEqual([2, 1, 3, 4]);
+  });
+
+  it('treats a shift-click with no anchor as a plain toggle', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    clickRowCheckbox(fixture, 2, { shift: true });
+
+    expect(dataTable.newlySelectedItems).toEqual([3]);
+    expect(dataTable.rowsSelectedNumber).toBe(1);
+  });
+
+  it('resets the anchor when the rendered page changes (lazyLoad)', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    clickRowCheckbox(fixture, 0);
+    dataTable.lazyLoad(dataTable.lastLazyLoadEvent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    clickRowCheckbox(fixture, 3, { shift: true });
+
+    // Anchor gone → the shift-click degrades to a plain toggle of id 4 alone.
+    expect(dataTable.newlySelectedItems).toEqual([1, 4]);
+    expect(dataTable.rowsSelectedNumber).toBe(2);
+  });
+
+  it('routes a shift-deselect under select-all into unselectedItems', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    dataTable.selectAll(true);
+    fixture.detectChanges();
+    clickRowCheckbox(fixture, 3); // uncheck id 4; anchor moves there
+    clickRowCheckbox(fixture, 0, { shift: true });
+
+    expect([...dataTable.unselectedItems].sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(dataTable.newlySelectedItems).toEqual([]);
+    expect(dataTable.rowsSelectedNumber).toBe(0);
+  });
+
+  it('range-selects on a client-side (form-array) table too', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithClientSideSelectionComponent,
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    clickRowCheckbox(fixture, 0);
+    clickRowCheckbox(fixture, 3, { shift: true });
+
+    expect(dataTable.selectedItemIds).toEqual([1, 2, 3, 4]);
+    expect(dataTable.rowsSelectedNumber).toBe(4);
+  });
+
+  it('suppresses the browser text selection a shift-press would start', async () => {
+    const { fixture } = await renderSelectionTable();
+    const cell = (fixture.nativeElement as HTMLElement).querySelector(
+      'tbody td.selection-cell',
+    ) as HTMLElement;
+
+    const shiftPress = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    });
+    const plainPress = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    cell.dispatchEvent(shiftPress);
+    cell.dispatchEvent(plainPress);
+
+    expect(shiftPress.defaultPrevented).toBe(true);
+    expect(plainPress.defaultPrevented).toBe(false);
+  });
+});

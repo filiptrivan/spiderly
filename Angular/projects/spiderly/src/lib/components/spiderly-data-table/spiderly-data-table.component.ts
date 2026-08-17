@@ -138,6 +138,18 @@ export class SpiderlyDataTableComponent
   isAllSelected: boolean = null;
   fakeIsAllSelected: boolean = false; // Only for showing checkboxes, we will not send this to the backend
   isFirstTimeLazyLoad: boolean = true;
+  /**
+   * Shift-range selection state. `rangeAnchorId` is the id of the last-clicked row checkbox —
+   * the range anchor. It moves on every checkbox click (plain or shift) and resets whenever the
+   * rendered rows change (`lazyLoad`, `loadFormArrayItems`, paginator page flip): a range only
+   * exists within the currently rendered page, and on lazy tables other pages aren't even loaded.
+   * `pendingShiftRange` is the shift state captured at mousedown on the selection cell — the
+   * checkbox's own `onChange` carries a plain `change` DOM event as `originalEvent`, which has
+   * no `shiftKey`, so the pointer press is the only place to read it. Consumed (and cleared) by
+   * the `selectRow` call the same click produces; a keyboard toggle never sets it.
+   */
+  private rangeAnchorId: number | null = null;
+  private pendingShiftRange = false;
   @Output() onIsAllSelectedChange: EventEmitter<AllClickEvent> =
     new EventEmitter();
   @Input() selectedLazyLoadObservableMethod: (
@@ -612,6 +624,7 @@ export class SpiderlyDataTableComponent
   lazyLoad(event: TableLazyLoadEvent) {
     this.applyDefaultSortIfUnsorted(event);
     this.lastLazyLoadEvent = event;
+    this.rangeAnchorId = null;
 
     let tableFilter: Filter = event as unknown as Filter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
@@ -712,6 +725,7 @@ export class SpiderlyDataTableComponent
 
   private loadFormArrayItems() {
     this.items = this.getFormArrayItems(this.additionalIndexes);
+    this.rangeAnchorId = null;
     this.items.forEach((item, index) => {
       item.index = index;
     });
@@ -1086,7 +1100,52 @@ export class SpiderlyDataTableComponent
     }
   }
 
+  /**
+   * Captures the shift state for the checkbox change that this same press is about to produce
+   * (see `pendingShiftRange`), and suppresses the browser's text selection, which a shift+click
+   * would otherwise extend across the rows. Suppressed at mousedown because that's where text
+   * selection starts — by click time it has already happened.
+   */
+  onSelectionCellMouseDown(event: MouseEvent) {
+    this.pendingShiftRange = event.shiftKey;
+    if (event.shiftKey) event.preventDefault();
+  }
+
+  /** Bound to p-table's (onPage): a client-side page flip re-renders different rows without
+   * touching `items`, so it resets the range anchor here (lazy tables also reset via lazyLoad). */
+  onPageChange() {
+    this.rangeAnchorId = null;
+  }
+
   selectRow(id: number, index: number) {
+    const isShiftRange = this.pendingShiftRange;
+    this.pendingShiftRange = false;
+
+    if (
+      isShiftRange &&
+      this.rangeAnchorId != null &&
+      this.rangeAnchorId !== id
+    ) {
+      const anchorIndex = this.items.findIndex(
+        (x) => x[this.idField] === this.rangeAnchorId,
+      );
+      const clickedIndex = this.items.findIndex((x) => x[this.idField] === id);
+
+      if (anchorIndex !== -1 && clickedIndex !== -1) {
+        // The clicked checkbox's NEW state, applied to the whole range. Our model hasn't been
+        // updated for this click yet, so the new state is the negation of what we hold.
+        this.applyRange(anchorIndex, clickedIndex, !this.isRowSelected(id));
+        this.rangeAnchorId = id;
+        return;
+      }
+    }
+
+    this.toggleRow(id, index);
+    this.rangeAnchorId = id;
+  }
+
+  /** Single-row toggle — the plain-click path. */
+  private toggleRow(id: number, index: number) {
     if (this.isRowSelected(id)) {
       this.rowUnselect(id);
       this.onRowUnselect.next(
@@ -1105,6 +1164,26 @@ export class SpiderlyDataTableComponent
           additionalIndexes: this.additionalIndexes,
         }),
       );
+    }
+  }
+
+  /**
+   * Applies `select` to every row between the two `items` positions (inclusive). Rows already in
+   * the target state are skipped; each actual change goes through the same toggle path as a single
+   * click, so the lazy delta model (`newlySelectedItems`/`unselectedItems`) stays consistent and
+   * consumers get one onRowSelect/onRowUnselect per changed row. Positions are resolved by id at
+   * click time rather than via `rowData.index`, which only `loadFormArrayItems` stamps — lazy rows
+   * never carry one. The event payload keeps `item.index` for parity with the single-click path.
+   */
+  private applyRange(fromIndex: number, toIndex: number, select: boolean) {
+    const start = Math.min(fromIndex, toIndex);
+    const end = Math.max(fromIndex, toIndex);
+
+    for (let i = start; i <= end; i++) {
+      const rowId = this.items[i][this.idField];
+      if (this.isRowSelected(rowId) !== select) {
+        this.toggleRow(rowId, this.items[i].index);
+      }
     }
   }
 
