@@ -176,6 +176,8 @@ Two details that decide whether the guard actually works:
 
 Lazy tables are always deterministically ordered: when no sort is active the backend falls back to `Id` DESC (newest first). Declare `defaultSortField` (+ `defaultSortOrder`) when a page wants a different, user-visible default — it renders as a normal header sort arrow, persisted user sort wins over it, and un-sorting (tri-state header click, Clear filters) returns to it instead of "unsorted".
 
+Every paginated table offers a rows-per-page dropdown — `rowsPerPageOptions`, default `[10, 25, 50, 100]`; a custom initial `rows` value is merged in automatically. The user's pick rides PrimeNG table state, so it persists per table under the existing `stateKey` (session-scoped unless `stateStorage: 'local'`).
+
 ### Client-Side Mode
 
 ```html
@@ -300,6 +302,8 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 | `hasLazyLoad`                      | `boolean`                | `true`  | Server vs client mode   |
 | `items`                            | `any[]`                  | —       | Client-side data        |
 | `selectionMode`                    | `'single' \| 'multiple'` | —       | Selection mode          |
+| `rows`                             | `number`                 | `10`    | Initial page size       |
+| `rowsPerPageOptions`               | `number[]`               | `[10, 25, 50, 100]` | Paginator page-size choices |
 | `navigateOnRowClick`               | `boolean`                | `false` | Click row → details     |
 | `rowNavigationPath`                | `string`                 | —       | Base path for row click |
 | `defaultSortField`                 | `string`                 | —       | Sort applied while the user has none |

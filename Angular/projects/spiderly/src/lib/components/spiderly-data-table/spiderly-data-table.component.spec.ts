@@ -1125,3 +1125,42 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
     expect(plainPress.defaultPrevented).toBe(false);
   });
 });
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [rows]="15"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithCustomRowsComponent {
+  cols = cols;
+  getList = emptyList;
+}
+
+describe('SpiderlyDataTableComponent — rows-per-page options', () => {
+  it('offers the default page-size choices in the paginator dropdown', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithSelectionComponent,
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dataTable.rowsPerPageOptions).toEqual([10, 25, 50, 100]);
+    const dropdown = (fixture.nativeElement as HTMLElement).querySelector(
+      'p-paginator p-select',
+    );
+    expect(dropdown)
+      .withContext('paginator rows-per-page dropdown should render')
+      .toBeTruthy();
+  });
+
+  it('merges a custom initial rows value into the options', () => {
+    const { dataTable } = createWithDataTable(HostWithCustomRowsComponent);
+
+    expect(dataTable.rowsPerPageOptions).toEqual([10, 15, 25, 50, 100]);
+  });
+});

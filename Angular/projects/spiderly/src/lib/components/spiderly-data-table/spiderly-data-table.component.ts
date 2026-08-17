@@ -102,6 +102,12 @@ export class SpiderlyDataTableComponent
   @Input() tableIcon: string = 'pi pi-list';
   @Input() items: any[]; // Pass only when hasLazyLoad === false
   @Input() rows: number;
+  /**
+   * Choices offered by the paginator's rows-per-page dropdown. The effective initial `rows`
+   * value is merged in when missing, so a custom page size never leaves the dropdown blank.
+   * The user's pick persists through PrimeNG table state (`stateKey`/`stateStorage`).
+   */
+  @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
   @Input() cols: Column[];
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
@@ -307,6 +313,11 @@ export class SpiderlyDataTableComponent
 
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
+    if (!this.rowsPerPageOptions.includes(this.rows)) {
+      this.rowsPerPageOptions = [...this.rowsPerPageOptions, this.rows].sort(
+        (a, b) => a - b,
+      );
+    }
 
     if (this.deleteListFromTableObservableMethod && !this.selectionMode) {
       this.selectionMode = 'multiple';

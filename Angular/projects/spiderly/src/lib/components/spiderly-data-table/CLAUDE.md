@@ -57,6 +57,10 @@ Consumer-facing behavior is documented in `claude-plugins/docs/angular-customiza
 - Spec gotcha: the chooser checkboxes' `[ngModel]` writes resolve in a microtask — tests must `await fixture.whenStable()` after opening/toggling (see `openChooser` in the spec). Once open, PrimeNG appends the popover to `document.body`, so specs query the `Popover` instance's `container`, never the document (stale popovers from earlier fixtures linger there).
 - That teleport also means chooser styles are declared at SCSS **top level**, never under `:host` (see `Angular/CLAUDE.md` → overlay styling); every chooser rule gets a row in the spec's `stylePins` table.
 
+## Rows-per-page — `rowsPerPageOptions`
+
+Default `[10, 25, 50, 100]`; `ngOnInit` merges the effective initial `rows` into the list when missing — a `rows` value outside the options leaves PrimeNG's paginator dropdown blank, so keep the merge when touching init order. The user's pick persists for free through PrimeNG table state (`saveState`/`restoreState` carry `rows`) under `resolvedStateKey` — do NOT add custom persistence; a durable (localStorage) page size was considered and deliberately deferred (2026-08-17) until usage asks for it. The 100 ceiling is a UI courtesy only: the backend `.Take(filterDTO.Rows)`s whatever it is sent, uncapped.
+
 ## Filter-state persistence
 
 `@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method also calls `table.clearState()` so the "Clear all filters" caption button wipes the persisted state instead of just resetting the in-memory table.
