@@ -288,7 +288,7 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 
 ### Row selection (checkbox column + shift-click ranges)
 
-`selectionMode: 'multiple'` renders a checkbox column (auto-enabled when `deleteListFromTableObservableMethod` is set). Clicking a checkbox never triggers `navigateOnRowClick` — the selection cell stops the click.
+`selectionMode: 'multiple'` renders a checkbox column (auto-enabled when `deleteListFromTableObservableMethod` is set). On a `navigateOnRowClick` table, no interactive cell doubles as navigation: the checkbox column, action icons, editable cells and `onCellClick` cells all keep their click to themselves. Row navigation resolves the id through `idField`.
 
 **Shift+click selects a range**: click one checkbox, hold Shift, click another — every row between receives the *clicked checkbox's new state* (shift-checking selects the range, shift-unchecking clears it). The anchor is the last clicked checkbox, and a range only ever spans rows visible on the current page: if the anchor is no longer among them, the shift-click degrades to a plain toggle. (A client-side sort that keeps both rows on screen ranges over the *new* visual order, which is what the user sees and expects.) Rows already in the target state are skipped; each actual change emits `onRowSelect`/`onRowUnselect` exactly as a single click would, so delta-based consumers (`newlySelectedItems`/`unselectedItems`) need no changes.
 

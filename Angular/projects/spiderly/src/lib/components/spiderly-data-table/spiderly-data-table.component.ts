@@ -853,12 +853,20 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  /*
-   * Handle row click event.
+  /**
+   * Handle row click event. Arbitration between "this click navigates the row" and "this click
+   * belongs to a control inside the row" happens HERE, once, rather than in each interactive
+   * surface: anything marked `.row-interactive` (the selection cell, the actions column, editable
+   * cells, opted-in `onCellClick` cells) owns its own click and never navigates. Per-surface
+   * `stopPropagation` used to be the mechanism and was structurally lossy — the actions column
+   * never had one, so a Delete click opened the dialog AND navigated away. Mark new interactive
+   * cells with the class; don't add another stop.
    */
-  onRowClick(row: any): void {
-    if (!this.navigateOnRowClick || !row?.id) return;
-    this.navigateToDetails(row.id);
+  onRowClick(row: any, event: MouseEvent): void {
+    if (!this.navigateOnRowClick) return;
+    if ((event.target as HTMLElement)?.closest?.('.row-interactive')) return;
+
+    this.navigateToDetails(row?.[this.idField]);
   }
 
   /*

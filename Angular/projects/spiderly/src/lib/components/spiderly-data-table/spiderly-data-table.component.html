@@ -189,14 +189,13 @@
         </ng-template>
         <tr
           [class.clickable]="navigateOnRowClick"
-          (click)="onRowClick(rowData)"
+          (click)="onRowClick(rowData, $event)"
         >
-          <!-- stopPropagation: a selection gesture must never double as row navigation. -->
+          <!-- row-interactive: a selection gesture must never double as row navigation (onRowClick). -->
           <td
             *ngIf="selectionMode == 'multiple'"
-            class="selection-cell"
+            class="selection-cell row-interactive"
             (mousedown)="onSelectionCellMouseDown($event, rowData[idField])"
-            (click)="$event.stopPropagation()"
           >
             <p-checkbox
               [disabled]="readonly"
@@ -209,6 +208,7 @@
             <td
               [style]="getStyleForBodyColumn(col)"
               [class.clickable]="col.onCellClick"
+              [class.row-interactive]="col.onCellClick"
               (click)="onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"
             >
@@ -225,7 +225,7 @@
                 >
                   <span
                     [pTooltip]="action.name"
-                    [class]="getClassForAction(action)"
+                    [class]="getClassForAction(action) + ' row-interactive'"
                     [style]="getStyleForAction(action)"
                     (click)="getMethodForAction(action, rowData, $event)"
                   ></span>
@@ -241,7 +241,7 @@
                 }"
               ></ng-container>
             </td>
-            <td *ngIf="col.editable">
+            <td *ngIf="col.editable" class="row-interactive">
               <spiderly-number
                 [control]="getFormArrayControlByIndex(col.field, rowData.index)"
                 [showLabel]="false"
