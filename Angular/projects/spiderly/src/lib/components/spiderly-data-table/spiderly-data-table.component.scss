@@ -73,8 +73,7 @@
     text-decoration: underline;
   }
 
-  // Belt to onSelectionCellMouseDown's preventDefault: shift+click range selection must not
-  // also paint a browser text selection across the rows.
+  // Belt to onSelectionCellMouseDown's preventDefault (shift+click text-selection suppression).
   td.selection-cell {
     user-select: none;
   }

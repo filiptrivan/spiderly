@@ -24,10 +24,11 @@ import {
 const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
 
 // delay(0) so the result lands after the initial change-detection pass, avoiding
-// NG0100 from a synchronous lazy-load emission. The caption (under test) renders
-// regardless of when the data resolves.
-const emptyList = (): Observable<PaginatedResult> =>
-  of({ data: [], totalRecords: 0 } as PaginatedResult).pipe(delay(0));
+// NG0100 from a synchronous lazy-load emission.
+const paginated = (data: any[]): Observable<PaginatedResult> =>
+  of({ data, totalRecords: data.length } as PaginatedResult).pipe(delay(0));
+
+const emptyList = (): Observable<PaginatedResult> => paginated([]);
 
 // Snapshot each filter — PrimeNG mutates/reuses the lazy-load event object.
 const capturingGetList =
@@ -786,10 +787,7 @@ const idAndNameCols: Column[] = [
 // id is fractional and four digits so the FORMATTED value ("1,234.5" under the test locale) is
 // distinguishable from the raw one (1234.5) — that is what tells the two context members apart.
 const oneRow = (): Observable<PaginatedResult> =>
-  of({
-    data: [{ id: 1234.5, name: 'Ana' }],
-    totalRecords: 1,
-  } as PaginatedResult).pipe(delay(0));
+  paginated([{ id: 1234.5, name: 'Ana' }]);
 
 @Component({
   imports: [SpiderlyDataTableComponent, SpiderlyCellTemplateDirective],
@@ -938,10 +936,18 @@ describe('SpiderlyDataTableComponent — multiselect cells show the label, not t
 });
 
 const fourSelectableRows = (): Observable<PaginatedResult> =>
-  of({
-    data: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
-    totalRecords: 4,
-  } as PaginatedResult).pipe(delay(0));
+  paginated([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
+
+/** createWithDataTable + the settle-and-render ritual (renderRows), for suites that need rows. */
+async function renderStable<T>(host: new () => T): Promise<{
+  fixture: ComponentFixture<T>;
+  host: T;
+  dataTable: SpiderlyDataTableComponent;
+}> {
+  const created = createWithDataTable(host);
+  await renderRows(created.fixture);
+  return created;
+}
 
 @Component({
   imports: [SpiderlyDataTableComponent],
@@ -974,11 +980,25 @@ class HostWithClientSideSelectionComponent {
   getItems = () => [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
 }
 
-/**
- * Presses the selection checkbox of the given rendered row the way a user does: mousedown on the
- * cell (where the shift state is captured — the checkbox's own change event carries none) followed
- * by a click on the checkbox input.
- */
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [hasLazyLoad]="false"
+      [rows]="10"
+      [getFormArrayItems]="getItems"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithPagedClientSideSelectionComponent {
+  cols = cols;
+  getItems = () =>
+    Array.from({ length: 15 }, (unused, i) => ({ id: i + 1 }));
+}
+
+/** Presses a row's selection checkbox the way a user does: mousedown on the cell, click on the input. */
 function clickRowCheckbox(
   fixture: ComponentFixture<unknown>,
   rowIndex: number,
@@ -1000,14 +1020,7 @@ function clickRowCheckbox(
 }
 
 describe('SpiderlyDataTableComponent — shift-click range selection', () => {
-  async function renderSelectionTable() {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithSelectionComponent,
-    );
-    await fixture.whenStable();
-    fixture.detectChanges();
-    return { fixture, dataTable };
-  }
+  const renderSelectionTable = () => renderStable(HostWithSelectionComponent);
 
   it('selects every row between the anchor and the shift-clicked checkbox', async () => {
     const { fixture, dataTable } = await renderSelectionTable();
@@ -1065,8 +1078,7 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
 
     clickRowCheckbox(fixture, 0);
     dataTable.lazyLoad(dataTable.lastLazyLoadEvent);
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await renderRows(fixture);
     clickRowCheckbox(fixture, 3, { shift: true });
 
     // Anchor gone → the shift-click degrades to a plain toggle of id 4 alone.
@@ -1090,17 +1102,51 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
   });
 
   it('range-selects on a client-side (form-array) table too', async () => {
-    const { fixture, dataTable } = createWithDataTable(
+    const { fixture, dataTable } = await renderStable(
       HostWithClientSideSelectionComponent,
     );
-    await fixture.whenStable();
-    fixture.detectChanges();
 
     clickRowCheckbox(fixture, 0);
     clickRowCheckbox(fixture, 3, { shift: true });
 
     expect(dataTable.selectedItemIds).toEqual([1, 2, 3, 4]);
     expect(dataTable.rowsSelectedNumber).toBe(4);
+  });
+
+  it('never lets an aborted shift-press leak into another row toggle', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    clickRowCheckbox(fixture, 0); // anchor id 1
+    // Shift-press row 1's cell without completing the click there (aborted gesture)…
+    const cells = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      'tbody td.selection-cell',
+    );
+    cells[1].dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        shiftKey: true,
+      }),
+    );
+    // …then toggle row 3's checkbox with no press of its own (the keyboard path).
+    (cells[3].querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    expect(dataTable.newlySelectedItems).toEqual([1, 4]); // plain toggle, no 1–4 range
+  });
+
+  it('degrades to a plain toggle when the anchor left the rendered window', async () => {
+    const { fixture, dataTable } = await renderStable(
+      HostWithPagedClientSideSelectionComponent,
+    );
+
+    clickRowCheckbox(fixture, 0); // anchor id 1, page 1
+    dataTable.table.first = 10; // flip to page 2 (rows 11–15)
+    fixture.detectChanges();
+    clickRowCheckbox(fixture, 2, { shift: true }); // id 13; anchor not visible
+
+    expect(dataTable.selectedItemIds).toEqual([1, 13]);
+    expect(dataTable.rowsSelectedNumber).toBe(2);
   });
 
   it('suppresses the browser text selection a shift-press would start', async () => {
@@ -1143,11 +1189,7 @@ class HostWithCustomRowsComponent {
 
 describe('SpiderlyDataTableComponent — rows-per-page options', () => {
   it('offers the default page-size choices in the paginator dropdown', async () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithSelectionComponent,
-    );
-    await fixture.whenStable();
-    fixture.detectChanges();
+    const { fixture, dataTable } = await renderStable(HostWithSelectionComponent);
 
     expect(dataTable.rowsPerPageOptions).toEqual([10, 25, 50, 100]);
     const dropdown = (fixture.nativeElement as HTMLElement).querySelector(
@@ -1162,5 +1204,15 @@ describe('SpiderlyDataTableComponent — rows-per-page options', () => {
     const { dataTable } = createWithDataTable(HostWithCustomRowsComponent);
 
     expect(dataTable.rowsPerPageOptions).toEqual([10, 15, 25, 50, 100]);
+  });
+
+  // PrimeNG's restoreState later overwrites `rows` with the persisted pick, so a stored value
+  // missing from the options would blank the dropdown just like an unmerged custom `rows`.
+  it('merges a persisted page-size pick into the options', () => {
+    sessionStorage.setItem('spiderly-table:/', JSON.stringify({ rows: 33 }));
+
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(dataTable.rowsPerPageOptions).toEqual([10, 25, 33, 50, 100]);
   });
 });

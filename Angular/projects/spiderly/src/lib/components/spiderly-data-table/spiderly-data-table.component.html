@@ -14,7 +14,6 @@
       responsiveLayout="scroll"
       [lazy]="hasLazyLoad"
       (onLazyLoad)="lazyLoad($event)"
-      (onPage)="onPageChange()"
       [totalRecords]="totalRecords"
       class="spiderly-table"
       [loading]="items === undefined || loading === true"
@@ -192,12 +191,11 @@
           [class.clickable]="navigateOnRowClick"
           (click)="onRowClick(rowData)"
         >
-          <!-- click.stopPropagation: a selection gesture must never double as row navigation
-               (navigateOnRowClick tables would otherwise navigate away mid-range-select). -->
+          <!-- stopPropagation: a selection gesture must never double as row navigation. -->
           <td
             *ngIf="selectionMode == 'multiple'"
             class="selection-cell"
-            (mousedown)="onSelectionCellMouseDown($event)"
+            (mousedown)="onSelectionCellMouseDown($event, rowData[idField])"
             (click)="$event.stopPropagation()"
           >
             <p-checkbox
