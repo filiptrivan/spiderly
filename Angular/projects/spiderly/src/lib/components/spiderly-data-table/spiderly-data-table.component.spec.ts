@@ -998,6 +998,41 @@ class HostWithPagedClientSideSelectionComponent {
     Array.from({ length: 15 }, (unused, i) => ({ id: i + 1 }));
 }
 
+// Unsaved client-side rows carry a null id — the same value rangeAnchorId uses for "no anchor".
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [hasLazyLoad]="false"
+      [getFormArrayItems]="getItems"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithNullIdRowsComponent {
+  cols = cols;
+  getItems = () => [{ id: null }, { id: 2 }, { id: 3 }, { id: 4 }];
+}
+
+// isAllSelected stays null (the default tri-state) while the server reports its own selection.
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [getPaginatedListObservableMethod]="getList"
+      [selectedLazyLoadObservableMethod]="getSelected"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithServerSelectionComponent {
+  cols = cols;
+  getList = fourSelectableRows;
+  getSelected = () => of({ selectedIds: [2], totalRecordsSelected: 1 } as any);
+}
+
 /** Presses a row's selection checkbox the way a user does: mousedown on the cell, click on the input. */
 function clickRowCheckbox(
   fixture: ComponentFixture<unknown>,
@@ -1008,14 +1043,15 @@ function clickRowCheckbox(
   const cell = el.querySelectorAll('tbody td.selection-cell')[
     rowIndex
   ] as HTMLElement;
-  cell.dispatchEvent(
+  const input = cell.querySelector('input[type="checkbox"]') as HTMLInputElement;
+  input.dispatchEvent(
     new MouseEvent('mousedown', {
       bubbles: true,
       cancelable: true,
       shiftKey: shift,
     }),
   );
-  (cell.querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+  input.click();
   fixture.detectChanges();
 }
 
@@ -1073,7 +1109,11 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
     expect(dataTable.rowsSelectedNumber).toBe(1);
   });
 
-  it('resets the anchor when the rendered page changes (lazyLoad)', async () => {
+  // Every lazy page flip, sort and filter goes through lazyLoad, so the reset there is what
+  // stops a range from spanning a server-side page. (The cross-page case where the anchor id is
+  // simply absent from the new page is covered structurally by renderedRows() — the off-window
+  // spec below pins that half.)
+  it('drops the anchor on any lazy reload', async () => {
     const { fixture, dataTable } = await renderSelectionTable();
 
     clickRowCheckbox(fixture, 0);
@@ -1113,15 +1153,62 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
     expect(dataTable.rowsSelectedNumber).toBe(4);
   });
 
-  it('never lets an aborted shift-press leak into another row toggle', async () => {
-    const { fixture, dataTable } = await renderSelectionTable();
+  // The server already reports id 2 as selected, so the range must not re-add it to the delta.
+  it('keeps the delta consistent when a range sweeps server-selected rows', async () => {
+    const { fixture, dataTable } = await renderStable(
+      HostWithServerSelectionComponent,
+    );
 
-    clickRowCheckbox(fixture, 0); // anchor id 1
-    // Shift-press row 1's cell without completing the click there (aborted gesture)…
+    clickRowCheckbox(fixture, 0); // id 1
+    clickRowCheckbox(fixture, 3, { shift: true }); // range 1–4 over the pre-selected id 2
+
+    expect(dataTable.newlySelectedItems).toEqual([1, 3, 4]); // id 2 was already selected
+    expect(dataTable.unselectedItems).toEqual([]);
+    expect(dataTable.rowsSelectedNumber).toBe(4);
+  });
+
+  it('treats a null id as "no anchor", never as a row to range from', async () => {
+    const { fixture, dataTable } = await renderStable(HostWithNullIdRowsComponent);
+
+    clickRowCheckbox(fixture, 0); // the null-id row — must not become a usable anchor
+    clickRowCheckbox(fixture, 3, { shift: true }); // id 4
+
+    expect(dataTable.selectedItemIds).toEqual([null, 4] as any);
+    expect(dataTable.rowsSelectedNumber).toBe(2);
+  });
+
+  // A press on the cell around the checkbox produces no change event, so it must not arm the
+  // range at all — otherwise the flag strands there and the next toggle of that row ranges.
+  it('never arms a range from a press beside the checkbox', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
     const cells = (fixture.nativeElement as HTMLElement).querySelectorAll(
       'tbody td.selection-cell',
     );
-    cells[1].dispatchEvent(
+
+    clickRowCheckbox(fixture, 0); // anchor id 1
+    cells[3].dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        shiftKey: true,
+      }),
+    );
+    // Then toggle that same row from the keyboard (no press of its own).
+    (cells[3].querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    expect(dataTable.newlySelectedItems).toEqual([1, 4]); // plain toggle, no 1–4 range
+  });
+
+  it('never lets a shift-press on one row range from a toggle of another', async () => {
+    const { fixture, dataTable } = await renderSelectionTable();
+
+    clickRowCheckbox(fixture, 0); // anchor id 1
+    // Shift-press row 1's checkbox without completing the click there (aborted gesture)…
+    const cells = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      'tbody td.selection-cell',
+    );
+    cells[1].querySelector('input[type="checkbox"]')!.dispatchEvent(
       new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true,
@@ -1147,6 +1234,17 @@ describe('SpiderlyDataTableComponent — shift-click range selection', () => {
 
     expect(dataTable.selectedItemIds).toEqual([1, 13]);
     expect(dataTable.rowsSelectedNumber).toBe(2);
+  });
+
+  // The belt behind onSelectionCellMouseDown's preventDefault. Its neighbours in the SCSS use
+  // ::ng-deep and this rule does not, so a computed-style assert is what proves it still lands.
+  it('keeps the selection cell unselectable in the rendered table', async () => {
+    const { fixture } = await renderSelectionTable();
+    const cell = (fixture.nativeElement as HTMLElement).querySelector(
+      'tbody td.selection-cell',
+    ) as HTMLElement;
+
+    expect(getComputedStyle(cell).getPropertyValue('user-select')).toBe('none');
   });
 
   it('suppresses the browser text selection a shift-press would start', async () => {
@@ -1187,6 +1285,22 @@ class HostWithCustomRowsComponent {
   getList = emptyList;
 }
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [rows]="pageSize"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithLateRowsComponent {
+  cols = cols;
+  pageSize: number | null = null;
+  getList = emptyList;
+}
+
 describe('SpiderlyDataTableComponent — rows-per-page options', () => {
   it('offers the default page-size choices in the paginator dropdown', async () => {
     const { fixture, dataTable } = await renderStable(HostWithSelectionComponent);
@@ -1214,5 +1328,29 @@ describe('SpiderlyDataTableComponent — rows-per-page options', () => {
     const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
 
     expect(dataTable.rowsPerPageOptions).toEqual([10, 25, 33, 50, 100]);
+  });
+
+  // Storage is user-writable; an offered page size goes straight to the backend's uncapped Take.
+  for (const rows of [100000, '33', 0, -5, 12.5]) {
+    it(`refuses a persisted page size of ${JSON.stringify(rows)}`, () => {
+      sessionStorage.setItem('spiderly-table:/', JSON.stringify({ rows }));
+
+      const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+      expect(dataTable.rowsPerPageOptions).toEqual([10, 25, 50, 100]);
+    });
+  }
+
+  // A consumer may resolve [rows] asynchronously (route data, a settings fetch); the merge has
+  // to re-run or PrimeNG lands on a page size the dropdown cannot show.
+  it('merges a rows value that arrives after init', () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithLateRowsComponent,
+    );
+
+    host.pageSize = 15;
+    fixture.detectChanges();
+
+    expect(dataTable.rowsPerPageOptions).toEqual([10, 15, 25, 50, 100]);
   });
 });

@@ -8,6 +8,7 @@ import {
   Inject,
   Input,
   LOCALE_ID,
+  OnChanges,
   OnDestroy,
   OnInit,
   Output,
@@ -78,7 +79,7 @@ import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-cont
   ],
 })
 export class SpiderlyDataTableComponent
-  implements OnInit, AfterViewInit, OnDestroy
+  implements OnInit, OnChanges, AfterViewInit, OnDestroy
 {
   private readonly destroy$ = new Subject<void>();
 
@@ -298,6 +299,38 @@ export class SpiderlyDataTableComponent
     };
   }
 
+  /**
+   * A page size PrimeNG will actually apply but that is missing from `rowsPerPageOptions` leaves
+   * the paginator dropdown blank — so both the effective `rows` and the persisted pick (which
+   * `restoreState` applies after init) are merged in. Runs again on input changes because a
+   * consumer may resolve `[rows]` asynchronously. Storage is user-writable, hence the shape and
+   * ceiling check: a hand-edited `{"rows": 100000}` must not become an offered choice, since the
+   * backend `.Take`s whatever it is sent.
+   */
+  private mergeActivePageSizesIntoOptions(): void {
+    const ceiling = Math.max(...this.rowsPerPageOptions);
+    const persisted = this.persistedTableState()?.rows;
+    const candidates = [
+      this.rows,
+      Number.isInteger(persisted) && persisted > 0 && persisted <= ceiling
+        ? persisted
+        : null,
+    ];
+
+    for (const value of candidates) {
+      if (value != null && !this.rowsPerPageOptions.includes(value)) {
+        this.rowsPerPageOptions = [...this.rowsPerPageOptions, value].sort(
+          (a, b) => a - b,
+        );
+      }
+    }
+  }
+
+  ngOnChanges(): void {
+    // Only meaningful once ngOnInit has resolved the defaults; before that it is a no-op re-run.
+    if (this.rows != null) this.mergeActivePageSizesIntoOptions();
+  }
+
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
 
@@ -345,15 +378,7 @@ export class SpiderlyDataTableComponent
       this.clientLoad();
     }
 
-    // Both the effective initial `rows` and a persisted pick PrimeNG will restore later must be
-    // in the options, or the paginator dropdown renders blank (see CLAUDE.md → Rows-per-page).
-    for (const value of [this.rows, this.persistedTableState()?.rows]) {
-      if (value != null && !this.rowsPerPageOptions.includes(value)) {
-        this.rowsPerPageOptions = [...this.rowsPerPageOptions, value].sort(
-          (a, b) => a - b,
-        );
-      }
-    }
+    this.mergeActivePageSizesIntoOptions();
 
     this.restoreColumnVisibility();
     this.reconcileVisibilityWithPersistedConstraints();
@@ -1109,25 +1134,24 @@ export class SpiderlyDataTableComponent
    * from extending the browser text selection, which starts at mousedown.
    */
   onSelectionCellMouseDown(event: MouseEvent, id: number) {
-    this.pendingShift = { shiftKey: event.shiftKey, id };
+    // Arm only for a press on the checkbox itself: a press on the surrounding cell produces no
+    // `change`, so arming there would strand the flag until some later toggle consumed it. The
+    // text-selection preventDefault still covers the whole cell.
+    if ((event.target as HTMLElement).closest('p-checkbox')) {
+      this.pendingShift = { shiftKey: event.shiftKey, id };
+    }
     if (event.shiftKey) event.preventDefault();
   }
 
   /**
-   * The rows the user can currently see, in display order. Lazy tables render exactly `items`;
-   * client-side tables render PrimeNG's filtered view sliced by its paginator — resolving a
-   * range over `items` there would sweep filtered-out or off-page rows sitting between two
-   * visually adjacent ones. An anchor outside this window misses and the shift-click degrades
-   * to a plain toggle, so page/sort/filter changes need no per-path anchor resets.
+   * The rows the user can currently see, in display order — PrimeNG's own answer, so it cannot
+   * drift from what the table paints (it applies `filteredValue` and the paginator slice, and
+   * caps lazy pages at `rows` even when the server overshoots). Resolving a range over raw
+   * `items` would sweep filtered-out or off-page rows sitting between two visually adjacent
+   * ones. An anchor outside this window misses and the shift-click degrades to a plain toggle.
    */
   private renderedRows(): any[] {
-    if (this.hasLazyLoad) return this.items;
-
-    const visible = this.table?.filteredValue ?? this.items;
-    if (!this.showPaginator) return visible;
-
-    const first = this.table?.first ?? 0;
-    return visible.slice(first, first + (this.table?.rows ?? visible.length));
+    return this.table?.dataToRender(null) ?? this.items;
   }
 
   selectRow(id: number, index: number) {
@@ -1135,9 +1159,11 @@ export class SpiderlyDataTableComponent
       this.pendingShift?.id === id && this.pendingShift.shiftKey;
     this.pendingShift = null;
 
-    if (shiftRange) {
+    // `null` is the no-anchor sentinel, so it must never resolve to a row: a client-side table
+    // can hold unsaved rows whose idField is null, and findIndex would happily match one.
+    if (shiftRange && this.rangeAnchorId != null && id != null) {
       const rendered = this.renderedRows();
-      const indexOf = (rowId: number | null) =>
+      const indexOf = (rowId: number) =>
         rendered.findIndex((x) => x[this.idField] === rowId);
       const anchorIndex = indexOf(this.rangeAnchorId);
       const clickedIndex = indexOf(id);
