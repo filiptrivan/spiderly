@@ -187,6 +187,28 @@ namespace Spiderly.Shared.Tests
             Assert.Matches(@"^products/84512/brand-model-[0-9a-f]{8}\.jpg$", key);
         }
 
+        [Theory]
+        [InlineData("brand/model", "brand-model")]
+        [InlineData(@"brand\model", "brand-model")] // Windows separator: DiskStorageService maps / onto it
+        [InlineData("../escape", "..-escape")] // folds to one literal segment — no longer traversal
+        public void Slugifier_OutputCannotIntroduceAPathSegment(string custom, string expectedSlug)
+        {
+            BlobKeyOptions options = new() { Slugifier = _ => custom, UniquenessSuffixLength = 0 };
+
+            Assert.Equal($"products/84512/{expectedSlug}.jpg",
+                BlobKeyConventions.BuildKey("photo.jpg", "products", "84512", "anything", options));
+        }
+
+        [Fact]
+        public void Slugifier_ReturningOnlyDots_FallsBackToTheGuidKey()
+        {
+            // ".." names a relative directory rather than a file, so it cannot be the segment.
+            BlobKeyOptions options = new() { Slugifier = _ => ".." };
+
+            Assert.Matches(@"^products/84512/[0-9a-f-]{36}\.jpg$",
+                BlobKeyConventions.BuildKey("photo.jpg", "products", "84512", "anything", options));
+        }
+
         [Fact]
         public void MaxSlugLength_AndSuffixLength_AreConfigurable()
         {

@@ -105,6 +105,22 @@ public class BlobKeyPrefixValidatorTests
         Assert.Equal(["SPIDERLY030"], ids);
     }
 
+    [Theory]
+    [InlineData("../shared")]
+    [InlineData("..")]
+    [InlineData("products/../../etc")]
+    [InlineData(".")]
+    public void PrefixWithADotSegment_IsAnError(string keyPrefix)
+    {
+        // DiskStorageService path-combines the prefix under its root and deletes everything it
+        // enumerates there during cleanup, so a traversal segment escapes the storage root and
+        // takes real files with it. A validator that claims to reject unusable prefixes must
+        // catch this one.
+        List<string> ids = Validate(MakeEntity("ProductMedia", BlobProperty("Url", keyPrefix)));
+
+        Assert.Equal(["SPIDERLY030"], ids);
+    }
+
     [Fact]
     public void PrefixUsingTheReservedStagingSegment_IsAnError()
     {

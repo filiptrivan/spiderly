@@ -82,6 +82,18 @@ namespace Spiderly.SourceGenerators.Shared
                 return;
             }
 
+            // A dot-only segment is path traversal, not a name: DiskStorageService path-combines
+            // the prefix under its root and then deletes everything it enumerates there during
+            // cleanup, so "../.." escapes the storage root and takes real files with it.
+            if (prefix.Split('/').Any(segment => segment.All(c => c == '.')))
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    SpiderlyDiagnostics.InvalidBlobKeyPrefix, location,
+                    prefix, entity.Name, property.Name,
+                    "contains a '.' or '..' path segment. Disk-backed storage resolves the prefix as a real directory, so a traversal segment would delete files outside the storage root during cleanup."));
+                return;
+            }
+
             if (prefix.Split('/').Any(segment => segment == BlobKeyConventionsMirror.StagingSegment))
             {
                 diagnostics.Add(Diagnostic.Create(

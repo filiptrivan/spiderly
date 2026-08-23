@@ -500,7 +500,7 @@ namespace TestApp.Business.Services
 
                 // The optimize hook may have transcoded the bytes (rasters -> WebP by default), and the
                 // storage key's extension + Content-Type are derived from this name.
-                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray, file.ContentType);
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
@@ -616,7 +616,7 @@ namespace TestApp.Business.Services
 
                 // The optimize hook may have transcoded the bytes (rasters -> WebP by default), and the
                 // storage key's extension + Content-Type are derived from this name.
-                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray, file.ContentType);
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
@@ -732,7 +732,7 @@ namespace TestApp.Business.Services
 
                 // The optimize hook may have transcoded the bytes (rasters -> WebP by default), and the
                 // storage key's extension + Content-Type are derived from this name.
-                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray, file.ContentType);
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
@@ -850,7 +850,7 @@ namespace TestApp.Business.Services
                 }
 
                 // Rasters were just transcoded to WebP — the key's extension + Content-Type follow the bytes.
-                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray, file.ContentType);
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {

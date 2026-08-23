@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -214,16 +215,21 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
-        /// The only thing enforced on a custom <see cref="BlobKeyOptions.Slugifier"/>'s output: a
-        /// <c>/</c> would add a path segment, putting the blob outside the prefix that cleanup and
-        /// staging promotion list — which deletes files rather than renaming them.
+        /// The only thing enforced on a custom <see cref="BlobKeyOptions.Slugifier"/>'s output:
+        /// it must stay a single path segment. Either separator would move the blob outside the
+        /// prefix that cleanup and staging promotion list — which deletes files rather than
+        /// renaming them — and on disk-backed storage a <c>..</c> segment escapes the root
+        /// entirely. Everything else is the consumer's business.
         /// </summary>
         private static string? SanitizeCustomSlug(string? slug)
         {
             if (string.IsNullOrWhiteSpace(slug))
                 return null;
 
-            return slug!.Replace('/', '-');
+            string sanitized = slug!.Replace('/', '-').Replace('\\', '-');
+
+            // A dot-only result would name a relative directory rather than a file.
+            return sanitized.All(c => c == '.') ? null : sanitized;
         }
     }
 }

@@ -535,8 +535,15 @@ namespace Spiderly.Shared.Helpers
         /// undetectable, or the current extension is already valid for the detected type
         /// (<c>.jpg</c> for JPEG must not churn to <c>.jpeg</c>), the name is returned unchanged.
         /// </summary>
-        public static string AlignExtensionWithContent(string fileName, byte[] content)
+        public static string AlignExtensionWithContent(string fileName, byte[] content, string? declaredContentType = null)
         {
+            // SVG is a text format with NO magic bytes, so detection can only see the generic XML
+            // (or plain-text) shape underneath it — "aligning" renames logo.svg to logo.xml, which
+            // is then served as text/xml and stops rendering in an <img>. ValidateFileSignature
+            // carves SVG out for exactly this reason and validates it structurally instead.
+            if (SvgMimeType.Equals(declaredContentType, StringComparison.OrdinalIgnoreCase))
+                return fileName;
+
             // Inspect a bounded HEAD of the content, not the whole array: Mime-Detective's stream
             // reader buffers up to its 10 MB MaxFileSize regardless of input size, so inspecting a
             // 300 KB image cost a 10 MB LOH allocation (measured 2,3 ms; 50 ms for a video) to read
@@ -545,16 +552,20 @@ namespace Spiderly.Shared.Helpers
             // the window is simply not detected, and an undetected type keeps the original name.
             var results = FileSignatures.Inspector.Inspect(content, 0, Math.Min(content.Length, 65536));
 
+            string currentExtension = GetFileExtensionFromFileName(fileName);
+
+            // ANY match that already agrees with the name wins. Container formats match several
+            // definitions at once — an .avif is also a generic ISO ftyp, a .docx is also a .zip —
+            // so trusting only the first would rename a specific format to its generic parent.
+            if (results.Any(r => !r.Definition.File.Extensions.IsDefaultOrEmpty
+                    && r.Definition.File.Extensions.Contains(currentExtension, StringComparer.OrdinalIgnoreCase)))
+                return fileName;
+
             ImmutableArray<string> detectedExtensions = results
                 .Select(r => r.Definition.File.Extensions)
                 .FirstOrDefault(e => !e.IsDefaultOrEmpty);
 
             if (detectedExtensions.IsDefaultOrEmpty)
-                return fileName;
-
-            string currentExtension = GetFileExtensionFromFileName(fileName);
-
-            if (detectedExtensions.Contains(currentExtension, StringComparer.OrdinalIgnoreCase))
                 return fileName;
 
             return Path.ChangeExtension(fileName, detectedExtensions[0]);

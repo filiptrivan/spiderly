@@ -41,6 +41,39 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("photo.jpg", Helper.AlignExtensionWithContent("photo.jpg", JpegBytes));
         }
 
+        // An SVG an admin actually uploads: vector editors emit the XML declaration.
+        private const string RealSvg =
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24"/></svg>
+            """;
+
+        [Fact]
+        public void SvgKeepsItsExtension()
+        {
+            // SVG is a text format with no magic bytes — detection can only see the generic XML
+            // underneath, so "aligning" would rename logo.svg to logo.xml and the browser would
+            // stop rendering it as an image. ValidateFileSignature carves SVG out for this reason.
+            byte[] svgBytes = Encoding.UTF8.GetBytes(RealSvg);
+
+            Assert.Equal("logo.svg", Helper.AlignExtensionWithContent("logo.svg", svgBytes, "image/svg+xml"));
+        }
+
+        [Fact]
+        public void AContainerFormatIsNotRenamedToItsGenericParent()
+        {
+            // An ISO/BMFF box matches BOTH the generic ftyp definition and the custom AVIF one
+            // FileSignatures ships. Trusting only the first result would rename photo.avif to
+            // photo.mp4 — defeating the very definition that exists so AVIF is recognised.
+            byte[] avifBytes =
+            [
+                0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, // ....ftyp
+                0x61, 0x76, 0x69, 0x66, 0x00, 0x00, 0x00, 0x00, // avif
+            ];
+
+            Assert.Equal("photo.avif", Helper.AlignExtensionWithContent("photo.avif", avifBytes, "image/avif"));
+        }
+
         [Fact]
         public void UndetectableContentKeepsTheOriginalName()
         {
