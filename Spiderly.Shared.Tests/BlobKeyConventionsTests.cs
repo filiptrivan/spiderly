@@ -100,13 +100,31 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
-        public void DefaultMaxSlugLength_IsGenerousEnoughToKeepATrailingArticleNumber()
+        public void TheCapKeepsARunawayHookReturnStorable()
         {
-            // Not a round number picked by taste: measured against a 71.472-product tool catalogue
-            // (2026-08-23), where the manufacturer article number is usually the LAST token of the
-            // name. A 60-char cap stripped it from 14,8% of the whole catalogue; 100 leaves 0,68%.
-            // Lowering this is a decision to throw that away, so it is pinned rather than implied.
-            Assert.Equal(100, BlobKeyOptions.DefaultMaxSlugLength);
+            // What the cap is actually FOR. A consumer hook can return anything — pointing it at
+            // an HTML description is an easy mistake — and without a bound the upload FAILS
+            // rather than looking ugly: the file segment is one filesystem component (255 bytes)
+            // and an S3 key is capped at 1024. Assert the produced segment stays storable.
+            string runaway = string.Join(" ", Enumerable.Repeat("opis proizvoda", 5000)); // ~70k chars
+
+            string key = BlobKeyConventions.BuildKey("photo.jpg", "proizvodi", "84512", runaway);
+            string fileSegment = key.Split('/').Last();
+
+            Assert.True(fileSegment.Length <= 255, $"file segment is {fileSegment.Length} bytes — a filesystem will reject it");
+            Assert.True(key.Length <= 1024, $"key is {key.Length} bytes — S3 will reject it");
+        }
+
+        [Fact]
+        public void DefaultMaxSlugLength_LeavesRoomForATrailingArticleNumber()
+        {
+            // The default errs HIGH on purpose: truncation is silent and the key is immutable, so
+            // a cap set low destroys information permanently while one set high only lengthens a
+            // URL. Measured on a 71.472-product tool catalogue (2026-08-23), where the
+            // manufacturer article number is usually the LAST token: 60 stripped it from 14,8% of
+            // the catalogue, 100 from 0,68%, 200 truncates 3 products in total. Lowering this is a
+            // consumer decision (BlobKeyOptions), not a tidy-up — hence pinned.
+            Assert.Equal(200, BlobKeyOptions.DefaultMaxSlugLength);
 
             string? slug = BlobKeyConventions.SlugifyDescriptiveName(
                 "Bosch Expert rolna brusnog papira za rucno brusenje 93mm duzina 50m granulacija 240 2608900974");

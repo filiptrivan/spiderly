@@ -9,8 +9,8 @@ namespace Spiderly.Shared
     /// <para>
     /// The knobs exist because the defaults encode judgements that are NOT universal: the
     /// transliteration table is Latin/Serbo-Croatian-shaped (Vietnamese <c>đ</c> is the letter
-    /// <c>d</c>, not the digraph <c>dj</c>), the length cap is measured against one catalogue's
-    /// naming habits, and the random suffix solves immutable-cache staleness that a consumer
+    /// <c>d</c>, not the digraph <c>dj</c>), the length cap is a storage-derived backstop rather
+    /// than a preference, and the random suffix solves immutable-cache staleness that a consumer
     /// serving <c>no-cache</c> does not have. What is deliberately NOT configurable is the <c>{prefix}/{objectId}/</c> path
     /// structure — blob cleanup and staging promotion scope by listing it, so a consumer changing
     /// it would silently break blob deletion rather than merely renaming things.
@@ -24,20 +24,27 @@ namespace Spiderly.Shared
         /// <summary>
         /// Hard cap on the slug segment, applied at the last word boundary that fits.
         /// <para>
-        /// Deliberately generous, because the two directions fail asymmetrically: a cap set too
-        /// low destroys information permanently inside an immutable key, while one set too high
-        /// only makes a URL longer. Measured against a 71.472-product tool catalogue (2026-08-23),
-        /// a 60-char cap truncated 26,3% of names and stripped the manufacturer article number —
-        /// the highest-intent search token these products have, and usually the LAST token in the
-        /// name — from 14,8% of the whole catalogue. At 100 that falls to 0,68%, for a worst-case
-        /// key of ~150 chars against S3's 1024-byte limit. Lower it only if your storage or CDN
-        /// has a tighter budget than that.
+        /// This is a SAFETY BACKSTOP, not a style preference — set it from what breaks, not from
+        /// what looks tidy. The descriptive name comes from a consumer hook that can return
+        /// anything: point it at an HTML description and, with no cap, the upload FAILS rather
+        /// than looking ugly, because <c>{slug}-{suffix}.{ext}</c> is a single filesystem
+        /// component (255 bytes on ext4/APFS/NTFS — verified) and an S3 key is capped at 1024
+        /// bytes. The default leaves headroom under both, and keeps a typical Windows dev path
+        /// under <c>MAX_PATH</c> for <c>DiskStorageService</c>.
+        /// </para>
+        /// <para>
+        /// Truncation is silent and permanent — the key is immutable once the object exists — so
+        /// the default errs high deliberately. Measured on a 71.472-product tool catalogue
+        /// (2026-08-23) where the manufacturer article number is usually the LAST token of a
+        /// name: a 60-char cap stripped it from 14,8% of the catalogue, 100 from 0,68%, and 200
+        /// truncates 3 products in total. If you want shorter URLs, that is a consumer decision —
+        /// lower this — but know it is paid for in information the URL can never get back.
         /// </para>
         /// </summary>
         public int MaxSlugLength { get; set; } = DefaultMaxSlugLength;
 
-        /// <summary>The value <see cref="MaxSlugLength"/> starts at. See it for the measurement behind the number.</summary>
-        public const int DefaultMaxSlugLength = 100;
+        /// <summary>The value <see cref="MaxSlugLength"/> starts at. See it for what the number is derived from.</summary>
+        public const int DefaultMaxSlugLength = 200;
 
         /// <summary>
         /// Length of the random hex suffix appended after the slug, 0-32.
