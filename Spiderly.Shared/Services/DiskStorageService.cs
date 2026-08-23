@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.Interfaces;
 
@@ -8,20 +9,22 @@ namespace Spiderly.Shared.Services
     {
         private readonly string _rootPath;
         private readonly ILogger<DiskStorageService> _logger;
+        private readonly BlobKeyOptions _blobKeyOptions;
 
         /// <summary>
         /// By default, files will be stored in:
         ///   {CurrentDirectory}/FileStorage
         /// </summary>
-        public DiskStorageService(ILogger<DiskStorageService> logger)
-            : this(Path.Combine(Directory.GetCurrentDirectory(), "FileStorage"), logger)
+        public DiskStorageService(ILogger<DiskStorageService> logger, IOptions<BlobKeyOptions>? blobKeyOptions = null)
+            : this(Path.Combine(Directory.GetCurrentDirectory(), "FileStorage"), logger, blobKeyOptions)
         {
         }
 
-        public DiskStorageService(string rootPath, ILogger<DiskStorageService> logger)
+        public DiskStorageService(string rootPath, ILogger<DiskStorageService> logger, IOptions<BlobKeyOptions>? blobKeyOptions = null)
         {
             _rootPath = rootPath;
             _logger = logger;
+            _blobKeyOptions = blobKeyOptions?.Value ?? BlobKeyOptions.Default;
             Directory.CreateDirectory(_rootPath);
         }
 
@@ -43,7 +46,7 @@ namespace Spiderly.Shared.Services
 
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName, _blobKeyOptions);
             }
 
             string fullPath = Path.Combine(_rootPath, newFileName.Replace('/', Path.DirectorySeparatorChar));
@@ -138,7 +141,7 @@ namespace Spiderly.Shared.Services
             string objectId,
             Func<Task<string>>? resolveDescriptiveName = null)
         {
-            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName);
+            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName, _blobKeyOptions);
 
             if (newKey == null)
                 return currentKey;

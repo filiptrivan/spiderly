@@ -148,6 +148,70 @@ namespace Spiderly.Shared.Tests
             Assert.Matches(@"^proizvodi/84512/[0-9a-f-]{36}\.jpg$", promoted);
         }
 
+        [Fact]
+        public void Transliterations_AreCorrectableByAConsumer()
+        {
+            // The defaults are one region's conventions and they conflict with others: đ is the
+            // digraph "dj" in Serbo-Croatian but the plain letter "d" in Vietnamese. A consumer
+            // must be able to correct a mapping rather than live with wrong keys forever.
+            BlobKeyOptions vietnamese = new();
+            vietnamese.Transliterations['đ'] = "d";
+            vietnamese.Transliterations['Đ'] = "D";
+
+            Assert.Equal("dong-nai", BlobKeyConventions.SlugifyDescriptiveName("Đồng Nai", vietnamese));
+            Assert.Equal("djong-nai", BlobKeyConventions.SlugifyDescriptiveName("Đồng Nai"));
+        }
+
+        [Fact]
+        public void Slugifier_ReplacesTheBuiltInEntirely()
+        {
+            // The built-in folds CJK to nothing (no ASCII alphanumerics survive), so every key
+            // would silently degrade to a bare GUID. This hatch is what lets that consumer plug
+            // in a real romanization library.
+            Assert.Null(BlobKeyConventions.SlugifyDescriptiveName("電動ドリル"));
+
+            BlobKeyOptions romanized = new() { Slugifier = _ => "dendo-doriru" };
+
+            Assert.Equal("dendo-doriru", BlobKeyConventions.SlugifyDescriptiveName("電動ドリル", romanized));
+        }
+
+        [Fact]
+        public void Slugifier_CannotBreakTheKeyStructureWithASlash()
+        {
+            // A slash would add a path segment, putting the blob outside the prefix that cleanup
+            // and staging promotion list — that deletes files rather than renaming them.
+            BlobKeyOptions nested = new() { Slugifier = _ => "brand/model" };
+
+            string key = BlobKeyConventions.BuildKey("photo.jpg", "products", "84512", "anything", nested);
+
+            Assert.Matches(@"^products/84512/brand-model-[0-9a-f]{8}\.jpg$", key);
+        }
+
+        [Fact]
+        public void MaxSlugLength_AndSuffixLength_AreConfigurable()
+        {
+            BlobKeyOptions tight = new() { MaxSlugLength = 20, UniquenessSuffixLength = 4 };
+
+            string key = BlobKeyConventions.BuildKey(
+                "photo.jpg", "products", "84512", "Akumulatorska udarna busilica odvijac", tight);
+
+            Assert.Matches(@"^products/84512/akumulatorska-udarna-[0-9a-f]{4}\.jpg$", key);
+        }
+
+        [Fact]
+        public void UniquenessSuffixLength_Zero_ProducesDeterministicNamedKeys()
+        {
+            // For consumers who bust caches another way. Opting out must not also make the
+            // no-descriptive-name path collide, so that path keeps its full GUID.
+            BlobKeyOptions deterministic = new() { UniquenessSuffixLength = 0 };
+
+            Assert.Equal("products/84512/bosch-gsb-13-re.jpg",
+                BlobKeyConventions.BuildKey("photo.jpg", "products", "84512", "Bosch GSB 13 RE", deterministic));
+
+            Assert.Matches(@"^products/84512/[0-9a-f-]{36}\.jpg$",
+                BlobKeyConventions.BuildKey("photo.jpg", "products", "84512", null, deterministic));
+        }
+
         [Theory]
         [InlineData("Brand", "Image", false, "Brand/Image")]
         [InlineData("Product", "HtmlDescription", true, "Product/HtmlDescriptionImage")]

@@ -342,9 +342,16 @@ namespace Spiderly.SourceGenerators.Shared
         /// <summary>
         /// A blob key prefix is the listing scope for save-time cleanup and staging promotion, so
         /// two properties sharing an effective prefix (or nesting one under another) would list and
-        /// delete each other's objects — and prefixes land verbatim in public URLs, so a
-        /// non-key-safe custom prefix would percent-encode. Raised model-wide by
-        /// <see cref="BlobKeyPrefixValidator"/>, hosted by <see cref="EntityValidationGenerator"/>.
+        /// delete each other's objects. Also covers prefixes that break the mechanism outright
+        /// (whitespace, non-ASCII, a reserved <c>_tmp</c> segment, empty path segments).
+        /// <para>
+        /// Deliberately SEPARATE from <see cref="UnconventionalBlobKeyPrefix"/>: this one is about
+        /// losing files, that one is about house style. Sharing an id would mean a consumer
+        /// suppressing the style rule to use their own naming ALSO silently turned off the check
+        /// that stops one property deleting another's blobs.
+        /// </para>
+        /// Raised model-wide by <see cref="BlobKeyPrefixValidator"/>, hosted by
+        /// <see cref="EntityValidationGenerator"/>.
         /// </summary>
         public static readonly DiagnosticDescriptor InvalidBlobKeyPrefix = new(
             id: "SPIDERLY030",
@@ -352,6 +359,21 @@ namespace Spiderly.SourceGenerators.Shared
             messageFormat: "Blob key prefix '{0}' on '{1}.{2}': {3}",
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        /// <summary>
+        /// A blob key prefix that works but departs from the convention the rest of the key
+        /// follows (the slugified file segment is lowercase kebab-case). Uppercase and underscores
+        /// are legal in every storage provider Spiderly targets, so this is a WARNING and nothing
+        /// more — a consumer with an existing bucket layout to match should suppress SPIDERLY031
+        /// and keep the real guard, SPIDERLY030, armed.
+        /// </summary>
+        public static readonly DiagnosticDescriptor UnconventionalBlobKeyPrefix = new(
+            id: "SPIDERLY031",
+            title: "Blob KeyPrefix departs from the lowercase kebab-case convention",
+            messageFormat: "Blob key prefix '{0}' on '{1}.{2}' is {3}. Keys are public URLs and the rest of the key is lowercase kebab-case, so a mixed convention reads as a mistake. Suppress SPIDERLY031 if this matches an existing bucket layout.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
     }
 }

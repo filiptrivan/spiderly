@@ -10,9 +10,11 @@ namespace Spiderly.Shared.Services
     {
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
+        private readonly BlobKeyOptions _blobKeyOptions;
 
-        public S3PrivateStorageService(IAmazonS3 s3Client, IOptions<S3Options> s3Options)
+        public S3PrivateStorageService(IAmazonS3 s3Client, IOptions<S3Options> s3Options, IOptions<BlobKeyOptions>? blobKeyOptions = null)
         {
+            _blobKeyOptions = blobKeyOptions?.Value ?? BlobKeyOptions.Default;
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
             _bucketName = s3Options.Value.S3BucketName ?? throw new ArgumentNullException(nameof(S3Options.S3BucketName));
         }
@@ -29,7 +31,7 @@ namespace Spiderly.Shared.Services
         {
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName, _blobKeyOptions);
             }
 
             var putRequest = new PutObjectRequest
@@ -106,7 +108,7 @@ namespace Spiderly.Shared.Services
             string objectId,
             Func<Task<string>>? resolveDescriptiveName = null)
         {
-            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName);
+            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName, _blobKeyOptions);
 
             if (newKey == null)
                 return currentKey;

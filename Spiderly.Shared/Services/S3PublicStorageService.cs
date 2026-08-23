@@ -15,10 +15,12 @@ namespace Spiderly.Shared.Services
         private readonly string _bucketName;
         private readonly string _endpoint;
         private readonly ILogger<S3PublicStorageService> _logger;
+        private readonly BlobKeyOptions _blobKeyOptions;
 
-        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger, IOptions<S3Options> s3Options)
+        public S3PublicStorageService(IAmazonS3 s3Client, ILogger<S3PublicStorageService> logger, IOptions<S3Options> s3Options, IOptions<BlobKeyOptions>? blobKeyOptions = null)
         {
             S3Options s3Settings = s3Options.Value;
+            _blobKeyOptions = blobKeyOptions?.Value ?? BlobKeyOptions.Default;
             _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
             _bucketName = s3Settings.S3BucketName ?? throw new ArgumentNullException(nameof(S3Options.S3BucketName));
             _endpoint = s3Settings.S3PublicEndpoint ?? throw new ArgumentNullException(nameof(S3Options.S3PublicEndpoint));
@@ -37,7 +39,7 @@ namespace Spiderly.Shared.Services
         {
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName, _blobKeyOptions);
             }
 
             FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
@@ -165,7 +167,7 @@ namespace Spiderly.Shared.Services
         {
             string currentKey = ExtractS3KeyFromUrl(currentUrl);
 
-            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName);
+            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName, _blobKeyOptions);
 
             if (newKey == null)
                 return currentUrl;

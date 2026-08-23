@@ -1,13 +1,16 @@
+using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
 
 namespace Spiderly.SourceGenerators.Tests;
 
 /// <summary>
-/// Negative controls for the SPIDERLY030 detector: blob key prefixes are the listing scope for
-/// cleanup and staging promotion, so two properties sharing an effective prefix would delete each
-/// other's objects. The validator must reject duplicate effective prefixes (custom or default),
-/// path-parent collisions, and non-key-safe custom prefixes — and stay silent on a clean model.
+/// Negative controls for the blob key-prefix detector. The rule it enforces is deliberately split
+/// in two, and the split is the point: <b>SPIDERLY030 (Error)</b> is about losing files — prefixes
+/// are the listing scope for cleanup and staging promotion, so a collision deletes another
+/// property's objects and an unusable prefix breaks the mechanism. <b>SPIDERLY031 (Warning)</b> is
+/// only house style, so a consumer with an existing bucket layout can suppress it and keep the
+/// real guard armed.
 /// </summary>
 public class BlobKeyPrefixValidatorTests
 {
@@ -46,82 +49,97 @@ public class BlobKeyPrefixValidatorTests
         return property;
     }
 
+    private static List<string> Validate(params SpiderlyClass[] entities) =>
+        BlobKeyPrefixValidator.Validate(entities.ToList()).Select(d => d.Id).ToList();
+
     [Fact]
     public void CleanModel_DistinctPrefixes_Passes()
     {
-        List<SpiderlyClass> entities =
-        [
+        Assert.Empty(Validate(
             MakeEntity("ProductMedia", BlobProperty("Url", "products"), BlobProperty("ThumbnailUrl", "products-thumb")),
-            MakeEntity("Brand", BlobProperty("Image")), // default Brand/Image
-        ];
-
-        BlobKeyPrefixValidator.Validate(entities); // must not throw
+            MakeEntity("Brand", BlobProperty("Image")))); // default Brand/Image
     }
 
     [Fact]
-    public void DuplicateCustomPrefix_ThrowsSPIDERLY030()
+    public void DuplicateCustomPrefix_IsAnError()
     {
-        List<SpiderlyClass> entities =
-        [
+        List<string> ids = Validate(
             MakeEntity("ProductMedia", BlobProperty("Url", "products")),
-            MakeEntity("Catalog", BlobProperty("File", "products")),
-        ];
+            MakeEntity("Catalog", BlobProperty("File", "products")));
 
-        SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => BlobKeyPrefixValidator.Validate(entities));
-
-        Assert.Equal("SPIDERLY030", ex.Diagnostic.Id);
-        Assert.Contains("products", ex.Diagnostic.GetMessage());
+        Assert.Equal(["SPIDERLY030"], ids);
     }
 
     [Fact]
-    public void CustomPrefixShadowingAnotherPropertysDefault_ThrowsSPIDERLY030()
+    public void CustomPrefixShadowingAnotherPropertysDefault_IsAnError()
     {
-        List<SpiderlyClass> entities =
-        [
+        List<string> ids = Validate(
             MakeEntity("Brand", BlobProperty("Image")), // default Brand/Image
-            MakeEntity("Catalog", BlobProperty("File", "Brand/Image")),
-        ];
+            MakeEntity("Catalog", BlobProperty("File", "Brand/Image")));
 
-        SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => BlobKeyPrefixValidator.Validate(entities));
-
-        Assert.Equal("SPIDERLY030", ex.Diagnostic.Id);
+        Assert.Contains("SPIDERLY030", ids);
     }
 
     [Fact]
-    public void PathParentPrefix_ThrowsSPIDERLY030()
+    public void PathParentPrefix_IsAnError()
     {
         // "products" listing/staging scope sits above "products/extra" keys — reject the nesting.
-        List<SpiderlyClass> entities =
-        [
+        List<string> ids = Validate(
             MakeEntity("ProductMedia", BlobProperty("Url", "products")),
-            MakeEntity("Catalog", BlobProperty("File", "products/extra")),
-        ];
+            MakeEntity("Catalog", BlobProperty("File", "products/extra")));
 
-        SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => BlobKeyPrefixValidator.Validate(entities));
+        Assert.Contains("SPIDERLY030", ids);
+    }
 
-        Assert.Equal("SPIDERLY030", ex.Diagnostic.Id);
+    [Theory]
+    [InlineData("proizvodi ba")] // whitespace
+    [InlineData("šrafovi")] // non-ASCII — keys are public URLs, they must not percent-encode
+    [InlineData("products/")] // trailing slash = empty segment
+    [InlineData("/products")] // leading slash
+    [InlineData("products//thumbs")] // doubled slash
+    [InlineData("")] // explicit empty
+    public void PrefixThatBreaksTheMechanism_IsAnError(string keyPrefix)
+    {
+        List<string> ids = Validate(MakeEntity("ProductMedia", BlobProperty("Url", keyPrefix)));
+
+        Assert.Equal(["SPIDERLY030"], ids);
+    }
+
+    [Fact]
+    public void PrefixUsingTheReservedStagingSegment_IsAnError()
+    {
+        // A permanent blob under a "_tmp" segment reads as a not-yet-promoted upload.
+        List<string> ids = Validate(MakeEntity("ProductMedia", BlobProperty("Url", "products/_tmp")));
+
+        Assert.Equal(["SPIDERLY030"], ids);
     }
 
     [Theory]
     [InlineData("Products")] // uppercase
-    [InlineData("proizvodi ba")] // whitespace
-    [InlineData("šrafovi")] // non-ASCII — keys are public URLs, they must not percent-encode
-    [InlineData("products/")] // trailing slash
-    [InlineData("products/_tmp")] // collides with the staging segment
-    [InlineData("")] // explicit empty
-    public void MalformedCustomPrefix_ThrowsSPIDERLY030(string keyPrefix)
+    [InlineData("product_images")] // underscores
+    public void PrefixThatMerelyDepartsFromHouseStyle_IsOnlyAWarning(string keyPrefix)
     {
-        List<SpiderlyClass> entities =
-        [
-            MakeEntity("ProductMedia", BlobProperty("Url", keyPrefix)),
-        ];
+        List<Diagnostic> diagnostics = BlobKeyPrefixValidator.Validate(
+            [MakeEntity("ProductMedia", BlobProperty("Url", keyPrefix))]);
 
-        SpiderlyGenerationException ex = Assert.Throws<SpiderlyGenerationException>(
-            () => BlobKeyPrefixValidator.Validate(entities));
+        Diagnostic diagnostic = Assert.Single(diagnostics);
 
-        Assert.Equal("SPIDERLY030", ex.Diagnostic.Id);
+        // These are legal keys in every provider Spiderly targets. Failing the build over them
+        // would be a house preference blocking a consumer with an existing bucket layout.
+        Assert.Equal("SPIDERLY031", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+    }
+
+    [Fact]
+    public void SuppressingTheStyleWarningLeavesTheCollisionErrorArmed()
+    {
+        // The reason the two have separate ids: a consumer who suppresses SPIDERLY031 to keep
+        // their own naming must still be told when one property will delete another's blobs.
+        List<string> ids = Validate(
+            MakeEntity("ProductMedia", BlobProperty("Url", "Products")),
+            MakeEntity("Catalog", BlobProperty("File", "Products")));
+
+        Assert.Contains("SPIDERLY030", ids);
+        Assert.Contains("SPIDERLY031", ids);
     }
 }

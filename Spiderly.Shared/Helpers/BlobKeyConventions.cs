@@ -10,55 +10,51 @@ namespace Spiderly.Shared.Helpers
     /// Keys follow <c>{KeyPrefix}/{ObjectId}/{FileName}</c>, where <c>{KeyPrefix}</c> defaults to
     /// <c>{EntityName}/{PropertyName}</c> and is overridable per property via
     /// <c>[…Storage(KeyPrefix = "…")]</c>, and <c>{FileName}</c> is either
-    /// <c>{Slug}-{8charSuffix}.{ext}</c> when the entity supplies a descriptive name (keys are
+    /// <c>{Slug}-{suffix}.{ext}</c> when the entity supplies a descriptive name (keys are
     /// public, indexed URLs — the slug is the descriptive signal, the random suffix is what makes
     /// per-upload immutable caching safe) or <c>{BlobGuid}.{ext}</c> when it doesn't. Inserts
     /// (objectId "0" or empty) route through the <c>{KeyPrefix}/_tmp/{UploadGuid}/</c> staging
     /// prefix until the entity is saved and the blob is promoted — descriptive names apply at
     /// promotion, never in staging (no trusted entity exists yet).
+    /// <para>
+    /// Naming POLICY — slug folding, length cap, suffix length — is <see cref="BlobKeyOptions"/>,
+    /// so a consumer can correct or replace it. The path STRUCTURE above is not configurable:
+    /// cleanup and staging promotion scope by listing <c>{KeyPrefix}/{ObjectId}/</c>, so changing
+    /// it would break blob deletion rather than merely renaming things.
+    /// </para>
     /// </summary>
     public static class BlobKeyConventions
     {
         public const string StagingSegment = "_tmp";
 
         /// <summary>
-        /// Hard cap on the slug segment of a blob key. Keys are public URLs; the slug carries
-        /// the descriptive signal and anything past ~60 chars is noise that only bloats the URL.
+        /// Default slug cap, kept as a named constant for readability. The value actually applied
+        /// is <see cref="BlobKeyOptions.MaxSlugLength"/> — never read this to predict a key.
         /// </summary>
-        public const int MaxSlugLength = 60;
-
-        /// <summary>
-        /// Letters the FormD decomposition in <see cref="SlugifyDescriptiveName"/> cannot fold,
-        /// because they are single code points rather than a base letter plus a combining mark
-        /// (stroked letters, ligatures, eth/thorn). Without this table they would be dropped as
-        /// separators — <c>łopata</c> would slug to <c>opata</c>, losing a letter silently.
-        /// </summary>
-        private static readonly Dictionary<char, string> UndecomposableLetters = new()
-        {
-            ['đ'] = "dj", ['Đ'] = "dj", // Serbo-Croatian; conventionally a digraph
-            ['ł'] = "l", ['Ł'] = "l",
-            ['ø'] = "o", ['Ø'] = "o",
-            ['æ'] = "ae", ['Æ'] = "ae",
-            ['œ'] = "oe", ['Œ'] = "oe",
-            ['ß'] = "ss",
-            ['ħ'] = "h", ['Ħ'] = "h",
-            ['ð'] = "d", ['Ð'] = "d",
-            ['þ'] = "th", ['Þ'] = "th",
-        };
+        public const int DefaultMaxSlugLength = 60;
 
         /// <summary>
         /// Folds an arbitrary descriptive name (an entity slug, a raw display name, anything a
         /// consumer's <c>GetBlobDescriptiveName…</c> hook returns) into a key-safe ASCII slug:
         /// lowercase, digits and dashes only, diacritics transliterated (<c>š→s</c>, <c>ü→u</c>,
-        /// plus the <see cref="UndecomposableLetters"/> table), separator runs collapsed, and
-        /// capped at <see cref="MaxSlugLength"/> on a word boundary. Returns <c>null</c> when
-        /// nothing usable remains — callers must treat that as "no descriptive segment", never
-        /// emit an empty one.
+        /// plus <see cref="BlobKeyOptions.Transliterations"/>), separator runs collapsed, and
+        /// capped at <see cref="BlobKeyOptions.MaxSlugLength"/> on a word boundary. Returns
+        /// <c>null</c> when nothing usable remains — callers must treat that as "no descriptive
+        /// segment", never emit an empty one.
+        /// <para>
+        /// A consumer that sets <see cref="BlobKeyOptions.Slugifier"/> replaces all of the above;
+        /// see that property for what is still enforced on the result.
+        /// </para>
         /// </summary>
-        public static string? SlugifyDescriptiveName(string? descriptiveName)
+        public static string? SlugifyDescriptiveName(string? descriptiveName, BlobKeyOptions? options = null)
         {
+            options ??= BlobKeyOptions.Default;
+
             if (string.IsNullOrWhiteSpace(descriptiveName))
                 return null;
+
+            if (options.Slugifier != null)
+                return SanitizeCustomSlug(options.Slugifier(descriptiveName!));
 
             // FormD splits accented letters into base char + combining mark; skipping the marks
             // folds š→s, č→c, ž→z, ü→u, é→e. Single-code-point letters need the table above.
@@ -72,8 +68,10 @@ namespace Spiderly.Shared.Helpers
 
                 if (char.IsAsciiLetterOrDigit(c))
                     builder.Append(char.ToLowerInvariant(c));
-                else if (UndecomposableLetters.TryGetValue(c, out string? transliterated))
-                    builder.Append(transliterated);
+                else if (options.Transliterations.TryGetValue(c, out string? transliterated))
+                    // Lowercased here, not trusted from the table: the slug contract is lowercase
+                    // ASCII, and a consumer correcting one mapping should not have to know that.
+                    builder.Append(transliterated!.ToLowerInvariant());
                 else if (builder.Length > 0 && builder[^1] != '-')
                     builder.Append('-'); // any other char is a separator; leading/doubled runs never start
             }
@@ -81,8 +79,8 @@ namespace Spiderly.Shared.Helpers
             // TrimEnd before the cap too: a trailing non-alphanumeric already appended a separator.
             string slug = builder.ToString().TrimEnd('-');
 
-            if (slug.Length > MaxSlugLength)
-                slug = CapOnWordBoundary(slug);
+            if (options.MaxSlugLength > 0 && slug.Length > options.MaxSlugLength)
+                slug = CapOnWordBoundary(slug, options.MaxSlugLength);
 
             return slug.Length == 0 ? null : slug;
         }
@@ -99,17 +97,18 @@ namespace Spiderly.Shared.Helpers
 
         /// <summary>
         /// Builds the storage key for an upload. With a usable <paramref name="descriptiveName"/>
-        /// the file segment is <c>{slug}-{8charSuffix}.{ext}</c>; without one it is
-        /// <c>{Guid}.{ext}</c>. Staging ids route to the <c>_tmp</c> prefix and never carry a
-        /// descriptive name (see class docs).
+        /// the file segment is <c>{slug}-{suffix}.{ext}</c>; without one it is <c>{Guid}.{ext}</c>.
+        /// Staging ids route to the <c>_tmp</c> prefix and never carry a descriptive name (see
+        /// class docs). Pass <paramref name="options"/> to override naming policy; omitting it
+        /// uses <see cref="BlobKeyOptions.Default"/>.
         /// </summary>
-        public static string BuildKey(string fileName, string keyPrefix, string objectId, string? descriptiveName = null)
+        public static string BuildKey(string fileName, string keyPrefix, string objectId, string? descriptiveName = null, BlobKeyOptions? options = null)
         {
             string extension = Helper.GetFileExtensionFromFileName(fileName);
 
             return IsStagingObjectId(objectId)
                 ? $"{keyPrefix}/{StagingSegment}/{Guid.NewGuid()}/{Guid.NewGuid()}.{extension}"
-                : $"{keyPrefix}/{objectId}/{BuildFileSegment(descriptiveName)}.{extension}";
+                : $"{keyPrefix}/{objectId}/{BuildFileSegment(descriptiveName, options)}.{extension}";
         }
 
         public static bool IsStagingObjectId(string objectId) =>
@@ -135,14 +134,15 @@ namespace Spiderly.Shared.Helpers
             string currentKey,
             string keyPrefix,
             string objectId,
-            Func<Task<string>>? resolveDescriptiveName)
+            Func<Task<string>>? resolveDescriptiveName,
+            BlobKeyOptions? options = null)
         {
             if (IsStagingObjectId(objectId) || !IsStagingKey(currentKey, keyPrefix))
                 return null;
 
             string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
 
-            return TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName)
+            return TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName, options)
                 ? newKey
                 : null;
         }
@@ -154,7 +154,7 @@ namespace Spiderly.Shared.Helpers
         /// or because no real object id is available yet. Promotion is where a staged upload
         /// first meets its saved entity, so this is where the descriptive name lands in the key.
         /// </summary>
-        public static bool TryBuildPromotedKey(string currentKey, string keyPrefix, string objectId, [NotNullWhen(true)] out string? newKey, string? descriptiveName = null)
+        public static bool TryBuildPromotedKey(string currentKey, string keyPrefix, string objectId, [NotNullWhen(true)] out string? newKey, string? descriptiveName = null, BlobKeyOptions? options = null)
         {
             if (string.IsNullOrEmpty(currentKey)
                 || IsStagingObjectId(objectId)
@@ -165,7 +165,7 @@ namespace Spiderly.Shared.Helpers
             }
 
             string extension = Helper.GetFileExtensionFromFileName(currentKey);
-            newKey = $"{keyPrefix}/{objectId}/{BuildFileSegment(descriptiveName)}.{extension}";
+            newKey = $"{keyPrefix}/{objectId}/{BuildFileSegment(descriptiveName, options)}.{extension}";
             return true;
         }
 
@@ -174,9 +174,15 @@ namespace Spiderly.Shared.Helpers
         /// mid-word: a cut like <c>…-odvijac-sa-dve-baterij</c> reads as a typo in a public URL.
         /// Falls back to a hard cut when the first word alone exceeds the cap.
         /// </summary>
-        private static string CapOnWordBoundary(string slug)
+        private static string CapOnWordBoundary(string slug, int maxSlugLength)
         {
-            string capped = slug[..MaxSlugLength];
+            string capped = slug[..maxSlugLength];
+
+            // The cap landing exactly on a separator means the last kept word is already whole —
+            // trimming back to the previous dash would drop a word that fit.
+            if (slug[maxSlugLength] == '-')
+                return capped;
+
             int lastSeparator = capped.LastIndexOf('-');
 
             return lastSeparator > 0 ? capped[..lastSeparator] : capped;
@@ -188,13 +194,36 @@ namespace Spiderly.Shared.Helpers
         /// are served with <c>Cache-Control: immutable</c>, so every upload must mint a new key
         /// or replaced content would be cached stale for up to a year.
         /// </summary>
-        private static string BuildFileSegment(string? descriptiveName)
+        private static string BuildFileSegment(string? descriptiveName, BlobKeyOptions? options)
         {
-            string? slug = SlugifyDescriptiveName(descriptiveName);
+            options ??= BlobKeyOptions.Default;
 
-            return slug == null
-                ? Guid.NewGuid().ToString()
-                : $"{slug}-{Guid.NewGuid().ToString("N")[..8]}";
+            string? slug = SlugifyDescriptiveName(descriptiveName, options);
+
+            // No usable name still needs a unique segment, so the GUID path ignores the suffix
+            // setting entirely — a consumer turning the suffix off is opting out of cache-busting
+            // for NAMED keys, not asking for colliding ones.
+            if (slug == null)
+                return Guid.NewGuid().ToString();
+
+            int suffixLength = Math.Clamp(options.UniquenessSuffixLength, 0, 32);
+
+            return suffixLength == 0
+                ? slug
+                : $"{slug}-{Guid.NewGuid().ToString("N")[..suffixLength]}";
+        }
+
+        /// <summary>
+        /// The only thing enforced on a custom <see cref="BlobKeyOptions.Slugifier"/>'s output: a
+        /// <c>/</c> would add a path segment, putting the blob outside the prefix that cleanup and
+        /// staging promotion list — which deletes files rather than renaming them.
+        /// </summary>
+        private static string? SanitizeCustomSlug(string? slug)
+        {
+            if (string.IsNullOrWhiteSpace(slug))
+                return null;
+
+            return slug!.Replace('/', '-');
         }
     }
 }
