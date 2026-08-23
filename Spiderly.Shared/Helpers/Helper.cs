@@ -8,6 +8,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Spiderly.Shared.Exceptions;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
 using System.Security.Claims;
@@ -536,19 +537,24 @@ namespace Spiderly.Shared.Helpers
         /// </summary>
         public static string AlignExtensionWithContent(string fileName, byte[] content)
         {
-            using MemoryStream stream = new(content);
-            var results = FileSignatures.Inspector.Inspect(stream);
+            // Inspect a bounded HEAD of the content, not the whole array: Mime-Detective's stream
+            // reader buffers up to its 10 MB MaxFileSize regardless of input size, so inspecting a
+            // 300 KB image cost a 10 MB LOH allocation (measured 2,3 ms; 50 ms for a video) to read
+            // bytes that all sit in the first few hundred. 64 KB clears every signature offset in
+            // the default pack (the largest, ISO, is at 32769). A format whose signature sits past
+            // the window is simply not detected, and an undetected type keeps the original name.
+            var results = FileSignatures.Inspector.Inspect(content, 0, Math.Min(content.Length, 65536));
 
-            string[] detectedExtensions = results
-                .Select(r => r.Definition.File.Extensions.ToArray())
-                .FirstOrDefault(e => e.Length > 0) ?? [];
+            ImmutableArray<string> detectedExtensions = results
+                .Select(r => r.Definition.File.Extensions)
+                .FirstOrDefault(e => !e.IsDefaultOrEmpty);
 
-            if (detectedExtensions.Length == 0)
+            if (detectedExtensions.IsDefaultOrEmpty)
                 return fileName;
 
             string currentExtension = GetFileExtensionFromFileName(fileName);
 
-            if (detectedExtensions.Any(e => e.Equals(currentExtension, StringComparison.OrdinalIgnoreCase)))
+            if (detectedExtensions.Contains(currentExtension, StringComparer.OrdinalIgnoreCase))
                 return fileName;
 
             return Path.ChangeExtension(fileName, detectedExtensions[0]);

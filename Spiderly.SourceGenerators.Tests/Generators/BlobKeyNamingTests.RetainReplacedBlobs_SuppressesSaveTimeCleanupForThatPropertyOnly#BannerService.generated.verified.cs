@@ -379,7 +379,7 @@ namespace TestApp.Business.Services
                 bool anyBlobMoved = false;
                 if (!string.IsNullOrEmpty(poco.SnapshottedUrl))
                 {
-                    string movedSnapshottedUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.SnapshottedUrl, nameof(Banner) + "/" + nameof(Banner.SnapshottedUrl), poco.Id.ToString(), async () => await GetBlobDescriptiveNameForSnapshottedUrlOfBanner(poco.Id));
+                    string movedSnapshottedUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.SnapshottedUrl, nameof(Banner) + "/" + nameof(Banner.SnapshottedUrl), poco.Id.ToString(), () => GetBlobDescriptiveNameForSnapshottedUrlOfBanner(poco.Id));
                     if (movedSnapshottedUrl != poco.SnapshottedUrl)
                     {
                         poco.SnapshottedUrl = movedSnapshottedUrl;
@@ -389,7 +389,7 @@ namespace TestApp.Business.Services
                 }
                 if (!string.IsNullOrEmpty(poco.LogoUrl))
                 {
-                    string movedLogoUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.LogoUrl, nameof(Banner) + "/" + nameof(Banner.LogoUrl), poco.Id.ToString(), async () => await GetBlobDescriptiveNameForLogoUrlOfBanner(poco.Id));
+                    string movedLogoUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.LogoUrl, nameof(Banner) + "/" + nameof(Banner.LogoUrl), poco.Id.ToString(), () => GetBlobDescriptiveNameForLogoUrlOfBanner(poco.Id));
                     if (movedLogoUrl != poco.LogoUrl)
                     {
                         poco.LogoUrl = movedLogoUrl;

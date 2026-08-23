@@ -395,7 +395,7 @@ namespace TestApp.Business.Services
                 bool anyBlobMoved = false;
                 if (!string.IsNullOrEmpty(poco.Url))
                 {
-                    string movedUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.Url, "products", poco.Id.ToString(), async () => await GetBlobDescriptiveNameForUrlOfProductMedia(poco.Id));
+                    string movedUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.Url, "products", poco.Id.ToString(), () => GetBlobDescriptiveNameForUrlOfProductMedia(poco.Id));
                     if (movedUrl != poco.Url)
                     {
                         poco.Url = movedUrl;
@@ -405,7 +405,7 @@ namespace TestApp.Business.Services
                 }
                 if (!string.IsNullOrEmpty(poco.ThumbnailUrl))
                 {
-                    string movedThumbnailUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.ThumbnailUrl, nameof(ProductMedia) + "/" + nameof(ProductMedia.ThumbnailUrl), poco.Id.ToString(), async () => await GetBlobDescriptiveNameForThumbnailUrlOfProductMedia(poco.Id));
+                    string movedThumbnailUrl = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.ThumbnailUrl, nameof(ProductMedia) + "/" + nameof(ProductMedia.ThumbnailUrl), poco.Id.ToString(), () => GetBlobDescriptiveNameForThumbnailUrlOfProductMedia(poco.Id));
                     if (movedThumbnailUrl != poco.ThumbnailUrl)
                     {
                         poco.ThumbnailUrl = movedThumbnailUrl;
@@ -415,7 +415,7 @@ namespace TestApp.Business.Services
                 }
                 if (!string.IsNullOrEmpty(poco.HtmlDescription))
                 {
-                    string movedHtmlDescription = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.HtmlDescription, nameof(ProductMedia) + "/" + nameof(ProductMedia.HtmlDescription), poco.Id.ToString(), async () => await GetBlobDescriptiveNameForHtmlDescriptionOfProductMedia(poco.Id));
+                    string movedHtmlDescription = await _s3PublicStorageService.MoveBlobToEntityPathAsync(poco.HtmlDescription, nameof(ProductMedia) + "/" + nameof(ProductMedia.HtmlDescription), poco.Id.ToString(), () => GetBlobDescriptiveNameForHtmlDescriptionOfProductMedia(poco.Id));
                     if (movedHtmlDescription != poco.HtmlDescription)
                     {
                         poco.HtmlDescription = movedHtmlDescription;

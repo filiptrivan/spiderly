@@ -477,24 +477,36 @@ namespace Spiderly.SourceGenerators.Net
         }
 
         /// <summary>
-        /// The C# expression for a storage property's key prefix as passed to every
-        /// <c>IFileManager</c> call. A custom <c>KeyPrefix</c> attribute value binds to the
-        /// property's primary path — the editor-image path for editor/markdown properties, the
-        /// plain blob path otherwise — while the other (vestigial) path keeps the
-        /// <c>{Entity}/{Property}</c> default, so effective prefixes stay disjoint. Defaults are
-        /// composed from <c>nameof</c> so entity/property renames keep generated keys in step.
+        /// The C# expression for the key prefix of a property's plain BLOB path. A custom
+        /// <c>KeyPrefix</c> binds here only for a non-editor property — on an editor property the
+        /// custom prefix belongs to the editor-image path (see
+        /// <see cref="GetEditorImageKeyPrefixExpression"/>) and this vestigial path keeps the
+        /// default, so the two effective prefixes stay disjoint. Defaults are composed from
+        /// <c>nameof</c> so entity/property renames keep generated keys in step; the runtime
+        /// twin of that composition is <c>BlobKeyConventions.DefaultKeyPrefix</c>.
         /// </summary>
-        internal static string GetKeyPrefixExpression(SpiderlyClass entity, SpiderlyProperty property, bool isEditorImagePath = false)
+        internal static string GetBlobKeyPrefixExpression(SpiderlyClass entity, SpiderlyProperty property)
         {
             string? customPrefix = property.GetBlobKeyPrefix();
-            bool isEditorProperty = property.IsEditorControlType() || property.IsMarkdownControlType();
 
-            if (customPrefix != null && isEditorImagePath == isEditorProperty)
+            if (customPrefix != null && !property.IsEditorImageProperty())
                 return $"\"{customPrefix}\"";
 
-            return isEditorImagePath
-                ? $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name}) + \"Image\""
-                : $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name})";
+            return $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name})";
+        }
+
+        /// <summary>
+        /// The C# expression for the key prefix of an editor property's inline-image bucket. Only
+        /// reached for properties <see cref="Helpers.GetEditorImageProperties"/> returned, so a
+        /// custom <c>KeyPrefix</c> always binds here.
+        /// </summary>
+        internal static string GetEditorImageKeyPrefixExpression(SpiderlyClass entity, SpiderlyProperty property)
+        {
+            string? customPrefix = property.GetBlobKeyPrefix();
+
+            return customPrefix != null
+                ? $"\"{customPrefix}\""
+                : $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name}) + \"Image\"";
         }
 
         private static List<string> GetNonActiveDeleteBlobMethods(SpiderlyClass entity)
@@ -509,7 +521,7 @@ namespace Spiderly.SourceGenerators.Net
                     continue;
 
                 result.Add($$"""
-                await {{ServicesGenerator.GetFileManagerServiceField(property)}}.DeleteNonActiveBlobs(dto.{{property.Name}}, {{GetKeyPrefixExpression(entity, property)}}, poco.Id.ToString());
+                await {{ServicesGenerator.GetFileManagerServiceField(property)}}.DeleteNonActiveBlobs(dto.{{property.Name}}, {{GetBlobKeyPrefixExpression(entity, property)}}, poco.Id.ToString());
 """);
             }
 
@@ -539,7 +551,7 @@ namespace Spiderly.SourceGenerators.Net
                 result.Add($$"""
                 if (!string.IsNullOrEmpty(poco.{{property.Name}}))
                 {
-                    string moved{{property.Name}} = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.MoveBlobToEntityPathAsync(poco.{{property.Name}}, {{GetKeyPrefixExpression(entity, property)}}, poco.Id.ToString(), async () => await GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}(poco.Id));
+                    string moved{{property.Name}} = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.MoveBlobToEntityPathAsync(poco.{{property.Name}}, {{GetBlobKeyPrefixExpression(entity, property)}}, poco.Id.ToString(), () => GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}(poco.Id));
                     if (moved{{property.Name}} != poco.{{property.Name}})
                     {
                         poco.{{property.Name}} = moved{{property.Name}};
@@ -568,7 +580,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 result.Add($$"""
                 List<string> active{{property.Name}}ImageUrls = Helper.ExtractImageUrlsFromHtml(dto.{{property.Name}});
-                await _s3PublicStorageService.DeleteNonActiveEditorImages(active{{property.Name}}ImageUrls, {{GetKeyPrefixExpression(entity, property, isEditorImagePath: true)}}, poco.Id.ToString());
+                await _s3PublicStorageService.DeleteNonActiveEditorImages(active{{property.Name}}ImageUrls, {{GetEditorImageKeyPrefixExpression(entity, property)}}, poco.Id.ToString());
 """);
             }
 
@@ -623,7 +635,7 @@ namespace Spiderly.SourceGenerators.Net
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
-                    fileName = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.UploadFileAsync(uploadFileName, {{GetKeyPrefixExpression(entity, property)}}, id.ToString(), updatedStream, descriptiveName);
+                    fileName = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.UploadFileAsync(uploadFileName, {{GetBlobKeyPrefixExpression(entity, property)}}, id.ToString(), updatedStream, descriptiveName);
                 }
             }
 
@@ -837,7 +849,7 @@ public virtual async Task ValidateImageFor{{property.Name}}Of{{entityName}}(Stre
 
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
-                    imageUrl = await _s3PublicStorageService.UploadFileAsync(uploadFileName, {{GetKeyPrefixExpression(entity, property, isEditorImagePath: true)}}, id.ToString(), updatedStream, descriptiveName);
+                    imageUrl = await _s3PublicStorageService.UploadFileAsync(uploadFileName, {{GetEditorImageKeyPrefixExpression(entity, property)}}, id.ToString(), updatedStream, descriptiveName);
                 }
             }
 

@@ -57,10 +57,6 @@ namespace Spiderly.SourceGenerators.Net
             if (currentProjectEntities.Count == 0)
                 return;
 
-            // SPIDERLY030 — colliding/malformed blob key prefixes would make generated services
-            // delete each other's storage objects; fail the build before emitting any of them.
-            BlobKeyPrefixValidator.Validate(allEntities);
-
             string namespaceValue = currentProjectEntities[0].Namespace;
             string basePartOfNamespace = Helpers.GetBasePartOfNamespace(namespaceValue);
 

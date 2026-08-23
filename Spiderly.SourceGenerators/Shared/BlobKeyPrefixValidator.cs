@@ -8,12 +8,16 @@ namespace Spiderly.SourceGenerators.Shared
 {
     /// <summary>
     /// Model-wide guard behind <c>SPIDERLY030</c>: every storage property's <b>effective</b> key
-    /// prefix — the custom <c>KeyPrefix</c> where declared, the <c>{Entity}/{Property}</c>
-    /// (editor images: <c>{Entity}/{Property}Image</c>) default otherwise — must be unique, no
-    /// prefix may be a path-parent of another (both are listing scopes for cleanup/staging
-    /// promotion — see <see cref="ServiceSaveGenerator.GetKeyPrefixExpression"/>, which must stay
-    /// in step with the effective-prefix computation here), and custom prefixes must be key-safe
-    /// (they land verbatim in public URLs).
+    /// prefix (see <see cref="Extensions.GetEffectiveKeyPrefix"/>) must be unique, no prefix may
+    /// be a path-parent of another (both are listing scopes for cleanup/staging promotion), and
+    /// custom prefixes must be key-safe (they land verbatim in public URLs).
+    /// <para>
+    /// The which-path-does-a-custom-prefix-bind-to rule is NOT re-derived here: it is
+    /// <see cref="Extensions.IsEditorImageProperty"/>, shared with
+    /// <see cref="ServiceSaveGenerator.GetBlobKeyPrefixExpression"/>. A second spelling of it made
+    /// the validator pass while the generator emitted a different prefix — a guard that stops
+    /// guarding without failing, which is worse than no guard.
+    /// </para>
     /// </summary>
     public static class BlobKeyPrefixValidator
     {
@@ -21,8 +25,14 @@ namespace Spiderly.SourceGenerators.Shared
         /// Lowercase ASCII kebab-case segments separated by '/'. Anything else either
         /// percent-encodes in URLs (uppercase is legal but is banned for consistency with the
         /// slugified file segment) or collides with the reserved <c>_tmp</c> staging segment.
+        /// <para>
+        /// Deliberately NOT <c>RegexOptions.Compiled</c>: measured, compiling costs ~10,9 ms of
+        /// Reflection.Emit at first use against ~0,3 ms interpreted, and saves ~3,6 µs per
+        /// validation run — break-even is thousands of generation passes in one Roslyn session,
+        /// so every build would pay the emit and never recover it.
+        /// </para>
         /// </summary>
-        private static readonly Regex KeySafePrefix = new("^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$", RegexOptions.Compiled);
+        private static readonly Regex KeySafePrefix = new("^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$");
 
         public static void Validate(List<SpiderlyClass> entities)
         {
@@ -43,16 +53,12 @@ namespace Spiderly.SourceGenerators.Shared
                             "not key-safe. Use lowercase ASCII kebab-case segments separated by '/', e.g. \"products\" or \"products/thumbs\".");
                     }
 
-                    bool isEditorProperty = property.IsEditorControlType() || property.IsMarkdownControlType();
+                    effectivePrefixes.Add((property.GetEffectiveKeyPrefix(entity.Name), entity, property));
 
-                    effectivePrefixes.Add((
-                        customPrefix != null && !isEditorProperty ? customPrefix : $"{entity.Name}/{property.Name}",
-                        entity, property));
-
-                    if (isEditorProperty && property.HasS3PublicStorageAttribute())
+                    if (property.IsEditorImageProperty())
                     {
                         effectivePrefixes.Add((
-                            customPrefix ?? $"{entity.Name}/{property.Name}Image",
+                            property.GetEffectiveKeyPrefix(entity.Name, isEditorImagePath: true),
                             entity, property));
                     }
                 }
@@ -60,9 +66,10 @@ namespace Spiderly.SourceGenerators.Shared
 
             for (int i = 0; i < effectivePrefixes.Count; i++)
             {
+                (string first, SpiderlyClass firstEntity, SpiderlyProperty firstProperty) = effectivePrefixes[i];
+
                 for (int j = i + 1; j < effectivePrefixes.Count; j++)
                 {
-                    (string first, SpiderlyClass firstEntity, SpiderlyProperty firstProperty) = effectivePrefixes[i];
                     (string second, SpiderlyClass secondEntity, SpiderlyProperty secondProperty) = effectivePrefixes[j];
 
                     if (first == second || first.StartsWith($"{second}/") || second.StartsWith($"{first}/"))

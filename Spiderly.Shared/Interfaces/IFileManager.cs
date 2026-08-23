@@ -40,10 +40,14 @@ namespace Spiderly.Shared.Interfaces
         /// promoted key (not the staged one) carries the slug. Returns the new key (or url for
         /// providers that return urls). If the supplied <paramref name="currentKeyOrUrl"/> is not
         /// under the staging prefix the value is returned unchanged.
-        /// <paramref name="resolveDescriptiveName"/> is a factory, not a value, on purpose: it is
-        /// awaited only when a promotion actually happens, so the common no-staged-upload save
+        /// <para>
+        /// Implementations must delegate the decision to
+        /// <c>BlobKeyConventions.TryBuildPromotedKeyAsync</c> rather than re-deriving it. That is
+        /// what guarantees <paramref name="resolveDescriptiveName"/> — a factory, not a value — is
+        /// awaited ONLY when a promotion actually happens, so the common no-staged-upload save
         /// never pays the consumer's descriptive-name lookup (typically a DB query).
+        /// </para>
         /// </summary>
-        Task<string> MoveBlobToEntityPathAsync(string currentKeyOrUrl, string keyPrefix, string objectId, Func<Task<string?>>? resolveDescriptiveName = null);
+        Task<string> MoveBlobToEntityPathAsync(string currentKeyOrUrl, string keyPrefix, string objectId, Func<Task<string>>? resolveDescriptiveName = null);
     }
 }

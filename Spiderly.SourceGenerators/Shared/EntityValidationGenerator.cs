@@ -72,6 +72,25 @@ namespace Spiderly.SourceGenerators.Shared
                     context.ReportDiagnostic(ex.Diagnostic);
                 }
             }
+
+            // SPIDERLY030 is model-wide rather than per-entity (it compares blob key prefixes
+            // ACROSS entities), so it runs once after the loop instead of inside it. It is hosted
+            // here for the same two reasons as everything above: a consumer disabling the Services
+            // generator must not also disable the check, and reporting rather than throwing
+            // mid-emission keeps one bad prefix from suppressing every generated service and
+            // burying the diagnostic under cascading CS0246s.
+            // Referenced-project entities are included: a prefix collision across the project
+            // boundary is still a collision, and both sides' blobs are cleaned by prefix listing.
+            try
+            {
+                BlobKeyPrefixValidator.Validate(currentProjectEntities
+                    .Concat(referencedProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()))
+                    .ToList());
+            }
+            catch (SpiderlyGenerationException ex)
+            {
+                context.ReportDiagnostic(ex.Diagnostic);
+            }
         }
     }
 }

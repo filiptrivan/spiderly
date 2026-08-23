@@ -18,6 +18,11 @@ namespace Spiderly.Shared.Tests
         [InlineData("Akumulatorske bušilice — šrafilice", "akumulatorske-busilice-srafilice")] // sr diacritics + em dash
         [InlineData("đačka ĐŽŠĆČ žica", "djacka-djzscc-zica")] // đ/Đ transliterate to dj, not a dropped char
         [InlineData("Küche & Bar café", "kuche-bar-cafe")] // latin diacritics beyond sr fold to ASCII
+        // Single-code-point letters FormD cannot decompose: without the table they'd vanish as
+        // separators, so a Polish/Nordic/German consumer would silently lose letters.
+        [InlineData("Łopata ogrodowa", "lopata-ogrodowa")]
+        [InlineData("Køb saugust ø", "kob-saugust-o")]
+        [InlineData("Straße Æther œuvre", "strasse-aether-oeuvre")]
         [InlineData("a  --  b", "a-b")] // separator runs collapse to one dash
         [InlineData("-leading and trailing-", "leading-and-trailing")]
         [InlineData("100% pamuk (bela)", "100-pamuk-bela")]
@@ -91,6 +96,64 @@ namespace Spiderly.Shared.Tests
             Assert.NotNull(slug);
             Assert.True(slug!.Length <= 60, $"slug length {slug.Length} exceeds cap: {slug}");
             Assert.False(slug.EndsWith('-'), "capped slug must not end with a dash");
+        }
+
+        [Fact]
+        public void SlugifyDescriptiveName_CapsOnAWordBoundaryNotMidWord()
+        {
+            // A real over-cap product name: 26% of the PACMS catalog exceeds the cap, so a
+            // mid-word cut ("…-baterij") would be the normal look of a public image URL.
+            string? slug = BlobKeyConventions.SlugifyDescriptiveName(
+                "Akumulatorska udarna busilica odvijac sa dve baterije i koferom");
+
+            Assert.Equal("akumulatorska-udarna-busilica-odvijac-sa-dve-baterije-i", slug);
+        }
+
+        [Fact]
+        public void SlugifyDescriptiveName_HardCutsWhenTheFirstWordExceedsTheCap()
+        {
+            string? slug = BlobKeyConventions.SlugifyDescriptiveName(new string('a', 80));
+
+            Assert.Equal(new string('a', 60), slug);
+        }
+
+        [Fact]
+        public async Task TryBuildPromotedKeyAsync_ResolvesTheDescriptiveNameOnlyWhenPromoting()
+        {
+            // The factory is typically a DB query and every save of a blob-carrying entity calls
+            // this, so a no-promotion save must never invoke it. This is the invariant the three
+            // adapters used to hand-copy as a pre-guard.
+            int resolveCalls = 0;
+            Task<string> Resolve() { resolveCalls++; return Task.FromResult("Bosch GSB 13 RE"); }
+
+            string? skipped = await BlobKeyConventions.TryBuildPromotedKeyAsync(
+                "proizvodi/84512/already-permanent-3f9a21c4.jpg", "proizvodi", "84512", Resolve);
+
+            Assert.Null(skipped);
+            Assert.Equal(0, resolveCalls);
+
+            string? promoted = await BlobKeyConventions.TryBuildPromotedKeyAsync(
+                $"proizvodi/_tmp/{Guid.NewGuid()}/{Guid.NewGuid()}.jpg", "proizvodi", "84512", Resolve);
+
+            Assert.Matches(@"^proizvodi/84512/bosch-gsb-13-re-[0-9a-f]{8}\.jpg$", promoted);
+            Assert.Equal(1, resolveCalls);
+        }
+
+        [Fact]
+        public async Task TryBuildPromotedKeyAsync_WithoutAFactoryFallsBackToTheGuidKey()
+        {
+            string? promoted = await BlobKeyConventions.TryBuildPromotedKeyAsync(
+                $"proizvodi/_tmp/{Guid.NewGuid()}/{Guid.NewGuid()}.jpg", "proizvodi", "84512", null);
+
+            Assert.Matches(@"^proizvodi/84512/[0-9a-f-]{36}\.jpg$", promoted);
+        }
+
+        [Theory]
+        [InlineData("Brand", "Image", false, "Brand/Image")]
+        [InlineData("Product", "HtmlDescription", true, "Product/HtmlDescriptionImage")]
+        public void DefaultKeyPrefix_IsTheSingleHomeOfTheConvention(string entity, string property, bool editorImage, string expected)
+        {
+            Assert.Equal(expected, BlobKeyConventions.DefaultKeyPrefix(entity, property, editorImage));
         }
     }
 }

@@ -942,6 +942,47 @@ namespace Spiderly.SourceGenerators.Shared
             return property.Attributes.Any(x => x.Name == "UIControlType" && x.Value == UIControlTypeCodes.Markdown.ToString());
         }
 
+        /// <summary>
+        /// The property's effective key prefix as a VALUE — the custom <c>KeyPrefix</c> where it
+        /// binds, the <c>{Entity}/{Property}</c> (editor images: <c>…Image</c>) default otherwise.
+        /// Used by <see cref="BlobKeyPrefixValidator"/>, which needs to compare prefixes rather
+        /// than emit them.
+        /// <para>
+        /// This duplicates <c>Spiderly.Shared.BlobKeyConventions.DefaultKeyPrefix</c> by necessity:
+        /// the source generator is a dependency-free netstandard2.0 analyzer and cannot reference
+        /// the runtime library. Its other twin is
+        /// <see cref="ServiceSaveGenerator.GetBlobKeyPrefixExpression"/>, which composes the same
+        /// default from <c>nameof</c> so renames track — an expression, not a value. Three
+        /// spellings, one rule: change one, change all three.
+        /// </para>
+        /// </summary>
+        public static string GetEffectiveKeyPrefix(this SpiderlyProperty property, string entityName, bool isEditorImagePath = false)
+        {
+            string? customPrefix = property.GetBlobKeyPrefix();
+
+            if (customPrefix != null && isEditorImagePath == property.IsEditorImageProperty())
+                return customPrefix;
+
+            return isEditorImagePath
+                ? $"{entityName}/{property.Name}Image"
+                : $"{entityName}/{property.Name}";
+        }
+
+        /// <summary>
+        /// The single home of "this property owns an inline editor-image bucket" — the condition
+        /// behind <see cref="Helpers.GetEditorImageProperties"/>, the generated editor upload
+        /// endpoint, and which of a property's two key paths a custom <c>KeyPrefix</c> binds to.
+        /// It was spelled three different ways across the generator and the prefix validator, and
+        /// they disagreed: only this one carries the storage check, without which a
+        /// <c>[UIControlType(Editor)] [DiskStorage(KeyPrefix = …)]</c> property gets no editor
+        /// path AND is denied the custom prefix on its blob path, silently using it nowhere.
+        /// </summary>
+        public static bool IsEditorImageProperty(this SpiderlyProperty property)
+        {
+            return (property.IsEditorControlType() || property.IsMarkdownControlType())
+                && property.HasS3PublicStorageAttribute();
+        }
+
         #endregion
 
         #endregion

@@ -136,14 +136,11 @@ namespace Spiderly.Shared.Services
             string currentKey,
             string keyPrefix,
             string objectId,
-            Func<Task<string?>>? resolveDescriptiveName = null)
+            Func<Task<string>>? resolveDescriptiveName = null)
         {
-            if (!BlobKeyConventions.IsStagingKey(currentKey, keyPrefix) || BlobKeyConventions.IsStagingObjectId(objectId))
-                return currentKey;
+            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName);
 
-            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
-
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName))
+            if (newKey == null)
                 return currentKey;
 
             string sourcePath = Path.Combine(_rootPath, currentKey.Replace('/', Path.DirectorySeparatorChar));

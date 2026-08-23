@@ -161,16 +161,13 @@ namespace Spiderly.Shared.Services
             string currentUrl,
             string keyPrefix,
             string objectId,
-            Func<Task<string?>>? resolveDescriptiveName = null)
+            Func<Task<string>>? resolveDescriptiveName = null)
         {
             string currentKey = ExtractS3KeyFromUrl(currentUrl);
 
-            if (!BlobKeyConventions.IsStagingKey(currentKey, keyPrefix) || BlobKeyConventions.IsStagingObjectId(objectId))
-                return currentUrl;
+            string? newKey = await BlobKeyConventions.TryBuildPromotedKeyAsync(currentKey, keyPrefix, objectId, resolveDescriptiveName);
 
-            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
-
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName))
+            if (newKey == null)
                 return currentUrl;
 
             await _s3Client.CopyObjectAsync(new CopyObjectRequest

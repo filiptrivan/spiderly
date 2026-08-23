@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
@@ -27,45 +28,74 @@ namespace Spiderly.Shared.Helpers
         public const int MaxSlugLength = 60;
 
         /// <summary>
+        /// Letters the FormD decomposition in <see cref="SlugifyDescriptiveName"/> cannot fold,
+        /// because they are single code points rather than a base letter plus a combining mark
+        /// (stroked letters, ligatures, eth/thorn). Without this table they would be dropped as
+        /// separators — <c>łopata</c> would slug to <c>opata</c>, losing a letter silently.
+        /// </summary>
+        private static readonly Dictionary<char, string> UndecomposableLetters = new()
+        {
+            ['đ'] = "dj", ['Đ'] = "dj", // Serbo-Croatian; conventionally a digraph
+            ['ł'] = "l", ['Ł'] = "l",
+            ['ø'] = "o", ['Ø'] = "o",
+            ['æ'] = "ae", ['Æ'] = "ae",
+            ['œ'] = "oe", ['Œ'] = "oe",
+            ['ß'] = "ss",
+            ['ħ'] = "h", ['Ħ'] = "h",
+            ['ð'] = "d", ['Ð'] = "d",
+            ['þ'] = "th", ['Þ'] = "th",
+        };
+
+        /// <summary>
         /// Folds an arbitrary descriptive name (an entity slug, a raw display name, anything a
         /// consumer's <c>GetBlobDescriptiveName…</c> hook returns) into a key-safe ASCII slug:
-        /// lowercase, digits and dashes only, diacritics transliterated (<c>đ→dj</c>, <c>š→s</c>,
-        /// <c>ü→u</c>, …), separator runs collapsed, capped at <see cref="MaxSlugLength"/>.
-        /// Returns <c>null</c> when nothing usable remains — callers must treat that as "no
-        /// descriptive segment", never emit an empty one.
+        /// lowercase, digits and dashes only, diacritics transliterated (<c>š→s</c>, <c>ü→u</c>,
+        /// plus the <see cref="UndecomposableLetters"/> table), separator runs collapsed, and
+        /// capped at <see cref="MaxSlugLength"/> on a word boundary. Returns <c>null</c> when
+        /// nothing usable remains — callers must treat that as "no descriptive segment", never
+        /// emit an empty one.
         /// </summary>
         public static string? SlugifyDescriptiveName(string? descriptiveName)
         {
             if (string.IsNullOrWhiteSpace(descriptiveName))
                 return null;
 
-            // đ/Đ is a stroked letter, not a base-letter + combining-mark pair, so the FormD
-            // decomposition below cannot fold it — and its conventional ASCII form is a digraph.
-            string value = descriptiveName.Replace("đ", "dj").Replace("Đ", "dj");
-
             // FormD splits accented letters into base char + combining mark; skipping the marks
-            // folds š→s, č→c, ž→z, ü→u, é→e … without a per-language table.
-            StringBuilder builder = new(value.Length);
-            foreach (char c in value.Normalize(NormalizationForm.FormD))
+            // folds š→s, č→c, ž→z, ü→u, é→e. Single-code-point letters need the table above.
+            string normalized = descriptiveName!.Normalize(NormalizationForm.FormD);
+
+            StringBuilder builder = new(normalized.Length);
+            foreach (char c in normalized)
             {
                 if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
                     continue;
 
                 if (char.IsAsciiLetterOrDigit(c))
                     builder.Append(char.ToLowerInvariant(c));
+                else if (UndecomposableLetters.TryGetValue(c, out string? transliterated))
+                    builder.Append(transliterated);
                 else if (builder.Length > 0 && builder[^1] != '-')
                     builder.Append('-'); // any other char is a separator; leading/doubled runs never start
             }
 
-            string slug = builder.ToString();
+            // TrimEnd before the cap too: a trailing non-alphanumeric already appended a separator.
+            string slug = builder.ToString().TrimEnd('-');
 
             if (slug.Length > MaxSlugLength)
-                slug = slug[..MaxSlugLength];
-
-            slug = slug.TrimEnd('-');
+                slug = CapOnWordBoundary(slug);
 
             return slug.Length == 0 ? null : slug;
         }
+
+        /// <summary>
+        /// The key prefix a property gets when it declares no custom <c>KeyPrefix</c>. Single home
+        /// of the default convention, so consumers that need the prefix as a runtime value never
+        /// re-spell it (a second spelling drifts silently — it produces a valid but wrong key).
+        /// </summary>
+        public static string DefaultKeyPrefix(string entityName, string propertyName, bool isEditorImagePath = false) =>
+            isEditorImagePath
+                ? $"{entityName}/{propertyName}Image"
+                : $"{entityName}/{propertyName}";
 
         /// <summary>
         /// Builds the storage key for an upload. With a usable <paramref name="descriptiveName"/>
@@ -90,6 +120,34 @@ namespace Spiderly.Shared.Helpers
             && key.StartsWith($"{keyPrefix}/{StagingSegment}/", StringComparison.Ordinal);
 
         /// <summary>
+        /// The whole promotion decision for an <see cref="Interfaces.IFileManager"/> adapter:
+        /// returns the permanent-path key for a staged upload, or <c>null</c> when the move
+        /// should be skipped (key already permanent, or no real object id yet).
+        /// <para>
+        /// <paramref name="resolveDescriptiveName"/> is awaited ONLY when a promotion is actually
+        /// due — that ordering is the whole reason it is a factory rather than a value, since
+        /// resolving it is typically a database query, and every save of an entity with a blob
+        /// property calls this. Adapters must call this rather than hand-rolling the guard, or
+        /// they silently pay that query on every save.
+        /// </para>
+        /// </summary>
+        public static async Task<string?> TryBuildPromotedKeyAsync(
+            string currentKey,
+            string keyPrefix,
+            string objectId,
+            Func<Task<string>>? resolveDescriptiveName)
+        {
+            if (IsStagingObjectId(objectId) || !IsStagingKey(currentKey, keyPrefix))
+                return null;
+
+            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
+
+            return TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName)
+                ? newKey
+                : null;
+        }
+
+        /// <summary>
         /// Returns <c>true</c> and emits the permanent-path key when the current key is a
         /// staged upload that needs promotion. Returns <c>false</c> (leaving <paramref name="newKey"/>
         /// null) when the move should be skipped — either because the key is already permanent
@@ -109,6 +167,19 @@ namespace Spiderly.Shared.Helpers
             string extension = Helper.GetFileExtensionFromFileName(currentKey);
             newKey = $"{keyPrefix}/{objectId}/{BuildFileSegment(descriptiveName)}.{extension}";
             return true;
+        }
+
+        /// <summary>
+        /// Truncates to <see cref="MaxSlugLength"/> at the last word boundary rather than
+        /// mid-word: a cut like <c>…-odvijac-sa-dve-baterij</c> reads as a typo in a public URL.
+        /// Falls back to a hard cut when the first word alone exceeds the cap.
+        /// </summary>
+        private static string CapOnWordBoundary(string slug)
+        {
+            string capped = slug[..MaxSlugLength];
+            int lastSeparator = capped.LastIndexOf('-');
+
+            return lastSeparator > 0 ? capped[..lastSeparator] : capped;
         }
 
         /// <summary>

@@ -267,7 +267,7 @@ namespace Spiderly.SourceGenerators.Shared
         public static List<SpiderlyProperty> GetEditorImageProperties(List<SpiderlyProperty> properties)
         {
             return properties
-                .Where(x => (x.IsEditorControlType() || x.IsMarkdownControlType()) && x.HasS3PublicStorageAttribute())
+                .Where(x => x.IsEditorImageProperty())
                 .ToList();
         }
 
