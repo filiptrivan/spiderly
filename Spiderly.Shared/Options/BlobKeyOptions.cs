@@ -9,9 +9,9 @@ namespace Spiderly.Shared
     /// <para>
     /// The knobs exist because the defaults encode judgements that are NOT universal: the
     /// transliteration table is Latin/Serbo-Croatian-shaped (Vietnamese <c>đ</c> is the letter
-    /// <c>d</c>, not the digraph <c>dj</c>), the length cap is an SEO preference, and the random
-    /// suffix solves immutable-cache staleness that a consumer serving <c>no-cache</c> does not
-    /// have. What is deliberately NOT configurable is the <c>{prefix}/{objectId}/</c> path
+    /// <c>d</c>, not the digraph <c>dj</c>), the length cap is measured against one catalogue's
+    /// naming habits, and the random suffix solves immutable-cache staleness that a consumer
+    /// serving <c>no-cache</c> does not have. What is deliberately NOT configurable is the <c>{prefix}/{objectId}/</c> path
     /// structure — blob cleanup and staging promotion scope by listing it, so a consumer changing
     /// it would silently break blob deletion rather than merely renaming things.
     /// </para>
@@ -22,11 +22,22 @@ namespace Spiderly.Shared
         public static readonly BlobKeyOptions Default = new();
 
         /// <summary>
-        /// Hard cap on the slug segment, applied at the last word boundary that fits. Keys are
-        /// public URLs and anything past ~60 chars is noise; raise it if your slugs carry meaning
-        /// further in, lower it if your storage or CDN has a tighter key budget.
+        /// Hard cap on the slug segment, applied at the last word boundary that fits.
+        /// <para>
+        /// Deliberately generous, because the two directions fail asymmetrically: a cap set too
+        /// low destroys information permanently inside an immutable key, while one set too high
+        /// only makes a URL longer. Measured against a 71.472-product tool catalogue (2026-08-23),
+        /// a 60-char cap truncated 26,3% of names and stripped the manufacturer article number —
+        /// the highest-intent search token these products have, and usually the LAST token in the
+        /// name — from 14,8% of the whole catalogue. At 100 that falls to 0,68%, for a worst-case
+        /// key of ~150 chars against S3's 1024-byte limit. Lower it only if your storage or CDN
+        /// has a tighter budget than that.
+        /// </para>
         /// </summary>
-        public int MaxSlugLength { get; set; } = 60;
+        public int MaxSlugLength { get; set; } = DefaultMaxSlugLength;
+
+        /// <summary>The value <see cref="MaxSlugLength"/> starts at. See it for the measurement behind the number.</summary>
+        public const int DefaultMaxSlugLength = 100;
 
         /// <summary>
         /// Length of the random hex suffix appended after the slug, 0-32.

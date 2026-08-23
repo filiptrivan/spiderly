@@ -88,23 +88,41 @@ namespace Spiderly.Shared.Tests
         [Fact]
         public void SlugifyDescriptiveName_CapsLengthWithoutTrailingDash()
         {
-            // 7 chars per "word-" block × 20 = 140 chars raw; cap must cut cleanly, not mid-dash.
-            string longName = string.Join(" ", Enumerable.Repeat("abcdef", 20));
+            // 7 chars per "word-" block × 40 = 280 chars raw; cap must cut cleanly, not mid-dash.
+            string longName = string.Join(" ", Enumerable.Repeat("abcdef", 40));
 
             string? slug = BlobKeyConventions.SlugifyDescriptiveName(longName);
 
             Assert.NotNull(slug);
-            Assert.True(slug!.Length <= 60, $"slug length {slug.Length} exceeds cap: {slug}");
+            Assert.True(slug!.Length <= BlobKeyOptions.DefaultMaxSlugLength,
+                $"slug length {slug.Length} exceeds cap: {slug}");
             Assert.False(slug.EndsWith('-'), "capped slug must not end with a dash");
+        }
+
+        [Fact]
+        public void DefaultMaxSlugLength_IsGenerousEnoughToKeepATrailingArticleNumber()
+        {
+            // Not a round number picked by taste: measured against a 71.472-product tool catalogue
+            // (2026-08-23), where the manufacturer article number is usually the LAST token of the
+            // name. A 60-char cap stripped it from 14,8% of the whole catalogue; 100 leaves 0,68%.
+            // Lowering this is a decision to throw that away, so it is pinned rather than implied.
+            Assert.Equal(100, BlobKeyOptions.DefaultMaxSlugLength);
+
+            string? slug = BlobKeyConventions.SlugifyDescriptiveName(
+                "Bosch Expert rolna brusnog papira za rucno brusenje 93mm duzina 50m granulacija 240 2608900974");
+
+            Assert.EndsWith("2608900974", slug);
         }
 
         [Fact]
         public void SlugifyDescriptiveName_CapsOnAWordBoundaryNotMidWord()
         {
-            // A real over-cap product name: 26% of the PACMS catalog exceeds the cap, so a
-            // mid-word cut ("…-baterij") would be the normal look of a public image URL.
+            // Explicit small cap so this pins the boundary LOGIC rather than the default value:
+            // a mid-word cut ("…-baterij") would be the normal look of a public image URL.
+            BlobKeyOptions tight = new() { MaxSlugLength = 60 };
+
             string? slug = BlobKeyConventions.SlugifyDescriptiveName(
-                "Akumulatorska udarna busilica odvijac sa dve baterije i koferom");
+                "Akumulatorska udarna busilica odvijac sa dve baterije i koferom", tight);
 
             Assert.Equal("akumulatorska-udarna-busilica-odvijac-sa-dve-baterije-i", slug);
         }
@@ -112,7 +130,9 @@ namespace Spiderly.Shared.Tests
         [Fact]
         public void SlugifyDescriptiveName_HardCutsWhenTheFirstWordExceedsTheCap()
         {
-            string? slug = BlobKeyConventions.SlugifyDescriptiveName(new string('a', 80));
+            BlobKeyOptions tight = new() { MaxSlugLength = 60 };
+
+            string? slug = BlobKeyConventions.SlugifyDescriptiveName(new string('a', 80), tight);
 
             Assert.Equal(new string('a', 60), slug);
         }

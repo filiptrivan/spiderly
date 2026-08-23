@@ -29,12 +29,6 @@ namespace Spiderly.Shared.Helpers
         public const string StagingSegment = "_tmp";
 
         /// <summary>
-        /// Default slug cap, kept as a named constant for readability. The value actually applied
-        /// is <see cref="BlobKeyOptions.MaxSlugLength"/> — never read this to predict a key.
-        /// </summary>
-        public const int DefaultMaxSlugLength = 60;
-
-        /// <summary>
         /// Folds an arbitrary descriptive name (an entity slug, a raw display name, anything a
         /// consumer's <c>GetBlobDescriptiveName…</c> hook returns) into a key-safe ASCII slug:
         /// lowercase, digits and dashes only, diacritics transliterated (<c>š→s</c>, <c>ü→u</c>,
