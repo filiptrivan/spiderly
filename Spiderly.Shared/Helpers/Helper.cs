@@ -526,6 +526,35 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
+        /// Returns <paramref name="fileName"/> with its extension corrected to match what the
+        /// bytes actually are. Blob keys and Content-Type are derived from the file name, but the
+        /// optimize hooks may transcode the content (rasters → WebP by default, anything a
+        /// consumer override produces) — this keeps the stored key honest without trusting what
+        /// the hook was expected to do. Detection is by magic bytes; when the content is
+        /// undetectable, or the current extension is already valid for the detected type
+        /// (<c>.jpg</c> for JPEG must not churn to <c>.jpeg</c>), the name is returned unchanged.
+        /// </summary>
+        public static string AlignExtensionWithContent(string fileName, byte[] content)
+        {
+            using MemoryStream stream = new(content);
+            var results = FileSignatures.Inspector.Inspect(stream);
+
+            string[] detectedExtensions = results
+                .Select(r => r.Definition.File.Extensions.ToArray())
+                .FirstOrDefault(e => e.Length > 0) ?? [];
+
+            if (detectedExtensions.Length == 0)
+                return fileName;
+
+            string currentExtension = GetFileExtensionFromFileName(fileName);
+
+            if (detectedExtensions.Any(e => e.Equals(currentExtension, StringComparison.OrdinalIgnoreCase)))
+                return fileName;
+
+            return Path.ChangeExtension(fileName, detectedExtensions[0]);
+        }
+
+        /// <summary>
         /// Validates that the content-type header declared by the client is in the allowed list
         /// AND that the stream content matches the declared type. Both checks are required —
         /// client-supplied Content-Type is trivially spoofable.

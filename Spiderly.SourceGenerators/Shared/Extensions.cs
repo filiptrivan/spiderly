@@ -392,6 +392,41 @@ namespace Spiderly.SourceGenerators.Shared
             return value!.Split(',').Select(x => x.Trim()).ToList();
         }
 
+        /// <summary>
+        /// True when the property opts out of save-time blob cleanup via
+        /// <c>[RetainReplacedBlobs]</c> — copies of its URL outlive the entity's current value
+        /// (order-line snapshots, emails), so replaced blobs must keep their bytes.
+        /// </summary>
+        public static bool HasRetainReplacedBlobsAttribute(this SpiderlyProperty property)
+        {
+            return property.Attributes.Any(x => x.Name == "RetainReplacedBlobs");
+        }
+
+        /// <summary>
+        /// The custom <c>KeyPrefix</c> named argument of the property's storage attribute
+        /// (<c>[S3PublicStorage(KeyPrefix = "products")]</c>), or null when the attribute doesn't
+        /// declare one and the <c>{Entity}/{Property}</c> default applies. Quotes are already
+        /// stripped from <see cref="SpiderlyAttribute.Value"/> by the analyzer.
+        /// </summary>
+        public static string? GetBlobKeyPrefix(this SpiderlyProperty property)
+        {
+            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name != null && x.Name.EndsWith("Storage"));
+            string? value = attribute?.Value;
+
+            if (string.IsNullOrEmpty(value))
+                return null;
+
+            foreach (string argument in value!.Split(','))
+            {
+                string[] parts = argument.Split('=');
+
+                if (parts.Length == 2 && parts[0].Trim() == "KeyPrefix")
+                    return parts[1].Trim();
+            }
+
+            return null;
+        }
+
         public static int GetMaxFileSize(this SpiderlyProperty property)
         {
             SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");

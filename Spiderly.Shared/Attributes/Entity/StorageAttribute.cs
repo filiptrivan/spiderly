@@ -45,6 +45,18 @@ namespace Spiderly.Shared.Attributes.Entity
         /// </summary>
         public Type ServiceType { get; }
 
+        /// <summary>
+        /// Overrides the storage key prefix for this property — the leading path of every
+        /// uploaded blob's key (and therefore of its public URL for public providers). Defaults
+        /// to <c>{EntityName}/{PropertyName}</c> (editor-image properties:
+        /// <c>{EntityName}/{PropertyName}Image</c>); set it to a short lowercase path like
+        /// <c>"products"</c> to get human/SEO-readable URLs such as
+        /// <c>…/products/84512/cordless-drill-3f9a21c4.webp</c>. The prefix is the listing scope
+        /// for blob cleanup and staging promotion, so it must be unique per blob property and no
+        /// prefix may be a path-parent of another — both enforced at build time.
+        /// </summary>
+        public string? KeyPrefix { get; set; }
+
         protected StorageAttribute(Type serviceType)
         {
             ServiceType = serviceType ?? throw new ArgumentNullException(nameof(serviceType));

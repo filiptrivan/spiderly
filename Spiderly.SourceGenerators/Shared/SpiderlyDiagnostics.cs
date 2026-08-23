@@ -331,6 +331,21 @@ namespace Spiderly.SourceGenerators.Shared
         /// shape is unsupported rather than mis-sequenced, and the consumer needs a located diagnostic
         /// instead of SPIDERLY024's "This is a bug in Spiderly — please report it".
         /// </summary>
+        /// <summary>
+        /// A blob key prefix is the listing scope for save-time cleanup and staging promotion, so
+        /// two properties sharing an effective prefix (or nesting one under another) would list and
+        /// delete each other's objects — and prefixes land verbatim in public URLs, so a
+        /// non-key-safe custom prefix would percent-encode. Raised by
+        /// <see cref="BlobKeyPrefixValidator"/> before entity services are generated.
+        /// </summary>
+        public static readonly DiagnosticDescriptor InvalidBlobKeyPrefix = new(
+            id: "SPIDERLY030",
+            title: "Invalid or colliding blob KeyPrefix",
+            messageFormat: "Blob key prefix '{0}' on '{1}.{2}': {3}",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public static readonly DiagnosticDescriptor CommaSeparatedDisplayNameOverKeylessJunction = new(
             id: "SPIDERLY029",
             title: "[GenerateCommaSeparatedDisplayName] targets a junction with no primary key",

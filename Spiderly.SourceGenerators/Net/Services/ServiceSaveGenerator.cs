@@ -476,6 +476,27 @@ namespace Spiderly.SourceGenerators.Net
             return manyToOneclass;
         }
 
+        /// <summary>
+        /// The C# expression for a storage property's key prefix as passed to every
+        /// <c>IFileManager</c> call. A custom <c>KeyPrefix</c> attribute value binds to the
+        /// property's primary path — the editor-image path for editor/markdown properties, the
+        /// plain blob path otherwise — while the other (vestigial) path keeps the
+        /// <c>{Entity}/{Property}</c> default, so effective prefixes stay disjoint. Defaults are
+        /// composed from <c>nameof</c> so entity/property renames keep generated keys in step.
+        /// </summary>
+        internal static string GetKeyPrefixExpression(SpiderlyClass entity, SpiderlyProperty property, bool isEditorImagePath = false)
+        {
+            string? customPrefix = property.GetBlobKeyPrefix();
+            bool isEditorProperty = property.IsEditorControlType() || property.IsMarkdownControlType();
+
+            if (customPrefix != null && isEditorImagePath == isEditorProperty)
+                return $"\"{customPrefix}\"";
+
+            return isEditorImagePath
+                ? $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name}) + \"Image\""
+                : $"nameof({entity.Name}) + \"/\" + nameof({entity.Name}.{property.Name})";
+        }
+
         private static List<string> GetNonActiveDeleteBlobMethods(SpiderlyClass entity)
         {
             List<string> result = new();
@@ -484,8 +505,11 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty property in blobProperies)
             {
+                if (property.HasRetainReplacedBlobsAttribute())
+                    continue;
+
                 result.Add($$"""
-                await {{ServicesGenerator.GetFileManagerServiceField(property)}}.DeleteNonActiveBlobs(dto.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
+                await {{ServicesGenerator.GetFileManagerServiceField(property)}}.DeleteNonActiveBlobs(dto.{{property.Name}}, {{GetKeyPrefixExpression(entity, property)}}, poco.Id.ToString());
 """);
             }
 
@@ -515,7 +539,7 @@ namespace Spiderly.SourceGenerators.Net
                 result.Add($$"""
                 if (!string.IsNullOrEmpty(poco.{{property.Name}}))
                 {
-                    string moved{{property.Name}} = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.MoveBlobToEntityPathAsync(poco.{{property.Name}}, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), poco.Id.ToString());
+                    string moved{{property.Name}} = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.MoveBlobToEntityPathAsync(poco.{{property.Name}}, {{GetKeyPrefixExpression(entity, property)}}, poco.Id.ToString(), async () => await GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}(poco.Id));
                     if (moved{{property.Name}} != poco.{{property.Name}})
                     {
                         poco.{{property.Name}} = moved{{property.Name}};
@@ -539,9 +563,12 @@ namespace Spiderly.SourceGenerators.Net
 
             foreach (SpiderlyProperty property in editorProperties)
             {
+                if (property.HasRetainReplacedBlobsAttribute())
+                    continue;
+
                 result.Add($$"""
                 List<string> active{{property.Name}}ImageUrls = Helper.ExtractImageUrlsFromHtml(dto.{{property.Name}});
-                await _s3PublicStorageService.DeleteNonActiveEditorImages(active{{property.Name}}ImageUrls, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}) + "Image", poco.Id.ToString());
+                await _s3PublicStorageService.DeleteNonActiveEditorImages(active{{property.Name}}ImageUrls, {{GetKeyPrefixExpression(entity, property, isEditorImagePath: true)}}, poco.Id.ToString());
 """);
             }
 
@@ -584,19 +611,39 @@ namespace Spiderly.SourceGenerators.Net
 {{GetFileSizeValidation(property)}}
 {{GetFileTypeValidation(property, entity)}}
             string fileName;
+            string descriptiveName = id > 0 ? await GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}(id) : string.Empty;
 
             using (Stream stream = file.OpenReadStream())
             {
                 byte[] byteArray = await OnBefore{{property.Name}}BlobFor{{entity.Name}}IsUploaded(stream, file, id);
 
+                // The optimize hook may have transcoded the bytes (rasters -> WebP by default), and the
+                // storage key's extension + Content-Type are derived from this name.
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
-                    fileName = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}), id.ToString(), updatedStream);
+                    fileName = await {{ServicesGenerator.GetFileManagerServiceField(property)}}.UploadFileAsync(uploadFileName, {{GetKeyPrefixExpression(entity, property)}}, id.ToString(), updatedStream, descriptiveName);
                 }
             }
 
             return fileName;
         }
+
+        /// <summary>
+        /// Optional descriptive name for blobs uploaded to the {{property.Name}} property. When it returns a
+        /// non-empty value, the value is slugified and becomes the human/SEO-readable part of the storage
+        /// key (<c>{prefix}/{id}/{slug}-{suffix}.{ext}</c>); the default (empty) keeps the GUID-only key.
+        /// Called with the owning entity's id on direct upload (id &gt; 0) and lazily at staged-blob
+        /// promotion — typically overridden to return the entity's (or its parent's) slug or display name.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// public override async Task&lt;string&gt; GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}({{entityIdType}} id) =>
+        ///     await _context.DbSet&lt;{{entity.Name}}&gt;().Where(x => x.Id == id).Select(x => x.Name).SingleAsync();
+        /// </code>
+        /// </example>
+        public virtual Task<string> GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}({{entityIdType}} id) => Task.FromResult(string.Empty);
 
         /// <summary>
         /// Lifecycle hook called before blob upload is authorized.
@@ -768,6 +815,7 @@ public virtual async Task ValidateImageFor{{property.Name}}Of{{entityName}}(Stre
             string imageUrl;
             int imageWidth;
             int imageHeight;
+            string descriptiveName = id > 0 ? await GetBlobDescriptiveNameFor{{property.Name}}Of{{entity.Name}}(id) : string.Empty;
 
             using (Stream stream = file.OpenReadStream())
             {
@@ -784,9 +832,12 @@ public virtual async Task ValidateImageFor{{property.Name}}Of{{entityName}}(Stre
                     byteArray = await Helper.ReadAllBytesAsync(stream);
                 }
 
+                // Rasters were just transcoded to WebP — the key's extension + Content-Type follow the bytes.
+                string uploadFileName = Helper.AlignExtensionWithContent(file.FileName, byteArray);
+
                 using (Stream updatedStream = new MemoryStream(byteArray))
                 {
-                    imageUrl = await _s3PublicStorageService.UploadFileAsync(file.FileName, nameof({{entity.Name}}), nameof({{entity.Name}}.{{property.Name}}) + "Image", id.ToString(), updatedStream);
+                    imageUrl = await _s3PublicStorageService.UploadFileAsync(uploadFileName, {{GetKeyPrefixExpression(entity, property, isEditorImagePath: true)}}, id.ToString(), updatedStream, descriptiveName);
                 }
             }
 

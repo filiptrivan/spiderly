@@ -26,24 +26,24 @@ namespace Spiderly.Shared.Services
         }
 
         /// <summary>
-        /// Builds a hierarchical key "{objectType}/{objectProperty}/{objectId}/{GUID}.{ext}"
-        /// (or "{objectType}/{objectProperty}/_tmp/{uploadGuid}/{GUID}.{ext}" for inserts),
+        /// Builds a hierarchical key "{keyPrefix}/{objectId}/{fileSegment}.{ext}"
+        /// (or "{keyPrefix}/_tmp/{uploadGuid}/{GUID}.{ext}" for inserts),
         /// creates the intermediate directories, and writes the stream.
         /// Returns the relative key (forward-slash separated) — same semantics as S3.
         /// </summary>
         public async Task<string> UploadFileAsync(
             string fileName,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId,
             Stream content,
+            string? descriptiveName = null,
             string? newFileName = null
         )
         {
 
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
             }
 
             string fullPath = Path.Combine(_rootPath, newFileName.Replace('/', Path.DirectorySeparatorChar));
@@ -81,7 +81,7 @@ namespace Spiderly.Shared.Services
         }
 
         /// <summary>
-        /// Deletes every file under "{_rootPath}/{objectType}/{objectProperty}/{objectId}/"
+        /// Deletes every file under "{_rootPath}/{keyPrefix}/{objectId}/"
         /// except the one matching <paramref name="activeBlobName"/>. No-op when
         /// <paramref name="objectId"/> is the staging placeholder ("0" or empty) — staged
         /// uploads live under a separate "_tmp/" prefix and are pruned by the provider's
@@ -89,8 +89,7 @@ namespace Spiderly.Shared.Services
         /// </summary>
         public Task DeleteNonActiveBlobs(
             string? activeBlobName,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId
         )
         {
@@ -98,7 +97,7 @@ namespace Spiderly.Shared.Services
             if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return Task.CompletedTask;
 
-            string entityDir = Path.Combine(_rootPath, objectType, objectProperty, objectId);
+            string entityDir = Path.Combine(_rootPath, keyPrefix.Replace('/', Path.DirectorySeparatorChar), objectId);
 
             if (!Directory.Exists(entityDir))
                 return Task.CompletedTask;
@@ -127,8 +126,7 @@ namespace Spiderly.Shared.Services
 
         public Task DeleteNonActiveEditorImages(
             List<string> activeImageUrls,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId)
         {
             throw new NotImplementedException();
@@ -136,11 +134,16 @@ namespace Spiderly.Shared.Services
 
         public async Task<string> MoveBlobToEntityPathAsync(
             string currentKey,
-            string objectType,
-            string objectProperty,
-            string objectId)
+            string keyPrefix,
+            string objectId,
+            Func<Task<string?>>? resolveDescriptiveName = null)
         {
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
+            if (!BlobKeyConventions.IsStagingKey(currentKey, keyPrefix) || BlobKeyConventions.IsStagingObjectId(objectId))
+                return currentKey;
+
+            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
+
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName))
                 return currentKey;
 
             string sourcePath = Path.Combine(_rootPath, currentKey.Replace('/', Path.DirectorySeparatorChar));

@@ -28,16 +28,16 @@ namespace Spiderly.Shared.Services
         /// <returns>Image URL</returns>
         public async Task<string> UploadFileAsync(
             string fileName,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId,
             Stream content,
+            string? descriptiveName = null,
             string? newFileName = null
         )
         {
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
             }
 
             FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
@@ -65,8 +65,7 @@ namespace Spiderly.Shared.Services
 
         public async Task DeleteNonActiveBlobs(
             string? url,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId)
         {
             if (BlobKeyConventions.IsStagingObjectId(objectId))
@@ -76,7 +75,7 @@ namespace Spiderly.Shared.Services
             // stale, and the != comparison below already treats null as "matches nothing".
             string? activeKey = ExtractS3KeyFromUrl(url);
 
-            string prefix = $"{objectType}/{objectProperty}/{objectId}/";
+            string prefix = $"{keyPrefix}/{objectId}/";
 
             ListObjectsV2Request listRequest = new ListObjectsV2Request
             {
@@ -130,8 +129,7 @@ namespace Spiderly.Shared.Services
 
         public async Task DeleteNonActiveEditorImages(
             List<string> activeImageUrls,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId)
         {
             if (BlobKeyConventions.IsStagingObjectId(objectId))
@@ -141,7 +139,7 @@ namespace Spiderly.Shared.Services
                 .Select(ExtractS3KeyFromUrl)
                 .ToHashSet();
 
-            string prefix = $"{objectType}/{objectProperty}/{objectId}/";
+            string prefix = $"{keyPrefix}/{objectId}/";
 
             ListObjectsV2Request listRequest = new ListObjectsV2Request
             {
@@ -161,13 +159,18 @@ namespace Spiderly.Shared.Services
 
         public async Task<string> MoveBlobToEntityPathAsync(
             string currentUrl,
-            string objectType,
-            string objectProperty,
-            string objectId)
+            string keyPrefix,
+            string objectId,
+            Func<Task<string?>>? resolveDescriptiveName = null)
         {
             string currentKey = ExtractS3KeyFromUrl(currentUrl);
 
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
+            if (!BlobKeyConventions.IsStagingKey(currentKey, keyPrefix) || BlobKeyConventions.IsStagingObjectId(objectId))
+                return currentUrl;
+
+            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
+
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName))
                 return currentUrl;
 
             await _s3Client.CopyObjectAsync(new CopyObjectRequest

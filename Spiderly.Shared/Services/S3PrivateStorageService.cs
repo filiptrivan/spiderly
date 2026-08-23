@@ -20,16 +20,16 @@ namespace Spiderly.Shared.Services
         /// <returns>Newly generated file name (S3 key)</returns>
         public async Task<string> UploadFileAsync(
             string fileName,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId,
             Stream content,
+            string? descriptiveName = null,
             string? newFileName = null
         )
         {
             if (newFileName == null)
             {
-                newFileName = BlobKeyConventions.BuildKey(fileName, objectType, objectProperty, objectId);
+                newFileName = BlobKeyConventions.BuildKey(fileName, keyPrefix, objectId, descriptiveName);
             }
 
             var putRequest = new PutObjectRequest
@@ -47,15 +47,14 @@ namespace Spiderly.Shared.Services
 
         public async Task DeleteNonActiveBlobs(
             string? activeKey,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId)
         {
             // Staged uploads live under _tmp/, not the per-entity folder scanned here.
             if (BlobKeyConventions.IsStagingObjectId(objectId))
                 return;
 
-            string prefix = $"{objectType}/{objectProperty}/{objectId}/";
+            string prefix = $"{keyPrefix}/{objectId}/";
 
             ListObjectsV2Request listRequest = new ListObjectsV2Request
             {
@@ -95,8 +94,7 @@ namespace Spiderly.Shared.Services
 
         public Task DeleteNonActiveEditorImages(
             List<string> activeImageUrls,
-            string objectType,
-            string objectProperty,
+            string keyPrefix,
             string objectId)
         {
             throw new NotImplementedException();
@@ -104,11 +102,16 @@ namespace Spiderly.Shared.Services
 
         public async Task<string> MoveBlobToEntityPathAsync(
             string currentKey,
-            string objectType,
-            string objectProperty,
-            string objectId)
+            string keyPrefix,
+            string objectId,
+            Func<Task<string?>>? resolveDescriptiveName = null)
         {
-            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, objectType, objectProperty, objectId, out string? newKey))
+            if (!BlobKeyConventions.IsStagingKey(currentKey, keyPrefix) || BlobKeyConventions.IsStagingObjectId(objectId))
+                return currentKey;
+
+            string? descriptiveName = resolveDescriptiveName == null ? null : await resolveDescriptiveName();
+
+            if (!BlobKeyConventions.TryBuildPromotedKey(currentKey, keyPrefix, objectId, out string? newKey, descriptiveName))
                 return currentKey;
 
             await _s3Client.CopyObjectAsync(new CopyObjectRequest
