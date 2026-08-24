@@ -13,7 +13,6 @@ import { SideMenuTopBarComponent } from './sidemenu-topbar/sidemenu-topbar.compo
 import { LayoutServiceBase } from '../../services/app-layout.service.base';
 import { SpiderlyMenuItem } from './sidebar/sidebar-menu.component';
 import { CommonModule } from '@angular/common';
-import { FooterComponent } from '../footer/footer.component';
 import { TopBarComponent } from './topbar/topbar.component';
 
 @Component({
@@ -23,7 +22,6 @@ import { TopBarComponent } from './topbar/topbar.component';
     CommonModule,
     RouterModule,
     AppSidebarComponent,
-    FooterComponent,
     SideMenuTopBarComponent,
     TopBarComponent,
   ],

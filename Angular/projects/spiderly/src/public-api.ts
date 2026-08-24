@@ -30,7 +30,6 @@ export * from './lib/components/auth/partials/login-verification.component';
 export * from './lib/components/auth/partials/verification-wrapper.component';
 export * from './lib/components/base-form/base-form.component';
 export * from './lib/components/card-skeleton/card-skeleton.component';
-export * from './lib/components/footer/footer.component';
 export * from './lib/components/index-card/index-card.component';
 export * from './lib/components/info-card/info-card.component';
 export * from './lib/components/layout/layout.component';
