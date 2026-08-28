@@ -16,12 +16,19 @@ namespace Spiderly.Shared.Emailing
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<BrevoEmailingService> _logger;
         private readonly EmailOptions _emailSettings;
+        private readonly IOutboundEmailHeaderProvider? _headerProvider;
 
-        public BrevoEmailingService(IHttpClientFactory httpClientFactory, ILogger<BrevoEmailingService> logger, IOptions<EmailOptions> emailOptions)
+        /// <summary>Creates the service. <paramref name="headerProvider"/> is optional app-supplied header decoration.</summary>
+        public BrevoEmailingService(
+            IHttpClientFactory httpClientFactory,
+            ILogger<BrevoEmailingService> logger,
+            IOptions<EmailOptions> emailOptions,
+            IOutboundEmailHeaderProvider? headerProvider = null)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _emailSettings = emailOptions.Value;
+            _headerProvider = headerProvider;
         }
 
         public bool IsConfigured()
@@ -87,6 +94,11 @@ namespace Spiderly.Shared.Emailing
 
             if (!string.IsNullOrWhiteSpace(resolvedReplyTo?.Email))
                 payload["replyTo"] = BuildAddressPayload(resolvedReplyTo!); // resolvedReplyTo != null — the guard just checked resolvedReplyTo?.Email
+
+            IDictionary<string, string>? headers = _headerProvider?.HeadersFor(recipient);
+
+            if (headers is { Count: > 0 })
+                payload["headers"] = headers;
 
             // Brevo expects attachments as [{ name, content }] with base64 content.
             object[]? brevoAttachments = attachments?

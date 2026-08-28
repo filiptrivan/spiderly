@@ -13,10 +13,12 @@ namespace Spiderly.Shared.Emailing
         private readonly SmtpClient _smtpClient;
         private readonly ILogger<EmailingService> _logger;
         private readonly EmailOptions _emailSettings;
+        private readonly IOutboundEmailHeaderProvider? _headerProvider;
 
-        public EmailingService(ILogger<EmailingService> logger, IOptions<EmailOptions> emailOptions)
+        public EmailingService(ILogger<EmailingService> logger, IOptions<EmailOptions> emailOptions, IOutboundEmailHeaderProvider? headerProvider = null)
         {
             _emailSettings = emailOptions.Value;
+            _headerProvider = headerProvider;
             _smtpClient = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
             {
                 Credentials = new NetworkCredential(_emailSettings.EmailSender?.Email, _emailSettings.EmailSenderPassword),
@@ -44,6 +46,7 @@ namespace Spiderly.Shared.Emailing
             })
             {
                 ApplyReplyTo(mailMessage, null);
+                ApplyHeaders(mailMessage, toEmail);
                 await _smtpClient.SendMailAsync(mailMessage); // https://stackoverflow.com/questions/11120350/how-to-check-programmatically-if-an-email-is-existing-or-not
             }
         }
@@ -59,6 +62,7 @@ namespace Spiderly.Shared.Emailing
             })
             {
                 ApplyReplyTo(mailMessage, from, replyTo);
+                ApplyHeaders(mailMessage, recipient);
                 await _smtpClient.SendMailAsync(mailMessage);
             }
         }
@@ -74,6 +78,7 @@ namespace Spiderly.Shared.Emailing
             };
 
             ApplyReplyTo(mailMessage, from, replyTo);
+            ApplyHeaders(mailMessage, recipient);
 
             if (attachments != null)
             {
@@ -104,6 +109,7 @@ namespace Spiderly.Shared.Emailing
                 })
                 {
                     ApplyReplyTo(mailMessage, null);
+                    ApplyHeaders(mailMessage, recipient);
                     await _smtpClient.SendMailAsync(mailMessage);
                 }
             }
@@ -120,6 +126,7 @@ namespace Spiderly.Shared.Emailing
             })
             {
                 ApplyReplyTo(mailMessage, null);
+                ApplyHeaders(mailMessage, recipient);
 
                 try
                 {
@@ -145,6 +152,18 @@ namespace Spiderly.Shared.Emailing
             return string.IsNullOrWhiteSpace(s.Name)
                 ? new MailAddress(s.Email)
                 : new MailAddress(s.Email, s.Name);
+        }
+
+        /// <summary>Applies the app-supplied header decoration, if a provider is registered.</summary>
+        private void ApplyHeaders(MailMessage mailMessage, string recipient)
+        {
+            IDictionary<string, string>? headers = _headerProvider?.HeadersFor(recipient);
+
+            if (headers == null)
+                return;
+
+            foreach (KeyValuePair<string, string> header in headers)
+                mailMessage.Headers[header.Key] = header.Value;
         }
 
         private void ApplyReplyTo(MailMessage mailMessage, EmailSender? from, EmailSender? replyTo = null)
