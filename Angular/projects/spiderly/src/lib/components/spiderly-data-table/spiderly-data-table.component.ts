@@ -809,7 +809,30 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  getColMatchModeOptions(filterType: string) {
+  /**
+   * Memo for `getColMatchModeOptions`' narrowed lists: the narrowing maps to a NEW array,
+   * and a template binding must not hand PrimeNG a fresh reference every CD pass.
+   */
+  private narrowedMatchModeOptions = new WeakMap<Column, SelectItem[]>();
+
+  getColMatchModeOptions(col: Column): SelectItem[] | null {
+    const options = this.matchModeOptionsForType(col.filterType);
+    // The base lists fill in ngOnInit; don't cache a narrowing computed before that.
+    if (!options?.length || !col.matchModes?.length) return options;
+
+    let narrowed = this.narrowedMatchModeOptions.get(col);
+    if (!narrowed) {
+      narrowed = col.matchModes
+        .map((code) => options.find((option) => option.value === code))
+        .filter((option): option is SelectItem => option != null);
+      this.narrowedMatchModeOptions.set(col, narrowed);
+    }
+    return narrowed;
+  }
+
+  private matchModeOptionsForType(
+    filterType: string | undefined,
+  ): SelectItem[] | null {
     switch (filterType) {
       case 'text':
         return null;
@@ -826,7 +849,11 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  getColMatchMode(filterType: string): any {
+  getColMatchMode(col: Column): any {
+    return col.matchModes?.[0] ?? this.defaultMatchModeForType(col.filterType);
+  }
+
+  private defaultMatchModeForType(filterType: string | undefined): any {
     switch (filterType) {
       case 'text':
         return MatchModeCodes.Contains;
@@ -1402,6 +1429,14 @@ export class Column<T = any> {
   filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
   filterPlaceholder?: string;
   showMatchModes?: boolean;
+  /**
+   * Narrows the match modes this column's filter menu offers (rendered only when
+   * `showMatchModes` is true). Declaration order is display order, and the FIRST entry
+   * becomes the column's default match mode. Omit for the filter type's full list and
+   * standard default. Example — a datetime column where an exact-equals match can never
+   * hit: `matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]`.
+   */
+  matchModes?: MatchModeCodes[];
   showAddButton?: boolean;
   dropdownOrMultiselectValues?: PrimengOption[];
   actions?: Action[];
@@ -1445,6 +1480,7 @@ export class Column<T = any> {
     filterType,
     filterPlaceholder,
     showMatchModes,
+    matchModes,
     showAddButton,
     dropdownOrMultiselectValues,
     actions,
@@ -1463,6 +1499,7 @@ export class Column<T = any> {
     filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
     filterPlaceholder?: string;
     showMatchModes?: boolean;
+    matchModes?: MatchModeCodes[];
     showAddButton?: boolean;
     dropdownOrMultiselectValues?: PrimengOption[];
     actions?: Action[];
@@ -1481,6 +1518,7 @@ export class Column<T = any> {
     this.filterType = filterType;
     this.filterPlaceholder = filterPlaceholder;
     this.showMatchModes = showMatchModes;
+    this.matchModes = matchModes;
     this.showAddButton = showAddButton;
     this.dropdownOrMultiselectValues = dropdownOrMultiselectValues;
     this.actions = actions;

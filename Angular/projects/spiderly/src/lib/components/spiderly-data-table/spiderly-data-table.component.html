@@ -128,8 +128,8 @@
                   [showMatchModes]="col.showMatchModes"
                   [showAddButton]="col.showAddButton"
                   [showApplyButton]="!filterAppliesOnChange(col.filterType)"
-                  [matchModeOptions]="getColMatchModeOptions(col.filterType)"
-                  [matchMode]="getColMatchMode(col.filterType)"
+                  [matchModeOptions]="getColMatchModeOptions(col)"
+                  [matchMode]="getColMatchMode(col)"
                 >
                   <!-- Marks a filtered column — PrimeNG's own <FilterIcon> cannot
                        (CLAUDE.md → "Active-filter header icon"). Colour: the SCSS. -->

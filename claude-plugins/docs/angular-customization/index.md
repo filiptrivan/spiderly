@@ -209,6 +209,13 @@ Headers are click-to-sort by default; disable with `sortable: false`. Columns wh
 
 Column widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `minWidth: '8rem'` overrides that floor for one column; it stays a minimum, so the table still distributes the leftover space.
 
+`matchModes` narrows the match modes a `showMatchModes` column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
+
+```typescript
+new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true,
+  showMatchModes: true, matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan] }),
+```
+
 ### Column chooser (show/hide columns)
 
 Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Because a column's header is the table's only filter surface, showing a column is what makes it filterable — declare rarely-needed but filter-worthy columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Rules the table enforces: hiding a column clears its active filter + sort (one reload; plain hides don't hit the server), choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.

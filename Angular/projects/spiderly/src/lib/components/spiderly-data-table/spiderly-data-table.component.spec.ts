@@ -9,7 +9,10 @@ import { Popover } from 'primeng/popover';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
+import { ColumnFilter } from 'primeng/table';
+
 import { translocoTesting } from '../../testing/spec-support.spec';
+import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
 import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { SpiderlyCellTemplateDirective } from '../../directives/spiderly-cell-template.directive';
@@ -1610,5 +1613,60 @@ describe('SpiderlyDataTableComponent — filter menu Apply button', () => {
     expect(buttonbarButtons(fixture, 'Name').length)
       .withContext('text filter commits on Enter/Apply, so Apply must stay')
       .toBe(2);
+  });
+});
+
+describe('SpiderlyDataTableComponent — Column.matchModes narrowing', () => {
+  @Component({
+    imports: [SpiderlyDataTableComponent],
+    template: `
+      <spiderly-data-table
+        [cols]="cols"
+        [getPaginatedListObservableMethod]="getList"
+      ></spiderly-data-table>
+    `,
+  })
+  class HostWithDateColumnsComponent {
+    cols: Column[] = [
+      {
+        name: 'CreatedAt',
+        field: 'createdAt',
+        filterType: 'date',
+        showMatchModes: true,
+        matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
+      },
+      { name: 'PaidAt', field: 'paidAt', filterType: 'date', showMatchModes: true },
+    ];
+    getList = emptyList;
+  }
+
+  it('offers only the declared match modes, in declared order, defaulting to the first', () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithDateColumnsComponent,
+    );
+
+    const columnFilters = fixture.debugElement
+      .queryAll(By.directive(ColumnFilter))
+      .map((de) => de.componentInstance as ColumnFilter);
+    const narrowed = columnFilters.find((cf) => cf.field === 'createdAt')!;
+    const untouched = columnFilters.find((cf) => cf.field === 'paidAt')!;
+
+    expect(narrowed.matchModeOptions!.map((o) => o.value))
+      .withContext('declared modes only, in declared order')
+      .toEqual([MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]);
+    // PrimeNG initializes the field's constraint from the matchMode input, so the
+    // table's own filter model is where the column default is observable.
+    expect(
+      (dataTable.table.filters['createdAt'] as any[])[0].matchMode,
+    )
+      .withContext('the first declared mode is the column default')
+      .toBe(MatchModeCodes.GreaterThan);
+
+    expect(untouched.matchModeOptions!.length)
+      .withContext('a column without matchModes keeps the full library list')
+      .toBe(3);
+    expect((dataTable.table.filters['paidAt'] as any[])[0].matchMode)
+      .withContext('and the filter type standard default')
+      .toBe(MatchModeCodes.Equals);
   });
 });
