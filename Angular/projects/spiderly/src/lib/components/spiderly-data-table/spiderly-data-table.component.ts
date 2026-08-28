@@ -490,13 +490,8 @@ export class SpiderlyDataTableComponent
 
     let cleared = false;
     for (const col of cols) {
-      const filterKey = col.filterField ?? col.field;
-      if (
-        SpiderlyDataTableComponent.isActiveFilterMeta(
-          this.table.filters?.[filterKey],
-        )
-      ) {
-        delete this.table.filters[filterKey];
+      if (this.isColumnFiltered(this.table, col)) {
+        delete this.table.filters[this.filterKey(col)];
         cleared = true;
       }
 
@@ -523,21 +518,22 @@ export class SpiderlyDataTableComponent
   }
 
   /**
+   * The one home of the filter-state key rule (sort meta is keyed by `field` instead).
+   * Instance rather than static so the template's `[field]` binding can share it.
+   */
+  filterKey(col: Column): string | undefined {
+    return col.filterField ?? col.field;
+  }
+
+  /**
    * Whether a column carries a live filter constraint — feeds the projected `filtericon`
-   * template, so a filtered column is visibly marked in its header.
-   *
-   * Deliberately NOT the template's `let-hasFilter` context: PrimeNG's getter reads only
-   * the FIRST constraint's value for array meta, so a multi-constraint column whose first
-   * slot is blanked reports unfiltered while its other constraints still apply. And the
-   * Table arrives as a parameter (the template's `#dt` ref), never `this.table`: the
-   * non-static ViewChild resolves only after the first template pass, so a restored
-   * filter's icon would paint inactive first and flip on the next check —
-   * ExpressionChangedAfterItHasBeenCheckedError in dev mode, precisely on the
-   * restored-state reload this icon exists for.
+   * template, so a filtered column is visibly marked in its header. Why NOT the template's
+   * `let-hasFilter`, and why the Table is a parameter (the `#dt` ref) rather than
+   * `this.table`: CLAUDE.md → "Active-filter header icon".
    */
   isColumnFiltered(table: Table, col: Column): boolean {
     return SpiderlyDataTableComponent.isActiveFilterMeta(
-      table.filters?.[col.filterField ?? col.field],
+      table.filters?.[this.filterKey(col)],
     );
   }
 
@@ -597,7 +593,7 @@ export class SpiderlyDataTableComponent
     for (const col of this.cols) {
       if (!SpiderlyDataTableComponent.isDataColumn(col)) continue;
       if (this.isColumnVisible(col)) continue;
-      if (constrained.has(col.field) || constrained.has(col.filterField)) {
+      if (constrained.has(this.filterKey(col)) || constrained.has(col.field)) {
         this.revealedByConstraint.add(col.field);
       }
     }
@@ -856,16 +852,22 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Whether the filter menu keeps its Apply button. Auto-applying types — boolean/date
-   * via PrimeNG's own onModelChange, dropdown/multiselect via this template's
-   * filterCallback — can never hold a pending value, so Apply there would promise a
-   * state that cannot exist; with it off, PrimeNG also auto-applies match-mode,
-   * operator and constraint-removal changes, keeping the whole menu consistent.
-   * Typed input (text/numeric) commits on Enter/Apply — applying per keystroke would
-   * fire a lazy load per key.
+   * Whether the filter type applies on every value change, which hides the menu's Apply
+   * button — an Apply there would promise a pending state that cannot exist. Boolean and
+   * date auto-apply via PrimeNG's own onModelChange; dropdown/multiselect via this
+   * template's projected filter templates calling filterCallback. With showApplyButton
+   * off, PrimeNG also auto-applies match-mode, operator and constraint-removal changes,
+   * so the whole menu stays consistent. Typed input (text/numeric) is deliberately NOT
+   * here — it commits on Enter/Apply, since applying per keystroke would fire a lazy
+   * load per key. Listing the auto types (not the typed ones) is the safe polarity: an
+   * unlisted future type keeps its Apply button rather than silently losing its commit.
    */
-  filterNeedsApplyButton(filterType: string): boolean {
-    return filterType === 'text' || filterType === 'numeric';
+  filterAppliesOnChange(filterType: string): boolean {
+    return (
+      filterType === 'boolean' ||
+      filterType === 'date' ||
+      this.isDropOrMulti(filterType)
+    );
   }
 
   /*

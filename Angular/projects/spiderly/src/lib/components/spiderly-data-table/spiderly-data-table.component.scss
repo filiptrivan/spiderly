@@ -4,6 +4,15 @@
   align-items: center;
 }
 
+// The active-filter header icon (the projected filtericon template). Bare on purpose:
+// scoping it under PrimeNG's .p-datatable-column-filter-button would compile to a
+// descendant selector requiring OUR _ngcontent on the button, which is PrimeNG-rendered
+// markup — the rule would die silently. Only elements authored in this component's
+// template can match, and the icon is the only .pi-filter-fill here.
+.pi-filter-fill {
+  color: var(--p-primary-color);
+}
+
 @media (max-width: 640px) {
   .table-header {
     display: flex;

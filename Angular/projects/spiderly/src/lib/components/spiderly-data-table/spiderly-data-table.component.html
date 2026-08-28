@@ -121,27 +121,24 @@
                 <p-columnFilter
                   *ngIf="col.filterType != null && col.filterType !== 'blob'"
                   [type]="col.filterType"
-                  [field]="col.filterField ?? col.field"
+                  [field]="filterKey(col)"
                   display="menu"
                   [placeholder]="col.filterPlaceholder"
                   [showOperator]="false"
                   [showMatchModes]="col.showMatchModes"
                   [showAddButton]="col.showAddButton"
-                  [showApplyButton]="filterNeedsApplyButton(col.filterType)"
+                  [showApplyButton]="!filterAppliesOnChange(col.filterType)"
                   [matchModeOptions]="getColMatchModeOptions(col.filterType)"
                   [matchMode]="getColMatchMode(col.filterType)"
                 >
-                  <!-- Replaces PrimeNG's <FilterIcon>, which renders identically whether the
-                       column is filtered or not (the menu button's class is static in 19.1.3,
-                       so there is no CSS-only fix). The fill change is the non-colour channel
-                       (WCAG 1.4.1); the colour only amplifies it. -->
+                  <!-- Marks a filtered column — PrimeNG's own <FilterIcon> cannot
+                       (CLAUDE.md → "Active-filter header icon"). Colour: the SCSS. -->
                   <ng-template pTemplate="filtericon">
                     <i
-                      class="pi"
-                      [class.pi-filter]="!isColumnFiltered(dt, col)"
-                      [class.pi-filter-fill]="isColumnFiltered(dt, col)"
-                      [style.color]="
-                        isColumnFiltered(dt, col) ? 'var(--p-primary-color)' : null
+                      [class]="
+                        isColumnFiltered(dt, col)
+                          ? 'pi pi-filter-fill'
+                          : 'pi pi-filter'
                       "
                     ></i>
                   </ng-template>

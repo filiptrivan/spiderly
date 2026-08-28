@@ -260,6 +260,10 @@ function headerTexts(el: HTMLElement): string[] {
   return headerCells(el).map((th) => th.textContent?.trim() ?? '');
 }
 
+function headerNamed(el: HTMLElement, name: string): HTMLTableCellElement {
+  return headerCells(el).find((th) => (th.textContent ?? '').includes(name))!;
+}
+
 // Async because the checkboxes' [ngModel] writes resolve in a microtask.
 async function openChooser(fixture: ComponentFixture<unknown>): Promise<void> {
   const button = (
@@ -685,10 +689,7 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
   const headerOf = (
     fixture: ComponentFixture<unknown>,
     name: string,
-  ): HTMLTableCellElement =>
-    headerCells(fixture.nativeElement).find((th) =>
-      (th.textContent ?? '').includes(name),
-    )!;
+  ): HTMLTableCellElement => headerNamed(fixture.nativeElement, name);
 
   it('disables click-to-sort and hides the sort icon on a CommaSeparated field', () => {
     const fixture = createFixture(HostWithCommaSeparatedColumnComponent);
@@ -1472,49 +1473,45 @@ describe('SpiderlyDataTableComponent — row navigation vs interactive cells', (
   });
 });
 
-describe('SpiderlyDataTableComponent — active-filter header icon', () => {
-  // The projected filtericon template's element. PrimeNG wraps a projected template in
-  // `span.pi-filter-icon`; without the projection it renders its own SVG <FilterIcon>,
-  // so a null here means the template is missing entirely.
-  const filterIcon = (el: HTMLElement): HTMLElement | null =>
-    el.querySelector('th .p-datatable-column-filter-button i.pi');
+// The filter menu button PrimeNG renders in each filterable column's header.
+const FILTER_BUTTON = '.p-datatable-column-filter-button';
 
+// The projected filtericon template's element in the named column's header. PrimeNG
+// wraps a projected template in `span.pi-filter-icon`; without the projection it renders
+// its own SVG <FilterIcon>, so a null here means the template is missing entirely.
+const filterIcon = (el: HTMLElement, headerName: string): HTMLElement | null =>
+  headerNamed(el, headerName).querySelector<HTMLElement>(
+    `${FILTER_BUTTON} i.pi`,
+  );
+
+describe('SpiderlyDataTableComponent — active-filter header icon', () => {
   it('fills the icon while a constraint is active and unfills it after clear', () => {
     const { fixture, dataTable } = createWithDataTable(
       HostWithoutActionsComponent,
     );
     const el: HTMLElement = fixture.nativeElement;
 
-    expect(filterIcon(el))
+    expect(filterIcon(el, 'Id'))
       .withContext('the filtericon template should render an .pi icon')
       .toBeTruthy();
-    expect(filterIcon(el)!.classList).not.toContain('pi-filter-fill');
+    expect(filterIcon(el, 'Id')!.classList).not.toContain('pi-filter-fill');
 
     dataTable.table.filters['id'] = [
       { value: 5, matchMode: 'equals', operator: 'and' },
     ];
-    dataTable.table._filter();
     fixture.detectChanges();
 
-    expect(filterIcon(el)!.classList)
+    expect(filterIcon(el, 'Id')!.classList)
       .withContext('a live constraint should fill the icon')
       .toContain('pi-filter-fill');
 
     dataTable.clear(dataTable.table);
     fixture.detectChanges();
 
-    expect(filterIcon(el)!.classList)
+    expect(filterIcon(el, 'Id')!.classList)
       .withContext('clearing all filters should unfill the icon')
       .not.toContain('pi-filter-fill');
   });
-
-  // Per-column icon lookup for multi-column hosts.
-  const iconInHeader = (el: HTMLElement, name: string): HTMLElement | null => {
-    const th = Array.from(el.querySelectorAll('th')).find((h) =>
-      (h.textContent ?? '').includes(name),
-    );
-    return th?.querySelector('i.pi') ?? null;
-  };
 
   // The worst case the icon exists for: stateStorage restores filters on reload with no
   // interaction. Karma runs dev mode, so this spec also guards the `#dt`-parameter timing —
@@ -1531,10 +1528,10 @@ describe('SpiderlyDataTableComponent — active-filter header icon', () => {
     const el: HTMLElement = createFixture(HostWithColumnsStateKeyComponent)
       .nativeElement;
 
-    expect(iconInHeader(el, 'Name')!.classList)
+    expect(filterIcon(el, 'Name')!.classList)
       .withContext('the restored constraint should fill its column icon')
       .toContain('pi-filter-fill');
-    expect(iconInHeader(el, 'Id')!.classList)
+    expect(filterIcon(el, 'Id')!.classList)
       .withContext('an unfiltered column stays unfilled')
       .not.toContain('pi-filter-fill');
   });
@@ -1554,7 +1551,7 @@ describe('SpiderlyDataTableComponent — active-filter header icon', () => {
     ];
     fixture.detectChanges();
 
-    expect(filterIcon(el)!.classList)
+    expect(filterIcon(el, 'Id')!.classList)
       .withContext('a live second constraint should keep the icon filled')
       .toContain('pi-filter-fill');
   });
@@ -1584,10 +1581,9 @@ describe('SpiderlyDataTableComponent — filter menu Apply button', () => {
     headerName: string,
   ): HTMLButtonElement[] => {
     const el: HTMLElement = fixture.nativeElement;
-    const th = Array.from(el.querySelectorAll('th')).find((h) =>
-      (h.textContent ?? '').includes(headerName),
-    )!;
-    th.querySelector<HTMLElement>('.p-datatable-column-filter-button')!.click();
+    headerNamed(el, headerName)
+      .querySelector<HTMLElement>(FILTER_BUTTON)!
+      .click();
     fixture.detectChanges();
 
     return Array.from(
