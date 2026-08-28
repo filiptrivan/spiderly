@@ -23,14 +23,16 @@ namespace Spiderly.Shared
         public EmailSender? EmailReplyTo { get; set; }
 
         /// <summary>
-        /// Resolves the Reply-To for a send: the configured <see cref="EmailReplyTo"/> rides with the
-        /// default sender identity only — a per-call <paramref name="from"/> override owns the whole
-        /// identity and never inherits it. Every <see cref="Interfaces.IEmailingService"/> implementation
-        /// must route through this so the policy can't drift between providers.
+        /// Resolves the Reply-To for a send: an explicit per-call <paramref name="replyTo"/> always wins;
+        /// otherwise the configured <see cref="EmailReplyTo"/> rides with the default sender identity only —
+        /// a per-call <paramref name="from"/> override owns the whole identity and never inherits it (pass
+        /// <paramref name="replyTo"/> alongside the override to route its replies to a monitored inbox).
+        /// Every <see cref="Interfaces.IEmailingService"/> implementation must route through this so the
+        /// policy can't drift between providers.
         /// </summary>
-        public EmailSender? ResolveReplyTo(EmailSender? from)
+        public EmailSender? ResolveReplyTo(EmailSender? from, EmailSender? replyTo = null)
         {
-            return from == null ? EmailReplyTo : null;
+            return replyTo ?? (from == null ? EmailReplyTo : null);
         }
 
         /// <summary>SMTP password for the <see cref="EmailSender"/> account.</summary>

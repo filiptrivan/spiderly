@@ -23,12 +23,13 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="subject">The email subject</param>
         /// <param name="body">The email body (HTML supported)</param>
         /// <param name="from">Optional sender. If not provided, uses the default sender from settings. Pass <see cref="EmailSender.Name"/> to control the display name shown in the recipient's inbox.</param>
-        Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null);
+        /// <param name="replyTo">Optional Reply-To. Without it a per-call <paramref name="from"/> override sends with no Reply-To at all (the configured default Reply-To never rides along), so replies to a no-reply override dead-end — pass this to route them to a monitored inbox.</param>
+        Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null);
 
         /// <summary>
         /// Sends an email with binary attachments (e.g., PDF documents).
         /// </summary>
-        Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null);
+        Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null);
 
         /// <summary>
         /// Sends the same email to multiple recipients

@@ -165,7 +165,7 @@ namespace Spiderly.Shared.Tests
 
             public bool IsConfigured() => true;
 
-            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null)
+            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
             {
                 Single.Add((recipient, subject, body));
                 return Task.CompletedTask;
@@ -177,7 +177,7 @@ namespace Spiderly.Shared.Tests
                 return Task.CompletedTask;
             }
 
-            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null)
+            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
                 => throw new NotSupportedException();
 
             public Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body)

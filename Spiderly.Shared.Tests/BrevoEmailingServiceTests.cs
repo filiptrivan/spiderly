@@ -75,6 +75,29 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
+        public async Task Per_call_sender_override_carries_an_explicit_reply_to()
+        {
+            RecordingHandler handler = new();
+            BrevoEmailingService service = NewService(handler, new EmailOptions
+            {
+                EmailSender = new EmailSender { Email = "no-reply@example.com", Name = "Example Shop" },
+                EmailReplyTo = new EmailSender { Email = "info@example.com", Name = "Example Shop" },
+                BrevoApiKey = "test-key",
+            });
+
+            await service.SendEmailAsync(
+                "customer@example.com",
+                "Subject",
+                "<p>Body</p>",
+                from: new EmailSender { Email = "noreply@brand.com", Name = "Brand" },
+                replyTo: new EmailSender { Email = "office@brand.com", Name = "Brand" });
+
+            JsonElement payload = handler.LastPayload();
+            Assert.Equal("noreply@brand.com", payload.GetProperty("sender").GetProperty("email").GetString());
+            Assert.Equal("office@brand.com", payload.GetProperty("replyTo").GetProperty("email").GetString());
+        }
+
+        [Fact]
         public async Task Blank_reply_to_name_is_omitted_from_the_reply_to_object()
         {
             RecordingHandler handler = new();

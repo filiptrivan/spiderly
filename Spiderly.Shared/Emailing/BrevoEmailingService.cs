@@ -34,14 +34,14 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(toEmail, template.Subject, template.Body);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
         {
-            await SendViaBrevoAsync(recipient, subject, body, from);
+            await SendViaBrevoAsync(recipient, subject, body, from, replyTo);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
         {
-            await SendViaBrevoAsync(recipient, subject, body, from, attachments);
+            await SendViaBrevoAsync(recipient, subject, body, from, replyTo, attachments);
         }
 
         public async Task SendEmailAsync(List<string> recipients, string subject, string body)
@@ -70,7 +70,7 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender? from = null, IEnumerable<EmailAttachment>? attachments = null)
+        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<EmailAttachment>? attachments = null)
         {
             EmailSender sender = from ?? _emailSettings.EmailSender;
 
@@ -83,10 +83,10 @@ namespace Spiderly.Shared.Emailing
 
             payload["sender"] = BuildAddressPayload(sender);
 
-            EmailSender? replyTo = _emailSettings.ResolveReplyTo(from);
+            EmailSender? resolvedReplyTo = _emailSettings.ResolveReplyTo(from, replyTo);
 
-            if (!string.IsNullOrWhiteSpace(replyTo?.Email))
-                payload["replyTo"] = BuildAddressPayload(replyTo!); // replyTo != null — the guard just checked replyTo?.Email
+            if (!string.IsNullOrWhiteSpace(resolvedReplyTo?.Email))
+                payload["replyTo"] = BuildAddressPayload(resolvedReplyTo!); // resolvedReplyTo != null — the guard just checked resolvedReplyTo?.Email
 
             // Brevo expects attachments as [{ name, content }] with base64 content.
             object[]? brevoAttachments = attachments?

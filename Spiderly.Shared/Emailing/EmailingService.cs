@@ -48,7 +48,7 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
         {
             using (MailMessage mailMessage = new MailMessage(BuildFromAddress(from), new MailAddress(recipient))
             {
@@ -58,12 +58,12 @@ namespace Spiderly.Shared.Emailing
                 IsBodyHtml = true,
             })
             {
-                ApplyReplyTo(mailMessage, from);
+                ApplyReplyTo(mailMessage, from, replyTo);
                 await _smtpClient.SendMailAsync(mailMessage);
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null)
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
         {
             using MailMessage mailMessage = new(BuildFromAddress(from), new MailAddress(recipient))
             {
@@ -73,7 +73,7 @@ namespace Spiderly.Shared.Emailing
                 IsBodyHtml = true,
             };
 
-            ApplyReplyTo(mailMessage, from);
+            ApplyReplyTo(mailMessage, from, replyTo);
 
             if (attachments != null)
             {
@@ -147,17 +147,17 @@ namespace Spiderly.Shared.Emailing
                 : new MailAddress(s.Email, s.Name);
         }
 
-        private void ApplyReplyTo(MailMessage mailMessage, EmailSender? from)
+        private void ApplyReplyTo(MailMessage mailMessage, EmailSender? from, EmailSender? replyTo = null)
         {
-            EmailSender? replyTo = _emailSettings.ResolveReplyTo(from);
+            EmailSender? resolved = _emailSettings.ResolveReplyTo(from, replyTo);
 
-            if (string.IsNullOrWhiteSpace(replyTo?.Email))
+            if (string.IsNullOrWhiteSpace(resolved?.Email))
                 return;
 
-            // replyTo != null past the guard — a null replyTo would have returned above.
-            mailMessage.ReplyToList.Add(string.IsNullOrWhiteSpace(replyTo!.Name)
-                ? new MailAddress(replyTo.Email)
-                : new MailAddress(replyTo.Email, replyTo.Name));
+            // resolved != null past the guard — a null resolved would have returned above.
+            mailMessage.ReplyToList.Add(string.IsNullOrWhiteSpace(resolved!.Name)
+                ? new MailAddress(resolved.Email)
+                : new MailAddress(resolved.Email, resolved.Name));
         }
     }
 }
