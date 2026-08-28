@@ -1471,3 +1471,148 @@ describe('SpiderlyDataTableComponent — row navigation vs interactive cells', (
     expect(navigate).not.toHaveBeenCalled();
   });
 });
+
+describe('SpiderlyDataTableComponent — active-filter header icon', () => {
+  // The projected filtericon template's element. PrimeNG wraps a projected template in
+  // `span.pi-filter-icon`; without the projection it renders its own SVG <FilterIcon>,
+  // so a null here means the template is missing entirely.
+  const filterIcon = (el: HTMLElement): HTMLElement | null =>
+    el.querySelector('th .p-datatable-column-filter-button i.pi');
+
+  it('fills the icon while a constraint is active and unfills it after clear', () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithoutActionsComponent,
+    );
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(filterIcon(el))
+      .withContext('the filtericon template should render an .pi icon')
+      .toBeTruthy();
+    expect(filterIcon(el)!.classList).not.toContain('pi-filter-fill');
+
+    dataTable.table.filters['id'] = [
+      { value: 5, matchMode: 'equals', operator: 'and' },
+    ];
+    dataTable.table._filter();
+    fixture.detectChanges();
+
+    expect(filterIcon(el)!.classList)
+      .withContext('a live constraint should fill the icon')
+      .toContain('pi-filter-fill');
+
+    dataTable.clear(dataTable.table);
+    fixture.detectChanges();
+
+    expect(filterIcon(el)!.classList)
+      .withContext('clearing all filters should unfill the icon')
+      .not.toContain('pi-filter-fill');
+  });
+
+  // Per-column icon lookup for multi-column hosts.
+  const iconInHeader = (el: HTMLElement, name: string): HTMLElement | null => {
+    const th = Array.from(el.querySelectorAll('th')).find((h) =>
+      (h.textContent ?? '').includes(name),
+    );
+    return th?.querySelector('i.pi') ?? null;
+  };
+
+  // The worst case the icon exists for: stateStorage restores filters on reload with no
+  // interaction. Karma runs dev mode, so this spec also guards the `#dt`-parameter timing —
+  // an implementation reading the non-static `this.table` ViewChild would paint inactive
+  // first and throw ExpressionChangedAfterItHasBeenCheckedError right here.
+  it('marks a restored filter on first paint, with no interaction', () => {
+    sessionStorage.setItem(
+      COLUMNS_STATE_KEY,
+      JSON.stringify({
+        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
+      }),
+    );
+
+    const el: HTMLElement = createFixture(HostWithColumnsStateKeyComponent)
+      .nativeElement;
+
+    expect(iconInHeader(el, 'Name')!.classList)
+      .withContext('the restored constraint should fill its column icon')
+      .toContain('pi-filter-fill');
+    expect(iconInHeader(el, 'Id')!.classList)
+      .withContext('an unfiltered column stays unfilled')
+      .not.toContain('pi-filter-fill');
+  });
+
+  // Guards against "simplifying" onto the template's `let-hasFilter`: PrimeNG's getter
+  // reads only the first constraint of array meta, so this state — first slot blanked,
+  // second still constraining — is genuinely filtered while hasFilter reports it isn't.
+  it('stays filled when only a later constraint of a multi-constraint column holds a value', () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithoutActionsComponent,
+    );
+    const el: HTMLElement = fixture.nativeElement;
+
+    dataTable.table.filters['id'] = [
+      { value: null, matchMode: 'equals', operator: 'and' },
+      { value: 5, matchMode: 'equals', operator: 'and' },
+    ];
+    fixture.detectChanges();
+
+    expect(filterIcon(el)!.classList)
+      .withContext('a live second constraint should keep the icon filled')
+      .toContain('pi-filter-fill');
+  });
+});
+
+describe('SpiderlyDataTableComponent — filter menu Apply button', () => {
+  @Component({
+    imports: [SpiderlyDataTableComponent],
+    template: `
+      <spiderly-data-table
+        [cols]="cols"
+        [getPaginatedListObservableMethod]="getList"
+      ></spiderly-data-table>
+    `,
+  })
+  class HostWithBooleanColumnComponent {
+    cols: Column[] = [
+      { name: 'Name', field: 'name', filterType: 'text' },
+      { name: 'Active', field: 'active', filterType: 'boolean' },
+    ];
+    getList = emptyList;
+  }
+
+  // Opens the named column's filter menu and returns its buttonbar's buttons.
+  const buttonbarButtons = (
+    fixture: ComponentFixture<unknown>,
+    headerName: string,
+  ): HTMLButtonElement[] => {
+    const el: HTMLElement = fixture.nativeElement;
+    const th = Array.from(el.querySelectorAll('th')).find((h) =>
+      (h.textContent ?? '').includes(headerName),
+    )!;
+    th.querySelector<HTMLElement>('.p-datatable-column-filter-button')!.click();
+    fixture.detectChanges();
+
+    return Array.from(
+      el.querySelectorAll<HTMLButtonElement>(
+        '.p-datatable-filter-overlay .p-datatable-filter-buttonbar button',
+      ),
+    );
+  };
+
+  it('renders no Apply button for an auto-applying filter type', () => {
+    const fixture = createFixture(HostWithBooleanColumnComponent);
+
+    // Boolean applies on every checkbox change (PrimeNG's own onModelChange), so an
+    // Apply button would promise a pending state that cannot exist. Clear stays — it is
+    // the only way from checked/unchecked back to "no constraint".
+    expect(buttonbarButtons(fixture, 'Active').length)
+      .withContext('auto-applying menu should keep only the Clear button')
+      .toBe(1);
+  });
+
+  it('keeps the Apply button for typed filter input', () => {
+    const fixture = createFixture(HostWithBooleanColumnComponent);
+
+    expect(buttonbarButtons(fixture, 'Name').length)
+      .withContext('text filter commits on Enter/Apply, so Apply must stay')
+      .toBe(2);
+  });
+});

@@ -522,6 +522,25 @@ export class SpiderlyDataTableComponent
     );
   }
 
+  /**
+   * Whether a column carries a live filter constraint — feeds the projected `filtericon`
+   * template, so a filtered column is visibly marked in its header.
+   *
+   * Deliberately NOT the template's `let-hasFilter` context: PrimeNG's getter reads only
+   * the FIRST constraint's value for array meta, so a multi-constraint column whose first
+   * slot is blanked reports unfiltered while its other constraints still apply. And the
+   * Table arrives as a parameter (the template's `#dt` ref), never `this.table`: the
+   * non-static ViewChild resolves only after the first template pass, so a restored
+   * filter's icon would paint inactive first and flip on the next check —
+   * ExpressionChangedAfterItHasBeenCheckedError in dev mode, precisely on the
+   * restored-state reload this icon exists for.
+   */
+  isColumnFiltered(table: Table, col: Column): boolean {
+    return SpiderlyDataTableComponent.isActiveFilterMeta(
+      table.filters?.[col.filterField ?? col.field],
+    );
+  }
+
   private persistColumnVisibility(): void {
     if (!this.columnsStateKey) return;
 
@@ -834,6 +853,19 @@ export class SpiderlyDataTableComponent
     } else {
       return false;
     }
+  }
+
+  /**
+   * Whether the filter menu keeps its Apply button. Auto-applying types — boolean/date
+   * via PrimeNG's own onModelChange, dropdown/multiselect via this template's
+   * filterCallback — can never hold a pending value, so Apply there would promise a
+   * state that cannot exist; with it off, PrimeNG also auto-applies match-mode,
+   * operator and constraint-removal changes, keeping the whole menu consistent.
+   * Typed input (text/numeric) commits on Enter/Apply — applying per keystroke would
+   * fire a lazy load per key.
+   */
+  filterNeedsApplyButton(filterType: string): boolean {
+    return filterType === 'text' || filterType === 'numeric';
   }
 
   /*

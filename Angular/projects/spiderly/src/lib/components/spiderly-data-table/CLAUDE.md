@@ -98,3 +98,14 @@ Consumer usage — anchoring a popover, including the re-anchor-while-open patte
 ## Column widths — `Column.minWidth`
 
 `getColHeaderWidth(col)` takes the **column**, not the filter type — it needs `minWidth`. Why the defaults are generous and why the override is a floor rather than a width: the `Column.minWidth` doc comment.
+
+## Active-filter header icon — the projected `filtericon` template
+
+PrimeNG 19's menu-mode filter button renders identically whether the column is filtered or not (its class is static, so there is no CSS-only fix), and the worst case is a `stateStorage`-restored filter on reload: the table opens filtered with zero signal. The projected `pTemplate="filtericon"` replaces PrimeNG's `<FilterIcon>` with `pi-filter` / `pi-filter-fill` + primary colour — the fill change is the non-colour channel (WCAG 1.4.1); colour only amplifies. Two traps, both spec-pinned:
+
+- **Truth is `isColumnFiltered` (our `isActiveFilterMeta`), never the template's `let-hasFilter` context.** PrimeNG's getter reads only the *first* constraint of array meta, so a multi-constraint column whose first slot is blanked but whose second still holds a value is genuinely filtered while `hasFilter` reports it isn't. The "stays filled when only a later constraint…" spec is the pin.
+- **The `Table` arrives as the `#dt` template-ref parameter, never `this.table`.** The non-static ViewChild resolves only after the first template pass, so reading it would paint a restored filter's icon inactive and then throw `ExpressionChangedAfterItHasBeenCheckedError` in dev mode — precisely on the restored-state reload the icon exists for. The "marks a restored filter on first paint" spec pins this implicitly, since Karma runs dev mode.
+
+## Filter menu Apply button — hidden for auto-applying types
+
+`filterNeedsApplyButton` keeps the Apply button only for typed input (text/numeric, committing on Enter/Apply). Boolean and date apply on every change through PrimeNG's own `onModelChange`, dropdown/multiselect through this template's `filterCallback` — so an Apply button there promises a pending state that cannot exist. With `showApplyButton` off, PrimeNG also auto-applies match-mode, operator and constraint-removal changes, keeping the whole menu consistent. Clear stays: for a boolean it is the only way from checked/unchecked back to "no constraint".
