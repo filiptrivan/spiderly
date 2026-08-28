@@ -1,4 +1,5 @@
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Outbox;
@@ -16,16 +17,19 @@ namespace Spiderly.Shared.Notifications
         private readonly INotificationRouter _router;
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly IEnumerable<IOutbox> _outboxes;
+        private readonly ILogger<Notifier>? _logger;
 
         /// <summary>Creates the notifier. <paramref name="outboxes"/> is empty unless <c>AddOutbox</c> was called.</summary>
         public Notifier(
             INotificationRouter router,
             IBackgroundJobClient backgroundJobClient,
-            IEnumerable<IOutbox> outboxes)
+            IEnumerable<IOutbox> outboxes,
+            ILogger<Notifier>? logger = null)
         {
             _router = router;
             _backgroundJobClient = backgroundJobClient;
             _outboxes = outboxes;
+            _logger = logger;
         }
 
         /// <inheritdoc/>
@@ -40,7 +44,16 @@ namespace Spiderly.Shared.Notifications
         {
             IReadOnlyCollection<INotificationChannel> channels = _router.ChannelsFor(notification);
             if (channels.Count == 0)
+            {
+                // Dropping in silence is what made an unrouted notification look alive end to end.
+                // NotificationRoutingValidator catches the renderer-backed case at boot; this covers
+                // the rest (a notification carrying its own ToEmail, or a route added then removed).
+                _logger?.LogWarning(
+                    "Notification {NotificationType} was dispatched but is routed to no channel, so nothing was sent. "
+                    + "Add a route in AddNotifications(...) or stop dispatching it.",
+                    notification.GetType().Name);
                 return;
+            }
 
             // Serialized once (via the shared envelope) and re-used per channel; rebuilt at delivery from code + JSON.
             OutboxEnvelope envelope = OutboxEnvelope.For(notification);

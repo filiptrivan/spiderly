@@ -16,6 +16,11 @@ namespace Spiderly.Shared.Notifications
     /// <para>Also fails fast if more than one <see cref="INotificationRecipientResolver"/> is registered: delivery
     /// resolves a recipient by a single id with no recipient-kind discriminator, so only the first resolver would
     /// ever be used and the rest would silently never match. One resolver is the supported shape.</para>
+    ///
+    /// <para>And the inverse of the first check: a registered <see cref="IEmailRenderer"/> whose notification type
+    /// is not routed to the Email channel. That notification is dead code that looks alive end to end — staging
+    /// writes its outbox row and the caller "sends" — because <see cref="Notifier"/> drops a notification with no
+    /// channels. A consumer shipped two finished, tested customer emails that way, and nothing went red.</para>
     /// </summary>
     public class NotificationRoutingValidator : IHostedService
     {
@@ -54,6 +59,23 @@ namespace Spiderly.Shared.Notifications
                     + Environment.NewLine + string.Join(Environment.NewLine, errors)
                     + Environment.NewLine
                     + "Register the channel (the built-in Email channel requires emailing, e.g. spiderly.AddBrevoEmailing() / spiderly.AddEmailing<T>()) or remove the route.");
+
+            // Read the type off the instance rather than reflecting over the assembly: this sees what is
+            // actually REGISTERED, so a renderer that exists but was never added to DI is caught too.
+            List<string> unrouted = scope.ServiceProvider
+                .GetServices<IEmailRenderer>()
+                .Where(renderer => !_routingMap.Routes.TryGetValue(renderer.NotificationType, out List<string>? codes)
+                                   || !codes.Contains(EmailChannel.ChannelCode))
+                .Select(renderer => $"  - {renderer.NotificationType.Name} has a registered {renderer.GetType().Name}, but no route to '{EmailChannel.ChannelCode}'.")
+                .ToList();
+
+            if (unrouted.Count > 0)
+                throw new InvalidOperationException(
+                    "Notification routing is incomplete — every registered IEmailRenderer's notification must be routed, "
+                    + "or it is staged and then silently dropped at dispatch:"
+                    + Environment.NewLine + string.Join(Environment.NewLine, unrouted)
+                    + Environment.NewLine
+                    + $"Add .Route<{{Notification}}>().To(\"{EmailChannel.ChannelCode}\") in AddNotifications(...), or unregister the renderer.");
 
             int resolverCount = scope.ServiceProvider.GetServices<INotificationRecipientResolver>().Count();
             if (resolverCount > 1)

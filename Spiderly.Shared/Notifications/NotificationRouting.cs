@@ -44,12 +44,7 @@ namespace Spiderly.Shared.Notifications
             return new NotificationRouteBuilder(this, codes);
         }
 
-        /// <summary>
-        /// Builds the immutable routing map. Called by the framework at startup; public so consumer tests can pin
-        /// their routing config (e.g. "every registered <see cref="IEmailRenderer"/>'s notification type is routed") —
-        /// an unrouted notification is dropped silently, so without such a pin the gap is invisible.
-        /// </summary>
-        public NotificationRoutingMap Build() => new(_routes);
+        internal NotificationRoutingMap Build() => new(_routes);
     }
 
     /// <summary>The per-notification continuation of <see cref="NotificationRoutingBuilder"/>; adds channel codes.</summary>

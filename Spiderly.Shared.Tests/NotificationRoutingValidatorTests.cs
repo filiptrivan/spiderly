@@ -59,6 +59,37 @@ namespace Spiderly.Shared.Tests
             await validator.StartAsync(default); // does not throw
         }
 
+        // The inverse direction. A registered renderer whose notification type is unrouted is dead
+        // code that looks alive end to end: staging writes its outbox row, the caller "sends", and
+        // Notifier.Dispatch drops it on an empty channel list. A consumer shipped two customer
+        // emails that way and nothing anywhere went red.
+        [Fact]
+        public async Task Throws_when_a_registered_renderer_has_no_route()
+        {
+            NotificationRoutingValidator validator = new(
+                new FakeScopeFactory(
+                    channels: new[] { Channel("Email") },
+                    renderers: new[] { Renderer<TestNote>() }),
+                Map()); // nothing routed
+
+            InvalidOperationException exception =
+                await Assert.ThrowsAsync<InvalidOperationException>(() => validator.StartAsync(default));
+
+            Assert.Contains(nameof(TestNote), exception.Message);
+        }
+
+        [Fact]
+        public async Task Passes_when_every_registered_renderer_is_routed()
+        {
+            NotificationRoutingValidator validator = new(
+                new FakeScopeFactory(
+                    channels: new[] { Channel("Email") },
+                    renderers: new[] { Renderer<TestNote>() }),
+                Map((typeof(TestNote), "Email")));
+
+            await validator.StartAsync(default); // does not throw
+        }
+
         // ---- helpers ----
 
         private static NotificationRoutingMap Map(params (Type type, string code)[] routes)
@@ -75,19 +106,24 @@ namespace Spiderly.Shared.Tests
 
         private static INotificationChannel Channel(string code) => new StubChannel(code);
         private static INotificationRecipientResolver Resolver() => new StubResolver();
+        private static IEmailRenderer Renderer<TNotification>() where TNotification : INotification
+            => new StubRenderer(typeof(TNotification));
 
-        // Hands the validator its channels/resolvers when it calls GetServices<T>() inside the scope it creates.
+        // Hands the validator its channels/resolvers/renderers when it calls GetServices<T>() inside the scope it creates.
         private sealed class FakeScopeFactory : IServiceScopeFactory, IServiceScope, IServiceProvider
         {
             private readonly IEnumerable<INotificationChannel> _channels;
             private readonly IEnumerable<INotificationRecipientResolver> _resolvers;
+            private readonly IEnumerable<IEmailRenderer> _renderers;
 
             public FakeScopeFactory(
                 IEnumerable<INotificationChannel> channels,
-                IEnumerable<INotificationRecipientResolver>? resolvers = null)
+                IEnumerable<INotificationRecipientResolver>? resolvers = null,
+                IEnumerable<IEmailRenderer>? renderers = null)
             {
                 _channels = channels;
                 _resolvers = resolvers ?? Array.Empty<INotificationRecipientResolver>();
+                _renderers = renderers ?? Array.Empty<IEmailRenderer>();
             }
 
             public IServiceScope CreateScope() => this;
@@ -98,6 +134,7 @@ namespace Spiderly.Shared.Tests
             {
                 if (serviceType == typeof(IEnumerable<INotificationChannel>)) return _channels;
                 if (serviceType == typeof(IEnumerable<INotificationRecipientResolver>)) return _resolvers;
+                if (serviceType == typeof(IEnumerable<IEmailRenderer>)) return _renderers;
                 return null;
             }
         }
@@ -109,6 +146,14 @@ namespace Spiderly.Shared.Tests
             public bool IsConfigured => true;
             public Task SendAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
                 => Task.CompletedTask;
+        }
+
+        private sealed class StubRenderer : IEmailRenderer
+        {
+            public StubRenderer(Type notificationType) => NotificationType = notificationType;
+            public Type NotificationType { get; }
+            public Task<EmailContent?> RenderAsync(INotification notification, INotificationRecipient? recipient, CancellationToken cancellationToken)
+                => Task.FromResult<EmailContent?>(null);
         }
 
         private sealed class StubResolver : INotificationRecipientResolver

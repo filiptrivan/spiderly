@@ -37,48 +37,23 @@ namespace Spiderly.Shared.Emailing
 
         public async Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template)
         {
-            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(toEmail))
+            using (MailMessage mailMessage = BuildMessage(toEmail, template.Subject, template.Body))
             {
-                Subject = template.Subject,
-                Body = template.Body,
-                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                IsBodyHtml = true
-            })
-            {
-                ApplyReplyTo(mailMessage, null);
-                ApplyHeaders(mailMessage, toEmail);
                 await _smtpClient.SendMailAsync(mailMessage); // https://stackoverflow.com/questions/11120350/how-to-check-programmatically-if-an-email-is-existing-or-not
             }
         }
 
         public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
         {
-            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(from), new MailAddress(recipient))
+            using (MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo))
             {
-                Subject = subject,
-                Body = body,
-                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                IsBodyHtml = true,
-            })
-            {
-                ApplyReplyTo(mailMessage, from, replyTo);
-                ApplyHeaders(mailMessage, recipient);
                 await _smtpClient.SendMailAsync(mailMessage);
             }
         }
 
         public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
         {
-            using MailMessage mailMessage = new(BuildFromAddress(from), new MailAddress(recipient))
-            {
-                Subject = subject,
-                Body = body,
-                BodyEncoding = Encoding.UTF8,
-                IsBodyHtml = true,
-            };
-
-            ApplyReplyTo(mailMessage, from, replyTo);
-            ApplyHeaders(mailMessage, recipient);
+            using MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo);
 
             if (attachments != null)
             {
@@ -100,16 +75,8 @@ namespace Spiderly.Shared.Emailing
         {
             foreach (string recipient in recipients)
             {
-                using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(recipient))
+                using (MailMessage mailMessage = BuildMessage(recipient, subject, body))
                 {
-                    Subject = subject,
-                    Body = body,
-                    BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                    IsBodyHtml = true,
-                })
-                {
-                    ApplyReplyTo(mailMessage, null);
-                    ApplyHeaders(mailMessage, recipient);
                     await _smtpClient.SendMailAsync(mailMessage);
                 }
             }
@@ -117,17 +84,8 @@ namespace Spiderly.Shared.Emailing
 
         public async Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body)
         {
-            using (MailMessage mailMessage = new MailMessage(BuildFromAddress(null), new MailAddress(recipient))
+            using (MailMessage mailMessage = BuildMessage(recipient, subject, body))
             {
-                Subject = subject,
-                Body = body,
-                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and don't throw the exception
-                IsBodyHtml = true,
-            })
-            {
-                ApplyReplyTo(mailMessage, null);
-                ApplyHeaders(mailMessage, recipient);
-
                 try
                 {
                     await _smtpClient.SendMailAsync(mailMessage);
@@ -146,24 +104,39 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
+        /// <summary>
+        /// The one place a message is constructed, so every cross-cutting concern (Reply-To resolution,
+        /// app-supplied headers) applies to every send path by construction. The five public methods each
+        /// built their own message and had to remember both, which is one line per concern per method to
+        /// forget — and a send path added later would silently skip them.
+        /// </summary>
+        private MailMessage BuildMessage(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
+        {
+            MailMessage mailMessage = new(BuildFromAddress(from), new MailAddress(recipient))
+            {
+                Subject = subject,
+                Body = body,
+                BodyEncoding = Encoding.UTF8, // Without this, the email is not sent, and doesn't throw
+                IsBodyHtml = true,
+            };
+
+            ApplyReplyTo(mailMessage, from, replyTo);
+
+            IDictionary<string, string>? headers = _headerProvider?.HeadersFor(recipient);
+
+            if (headers is { Count: > 0 })
+                foreach (KeyValuePair<string, string> header in headers)
+                    mailMessage.Headers[header.Key] = header.Value;
+
+            return mailMessage;
+        }
+
         private MailAddress BuildFromAddress(EmailSender? sender)
         {
             EmailSender s = sender ?? _emailSettings.EmailSender;
             return string.IsNullOrWhiteSpace(s.Name)
                 ? new MailAddress(s.Email)
                 : new MailAddress(s.Email, s.Name);
-        }
-
-        /// <summary>Applies the app-supplied header decoration, if a provider is registered.</summary>
-        private void ApplyHeaders(MailMessage mailMessage, string recipient)
-        {
-            IDictionary<string, string>? headers = _headerProvider?.HeadersFor(recipient);
-
-            if (headers == null)
-                return;
-
-            foreach (KeyValuePair<string, string> header in headers)
-                mailMessage.Headers[header.Key] = header.Value;
         }
 
         private void ApplyReplyTo(MailMessage mailMessage, EmailSender? from, EmailSender? replyTo = null)
