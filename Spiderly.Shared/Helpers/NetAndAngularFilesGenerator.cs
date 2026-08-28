@@ -3736,6 +3736,8 @@ export const ThemePreset = definePreset(Aura, {
   "Equals": "Equals",
   "MoreThan": "More than",
   "LessThan": "Less than",
+  "StartsWith": "Starts with",
+  "Contains": "Contains",
   "AreYouSure": "Are you sure?",
   "SuccessfullyDeletedMessage": "Successfully deleted.",
   "SuccessfullyDeletedListMessage": "Successfully deleted selected records.",

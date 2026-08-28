@@ -1578,41 +1578,68 @@ describe('SpiderlyDataTableComponent — filter menu Apply button', () => {
     getList = emptyList;
   }
 
-  // Opens the named column's filter menu and returns its buttonbar's buttons.
-  const buttonbarButtons = (
+  // Opens the named column's filter menu and returns its buttonbar's button labels.
+  //
+  // Async, and read through the ColumnFilter's own `overlay`, for one reason: PrimeNG
+  // assigns `overlay` and teleports it to document.body from its animation-start callback,
+  // which under provideNoopAnimations runs in a MICROTASK after detectChanges() returns.
+  // So synchronously the panel is still inline and `overlay` is undefined — a fixture-root
+  // query would pass today and silently return [] the moment anything awaited stability.
+  // Awaiting first is what the component CLAUDE.md prescribes for overlay specs, and
+  // querying the instance's own element (never document) keeps stale popovers from earlier
+  // fixtures out of the result.
+  const buttonbarLabels = async (
     fixture: ComponentFixture<unknown>,
     headerName: string,
-  ): HTMLButtonElement[] => {
-    const el: HTMLElement = fixture.nativeElement;
-    headerNamed(el, headerName)
+  ): Promise<string[]> => {
+    headerNamed(fixture.nativeElement, headerName)
       .querySelector<HTMLElement>(FILTER_BUTTON)!
       .click();
     fixture.detectChanges();
+    await fixture.whenStable();
+
+    const columnFilter = fixture.debugElement
+      .queryAll(By.directive(ColumnFilter))
+      .map((de) => de.componentInstance as ColumnFilter)
+      .find((cf) => cf.overlayVisible)!;
 
     return Array.from(
-      el.querySelectorAll<HTMLButtonElement>(
-        '.p-datatable-filter-overlay .p-datatable-filter-buttonbar button',
+      (columnFilter.overlay as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        '.p-datatable-filter-buttonbar button',
       ),
-    );
+    ).map((button) => button.textContent?.trim() ?? '');
   };
 
-  it('renders no Apply button for an auto-applying filter type', () => {
+  it('renders no Apply button for an auto-applying filter type', async () => {
     const fixture = createFixture(HostWithBooleanColumnComponent);
 
-    // Boolean applies on every checkbox change (PrimeNG's own onModelChange), so an
-    // Apply button would promise a pending state that cannot exist. Clear stays — it is
-    // the only way from checked/unchecked back to "no constraint".
-    expect(buttonbarButtons(fixture, 'Active').length)
-      .withContext('auto-applying menu should keep only the Clear button')
-      .toBe(1);
+    // Boolean applies on every checkbox change (PrimeNG's own onModelChange), so an Apply
+    // button would promise a pending state that cannot exist. Asserting WHICH button
+    // survives, not how many: Clear is the only way from checked/unchecked back to "no
+    // constraint", so a change that dropped Clear instead of Apply must not stay green.
+    const labels = (await buttonbarLabels(fixture, 'Active')).map((l) =>
+      l.toLowerCase(),
+    );
+
+    expect(labels.length).toBe(1);
+    expect(labels[0])
+      .withContext('the surviving button is Clear, not Apply')
+      .toContain('clear');
   });
 
-  it('keeps the Apply button for typed filter input', () => {
+  it('keeps the Apply button for typed filter input', async () => {
     const fixture = createFixture(HostWithBooleanColumnComponent);
 
-    expect(buttonbarButtons(fixture, 'Name').length)
+    const labels = (await buttonbarLabels(fixture, 'Name')).map((l) =>
+      l.toLowerCase(),
+    );
+
+    expect(labels.some((l) => l.includes('apply')))
       .withContext('text filter commits on Enter/Apply, so Apply must stay')
-      .toBe(2);
+      .toBeTrue();
+    expect(labels.some((l) => l.includes('clear')))
+      .withContext('and Clear stays alongside it')
+      .toBeTrue();
   });
 });
 
@@ -1651,7 +1678,11 @@ describe('SpiderlyDataTableComponent — Column.matchModes narrowing', () => {
     const narrowed = columnFilters.find((cf) => cf.field === 'createdAt')!;
     const untouched = columnFilters.find((cf) => cf.field === 'paidAt')!;
 
-    expect(narrowed.matchModeOptions!.map((o) => o.value))
+    // Assert `matchModes` (what PrimeNG RENDERS), never `matchModeOptions` (the input we
+    // just handed in): PrimeNG resolves `matchModeOptions || <its own type defaults>`, so
+    // an assertion on the input cannot tell a real narrowing from a silent fallback to
+    // PrimeNG's list — which is exactly how a regression here would hide.
+    expect(narrowed.matchModes!.map((o) => o.value))
       .withContext('declared modes only, in declared order')
       .toEqual([MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]);
     // PrimeNG initializes the field's constraint from the matchMode input, so the
@@ -1662,11 +1693,105 @@ describe('SpiderlyDataTableComponent — Column.matchModes narrowing', () => {
       .withContext('the first declared mode is the column default')
       .toBe(MatchModeCodes.GreaterThan);
 
-    expect(untouched.matchModeOptions!.length)
-      .withContext('a column without matchModes keeps the full library list')
-      .toBe(3);
+    expect(untouched.matchModes!.map((o) => o.value))
+      .withContext("a column without matchModes keeps the library's own list")
+      .toEqual([
+        MatchModeCodes.Equals,
+        MatchModeCodes.LessThan,
+        MatchModeCodes.GreaterThan,
+      ]);
     expect((dataTable.table.filters['paidAt'] as any[])[0].matchMode)
       .withContext('and the filter type standard default')
       .toBe(MatchModeCodes.Equals);
+  });
+
+  it('falls back to the full list, loudly, when no declared mode is supported', () => {
+    @Component({
+      imports: [SpiderlyDataTableComponent],
+      template: `
+        <spiderly-data-table
+          [cols]="cols"
+          [getPaginatedListObservableMethod]="getList"
+        ></spiderly-data-table>
+      `,
+    })
+    class HostWithImpossibleMatchModesComponent {
+      cols: Column[] = [
+        {
+          name: 'Qty',
+          field: 'qty',
+          filterType: 'numeric',
+          showMatchModes: true,
+          matchModes: [MatchModeCodes.In],
+        },
+      ];
+      getList = emptyList;
+    }
+
+    spyOn(console, 'error');
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithImpossibleMatchModesComponent,
+    );
+
+    const columnFilter = fixture.debugElement.query(By.directive(ColumnFilter))
+      .componentInstance as ColumnFilter;
+
+    // An empty array is TRUTHY in PrimeNG's `matchModeOptions || defaults`, so a narrowing
+    // that filtered everything out would render a dropdown with no options while the
+    // unsupported mode still seeded the constraint (and 400'd server-side).
+    expect(columnFilter.matchModes!.length)
+      .withContext('an unusable narrowing keeps the full list rather than emptying it')
+      .toBe(3);
+    expect((dataTable.table.filters['qty'] as any[])[0].matchMode)
+      .withContext('and the default stays the filter type standard')
+      .toBe(MatchModeCodes.Equals);
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it('repairs a persisted match mode the column no longer offers', () => {
+    sessionStorage.setItem(
+      COLUMNS_STATE_KEY,
+      JSON.stringify({
+        filters: {
+          createdAt: [{ value: '2026-01-01', matchMode: MatchModeCodes.Equals }],
+        },
+      }),
+    );
+
+    @Component({
+      imports: [SpiderlyDataTableComponent],
+      template: `
+        <spiderly-data-table
+          [cols]="cols"
+          [stateKey]="stateKey"
+          [getPaginatedListObservableMethod]="getList"
+        ></spiderly-data-table>
+      `,
+    })
+    class HostWithNarrowedDateComponent {
+      cols: Column[] = [
+        {
+          name: 'CreatedAt',
+          field: 'createdAt',
+          filterType: 'date',
+          showMatchModes: true,
+          matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
+        },
+      ];
+      stateKey = COLUMNS_STATE_KEY;
+      getList = emptyList;
+    }
+
+    const { dataTable } = createWithDataTable(HostWithNarrowedDateComponent);
+
+    // ColumnFilter.ngOnInit skips initFieldFilterConstraint() when the field already has a
+    // constraint, so [matchMode] never applies to a restored one — without the repair the
+    // column keeps filtering by `equals` while its <p-select> renders blank.
+    expect((dataTable.table.filters['createdAt'] as any[])[0].matchMode)
+      .withContext('a stored mode outside the narrowing is reset to the column default')
+      .toBe(MatchModeCodes.GreaterThan);
+    expect((dataTable.table.filters['createdAt'] as any[])[0].value)
+      .withContext('the value itself survives the repair')
+      .toBe('2026-01-01');
   });
 });

@@ -118,6 +118,11 @@
                     [field]="col.field!"
                   ></p-sortIcon>
                 </span>
+                <!-- hideOnClear: Apply is what closes this menu in PrimeNG (applyFilter =
+                     _filter + hide), so wherever Apply is hidden Clear is the only button
+                     left and would otherwise clear-and-linger. Committing a VALUE still
+                     leaves the menu open deliberately — a multiselect gets ticked several
+                     times per visit; dismissal is the popover's own (outside click, Esc). -->
                 <p-columnFilter
                   *ngIf="col.filterType != null && col.filterType !== 'blob'"
                   [type]="col.filterType"
@@ -128,6 +133,7 @@
                   [showMatchModes]="col.showMatchModes"
                   [showAddButton]="col.showAddButton"
                   [showApplyButton]="!filterAppliesOnChange(col.filterType)"
+                  [hideOnClear]="true"
                   [matchModeOptions]="getColMatchModeOptions(col)"
                   [matchMode]="getColMatchMode(col)"
                 >

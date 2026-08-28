@@ -153,6 +153,7 @@ export class SpiderlyDataTableComponent
 
   matchModeDateOptions: SelectItem[] = [];
   matchModeNumberOptions: SelectItem[] = [];
+  matchModeTextOptions: SelectItem[] = [];
   /** Whether the "Add" button is shown. Defaults to `true`. */
   @Input() showAddButton: boolean = true;
   /** Whether the "Export to Excel" button is shown. Defaults to `true`. */
@@ -353,6 +354,25 @@ export class SpiderlyDataTableComponent
       },
     ];
 
+    // Only the three the generated paginator implements for strings
+    // (PaginatedResultGenerator.GetCaseForString). Declared rather than left to PrimeNG,
+    // whose own text list adds notContains/endsWith/notEquals — modes the backend answers
+    // with InvalidMatchMode, i.e. a 400 on every load once the user picks one.
+    this.matchModeTextOptions = [
+      {
+        label: this.translocoService.translate('StartsWith'),
+        value: MatchModeCodes.StartsWith,
+      },
+      {
+        label: this.translocoService.translate('Contains'),
+        value: MatchModeCodes.Contains,
+      },
+      {
+        label: this.translocoService.translate('Equals'),
+        value: MatchModeCodes.Equals,
+      },
+    ];
+
     this.matchModeNumberOptions = [
       {
         label: this.translocoService.translate('Equals'),
@@ -382,6 +402,7 @@ export class SpiderlyDataTableComponent
 
     this.restoreColumnVisibility();
     this.reconcileVisibilityWithPersistedConstraints();
+    this.reconcilePersistedMatchModes();
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
 
@@ -644,6 +665,50 @@ export class SpiderlyDataTableComponent
     });
   }
 
+  /**
+   * The filter twin of `keepSortableMeta` — persisted state outlives the rule that produced
+   * it, here a match mode stored before the column declared `matchModes`. It has to REWRITE
+   * storage rather than filter a value on the way past: `ColumnFilter.ngOnInit` skips
+   * `initFieldFilterConstraint()` whenever the field already carries a constraint, so our
+   * `[matchMode]` never applies to a restored one. Left alone, the column keeps filtering by
+   * a mode it no longer offers while its match-mode `<p-select>` renders blank (the stored
+   * value is not among the options). Runs before PrimeNG's `restoreState()`, which reads this
+   * same key on the first `[value]` change.
+   *
+   * Deliberately narrow: it touches only constraints whose mode the declaring column no
+   * longer offers, so every other byte of the persisted blob survives.
+   */
+  private reconcilePersistedMatchModes(): void {
+    if (!this.resolvedStateKey) return;
+
+    const state = this.persistedTableState();
+    if (!state?.filters) return;
+
+    let changed = false;
+    for (const col of this.cols ?? []) {
+      if (!col.matchModes?.length) continue;
+
+      const offered = this.getColMatchModeOptions(col);
+      const meta = state.filters[this.filterKey(col)];
+      if (!offered?.length || !Array.isArray(meta)) continue;
+
+      for (const constraint of meta) {
+        if (constraint?.matchMode == null) continue;
+        if (offered.some((option) => option.value === constraint.matchMode))
+          continue;
+
+        constraint.matchMode = this.getColMatchMode(col);
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+
+    const storage =
+      this.stateStorage === 'local' ? localStorage : sessionStorage;
+    storage.setItem(this.resolvedStateKey, JSON.stringify(state));
+  }
+
   // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()
   // nulls the sort and emits in one call — or stale persisted state) falls back to the
   // declared default. Patching the event before it becomes the backend Filter avoids a
@@ -810,24 +875,77 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Memo for `getColMatchModeOptions`' narrowed lists: the narrowing maps to a NEW array,
-   * and a template binding must not hand PrimeNG a fresh reference every CD pass.
+   * Memo for the resolution below. Two jobs: the narrowing maps to a NEW array and a
+   * template binding must not hand PrimeNG a fresh reference every CD pass, and both
+   * halves (offered list, default mode) must come from ONE computation so they cannot
+   * disagree. Keyed on the declared array's identity, so reassigning `col.matchModes`
+   * recomputes — note PrimeNG itself reads `matchModeOptions` only in its own `ngOnInit`,
+   * so a post-init change still never reaches the rendered dropdown.
    */
-  private narrowedMatchModeOptions = new WeakMap<Column, SelectItem[]>();
+  private matchModeResolutions = new WeakMap<
+    Column,
+    { source: MatchModeCodes[] | undefined; resolution: ResolvedMatchModes }
+  >();
 
   getColMatchModeOptions(col: Column): SelectItem[] | null {
-    const options = this.matchModeOptionsForType(col.filterType);
-    // The base lists fill in ngOnInit; don't cache a narrowing computed before that.
-    if (!options?.length || !col.matchModes?.length) return options;
+    return this.resolveMatchModes(col).options;
+  }
 
-    let narrowed = this.narrowedMatchModeOptions.get(col);
-    if (!narrowed) {
-      narrowed = col.matchModes
-        .map((code) => options.find((option) => option.value === code))
-        .filter((option): option is SelectItem => option != null);
-      this.narrowedMatchModeOptions.set(col, narrowed);
+  getColMatchMode(col: Column): any {
+    return this.resolveMatchModes(col).defaultMode;
+  }
+
+  private resolveMatchModes(col: Column): ResolvedMatchModes {
+    const cached = this.matchModeResolutions.get(col);
+    if (cached && cached.source === col.matchModes) return cached.resolution;
+
+    const resolution = this.computeMatchModes(col);
+    this.matchModeResolutions.set(col, {
+      source: col.matchModes,
+      resolution,
+    });
+    return resolution;
+  }
+
+  /**
+   * Applies `Column.matchModes`, and refuses to half-apply it. Both ways a declaration can
+   * be wrong are consumer mistakes that PrimeNG would otherwise turn into a broken filter
+   * rather than an error: it reads `matchModeOptions || <type defaults>`, so handing it
+   * `[]` renders an EMPTY dropdown (an empty array is truthy) while the default mode still
+   * seeds the constraint, and handing it `null` silently restores PrimeNG's own list. So an
+   * unusable narrowing falls back to the full list and says so, instead of shipping a
+   * dropdown the user cannot pick from.
+   */
+  private computeMatchModes(col: Column): ResolvedMatchModes {
+    const options = this.matchModeOptionsForType(col.filterType);
+    const typeDefault = this.defaultMatchModeForType(col.filterType);
+    const declared = col.matchModes;
+
+    if (!declared?.length) return { options, defaultMode: typeDefault };
+
+    if (!options?.length) {
+      console.error(
+        `spiderly-data-table: column "${col.field}" declares matchModes, but filterType "${col.filterType}" has no match modes to narrow — ignoring.`,
+      );
+      return { options, defaultMode: typeDefault };
     }
-    return narrowed;
+
+    const narrowed = declared
+      .map((code) => options.find((option) => option.value === code))
+      .filter((option): option is SelectItem => option != null);
+
+    if (narrowed.length !== declared.length) {
+      const unsupported = declared.filter(
+        (code) => !options.some((option) => option.value === code),
+      );
+      console.error(
+        `spiderly-data-table: column "${col.field}" declares match mode(s) [${unsupported.join(', ')}] that filterType "${col.filterType}" does not support — ignoring them.`,
+      );
+    }
+
+    if (!narrowed.length) return { options, defaultMode: typeDefault };
+
+    return { options: narrowed, defaultMode: narrowed[0].value };
   }
 
   private matchModeOptionsForType(
@@ -835,7 +953,7 @@ export class SpiderlyDataTableComponent
   ): SelectItem[] | null {
     switch (filterType) {
       case 'text':
-        return null;
+        return this.matchModeTextOptions;
       case 'date':
         return this.matchModeDateOptions;
       case 'multiselect':
@@ -847,10 +965,6 @@ export class SpiderlyDataTableComponent
       default:
         return null;
     }
-  }
-
-  getColMatchMode(col: Column): any {
-    return col.matchModes?.[0] ?? this.defaultMatchModeForType(col.filterType);
   }
 
   private defaultMatchModeForType(filterType: string | undefined): any {
@@ -880,14 +994,22 @@ export class SpiderlyDataTableComponent
 
   /**
    * Whether the filter type applies on every value change, which hides the menu's Apply
-   * button — an Apply there would promise a pending state that cannot exist. Boolean and
-   * date auto-apply via PrimeNG's own onModelChange; dropdown/multiselect via this
-   * template's projected filter templates calling filterCallback. With showApplyButton
-   * off, PrimeNG also auto-applies match-mode, operator and constraint-removal changes,
-   * so the whole menu stays consistent. Typed input (text/numeric) is deliberately NOT
-   * here — it commits on Enter/Apply, since applying per keystroke would fire a lazy
-   * load per key. Listing the auto types (not the typed ones) is the safe polarity: an
-   * unlisted future type keeps its Apply button rather than silently losing its commit.
+   * button — an Apply there would promise a pending state that cannot exist. Boolean
+   * auto-applies through PrimeNG's own `onModelChange`; date and dropdown/multiselect
+   * through the filter templates THIS component projects, which call `filterCallback`
+   * directly (PrimeNG's built-in element, and with it its `onModelChange`, is only
+   * rendered when no template is projected — so the date path is ours, not PrimeNG's).
+   * With showApplyButton off, PrimeNG also auto-applies match-mode, operator and
+   * constraint-removal changes, so the whole menu stays consistent. Typed input
+   * (text/numeric) is deliberately NOT here — it commits on Enter/Apply, since applying
+   * per keystroke would fire a lazy load per key. Listing the auto types (not the typed
+   * ones) is the safe polarity: an unlisted future type keeps its Apply button rather
+   * than silently losing its commit.
+   *
+   * Known gap this does not close, and it predates the flag: the projected date template
+   * binds `[ngModel]` one-way and commits on `(onSelect)`, which the datepicker raises for
+   * a calendar pick but not for `onUserInput` — so a date TYPED into the field never
+   * reaches the constraint at all, with or without an Apply button.
    */
   filterAppliesOnChange(filterType: string): boolean {
     return (
@@ -1422,6 +1544,14 @@ export class Action {
   }
 }
 
+/** One column's resolved match-mode config — see `computeMatchModes`. */
+interface ResolvedMatchModes {
+  /** What the filter menu offers; `null` hands PrimeNG its own list for the type. */
+  options: SelectItem[] | null;
+  /** The mode a fresh constraint on this column starts with. */
+  defaultMode: any;
+}
+
 export class Column<T = any> {
   name?: string;
   field?: string & keyof T;
@@ -1430,11 +1560,18 @@ export class Column<T = any> {
   filterPlaceholder?: string;
   showMatchModes?: boolean;
   /**
-   * Narrows the match modes this column's filter menu offers (rendered only when
-   * `showMatchModes` is true). Declaration order is display order, and the FIRST entry
-   * becomes the column's default match mode. Omit for the filter type's full list and
-   * standard default. Example — a datetime column where an exact-equals match can never
-   * hit: `matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]`.
+   * Narrows the match modes this column's filter menu offers. Declaration order is display
+   * order, and the FIRST entry becomes the column's default match mode. Omit for the filter
+   * type's full list and standard default. Example — a datetime column where an exact-equals
+   * match can never hit: `matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]`.
+   *
+   * Read at declaration time: PrimeNG generates the dropdown once in its own `ngOnInit`, so
+   * reassigning this later never reaches the rendered menu.
+   *
+   * The OFFERED list needs `showMatchModes: true` to be visible, but the default mode applies
+   * either way — declaring `matchModes` on a column with no picker is the supported way to
+   * change just that column's default. Only modes the filter type actually has are honored;
+   * anything else is logged and ignored (`computeMatchModes`).
    */
   matchModes?: MatchModeCodes[];
   showAddButton?: boolean;

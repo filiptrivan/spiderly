@@ -209,12 +209,18 @@ Headers are click-to-sort by default; disable with `sortable: false`. Columns wh
 
 Column widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `minWidth: '8rem'` overrides that floor for one column; it stays a minimum, so the table still distributes the leftover space.
 
-`matchModes` narrows the match modes a `showMatchModes` column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
+`matchModes` narrows the match modes a column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
 
 ```typescript
 new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true,
   showMatchModes: true, matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan] }),
 ```
+
+Three things to know:
+
+- The offered list is only *visible* with `showMatchModes: true`, but the **default applies either way** — declaring `matchModes` on a column with no picker is the supported way to change just that column's default mode.
+- It is read at **declaration time**. PrimeNG builds the dropdown once, so reassigning `col.matchModes` later never reaches the rendered menu.
+- Only modes the filter type actually offers are honored (`text`: starts-with / contains / equals; `numeric` and `date`: their three each). Anything else is logged to the console and ignored, and a narrowing that leaves nothing falls back to the full list — the alternative is an empty dropdown you cannot pick from, plus a match mode the backend rejects with a 400.
 
 ### Column chooser (show/hide columns)
 
