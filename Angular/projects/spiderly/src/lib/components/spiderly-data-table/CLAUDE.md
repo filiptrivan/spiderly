@@ -107,12 +107,13 @@ Consumer usage — anchoring a popover, including the re-anchor-while-open patte
 
 ## Column widths — `table-layout: fixed` and `Column.width`
 
-`getColHeaderWidth(col)` takes the **column**, not the filter type — it needs the declared width. Why the defaults are generous, and why they are emitted as `width` rather than `min-width`: the `Column.width` doc comment and `tableStyle`.
+`getColWidth(col)` takes the **column**, not the filter type — it needs `Column.width`. Why the defaults are generous, and why they are a width rather than a minimum: the `Column.width` doc comment and `tableStyle`.
 
 Editing notes:
 
-- **`width: 0rem` is not "shrink to content" any more.** It meant that under auto layout; fixed layout reads it literally and the column vanishes. Two sites had it and both now carry a real width — the selection `<th>` in the template, and the switch's `default:` branch (actions columns, sized from `actions.length`). A new column kind that declares no width inherits that branch, so check it renders.
-- **The table needs no `min-width` of its own.** A table whose declared column widths exceed its container is widened to their sum by the browser, so the wrapper's `overflow-auto` still scrolls — measured 2026-08-29, six 12rem columns rendered 1152px inside a 740px container. The "too wide for its container scrolls" spec exists so that free property is not lost silently; don't add a computed floor to `tableStyle`.
+- **`width: 0rem` is not "shrink to content" any more.** It meant that under auto layout; fixed layout reads it literally and the column vanishes. Two sites had it and both now carry a real width — the selection `<th>` in the template, and the fallthrough in `getColWidth` (actions columns, sized from `actions.length`, against a gap set beside them in the template).
+- **`DEFAULT_COLUMN_WIDTH_REM` is exhaustive on purpose.** It replaced a `switch` whose `default:` silently absorbed `blob`, sizing a 45px thumbnail's column at 2rem. A new `filterType` now fails the build there instead of inheriting the actions reservation.
+- **The table needs no `min-width` of its own** — don't add a computed floor to `tableStyle`. The browser already widens a table past its container to the sum of its declared column widths, so `overflow-auto` still scrolls; the "too wide for its container scrolls" spec holds the measurement.
 - **The clamp reaches `#defaultCell` only.** `.cell-text` is authored in this template, so a plain `:host` rule matches it. A consumer's `spiderlyCellTemplate` renders markup carrying the CONSUMER's `_ngcontent` and is unreachable from here by design — say so when a consumer reports a growing row, rather than reaching for `::ng-deep`.
 
 ## Active-filter header icon — the projected `filtericon` template

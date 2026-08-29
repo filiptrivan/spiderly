@@ -99,8 +99,7 @@
   // shift than the horizontal one the fixed layout removes. One line, ellipsis, whole value still
   // in the DOM to select and copy.
   //
-  // Reaches the library's own default cell only. A consumer cell template renders markup carrying
-  // the CONSUMER's _ngcontent, which this rule cannot match — such a column clamps its own lines.
+  // Default cell only; why it cannot reach a consumer's cell template: CLAUDE.md → Column widths.
   .cell-text {
     display: block;
     overflow: hidden;

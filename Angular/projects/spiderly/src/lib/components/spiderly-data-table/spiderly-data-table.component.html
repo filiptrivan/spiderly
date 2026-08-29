@@ -90,10 +90,10 @@
       </ng-template>
       <ng-template pTemplate="header">
         <tr>
-          <!-- A real width, not the `0rem` this carried under the auto layout: fixed layout reads
-               it literally and the column disappears. Sized for the checkbox plus the selected
-               counter beside it, which reaches four digits on a cross-page selection. -->
-          <th style="width: 5rem" *ngIf="selectionMode == 'multiple'">
+          <!-- Sized for the checkbox plus the counter beside it, which shows `totalRecords` on a
+               select-all and so reaches five digits on a large table. Not `0rem` (see CLAUDE.md →
+               Column widths), and not routed through getColWidth: this column has no `Column`. -->
+          <th style="width: 6rem" *ngIf="selectionMode == 'multiple'">
             <div style="display: flex; gap: 8px">
               <p-checkbox
                 *ngIf="showSelectAllCheckbox"
@@ -109,7 +109,7 @@
             <th
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="!isColumnSortable(col)"
-              [style]="getColHeaderWidth(col)"
+              [style.width]="getColWidth(col)"
             >
               <div
                 style="
@@ -235,6 +235,8 @@
               (click)="onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"
             >
+              <!-- getColWidth reserves this column's width from `actions.length`; this gap is
+                   the geometry it reserves for, so changing it belongs in the same edit. -->
               <div
                 style="
                   display: flex;

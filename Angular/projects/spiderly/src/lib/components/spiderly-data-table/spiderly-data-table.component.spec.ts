@@ -895,7 +895,7 @@ describe('SpiderlyDataTableComponent — per-column cell templates', () => {
     ></spiderly-data-table>
   `,
 })
-class HostWithActionsColumnComponent {
+class HostWithRowActionsComponent {
   cols: Column[] = [
     { name: 'Name', field: 'name', filterType: 'text' },
     { actions: [{ field: 'Details' }, { field: 'Delete' }] },
@@ -943,11 +943,9 @@ describe('SpiderlyDataTableComponent — a table too wide for its container scro
 });
 
 describe('SpiderlyDataTableComponent — columns carrying no value still get room', () => {
-  // `width: 0rem` used to mean "shrink to fit the content" under the browser's auto layout.
-  // Under the fixed layout it means zero, so every column that never declared a width of its
-  // own — the selection checkbox, an actions column — has to be given one.
+  // Both leaned on `width: 0rem` meaning "shrink to fit" — see CLAUDE.md → Column widths.
   it('leaves an actions column room for its icons', async () => {
-    const { fixture } = await renderStable(HostWithActionsColumnComponent);
+    const { fixture } = await renderStable(HostWithRowActionsComponent);
 
     const headers = headerCells(fixture.nativeElement as HTMLElement);
     const actions = headers[headers.length - 1];
@@ -963,45 +961,26 @@ describe('SpiderlyDataTableComponent — columns carrying no value still get roo
 });
 
 describe('SpiderlyDataTableComponent — Column.width', () => {
-  it('overrides the filter type default, and lets minWidth stand in', () => {
-    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
-
-    expect(
-      dataTable.getColHeaderWidth({ filterType: 'text', width: '4rem' }),
-    ).toBe('width: 4rem;');
-
-    // `minWidth` predates `width` and is what consumers already declare; it keeps resolving.
-    expect(
-      dataTable.getColHeaderWidth({ filterType: 'text', minWidth: '5rem' }),
-    ).toBe('width: 5rem;');
-
-    // Declared together, the one that names what it does wins.
-    expect(
-      dataTable.getColHeaderWidth({
-        filterType: 'text',
-        width: '4rem',
-        minWidth: '5rem',
-      }),
-    ).toBe('width: 4rem;');
-  });
-});
-
-describe('SpiderlyDataTableComponent — Column.minWidth', () => {
   it('overrides the filter type default, and only when declared', () => {
     const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
 
-    expect(dataTable.getColHeaderWidth({ filterType: 'numeric' })).toBe(
-      'width: 12rem;',
+    expect(dataTable.getColWidth({ filterType: 'numeric' })).toBe('12rem');
+    expect(dataTable.getColWidth({ filterType: 'text', width: '4rem' })).toBe(
+      '4rem',
     );
-    expect(
-      dataTable.getColHeaderWidth({ filterType: 'numeric', minWidth: '8rem' }),
-    ).toBe('width: 8rem;');
+  });
+
+  // Every filterType needs a row in the width table, or it silently inherits the actions-column
+  // reservation — which is what the switch this replaced did to `blob`.
+  it('sizes a blob column for its thumbnail, not as an actions column', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(dataTable.getColWidth({ filterType: 'blob' })).toBe('5rem');
   });
 });
 
-// Two datasets whose only difference is how much room the text WANTS. Under the browser's
-// default `table-layout: auto` that difference is what sizes the columns, so the same column
-// is a different width on the next page, search or filter.
+// Two values whose only difference is how much room the text WANTS. Under the browser's default
+// `table-layout: auto` that difference is what sized the columns.
 const SHORT_NAME = 'Ana';
 const LONG_NAME = 'Aleksandar Konstantinović-Petrović, Sremska Kamenica';
 
@@ -1020,6 +999,27 @@ class HostWithSwappableRowsComponent {
   getList = () => paginated([{ id: 1, name: this.rowName }]);
 }
 
+/**
+ * Re-renders the single row with different text, which is what every claim in these suites rests
+ * on. Two things a caller must not lose: the reload runs INSIDE the fixture's zone, as a real
+ * Reload click would — called straight from a test body it schedules its `delay(0)` outside, so
+ * `whenStable` returns before the rows land — and the swap is asserted to have landed, because
+ * the first revision of these tests measured a still-loading table twice and passed.
+ */
+async function swapRowNameTo(
+  created: {
+    fixture: ComponentFixture<HostWithSwappableRowsComponent>;
+    host: HostWithSwappableRowsComponent;
+    dataTable: SpiderlyDataTableComponent;
+  },
+  value: string,
+): Promise<void> {
+  created.host.rowName = value;
+  created.fixture.ngZone!.run(() => created.dataTable.reload());
+  const el = await renderRows(created.fixture);
+  expect(el.querySelector('tbody')!.textContent).toContain(value.trim());
+}
+
 /** As RENDERED — the geometry the operator's eye tracks, not the style string we hand PrimeNG. */
 function headerWidths(el: HTMLElement): number[] {
   return headerCells(el).map((th) => th.getBoundingClientRect().width);
@@ -1027,22 +1027,12 @@ function headerWidths(el: HTMLElement): number[] {
 
 describe('SpiderlyDataTableComponent — column widths ignore the content', () => {
   it('keeps every column the same width when the rows change', async () => {
-    const { fixture, host, dataTable } = createWithDataTable(
-      HostWithSwappableRowsComponent,
-    );
-    const el = await renderRows(fixture);
+    const created = await renderStable(HostWithSwappableRowsComponent);
+    const el = created.fixture.nativeElement as HTMLElement;
     const before = headerWidths(el);
 
-    // Inside the zone, as a real Reload click would be: a `reload()` called straight from the
-    // test body schedules its delay(0) outside the fixture's ngZone, so `whenStable` returns
-    // before the rows land.
-    host.rowName = LONG_NAME;
-    fixture.ngZone!.run(() => dataTable.reload());
-    await renderRows(fixture);
+    await swapRowNameTo(created, LONG_NAME);
 
-    // The swap must really have landed, or the width assertion proves nothing — the first
-    // revision of this spec measured a still-loading table twice and passed.
-    expect(el.querySelector('tbody')!.textContent).toContain(LONG_NAME);
     expect(headerWidths(el)).toEqual(before);
   });
 });
@@ -1061,31 +1051,25 @@ class HostWithMixedFilterTypesComponent {
     { name: 'Name', field: 'name', filterType: 'text' },
     { name: 'Active', field: 'active', filterType: 'boolean' },
   ];
-  getList = () => paginated([{ name: 'Ana', active: true }]);
+  // No rows on purpose: the widths under test come from the declarations, not the content.
+  getList = emptyList;
 }
 
 describe('SpiderlyDataTableComponent — long text does not grow the row', () => {
-  // The cost of fixed layout: text that used to widen its column now wraps inside it, and a
-  // taller row pushes every row below it. A 5000-character review comment is the real case.
+  // The cost fixed layout hands over, and what `.cell-text` pays — the full telling is on that
+  // rule in spiderly-data-table.component.scss. A 5000-character review comment is the real case.
   const PARAGRAPH = 'Lorem ipsum dolor sit amet '.repeat(60);
 
   it('keeps the row height the same when a cell holds far more text', async () => {
-    const { fixture, host, dataTable } = createWithDataTable(
-      HostWithSwappableRowsComponent,
-    );
-    const el = await renderRows(fixture);
-    const before = el
-      .querySelector('tbody tr')!
-      .getBoundingClientRect().height;
+    const created = await renderStable(HostWithSwappableRowsComponent);
+    const el = created.fixture.nativeElement as HTMLElement;
+    const rowHeight = () =>
+      el.querySelector('tbody tr')!.getBoundingClientRect().height;
+    const before = rowHeight();
 
-    host.rowName = PARAGRAPH;
-    fixture.ngZone!.run(() => dataTable.reload());
-    await renderRows(fixture);
+    await swapRowNameTo(created, PARAGRAPH);
 
-    expect(el.querySelector('tbody')!.textContent).toContain('Lorem ipsum');
-    expect(el.querySelector('tbody tr')!.getBoundingClientRect().height).toBe(
-      before,
-    );
+    expect(rowHeight()).toBe(before);
   });
 });
 

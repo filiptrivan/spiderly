@@ -209,11 +209,11 @@ Headers are click-to-sort by default; disable with `sortable: false`. Columns wh
 
 The table lays its columns out from their **declared widths, never from the rows on screen** (`table-layout: fixed`). The browser default would size every column from the content of the page currently rendered, so a column is one width on this page and another on the next, and a filter — which narrows the variety of values in the column it filters — shifts the whole grid under an operator who is scanning it.
 
-Widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `width: '8rem'` overrides the default for one column. (`minWidth` is the former name and still resolves; prefer `width`.)
+Widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `width: '8rem'` overrides the default for one column.
 
 Declared widths behave as **ratios**, not caps: the table shares its surplus in proportion to them, so a column carrying long values wants the larger number. A table whose columns need more room than its container gets is widened to their sum and scrolls horizontally, rather than crushing the columns.
 
-Because a column no longer widens to fit its text, long values wrap and would grow the row instead. The default cell clamps to one line with an ellipsis. **A column rendering its own `spiderlyCellTemplate` clamps its own lines** — the library's rule cannot reach markup that carries the consumer's style encapsulation.
+Because a column no longer widens to fit its text, long values wrap and would grow the row instead. The default cell clamps to one line with an ellipsis. **A column rendering its own `spiderlyCellTemplate` clamps its own lines** — the library's rule cannot reach markup that carries the consumer's style encapsulation. Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
 
 `matchModes` narrows the match modes a column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
 

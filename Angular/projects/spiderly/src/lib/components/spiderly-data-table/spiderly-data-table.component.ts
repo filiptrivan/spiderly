@@ -61,6 +61,27 @@ import {
 } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 
+/**
+ * Default column width per filter type, in rem. Sized for the HEADER — the filter input plus its
+ * match-mode dropdown — so a column of short values reserves more than its content needs; that is
+ * deliberate, and {@link Column.width} is the per-column override.
+ *
+ * A table, not a switch, so the mapping is exhaustive: a new `filterType` fails the build here
+ * instead of silently inheriting the actions-column reservation below.
+ */
+const DEFAULT_COLUMN_WIDTH_REM: Record<
+  NonNullable<Column['filterType']>,
+  number
+> = {
+  text: 12,
+  date: 10,
+  multiselect: 12,
+  boolean: 8,
+  numeric: 12,
+  // Fits the 45px thumbnail `#defaultCell` renders for a blob.
+  blob: 5,
+};
+
 @Component({
   selector: 'spiderly-data-table',
   templateUrl: './spiderly-data-table.component.html',
@@ -912,36 +933,21 @@ export class SpiderlyDataTableComponent
   /**
    * The column's declared {@link Column.width}, or the default for its filter type.
    *
-   * A `width`, not a `min-width`: under the fixed layout {@link tableStyle} establishes, this is
-   * what the column is sized from. Columns declaring none would otherwise take an equal share of
-   * the table, which throws away what these per-type defaults say — a boolean holds "Da"/"Ne",
-   * a text column holds a name. The surplus is still distributed, now in proportion to these
-   * numbers rather than to whatever the rows on screen happen to contain.
+   * A width, not a minimum: under the fixed layout {@link tableStyle} establishes, this is what
+   * the column is sized from, and the table shares its surplus in PROPORTION to these numbers.
+   * Columns declaring none would otherwise take an equal share, which throws away what the
+   * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
    */
-  getColHeaderWidth(col: Column) {
-    const declared = col.width ?? col.minWidth;
-    if (declared != null) return `width: ${declared};`;
+  getColWidth(col: Column): string {
+    if (col.width != null) return col.width;
 
-    switch (col.filterType) {
-      case 'text':
-        return 'width: 12rem;';
-      case 'date':
-        return 'width: 10rem;';
-      case 'multiselect':
-        return 'width: 12rem;';
-      case 'boolean':
-        return 'width: 8rem;';
-      case 'numeric':
-        return 'width: 12rem;';
-      default: {
-        // Actions columns land here — they declare no filterType. `0rem` used to mean "shrink to
-        // the row's content"; fixed layout reads it literally, so the icons need real room. Each
-        // sits in a flex row with an 18px gap, inside the cell's own padding. 2.5, not 2.2, so
-        // the arithmetic stays exact in binary and the style string never reads `8.6000000001rem`.
-        const actionCount = col.actions?.length ?? 0;
-        return `width: ${2 + actionCount * 2.5}rem;`;
-      }
-    }
+    if (col.filterType) return `${DEFAULT_COLUMN_WIDTH_REM[col.filterType]}rem`;
+
+    // What is left declares no filterType: an actions column. It cannot shrink to fit any more,
+    // so the icons need a reservation — each sits in a flex row whose gap is set beside them in
+    // the template, inside the cell's own padding. 2.5, not 2.2, so the arithmetic stays exact in
+    // binary and the string never reads `8.6000000001rem`.
+    return `${2 + (col.actions?.length ?? 0) * 2.5}rem`;
   }
 
   /**
@@ -1676,11 +1682,6 @@ export class Column<T = any> {
    */
   width?: string;
   /**
-   * Superseded by {@link Column.width}, which is what this always meant — it is resolved as a
-   * width, not a floor. Kept working for columns that already declare it; prefer `width`.
-   */
-  minWidth?: string;
-  /**
    * Fired when this column's cell is clicked. Receives a {@link CellClickEvent} with the row id,
    * the column field, the full row, the raw and formatted cell value, the clicked `<td>` element
    * (use it to anchor an overlay/popover), and the original `MouseEvent`.
@@ -1709,7 +1710,6 @@ export class Column<T = any> {
     visible,
     lockVisible,
     width,
-    minWidth,
     onCellClick,
   }: {
     name?: string;
@@ -1729,7 +1729,6 @@ export class Column<T = any> {
     visible?: boolean;
     lockVisible?: boolean;
     width?: string;
-    minWidth?: string;
     onCellClick?: (event: CellClickEvent) => void;
   } = {}) {
     this.name = name;
@@ -1749,7 +1748,6 @@ export class Column<T = any> {
     this.visible = visible;
     this.lockVisible = lockVisible;
     this.width = width;
-    this.minWidth = minWidth;
     this.onCellClick = onCellClick;
   }
 }
