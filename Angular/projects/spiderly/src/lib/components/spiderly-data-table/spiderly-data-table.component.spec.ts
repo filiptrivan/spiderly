@@ -2367,3 +2367,51 @@ describe('SpiderlyDataTableComponent — pending state', () => {
       .toHaveBeenCalled();
   });
 });
+
+describe('SpiderlyDataTableComponent — pending overlay styling', () => {
+  // Every pin is measured on an UN-awaited fixture: it returns with the first fetch still in
+  // flight, so PrimeNG's mask is mounted. Same trick the scroll suite's scroll-margin pin uses.
+  function mountedMask(): HTMLElement | null {
+    const fixture = createFixture(HostWithoutActionsComponent);
+    return (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '.p-datatable-mask',
+    );
+  }
+
+  // The mask is PrimeNG-rendered markup, so these rules can only reach it through ::ng-deep —
+  // which is exactly the kind of rule Angular/CLAUDE.md requires a computed-style pin for.
+  const maskPins: [property: string, expected: string][] = [
+    // Not centred: the mask spans the whole datatable root, so on a long list a centred
+    // spinner sits far below the fold — worst right after a page change scrolls you to the top.
+    ['align-items', 'flex-start'],
+    ['padding-top', '96px'],
+  ];
+
+  it('keeps the veil rules matching PrimeNG mask markup', () => {
+    const mask = mountedMask();
+
+    expect(mask)
+      .withContext('the overlay should be mounted while the first fetch is pending')
+      .toBeTruthy();
+    for (const [property, expected] of maskPins) {
+      expect(getComputedStyle(mask!).getPropertyValue(property))
+        .withContext(property)
+        .toBe(expected);
+    }
+  });
+
+  // PrimeNG's own mask.background is rgba(0,0,0,0.4) light / 0.6 dark — modal strength. It
+  // makes the stale rows unreadable, which defeats the whole reason for keeping them.
+  it('veils the stale rows rather than blacking them out', () => {
+    const styles = getComputedStyle(mountedMask()!);
+
+    expect(styles.backgroundColor)
+      .withContext('PrimeNG scrim replaced')
+      .not.toContain('0, 0, 0');
+    // SpinnerIcon paints fill="currentColor", so a background-only override would leave a
+    // near-white spinner on a near-white veil.
+    expect(styles.color)
+      .withContext('the spinner colour is set with the background, never separately')
+      .toBe('rgb(51, 65, 85)');
+  });
+});

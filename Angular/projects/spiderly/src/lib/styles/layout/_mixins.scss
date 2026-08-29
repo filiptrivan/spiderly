@@ -20,3 +20,27 @@
 @mixin scroll-target-below-top-chrome() {
   scroll-margin-top: calc(var(--spiderly-viewport-top-inset, 0px) + 1rem);
 }
+
+// The overlay PrimeNG mounts over a table while a fetch is in flight (.p-datatable-mask).
+// Its own theme token is a modal-strength scrim -- rgba(0,0,0,0.4) light, 0.6 dark -- which
+// makes the rows underneath unreadable. Since the whole point of keeping the previous page on
+// screen during a refetch is that it stays READABLE, the scrim is replaced by a light veil.
+// Three parts, each load-bearing:
+// - `color`, because SpinnerIcon paints fill="currentColor". Overriding only the background
+//   leaves a near-white spinner on a near-white veil.
+// - `flex-start` plus a top pad, because the mask spans the whole datatable root: a centred
+//   spinner on a long list sits far below the fold, worst right after a page change has
+//   scrolled the reader to the table's top. The pad is deliberately approximate -- it only has
+//   to land the spinner inside the first screenful, not on any particular row. `position:
+//   sticky` was tried and cannot work here: the icon's containing block IS the mask.
+// - A fallback on every var: Karma loads no PrimeNG theme, and a consumer need not either.
+@mixin table-pending-veil() {
+  background: color-mix(
+    in srgb,
+    var(--p-content-background, #ffffff) 65%,
+    transparent
+  );
+  color: var(--p-primary-color, #334155);
+  align-items: flex-start;
+  padding-top: 6rem;
+}

@@ -107,6 +107,11 @@
     white-space: nowrap;
   }
 
+  // PrimeNG-rendered markup, so ::ng-deep is the only way in; the mixin carries the contract.
+  ::ng-deep .p-datatable-mask {
+    @include table-pending-veil();
+  }
+
   ::ng-deep {
     .p-datatable-thead {
       position: unset !important;
