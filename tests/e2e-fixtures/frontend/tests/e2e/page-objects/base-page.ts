@@ -133,6 +133,15 @@ export class BasePage {
     await this.applyColumnFilter();
   }
 
+  // Boolean is an AUTO-APPLYING filter type, so this menu has no Apply button to press and
+  // does not close itself on commit — the contract is the library's
+  // spiderly-data-table/CLAUDE.md § 'Filter menu Apply button — hidden for auto-applying types'.
+  // PrimeNG's ColumnFilterFormElement.onModelChange calls dt._filter() on every checkbox
+  // change, so the click IS the commit and dismissal is ours (Esc, handled by the overlay's
+  // own keydown.escape; focus sits on the checkbox input inside it after the click).
+  // Each click is awaited to its own list fetch because the table does not sequence
+  // concurrent lazy loads — overlapping this filter's load with the next helper's would be a
+  // race authored into the suite.
   async applyBooleanFilter(columnLabel: string, value: boolean) {
     await this.openColumnFilter(columnLabel);
     // PrimeNG renders <p-checkbox binary indeterminate> with click cycle null → true → false → null.
@@ -141,8 +150,13 @@ export class BasePage {
     // never settles long enough for a normal click.
     const clicks = value ? 1 : 2;
     const box = this.page.locator('.p-datatable-filter-overlay .p-checkbox-box').first();
-    for (let i = 0; i < clicks; i++) await box.click({ force: true });
-    await this.applyColumnFilter();
+    for (let i = 0; i < clicks; i++) {
+      const applied = this.page.waitForResponse((r) => /\/GetPaginated\w+List$/.test(new URL(r.url()).pathname));
+      await box.click({ force: true });
+      await applied;
+    }
+    await this.page.keyboard.press('Escape');
+    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeHidden();
   }
 
   async clearTableFilters() {

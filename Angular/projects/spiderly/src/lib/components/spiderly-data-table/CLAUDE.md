@@ -152,6 +152,8 @@ Which types auto-apply, why Apply there would lie, and why the method lists the 
 
 **`[hideOnClear]="true"` is part of this, not a preference.** PrimeNG closes the filter menu only from `applyFilter()` (`_filter()` + `hide()`); `clearFilter()` hides only when `hideOnClear` is set, which defaults to false. So on a menu whose Apply is hidden, Clear was the one remaining button and it cleared without closing. Committing a *value* still leaves the menu open deliberately — a multiselect gets ticked several times per visit — so dismissal there is the popover's own (outside click, Esc).
 
+**The e2e fixture mirrors this contract and must move with it.** `tests/e2e-fixtures/frontend/tests/e2e/page-objects/base-page.ts` → `applyBooleanFilter` presses no Apply and dismisses with Esc; it kept clicking the removed Apply for one CI run (33279746074) and timed out at 30s three times. Changing which types auto-apply changes that helper too.
+
 ## `Column.matchModes` — narrowing, and the two ways it must not half-apply
 
 Consumer-facing behavior: `claude-plugins/docs/angular-customization/index.md` → the `matchModes` paragraph, and the `Column.matchModes` doc comment (declaration-time only; the default applies even without `showMatchModes`). Editing notes:

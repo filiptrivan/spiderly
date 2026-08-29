@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ENTITIES_DIR="$APP_FOLDER/Backend/$APP_NAME.Business/Entities"
 INFRA_DIR="$APP_FOLDER/Backend/$APP_NAME.Infrastructure"
+LOCAL_SETTINGS="$APP_FOLDER/Backend/$APP_NAME.WebAPI/appsettings.Development.local.json"
 E2E_DIR="$APP_FOLDER/Frontend/e2e"
 APP_PAGES_DIR="$APP_FOLDER/Frontend/src/app/pages"
 
@@ -66,5 +67,21 @@ cp -r "$SCRIPT_DIR/frontend/tests/e2e/fixtures/." "$E2E_DIR/fixtures/"
 # varied filter types replace the generated file with a richer version.
 echo "Copying Angular list component overrides..."
 cp "$SCRIPT_DIR/frontend/app/product/product-list.component.ts" "$APP_PAGES_DIR/product/product-list.component.ts"
+
+# --- Raise the global rate limit for the whole E2E run ---
+# The suite hits the backend from ONE IP and a green run already sits at ~235 of the default
+# 240 requests / 60s (Settings.RequestsLimitNumber), so Playwright's 2 retries -- which replay a
+# failing test's 40-product seeding -- turn into 429s that fail UNRELATED tests downstream. That
+# is what buried the real failure in CI run 33279746074: a boolean-filter regression came back as
+# a cascade-delete test failing on a 429. The limiter itself is covered by Spiderly.Shared.Tests
+# (GlobalRateLimitPartitionerTests, ApiKeyRateLimitPartitionTests, TrustedCallerRateLimitIntegrationTests),
+# so raising it for the app under test costs no coverage. 6000 is TrustedRequestsLimitNumber's
+# order of magnitude -- the same shape of caller: our own traffic, generous but finite.
+# spiderly init writes this file and Program.cs loads it (launchSettings pins Development), and
+# this runs before the backend build, so the patched copy is what ends up in bin/.
+echo "Raising the API rate limit for the E2E run..."
+tmp_settings="$(mktemp)"
+jq '.AppSettings["Spiderly.Shared"].RequestsLimitNumber = 6000' "$LOCAL_SETTINGS" > "$tmp_settings"
+mv "$tmp_settings" "$LOCAL_SETTINGS"
 
 echo "=== Fixtures setup complete ==="

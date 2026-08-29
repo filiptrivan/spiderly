@@ -37,6 +37,8 @@ playwright test              → exercises the resulting app
 | `frontend/tests/e2e/{helpers,specs,page-objects,fixtures}/` | `$APP_FOLDER/Frontend/e2e/` |
 | `frontend/app/<entity>/<entity>-list.component.ts` | `$APP_FOLDER/Frontend/src/app/pages/<entity>/...` (overrides generated minimal list) |
 
+Beyond the copies, `setup.sh` patches one generated file: `appsettings.Development.local.json` gets a raised `RequestsLimitNumber`, so a Playwright retry cannot 429 unrelated tests. The reasoning lives in the script's own comment.
+
 ## Why the DbContext overlay is seed-data-only
 
 The fixture overrides **only** the demo seed data (`${APP_NAME}ApplicationDbContext.SeedData.cs`), never the DbContext class itself. The generated `${APP_NAME}ApplicationDbContext.cs` (constructor, `OnModelCreating`, `SaveChangesAsync`) is left untouched, and `SeedData` is wired as a `partial class` member that our overlay supplies.
