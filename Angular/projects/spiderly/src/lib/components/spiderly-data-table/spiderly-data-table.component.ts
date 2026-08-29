@@ -1261,8 +1261,13 @@ export class SpiderlyDataTableComponent
   }
 
   reload() {
-    this.loading = true;
-    this.items = null;
+    // Nothing to replay before the table's own initial load, which is already on its way.
+    // Untested: PrimeNG emits that load from its ngOnInit, so a fixture cannot reach this
+    // branch — but a consumer holding a @ViewChild can, and the alternative is a TypeError.
+    if (this.lastLazyLoadEvent == null) return;
+
+    // `items` is deliberately left alone, like every other refetch: the current page stays
+    // readable under the overlay. lazyLoad raises `loading` itself.
     this.lazyLoad(this.lastLazyLoadEvent);
   }
 

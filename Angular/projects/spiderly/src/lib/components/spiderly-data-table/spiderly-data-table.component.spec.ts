@@ -2347,6 +2347,28 @@ describe('SpiderlyDataTableComponent — pending state', () => {
     await renderRows(fixture);
   });
 
+  // reload() blanked the table by nulling `items`, which is now the only refetch that does
+  // not keep its rows. The null never drove the overlay anyway — the pending predicate tests
+  // `items === undefined`, and null is not undefined — so it only ever drove isEmpty().
+  it('keeps the current rows on screen while reload refetches', async () => {
+    const created = await renderStable(HostWithChangingPagesComponent);
+    const { fixture } = created;
+
+    expect(tbodyText(fixture)).withContext('the loaded page').toContain('1');
+
+    // Inside the zone, as the Reload button is — see swapRowNameTo.
+    fixture.ngZone!.run(() => created.dataTable.reload());
+    fixture.detectChanges();
+
+    expect(tbodyText(fixture))
+      .withContext('still readable under the veil')
+      .toContain('1');
+
+    await renderRows(fixture);
+
+    expect(tbodyText(fixture)).withContext('the fresh page lands').toContain('2');
+  });
+
   it('lowers the pending state even when the selected-ids call fails', async () => {
     const logged = spyOn(console, 'error');
 
