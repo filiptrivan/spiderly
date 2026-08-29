@@ -814,54 +814,63 @@ export class SpiderlyDataTableComponent
 
     this.getPaginatedListObservableMethod(tableFilter).subscribe({
       next: async (res) => {
-        this.items = res.data;
-        this.totalRecords = res.totalRecords;
-        this.onTotalRecordsChange.next(res.totalRecords);
+        // The awaited selection call is INSIDE the async next handler, so a rejection there
+        // settles nothing: the subscriber's `error:` below belongs to the paginated-list
+        // observable and never runs, which used to strand the pending overlay forever.
+        // Swallowed rather than rethrown — an unhandled rejection out of an async subscriber
+        // has no owner and surfaces as a failure in whatever runs next.
+        try {
+          this.items = res.data;
+          this.totalRecords = res.totalRecords;
+          this.onTotalRecordsChange.next(res.totalRecords);
 
-        if (this.selectedLazyLoadObservableMethod != null) {
-          let selectedRowsMethodResult: LazyLoadSelectedIdsResult =
-            await firstValueFrom(
-              this.selectedLazyLoadObservableMethod(tableFilter),
-            );
+          if (this.selectedLazyLoadObservableMethod != null) {
+            let selectedRowsMethodResult: LazyLoadSelectedIdsResult =
+              await firstValueFrom(
+                this.selectedLazyLoadObservableMethod(tableFilter),
+              );
 
-          this.currentPageSelectedItemsFromDb = [
-            ...selectedRowsMethodResult.selectedIds,
-          ];
-
-          if (this.isFirstTimeLazyLoad == true) {
-            this.rowsSelectedNumber =
-              selectedRowsMethodResult.totalRecordsSelected;
-            this.setFakeIsAllSelected();
-            this.isFirstTimeLazyLoad = false;
-          }
-
-          if (this.isAllSelected == true) {
-            let idsToInsert = [...this.items.map((x) => x[this.idField])];
-            idsToInsert = idsToInsert.filter(
-              (x) => this.unselectedItems.includes(x) == false,
-            );
-            this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
-          } else if (this.isAllSelected == false) {
-            this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
-          } else if (this.isAllSelected == null) {
-            let idsToInsert = [
+            this.currentPageSelectedItemsFromDb = [
               ...selectedRowsMethodResult.selectedIds,
-              ...this.newlySelectedItems,
             ];
-            idsToInsert = idsToInsert.filter(
-              (x) => this.unselectedItems.includes(x) == false,
-            );
-            this.fakeSelectedItems = [...idsToInsert];
+
+            if (this.isFirstTimeLazyLoad == true) {
+              this.rowsSelectedNumber =
+                selectedRowsMethodResult.totalRecordsSelected;
+              this.setFakeIsAllSelected();
+              this.isFirstTimeLazyLoad = false;
+            }
+
+            if (this.isAllSelected == true) {
+              let idsToInsert = [...this.items.map((x) => x[this.idField])];
+              idsToInsert = idsToInsert.filter(
+                (x) => this.unselectedItems.includes(x) == false,
+              );
+              this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
+            } else if (this.isAllSelected == false) {
+              this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
+            } else if (this.isAllSelected == null) {
+              let idsToInsert = [
+                ...selectedRowsMethodResult.selectedIds,
+                ...this.newlySelectedItems,
+              ];
+              idsToInsert = idsToInsert.filter(
+                (x) => this.unselectedItems.includes(x) == false,
+              );
+              this.fakeSelectedItems = [...idsToInsert];
+            }
           }
-        }
 
-        if (this.selectedLazyLoadObservableMethod == null && this.deleteListFromTableObservableMethod) {
-          this.fakeSelectedItems = this.items
-            .map((x) => x[this.idField])
-            .filter((id) => this.newlySelectedItems.includes(id));
+          if (this.selectedLazyLoadObservableMethod == null && this.deleteListFromTableObservableMethod) {
+            this.fakeSelectedItems = this.items
+              .map((x) => x[this.idField])
+              .filter((id) => this.newlySelectedItems.includes(id));
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          this.loading = false;
         }
-
-        this.loading = false;
       },
       error: () => {
         this.loading = false;

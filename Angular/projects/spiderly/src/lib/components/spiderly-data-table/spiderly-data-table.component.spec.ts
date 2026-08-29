@@ -6,7 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 import { DialogService } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
 import { ColumnFilter } from 'primeng/table';
@@ -2192,5 +2192,47 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
     expect(getComputedStyle(container).scrollMarginTop)
       .withContext('a shell that declares its top inset is cleared')
       .toBe('96px');
+  });
+});
+
+// lazyLoad's `next` is async and awaits the selected-ids call BEFORE lowering `loading`. A
+// rejection there leaves that promise unsettled, and the subscriber's `error:` belongs to the
+// paginated-list observable, so it never runs either — the table stays masked forever.
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [getPaginatedListObservableMethod]="getList"
+      [selectedLazyLoadObservableMethod]="getSelected"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithFailingSelectionComponent {
+  cols = cols;
+  getList = () => paginated([{ id: 1 }]);
+  getSelected = () => throwError(() => new Error('selected ids unavailable'));
+}
+
+describe('SpiderlyDataTableComponent — pending state', () => {
+  it('lowers the pending state even when the selected-ids call fails', async () => {
+    const logged = spyOn(console, 'error');
+
+    const { fixture, dataTable } = await renderStable(
+      HostWithFailingSelectionComponent,
+    );
+
+    expect(dataTable.loading)
+      .withContext('a failed selection fetch must not strand the mask')
+      .toBeFalse();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.p-datatable-mask'),
+    )
+      .withContext('the pending overlay should be gone')
+      .toBeNull();
+    expect(logged)
+      .withContext('the swallowed failure is still reported')
+      .toHaveBeenCalled();
   });
 });
