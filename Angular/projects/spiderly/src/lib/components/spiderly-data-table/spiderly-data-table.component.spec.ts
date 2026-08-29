@@ -1515,6 +1515,67 @@ describe('SpiderlyDataTableComponent — active-filter header icon', () => {
       .toContain('pi-filter-fill');
   });
 
+  // The same claim as the spec above, but driven through the REAL widget instead of by
+  // hand-writing `table.filters`. That distinction is the whole point: the hand-written
+  // version encodes what we BELIEVE PrimeNG does on a keystroke, so it cannot catch us
+  // believing wrong — it passed while the live admin still filled the icon mid-typing.
+  it('leaves the icon unfilled while the operator types into the real filter input', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithColumnsStateKeyComponent,
+    );
+    const el: HTMLElement = fixture.nativeElement;
+
+    headerNamed(el, 'Name')
+      .querySelector<HTMLElement>(FILTER_BUTTON)!
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const columnFilter = fixture.debugElement
+      .queryAll(By.directive(ColumnFilter))
+      .map((de) => de.componentInstance as ColumnFilter)
+      .find((cf) => cf.overlayVisible)!;
+    const overlay = columnFilter.overlay as HTMLElement;
+
+    const input = overlay.querySelector<HTMLInputElement>('input');
+    expect(input).withContext('the text filter renders an input').toBeTruthy();
+
+    input!.value = 'bosch';
+    input!.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Negative control: prove the keystroke actually landed in the table's filter meta.
+    // Without this the spec would also pass when the input event never reached ngModel —
+    // an unfilled icon for the wrong reason, i.e. a test that inspected nothing.
+    expect((dataTable.table.filters['name'] as any[])?.[0]?.value)
+      .withContext('the typed value reaches the meta — this is the state that used to fill the icon')
+      .toBe('bosch');
+
+    expect(filterIcon(el, 'Name')!.classList)
+      .withContext('typing alone must not mark the column filtered')
+      .not.toContain('pi-filter-fill');
+
+    // Apply is what commits it — the same button the operator presses.
+    const apply = Array.from(
+      overlay.querySelectorAll<HTMLButtonElement>(
+        '.p-datatable-filter-buttonbar button',
+      ),
+    ).find((b) => !(b.textContent ?? '').toLowerCase().includes('clear'))!;
+    apply.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(filterIcon(el, 'Name')!.classList)
+      .withContext('applying it fills the icon')
+      .toContain('pi-filter-fill');
+    expect(dataTable.table.filters['name'])
+      .withContext('and the constraint really did reach the table')
+      .toBeTruthy();
+  });
+
   it('fills the icon while a constraint is active and unfills it after clear', () => {
     const { fixture, dataTable } = createWithDataTable(
       HostWithoutActionsComponent,
