@@ -403,6 +403,9 @@ export class SpiderlyDataTableComponent
     this.restoreColumnVisibility();
     this.reconcileVisibilityWithPersistedConstraints();
     this.reconcilePersistedMatchModes();
+    // Restored filters are applied by definition — mark them before the first paint rather
+    // than waiting for the first response, which is the reload case the icon exists for.
+    this.snapshotAppliedFilters(this.persistedTableState()?.filters);
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
 
@@ -511,7 +514,7 @@ export class SpiderlyDataTableComponent
 
     let cleared = false;
     for (const col of cols) {
-      if (this.isColumnFiltered(this.table, col)) {
+      if (this.columnHasConstraint(this.table, col)) {
         delete this.table.filters[this.filterKey(col)];
         cleared = true;
       }
@@ -547,15 +550,46 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Whether a column carries a live filter constraint — feeds the projected `filtericon`
-   * template, so a filtered column is visibly marked in its header. Why NOT the template's
-   * `let-hasFilter`, and why the Table is a parameter (the `#dt` ref) rather than
-   * `this.table`: CLAUDE.md → "Active-filter header icon".
+   * The filter keys the rows on screen were actually narrowed by. Kept apart from
+   * `table.filters` because those are not the same question: PrimeNG's `onModelChange`
+   * writes each keystroke of a text/numeric filter straight into the meta and only calls
+   * `_filter()` for the auto-applying types, so `table.filters` holds PENDING edits too.
+   * Reading it for the header icon marked a column filtered the moment the operator typed
+   * a character, before Apply — claiming the grid was narrowed when it was not.
    */
-  isColumnFiltered(table: Table, col: Column): boolean {
+  private appliedFilterKeys = new Set<string>();
+
+  /**
+   * Whether the rows on screen are narrowed by this column — feeds the projected
+   * `filtericon` template. Why not the template's `let-hasFilter`, and why applied rather
+   * than pending state: CLAUDE.md → "Active-filter header icon".
+   */
+  isColumnFiltered(col: Column): boolean {
+    return this.appliedFilterKeys.has(this.filterKey(col));
+  }
+
+  /** Whether the column carries a constraint at all, applied or still being typed. */
+  private columnHasConstraint(table: Table, col: Column): boolean {
     return SpiderlyDataTableComponent.isActiveFilterMeta(
       table.filters?.[this.filterKey(col)],
     );
+  }
+
+  /**
+   * Records what a just-applied filter set narrows by. Called from every path that commits
+   * one: `(onFilter)` (Apply, auto-apply, a per-column Clear), `lazyLoad` (which also covers
+   * `table.clear()` — it re-queries WITHOUT emitting onFilter), the caption's Clear filters,
+   * and once from `ngOnInit` off persisted state, so a restored filter is marked on first
+   * paint rather than after the first response.
+   */
+  private snapshotAppliedFilters(filters: any): void {
+    const applied = new Set<string>();
+
+    for (const [field, meta] of Object.entries(filters ?? {})) {
+      if (SpiderlyDataTableComponent.isActiveFilterMeta(meta)) applied.add(field);
+    }
+
+    this.appliedFilterKeys = applied;
   }
 
   private persistColumnVisibility(): void {
@@ -733,6 +767,7 @@ export class SpiderlyDataTableComponent
     this.applyDefaultSortIfUnsorted(event);
     this.lastLazyLoadEvent = event;
     this.rangeAnchorId = null;
+    this.snapshotAppliedFilters(event.filters);
 
     let tableFilter: Filter = event as unknown as Filter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
@@ -818,6 +853,9 @@ export class SpiderlyDataTableComponent
   private clientFilterCount = 0;
 
   filter(event: TableFilterEvent) {
+    // Fires from _filter(), i.e. only once a filter is COMMITTED — never on a keystroke.
+    this.snapshotAppliedFilters(event.filters ?? this.table?.filters);
+
     if (this.hasLazyLoad && this.selectionMode === 'multiple')
       this.selectAll(false); // We need to do it like this because: totalRecords: 1 -> selectedRecords from earlyer selection 2 -> unselect current -> all checkbox is set to true
 
@@ -1278,6 +1316,9 @@ export class SpiderlyDataTableComponent
   clear(table: Table) {
     table.clear();
     table.clearState();
+    // clear() re-queries without emitting (onFilter), so the icons would keep their fill
+    // on a client-side table; on a lazy one lazyLoad already covers it.
+    this.snapshotAppliedFilters(table.filters);
   }
 
   //#region Selection

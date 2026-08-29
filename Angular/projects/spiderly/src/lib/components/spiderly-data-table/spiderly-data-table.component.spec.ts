@@ -1488,6 +1488,33 @@ const filterIcon = (el: HTMLElement, headerName: string): HTMLElement | null =>
   );
 
 describe('SpiderlyDataTableComponent — active-filter header icon', () => {
+  it('leaves the icon unfilled while a value is typed but not yet applied', () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithoutActionsComponent,
+    );
+    const el: HTMLElement = fixture.nativeElement;
+
+    // Exactly what PrimeNG does on each keystroke in a text/numeric filter: onModelChange
+    // writes the value straight into the table's filter meta and calls _filter() ONLY for
+    // the auto-applying types. So the constraint sits there, pending, until Apply/Enter —
+    // and the icon has to describe the DATA on screen, not the edit in progress.
+    dataTable.table.filters['id'] = [
+      { value: 5, matchMode: 'equals', operator: 'and' },
+    ];
+    fixture.detectChanges();
+
+    expect(filterIcon(el, 'Id')!.classList)
+      .withContext('a typed but unapplied value must not mark the column filtered')
+      .not.toContain('pi-filter-fill');
+
+    dataTable.table._filter();
+    fixture.detectChanges();
+
+    expect(filterIcon(el, 'Id')!.classList)
+      .withContext('applying it is what fills the icon')
+      .toContain('pi-filter-fill');
+  });
+
   it('fills the icon while a constraint is active and unfills it after clear', () => {
     const { fixture, dataTable } = createWithDataTable(
       HostWithoutActionsComponent,
@@ -1502,10 +1529,11 @@ describe('SpiderlyDataTableComponent — active-filter header icon', () => {
     dataTable.table.filters['id'] = [
       { value: 5, matchMode: 'equals', operator: 'and' },
     ];
+    dataTable.table._filter();
     fixture.detectChanges();
 
     expect(filterIcon(el, 'Id')!.classList)
-      .withContext('a live constraint should fill the icon')
+      .withContext('an applied constraint should fill the icon')
       .toContain('pi-filter-fill');
 
     dataTable.clear(dataTable.table);
@@ -1552,6 +1580,7 @@ describe('SpiderlyDataTableComponent — active-filter header icon', () => {
       { value: null, matchMode: 'equals', operator: 'and' },
       { value: 5, matchMode: 'equals', operator: 'and' },
     ];
+    dataTable.table._filter();
     fixture.detectChanges();
 
     expect(filterIcon(el, 'Id')!.classList)
