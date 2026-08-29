@@ -137,7 +137,20 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     scrollElementIntoViewIfAboveViewport(container);
   }
 
+  /**
+   * The one pending predicate: PrimeNG's overlay and the container's `aria-busy` must never
+   * disagree. Mirrors the data table's; the rationale lives there.
+   */
+  get isPending(): boolean {
+    return this.items === undefined || this.loading === true;
+  }
+
   lazyLoad(event: TableLazyLoadEvent) {
+    // Every refetch is pending, not just the first load. `items` is deliberately left alone so
+    // the previous page stays readable under the overlay. Full reasoning: the data table's
+    // CLAUDE.md → "Pending state".
+    this.loading = true;
+
     this.lastLazyLoadEvent = event;
 
     const transformedFilter: {
@@ -166,7 +179,7 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     this.onLazyLoad.next(tableFilter);
 
     this.getPaginatedListObservableMethod(tableFilter).subscribe({
-      next: async (res) => {
+      next: (res) => {
         this.items = res.data;
         this.totalRecords = res.totalRecords;
 
@@ -215,8 +228,10 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   }
 
   reload() {
-    this.loading = true;
-    this.items = null;
+    // Nothing to replay before the initial load, which is already on its way.
+    if (this.lastLazyLoadEvent == null) return;
+
+    // `items` is deliberately left alone, like every other refetch; lazyLoad raises the flag.
     this.lazyLoad(this.lastLazyLoadEvent);
   }
 

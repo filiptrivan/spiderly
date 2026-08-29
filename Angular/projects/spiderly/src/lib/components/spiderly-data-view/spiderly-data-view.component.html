@@ -2,6 +2,7 @@
   <div
     #tableContainer
     class="spiderly-table-container"
+    [attr.aria-busy]="isPending"
     [ngClass]="{
       'card responsive-card-padding overflow-auto': showCardWrapper
     }"
@@ -17,7 +18,7 @@
       (onPage)="onPageChange(tableContainer)"
       [totalRecords]="totalRecords"
       class="spiderly-table"
-      [loading]="items === undefined || loading === true"
+      [loading]="isPending"
       dataKey="id"
       (onFilter)="filter($event)"
       [filterDelay]="500"

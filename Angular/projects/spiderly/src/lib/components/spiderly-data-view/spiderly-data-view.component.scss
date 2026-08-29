@@ -5,6 +5,13 @@
   .spiderly-table-container {
     @include scroll-target-below-top-chrome();
   }
+
+  // PrimeNG-rendered markup, so ::ng-deep is the only way in. Kept under :host deliberately:
+  // the block further down is at SCSS top level, which strips encapsulation entirely and leaks
+  // its rules to every component in the consuming app. Do not extend that one.
+  ::ng-deep .p-datatable-mask {
+    @include table-pending-veil();
+  }
 }
 
 ::ng-deep {
