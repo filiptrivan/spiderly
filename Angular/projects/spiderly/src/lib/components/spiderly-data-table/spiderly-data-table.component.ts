@@ -4,6 +4,7 @@ import {
   Component,
   ContentChild,
   ContentChildren,
+  ErrorHandler,
   EventEmitter,
   Inject,
   Input,
@@ -163,7 +164,7 @@ export class SpiderlyDataTableComponent
   ) => Observable<any>;
 
   lastLazyLoadEvent: TableLazyLoadEvent;
-  loading: boolean = true;
+  private loading: boolean = true;
 
   @Input() newlySelectedItems: number[] = [];
   fakeSelectedItems: number[] = []; // Only for showing checkboxes, we will not send this to the backend
@@ -267,6 +268,7 @@ export class SpiderlyDataTableComponent
     private messageService: SpiderlyMessageService,
     private translocoService: TranslocoService,
     private configService: ConfigServiceBase,
+    private errorHandler: ErrorHandler,
     @Inject(LOCALE_ID) private locale: string,
   ) {}
 
@@ -803,11 +805,16 @@ export class SpiderlyDataTableComponent
 
   /**
    * The one pending predicate: PrimeNG's overlay and the container's `aria-busy` must never
-   * disagree about whether a fetch is in flight. `items === undefined` covers the first load,
-   * before `loading` has anything to report.
+   * disagree about whether a fetch is in flight.
+   *
+   * It used to also test `items === undefined`, for the first load. That clause is dead now
+   * that `loading` initialises true and every lazyLoad raises it — except in the one state
+   * where it was actively wrong: a FAILED first load lowers the flag with `items` still
+   * undefined, which pinned the overlay up forever. Same stranded overlay this component was
+   * fixed for once already, through the other door.
    */
   get isPending(): boolean {
-    return this.items === undefined || this.loading === true;
+    return this.loading;
   }
 
   lazyLoad(event: TableLazyLoadEvent) {
@@ -827,62 +834,35 @@ export class SpiderlyDataTableComponent
 
     this.onLazyLoad.next(tableFilter);
 
+    // Issued NOW rather than after the list lands: it needs only `tableFilter`, so serialising
+    // it behind the list response cost a second round trip on every page of every
+    // selection-enabled table — and the overlay is held up for both. The `.catch` at creation
+    // is mandatory, not defensive: when the list request errors, `next` never runs, and a
+    // rejected promise nobody awaits is exactly the unowned rejection this handler exists to
+    // prevent. The rejection is re-thrown out of `awaitSelectedIds` instead, where it has one.
+    const selectedIds =
+      this.selectedLazyLoadObservableMethod != null
+        ? firstValueFrom(
+            this.selectedLazyLoadObservableMethod(tableFilter),
+          ).catch((error) => error as Error)
+        : null;
+
     this.getPaginatedListObservableMethod(tableFilter).subscribe({
       next: async (res) => {
-        // The awaited selection call is INSIDE the async next handler, so a rejection there
-        // settles nothing: the subscriber's `error:` below belongs to the paginated-list
-        // observable and never runs, which used to strand the pending overlay forever.
-        // Swallowed rather than rethrown — an unhandled rejection out of an async subscriber
-        // has no owner and surfaces as a failure in whatever runs next.
+        // The await below is INSIDE an async subscriber, so a rejection there settles nothing:
+        // `error:` belongs to the paginated-list observable and never runs. That used to strand
+        // the overlay forever, hence the finally.
         try {
           this.items = res.data;
           this.totalRecords = res.totalRecords;
           this.onTotalRecordsChange.next(res.totalRecords);
 
-          if (this.selectedLazyLoadObservableMethod != null) {
-            let selectedRowsMethodResult: LazyLoadSelectedIdsResult =
-              await firstValueFrom(
-                this.selectedLazyLoadObservableMethod(tableFilter),
-              );
-
-            this.currentPageSelectedItemsFromDb = [
-              ...selectedRowsMethodResult.selectedIds,
-            ];
-
-            if (this.isFirstTimeLazyLoad == true) {
-              this.rowsSelectedNumber =
-                selectedRowsMethodResult.totalRecordsSelected;
-              this.setFakeIsAllSelected();
-              this.isFirstTimeLazyLoad = false;
-            }
-
-            if (this.isAllSelected == true) {
-              let idsToInsert = [...this.items.map((x) => x[this.idField])];
-              idsToInsert = idsToInsert.filter(
-                (x) => this.unselectedItems.includes(x) == false,
-              );
-              this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
-            } else if (this.isAllSelected == false) {
-              this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
-            } else if (this.isAllSelected == null) {
-              let idsToInsert = [
-                ...selectedRowsMethodResult.selectedIds,
-                ...this.newlySelectedItems,
-              ];
-              idsToInsert = idsToInsert.filter(
-                (x) => this.unselectedItems.includes(x) == false,
-              );
-              this.fakeSelectedItems = [...idsToInsert];
-            }
-          }
-
-          if (this.selectedLazyLoadObservableMethod == null && this.deleteListFromTableObservableMethod) {
-            this.fakeSelectedItems = this.items
-              .map((x) => x[this.idField])
-              .filter((id) => this.newlySelectedItems.includes(id));
-          }
+          await this.reconcileSelectionForLoadedPage(selectedIds);
         } catch (error) {
-          console.error(error);
+          // The library's own owner: it toasts, it skips HttpErrorResponse (the interceptor
+          // already reported those), and a consumer's ErrorHandler wrapper forwards to their
+          // tracker. console.error here would have dropped both.
+          this.errorHandler.handleError(error);
         } finally {
           this.loading = false;
         }
@@ -891,6 +871,56 @@ export class SpiderlyDataTableComponent
         this.loading = false;
       },
     });
+  }
+
+  /**
+   * Repaints the checkbox column for the page that just landed. Split out of the subscriber so
+   * the try/finally that guarantees the pending flag wraps an await, not fifty lines of
+   * selection algebra.
+   */
+  private async reconcileSelectionForLoadedPage(
+    selectedIds: Promise<LazyLoadSelectedIdsResult | Error> | null,
+  ): Promise<void> {
+    if (selectedIds == null) {
+      if (this.deleteListFromTableObservableMethod) {
+        this.fakeSelectedItems = this.items
+          .map((x) => x[this.idField])
+          .filter((id) => this.newlySelectedItems.includes(id));
+      }
+      return;
+    }
+
+    const selectedRowsMethodResult = await selectedIds;
+    if (selectedRowsMethodResult instanceof Error) throw selectedRowsMethodResult;
+
+    this.currentPageSelectedItemsFromDb = [
+      ...selectedRowsMethodResult.selectedIds,
+    ];
+
+    if (this.isFirstTimeLazyLoad == true) {
+      this.rowsSelectedNumber = selectedRowsMethodResult.totalRecordsSelected;
+      this.setFakeIsAllSelected();
+      this.isFirstTimeLazyLoad = false;
+    }
+
+    if (this.isAllSelected == true) {
+      let idsToInsert = [...this.items.map((x) => x[this.idField])];
+      idsToInsert = idsToInsert.filter(
+        (x) => this.unselectedItems.includes(x) == false,
+      );
+      this.fakeSelectedItems = [...idsToInsert]; // Only for showing checkboxes, we will not send this to the backend
+    } else if (this.isAllSelected == false) {
+      this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
+    } else if (this.isAllSelected == null) {
+      let idsToInsert = [
+        ...selectedRowsMethodResult.selectedIds,
+        ...this.newlySelectedItems,
+      ];
+      idsToInsert = idsToInsert.filter(
+        (x) => this.unselectedItems.includes(x) == false,
+      );
+      this.fakeSelectedItems = [...idsToInsert];
+    }
   }
 
   clientLoad() {
@@ -1262,12 +1292,9 @@ export class SpiderlyDataTableComponent
 
   reload() {
     // Nothing to replay before the table's own initial load, which is already on its way.
-    // Untested: PrimeNG emits that load from its ngOnInit, so a fixture cannot reach this
-    // branch — but a consumer holding a @ViewChild can, and the alternative is a TypeError.
     if (this.lastLazyLoadEvent == null) return;
 
-    // `items` is deliberately left alone, like every other refetch: the current page stays
-    // readable under the overlay. lazyLoad raises `loading` itself.
+    // Not special: same refetch as a page flip, so lazyLoad owns both the flag and `items`.
     this.lazyLoad(this.lastLazyLoadEvent);
   }
 

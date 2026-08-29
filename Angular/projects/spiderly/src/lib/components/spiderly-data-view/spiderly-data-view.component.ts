@@ -87,7 +87,7 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   ) => Observable<PaginatedResult>;
 
   lastLazyLoadEvent: TableLazyLoadEvent;
-  loading: boolean = true;
+  private loading: boolean = true;
 
   matchModeDateOptions: SelectItem[] = [];
   matchModeNumberOptions: SelectItem[] = [];
@@ -139,10 +139,11 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
 
   /**
    * The one pending predicate: PrimeNG's overlay and the container's `aria-busy` must never
-   * disagree. Mirrors the data table's; the rationale lives there.
+   * disagree. Mirrors the data table's, including why it is not also testing `items`; the
+   * rationale lives there.
    */
   get isPending(): boolean {
-    return this.items === undefined || this.loading === true;
+    return this.loading;
   }
 
   lazyLoad(event: TableLazyLoadEvent) {
@@ -231,7 +232,7 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     // Nothing to replay before the initial load, which is already on its way.
     if (this.lastLazyLoadEvent == null) return;
 
-    // `items` is deliberately left alone, like every other refetch; lazyLoad raises the flag.
+    // Not special: same refetch as a page flip, so lazyLoad owns both the flag and `items`.
     this.lazyLoad(this.lastLazyLoadEvent);
   }
 

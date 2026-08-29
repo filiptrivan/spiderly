@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ErrorHandler } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -11,7 +11,13 @@ import { delay } from 'rxjs/operators';
 
 import { ColumnFilter } from 'primeng/table';
 
-import { translocoTesting } from '../../testing/spec-support.spec';
+import {
+  expectPendingVeil,
+  paginated,
+  renderRows,
+  tbodyText,
+  translocoTesting,
+} from '../../testing/spec-support.spec';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
 import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
@@ -26,14 +32,6 @@ import {
 
 const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
 
-// delay(0) so the result lands after the initial change-detection pass, avoiding
-// NG0100 from a synchronous lazy-load emission.
-const paginated = (
-  data: any[],
-  totalRecords: number = data.length,
-): Observable<PaginatedResult> =>
-  of({ data, totalRecords } as PaginatedResult).pipe(delay(0));
-
 const emptyList = (): Observable<PaginatedResult> => paginated([]);
 
 // Snapshot each filter — PrimeNG mutates/reuses the lazy-load event object.
@@ -44,10 +42,15 @@ const capturingGetList =
     return emptyList();
   };
 
+// The library's error owner, stubbed so a spec can assert a failure reached it. Reset with the
+// stores below, since Jasmine spies persist across the specs in a file.
+const errorHandler = { handleError: jasmine.createSpy('handleError') };
+
 // Every suite touches persisted table state; wipe both stores between tests.
 afterEach(() => {
   sessionStorage.clear();
   localStorage.clear();
+  errorHandler.handleError.calls.reset();
 });
 
 function createFixture<T>(host: new () => T): ComponentFixture<T> {
@@ -59,6 +62,7 @@ function createFixture<T>(host: new () => T): ComponentFixture<T> {
       { provide: ConfigServiceBase, useValue: { defaultPageSize: 10 } },
       { provide: SpiderlyMessageService, useValue: {} },
       { provide: DialogService, useValue: {} },
+      { provide: ErrorHandler, useValue: errorHandler },
     ],
   });
   const fixture = TestBed.createComponent(host);
@@ -833,14 +837,6 @@ class HostWithCellTemplateComponent {
 class HostWithoutCellTemplateComponent {
   cols = idAndNameCols;
   getList = oneRow;
-}
-
-async function renderRows(
-  fixture: ComponentFixture<unknown>,
-): Promise<HTMLElement> {
-  await fixture.whenStable();
-  fixture.detectChanges();
-  return fixture.nativeElement as HTMLElement;
 }
 
 describe('SpiderlyDataTableComponent — per-column cell templates', () => {
@@ -2233,10 +2229,48 @@ class HostWithChangingPagesComponent {
   getList = () => paginated([{ id: ++this.page }], 100);
 }
 
-describe('SpiderlyDataTableComponent — pending state', () => {
-  const tbodyText = (fixture: ComponentFixture<unknown>): string =>
-    (fixture.nativeElement as HTMLElement).querySelector('tbody')!.textContent!;
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithFailingListComponent {
+  cols = cols;
+  getList = () => throwError(() => new Error('list unavailable'));
+}
 
+// Records the order the two fetches are issued in, before either can resolve.
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [selectionMode]="'multiple'"
+      [getPaginatedListObservableMethod]="getList"
+      [selectedLazyLoadObservableMethod]="getSelected"
+    ></spiderly-data-table>
+  `,
+})
+class HostRecordingFetchOrderComponent {
+  cols = cols;
+  issued: string[] = [];
+  getList = () => {
+    this.issued.push('list');
+    return paginated([{ id: 1 }]);
+  };
+  getSelected = () => {
+    this.issued.push('selected');
+    return of({ selectedIds: [], totalRecordsSelected: 0 } as any).pipe(
+      delay(0),
+    );
+  };
+}
+
+describe('SpiderlyDataTableComponent — pending state', () => {
   // PrimeNG gates the empty message on `dt.isEmpty() && !dt.loading`. With the flag never
   // raised on a refetch, a table whose last result was empty answers "no records" for the
   // whole of the next request — asserting something it cannot know yet — and then flips to
@@ -2268,42 +2302,30 @@ describe('SpiderlyDataTableComponent — pending state', () => {
 
   // PrimeNG's overlay carries no aria-busy and its spinner is aria-hidden, so without this the
   // pending state is purely visual and a screen reader is told nothing at all.
-  it('marks the container busy while a refetch is in flight', async () => {
+  it('marks the container busy, and veiled, while a refetch is in flight', async () => {
     const { fixture, dataTable } = await renderStable(HostWithoutActionsComponent);
+    const root = fixture.nativeElement as HTMLElement;
     const busy = (): string | null =>
-      (fixture.nativeElement as HTMLElement)
+      root
         .querySelector('.spiderly-table-container')!
         .getAttribute('aria-busy');
+    const mask = (): Element | null => root.querySelector('.p-datatable-mask');
 
     expect(busy()).withContext('settled').toBe('false');
-
-    fixture.ngZone!.run(() => dataTable.table._filter());
-    fixture.detectChanges();
-
-    expect(busy()).withContext('in flight').toBe('true');
-
-    await renderRows(fixture);
-
-    expect(busy()).withContext('settled again').toBe('false');
-  });
-
-  // The overlay is PrimeNG's, gated on the same flag; this pins that a refetch reaches it, not
-  // just the first load, which is the whole user-visible complaint.
-  it('raises the pending overlay on a refetch, not only on first load', async () => {
-    const { fixture, dataTable } = await renderStable(HostWithoutActionsComponent);
-    const mask = (): Element | null =>
-      (fixture.nativeElement as HTMLElement).querySelector('.p-datatable-mask');
-
     expect(mask()).withContext('settled').toBeNull();
 
     fixture.ngZone!.run(() => dataTable.table._filter());
     fixture.detectChanges();
 
-    expect(mask()).withContext('in flight').not.toBeNull();
+    expect(busy()).withContext('in flight').toBe('true');
+    // Same predicate through PrimeNG's binding — the visible half of the same fact, and the
+    // whole user-visible complaint: a refetch reaches the overlay, not just the first load.
+    expect(mask()).withContext('overlay in flight').not.toBeNull();
 
     await renderRows(fixture);
 
-    expect(mask()).withContext('settled again').toBeNull();
+    expect(busy()).withContext('settled again').toBe('false');
+    expect(mask()).withContext('overlay gone').toBeNull();
   });
 
   // Why lazyLoad raises the flag but never touches `items`: the previous page stays readable
@@ -2320,31 +2342,15 @@ describe('SpiderlyDataTableComponent — pending state', () => {
     expect(tbodyText(fixture))
       .withContext('page one is still what the reader can see')
       .toContain('1');
+    // And nothing else: PrimeNG renders a loadingbody template IN ADDITION to the rows, never
+    // instead of them, so this is what keeps a "Loading..." row from wedging under the page.
+    expect(root.querySelectorAll('tbody tr').length)
+      .withContext('exactly the data rows')
+      .toBe(1);
 
     await renderRows(fixture);
 
     expect(tbodyText(fixture)).withContext('page two lands').toContain('2');
-  });
-
-  // PrimeNG renders the loadingbody template IN ADDITION to the rows, never instead of them,
-  // so a refetch would hang a "Loading..." row under the stale page. The overlay is the
-  // pending affordance; a text row wedged under real data is noise.
-  it('renders exactly the data rows while a refetch is in flight', async () => {
-    const { fixture } = await renderStable(HostWithChangingPagesComponent);
-    const root = fixture.nativeElement as HTMLElement;
-    const rowCount = (): number => root.querySelectorAll('tbody tr').length;
-
-    const settled = rowCount();
-    expect(settled).withContext('one row per record').toBe(1);
-
-    clickNextPage(root);
-    fixture.detectChanges();
-
-    expect(rowCount())
-      .withContext('nothing extra appears under the stale page')
-      .toBe(settled);
-
-    await renderRows(fixture);
   });
 
   // reload() blanked the table by nulling `items`, which is now the only refetch that does
@@ -2370,70 +2376,68 @@ describe('SpiderlyDataTableComponent — pending state', () => {
   });
 
   it('lowers the pending state even when the selected-ids call fails', async () => {
-    const logged = spyOn(console, 'error');
+    const { fixture } = await renderStable(HostWithFailingSelectionComponent);
 
-    const { fixture, dataTable } = await renderStable(
-      HostWithFailingSelectionComponent,
-    );
-
-    expect(dataTable.loading)
-      .withContext('a failed selection fetch must not strand the mask')
-      .toBeFalse();
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.p-datatable-mask'),
     )
-      .withContext('the pending overlay should be gone')
+      .withContext('a failed selection fetch must not strand the overlay')
       .toBeNull();
-    expect(logged)
-      .withContext('the swallowed failure is still reported')
+    // Routed to the library's ErrorHandler rather than console: that is what toasts, skips
+    // HttpErrorResponse (the interceptor already reported those), and reaches a consumer's
+    // tracker through their own ErrorHandler wrapper.
+    expect(errorHandler.handleError)
+      .withContext('the failure still reaches an owner')
       .toHaveBeenCalled();
+  });
+
+  // The overlay is only honest if a FAILED load clears it too. isPending used to also test
+  // `items === undefined`, which on a first-load failure stayed true forever.
+  it('clears the pending state when the first load itself fails', async () => {
+    const { fixture } = await renderStable(HostWithFailingListComponent);
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.p-datatable-mask'),
+    )
+      .withContext('a failed first load must not strand the overlay either')
+      .toBeNull();
+  });
+
+  // The selected-ids call needs only the filter, so waiting for the list response cost a
+  // second round trip on every page — and the overlay is now up for both.
+  it('issues the selected-ids request alongside the list request, not behind it', () => {
+    const { host } = createWithDataTable(HostRecordingFetchOrderComponent);
+
+    expect(host.issued)
+      .withContext('both in flight before either response lands')
+      .toEqual(['selected', 'list']);
+  });
+
+  it('ignores reload() before anything has been loaded', () => {
+    const { dataTable, host } = createWithDataTable(HostWithDefaultSortComponent);
+    const loadsSoFar = host.captured.length;
+    dataTable.lastLazyLoadEvent = null;
+
+    expect(() => dataTable.reload()).not.toThrow();
+    expect(host.captured.length)
+      .withContext('nothing replayed — the initial load is already in flight')
+      .toBe(loadsSoFar);
   });
 });
 
 describe('SpiderlyDataTableComponent — pending overlay styling', () => {
-  // Every pin is measured on an UN-awaited fixture: it returns with the first fetch still in
-  // flight, so PrimeNG's mask is mounted. Same trick the scroll suite's scroll-margin pin uses.
-  function mountedMask(): HTMLElement | null {
-    const fixture = createFixture(HostWithoutActionsComponent);
-    return (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
-      '.p-datatable-mask',
-    );
-  }
-
-  // The mask is PrimeNG-rendered markup, so these rules can only reach it through ::ng-deep —
-  // which is exactly the kind of rule Angular/CLAUDE.md requires a computed-style pin for.
-  const maskPins: [property: string, expected: string][] = [
-    // Not centred: the mask spans the whole datatable root, so on a long list a centred
-    // spinner sits far below the fold — worst right after a page change scrolls you to the top.
-    ['align-items', 'flex-start'],
-    ['padding-top', '96px'],
-  ];
-
+  // The ::ng-deep computed-style assert Angular/CLAUDE.md requires for any rule targeting
+  // markup this component does not author. The pin table is shared with the data view's suite,
+  // because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
   it('keeps the veil rules matching PrimeNG mask markup', () => {
-    const mask = mountedMask();
+    // Un-awaited on purpose: the fixture returns with the first fetch still pending, so the
+    // mask is mounted. Same trick the scroll suite's scroll-margin pin uses.
+    const fixture = createFixture(HostWithoutActionsComponent);
 
-    expect(mask)
-      .withContext('the overlay should be mounted while the first fetch is pending')
-      .toBeTruthy();
-    for (const [property, expected] of maskPins) {
-      expect(getComputedStyle(mask!).getPropertyValue(property))
-        .withContext(property)
-        .toBe(expected);
-    }
-  });
-
-  // PrimeNG's own mask.background is rgba(0,0,0,0.4) light / 0.6 dark — modal strength. It
-  // makes the stale rows unreadable, which defeats the whole reason for keeping them.
-  it('veils the stale rows rather than blacking them out', () => {
-    const styles = getComputedStyle(mountedMask()!);
-
-    expect(styles.backgroundColor)
-      .withContext('PrimeNG scrim replaced')
-      .not.toContain('0, 0, 0');
-    // SpinnerIcon paints fill="currentColor", so a background-only override would leave a
-    // near-white spinner on a near-white veil.
-    expect(styles.color)
-      .withContext('the spinner colour is set with the background, never separately')
-      .toBe('rgb(51, 65, 85)');
+    expectPendingVeil(
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+        '.p-datatable-mask',
+      ),
+    );
   });
 });
