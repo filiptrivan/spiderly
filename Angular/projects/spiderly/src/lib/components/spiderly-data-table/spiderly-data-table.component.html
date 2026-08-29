@@ -1,5 +1,7 @@
 <ng-container *transloco="let t">
   <div
+    #tableContainer
+    class="spiderly-table-container"
     [class]="
       showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''
     "
@@ -14,6 +16,7 @@
       responsiveLayout="scroll"
       [lazy]="hasLazyLoad"
       (onLazyLoad)="lazyLoad($event)"
+      (onPage)="onPageChange()"
       [totalRecords]="totalRecords"
       class="spiderly-table"
       [loading]="items === undefined || loading === true"

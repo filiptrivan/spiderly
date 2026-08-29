@@ -305,6 +305,20 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 
 **Shift+click selects a range**: click one checkbox, hold Shift, click another — every row between receives the *clicked checkbox's new state* (shift-checking selects the range, shift-unchecking clears it). The anchor is the last clicked checkbox, and a range only ever spans rows visible on the current page: if the anchor is no longer among them, the shift-click degrades to a plain toggle. (A client-side sort that keeps both rows on screen ranges over the *new* visual order, which is what the user sees and expects.) Rows already in the target state are skipped; each actual change emits `onRowSelect`/`onRowUnselect` exactly as a single click would, so delta-based consumers (`newlySelectedItems`/`unselectedItems`) need no changes.
 
+### Paging scrolls the list back into view
+
+Changing the page or the page size scrolls the table's wrapper back under the top of the viewport, so the new rows are what you land on rather than the paginator you just clicked. It is instant, never animated, and it does nothing when the table's top is already visible — a table placed below other content on a details page will not push that content off-screen.
+
+The amount of fixed chrome to clear comes from the `--spiderly-topbar-height` CSS variable, which `spiderly`'s own layout declares on `html`. If you replace that layout with your own fixed header, declare the variable to match:
+
+```css
+html {
+  --spiderly-topbar-height: 4.5rem;
+}
+```
+
+Leave it undeclared and the table scrolls to the true top of the viewport, which is correct when nothing is pinned there.
+
 ### Key Inputs
 
 | Input                              | Type                     | Default | Purpose                 |

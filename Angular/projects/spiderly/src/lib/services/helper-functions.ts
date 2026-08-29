@@ -358,3 +358,30 @@ export function getImageDimensions(
     img.src = URL.createObjectURL(file);
   });
 }
+
+/**
+ * Scrolls `element` back under the top of the viewport, but only when it has already scrolled
+ * above it. Set the element's `scroll-margin-top` to whatever fixed chrome must stay clear.
+ */
+// Why each line is what it is (paging is the caller; see spiderly-data-table/CLAUDE.md →
+// "Scroll back to the table on page change"):
+// - The offset is READ from CSS rather than passed in, so the amount of fixed chrome to clear
+//   stays declared in one place per component and no TypeScript knows the shell's dimensions.
+// - The early return is what stops a list sitting BELOW other page content (a table inside a
+//   details form) from shoving that content off-screen when it was already visible.
+// - `behavior: 'instant'` overrides the element's CSS `scroll-behavior`; `'auto'` defers to it,
+//   so an app setting `html { scroll-behavior: smooth }` would animate every call.
+export function scrollElementIntoViewIfAboveViewport(
+  element: HTMLElement | null | undefined,
+): void {
+  if (element == null) return;
+
+  const offset = parseFloat(getComputedStyle(element).scrollMarginTop) || 0;
+  if (element.getBoundingClientRect().top >= offset) return;
+
+  element.scrollIntoView({
+    block: 'start',
+    inline: 'nearest',
+    behavior: 'instant',
+  });
+}

@@ -4,6 +4,7 @@ import {
   Component,
   ContentChild,
   ContentChildren,
+  ElementRef,
   EventEmitter,
   Inject,
   Input,
@@ -51,6 +52,7 @@ import {
   exportListToExcel,
   getHtmlImgDisplayString64,
   parseDateOnlyLocal,
+  scrollElementIntoViewIfAboveViewport,
 } from '../../services/helper-functions';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { readStoredJson, writeStoredJson } from '../../services/web-storage';
@@ -84,6 +86,8 @@ export class SpiderlyDataTableComponent
   private readonly destroy$ = new Subject<void>();
 
   @ViewChild('dt') table: Table;
+
+  @ViewChild('tableContainer') tableContainer: ElementRef<HTMLElement>;
 
   /**
    * Custom toolbar content projected via `<ng-template spiderlyDataTableActions>`.
@@ -761,6 +765,10 @@ export class SpiderlyDataTableComponent
       this.table._multiSortMeta = defaultSort;
       this.table.tableService.onSort(defaultSort);
     }
+  }
+
+  onPageChange(): void {
+    scrollElementIntoViewIfAboveViewport(this.tableContainer?.nativeElement);
   }
 
   lazyLoad(event: TableLazyLoadEvent) {

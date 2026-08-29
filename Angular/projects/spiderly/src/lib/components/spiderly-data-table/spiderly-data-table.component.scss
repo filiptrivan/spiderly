@@ -73,6 +73,15 @@
 
 :host {
   // In-template content only — rules for teleported overlay content go at top level (see above).
+
+  // onPageChange scrolls this wrapper back into view. The offset clears whatever fixed
+  // chrome the shell pins to the viewport top; the shell owns that number
+  // (--spiderly-topbar-height, declared by the layout in _main.scss), the component only
+  // leaves room for it. The 0px fallback is what keeps a consumer with no fixed header
+  // from getting a phantom gap above the table.
+  .spiderly-table-container {
+    scroll-margin-top: calc(var(--spiderly-topbar-height, 0px) + 1rem);
+  }
   // The `.clickable` affordance is shared: clickable rows (navigateOnRowClick) and opt-in cells
   // (Column.onCellClick) both get a pointer cursor; cells additionally underline on hover.
   ::ng-deep .clickable {

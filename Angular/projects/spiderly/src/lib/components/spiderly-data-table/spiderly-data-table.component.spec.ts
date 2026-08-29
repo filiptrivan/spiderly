@@ -1885,3 +1885,126 @@ describe('SpiderlyDataTableComponent — Column.matchModes narrowing', () => {
       .toBe('2026-01-01');
   });
 });
+
+// A table with more records than fit on one page, so the paginator's Next is live.
+const oneOfManyPages = (): Observable<PaginatedResult> =>
+  of({ data: [{ id: 1 }], totalRecords: 100 } as PaginatedResult).pipe(delay(0));
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithManyPagesComponent {
+  cols = cols;
+  getList = oneOfManyPages;
+}
+
+describe('SpiderlyDataTableComponent — scroll on page change', () => {
+  async function renderPaged() {
+    const created = await renderStable(HostWithManyPagesComponent);
+    const root = created.fixture.nativeElement as HTMLElement;
+    const container = root.querySelector<HTMLElement>(
+      '.spiderly-table-container',
+    )!;
+    return { ...created, root, container };
+  }
+
+  // The container's own geometry decides whether we scroll, and a Karma fixture is a small
+  // box inside a page that never scrolls — so the position is stubbed, not arranged.
+  function positionTop(el: HTMLElement, top: number): void {
+    spyOn(el, 'getBoundingClientRect').and.returnValue({ top } as DOMRect);
+  }
+
+  it('brings the table back into view when paging while scrolled past its top', async () => {
+    const { root, container } = await renderPaged();
+    positionTop(container, -400);
+    const scrolled = spyOn(container, 'scrollIntoView');
+
+    root.querySelector<HTMLElement>('.p-paginator-next')!.click();
+
+    expect(scrolled).toHaveBeenCalled();
+  });
+
+  // A details page can hold a table below a form (UIControlTypeCodes.Table). Scrolling
+  // unconditionally would yank that form off-screen on every page flip.
+  it('leaves the viewport alone when the table top is already in view', async () => {
+    const { root, container } = await renderPaged();
+    positionTop(container, 120);
+    const scrolled = spyOn(container, 'scrollIntoView');
+
+    root.querySelector<HTMLElement>('.p-paginator-next')!.click();
+
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  // `behavior: 'auto'` defers to the CSS `scroll-behavior` of the scrolling element, so a
+  // consumer whose app sets `html { scroll-behavior: smooth }` would animate every page
+  // flip from the paginator up. Only 'instant' overrides the CSS.
+  it('scrolls instantly to the top edge, never animating', async () => {
+    const { root, container } = await renderPaged();
+    positionTop(container, -400);
+    const scrolled = spyOn(container, 'scrollIntoView');
+
+    root.querySelector<HTMLElement>('.p-paginator-next')!.click();
+
+    expect(scrolled).toHaveBeenCalledWith({
+      block: 'start',
+      inline: 'nearest',
+      behavior: 'instant',
+    });
+  });
+
+  // PrimeNG's restoreState assigns `first` directly and emits only firstChange — it never
+  // routes through the paginator's onPageChange. A scroll on first paint would shove a
+  // details page's form off-screen the moment the page opens.
+  it('does not scroll on the first render, even with a restored page offset', async () => {
+    sessionStorage.setItem(
+      'spiderly-table:/',
+      JSON.stringify({ first: 30, rows: 10 }),
+    );
+    const scrolled = spyOn(Element.prototype, 'scrollIntoView');
+
+    const { fixture, dataTable } = await renderStable(
+      HostWithManyPagesComponent,
+    );
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(dataTable.table.first)
+      .withContext('the restored offset did apply')
+      .toBe(30);
+    expect(scrolled).not.toHaveBeenCalled();
+
+    // The spy is live, so the assertion above means something: the same element does
+    // reach it once a real page change happens.
+    const container = root.querySelector<HTMLElement>(
+      '.spiderly-table-container',
+    )!;
+    positionTop(container, -400);
+    root.querySelector<HTMLElement>('.p-paginator-next')!.click();
+
+    expect(scrolled).toHaveBeenCalled();
+  });
+
+  // The scroll target has to clear whatever fixed chrome the shell pins to the viewport top
+  // (spiderly's own .layout-topbar is 5rem). The component must not know that number: it
+  // reads --spiderly-topbar-height, which the layout owns, and falls back to no offset so a
+  // consumer without a fixed header gets no phantom gap.
+  it('offsets the scroll target by the shell topbar height', async () => {
+    const { container } = await renderPaged();
+
+    expect(getComputedStyle(container).scrollMarginTop)
+      .withContext('without the layout stylesheet: breathing room only')
+      .toBe('16px');
+
+    container.style.setProperty('--spiderly-topbar-height', '80px');
+
+    expect(getComputedStyle(container).scrollMarginTop)
+      .withContext('a shell that declares its topbar height is cleared')
+      .toBe('96px');
+  });
+});

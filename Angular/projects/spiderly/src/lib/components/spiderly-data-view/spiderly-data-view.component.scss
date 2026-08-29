@@ -1,3 +1,9 @@
+// Scroll target for onPageChange. Why the var and the 0px fallback: the same rule in
+// spiderly-data-table.component.scss carries the full note.
+.spiderly-table-container {
+  scroll-margin-top: calc(var(--spiderly-topbar-height, 0px) + 1rem);
+}
+
 ::ng-deep {
   .p-datatable-tbody {
     display: flex;

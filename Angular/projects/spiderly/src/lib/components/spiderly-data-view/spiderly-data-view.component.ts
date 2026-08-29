@@ -1,6 +1,7 @@
 import {
   Component,
   ContentChild,
+  ElementRef,
   EventEmitter,
   Inject,
   Input,
@@ -36,6 +37,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { BaseEntity } from '../../entities/base-entity';
 import { PrimengOption } from '../../entities/primeng-option';
+import { scrollElementIntoViewIfAboveViewport } from '../../services/helper-functions';
 
 @Component({
   selector: 'spiderly-data-view',
@@ -59,6 +61,8 @@ import { PrimengOption } from '../../entities/primeng-option';
 })
 export class SpiderlyDataViewComponent<T> implements OnInit {
   @ViewChild('dt') table: Table;
+
+  @ViewChild('tableContainer') tableContainer: ElementRef<HTMLElement>;
   /**
    * List of items in the table.
    * Should be provided only when `hasLazyLoad === false`.
@@ -128,6 +132,12 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
         value: MatchModeCodes.GreaterThan,
       },
     ];
+  }
+
+  // Paging semantics and the scroll-margin contract are documented once, on the data table:
+  // spiderly-data-table/CLAUDE.md → "Scroll back to the table on page change".
+  onPageChange(): void {
+    scrollElementIntoViewIfAboveViewport(this.tableContainer?.nativeElement);
   }
 
   lazyLoad(event: TableLazyLoadEvent) {
