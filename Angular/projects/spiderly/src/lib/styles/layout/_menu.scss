@@ -8,7 +8,7 @@
   z-index: 999;
   overflow-y: auto;
   user-select: none;
-  top: 7rem;
+  top: calc(var(--spiderly-topbar-height) + 2rem);
   left: 2rem;
   transition:
     transform $transitionDuration,

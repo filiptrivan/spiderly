@@ -3,7 +3,7 @@
 
 .layout-topbar {
   position: fixed;
-  height: 5rem;
+  height: var(--spiderly-topbar-height);
   z-index: 997;
   left: 0;
   top: 0;

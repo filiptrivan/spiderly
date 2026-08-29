@@ -16,6 +16,14 @@ To change a dep: edit `package.json`, run `npm install` under the pinned toolcha
 
 PrimeNG appends open overlays to `document.body` (`appendTo` default: `p-popover`, dropdown/calendar/multiselect panels, `p-menu popup`, …). A `:host .foo` rule compiles under emulated encapsulation to a `[_nghost] … [_ngcontent]` descendant selector that stops matching the moment the content leaves the host subtree — the rules die silently, and builds and behavior specs stay green (the data-table column chooser shipped exactly this way). Declare overlay-content rules at the SCSS **top level**: they keep only the `[_ngcontent]` attribute selector, which travels with the teleported nodes, so they stay encapsulated without `::ng-deep`. Any rule targeting teleported content also needs a computed-style assert in the component's spec — see the data-table spec's "chooser styles survive the body teleport" describe for the table-driven pattern.
 
+## Fixed-chrome offset — `--spiderly-topbar-height`, and why there is no global smooth scroll
+
+`styles/layout/_main.scss` declares `--spiderly-topbar-height` on `html`. Four things derive from it: `.layout-topbar`'s own height, `.layout-main-container`'s top padding, `.layout-sidebar`'s `top`, and — outside this stylesheet — any component that scrolls content back into view (`spiderly-data-table` consumes it through its container's `scroll-margin-top`). Change the topbar height there, never in `_topbar.scss`.
+
+**A component must treat the var as absent by default.** Library components are usable without this layout, so always write `var(--spiderly-topbar-height, 0px)` and never a hardcoded rem — the fallback is what stops a consumer with no fixed header from getting a phantom gap.
+
+**`html { scroll-behavior: smooth }` was removed (2026-08-29) and should not come back.** It silently applied to every programmatic scroll in every consuming app: with `scrollPositionRestoration: 'top'` (which pa-cms sets) each route change animated the whole way up through the new page's content, and it overrode `scrollIntoView({ behavior: 'auto' })` at every call site. It also ignored `prefers-reduced-motion`, which nothing in the library guards. A call site that genuinely wants animation passes `behavior: 'smooth'` itself.
+
 ## Always translate static UI text in library templates
 
 Any user-facing string baked into a control/component template here (button labels, tab labels, placeholders, headings) **must** go through Transloco — never hardcode English. The admin app this library powers is fully localized (e.g. PACMS runs Serbian), so a hardcoded English word would be the one untranslated thing on the screen.
