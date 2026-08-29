@@ -2096,6 +2096,12 @@ class HostWithManyPagesComponent {
   getList = oneOfManyPages;
 }
 
+// Shared by the scroll and pending-state suites — a real click, so the refetch it triggers is
+// scheduled inside the fixture's zone and whenStable will wait for it.
+function clickNextPage(root: HTMLElement): void {
+  root.querySelector<HTMLElement>('.p-paginator-next')!.click();
+}
+
 describe('SpiderlyDataTableComponent — scroll on page change', () => {
   async function renderPaged() {
     const created = await renderStable(HostWithManyPagesComponent);
@@ -2110,10 +2116,6 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
   // box inside a page that never scrolls — so the position is stubbed, not arranged.
   function positionTop(el: HTMLElement, top: number): void {
     spyOn(el, 'getBoundingClientRect').and.returnValue({ top } as DOMRect);
-  }
-
-  function clickNextPage(root: HTMLElement): void {
-    root.querySelector<HTMLElement>('.p-paginator-next')!.click();
   }
 
   // A details page can hold a table below a form (UIControlTypeCodes.Table). Scrolling
@@ -2215,7 +2217,115 @@ class HostWithFailingSelectionComponent {
   getSelected = () => throwError(() => new Error('selected ids unavailable'));
 }
 
+// Each fetch answers with a different row, so "did the old page stay?" is answerable.
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithChangingPagesComponent {
+  cols = cols;
+  private page = 0;
+  getList = () => paginated([{ id: ++this.page }], 100);
+}
+
 describe('SpiderlyDataTableComponent — pending state', () => {
+  const tbodyText = (fixture: ComponentFixture<unknown>): string =>
+    (fixture.nativeElement as HTMLElement).querySelector('tbody')!.textContent!;
+
+  // PrimeNG gates the empty message on `dt.isEmpty() && !dt.loading`. With the flag never
+  // raised on a refetch, a table whose last result was empty answers "no records" for the
+  // whole of the next request — asserting something it cannot know yet — and then flips to
+  // rows. Driven through _filter() rather than reload(), which already raises the flag and
+  // would make this pass for the wrong reason.
+  it('does not claim there are no records while a refetch is in flight', async () => {
+    const { fixture, dataTable } = await renderStable(HostWithoutActionsComponent);
+
+    expect(tbodyText(fixture))
+      .withContext('a settled empty result does say so')
+      .toContain('NoRecordsFound');
+
+    // Inside the zone, as a real filter commit is — driven from outside it the refetch's
+    // delay(0) is scheduled where whenStable will not wait for it (the trap recorded on
+    // swapRowNameTo, which is why this spec measured a still-pending table on first write).
+    fixture.ngZone!.run(() => dataTable.table._filter());
+    fixture.detectChanges();
+
+    expect(tbodyText(fixture))
+      .withContext('mid-flight it must not answer for data it does not have')
+      .not.toContain('NoRecordsFound');
+
+    await renderRows(fixture);
+
+    expect(tbodyText(fixture))
+      .withContext('and it says so again once the new result lands')
+      .toContain('NoRecordsFound');
+  });
+
+  // PrimeNG's overlay carries no aria-busy and its spinner is aria-hidden, so without this the
+  // pending state is purely visual and a screen reader is told nothing at all.
+  it('marks the container busy while a refetch is in flight', async () => {
+    const { fixture, dataTable } = await renderStable(HostWithoutActionsComponent);
+    const busy = (): string | null =>
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('.spiderly-table-container')!
+        .getAttribute('aria-busy');
+
+    expect(busy()).withContext('settled').toBe('false');
+
+    fixture.ngZone!.run(() => dataTable.table._filter());
+    fixture.detectChanges();
+
+    expect(busy()).withContext('in flight').toBe('true');
+
+    await renderRows(fixture);
+
+    expect(busy()).withContext('settled again').toBe('false');
+  });
+
+  // The overlay is PrimeNG's, gated on the same flag; this pins that a refetch reaches it, not
+  // just the first load, which is the whole user-visible complaint.
+  it('raises the pending overlay on a refetch, not only on first load', async () => {
+    const { fixture, dataTable } = await renderStable(HostWithoutActionsComponent);
+    const mask = (): Element | null =>
+      (fixture.nativeElement as HTMLElement).querySelector('.p-datatable-mask');
+
+    expect(mask()).withContext('settled').toBeNull();
+
+    fixture.ngZone!.run(() => dataTable.table._filter());
+    fixture.detectChanges();
+
+    expect(mask()).withContext('in flight').not.toBeNull();
+
+    await renderRows(fixture);
+
+    expect(mask()).withContext('settled again').toBeNull();
+  });
+
+  // Why lazyLoad raises the flag but never touches `items`: the previous page stays readable
+  // under the overlay instead of the table blanking. Characterisation pin for that shape.
+  it('keeps the previous rows on screen while the next page is fetched', async () => {
+    const { fixture } = await renderStable(HostWithChangingPagesComponent);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(tbodyText(fixture)).withContext('page one').toContain('1');
+
+    clickNextPage(root);
+    fixture.detectChanges();
+
+    expect(tbodyText(fixture))
+      .withContext('page one is still what the reader can see')
+      .toContain('1');
+
+    await renderRows(fixture);
+
+    expect(tbodyText(fixture)).withContext('page two lands').toContain('2');
+  });
+
   it('lowers the pending state even when the selected-ids call fails', async () => {
     const logged = spyOn(console, 'error');
 

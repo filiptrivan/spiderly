@@ -801,7 +801,22 @@ export class SpiderlyDataTableComponent
     scrollElementIntoViewIfAboveViewport(container);
   }
 
+  /**
+   * The one pending predicate: PrimeNG's overlay and the container's `aria-busy` must never
+   * disagree about whether a fetch is in flight. `items === undefined` covers the first load,
+   * before `loading` has anything to report.
+   */
+  get isPending(): boolean {
+    return this.items === undefined || this.loading === true;
+  }
+
   lazyLoad(event: TableLazyLoadEvent) {
+    // Every refetch is pending, not just the first load and reload(). `items` is deliberately
+    // left alone: the previous page stays on screen under the overlay (stale-while-revalidate)
+    // rather than blanking. Raising the flag is also what stops PrimeNG's empty message, gated
+    // on `isEmpty() && !loading`, from claiming "no records" for the length of the request.
+    this.loading = true;
+
     this.applyDefaultSortIfUnsorted(event);
     this.lastLazyLoadEvent = event;
     this.rangeAnchorId = null;
