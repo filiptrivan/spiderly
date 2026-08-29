@@ -27,6 +27,7 @@
       [multiSortMeta]="initialMultiSortMeta"
       [stateKey]="resolvedStateKey"
       [stateStorage]="stateStorage"
+      [tableStyle]="tableStyle"
     >
       <ng-template pTemplate="caption">
         <div class="table-header overflow-auto">
@@ -89,7 +90,10 @@
       </ng-template>
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 0rem" *ngIf="selectionMode == 'multiple'">
+          <!-- A real width, not the `0rem` this carried under the auto layout: fixed layout reads
+               it literally and the column disappears. Sized for the checkbox plus the selected
+               counter beside it, which reaches four digits on a cross-page selection. -->
+          <th style="width: 5rem" *ngIf="selectionMode == 'multiple'">
             <div style="display: flex; gap: 8px">
               <p-checkbox
                 *ngIf="showSelectAllCheckbox"
@@ -203,7 +207,7 @@
             <img width="45" [src]="displayValue" alt="" />
           </ng-container>
           <ng-container *ngIf="col.filterType !== 'blob'">
-            {{ displayValue }}
+            <span class="cell-text">{{ displayValue }}</span>
           </ng-container>
         </ng-template>
         <tr

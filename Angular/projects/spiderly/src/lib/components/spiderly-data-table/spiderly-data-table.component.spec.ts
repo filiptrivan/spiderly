@@ -886,16 +886,222 @@ describe('SpiderlyDataTableComponent — per-column cell templates', () => {
   });
 });
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithActionsColumnComponent {
+  cols: Column[] = [
+    { name: 'Name', field: 'name', filterType: 'text' },
+    { actions: [{ field: 'Details' }, { field: 'Delete' }] },
+  ];
+  getList = () => paginated([{ id: 1, name: 'Ana' }]);
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithMoreColumnsThanFitComponent {
+  // Six text columns at the 12rem default = 72rem, well past the Karma fixture's width.
+  cols: Column[] = Array.from({ length: 6 }, (_, i) => ({
+    name: `Col ${i}`,
+    field: `c${i}`,
+    filterType: 'text' as const,
+  }));
+  getList = () => paginated([{ id: 1 }]);
+}
+
+describe('SpiderlyDataTableComponent — a table too wide for its container scrolls', () => {
+  // The worry was that fixed layout sizes columns from the table's width, so a laptop would get
+  // crushed columns where auto layout gave a horizontal scroll. It does not: a table whose
+  // declared column widths exceed its container is widened to their sum by the browser, and the
+  // wrapper's overflow-auto still scrolls. Measured 2026-08-29 — six 12rem columns rendered a
+  // 1152px table inside a 740px container, each header exactly 192px. No `min-width` needed;
+  // this test exists so that free property is not silently lost.
+  it('keeps the table at least as wide as its columns need', async () => {
+    const { fixture } = await renderStable(HostWithMoreColumnsThanFitComponent);
+    const el = fixture.nativeElement as HTMLElement;
+
+    const table = el.querySelector('table')!.getBoundingClientRect().width;
+    const container = el
+      .querySelector('.spiderly-table-container')!
+      .getBoundingClientRect().width;
+
+    expect(table).toBeGreaterThan(container);
+  });
+});
+
+describe('SpiderlyDataTableComponent — columns carrying no value still get room', () => {
+  // `width: 0rem` used to mean "shrink to fit the content" under the browser's auto layout.
+  // Under the fixed layout it means zero, so every column that never declared a width of its
+  // own — the selection checkbox, an actions column — has to be given one.
+  it('leaves an actions column room for its icons', async () => {
+    const { fixture } = await renderStable(HostWithActionsColumnComponent);
+
+    const headers = headerCells(fixture.nativeElement as HTMLElement);
+    const actions = headers[headers.length - 1];
+    expect(actions.getBoundingClientRect().width).toBeGreaterThan(0);
+  });
+
+  it('leaves the selection checkbox column a real width', async () => {
+    const { fixture } = await renderStable(HostWithSelectionComponent);
+
+    const [selection] = headerCells(fixture.nativeElement as HTMLElement);
+    expect(selection.getBoundingClientRect().width).toBeGreaterThan(0);
+  });
+});
+
+describe('SpiderlyDataTableComponent — Column.width', () => {
+  it('overrides the filter type default, and lets minWidth stand in', () => {
+    const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(
+      dataTable.getColHeaderWidth({ filterType: 'text', width: '4rem' }),
+    ).toBe('width: 4rem;');
+
+    // `minWidth` predates `width` and is what consumers already declare; it keeps resolving.
+    expect(
+      dataTable.getColHeaderWidth({ filterType: 'text', minWidth: '5rem' }),
+    ).toBe('width: 5rem;');
+
+    // Declared together, the one that names what it does wins.
+    expect(
+      dataTable.getColHeaderWidth({
+        filterType: 'text',
+        width: '4rem',
+        minWidth: '5rem',
+      }),
+    ).toBe('width: 4rem;');
+  });
+});
+
 describe('SpiderlyDataTableComponent — Column.minWidth', () => {
   it('overrides the filter type default, and only when declared', () => {
     const { dataTable } = createWithDataTable(HostWithoutActionsComponent);
 
     expect(dataTable.getColHeaderWidth({ filterType: 'numeric' })).toBe(
-      'min-width: 12rem;',
+      'width: 12rem;',
     );
     expect(
       dataTable.getColHeaderWidth({ filterType: 'numeric', minWidth: '8rem' }),
-    ).toBe('min-width: 8rem;');
+    ).toBe('width: 8rem;');
+  });
+});
+
+// Two datasets whose only difference is how much room the text WANTS. Under the browser's
+// default `table-layout: auto` that difference is what sizes the columns, so the same column
+// is a different width on the next page, search or filter.
+const SHORT_NAME = 'Ana';
+const LONG_NAME = 'Aleksandar Konstantinović-Petrović, Sremska Kamenica';
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithSwappableRowsComponent {
+  cols = idAndNameCols;
+  rowName = SHORT_NAME;
+  getList = () => paginated([{ id: 1, name: this.rowName }]);
+}
+
+/** As RENDERED — the geometry the operator's eye tracks, not the style string we hand PrimeNG. */
+function headerWidths(el: HTMLElement): number[] {
+  return headerCells(el).map((th) => th.getBoundingClientRect().width);
+}
+
+describe('SpiderlyDataTableComponent — column widths ignore the content', () => {
+  it('keeps every column the same width when the rows change', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithSwappableRowsComponent,
+    );
+    const el = await renderRows(fixture);
+    const before = headerWidths(el);
+
+    // Inside the zone, as a real Reload click would be: a `reload()` called straight from the
+    // test body schedules its delay(0) outside the fixture's ngZone, so `whenStable` returns
+    // before the rows land.
+    host.rowName = LONG_NAME;
+    fixture.ngZone!.run(() => dataTable.reload());
+    await renderRows(fixture);
+
+    // The swap must really have landed, or the width assertion proves nothing — the first
+    // revision of this spec measured a still-loading table twice and passed.
+    expect(el.querySelector('tbody')!.textContent).toContain(LONG_NAME);
+    expect(headerWidths(el)).toEqual(before);
+  });
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithMixedFilterTypesComponent {
+  cols: Column[] = [
+    { name: 'Name', field: 'name', filterType: 'text' },
+    { name: 'Active', field: 'active', filterType: 'boolean' },
+  ];
+  getList = () => paginated([{ name: 'Ana', active: true }]);
+}
+
+describe('SpiderlyDataTableComponent — long text does not grow the row', () => {
+  // The cost of fixed layout: text that used to widen its column now wraps inside it, and a
+  // taller row pushes every row below it. A 5000-character review comment is the real case.
+  const PARAGRAPH = 'Lorem ipsum dolor sit amet '.repeat(60);
+
+  it('keeps the row height the same when a cell holds far more text', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithSwappableRowsComponent,
+    );
+    const el = await renderRows(fixture);
+    const before = el
+      .querySelector('tbody tr')!
+      .getBoundingClientRect().height;
+
+    host.rowName = PARAGRAPH;
+    fixture.ngZone!.run(() => dataTable.reload());
+    await renderRows(fixture);
+
+    expect(el.querySelector('tbody')!.textContent).toContain('Lorem ipsum');
+    expect(el.querySelector('tbody tr')!.getBoundingClientRect().height).toBe(
+      before,
+    );
+  });
+});
+
+describe('SpiderlyDataTableComponent — column widths follow the declared filter type', () => {
+  // Fixed layout splits the table into EQUAL shares for columns that declare no width, which
+  // would throw away what the per-filterType defaults say: a boolean holds "Da"/"Ne" and a text
+  // column holds a name. Same proportions as before, just no longer moved by the content.
+  it('gives a boolean column less room than a text column', async () => {
+    const { fixture } = createWithDataTable(HostWithMixedFilterTypesComponent);
+    const el = await renderRows(fixture);
+
+    // The surplus is shared in PROPORTION to the declared widths, so the ratio survives whatever
+    // width the table ends up with — measured 12rem/8rem = 1.5 exactly. That is what makes these
+    // defaults carry the same intent under fixed layout as the minimums did under auto.
+    const [text, boolean] = headerWidths(el);
+    expect(text / boolean).toBeCloseTo(12 / 8, 2);
   });
 });
 

@@ -105,9 +105,15 @@ Consumer usage — anchoring a popover, including the re-anchor-while-open patte
 - **Actions columns can never match** (`getCellTemplate` returns null without a `field`), so the actions `<div>` stays outside the outlet.
 - **The typing lives in `ngTemplateContextGuard`, not in the injected `TemplateRef<C>`.** A directive's constructor type never reaches the template that declares it, so without the guard every `let-` var is `any` however well the context interface is written. `SpiderlyTemplateTypeDirective` is the same mechanism.
 
-## Column widths — `Column.minWidth`
+## Column widths — `table-layout: fixed` and `Column.width`
 
-`getColHeaderWidth(col)` takes the **column**, not the filter type — it needs `minWidth`. Why the defaults are generous and why the override is a floor rather than a width: the `Column.minWidth` doc comment.
+`getColHeaderWidth(col)` takes the **column**, not the filter type — it needs the declared width. Why the defaults are generous, and why they are emitted as `width` rather than `min-width`: the `Column.width` doc comment and `tableStyle`.
+
+Editing notes:
+
+- **`width: 0rem` is not "shrink to content" any more.** It meant that under auto layout; fixed layout reads it literally and the column vanishes. Two sites had it and both now carry a real width — the selection `<th>` in the template, and the switch's `default:` branch (actions columns, sized from `actions.length`). A new column kind that declares no width inherits that branch, so check it renders.
+- **The table needs no `min-width` of its own.** A table whose declared column widths exceed its container is widened to their sum by the browser, so the wrapper's `overflow-auto` still scrolls — measured 2026-08-29, six 12rem columns rendered 1152px inside a 740px container. The "too wide for its container scrolls" spec exists so that free property is not lost silently; don't add a computed floor to `tableStyle`.
+- **The clamp reaches `#defaultCell` only.** `.cell-text` is authored in this template, so a plain `:host` rule matches it. A consumer's `spiderlyCellTemplate` renders markup carrying the CONSUMER's `_ngcontent` and is unreachable from here by design — say so when a consumer reports a growing row, rather than reaching for `::ng-deep`.
 
 ## Active-filter header icon — the projected `filtericon` template
 

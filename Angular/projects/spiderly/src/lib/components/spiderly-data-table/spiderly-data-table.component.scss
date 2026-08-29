@@ -94,6 +94,20 @@
     user-select: none;
   }
 
+  // The cost the fixed layout would otherwise hand over: text no longer widens its column, so
+  // it wraps inside it and a long value grows the row — which pushes every row below it, a worse
+  // shift than the horizontal one the fixed layout removes. One line, ellipsis, whole value still
+  // in the DOM to select and copy.
+  //
+  // Reaches the library's own default cell only. A consumer cell template renders markup carrying
+  // the CONSUMER's _ngcontent, which this rule cannot match — such a column clamps its own lines.
+  .cell-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   ::ng-deep {
     .p-datatable-thead {
       position: unset !important;

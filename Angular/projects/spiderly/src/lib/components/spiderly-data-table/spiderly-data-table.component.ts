@@ -113,6 +113,18 @@ export class SpiderlyDataTableComponent
   @Input() showCardWrapper: boolean = false;
   @Input() readonly: boolean = false;
   @Input() idField = 'id';
+
+  /**
+   * Sizes the columns from their declared widths instead of from the rendered rows.
+   *
+   * The browser default is `table-layout: auto`, which computes every column from the content
+   * of the rows currently on screen — so a column is one width on this page and another on the
+   * next, and a filter (which narrows the variety of values in the column it filters) moves the
+   * whole grid. PrimeNG sets no `table-layout` of its own, so without this the table inherits
+   * that default. Bound to a field, never an object literal in the template: a literal is a new
+   * reference on every change-detection pass.
+   */
+  protected readonly tableStyle = { 'table-layout': 'fixed' };
   totalRecords: number;
   @Output() onTotalRecordsChange: EventEmitter<number> = new EventEmitter();
 
@@ -897,23 +909,38 @@ export class SpiderlyDataTableComponent
     );
   }
 
-  /** The column's declared {@link Column.minWidth}, or the default for its filter type. */
+  /**
+   * The column's declared {@link Column.width}, or the default for its filter type.
+   *
+   * A `width`, not a `min-width`: under the fixed layout {@link tableStyle} establishes, this is
+   * what the column is sized from. Columns declaring none would otherwise take an equal share of
+   * the table, which throws away what these per-type defaults say — a boolean holds "Da"/"Ne",
+   * a text column holds a name. The surplus is still distributed, now in proportion to these
+   * numbers rather than to whatever the rows on screen happen to contain.
+   */
   getColHeaderWidth(col: Column) {
-    if (col.minWidth != null) return `min-width: ${col.minWidth};`;
+    const declared = col.width ?? col.minWidth;
+    if (declared != null) return `width: ${declared};`;
 
     switch (col.filterType) {
       case 'text':
-        return 'min-width: 12rem;';
+        return 'width: 12rem;';
       case 'date':
-        return 'min-width: 10rem;';
+        return 'width: 10rem;';
       case 'multiselect':
-        return 'min-width: 12rem;';
+        return 'width: 12rem;';
       case 'boolean':
-        return 'min-width: 8rem;';
+        return 'width: 8rem;';
       case 'numeric':
-        return 'min-width: 12rem;';
-      default:
-        return 'width: 0rem;'; // fitting content of the row like this
+        return 'width: 12rem;';
+      default: {
+        // Actions columns land here — they declare no filterType. `0rem` used to mean "shrink to
+        // the row's content"; fixed layout reads it literally, so the icons need real room. Each
+        // sits in a flex row with an 18px gap, inside the cell's own padding. 2.5, not 2.2, so
+        // the arithmetic stays exact in binary and the style string never reads `8.6000000001rem`.
+        const actionCount = col.actions?.length ?? 0;
+        return `width: ${2 + actionCount * 2.5}rem;`;
+      }
     }
   }
 
@@ -1639,10 +1666,18 @@ export class Column<T = any> {
    */
   lockVisible?: boolean;
   /**
-   * CSS length overriding this column's default minimum width (e.g. `'8rem'`). The defaults are
-   * per filter type and sized for the HEADER — filter input plus match-mode dropdown — so they
-   * are generous for a column of short values. It is a MINIMUM, not a width: the table still
-   * distributes the leftover space.
+   * CSS length fixing this column's width (e.g. `'8rem'`). Overrides the per-filter-type default,
+   * which is sized for the HEADER — filter input plus match-mode dropdown — and so is generous
+   * for a column of short values.
+   *
+   * Declare a width on the columns that must stay NARROW and leave the flexible one undeclared:
+   * the table distributes its surplus in proportion to the declared widths, so a column carrying
+   * the long values wants the larger number, not a cap.
+   */
+  width?: string;
+  /**
+   * Superseded by {@link Column.width}, which is what this always meant — it is resolved as a
+   * width, not a floor. Kept working for columns that already declare it; prefer `width`.
    */
   minWidth?: string;
   /**
@@ -1673,6 +1708,7 @@ export class Column<T = any> {
     sortable,
     visible,
     lockVisible,
+    width,
     minWidth,
     onCellClick,
   }: {
@@ -1692,6 +1728,7 @@ export class Column<T = any> {
     sortable?: boolean;
     visible?: boolean;
     lockVisible?: boolean;
+    width?: string;
     minWidth?: string;
     onCellClick?: (event: CellClickEvent) => void;
   } = {}) {
@@ -1711,6 +1748,7 @@ export class Column<T = any> {
     this.sortable = sortable;
     this.visible = visible;
     this.lockVisible = lockVisible;
+    this.width = width;
     this.minWidth = minWidth;
     this.onCellClick = onCellClick;
   }
