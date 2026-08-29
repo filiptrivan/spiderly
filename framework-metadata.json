@@ -612,8 +612,8 @@
     },
     {
       "name": "scrollElementIntoViewIfAboveViewport",
-      "signature": "scrollElementIntoViewIfAboveViewport(element: HTMLElement | null | undefined): void",
-      "description": "Scrolls `element` back under the top of the viewport, but only when it has already scrolled above it. Set the element's `scroll-margin-top` to whatever fixed chrome must stay clear."
+      "signature": "scrollElementIntoViewIfAboveViewport(element: HTMLElement): void",
+      "description": "Scrolls `element` back under the top of the viewport, but only when it has already scrolled above it. Set the element's `scroll-margin-top` to whatever fixed chrome must stay clear. Assumes the element's nearest scroll container is the viewport itself."
     },
     {
       "name": "selectedTab",

@@ -309,15 +309,15 @@ Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or 
 
 Changing the page or the page size scrolls the table's wrapper back under the top of the viewport, so the new rows are what you land on rather than the paginator you just clicked. It is instant, never animated, and it does nothing when the table's top is already visible — a table placed below other content on a details page will not push that content off-screen.
 
-The amount of fixed chrome to clear comes from the `--spiderly-topbar-height` CSS variable, which `spiderly`'s own layout declares on `html`. If you replace that layout with your own fixed header, declare the variable to match:
+The amount of fixed chrome to clear comes from the `--spiderly-viewport-top-inset` CSS variable, which `spiderly`'s own layout declares on `html` (defaulting to `--spiderly-topbar-height`). If you run your own fixed header, or pin a second bar below spiderly's topbar, declare the inset to match:
 
 ```css
 html {
-  --spiderly-topbar-height: 4.5rem;
+  --spiderly-viewport-top-inset: 8rem;
 }
 ```
 
-Leave it undeclared and the table scrolls to the true top of the viewport, which is correct when nothing is pinned there.
+Set the inset rather than stretching `--spiderly-topbar-height`, which is the topbar's actual height. Leave it undeclared and the table scrolls to the true top of the viewport, which is correct when nothing is pinned there.
 
 ### Key Inputs
 

@@ -33,7 +33,7 @@ Reusable helpers exported from `helper-functions.ts`. Import the one you need in
 | `parseDateOnlyLocal(s: string): Date \| null` |  |
 | `pushAction(cols: Column[], action: Action)` |  |
 | `saveResponseAsFile(res: HttpResponse<Blob>, fallbackName: string): void` |  |
-| `scrollElementIntoViewIfAboveViewport(element: HTMLElement \| null \| undefined): void` | Scrolls `element` back under the top of the viewport, but only when it has already scrolled above it. Set the element's `scroll-margin-top` to whatever fixed chrome must stay clear. |
+| `scrollElementIntoViewIfAboveViewport(element: HTMLElement): void` | Scrolls `element` back under the top of the viewport, but only when it has already scrolled above it. Set the element's `scroll-margin-top` to whatever fixed chrome must stay clear. Assumes the element's nearest scroll container is the viewport itself. |
 | `selectedTab(tabs: SpiderlyTab[]): number` |  |
 | `singleOrDefault<T>(array: T[], predicate: (item: T) => boolean): T \| undefined` |  |
 | `splitPascalCase(input: string)` |  |

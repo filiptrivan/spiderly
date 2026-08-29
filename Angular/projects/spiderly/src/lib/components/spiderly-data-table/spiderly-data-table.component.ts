@@ -4,7 +4,6 @@ import {
   Component,
   ContentChild,
   ContentChildren,
-  ElementRef,
   EventEmitter,
   Inject,
   Input,
@@ -86,8 +85,6 @@ export class SpiderlyDataTableComponent
   private readonly destroy$ = new Subject<void>();
 
   @ViewChild('dt') table: Table;
-
-  @ViewChild('tableContainer') tableContainer: ElementRef<HTMLElement>;
 
   /**
    * Custom toolbar content projected via `<ng-template spiderlyDataTableActions>`.
@@ -767,8 +764,8 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  onPageChange(): void {
-    scrollElementIntoViewIfAboveViewport(this.tableContainer?.nativeElement);
+  onPageChange(container: HTMLElement): void {
+    scrollElementIntoViewIfAboveViewport(container);
   }
 
   lazyLoad(event: TableLazyLoadEvent) {

@@ -136,7 +136,7 @@
       border-radius: var(--p-content-border-radius);
       padding: 1rem;
       right: 2rem;
-      top: 5rem;
+      top: var(--spiderly-topbar-height);
       min-width: 15rem;
       display: none;
       -webkit-animation: scalein 0.15s linear;
@@ -181,7 +181,7 @@
   border-radius: var(--p-content-border-radius);
   padding: 1rem;
   right: 2rem;
-  top: 5rem;
+  top: var(--spiderly-topbar-height);
   min-width: 15rem;
   -webkit-animation: scalein 0.15s linear;
   animation: scalein 0.15s linear;
@@ -196,7 +196,7 @@
   @media (max-width: 991px) {
     width: 210px;
     right: 1rem;
-    top: 4.5rem;
+    top: calc(var(--spiderly-topbar-height) - 0.5rem);
   }
 
   .layout-topbar-profile-dropdown-button {

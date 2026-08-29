@@ -4,22 +4,24 @@
   box-sizing: border-box;
 }
 
+// Declared through :where() so both vars carry ZERO specificity: a consumer's own
+// `html { --spiderly-… }` then wins wherever it sits in the cascade, instead of the override
+// working or not depending on stylesheet order. Full contract, and the fallback rule
+// components must follow: Angular/CLAUDE.md → fixed-chrome offset.
+:where(html) {
+  // Two names because they are two quantities that merely coincide in THIS shell: the topbar's
+  // own height, and how much fixed chrome covers the top of the viewport. A shell that pins a
+  // second bar under the topbar raises the inset without stretching the topbar.
+  --spiderly-topbar-height: 5rem;
+  --spiderly-viewport-top-inset: var(--spiderly-topbar-height);
+}
+
 html {
   height: 100%;
   font-size: $scale;
 
-  // How much fixed chrome covers the top of the viewport. Declared once here because three
-  // unrelated places need it: .layout-topbar's own height, the main container's top padding,
-  // the sidebar's `top` — and, outside this stylesheet, any component that scrolls something
-  // back into view (spiderly-data-table on page change reads it as scroll-margin-top). A
-  // shell that replaces this layout redeclares the var; components fall back to 0.
-  --spiderly-topbar-height: 5rem;
-
-  // No `scroll-behavior: smooth` here, deliberately (2026-08-29). It applied to every
-  // programmatic scroll in the app, and with `scrollPositionRestoration: 'top'` that meant
-  // each route change animated the whole way up through the new page's content. It also
-  // ignored prefers-reduced-motion, since nothing in the library guards it. Anything that
-  // genuinely wants an animated scroll asks for it per call site.
+  // No `scroll-behavior` here, deliberately (2026-08-29) — the argument against re-adding it
+  // is in Angular/CLAUDE.md → fixed-chrome offset.
 }
 
 body {

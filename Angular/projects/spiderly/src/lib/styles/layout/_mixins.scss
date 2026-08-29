@@ -11,3 +11,12 @@
   transition: box-shadow 0.2s;
   box-shadow: inset 0 0 0 0.2rem var(--p-primary-400);
 }
+
+// Marks an element as a scroll-into-view target that must clear the shell's fixed top chrome.
+// This is the ONE declaration of that offset: scrollElementIntoViewIfAboveViewport reads the
+// computed value back rather than taking a number, so nothing in TypeScript knows the shell's
+// dimensions. The 0px fallback is what stops a consumer running its own shell (no
+// --spiderly-viewport-top-inset declared) from getting a phantom gap above the element.
+@mixin scroll-target-below-top-chrome() {
+  scroll-margin-top: calc(var(--spiderly-viewport-top-inset, 0px) + 1rem);
+}

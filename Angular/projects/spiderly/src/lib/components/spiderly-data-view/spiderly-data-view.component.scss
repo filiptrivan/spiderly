@@ -1,7 +1,10 @@
-// Scroll target for onPageChange. Why the var and the 0px fallback: the same rule in
-// spiderly-data-table.component.scss carries the full note.
-.spiderly-table-container {
-  scroll-margin-top: calc(var(--spiderly-topbar-height, 0px) + 1rem);
+@use "../../styles/layout/mixins" as *;
+
+:host {
+  // onPageChange scrolls this wrapper back into view; the mixin carries the offset contract.
+  .spiderly-table-container {
+    @include scroll-target-below-top-chrome();
+  }
 }
 
 ::ng-deep {

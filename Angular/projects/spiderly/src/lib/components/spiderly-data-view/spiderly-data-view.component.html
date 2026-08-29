@@ -2,9 +2,9 @@
   <div
     #tableContainer
     class="spiderly-table-container"
-    [class]="
-      showCardWrapper ? 'card responsive-card-padding overflow-auto' : ''
-    "
+    [ngClass]="{
+      'card responsive-card-padding overflow-auto': showCardWrapper
+    }"
   >
     <p-table
       #dt
@@ -14,7 +14,7 @@
       responsiveLayout="scroll"
       [lazy]="true"
       (onLazyLoad)="lazyLoad($event)"
-      (onPage)="onPageChange()"
+      (onPage)="onPageChange(tableContainer)"
       [totalRecords]="totalRecords"
       class="spiderly-table"
       [loading]="items === undefined || loading === true"
