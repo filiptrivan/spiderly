@@ -287,17 +287,6 @@
           </td>
         </tr>
       </ng-template>
-      <ng-template pTemplate="loadingbody">
-        <tr>
-          <td
-            [attr.colspan]="
-              visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
-            "
-          >
-            {{ t("Loading") }}...
-          </td>
-        </tr>
-      </ng-template>
       <ng-template pTemplate="paginatorleft">
         {{ t("TotalRecords") }}: {{ totalRecords }}
       </ng-template>

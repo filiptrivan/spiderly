@@ -2326,6 +2326,27 @@ describe('SpiderlyDataTableComponent — pending state', () => {
     expect(tbodyText(fixture)).withContext('page two lands').toContain('2');
   });
 
+  // PrimeNG renders the loadingbody template IN ADDITION to the rows, never instead of them,
+  // so a refetch would hang a "Loading..." row under the stale page. The overlay is the
+  // pending affordance; a text row wedged under real data is noise.
+  it('renders exactly the data rows while a refetch is in flight', async () => {
+    const { fixture } = await renderStable(HostWithChangingPagesComponent);
+    const root = fixture.nativeElement as HTMLElement;
+    const rowCount = (): number => root.querySelectorAll('tbody tr').length;
+
+    const settled = rowCount();
+    expect(settled).withContext('one row per record').toBe(1);
+
+    clickNextPage(root);
+    fixture.detectChanges();
+
+    expect(rowCount())
+      .withContext('nothing extra appears under the stale page')
+      .toBe(settled);
+
+    await renderRows(fixture);
+  });
+
   it('lowers the pending state even when the selected-ids call fails', async () => {
     const logged = spyOn(console, 'error');
 
