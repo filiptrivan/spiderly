@@ -2,6 +2,118 @@
 
 Wraps PrimeNG v19 `<p-table>` and exposes Spiderly's column-based filter / sort / pagination model. Notes for anyone editing the component or designing `Column<T>[]` configurations in consumer code.
 
+## Operator-owned view — the rework decided 2026-09-02 (Filip, grilled)
+
+**Status: DESIGN, not shipped.** Every section below this one describes what the component does
+TODAY. This block is the ONE telling of what replaces them and why; the affected sections carry a
+pointer back here rather than a copy.
+
+**The premise that broke.** Every presentational knob on this grid is set by whoever writes
+`Column[]`: which columns show, their width, their order, whether a value is clamped — and, because
+`clearHiddenColumnConstraints` drops a hidden column's constraints, which filters an operator may
+even use. The operator gets no say. Five complaints landed in one sitting against the PACMS orders
+grid, and they are one feature rather than five: **presentation belongs to the operator, the data
+contract stays with the developer.**
+
+Decisions, in the order they were resolved. Do not re-derive them.
+
+**1. The filter surface moves off the header.** A chip bar under the caption becomes the one home for
+what shapes the list: a chip per applied filter, one chip for the multi-sort with its priority order
+spelled out, and a result count (`812 of 71,629`). `p-columnFilter` leaves the header entirely. This
+is what licenses everything else:
+
+- A hidden column may KEEP its constraint, because the chip is now the visible surface.
+  `clearHiddenColumnConstraints`, `reconcileVisibilityWithPersistedConstraints` and
+  `defaultMultiSortMeta`'s hidden-column null all go.
+- `snapshotAppliedFilters` / `appliedFilterKeys` and the projected `filtericon` go with them: a chip
+  cannot claim a filter that is not applied, so the icon that could is unnecessary. Same for
+  `hideOnClear` and `filterAppliesOnChange`.
+- `DEFAULT_COLUMN_WIDTH_REM` is re-derived from VALUES. Today's `text: 12` / `multiselect: 12` /
+  `numeric: 12` are sized for a filter input plus a match-mode dropdown; with the input gone a status
+  chip wants ~7rem and a "Da"/"Ne" ~3rem. That reclaimed width is half the answer to decision 9.
+- Breaking for external consumers, so it ships as `@Input() filterSurface: 'header' | 'bar'`,
+  defaulting to `'header'` for one minor. PACMS opts into `'bar'` at once; the default flips in the
+  next major.
+
+**2. `Column` is NOT split into `Column[]` + `Filter[]`.** Expected, and rejected on measurement: 27
+list components, 195 `filterType:` declarations, all hand-maintained (`NetAndAngularFilesGenerator`
+scaffolds a new entity once and never regenerates). The coupling that hurt was BEHAVIOURAL (hiding
+kills the filter), not declarational, and decision 1 removes it. `filterType` on a column keeps
+meaning "this column also contributes a filter"; omitting it keeps meaning "no filter" (PACMS's
+`lastCommentText` already relies on that). A new `@Input() filters?: Filter<T>[]` carries filters
+with NO column — the case PACMS needs for `Order.CompanyName`, which its mixed search does not cover
+and which nobody wants as a 12rem column.
+
+**3. A `▾` menu on every column header** carries: sort asc/desc, `Filter…` (writes into the bar),
+move left / move right, fit width, wrap text, hide column. Hiding from the column itself is the
+point; the chooser popover keeps only the jobs a header cannot do, i.e. revealing a hidden column
+and the reset.
+
+**4. Widths are MINIMUMS, and a drag sets one.** One rule in both regimes: when the minimums fit, the
+surplus is shared in proportion (today's fluid behaviour, worth keeping on a 2560px monitor); when
+they do not, the table takes its natural width and the wrapper scrolls. That horizontal scroll
+already exists and is spec-pinned (the "a table too wide for its container scrolls" suite), so this
+is not a new capability, only the acknowledgement that a 12-column grid cannot and should not fit.
+
+**5. PrimeNG's resize/reorder STATE is unusable here; only its gestures are.** Measured in
+`primeng-table.mjs` 19.1.3: `saveColumnWidths` stores `widths.join(',')` and `restoreColumnWidths`
+replays them through `th:nth-child(n)` — index-keyed, so one chooser toggle slides every stored width
+onto the wrong column, and so does adding a column in a later release. `restoreColumnOrder()` is
+commented out of `restoreState()` outright. `onColumnDrop` reorders `this.columns`, an input this
+component never binds. So widths, order and wrap persist by `field`, in our own store beside
+`columnVisibilityOverrides`.
+
+**6. Header drag-to-reorder ships, and needs OUR OWN directive.** The sort conflict does not exist:
+`pSortableColumn` listens on `click`, `pReorderableColumn` sets `draggable` on `mousedown` and goes
+through native HTML5 drag, and the browser suppresses the click when a drag actually happens (a drag
+released on its own column hits `dragIndex == dropIndex` and does nothing). Two things PrimeNG's
+directive does not handle, which is why we write our own: its `onMouseDown` excludes only `INPUT`,
+`TEXTAREA` and `.p-datatable-column-resizer`, so pressing our `▾` button would start a column drag
+instead of opening its menu; and `onColumnDrop` reorders blind, with no notion of decision 8's frozen
+columns. Drag is for neighbours — HTML5 dnd has no edge auto-scroll, so long moves belong in the
+chooser list, and the menu's move left/right is the only keyboard path.
+
+**7. Revealing a column does NOT append it.** A known column returns to its stored position, because
+hide→show must be an identity operation: a chooser you cannot experiment in is worse than a column in
+an awkward place. A column the stored order has never seen (added in a later release) DOES go to the
+end, so a new field never displaces a layout a person built. The complaint behind "append it" was
+really "I ticked it and saw nothing happen", answered instead by making the chooser a drag-ordered
+list of checkboxes (the position is visible at the moment you tick) and by scrolling the revealed
+column into view with a brief highlight.
+
+**8. The left edge freezes: the `lockVisible` column plus the selection column,** `position: sticky`
+with an edge shadow. Once the grid scrolls horizontally a row loses its identity, and NN/g's *Data
+Tables* is explicit that the leftmost header column must lock in place. `lockVisible` already names
+exactly the right column in every table, so this needs no new API. Costs to plan for: a sticky cell
+needs an opaque background that tracks row hover and striping, and the second frozen column's offset
+needs the first one's measured px width.
+
+**9. Truncation stays the default; what changes is that it stops being SILENT.** Flipping to wrap was
+considered and rejected: under `table-layout: fixed` a wrapped value grows the ROW, and one free-text
+column turns 25 rows into a saw edge — the cost `.cell-text`'s own comment already spells out.
+Verified 2026-09-02 against the tools we measure against: Airtable's grid defaults to "Short", one
+line, truncated, with row height as a view-bar control; Notion's table truncates and puts `Wrap text`
+in the per-column header menu, the same place decision 3 puts it. What WAS broken is that
+`#defaultCell` sets no `title`, so a clamped value had no recovery path at all — which is why PACMS
+hand-added `[title]` in four places. Fix: a directive setting a native `title` only when
+`scrollWidth > clientWidth` (a `ResizeObserver`; not a blanket title, because a tooltip on a cell
+that fits is noise, and `pTooltip` was already rejected for firing as the cursor crosses a dense
+list).
+
+**10. Layout is scoped to the VIEW, not the table.** Built-in views ship in consumer code and carry
+columns + widths + order + filters + sort; "all rows" is simply the default view. A personal override
+is a delta per view, so the storage key gains a view segment. The alternative (layout global, a view
+carrying only filters and sort) was rejected because it re-creates the original problem one level up:
+a picking view and a payments view want different COLUMNS, not just different rows.
+
+**Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The bar — decisions 1 and
+2, with 9's `title` directive as a rider. (2) Header menu, chooser drag list, own reorder directive,
+field-keyed width/order/wrap persistence, frozen edge — decisions 3 to 9. (3) Views — decision 10.
+**Wave 3 is not optional.** Without it, waves 1 and 2 are a pile of knobs an operator re-sets by hand
+every morning, and the smaller honest plan (the `title` directive, a two-item header menu, and a bare
+"N filters on hidden columns · Show" strip instead of the bar) would have been the better trade.
+Filip took the full plan on that condition.
+
 ## Custom toolbar actions — `<ng-template spiderlyDataTableActions>`
 
 Consumers add their own toolbar buttons/markup by projecting an `<ng-template spiderlyDataTableActions>` (the `SpiderlyDataTableActionsDirective` marker). The component picks it up via `@ContentChild(SpiderlyDataTableActionsDirective, { read: TemplateRef })` and renders it with `*ngTemplateOutlet` at the **start** of the caption's right-side action row — `*ngIf`-guarded so an un-projected slot renders nothing (no stray flex gap).
@@ -57,6 +169,9 @@ When matching options programmatically (e2e tests, conditional logic), match aga
 
 ## Column chooser — `Column.visible` / `Column.lockVisible`
 
+**Superseded in part by "Operator-owned view" above** (2026-09-02): the hidden-column invariant
+below, and the v1-scope line deferring reordering and width persistence.
+
 Consumer-facing behavior is documented in `claude-plugins/docs/angular-customization/index.md` → "Column chooser". Editing notes:
 
 - **The invariant everything serves: a hidden column contributes nothing to filtering or sorting.** The header is the only filter surface, so a kept constraint would restrict data invisibly. Three enforcement points, all must stay aligned: `clearHiddenColumnConstraints()` (on hide), `reconcileVisibilityWithPersistedConstraints()` (on init, against state this component didn't write), and `defaultMultiSortMeta()` returning null when its column is hidden (otherwise `applyDefaultSortIfUnsorted` would re-add an invisible sort right after clear-on-hide removed it).
@@ -105,6 +220,9 @@ Spec note: any test that drives a refetch must do it inside `fixture.ngZone.run(
 
 ## Filter-state persistence
 
+**Gains a view segment under "Operator-owned view" above** (2026-09-02, decision 10): layout is
+stored per view, not per table.
+
 `@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method also calls `table.clearState()` so the "Clear all filters" caption button wipes the persisted state instead of just resetting the in-memory table.
 
 ## Per-cell click — `Column.onCellClick`
@@ -129,6 +247,10 @@ Consumer usage — anchoring a popover, including the re-anchor-while-open patte
 
 ## Column widths — `table-layout: fixed` and `Column.width`
 
+**Reworked by "Operator-owned view" above** (2026-09-02): widths become minimums a drag can set,
+`DEFAULT_COLUMN_WIDTH_REM` is re-derived from values once the header carries no filter input, and
+the missing `title` on `.cell-text` gets an overflow directive. Decisions 1, 4, 5 and 9.
+
 `getColWidth(col)` takes the **column**, not the filter type — it needs `Column.width`. Why the defaults are generous, and why they are a width rather than a minimum: the `Column.width` doc comment and `tableStyle`.
 
 Editing notes:
@@ -140,6 +262,9 @@ Editing notes:
 
 ## Active-filter header icon — the projected `filtericon` template
 
+**Moot under `filterSurface: 'bar'`** — the chip bar replaces this whole apparatus. See
+"Operator-owned view" above, decision 1.
+
 PrimeNG 19's menu-mode filter button renders identically whether the column is filtered or not (its class is static, so there is no CSS-only fix), and the worst case is a `stateStorage`-restored filter on reload: the table opens filtered with zero signal. The projected `pTemplate="filtericon"` replaces PrimeNG's `<FilterIcon>` with `pi-filter` / `pi-filter-fill` + primary colour — the fill change is the non-colour channel (WCAG 1.4.1); colour only amplifies. Two traps, both spec-pinned:
 
 - **The icon reads APPLIED state (`appliedFilterKeys`), never `table.filters` — this is the trap, and it shipped once.** `ColumnFilter.onModelChange` writes every keystroke of a text/numeric filter straight into the meta and calls `_filter()` only for the auto-applying types, so `table.filters` also holds constraints the operator is still typing. Reading it filled the icon on the first character, claiming the grid was narrowed while it still showed everything (Filip, 2026-08-29, on the live admin). `snapshotAppliedFilters` records the set at each COMMIT point instead — `(onFilter)` (which `_filter()` emits for lazy and client tables alike), `lazyLoad` (also the `table.clear()` path, which re-queries **without** emitting `onFilter`), the caption's Clear filters, and once in `ngOnInit` off persisted state so a restored filter is marked on first paint. The "typed but not yet applied" spec is the pin; note a spec that sets `filters` without calling `_filter()` now proves nothing.
@@ -147,6 +272,8 @@ PrimeNG 19's menu-mode filter button renders identically whether the column is f
 - **Truth is our `isActiveFilterMeta`, never the template's `let-hasFilter` context.** PrimeNG's getter reads only the *first* constraint of array meta, so a multi-constraint column whose first slot is blanked but whose second still holds a value is genuinely filtered while `hasFilter` reports it isn't. The "stays filled when only a later constraint…" spec is the pin.
 
 ## Filter menu Apply button — hidden for auto-applying types
+
+**Moot under `filterSurface: 'bar'`** — see "Operator-owned view" above, decision 1.
 
 Which types auto-apply, why Apply there would lie, and why the method lists the auto types rather than the typed ones (safe polarity for future filter types): the `filterAppliesOnChange` doc comment. Clear stays either way — for a boolean it is the only path from checked/unchecked back to "no constraint".
 
