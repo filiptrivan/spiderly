@@ -52,14 +52,19 @@ second API, so the injectable path is equal, not a fallback: documented and test
 - A filter that projects no template gets the DEFAULT control for its type in the chip bar, so ~90%
   of filters are one line in the store declaration and nothing in any template. That is what the
   generator scaffolds, and it is what keeps a generated table working with zero consumer TS.
-- **No `filterSurface` flag ships.** It was the earlier plan's deprecation shim; PACMS moves all 27
-  tables to the new default at once (Filip, 2026-09-02), so nothing in this workspace needs it.
-  Spiderly's major tracks Angular's (19.11.9, peer `@angular/core ^19.2.0`), so our own breaking
-  change has no major slot of its own: the legacy `p-columnFilter` header path stays compiled but
-  unused and DEPRECATED through 19.x, and is deleted in the 20.0.0 release that picks up Angular 20.
-  That is the Angular-ecosystem convention (deprecate in N, remove in N+1) and costs nothing now
-  that no internal consumer uses it. Collapse it into a plain 19.12.0 removal if it turns out
-  Spiderly has no external consumers to protect.
+- **No `filterSurface` flag ships, and no deprecation window either.** Spiderly has no external
+  consumers (Filip, 2026-09-03), so the Angular-aligned deprecate-in-N / remove-in-N+1 window this
+  record first prescribed buys nothing: the legacy `p-columnFilter` header path is deleted in the
+  same 19.12.0 that adds the engine. The constraint that forced that window is still true and worth
+  knowing when a future breaking change comes up — Spiderly's major tracks Angular's (19.11.9, peer
+  `@angular/core ^19.2.0`), so our own breaking changes have no major slot to land in.
+- **What keeps the 27-table migration incremental is the SHAPE of the input, not a flag.** A table
+  handed a filter store renders the bar; a table handed none keeps its `Column.filterType` header
+  filters. PACMS then migrates a table at a time against one published version, and the legacy path
+  is deleted once nothing passes the old shape — self-removing, with no branch anyone must remember
+  to flip. A big-bang migration was rejected because this is NOT mechanical work: each table needs
+  the filter-only / filter-mostly / display split made by judgement, and that has so far been done
+  for exactly one of the 27 (PACMS `order-list.component.ts` -> `buildColumns`).
 
 **2b. What the chip bar carries**, unchanged from the first form of this record: a chip per applied
 filter, one chip for the multi-sort with its priority spelled out, and a result count
@@ -139,7 +144,7 @@ a picking view and a payments view want different COLUMNS, not just different ro
 
 **Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The filter engine, the
 slot directive and the chip bar — decisions 1, 2 and 2b, with 9's `title` directive as a rider, and
-all 27 PACMS tables migrated in the same wave. (2) Header menu, chooser drag list, own reorder directive,
+the 27 PACMS tables migrated one at a time across it. (2) Header menu, chooser drag list, own reorder directive,
 field-keyed width/order/wrap persistence, frozen edge — decisions 3 to 9. (3) Views — decision 10.
 **Wave 3 is not optional.** Without it, waves 1 and 2 are a pile of knobs an operator re-sets by hand
 every morning, and the smaller honest plan (the `title` directive, a two-item header menu, and a bare
