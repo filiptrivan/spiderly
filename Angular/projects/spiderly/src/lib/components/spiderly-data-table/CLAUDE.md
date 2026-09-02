@@ -15,12 +15,55 @@ even use. The operator gets no say. Five complaints landed in one sitting agains
 grid, and they are one feature rather than five: **presentation belongs to the operator, the data
 contract stays with the developer.**
 
-Decisions, in the order they were resolved. Do not re-derive them.
+Decisions, in the order they were resolved. Do not re-derive them. **Decisions 1 and 2 were
+rewritten later the same day**, after Filip proposed the filter engine below; the earlier form
+kept filters as a property of `Column` behind a `filterSurface` flag, and is in this file's git
+history only.
 
-**1. The filter surface moves off the header.** A chip bar under the caption becomes the one home for
-what shapes the list: a chip per applied filter, one chip for the multi-sort with its priority order
-spelled out, and a result count (`812 of 71,629`). `p-columnFilter` leaves the header entirely. This
-is what licenses everything else:
+**1. A filter is a FIRST-CLASS ENTITY, and the engine knows nothing about columns.** Filter state is
+a normalised `{ filterId, operator, value }` set in a store the CONSUMER owns and hands to the table
+(`[filters]="orderFilters"`), the ownership shape Angular Material's `MatTableDataSource` and
+TanStack Table already use. The engine does three things: validate, serialise to the paginator query
+(or apply predicates client-side), emit changes. A column REFERENCES a filter with `filterId?`, so
+one definition serves every surface with no branching.
+
+- `filterId` is typed as `keyof` the store's declaration, never a bare `string`. `Column.field` is
+  already `string & keyof T` and fails the build on a typo; agents will migrate 195 declarations
+  across 27 files, where a silent name miss is the worst failure mode on offer.
+- **The schema is DERIVED from what the generated paginator implements, not hand-written.** This is
+  the one gap in the sketch, and it has already bitten twice by hand: `paymentGatewayCode` is `text`
+  rather than `multiselect` because the paginator answers `In` on a string column with
+  `InvalidMatchMode`, and `lastCommentText` is `sortable: false` because sorting a projection is a
+  400. Today a human not declaring the wrong thing is the only guard; an engine that assembles
+  operators itself removes that human, so the per-type operator set has to come from the generator.
+- `filterField` disappears with this. It exists today only as the multiautocomplete patch
+  (`filterKey(col)` = `filterField ?? field`), i.e. as the coupling already cracking.
+- Sort needs no equivalent and must not be re-coupled: `multiSortMeta` is keyed by `field`, so the
+  bar's sort chip already works without any notion of a column.
+
+**2. There is NO inline/toolbar MODE, because placement is a slot.** `*spiderlyFilter="'paymentMethod';
+let f"` renders that filter's control wherever it is put, typed through `ngTemplateContextGuard`
+exactly as `spiderlyCellTemplate` already is. Put it in a header cell and you have header filtering;
+put it in a drawer, a modal, or a sidebar and that works too, with no library change — which is the
+whole reason `mode: 'toolbar' | 'inline'` was rejected. The store being consumer-owned rather than
+table-provided is what makes the out-of-tree cases (a modal rendered at app root) work without a
+second API, so the injectable path is equal, not a fallback: documented and tested alike.
+
+- A filter that projects no template gets the DEFAULT control for its type in the chip bar, so ~90%
+  of filters are one line in the store declaration and nothing in any template. That is what the
+  generator scaffolds, and it is what keeps a generated table working with zero consumer TS.
+- **No `filterSurface` flag ships.** It was the earlier plan's deprecation shim; PACMS moves all 27
+  tables to the new default at once (Filip, 2026-09-02), so nothing in this workspace needs it.
+  Spiderly's major tracks Angular's (19.11.9, peer `@angular/core ^19.2.0`), so our own breaking
+  change has no major slot of its own: the legacy `p-columnFilter` header path stays compiled but
+  unused and DEPRECATED through 19.x, and is deleted in the 20.0.0 release that picks up Angular 20.
+  That is the Angular-ecosystem convention (deprecate in N, remove in N+1) and costs nothing now
+  that no internal consumer uses it. Collapse it into a plain 19.12.0 removal if it turns out
+  Spiderly has no external consumers to protect.
+
+**2b. What the chip bar carries**, unchanged from the first form of this record: a chip per applied
+filter, one chip for the multi-sort with its priority spelled out, and a result count
+(`812 of 71,629`). Consequences that licence the rest of this document:
 
 - A hidden column may KEEP its constraint, because the chip is now the visible surface.
   `clearHiddenColumnConstraints`, `reconcileVisibilityWithPersistedConstraints` and
@@ -31,18 +74,6 @@ is what licenses everything else:
 - `DEFAULT_COLUMN_WIDTH_REM` is re-derived from VALUES. Today's `text: 12` / `multiselect: 12` /
   `numeric: 12` are sized for a filter input plus a match-mode dropdown; with the input gone a status
   chip wants ~7rem and a "Da"/"Ne" ~3rem. That reclaimed width is half the answer to decision 9.
-- Breaking for external consumers, so it ships as `@Input() filterSurface: 'header' | 'bar'`,
-  defaulting to `'header'` for one minor. PACMS opts into `'bar'` at once; the default flips in the
-  next major.
-
-**2. `Column` is NOT split into `Column[]` + `Filter[]`.** Expected, and rejected on measurement: 27
-list components, 195 `filterType:` declarations, all hand-maintained (`NetAndAngularFilesGenerator`
-scaffolds a new entity once and never regenerates). The coupling that hurt was BEHAVIOURAL (hiding
-kills the filter), not declarational, and decision 1 removes it. `filterType` on a column keeps
-meaning "this column also contributes a filter"; omitting it keeps meaning "no filter" (PACMS's
-`lastCommentText` already relies on that). A new `@Input() filters?: Filter<T>[]` carries filters
-with NO column — the case PACMS needs for `Order.CompanyName`, which its mixed search does not cover
-and which nobody wants as a 12rem column.
 
 **3. A `▾` menu on every column header** carries: sort asc/desc, `Filter…` (writes into the bar),
 move left / move right, fit width, wrap text, hide column. Hiding from the column itself is the
@@ -106,8 +137,9 @@ is a delta per view, so the storage key gains a view segment. The alternative (l
 carrying only filters and sort) was rejected because it re-creates the original problem one level up:
 a picking view and a payments view want different COLUMNS, not just different rows.
 
-**Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The bar — decisions 1 and
-2, with 9's `title` directive as a rider. (2) Header menu, chooser drag list, own reorder directive,
+**Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The filter engine, the
+slot directive and the chip bar — decisions 1, 2 and 2b, with 9's `title` directive as a rider, and
+all 27 PACMS tables migrated in the same wave. (2) Header menu, chooser drag list, own reorder directive,
 field-keyed width/order/wrap persistence, frozen edge — decisions 3 to 9. (3) Views — decision 10.
 **Wave 3 is not optional.** Without it, waves 1 and 2 are a pile of knobs an operator re-sets by hand
 every morning, and the smaller honest plan (the `title` directive, a two-item header menu, and a bare
