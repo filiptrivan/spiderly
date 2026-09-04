@@ -159,14 +159,30 @@ still the design, and this is where it stands against it.
   persisted by `field` under `${resolvedStateKey}:layout` (decisions 5, 7); resize by dragging a
   header edge, trading share with the neighbour (decision 4); `resetColumnLayout` undoing all of
   it. PACMS `tag-list` is the first table on the bar.
-- **Not done, and none of it is a gap the five complaints left open:** the menu's `Filter…` and
-  `Fit width` items and the sort entries (decision 3 is three of six); header drag-to-reorder
+  The header menu is complete at six items: `Filter…`, sort ascending/descending, move
+  left/right, fit width, wrap text, hide column. `Column.filterId` exists now — decision 1 left
+  it unbuilt until something asked, and `Filter…` asked. It is a LINK, not a declaration, and it
+  is untyped against the store on purpose: a `Column<T>` knows its row type and nothing about
+  which store it renders beside, so the compile-time key check stays at `createFilterStore`.
+  Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
+- **Not done, and none of it is a gap the five complaints left open:** header drag-to-reorder
   (decision 6 — the menu path shipped first because it is the only one that works from a
   keyboard and the only one that reaches a column scrolled off the right edge); the frozen left
-  edge (decision 8); `spiderlyFilterTemplate`; views (decision 10, wave 3).
-- **Superseded here:** decision 9's `title`-on-overflow directive is still unwritten, and per-column
-  wrap now covers most of what it was for. Write it anyway — wrap is a choice someone makes, and
-  the clamped default still hides a value with no way to read it.
+  edge (decision 8); `spiderlyFilterTemplate`; views (decision 10, wave 3). PACMS has ONE of 27
+  tables migrated.
+
+**Two arithmetic traps in the width model, both found by a spec and neither visible by eye:**
+
+- **Scaling a share by `needed / current` does not fit the column.** Shares are a proportion of
+  whatever width the table has, so growing one shrinks every other column's realized width and
+  the naive figure lands short — the cell stayed clipped after being told to fit. `shareThatFits`
+  solves the proportion, and falls through to a straight px-to-rem conversion once `needed` is
+  the whole container, where the table overruns and a share is its own length again.
+- **Sorting hangs off CLICK, which `stopPropagation` on `mousedown` never touches.** Every
+  resize also reordered the grid. Swallowing the click on the grip is not enough either: a drag
+  ending away from it fires the click on their common ancestor, the `th`. One capturing listener
+  on the document, removed on the next tick — left to `once` it sat there and ate an unrelated
+  spec's first click.
 
 **Two traps this component now has, both cost an afternoon each:**
 
