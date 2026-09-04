@@ -6,7 +6,10 @@ import {
   ContentChildren,
   ErrorHandler,
   EventEmitter,
+  effect,
+  inject,
   Inject,
+  Injector,
   Input,
   LOCALE_ID,
   OnChanges,
@@ -47,10 +50,8 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
-import {
-  FilterBarSource,
-  SpiderlyFilterBarComponent,
-} from '../../filters/spiderly-filter-bar.component';
+import { FilterSource } from '../../filters/filter-store';
+import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import {
   exportListToExcel,
@@ -113,6 +114,8 @@ export class SpiderlyDataTableComponent
 
   @ViewChild('dt') table: Table;
 
+  private readonly injector = inject(Injector);
+
   /**
    * Custom toolbar content projected via `<ng-template spiderlyDataTableActions>`.
    * Rendered in the caption action area ahead of the built-in buttons.
@@ -142,7 +145,7 @@ export class SpiderlyDataTableComponent
    * CLAUDE.md -> "Operator-owned view", decision 2 — so consumers migrate one table at a time and
    * the legacy path is deletable once nothing passes the old shape.
    */
-  @Input() filters?: FilterBarSource;
+  @Input() filters?: FilterSource;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
   /** Whether the table is wrapped in a card container. Defaults to `false`. */
@@ -384,6 +387,8 @@ export class SpiderlyDataTableComponent
 
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
+
+    if (this.filters) this.requeryOnAppliedFilters();
 
     if (this.deleteListFromTableObservableMethod && !this.selectionMode) {
       this.selectionMode = 'multiple';
@@ -845,6 +850,10 @@ export class SpiderlyDataTableComponent
 
     let tableFilter: Filter = event as unknown as Filter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
+
+    // With a store supplied, IT is the source of truth for what narrows the grid — PrimeNG's own
+    // `event.filters` carries only what its header controls wrote, and those are gone.
+    if (this.filters) tableFilter.filters = this.filters.toFilterPayload();
 
     this.onLazyLoad.next(tableFilter);
 
@@ -1312,6 +1321,38 @@ export class SpiderlyDataTableComponent
     this.rowsSelectedNumber = 0;
     this.isAllSelected = null;
     this.fakeIsAllSelected = false;
+  }
+
+  /**
+   * A COMMITTED filter re-queries; a draft does not. Re-fetching per keystroke would be the same
+   * lie the chip bar exists to prevent, only paid for in requests rather than in credibility.
+   *
+   * Back to page one first, and off FRESH metadata rather than `reload()`: that one replays the
+   * cached lazy-load event, whose `first` was copied when the event was built, so a filter applied
+   * from page 3 would keep asking the server to skip 50 rows a narrower result set does not have.
+   * The grid comes back empty for a value that is definitely in it.
+   *
+   * The first run is PrimeNG's: it fires the initial lazy load itself, and re-querying here would
+   * make every table load twice.
+   */
+  private requeryOnAppliedFilters(): void {
+    let isFirstRun = true;
+
+    effect(
+      () => {
+        this.filters!.applied();
+
+        if (isFirstRun) {
+          isFirstRun = false;
+          return;
+        }
+
+        this.table.first = 0;
+        this.table.firstChange.emit(0);
+        this.lazyLoad(this.table.createLazyLoadMetadata());
+      },
+      { injector: this.injector },
+    );
   }
 
   reload() {

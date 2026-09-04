@@ -102,6 +102,21 @@ interface StoredConstraint {
   value: unknown;
 }
 
+/**
+ * What the CHIP BAR needs from a store, and no more: it reads the applied set and removes from it.
+ * Narrow on purpose — it keeps the bar free of the store's generics, so the bar renders any store
+ * without the two types having to agree on filter ids.
+ */
+export interface FilterBarSource {
+  applied: Signal<AppliedFilter[]>;
+  reset(id: string): void;
+}
+
+/** What the TABLE needs: the bar's half, plus the payload it sends to the paginator. */
+export interface FilterSource extends FilterBarSource {
+  toFilterPayload(): Record<string, FilterRule[]>;
+}
+
 /** One applied constraint, in the shape the chip bar draws. */
 export interface AppliedFilter {
   id: string;
@@ -207,9 +222,15 @@ export function createFilterStore<
      */
     commit<K extends keyof TDefs>(id: K): void {
       const draft = drafts().get(id);
-      const next = new Map(committed());
+      const current = committed();
+      const shouldRemove = draft === undefined || isBlank(draft.value);
 
-      if (draft === undefined || isBlank(draft.value)) next.delete(id);
+      // A new Map is a new identity even with identical contents, and everything downstream
+      // reacts to identity — so a no-op commit would spend a request. Bail before building one.
+      if (shouldRemove ? !current.has(id) : current.get(id) === draft) return;
+
+      const next = new Map(current);
+      if (shouldRemove) next.delete(id);
       else next.set(id, draft);
 
       committed.set(next);
@@ -221,7 +242,8 @@ export function createFilterStore<
      * filter nobody re-typed.
      */
     reset<K extends keyof TDefs>(id: K): void {
-      writeDraft(id, null);
+      if (drafts().has(id)) writeDraft(id, null);
+      if (!committed().has(id)) return;
 
       const next = new Map(committed());
       next.delete(id);
@@ -230,8 +252,8 @@ export function createFilterStore<
 
     /** The bar's "Clear all". `reset` for every filter, drafts included. */
     clear(): void {
-      drafts.set(new Map());
-      committed.set(new Map());
+      if (drafts().size > 0) drafts.set(new Map());
+      if (committed().size > 0) committed.set(new Map());
     },
 
     /** The `filters` half of `Filter` — what the generated paginator reads. */

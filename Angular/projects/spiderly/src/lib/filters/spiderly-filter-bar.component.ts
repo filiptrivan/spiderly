@@ -1,18 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, input, Signal } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 
-import { AppliedFilter } from './filter-store';
+import { AppliedFilter, FilterBarSource } from './filter-store';
 
-/**
- * All the bar needs from a store, and deliberately no more: it reads the applied set and removes
- * from it. Narrowing it here is what keeps the bar independent of the store's generics, so it can
- * render any store without the two types having to agree on the filter ids.
- */
-export interface FilterBarSource {
-  applied: Signal<AppliedFilter[]>;
-  reset(id: string): void;
-}
+export { FilterBarSource };
 
 /**
  * The visible home of every applied constraint. This is what licenses a hidden column keeping its

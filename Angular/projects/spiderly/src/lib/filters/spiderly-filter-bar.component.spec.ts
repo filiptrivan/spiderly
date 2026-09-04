@@ -3,11 +3,13 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
-import { createFilterStore, numberFilter, textFilter } from './filter-store';
 import {
+  createFilterStore,
   FilterBarSource,
-  SpiderlyFilterBarComponent,
-} from './spiderly-filter-bar.component';
+  numberFilter,
+  textFilter,
+} from './filter-store';
+import { SpiderlyFilterBarComponent } from './spiderly-filter-bar.component';
 
 // Typed, not `unknown`: the parameter IS the assertion that a store built from `createFilterStore`
 // satisfies the bar's narrow source interface without the two agreeing on filter ids.

@@ -2495,3 +2495,94 @@ describe('SpiderlyDataTableComponent — the filter surface follows the input', 
     ).toBeGreaterThan(0);
   });
 });
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithCapturingFilterStoreComponent {
+  cols = cols;
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+  filters = createFilterStore({
+    companyName: textFilter({ label: 'Firma' }),
+  });
+}
+
+describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
+  it('sends the store payload and asks the server again, from page one', async () => {
+    const { fixture, host } = createWithDataTable(
+      HostWithCapturingFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    const before = host.captured.length;
+
+    await fixture.ngZone!.run(async () => {
+      host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+      host.filters.commit('companyName');
+    });
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before + 1);
+    expect(host.captured.at(-1)!.filters).toEqual({
+      companyName: [
+        { matchMode: MatchModeCodes.Contains, value: 'Elektromont' },
+      ],
+    } as any);
+    // Narrowing from page 3 must not keep asking the server to skip rows a smaller result set
+    // does not have — the failure is an empty grid for a value that is definitely there.
+    expect(host.captured.at(-1)!.first).toBe(0);
+  });
+
+  // A draft is not a query: re-fetching on every keystroke is the other half of the lie the chip
+  // bar exists to prevent, paid for in requests instead of in credibility.
+  it('does not re-query for a draft', async () => {
+    const { fixture, host } = createWithDataTable(
+      HostWithCapturingFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    const before = host.captured.length;
+
+    await fixture.ngZone!.run(async () => {
+      host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elek',
+      });
+    });
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before);
+  });
+
+  // A stray x on a filter nobody applied, or a commit of an unchanged draft, must not spend a
+  // request. The effect watches `applied()`, and a freshly built Map is a new identity even when
+  // its contents are the same, so without a guard every such gesture re-queries.
+  it('does not re-query when a commit or reset changes nothing', async () => {
+    const { fixture, host } = createWithDataTable(
+      HostWithCapturingFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    const before = host.captured.length;
+
+    await fixture.ngZone!.run(async () => {
+      host.filters.commit('companyName');
+      host.filters.reset('companyName');
+      host.filters.clear();
+    });
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before);
+  });
+});
