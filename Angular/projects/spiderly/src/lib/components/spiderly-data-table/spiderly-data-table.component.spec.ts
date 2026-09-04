@@ -23,8 +23,10 @@ import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { SpiderlyCellTemplateDirective } from '../../directives/spiderly-cell-template.directive';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
+import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import {
   createFilterStore,
+  numberFilter,
   textFilter,
 } from '../../filters/filter-store';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
@@ -3363,5 +3365,80 @@ describe('SpiderlyDataTableComponent — dragging a header', () => {
     await renderRows(fixture);
 
     expect(dataTable.visibleCols.map((col) => col.field)).toEqual(before);
+  });
+});
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent, SpiderlyFilterTemplateDirective],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [getPaginatedListObservableMethod]="getList"
+    >
+      <ng-template spiderlyFilterTemplate="name" let-f>
+        <input
+          data-testid="custom-filter"
+          [value]="f.value() ?? \'\'"
+          (input)="f.set({ operator: matchMode, value: $any($event.target).value })"
+        />
+      </ng-template>
+    </spiderly-data-table>
+  `,
+})
+class HostWithFilterTemplateComponent {
+  matchMode = MatchModeCodes.Contains;
+  filters = createFilterStore({
+    name: textFilter({ label: 'Naziv' }),
+    id: numberFilter({ label: 'Id' }),
+  });
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text', filterId: 'name' },
+    { name: 'Id', field: 'id', filterType: 'numeric', filterId: 'id' },
+  ];
+  getList = emptyList;
+}
+
+// The narrow job the directive has. Placing a filter ANYWHERE else — a drawer, a modal, a header
+// cell — needs no directive: store.get(id) hands back the same handle and depends on nothing in
+// the component tree, which is the whole reason the store belongs to the consumer.
+describe('SpiderlyDataTableComponent — a projected filter control', () => {
+  it('renders the consumer template for that filter, and the default for the rest', async () => {
+    const { fixture } = createWithDataTable(HostWithFilterTemplateComponent);
+    await renderRows(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+
+    await openColumnMenu(fixture, 0);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-filter"]')!
+      .click();
+    await renderRows(fixture);
+
+    const custom = el.querySelector<HTMLInputElement>(
+      '[data-testid="custom-filter"]',
+    );
+    expect(custom).not.toBeNull();
+    expect(el.querySelector('[data-testid="filter-editor-value"]')).toBeNull();
+
+    // It drives the same store the built-in control does.
+    custom!.value = 'Bosch';
+    custom!.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(fixture.componentInstance.filters.applied()[0].value).toBe('Bosch');
+
+    // The filter that projects nothing keeps the control the bar would have drawn.
+    await openColumnMenu(fixture, 1);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-filter"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(el.querySelector('[data-testid="filter-editor-value"]')).not.toBeNull();
   });
 });

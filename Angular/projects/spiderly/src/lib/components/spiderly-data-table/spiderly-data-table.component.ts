@@ -55,6 +55,7 @@ import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
 import { FilterSource, SortKeyLabel } from '../../filters/filter-store';
+import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import {
@@ -1271,6 +1272,14 @@ export class SpiderlyDataTableComponent
   private readonly columnMenu = viewChild.required<Popover>('columnMenu');
 
   private readonly filterBar = viewChild(SpiderlyFilterBarComponent);
+
+  /**
+   * Consumer-projected filter controls, forwarded to the bar. Collected here rather than by the
+   * bar itself because the bar is OURS: a consumer's template is projected at the table, and
+   * content queries only see what was projected into the component that declares them.
+   */
+  @ContentChildren(SpiderlyFilterTemplateDirective)
+  filterTemplates: QueryList<SpiderlyFilterTemplateDirective>;
 
   private readonly selectionHeader =
     viewChild<ElementRef<HTMLElement>>('selectionHeader');

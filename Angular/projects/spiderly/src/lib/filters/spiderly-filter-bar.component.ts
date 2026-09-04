@@ -6,7 +6,9 @@ import {
   inject,
   input,
   output,
+  QueryList,
   signal,
+  TemplateRef,
 } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
@@ -17,6 +19,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { PopoverModule } from 'primeng/popover';
 import { SelectModule } from 'primeng/select';
 
+import { SpiderlyFilterTemplateDirective } from '../directives/spiderly-filter-template.directive';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
   AppliedFilter,
@@ -226,7 +229,15 @@ function foldForSearch(value: string): string {
               ></p-select>
             }
 
-            @if (handle.options) {
+            @if (controlTemplateFor(handle); as projected) {
+              <!-- The consumer's own control for this filter. Read the QueryList live rather than
+                   indexing it into a Map: a QueryList already updates itself, and a template
+                   declared inside a @for or an @if would go stale in a cached index. Same
+                   reasoning as getCellTemplate. -->
+              <ng-container
+                *ngTemplateOutlet="projected; context: { $implicit: handle }"
+              ></ng-container>
+            } @else if (handle.options) {
               <p-multiSelect
                 size="small"
                 styleClass="filter-editor-value"
@@ -304,6 +315,15 @@ export class SpiderlyFilterBarComponent {
 
   private readonly transloco = inject(TranslocoService);
 
+  /**
+   * Controls a consumer projected for specific filters, collected by whoever hosts this bar. A
+   * filter with no template keeps the control the bar draws for its kind, so a table opts in one
+   * filter at a time.
+   */
+  readonly controlTemplates = input<
+    QueryList<SpiderlyFilterTemplateDirective> | undefined
+  >(undefined);
+
   readonly isAddOpen = signal(false);
 
   /** Cleared when the popover closes, so reopening never starts inside someone's old query. */
@@ -361,6 +381,14 @@ export class SpiderlyFilterBarComponent {
       handle,
       this.coerce(handle.kind, (event.target as HTMLInputElement).value),
     );
+  }
+
+  controlTemplateFor(handle: FilterHandle): TemplateRef<unknown> | null {
+    const match = this.controlTemplates()?.find(
+      (candidate) => candidate.filterId === handle.id,
+    );
+
+    return match?.template ?? null;
   }
 
   /** The picker's own options, already translated — p-select takes labels, not keys. */
