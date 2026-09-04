@@ -154,18 +154,8 @@ namespace Spiderly.Infrastructure.Tests
             return property.IsNullable;
         }
 
-        private static RequirednessTestDbContext NewContext(bool proxies)
-        {
-            DbContextOptionsBuilder builder = new DbContextOptionsBuilder()
-                // Model-only: the DDL and every nullability decision come from metadata, so this host is
-                // never contacted. Npgsql (not in-memory) because relational conventions are the subject.
-                .UseNpgsql("Host=model-only.invalid;Database=spiderly_model_only;Username=none;Password=none");
-
-            if (proxies)
-                builder.UseLazyLoadingProxies();
-
-            return new RequirednessTestDbContext(builder.Options);
-        }
+        private static RequirednessTestDbContext NewContext(bool proxies) =>
+            new(TestContexts.ModelOnlyNpgsqlOptions(proxies));
 
         /// <summary>
         /// Deliberately does NOT override <c>OnModelCreating</c> — the whole point is to run the real one.

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Spiderly.Shared.BaseEntities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spiderly.Shared.Interfaces;
@@ -6,6 +7,7 @@ using System.Reflection;
 using Spiderly.Security.Helpers;
 using Spiderly.Security.Interfaces;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 using Spiderly.Infrastructure.Converters;
 using Spiderly.Shared.Attributes.Entity;
 
@@ -73,8 +75,10 @@ namespace Spiderly.Infrastructure
         /// ordinary e-mail columns.
         /// <para>
         /// <see cref="CanonicalizeAccountKey"/> is what normally satisfies it, so in a healthy app
-        /// this never fires. It is the backstop for what that cannot reach — the synchronous
-        /// <c>SaveChanges</c> and raw SQL.
+        /// this never fires. It is the backstop for the two paths that one cannot reach: the
+        /// synchronous <c>SaveChanges</c>, which this class does not override (the framework-wide
+        /// async-only gap that an <c>ISaveChangesInterceptor</c> rework is proposed to close), and
+        /// raw SQL.
         /// </para>
         /// <para>
         /// <b>On upgrade this can fail to apply</b>, and that is the point: it fails exactly when the
@@ -82,23 +86,23 @@ namespace Spiderly.Infrastructure
         /// about which account survives, not a script, so it is deliberately the consumer's to make
         /// before the migration runs.
         /// </para>
-        /// <para>
-        /// The entity is registered here rather than assumed: discovery finds it in a consumer, but
-        /// registering makes the constraint independent of whether it did.
-        /// </para>
         /// </remarks>
         void ConstrainAccountKeyToCanonicalForm(ModelBuilder modelBuilder)
         {
-            // The two supported providers quote identifiers differently, and a check constraint is
-            // raw SQL — there is no provider-agnostic way to name a column inside one.
-            string email = Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
-                ? "\"Email\""
-                : "[Email]";
+            // A check constraint is raw SQL, so the column has to be named and quoted by hand — but
+            // the provider already knows how to do both. Asking it keeps this working for a provider
+            // Spiderly does not support yet, and keeps the name tied to the interface rather than to
+            // a literal. (A [Column] rename on the consumer's property would still need handling;
+            // no template or consumer does that today.)
+            string email = this.GetService<ISqlGenerationHelper>().DelimitIdentifier(nameof(IUser.Email));
 
+            // TUser is already in the model: every real one carries [SpiderlyEntity], so discovery
+            // registered it above and it went through all three relationship passes. Registering it
+            // here instead would ADD it after those passes had been snapshotted — a silently
+            // under-configured entity in exactly the case the registration would be defending.
             modelBuilder.Entity<TUser>().ToTable(t => t.HasCheckConstraint(
                 $"CK_{typeof(TUser).Name}_Email_Lowercase", $"{email} = LOWER({email})"));
         }
-
 
         public DbSet<TEntity> DbSet<TEntity>() where TEntity : class
         {
@@ -133,10 +137,8 @@ namespace Spiderly.Infrastructure
         /// rewriting input it does not own.
         /// </para>
         /// <para>
-        /// The <c>CK_{TUser}_Email_Lowercase</c> constraint in <c>OnModelCreating</c> is the backstop
-        /// for what this cannot reach — the synchronous <c>SaveChanges</c>, which Spiderly does not
-        /// override, and raw SQL. Reaching it is a bug, and it fails loudly rather than admitting a
-        /// second identity for one address.
+        /// <see cref="ConstrainAccountKeyToCanonicalForm"/> is the backstop for the writes this
+        /// cannot see.
         /// </para>
         /// </remarks>
         void CanonicalizeAccountKey(EntityEntry changedEntity)

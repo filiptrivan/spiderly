@@ -17,7 +17,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Insert_with_explicit_historical_CreatedAt_is_preserved()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
             DateTime historical = new(2020, 5, 5, 8, 30, 0, DateTimeKind.Utc);
 
             long id;
@@ -39,7 +39,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Insert_with_default_CreatedAt_is_stamped_now()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             DateTime before = DateTime.UtcNow;
             long id;
@@ -64,7 +64,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Update_cannot_change_CreatedAt_and_bumps_ModifiedAt_and_Version()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             long id;
             DateTime stampedCreatedAt;
@@ -98,7 +98,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Insert_with_explicit_ModifiedAt_is_overwritten_with_now()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
             DateTime historical = new(2020, 5, 5, 8, 30, 0, DateTimeKind.Utc);
 
             DateTime before = DateTime.UtcNow;
@@ -125,7 +125,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Concurrent_updates_lose_on_stale_Version()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             long id;
             using (TestDbContext ctx = NewContext(connection))
@@ -150,13 +150,6 @@ namespace Spiderly.Infrastructure.Tests
 
             b.ModifiedAt = b.ModifiedAt.AddMinutes(2);
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => ctxB.SaveChangesAsync());
-        }
-
-        private static SqliteConnection NewOpenConnection()
-        {
-            SqliteConnection connection = new("DataSource=:memory:");
-            connection.Open(); // the in-memory database lives only while a connection is open
-            return connection;
         }
 
         private static TestDbContext NewContext(SqliteConnection connection)

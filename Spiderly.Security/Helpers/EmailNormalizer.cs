@@ -18,17 +18,12 @@ namespace Spiderly.Security.Helpers
     /// against the other, both compared ordinally, and the login stops completing at all.
     /// </para>
     /// <para>
-    /// <b>The framework canonicalizes only what flows through <c>SecurityServiceBase</c>.</b> A
-    /// consumer that inserts a <c>TUser</c> row by any other path — a guest checkout that provisions
-    /// an account, an admin CRUD save — owns that write and must fold through here too, or it
-    /// reintroduces exactly the split this prevents.
-    /// </para>
-    /// <para>
-    /// Normalization stops new splits; it cannot make them unrepresentable. That needs a
-    /// case-insensitive unique key on the consumer's own user table (a functional
-    /// <c>lower(Email)</c> index, or <c>citext</c>), which is provider-specific SQL a portable EF
-    /// <c>HasIndex</c> cannot express — so it stays the consumer's to add, after folding whatever
-    /// rows predate this.
+    /// A consumer does NOT need to fold this itself. <c>ApplicationDbContext.CanonicalizeAccountKey</c>
+    /// applies it to every tracked write of the user entity — including a consumer's own
+    /// <c>DbSet&lt;TUser&gt;().Add(...)</c>, which never reaches the auth boundary — and
+    /// <c>ConstrainAccountKeyToCanonicalForm</c> backs that with a check constraint, so a second
+    /// casing is unrepresentable rather than merely uncreated. This class is the shared definition
+    /// those two and the auth boundary all fold through.
     /// </para>
     /// <para>
     /// <see cref="string.ToLowerInvariant"/>, never <c>ToLower()</c> — under a Turkish culture the

@@ -7,23 +7,17 @@ using Spiderly.Shared.BaseEntities;
 namespace Spiderly.Infrastructure.Tests
 {
     /// <summary>
-    /// The account key is the lowercased address, and <see cref="ApplicationDbContext{TUser}"/> is
-    /// what makes that true of every tracked write — including a consumer's own
-    /// <c>DbSet&lt;TUser&gt;().Add(...)</c>, which no generated service can see. Pinned here rather
-    /// than at the auth boundary because that boundary is exactly what these writes bypass.
-    /// <para>
-    /// Deliberately narrow: <see cref="Spiderly.Security.Interfaces.IUser"/>'s <c>Email</c> only.
-    /// An address on any other entity is contact data the consumer's operator typed, and rewriting
-    /// it would be the framework editing input it does not own — see
-    /// <see cref="An_address_on_a_non_user_entity_is_left_alone"/>, which is the guard on that line.
-    /// </para>
+    /// Behavioural coverage for <c>ApplicationDbContext&lt;TUser&gt;.CanonicalizeAccountKey</c> and its
+    /// constraint — see those two for why the account key must be canonical. Pinned here rather than
+    /// beside the auth tests because the writes that matter are the ones that never reach the auth
+    /// boundary, which is exactly what a consumer's own <c>DbSet&lt;TUser&gt;().Add(...)</c> is.
     /// </summary>
     public class AccountKeyCanonicalizationTests
     {
         [Fact]
         public async Task Insert_stores_the_account_key_canonically()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             long id;
             using (TestDbContext ctx = NewContext(connection))
@@ -44,7 +38,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task Update_stores_the_account_key_canonically()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             long id;
             using (TestDbContext ctx = NewContext(connection))
@@ -75,7 +69,7 @@ namespace Spiderly.Infrastructure.Tests
         [Fact]
         public async Task An_address_on_a_non_user_entity_is_left_alone()
         {
-            using SqliteConnection connection = NewOpenConnection();
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
 
             long id;
             using (TestDbContext ctx = NewContext(connection))
@@ -93,10 +87,6 @@ namespace Spiderly.Infrastructure.Tests
             }
         }
 
-        // The write stamp above cannot reach the synchronous SaveChanges (Spiderly does not override
-        // it) or raw SQL, so the guarantee is only as good as its backstop. UNIQUE(Email) over values
-        // this constraint forces canonical IS case-insensitive uniqueness — which is what makes the
-        // promise identical on Postgres and SQL Server, whose default collations disagree.
         [Fact]
         public void The_user_table_constrains_the_account_key_to_its_canonical_form()
         {
@@ -113,13 +103,6 @@ namespace Spiderly.Infrastructure.Tests
 
         #region Harness
 
-        private static SqliteConnection NewOpenConnection()
-        {
-            SqliteConnection connection = new("DataSource=:memory:");
-            connection.Open(); // the in-memory database lives only while a connection is open
-            return connection;
-        }
-
         private static TestDbContext NewContext(SqliteConnection connection)
         {
             TestDbContext ctx = new(new DbContextOptionsBuilder<TestDbContext>().UseSqlite(connection).Options);
@@ -133,9 +116,7 @@ namespace Spiderly.Infrastructure.Tests
         /// Npgsql because the constraint is provider-quoted; no connection is ever opened.
         /// </summary>
         private static ModelOnlyDbContext NewModelOnlyContext() =>
-            new(new DbContextOptionsBuilder()
-                .UseNpgsql("Host=model-only.invalid;Database=spiderly_model_only;Username=none;Password=none")
-                .Options);
+            new(TestContexts.ModelOnlyNpgsqlOptions());
 
         private sealed class ModelOnlyDbContext : ApplicationDbContext<TestUser>
         {
