@@ -1,5 +1,10 @@
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
-import { createFilterStore, numberFilter, textFilter } from './filter-store';
+import {
+  createFilterStore,
+  dateFilter,
+  numberFilter,
+  textFilter,
+} from './filter-store';
 
 // The claim this whole design rests on: a filter is an entity of its own, so it can exist and
 // reach the server with no column anywhere near it. `Order.CompanyName` is the case that forced
@@ -158,5 +163,79 @@ describe('createFilterStore — typed is not applied', () => {
     filters.set('orderStatusId', { operator: MatchModeCodes.Equals, value: [2, 3] });
 
     expect(filters.toFilterPayload()).toEqual({});
+  });
+
+  // The value reaches the payload as a Date, not pre-stringified: the API layer JSON-serializes
+  // the whole `Filter`, and a store that stringified first would produce a double-encoded value
+  // the moment that layer changed format.
+  it('carries a Date through to the payload untouched', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+    const from = new Date('2026-09-01T00:00:00.000Z');
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: from,
+    });
+    filters.commit('createdAt');
+
+    expect(filters.toFilterPayload()).toEqual({
+      createdAt: [{ matchMode: MatchModeCodes.GreaterThan, value: from }],
+    });
+  });
+
+  // A half-typed datepicker yields `new Date("...")` that is Invalid. `JSON.stringify` turns that
+  // into `null`, so the paginator would receive `{ matchMode: "greaterThan", value: null }` — a
+  // constraint the operator can see a chip for and that narrows by nothing sane. Blank, not null.
+  it('treats an invalid Date as blank rather than serializing it to null', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: new Date('not a date'),
+    });
+    filters.commit('createdAt');
+
+    expect(filters.applied()).toEqual([]);
+    expect(filters.toFilterPayload()).toEqual({});
+  });
+
+  // The bar's "Clear all". Same draft rule as `reset`, for every filter at once: leaving drafts
+  // behind leaves the controls full while the bar reports nothing applied, and the next commit
+  // resurrects filters nobody re-entered. The pre-clear assertion is also the only place two
+  // filters are shown composing into one payload.
+  it('clear empties every filter, drafts included', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+    filters.commit('companyName');
+    filters.set('orderStatusId', {
+      operator: MatchModeCodes.In,
+      value: [2, 3],
+    });
+    filters.commit('orderStatusId');
+
+    expect(filters.toFilterPayload()).toEqual({
+      companyName: [{ matchMode: MatchModeCodes.Contains, value: 'Elektromont' }],
+      orderStatusId: [{ matchMode: MatchModeCodes.In, value: [2, 3] }],
+    });
+
+    filters.clear();
+
+    expect(filters.applied()).toEqual([]);
+    expect(filters.toFilterPayload()).toEqual({});
+
+    filters.commit('companyName');
+    filters.commit('orderStatusId');
+    expect(filters.applied()).toEqual([]);
   });
 });

@@ -62,6 +62,18 @@ export function numberFilter(config: {
   return { kind: 'number', label: config.label };
 }
 
+export function booleanFilter(config: {
+  label: string;
+}): FilterDefinition<'boolean'> {
+  return { kind: 'boolean', label: config.label };
+}
+
+export function dateFilter(config: {
+  label: string;
+}): FilterDefinition<'date'> {
+  return { kind: 'date', label: config.label };
+}
+
 /**
  * The kind is what carries BOTH halves — which operators are legal and what the value is. It has
  * to stay a literal all the way from the factory to here: typing the definition's `kind` as the
@@ -110,6 +122,8 @@ function isBlank(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   if (typeof value === 'string') return value.trim() === '';
   if (Array.isArray(value)) return value.length === 0;
+  // A half-typed datepicker yields an Invalid Date, which JSON.stringify writes as `null`.
+  if (value instanceof Date) return Number.isNaN(value.getTime());
 
   return false;
 }
@@ -185,6 +199,12 @@ export function createFilterStore<
       const next = new Map(committed());
       next.delete(id);
       committed.set(next);
+    },
+
+    /** The bar's "Clear all". `reset` for every filter, drafts included. */
+    clear(): void {
+      drafts.clear();
+      committed.set(new Map());
     },
 
     /** The `filters` half of `Filter` — what the generated paginator reads. */
