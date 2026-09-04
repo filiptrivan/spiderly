@@ -2506,6 +2506,24 @@ describe('SpiderlyDataTableComponent — the filter surface follows the input', 
     ></spiderly-data-table>
   `,
 })
+class HostWithCountingFilterStoreComponent {
+  cols = cols;
+  getList = (): Observable<PaginatedResult> => paginated([{ id: 1 }, { id: 2 }], 812);
+  filters = createFilterStore({
+    companyName: textFilter({ label: 'Firma' }),
+  });
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
 class HostWithCapturingFilterStoreComponent {
   cols = cols;
   captured: Filter[] = [];
@@ -2584,5 +2602,19 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
     await renderRows(fixture);
 
     expect(host.captured.length).toBe(before);
+  });
+
+  // An empty grid under a filter is otherwise a mystery: the chips say what was asked, and this
+  // says what came back. It is the CURRENT query's count only — the unfiltered total would cost a
+  // second request the backend does not offer.
+  it('shows how many rows the current query returned', async () => {
+    const { fixture } = createWithDataTable(HostWithCountingFilterStoreComponent);
+    await renderRows(fixture);
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="filter-bar-count"]',
+      )!.textContent,
+    ).toContain('812');
   });
 });

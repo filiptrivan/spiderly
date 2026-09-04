@@ -121,3 +121,10 @@
   gap: 4px;
   cursor: pointer;
 }
+
+.filter-bar-count {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  // Pushed away from the chips it summarises, not crowded against the last one.
+  margin-left: 4px;
+}

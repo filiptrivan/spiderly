@@ -61,6 +61,15 @@ export { FilterBarSource };
           </span>
         }
 
+        @if (totalRecords() !== null) {
+          <!-- What came back, next to the chips that say what was asked. An empty grid under a
+               filter is otherwise a mystery. The CURRENT query's count only: the unfiltered total
+               would cost a second request the paginator does not offer. -->
+          <span class="filter-bar-count" data-testid="filter-bar-count">{{
+            totalRecords()
+          }}</span>
+        }
+
         @if (addable().length) {
           <button
             type="button"
@@ -171,6 +180,9 @@ export { FilterBarSource };
 })
 export class SpiderlyFilterBarComponent {
   readonly filters = input.required<FilterBarSource>();
+
+  /** The current query's row count, supplied by whoever owns the query. Null hides the counter. */
+  readonly totalRecords = input<number | null>(null);
 
   readonly isAddOpen = signal(false);
 
