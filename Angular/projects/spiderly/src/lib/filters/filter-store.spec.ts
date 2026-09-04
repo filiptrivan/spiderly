@@ -1,0 +1,61 @@
+import { MatchModeCodes } from '../enums/match-mode-enum-codes';
+import { createFilterStore, textFilter } from './filter-store';
+
+// The claim this whole design rests on: a filter is an entity of its own, so it can exist and
+// reach the server with no column anywhere near it. `Order.CompanyName` is the case that forced
+// it — printed on ~82% of company rows, matched by no search, and nobody wants it as a column.
+describe('createFilterStore — a filter needs no column', () => {
+  it('serializes a set filter into the Filter.filters payload under its own id', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+
+    expect(filters.toFilterPayload()).toEqual({
+      companyName: [{ matchMode: MatchModeCodes.Contains, value: 'Elektromont' }],
+    });
+  });
+
+  // `contains ''` matches every row, so a blanked box would claim to narrow the grid while showing
+  // everything — and would draw a chip for it. Same class as the filter icon that filled on the
+  // first keystroke (spiderly-data-table CLAUDE.md -> "Active-filter header icon").
+  it('drops a filter whose value has been blanked, rather than sending an empty constraint', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+    filters.set('companyName', { operator: MatchModeCodes.Contains, value: '' });
+
+    expect(filters.toFilterPayload()).toEqual({});
+  });
+
+  // `In` is legal on a number and illegal on a string: the generated paginator answers it with
+  // InvalidMatchMode. Today the only guard is a human not declaring it — `paymentGatewayCode` in
+  // PACMS carries a hand-written comment saying exactly this. An engine that assembles operators
+  // itself has removed that human, so it has to refuse — in BOTH halves. The `@ts-expect-error`
+  // below pins the compile-time refusal (it fails the build if the line stops erroring), and the
+  // thrown error covers what dodges the type system: a custom control, or a constraint restored
+  // from an older persisted state.
+  it('refuses an operator its value type does not allow', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    expect(() =>
+      filters.set('companyName', {
+        // @ts-expect-error `In` is not an operator a text filter accepts. This comment IS the
+        // compile-time pin: if the line ever stops erroring, the build fails here.
+        operator: MatchModeCodes.In,
+        value: 'Elektromont',
+      }),
+    ).toThrowError(/companyName/);
+  });
+});
