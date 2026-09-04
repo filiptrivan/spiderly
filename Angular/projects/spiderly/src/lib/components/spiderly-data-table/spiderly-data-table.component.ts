@@ -128,8 +128,15 @@ export class SpiderlyDataTableComponent
   private readonly injector = inject(Injector);
   private readonly zone = inject(NgZone);
 
-  /** The selection column's declared share. Under the fixed layout this is a RATIO, not a width. */
-  protected readonly selectionColumnWidth = '6rem';
+  /**
+   * The selection column's declared share. Under the fixed layout this is a RATIO, not a width.
+   *
+   * 4rem, down from 6: the original reserved room for a five-digit select-all counter sitting at
+   * body text size beside the box, which is the widest thing it can ever hold and not what it
+   * holds on any ordinary screen. The counter is a smaller step now (see the SCSS), so the same
+   * five digits fit in two thirds of the space.
+   */
+  protected readonly selectionColumnWidth = '4rem';
 
   /**
    * The selection column's MEASURED width, which is what the frozen identity column offsets
@@ -491,7 +498,6 @@ export class SpiderlyDataTableComponent
 
     this.activeViewId ??= this.views?.[0]?.id ?? null;
 
-    if (this.filters) this.requeryOnAppliedFilters();
 
     if (this.deleteListFromTableObservableMethod && !this.selectionMode) {
       this.selectionMode = 'multiple';
@@ -560,6 +566,14 @@ export class SpiderlyDataTableComponent
 
     this.restoreColumnVisibility();
     this.restoreColumnLayout();
+
+    // AFTER `resolvedStateKey` is derived, which is what both of these key off — placed above it
+    // first, they read a null key and silently restored nothing. And before the effect is armed,
+    // so the first request already carries the filters and the effect's skipped first run sees
+    // the state it will be watching.
+    this.restoreAppliedFilters();
+    if (this.filters) this.requeryOnAppliedFilters();
+
     this.reconcileVisibilityWithPersistedConstraints();
     this.reconcilePersistedMatchModes();
     // Restored filters are applied by definition — mark them before the first paint rather
@@ -906,6 +920,42 @@ export class SpiderlyDataTableComponent
    */
   private get viewScope(): string {
     return this.activeViewId ? `:${this.activeViewId}` : '';
+  }
+
+  /**
+   * Where the applied filters live. Follows `stateStorage` rather than the layout's always-local
+   * rule, because that is where they lived before the bar took them off the header: PrimeNG's
+   * stateful table persisted them for free, and nothing replaced it — a refresh dropped every
+   * filter (Filip, on /tags). A filter is a question you are in the middle of asking, not a
+   * durable preference like a column's width.
+   */
+  private get filtersStateKey(): string | null {
+    return this.resolvedStateKey
+      ? `${this.resolvedStateKey}${this.viewScope}:filters`
+      : null;
+  }
+
+  private get filterStorage(): Storage {
+    return this.stateStorage === 'local' ? localStorage : sessionStorage;
+  }
+
+  private persistAppliedFilters(): void {
+    if (!this.filtersStateKey || !this.filters) return;
+
+    const snapshot = this.filters.snapshot();
+
+    if (Object.keys(snapshot).length === 0) {
+      this.filterStorage.removeItem(this.filtersStateKey);
+    } else {
+      writeStoredJson(this.filterStorage, this.filtersStateKey, snapshot);
+    }
+  }
+
+  private restoreAppliedFilters(): void {
+    if (!this.filtersStateKey || !this.filters) return;
+
+    const snapshot = readStoredJson(this.filterStorage, this.filtersStateKey);
+    if (snapshot) this.filters.restore(snapshot);
   }
 
   private get layoutStateKey(): string | null {
@@ -1358,8 +1408,15 @@ export class SpiderlyDataTableComponent
 
     if (!this.filters) return;
 
+    // The filter key moved with the view too, so this view's own stored answer wins over whatever
+    // the last one left applied; `apply` runs only when the view has nothing stored yet.
     this.filters.clear();
-    view.apply?.(this.filters);
+    const stored = this.filtersStateKey
+      ? readStoredJson(this.filterStorage, this.filtersStateKey)
+      : null;
+
+    if (stored) this.filters.restore(stored);
+    else view.apply?.(this.filters);
   }
 
   /**
@@ -2029,6 +2086,7 @@ export class SpiderlyDataTableComponent
           return;
         }
 
+        this.persistAppliedFilters();
         this.table.first = 0;
         this.table.firstChange.emit(0);
         this.lazyLoad(this.table.createLazyLoadMetadata());

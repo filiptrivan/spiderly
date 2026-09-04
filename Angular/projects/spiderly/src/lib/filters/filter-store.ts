@@ -293,6 +293,26 @@ export interface FilterBarSource {
 /** What the TABLE needs: the bar's half, plus the payload it sends to the paginator. */
 export interface FilterSource extends FilterBarSource {
   toFilterPayload(): Record<string, FilterRule[]>;
+  /** The applied set as plain JSON, for whoever owns this table's persisted state. */
+  snapshot(): FilterSnapshot;
+  /** Replaces the applied set, and the drafts with it so every control agrees with its chip. */
+  restore(snapshot: FilterSnapshot): void;
+}
+
+/** The applied constraints in a form that survives `JSON.stringify`. */
+export type FilterSnapshot = Record<
+  string,
+  { operator: MatchModeCodes; value: unknown }
+>;
+
+/** The shape `Date.toJSON` writes, which is the only value here JSON cannot round-trip itself. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+function reviveValue(value: unknown): unknown {
+  if (typeof value === 'string' && ISO_DATE.test(value)) return new Date(value);
+  if (Array.isArray(value)) return value.map(reviveValue);
+
+  return value;
 }
 
 /**
@@ -453,6 +473,48 @@ export function createFilterStore<
 
       const next = new Map(committed());
       next.delete(id);
+      committed.set(next);
+    },
+
+    /**
+     * The applied set, plain enough to store. Drafts are deliberately NOT included: a half-typed
+     * value is not a state anyone should come back to, and the bar's whole claim is that what it
+     * shows is what narrows the grid.
+     */
+    snapshot(): FilterSnapshot {
+      const snapshot: FilterSnapshot = {};
+
+      for (const [id, constraint] of committed()) {
+        snapshot[id as string] = {
+          operator: constraint.operator,
+          value: constraint.value,
+        };
+      }
+
+      return snapshot;
+    },
+
+    /**
+     * Replaces the applied set. The drafts are written too, so reopening a restored chip shows
+     * the value it is filtering by rather than an empty control.
+     *
+     * Ids the store no longer declares are dropped rather than carried: a filter removed from the
+     * declaration in a later release would otherwise ride every request from anyone whose storage
+     * still held it, with no chip able to name it and no way to clear it from the UI.
+     */
+    restore(snapshot: FilterSnapshot): void {
+      const next = new Map<keyof TDefs, StoredConstraint>();
+
+      for (const [id, constraint] of Object.entries(snapshot ?? {})) {
+        if (!(id in definitions)) continue;
+
+        next.set(id as keyof TDefs, {
+          operator: constraint.operator,
+          value: reviveValue(constraint.value),
+        });
+      }
+
+      drafts.set(new Map(next));
       committed.set(next);
     },
 

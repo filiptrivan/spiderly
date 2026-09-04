@@ -237,7 +237,7 @@
                 [(ngModel)]="fakeIsAllSelected"
                 [binary]="true"
               ></p-checkbox>
-              ({{ rowsSelectedNumber }})
+              <span class="selection-count">({{ rowsSelectedNumber }})</span>
             </div>
           </th>
           <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">

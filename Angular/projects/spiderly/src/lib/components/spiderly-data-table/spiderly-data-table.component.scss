@@ -178,6 +178,11 @@
     position: sticky;
     z-index: 1;
     background: var(--p-datatable-row-background, var(--p-content-background));
+    // The row fades between its two backgrounds and this repainted instantly, so the pinned
+    // columns changed shade a beat before the rest of the row — which reads as the locked column
+    // reacting on its own rather than as one row highlighting (Filip, on /tags). Same duration
+    // token PrimeNG's own row uses, so the two are one movement.
+    transition: background-color var(--p-transition-duration, 0.2s);
   }
 
   tr:hover > .frozen-column {
@@ -208,6 +213,13 @@
     height: 100%;
     cursor: col-resize;
     user-select: none;
+  }
+
+  // The select-all counter. A smaller step than the body text because it is a parenthetical, and
+  // because it is what decides how narrow the checkbox column can be.
+  .selection-count {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
   }
 
   // Belt to onSelectionCellMouseDown's preventDefault (shift+click text-selection suppression).

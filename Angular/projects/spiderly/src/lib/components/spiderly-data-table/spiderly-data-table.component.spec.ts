@@ -3569,3 +3569,63 @@ describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
       .toBeTrue();
   });
 });
+
+
+// The header filters were persisted for free by PrimeNG's stateful table; the bar owns them now,
+// so nothing was writing them and a refresh dropped every one (Filip, on /tags). This is the
+// regression that shipped with the bar, not a new capability.
+describe('SpiderlyDataTableComponent — applied filters survive a reload', () => {
+  it('carries them into the first request of the next mount', async () => {
+    const first = createWithDataTable(HostWithCapturingFilterStoreComponent);
+    await renderRows(first.fixture);
+
+    await first.fixture.ngZone!.run(async () => {
+      first.host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+      first.host.filters.commit('companyName');
+    });
+    await renderRows(first.fixture);
+    first.fixture.destroy();
+    // A reload, as far as this component is concerned: a brand-new module and a brand-new store,
+    // with only the storage carried across.
+    TestBed.resetTestingModule();
+
+    const next = createWithDataTable(HostWithCapturingFilterStoreComponent);
+    await renderRows(next.fixture);
+
+    expect(next.host.filters.applied().map((chip) => chip.id)).toEqual([
+      'companyName',
+    ]);
+    expect(next.host.captured[0].filters).toEqual({
+      companyName: [
+        { matchMode: MatchModeCodes.Contains, value: 'Elektromont' },
+      ],
+    } as any);
+  });
+
+  it('forgets them when the bar is cleared', async () => {
+    const first = createWithDataTable(HostWithCapturingFilterStoreComponent);
+    await renderRows(first.fixture);
+
+    await first.fixture.ngZone!.run(async () => {
+      first.host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+      first.host.filters.commit('companyName');
+      first.host.filters.clear();
+    });
+    await renderRows(first.fixture);
+    first.fixture.destroy();
+    // A reload, as far as this component is concerned: a brand-new module and a brand-new store,
+    // with only the storage carried across.
+    TestBed.resetTestingModule();
+
+    const next = createWithDataTable(HostWithCapturingFilterStoreComponent);
+    await renderRows(next.fixture);
+
+    expect(next.host.filters.applied()).toEqual([]);
+  });
+});
