@@ -35,6 +35,7 @@ import { SpiderlyMessageService } from '../../services/spiderly-message.service'
 import {
   Column,
   SpiderlyDataTableComponent,
+  TableView,
 } from './spiderly-data-table.component';
 
 const cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
@@ -3440,5 +3441,85 @@ describe('SpiderlyDataTableComponent — a projected filter control', () => {
     await renderRows(fixture);
 
     expect(el.querySelector('[data-testid="filter-editor-value"]')).not.toBeNull();
+  });
+});
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [views]="views"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithViewsComponent {
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Status', field: 'status', filterType: 'numeric' },
+  ];
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    {
+      id: 'packing',
+      label: 'Za pakovanje',
+      apply: (filters) => {
+        filters.set('status', { operator: MatchModeCodes.Equals, value: 2 });
+        filters.commit('status');
+      },
+    },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+// Wave 3. The bar lets an operator build a question; a view is the one they ask every morning,
+// asked in one click. Without them the first two waves are a pile of knobs someone re-sets daily
+// (CLAUDE.md -> decision 10).
+describe('SpiderlyDataTableComponent — views', () => {
+  function selectView(fixture: ComponentFixture<unknown>, index: number): void {
+    (fixture.nativeElement as HTMLElement)
+      .querySelectorAll<HTMLButtonElement>('[data-testid="table-view"]')
+      [index].click();
+    fixture.detectChanges();
+  }
+
+  it('applies a view when it is picked, and asks the server again', async () => {
+    const { fixture, host } = createWithDataTable(HostWithViewsComponent);
+    await renderRows(fixture);
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '[data-testid="table-view"]',
+      ).length,
+    ).toBe(2);
+    expect(host.filters.applied()).toEqual([]);
+
+    await fixture.ngZone!.run(async () => selectView(fixture, 1));
+    await renderRows(fixture);
+
+    expect(host.filters.applied().map((chip) => chip.id)).toEqual(['status']);
+    expect(host.captured.at(-1)!.filters).toEqual({
+      status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
+    } as any);
+  });
+
+  // A view is a STATE, not an addition: going back to "all" has to leave nothing of the last one
+  // behind, or the two compose into a question nobody asked.
+  it('replaces the previous view rather than adding to it', async () => {
+    const { fixture, host } = createWithDataTable(HostWithViewsComponent);
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => selectView(fixture, 1));
+    await renderRows(fixture);
+    await fixture.ngZone!.run(async () => selectView(fixture, 0));
+    await renderRows(fixture);
+
+    expect(host.filters.applied()).toEqual([]);
+    expect(host.captured.at(-1)!.filters).toEqual({} as any);
   });
 });

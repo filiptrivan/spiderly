@@ -191,6 +191,21 @@
           </div>
         </p-popover>
 
+        <div class="table-views" *ngIf="views?.length" role="tablist">
+          <button
+            *ngFor="let view of views"
+            type="button"
+            role="tab"
+            class="table-view"
+            data-testid="table-view"
+            [class.table-view-active]="activeViewId === view.id"
+            [attr.aria-selected]="activeViewId === view.id"
+            (click)="selectView(view)"
+          >
+            {{ view.label }}
+          </button>
+        </div>
+
         <spiderly-filter-bar
           *ngIf="filters"
           [filters]="filters"

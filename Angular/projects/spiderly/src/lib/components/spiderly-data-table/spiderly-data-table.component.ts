@@ -163,15 +163,23 @@ export class SpiderlyDataTableComponent
     const cell = this.selectionHeader()?.nativeElement;
     if (!cell || this.selectionWidthObserver) return;
 
-    this.zone.runOutsideAngular(() => {
-      this.selectionWidthObserver = new ResizeObserver(() => {
-        const width = cell.offsetWidth;
-        if (width === this.frozenOffsetPx) return;
+    const measure = () => {
+      const width = cell.offsetWidth;
+      if (width === this.frozenOffsetPx) return;
 
-        this.zone.run(() => (this.frozenOffsetPx = width));
-      });
+      this.zone.run(() => (this.frozenOffsetPx = width));
+    };
+
+    this.zone.runOutsideAngular(() => {
+      this.selectionWidthObserver = new ResizeObserver(measure);
       this.selectionWidthObserver.observe(cell);
     });
+
+    // Measured once immediately as well, on a microtask. The observer's first callback arrives an
+    // animation frame later, and until it does the identity column sits at left:0 — on top of the
+    // checkbox column it is supposed to start after. The microtask keeps the write out of the CD
+    // pass that just finished, which doing it inline here would break with an NG0100.
+    queueMicrotask(measure);
   }
 
   /**
@@ -204,6 +212,12 @@ export class SpiderlyDataTableComponent
    * the legacy path is deletable once nothing passes the old shape.
    */
   @Input() filters?: FilterSource;
+
+  /** Saved questions for this table, rendered as tabs above the bar. */
+  @Input() views?: TableView[];
+
+  /** The view currently selected, by id. */
+  activeViewId: string | null = null;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
   /** Whether the table is wrapped in a card container. Defaults to `false`. */
@@ -1301,6 +1315,21 @@ export class SpiderlyDataTableComponent
    * A column the generated paginator has no sort case for answers every load with a 400, so the
    * items are disabled by the same predicate that keeps its header from being clickable.
    */
+  /**
+   * Switches to a view. Clears first, always: a view is a STATE rather than an addition, and two
+   * of them composed produce a question nobody asked. The clear runs through the store directly
+   * rather than through `clear(table)`, which would also wipe the sort and the persisted state a
+   * view is entitled to keep.
+   */
+  selectView(view: TableView): void {
+    this.activeViewId = view.id;
+
+    if (!this.filters) return;
+
+    this.filters.clear();
+    view.apply?.(this.filters);
+  }
+
   /** Whether the header menu can offer `Filter…` — a store, and a column that names one of it. */
   canFilterColumn(col: Column): boolean {
     return this.filters != null && col.filterId != null;
@@ -2278,6 +2307,25 @@ interface ResolvedMatchModes {
   options: SelectItem[] | null;
   /** The mode a fresh constraint on this column starts with. */
   defaultMode: any;
+}
+
+/**
+ * A saved question. The bar lets an operator BUILD one; a view is the one they ask every morning,
+ * asked in a click — and without them the whole column-and-filter rework is a pile of knobs
+ * someone re-sets daily (CLAUDE.md -> "Operator-owned view", decision 10).
+ *
+ * Declared in consumer code, not stored per user: with a handful of operators and a handful of
+ * fixed daily jobs, shared built-in views cover the work, while personal saved views would drift
+ * into five variants of the same question. Personal LAYOUT choices still persist on top, per view.
+ */
+export interface TableView<TFilters = any> {
+  id: string;
+  label: string;
+  /**
+   * Sets the filters this view asks for. Receives the table's own store, so a consumer writes it
+   * with the store's typing. Called on a CLEARED store: a view is a state, not an addition.
+   */
+  apply?: (filters: TFilters) => void;
 }
 
 export class Column<T = any> {

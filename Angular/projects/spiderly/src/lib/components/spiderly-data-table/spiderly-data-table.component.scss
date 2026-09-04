@@ -141,6 +141,35 @@
     opacity: 1;
   }
 
+  // Tabs, above the bar: a view names the question, the bar shows what it resolved to. Shopify
+  // puts saved order views in the same place for the same reason.
+  .table-views {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: 8px;
+  }
+
+  .table-view {
+    border: none;
+    background: none;
+    color: var(--p-text-muted-color);
+    font: inherit;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: var(--p-content-border-radius);
+
+    &:hover {
+      background: var(--p-content-hover-background);
+    }
+  }
+
+  .table-view-active {
+    color: var(--p-primary-color);
+    font-weight: 600;
+    background: var(--p-content-hover-background);
+  }
+
   // The left edge that survives a horizontal scroll. The background must be OPAQUE and must track
   // hover and striping, or rows show through the pinned cells as they pass underneath — which is
   // the one thing that makes a sticky column look broken rather than merely unstyled. It inherits
