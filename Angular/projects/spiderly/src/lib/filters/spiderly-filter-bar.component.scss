@@ -91,7 +91,24 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-width: 12rem;
+  gap: 2px;
+  min-width: 14rem;
+  // Nineteen filters is taller than a popover should ever be; the list scrolls and the search box
+  // above it does not move with it.
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.filter-add-search {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  background: var(--p-content-background);
+  color: inherit;
+  font: inherit;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  position: sticky;
+  top: 0;
 }
 
 .filter-add-option {

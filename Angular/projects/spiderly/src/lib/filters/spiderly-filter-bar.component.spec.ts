@@ -413,4 +413,39 @@ describe('SpiderlyFilterBarComponent', () => {
       'Firma contains Elektromont',
     );
   });
+
+  // Nineteen filters is a list nobody scans. Typing has to reach them the way an operator would
+  // actually type — lowercase and without diacritics, because "drzava" is what gets typed for
+  // "Država" on any keyboard and the backend's own search is unaccented too.
+  it('narrows the offered filters as you type, ignoring case and diacritics', async () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+      orderStatusId: numberFilter({ label: 'Status' }),
+      shippingCountry: textFilter({ label: 'Država isporuke' }),
+    });
+
+    const fixture = renderBar(filters);
+    await openAddMenu(fixture);
+
+    const search = addMenu(fixture).querySelector<HTMLInputElement>(
+      '[data-testid="add-filter-search"]',
+    )!;
+
+    const offered = () =>
+      Array.from(
+        addMenu(fixture).querySelectorAll<HTMLElement>(
+          '[data-testid="add-filter-option"]',
+        ),
+      ).map((option) => option.textContent!.trim());
+
+    search.value = 'STA';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(offered()).toEqual(['Status']);
+
+    search.value = 'drzava';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(offered()).toEqual(['Država isporuke']);
+  });
 });

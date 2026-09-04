@@ -16,6 +16,21 @@ import {
 export { FilterBarSource };
 
 /**
+ * Lowercased and stripped of diacritics for matching. NFD decomposition handles č/ć/š/ž, but NOT
+ * đ — it is its own letter (U+0111), not a d with a mark, so it decomposes to nothing and has to
+ * be mapped by hand. Missing that is how "djordje" silently fails to find "Đorđe".
+ */
+function foldForSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u0111/g, 'd')
+    .replace(/\u0110/g, 'D')
+    .toLowerCase()
+    .trim();
+}
+
+/**
  * The visible home of every applied constraint. This is what licenses a hidden column keeping its
  * filter: the header is no longer the only place a filter can be seen, so hiding a column stops
  * meaning "silently drop what it was filtering by".
@@ -130,9 +145,19 @@ export { FilterBarSource };
           </button>
         }
 
-        <p-popover #addMenu (onHide)="isAddOpen.set(false)">
+        <p-popover #addMenu (onHide)="isAddOpen.set(false); addSearch.set('')">
           <div class="filter-add-menu" role="menu">
-            @for (option of addable(); track option.id) {
+            <input
+              type="search"
+              class="filter-add-search"
+              data-testid="add-filter-search"
+              [value]="addSearch()"
+              [attr.aria-label]="t('AddFilter')"
+              [placeholder]="t('Search')"
+              (input)="addSearch.set($any($event.target).value)"
+            />
+
+            @for (option of offered(); track option.id) {
               <button
                 type="button"
                 role="menuitem"
@@ -243,6 +268,9 @@ export class SpiderlyFilterBarComponent {
 
   readonly isAddOpen = signal(false);
 
+  /** Cleared when the popover closes, so reopening never starts inside someone's old query. */
+  readonly addSearch = signal('');
+
   /** The filter whose control is open. One at a time: the bar edits, it is not a form. */
   readonly editing = signal<FilterHandle | null>(null);
 
@@ -251,6 +279,20 @@ export class SpiderlyFilterBarComponent {
    * DEFINITIONS, so a filter reaches this list whether or not it has a column, and whether or not
    * that column is visible. That is the whole reason the bar exists.
    */
+  /**
+   * `addable` narrowed by the search box. Matching is unaccented and case-folded because that is
+   * how the label gets typed: "drzava" for "Država" on any keyboard without a Serbian layout. The
+   * backend's own product search is unaccented for the same reason.
+   */
+  readonly offered = computed(() => {
+    const needle = foldForSearch(this.addSearch());
+    if (!needle) return this.addable();
+
+    return this.addable().filter((option) =>
+      foldForSearch(option.label).includes(needle),
+    );
+  });
+
   readonly addable = computed(() => {
     const onBar = new Set(this.filters().applied().map((chip) => chip.id));
 
