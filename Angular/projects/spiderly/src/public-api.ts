@@ -46,6 +46,8 @@ export * from './lib/components/spiderly-buttons/spiderly-button-base/spiderly-b
 export * from './lib/components/spiderly-buttons/spiderly-button/spiderly-button.component';
 export * from './lib/components/spiderly-buttons/spiderly-split-button/spiderly-split-button.component';
 export * from './lib/components/spiderly-data-table/spiderly-data-table.component';
+export * from './lib/filters/filter-store';
+export * from './lib/filters/spiderly-filter-bar.component';
 export * from './lib/components/spiderly-data-view/spiderly-data-view.component';
 export * from './lib/components/spiderly-delete-dialog/spiderly-delete-confirmation.component';
 export * from './lib/components/spiderly-form-control/spiderly-form-control';

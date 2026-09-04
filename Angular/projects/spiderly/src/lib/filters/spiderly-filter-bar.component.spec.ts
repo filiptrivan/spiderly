@@ -347,4 +347,27 @@ describe('SpiderlyFilterBarComponent', () => {
       orderStatusId: [{ matchMode: MatchModeCodes.In, value: [2, 3] }],
     });
   });
+
+  // `In` needs a list of values, and the editor only draws one when the filter declares options.
+  // Offering it on a plain number filter hands the operator a mode with no control behind it.
+  it('does not offer In on a number filter that declares no options', () => {
+    const filters = createFilterStore({
+      total: numberFilter({ label: 'Iznos' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+
+    const offered = Array.from(
+      el(fixture).querySelectorAll<HTMLOptionElement>(
+        '[data-testid="filter-editor-operator"] option',
+      ),
+    ).map((option) => option.value);
+
+    expect(offered).toEqual([
+      MatchModeCodes.Equals,
+      MatchModeCodes.GreaterThan,
+      MatchModeCodes.LessThan,
+    ]);
+  });
 });

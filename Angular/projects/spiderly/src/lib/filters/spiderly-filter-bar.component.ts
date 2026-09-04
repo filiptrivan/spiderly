@@ -25,6 +25,7 @@ export { FilterBarSource };
 @Component({
   selector: 'spiderly-filter-bar',
   imports: [CommonModule, TranslocoDirective],
+  styleUrl: 'spiderly-filter-bar.component.scss',
   template: `
     <ng-container *transloco="let t">
       <div class="filter-bar" data-testid="filter-bar">

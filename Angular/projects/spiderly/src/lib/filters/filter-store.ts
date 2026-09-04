@@ -81,7 +81,8 @@ const OPERATOR_LABEL_KEY: Record<
     [MatchModeCodes.Equals]: 'Equals',
     [MatchModeCodes.GreaterThan]: 'MoreThan',
     [MatchModeCodes.LessThan]: 'LessThan',
-    [MatchModeCodes.In]: 'In',
+    // No key for `In`: a pick-list is the only place it appears, and there it is the only
+    // operator, so the picker is never rendered and the label is never read.
   },
   boolean: { [MatchModeCodes.Equals]: 'Equals' },
   date: {
@@ -105,12 +106,17 @@ export function operatorOptions(
   kind: FilterValueKind,
   hasOptions = false,
 ): OperatorOption[] {
+  // `In` and options are the same fact seen from two sides: `In` needs a list of values, and the
+  // editor only draws one when the filter declares options. So options mean `In` and nothing else,
+  // and their absence rules `In` out — offering it on a plain number filter would hand the
+  // operator a mode with no control behind it.
+  //
   // Widened first: the per-kind tuples are literal, so `boolean`'s `[Equals]` makes the `In`
   // comparison a "no overlap" error rather than an empty result.
   const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
-  const operators = hasOptions
-    ? accepted.filter((value) => value === MatchModeCodes.In)
-    : accepted;
+  const operators = accepted.filter((value) =>
+    hasOptions ? value === MatchModeCodes.In : value !== MatchModeCodes.In,
+  );
 
   return operators.map((value) => ({
     value,

@@ -1,0 +1,123 @@
+// Not teleported, so `:host` scoping holds here — unlike the column chooser, whose rules must sit
+// at top level because PrimeNG moves its popover into document.body (Angular/CLAUDE.md → overlay
+// styling). Colours come from the PrimeNG theme's variables so the bar follows the admin's theme
+// rather than carrying a second palette.
+:host {
+  display: block;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 999px;
+  background: var(--p-content-background);
+  // The chip is two buttons in one pill; the padding lives on them so both halves are fully
+  // clickable rather than leaving a dead ring around the text.
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.filter-chip-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px 0 0 999px;
+
+  &:hover .filter-chip-value {
+    text-decoration: underline;
+  }
+}
+
+.filter-chip-label {
+  color: var(--p-text-muted-color);
+}
+
+.filter-chip-value {
+  font-weight: 600;
+}
+
+.filter-chip-remove {
+  border: none;
+  background: none;
+  color: var(--p-text-muted-color);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 9px 5px 4px;
+  border-radius: 0 999px 999px 0;
+
+  &:hover {
+    color: var(--p-primary-color);
+  }
+}
+
+.filter-add {
+  border: 1px dashed var(--p-content-border-color);
+  border-radius: 999px;
+  background: none;
+  color: var(--p-primary-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px 12px;
+
+  &:hover {
+    border-style: solid;
+  }
+}
+
+// Inline rather than a p-popover on purpose: PrimeNG teleports a popover into document.body, which
+// costs every spec here the container dance the chooser's specs already pay (CLAUDE.md → Column
+// chooser, the spec gotcha). Revisit only if the list grows past what fits in a row.
+.filter-add-menu,
+.filter-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  background: var(--p-content-background);
+  padding: 8px;
+}
+
+.filter-add-option {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--p-content-border-radius);
+
+  &:hover {
+    background: var(--p-content-hover-background);
+  }
+}
+
+.filter-editor-label {
+  font-weight: 600;
+}
+
+.filter-editor-tick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
