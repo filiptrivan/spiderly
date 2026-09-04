@@ -7,6 +7,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Spiderly.Security.DTO;
+using Spiderly.Security.Helpers;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.ValidationRules;
 using Spiderly.Shared;
@@ -84,21 +85,21 @@ namespace Spiderly.Security.Services
         {
             new LoginDTOValidationRules().ValidateAndThrow(loginDTO);
 
+            // Canonicalized before anything reads it, so the account lookup below, the verification
+            // code minted further down, and Login's validation of that code all key on ONE string
+            // (see EmailNormalizer). Assigned back onto the DTO because Authenticate reads it.
+            loginDTO.Email = EmailNormalizer.Normalize(loginDTO.Email)!;
+
             TUser? user = await Authenticate(loginDTO);
 
-            string userEmail;
+            if (user == null && _authPolicySettings.OnlyAdminCanAddUsers)
+                throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
-            if (user == null)
-            {
-                if (_authPolicySettings.OnlyAdminCanAddUsers)
-                    throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
-
-                userEmail = loginDTO.Email;
-            }
-            else
-            {
-                userEmail = user.Email;
-            }
+            // The canonical address, NOT user.Email, even when a row was found. The code is stored
+            // under this string and Login validates it against its own canonicalized request, so a
+            // legacy row whose stored casing differs would otherwise mint a code that can never be
+            // redeemed.
+            string userEmail = loginDTO.Email;
 
             // Per-recipient guard against inbox-flooding / email-quota abuse on this (storefront-and-admin
             // shared) endpoint — see IsLoginVerificationSendBlockedAsync. Only applied when emailing is
@@ -153,6 +154,10 @@ namespace Spiderly.Security.Services
         public virtual async Task<AuthResultDTO> Login(VerificationTokenRequestDTO verificationRequestDTO)
         {
             new VerificationTokenRequestDTOValidationRules().ValidateAndThrow(verificationRequestDTO);
+
+            // Same canonicalization SendLoginVerificationEmail applied, so the code minted there
+            // validates here and the user this creates on a first login is stored canonically.
+            verificationRequestDTO.Email = EmailNormalizer.Normalize(verificationRequestDTO.Email)!;
 
             // Can not be null, if its null it already has thrown
             LoginVerificationTokenDTO loginVerificationTokenDTO = await _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTOAsync(
@@ -602,9 +607,13 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<TUser?> GetUserByEmailAsync(string email)
         {
+            // Public and consumer-callable, so it canonicalizes its own argument rather than
+            // trusting the caller (see EmailNormalizer).
+            string normalized = EmailNormalizer.Normalize(email)!;
+
             return await _context.WithTransactionAsync(async () =>
             {
-                return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Email == email).SingleOrDefaultAsync();
+                return await _context.DbSet<TUser>().AsNoTracking().Where(x => x.Email == normalized).SingleOrDefaultAsync();
             });
         }
 
@@ -650,7 +659,12 @@ namespace Spiderly.Security.Services
             if (externalIdentity.EmailVerified != true)
                 throw new BusinessException(_localizer["ExternalEmailNotVerifiedException"], ApiErrorCodes.EmailNotVerified);
 
-            TUser? user = await userDbSet.Where(x => x.Email == externalIdentity.Email).SingleOrDefaultAsync();
+            // The provider asserts whatever casing it holds, and it need not match what we stored on
+            // an earlier sign-in — Google returning "Kupac@Example.com" for an account created as
+            // "kupac@example.com" must LINK to it, not auto-provision a second one.
+            string externalEmail = EmailNormalizer.Normalize(externalIdentity.Email)!;
+
+            TUser? user = await userDbSet.Where(x => x.Email == externalEmail).SingleOrDefaultAsync();
 
             if (user != null)
             {
@@ -665,7 +679,7 @@ namespace Spiderly.Security.Services
                 if (_authPolicySettings.OnlyAdminCanAddUsers)
                     throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
 
-                user = new TUser { Email = externalIdentity.Email };
+                user = new TUser { Email = externalEmail };
                 await userDbSet.AddAsync(user);
                 await _context.SaveChangesAsync(); // Persist so the new user has an Id to link against.
             }
