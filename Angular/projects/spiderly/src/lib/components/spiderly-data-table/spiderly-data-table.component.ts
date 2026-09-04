@@ -603,8 +603,18 @@ export class SpiderlyDataTableComponent
     if (!visible) this.clearHiddenColumnConstraints([col]);
   }
 
-  /** Restores every column to its declared default and forgets the stored override. */
-  resetColumnVisibility(): void {
+  /**
+   * Restores every column to its declared default and forgets the stored overrides — visibility,
+   * wrap, order and width alike. It undid visibility only until the header menu shipped three
+   * more gestures beside it, and a layout with no way back is worse than one with no knobs.
+   *
+   */
+  resetColumnLayout(): void {
+    this.columnWrap = {};
+    this.columnOrder = [];
+    this.columnWidths = {};
+    this.persistColumnLayout();
+
     const wasVisible = this.visibleCols.filter(
       SpiderlyDataTableComponent.isDataColumn,
     );

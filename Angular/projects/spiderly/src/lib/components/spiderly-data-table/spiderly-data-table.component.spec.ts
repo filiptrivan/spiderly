@@ -2973,4 +2973,47 @@ describe('SpiderlyDataTableComponent — column widths', () => {
 
     expect(dataTable.sortKeys).toEqual([]);
   });
+
+});
+
+// The safety net for all four gestures. Until the header menu arrived, "reset to default" only
+// had visibility to undo; now an operator can also wrap, move and resize, and a layout with no
+// way back is worse than one with no knobs.
+describe('SpiderlyDataTableComponent — resetting the layout', () => {
+  it('undoes wrap, order and width, not just visibility', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    const declared = dataTable.cols.map((col) => col.field);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
+      .click();
+    await renderRows(fixture);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-right"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.visibleCols.map((col) => col.field)).not.toEqual(declared);
+
+    await openChooser(fixture);
+    chooserContainer(fixture)!
+      .querySelector<HTMLButtonElement>('[data-testid="column-chooser-reset"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.visibleCols.map((col) => col.field)).toEqual(declared);
+    expect(dataTable.isColumnWrapped(dataTable.cols[0])).toBeFalse();
+    // Nothing left in storage either: a reset that leaves the old layout behind comes back on
+    // the next reload.
+    expect(
+      localStorage.getItem(`${dataTable.resolvedStateKey}:layout`),
+    ).toBeNull();
+  });
 });
