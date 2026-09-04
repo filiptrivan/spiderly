@@ -4,6 +4,7 @@ import {
   Component,
   ContentChild,
   ContentChildren,
+  ElementRef,
   ErrorHandler,
   EventEmitter,
   effect,
@@ -12,6 +13,7 @@ import {
   Injector,
   Input,
   LOCALE_ID,
+  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
@@ -118,6 +120,58 @@ export class SpiderlyDataTableComponent
   @ViewChild('dt') table: Table;
 
   private readonly injector = inject(Injector);
+  private readonly zone = inject(NgZone);
+
+  /** The selection column's declared share. Under the fixed layout this is a RATIO, not a width. */
+  protected readonly selectionColumnWidth = '6rem';
+
+  /**
+   * The selection column's MEASURED width, which is what the frozen identity column offsets
+   * itself by. Declaring `6rem` on both looked like the one-telling answer and is wrong: widths
+   * are shares, so that column renders at whatever proportion of the table it gets — 148px for a
+   * declared 6rem in one spec — and the identity column would sit 52px inside it, overlapping the
+   * checkboxes the moment anyone scrolled. The spec caught it; nothing about the page would have.
+   */
+  protected frozenOffsetPx = 0;
+
+  private selectionWidthObserver?: ResizeObserver;
+
+  /**
+   * Whether this column is pinned against the left edge. Only the FIRST column, and only when it
+   * is `lockVisible`: a sticky column in the middle of the grid pins the wrong thing and leaves a
+   * hole where it used to be. Once the grid scrolls sideways a row otherwise loses its identity
+   * — "Intesa, plaćeno, 12.400" with no idea whose order it is — and NN/g's Data Tables is
+   * explicit that the leftmost header column must lock in place. `lockVisible` already names
+   * exactly that column in every table, so this needs no new API (CLAUDE.md -> decision 8).
+   */
+  isColumnFrozen(col: Column): boolean {
+    return col.lockVisible === true && this.visibleCols[0] === col;
+  }
+
+  /** A frozen column starts after the checkbox column, when there is one. */
+  frozenColumnOffset(): string {
+    return this.selectionMode === 'multiple' ? `${this.frozenOffsetPx}px` : '0';
+  }
+
+  /**
+   * Tracks the selection column's rendered width. A ResizeObserver rather than a one-off read:
+   * every column drag and every window resize re-splits the shares, so the offset moves without
+   * anything about the selection column itself changing.
+   */
+  private observeSelectionWidth(): void {
+    const cell = this.selectionHeader()?.nativeElement;
+    if (!cell || this.selectionWidthObserver) return;
+
+    this.zone.runOutsideAngular(() => {
+      this.selectionWidthObserver = new ResizeObserver(() => {
+        const width = cell.offsetWidth;
+        if (width === this.frozenOffsetPx) return;
+
+        this.zone.run(() => (this.frozenOffsetPx = width));
+      });
+      this.selectionWidthObserver.observe(cell);
+    });
+  }
 
   /**
    * Custom toolbar content projected via `<ng-template spiderlyDataTableActions>`.
@@ -294,6 +348,7 @@ export class SpiderlyDataTableComponent
 
   ngAfterViewInit(): void {
     this.setupRemovableSort();
+    this.observeSelectionWidth();
   }
 
   /**
@@ -1152,6 +1207,9 @@ export class SpiderlyDataTableComponent
 
   private readonly filterBar = viewChild(SpiderlyFilterBarComponent);
 
+  private readonly selectionHeader =
+    viewChild<ElementRef<HTMLElement>>('selectionHeader');
+
   openColumnMenu(col: Column, event: Event): void {
     this.menuColumn = col;
     // Kept so `fitMenuColumn` can find the column's cells: it needs the header's position among
@@ -1693,6 +1751,7 @@ export class SpiderlyDataTableComponent
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.selectionWidthObserver?.disconnect();
   }
 
   get showSelectAllCheckbox(): boolean {

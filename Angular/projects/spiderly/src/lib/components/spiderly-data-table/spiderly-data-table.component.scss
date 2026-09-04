@@ -141,6 +141,27 @@
     opacity: 1;
   }
 
+  // The left edge that survives a horizontal scroll. The background must be OPAQUE and must track
+  // hover and striping, or rows show through the pinned cells as they pass underneath — which is
+  // the one thing that makes a sticky column look broken rather than merely unstyled. It inherits
+  // rather than naming a colour so PrimeNG's own row states keep working.
+  .frozen-column {
+    position: sticky;
+    z-index: 1;
+    background: var(--p-datatable-row-background, var(--p-content-background));
+  }
+
+  tr:hover > .frozen-column {
+    background: var(--p-datatable-row-hover-background, inherit);
+  }
+
+  // The seam. NN/g calls for a shadow so the pinned columns read as floating ABOVE the rest
+  // rather than as the first two columns of a table that happens not to move.
+  th.frozen-column:last-of-type,
+  td.frozen-column:last-of-type {
+    box-shadow: 2px 0 4px -2px rgb(0 0 0 / 15%);
+  }
+
   // The grab handle on a header's right edge. The th is position:relative through PrimeNG's own
   // styles; the strip is wider than the line it draws so it can actually be hit.
   th {

@@ -3213,3 +3213,57 @@ describe('SpiderlyDataTableComponent — filtering from the header menu', () => 
     ).toBeTrue();
   });
 });
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+      [deleteListFromTableObservableMethod]="deleteList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithFrozenIdentityComponent {
+  cols: Column[] = [
+    { name: 'Broj', field: 'number', filterType: 'text', lockVisible: true },
+    { name: 'Kupac', field: 'name', filterType: 'text' },
+  ];
+  getList = (): Observable<PaginatedResult> =>
+    paginated([{ id: 1, number: 'PA-1', name: 'Marko' }]);
+  deleteList = () => of(null);
+}
+
+// Once the grid scrolls sideways a row loses its identity: "Intesa, plaćeno, 12.400" with no idea
+// whose order it is. NN/g's Data Tables is explicit that the leftmost header column must lock in
+// place, and `lockVisible` already names exactly that column in every table — so freezing needs
+// no new API (CLAUDE.md -> decision 8).
+describe('SpiderlyDataTableComponent — the frozen left edge', () => {
+  it('pins the identity column and the selection box, in that order', async () => {
+    const { fixture } = createWithDataTable(HostWithFrozenIdentityComponent);
+    await renderRows(fixture);
+
+    const el = fixture.nativeElement as HTMLElement;
+    const headers = el.querySelectorAll<HTMLElement>('thead th');
+    const cells = el.querySelectorAll<HTMLElement>('tbody td');
+
+    // The checkbox column first, hard against the edge.
+    expect(getComputedStyle(headers[0]).position).toBe('sticky');
+    expect(getComputedStyle(headers[0]).left).toBe('0px');
+
+    // The identity column next, offset by exactly the checkbox column's width — a gap or an
+    // overlap here is the whole failure mode.
+    expect(getComputedStyle(headers[1]).position).toBe('sticky');
+    expect(getComputedStyle(headers[1]).left).toBe(
+      `${headers[0].offsetWidth}px`,
+    );
+
+    // The body follows the header, or the columns come apart as soon as the grid scrolls.
+    expect(getComputedStyle(cells[1]).position).toBe('sticky');
+    expect(getComputedStyle(cells[1]).left).toBe(`${cells[0].offsetWidth}px`);
+
+    // Everything after it scrolls.
+    expect(getComputedStyle(headers[2]).position).not.toBe('sticky');
+  });
+});
