@@ -1,14 +1,8 @@
-import {
-  AfterViewChecked,
-  Directive,
-  ElementRef,
-  NgZone,
-  OnDestroy,
-  inject,
-} from '@angular/core';
+import { Directive, ElementRef, NgZone, OnDestroy, inject } from '@angular/core';
 
 /**
- * Puts a native `title` on an element ONLY while its text is actually clipped.
+ * Puts a native `title` on an element while its text is clipped — measured when the pointer
+ * arrives, which is the only moment a native title can surface.
  *
  * The data table clamps a default cell to one line (see the `.cell-text` rule), which hides the
  * value and, before this, offered nothing to read it with — the reason PACMS hand-added `[title]`
@@ -16,48 +10,42 @@ import {
  * default nobody touched.
  *
  * Native `title`, never `pTooltip`: it needs a deliberate hover rather than firing as the cursor
- * crosses a dense list, which is what got the SKU tooltip removed. And only on overflow, because
- * a title on a cell that fits is noise on every one of those hovers.
+ * crosses a dense list, which is what got the SKU tooltip removed.
+ *
+ * **Measured on hover, not watched.** The first shape ran `ngAfterViewChecked` on every instance
+ * every change-detection cycle (reading `textContent`, which allocates a fresh string each call)
+ * and gave each instance its OWN `ResizeObserver`. On a 100-row grid nineteen columns wide that is
+ * ~1900 hooks per cycle and ~1900 observers in Chrome's per-frame loop — all to decide something
+ * that can only ever be seen one cell at a time. Hover is exactly-in-time, costs nothing until it
+ * happens, and needs no separate handling for a column drag or a resized window: the next hover
+ * re-measures. Nothing is lost for a screen reader either — CSS clipping never hid the text from
+ * the accessibility tree, so the title was only ever a sighted-hover affordance.
  */
 @Directive({
   selector: '[spiderlyOverflowTitle]',
 })
-export class SpiderlyOverflowTitleDirective
-  implements AfterViewChecked, OnDestroy
-{
+export class SpiderlyOverflowTitleDirective implements OnDestroy {
   private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
 
-  /** The text last measured, so a check costs a string compare rather than a reflow. */
-  private measured: string | null = null;
+  private readonly onPointerEnter = () => this.sync();
 
-  private observer?: ResizeObserver;
-
-  ngAfterViewChecked(): void {
-    const text = this.el.nativeElement.textContent ?? '';
-    if (text === this.measured) return;
-
-    this.measured = text;
-    this.sync();
-    this.observeWidth();
+  constructor() {
+    // Outside the zone: it sets an attribute and touches no bound state, so waking change
+    // detection on every cell the cursor crosses would be pure cost.
+    this.zone.runOutsideAngular(() =>
+      this.el.nativeElement.addEventListener(
+        'pointerenter',
+        this.onPointerEnter,
+      ),
+    );
   }
 
   ngOnDestroy(): void {
-    this.observer?.disconnect();
-  }
-
-  /**
-   * A column can be resized or the window narrowed without the TEXT changing, and either can turn
-   * a cell that fit into one that does not. Outside the zone: this fires per column drag frame
-   * across every cell, and it changes an attribute rather than any bound state.
-   */
-  private observeWidth(): void {
-    if (this.observer || typeof ResizeObserver === 'undefined') return;
-
-    this.zone.runOutsideAngular(() => {
-      this.observer = new ResizeObserver(() => this.sync());
-      this.observer.observe(this.el.nativeElement);
-    });
+    this.el.nativeElement.removeEventListener(
+      'pointerenter',
+      this.onPointerEnter,
+    );
   }
 
   private sync(): void {

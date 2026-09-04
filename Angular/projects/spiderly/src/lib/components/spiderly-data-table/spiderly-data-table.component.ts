@@ -80,6 +80,11 @@ import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-cont
  * A table, not a switch, so the mapping is exhaustive: a new `filterType` fails the build here
  * instead of silently inheriting the actions-column reservation below.
  */
+/** One rem in pixels. Both the share arithmetic and the px-to-share conversion need it. */
+function rootFontSizePx(): number {
+  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
 const DEFAULT_COLUMN_WIDTH_REM: Record<
   NonNullable<Column['filterType']>,
   number
@@ -137,6 +142,9 @@ export class SpiderlyDataTableComponent
 
   private selectionWidthObserver?: ResizeObserver;
 
+  /** Aborts an in-flight column resize's document listeners, from `onUp` or from teardown. */
+  private resizeAbort: AbortController | null = null;
+
   /**
    * Whether this column is pinned against the left edge. Only the FIRST column, and only when it
    * is `lockVisible`: a sticky column in the middle of the grid pins the wrong thing and leaves a
@@ -147,6 +155,19 @@ export class SpiderlyDataTableComponent
    */
   isColumnFrozen(col: Column): boolean {
     return col.lockVisible === true && this.visibleCols[0] === col;
+  }
+
+  /**
+   * The rightmost pinned cell, which carries the seam's shadow. It is the identity column when
+   * there is one and the checkbox column otherwise — a fact only this side knows, which is why
+   * the SCSS asking for it as `:last-of-type` drew nothing at all.
+   */
+  isLastFrozenColumn(col: Column): boolean {
+    return this.isColumnFrozen(col);
+  }
+
+  get isSelectionColumnLastFrozen(): boolean {
+    return !this.visibleCols.some((col) => this.isColumnFrozen(col));
   }
 
   /** A frozen column starts after the checkbox column, when there is one. */
@@ -170,10 +191,12 @@ export class SpiderlyDataTableComponent
       this.zone.run(() => (this.frozenOffsetPx = width));
     };
 
-    this.zone.runOutsideAngular(() => {
-      this.selectionWidthObserver = new ResizeObserver(measure);
-      this.selectionWidthObserver.observe(cell);
-    });
+    if (typeof ResizeObserver !== 'undefined') {
+      this.zone.runOutsideAngular(() => {
+        this.selectionWidthObserver = new ResizeObserver(measure);
+        this.selectionWidthObserver.observe(cell);
+      });
+    }
 
     // Measured once immediately as well, on a microtask. The observer's first callback arrives an
     // animation frame later, and until it does the identity column sits at left:0 — on top of the
@@ -216,7 +239,12 @@ export class SpiderlyDataTableComponent
   /** Saved questions for this table, rendered as tabs above the bar. */
   @Input() views?: TableView[];
 
-  /** The view currently selected, by id. */
+  /**
+   * The view currently selected. Seeded from the first view in `ngOnInit`, never left null on a
+   * table that has views: `viewScope` keys the layout off it, so an unseeded table writes its
+   * width and order to the SAME key an unmigrated table uses — orphaned the moment the operator
+   * clicks the first tab — and no tab reads as selected until they do.
+   */
   activeViewId: string | null = null;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
@@ -461,6 +489,8 @@ export class SpiderlyDataTableComponent
   ngOnInit(): void {
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
 
+    this.activeViewId ??= this.views?.[0]?.id ?? null;
+
     if (this.filters) this.requeryOnAppliedFilters();
 
     if (this.deleteListFromTableObservableMethod && !this.selectionMode) {
@@ -615,9 +645,7 @@ export class SpiderlyDataTableComponent
   canMoveColumn(col: Column, direction: -1 | 1): boolean {
     if (col.lockVisible || !col.field) return false;
 
-    const order = this.orderedCols().filter(
-      SpiderlyDataTableComponent.isDataColumn,
-    );
+    const order = this.dataColumnsInOrder();
     const from = order.indexOf(col);
     const to = from + direction;
 
@@ -649,20 +677,17 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Header drag, ours rather than PrimeNG's `pReorderableColumn`. Its `onMouseDown` sets the th
-   * draggable for anything that is not an INPUT, a TEXTAREA or its own resizer — so our menu
-   * button and our resize grip would both start a column drag — and its `onColumnDrop` reorders
-   * blind, with no notion of a locked column (CLAUDE.md -> decision 6).
+   * Header drag, ours rather than PrimeNG's `pReorderableColumn`, for two reasons: its
+   * `onMouseDown` arms the th for anything that is not an INPUT, a TEXTAREA or its OWN resizer —
+   * so our menu chevron and our resize grip would each start a column drag, and reaching for a
+   * width would silently reorder the grid — and its `onColumnDrop` reorders blind, with no notion
+   * of a locked column (CLAUDE.md -> decision 6).
    *
-   * A shortcut for neighbours, never the mechanism: HTML5 dnd has no edge auto-scroll, so a
-   * column scrolled off the right is unreachable this way, and there is no keyboard path at all.
-   * The menu carries both of those.
-   */
-  /**
-   * Arms the header for dragging, unless the gesture began on a control that owns it. This is the
-   * exclusion list PrimeNG's directive gets wrong for us: it arms the th for anything that is not
-   * an INPUT, a TEXTAREA or its OWN resizer, so our menu chevron and our resize grip would each
-   * start a column drag — reaching for a width would silently reorder the grid.
+   * A shortcut for neighbours, never the mechanism: HTML5 dnd has no edge auto-scroll, so a column
+   * scrolled off the right is unreachable this way, and there is no keyboard path at all. The menu
+   * carries both.
+   *
+   * This half is the arming rule; the drop rule is `canDropOn` below.
    */
   onHeaderMouseDown(event: MouseEvent): void {
     const target = event.target as HTMLElement;
@@ -1114,6 +1139,7 @@ export class SpiderlyDataTableComponent
 
     this.applyDefaultSortIfUnsorted(event);
     this.lastLazyLoadEvent = event;
+    this.refreshSortKeys();
     this.rangeAnchorId = null;
     this.snapshotAppliedFilters(event.filters);
 
@@ -1276,14 +1302,6 @@ export class SpiderlyDataTableComponent
     );
   }
 
-  /**
-   * The column's declared {@link Column.width}, or the default for its filter type.
-   *
-   * A width, not a minimum: under the fixed layout {@link tableStyle} establishes, this is what
-   * the column is sized from, and the table shares its surplus in PROPORTION to these numbers.
-   * Columns declaring none would otherwise take an equal share, which throws away what the
-   * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
-   */
   /** The column the header menu is currently open for, and its header cell. */
   menuColumn: Column | null = null;
 
@@ -1324,15 +1342,6 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Sorts by this column in the NAMED direction. Clicking a header cycles asc, desc and off,
-   * which is fine for one column and a guess for a direction someone wants now — you click, look,
-   * and click again if it went the other way. This is also the only sort path that works from a
-   * keyboard.
-   *
-   * A column the generated paginator has no sort case for answers every load with a 400, so the
-   * items are disabled by the same predicate that keeps its header from being clickable.
-   */
-  /**
    * Switches to a view. Clears first, always: a view is a STATE rather than an addition, and two
    * of them composed produce a question nobody asked. The clear runs through the store directly
    * rather than through `clear(table)`, which would also wipe the sort and the persisted state a
@@ -1353,9 +1362,27 @@ export class SpiderlyDataTableComponent
     view.apply?.(this.filters);
   }
 
-  /** Whether the header menu can offer `Filter…` — a store, and a column that names one of it. */
+  /**
+   * The filter this column stands for. Defaults to the key the column already filters under
+   * (`filterKey` = `filterField ?? field`), because a store id IS a backend property name —
+   * `toFilterPayload` emits it straight into `Filter.filters`. So `filterId` is an escape hatch
+   * for the rare mismatch, not something every column restates: all eight of the first migrated
+   * table's declarations were the field name written a second time.
+   */
+  private filterIdFor(col: Column): string | undefined {
+    return col.filterId ?? this.filterKey(col);
+  }
+
+  /**
+   * Asks the STORE, not the column. Checking only that an id was declared let a typo through to
+   * `store.get(id)`, which reads `definitions[id].label` — so a mistyped id threw on click rather
+   * than greying the item out. With 195 declarations to migrate, that is the failure mode worth
+   * closing here rather than in each consumer.
+   */
   canFilterColumn(col: Column): boolean {
-    return this.filters != null && col.filterId != null;
+    const id = this.filterIdFor(col);
+
+    return id != null && this.filters?.definitions[id] != null;
   }
 
   /**
@@ -1369,9 +1396,18 @@ export class SpiderlyDataTableComponent
     this.columnMenu().hide();
     if (!col || !this.canFilterColumn(col)) return;
 
-    this.filterBar()?.startEditing(col.filterId!);
+    this.filterBar()?.startEditing(this.filterIdFor(col)!);
   }
 
+  /**
+   * Sorts by this column in the NAMED direction. Clicking a header cycles asc, desc and off,
+   * which is fine for one column and a guess for a direction someone wants now — you click, look,
+   * and click again if it went the other way. This is also the only sort path that works from a
+   * keyboard.
+   *
+   * A column the generated paginator has no sort case for answers every load with a 400, so the
+   * items are disabled by the same predicate that keeps its header from being clickable.
+   */
   sortMenuColumn(order: 1 | -1): void {
     const col = this.menuColumn;
     this.columnMenu().hide();
@@ -1404,19 +1440,25 @@ export class SpiderlyDataTableComponent
       ?.querySelectorAll<HTMLElement>(`tbody tr > td:nth-child(${index})`);
     if (!cells?.length) return;
 
-    let widest = th.scrollWidth;
-    for (const cell of Array.from(cells)) {
-      const styles = getComputedStyle(cell);
-      const padding =
-        (parseFloat(styles.paddingLeft) || 0) +
-        (parseFloat(styles.paddingRight) || 0);
+    // Padding comes from one CSS rule for every cell in the column, so it is read once off the
+    // first — a getComputedStyle per cell was a hundred style flushes for one number.
+    const styles = getComputedStyle(cells[0]);
+    const padding =
+      (parseFloat(styles.paddingLeft) || 0) +
+      (parseFloat(styles.paddingRight) || 0);
 
-      // Every descendant, not `firstElementChild`: the clamp lives on an inner span, so the td
-      // reports a scrollWidth that fits while the text inside it does not — and a consumer's
-      // cell template can nest the overflowing element arbitrarily deep.
-      for (const node of [cell, ...Array.from(cell.querySelectorAll('*'))]) {
-        widest = Math.max(widest, (node as HTMLElement).scrollWidth + padding);
-      }
+    // Cells AND their descendants in one query rather than one per cell: the clamp lives on an
+    // inner span, so a td reports a scrollWidth that fits while the text inside it does not, and
+    // a consumer's cell template can nest the overflowing element arbitrarily deep.
+    const content = th
+      .closest('table')!
+      .querySelectorAll<HTMLElement>(
+        `tbody tr > td:nth-child(${index}), tbody tr > td:nth-child(${index}) *`,
+      );
+
+    let widest = th.scrollWidth;
+    for (const node of Array.from(content)) {
+      widest = Math.max(widest, node.scrollWidth + padding);
     }
     this.columnWidths[col.field] = this.shareThatFits(col, th, widest);
     this.persistColumnLayout();
@@ -1447,10 +1489,7 @@ export class SpiderlyDataTableComponent
       return (needed * otherShares) / (tableWidth - needed);
     }
 
-    const rootFontSize =
-      parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-
-    return needed / rootFontSize;
+    return needed / rootFontSizePx();
   }
 
   hideMenuColumn(): void {
@@ -1497,14 +1536,25 @@ export class SpiderlyDataTableComponent
    * is actually applying. A field with no column left (hidden, or removed in a later release)
    * falls back to its own name rather than vanishing from the list.
    */
-  get sortKeys(): SortKeyLabel[] {
-    // The last REQUEST's sort, not `table._multiSortMeta`. On a first load with a declared
-    // default that field is still null: `applyDefaultSortIfUnsorted` writes the default onto the
-    // lazy-load event, and PrimeNG only fills its own meta once someone clicks a header. Reading
-    // the table there showed no sort on exactly the tables that always have one.
-    const meta = this.lastLazyLoadEvent?.multiSortMeta ?? [];
+  /**
+   * What the grid is ordered by, resolved to COLUMN NAMES for the bar.
+   *
+   * A field refreshed per fetch, not a getter: it is bound to the bar's `sort`, which is a SIGNAL
+   * input, so a freshly mapped array failed `Object.is` on every change-detection pass and marked
+   * the bar's consumers dirty forever — for a value that changes once per request. Same reason
+   * `tableStyle` is a field.
+   */
+  sortKeys: SortKeyLabel[] = [];
 
-    return meta.map((key) => ({
+  /**
+   * Read off the last REQUEST's sort, not `table._multiSortMeta`. On a first load with a declared
+   * default that field is still null: `applyDefaultSortIfUnsorted` writes the default onto the
+   * lazy-load event, and PrimeNG fills its own meta only once someone clicks a header. Reading the
+   * table there showed no sort on exactly the tables that always have one. A field with no column
+   * left falls back to its own name rather than vanishing.
+   */
+  private refreshSortKeys(): void {
+    this.sortKeys = (this.lastLazyLoadEvent?.multiSortMeta ?? []).map((key) => ({
       label: this.cols.find((col) => col.field === key.field)?.name ?? key.field,
       descending: key.order === -1,
     }));
@@ -1526,9 +1576,37 @@ export class SpiderlyDataTableComponent
       return this.columnWidths[col.field];
     }
 
-    if (col.width != null) return parseFloat(col.width) || 0;
+    if (col.width != null) return this.shareOfDeclaredWidth(col);
+
+    return this.defaultShare(col);
+  }
+
+  /**
+   * A declared width expressed in SHARE units. rem IS the share unit and px converts; any other
+   * unit falls back to the per-type default rather than being read as a bare number.
+   *
+   * `parseFloat` alone shipped here first, so `width: '150px'` resolved to share 150 against
+   * neighbours at 12 — one column eating the grid on the first drag or fit. Every declared width
+   * in the consumer happens to be rem today, which is exactly why nothing would have caught it.
+   */
+  private shareOfDeclaredWidth(col: Column): number {
+    const declared = col.width!.trim();
+    const value = parseFloat(declared);
+
+    if (Number.isNaN(value)) return this.defaultShare(col);
+    if (declared.endsWith('rem')) return value;
+    if (declared.endsWith('px')) return value / rootFontSizePx();
+
+    return this.defaultShare(col);
+  }
+
+  private defaultShare(col: Column): number {
     if (col.filterType) return DEFAULT_COLUMN_WIDTH_REM[col.filterType];
 
+    // What is left declares no filterType: an actions column. It cannot shrink to fit any more,
+    // so the icons need a reservation — each sits in a flex row whose gap is set beside them in
+    // the template, inside the cell's own padding. 2.5, not 2.2, so the arithmetic stays exact in
+    // binary and the string never reads `8.6000000001rem`.
     return 2 + (col.actions?.length ?? 0) * 2.5;
   }
 
@@ -1545,6 +1623,10 @@ export class SpiderlyDataTableComponent
     const neighbour = this.visibleCols[this.visibleCols.indexOf(col) + 1];
     if (!col.field || !neighbour?.field) return;
 
+    const controller = new AbortController();
+    this.resizeAbort?.abort();
+    this.resizeAbort = controller;
+
     const startX = event.clientX;
     const startShare = this.columnShare(col);
     const neighbourShare = this.columnShare(neighbour);
@@ -1552,21 +1634,35 @@ export class SpiderlyDataTableComponent
     // A column that reaches zero share disappears with no way back from the header it lost.
     const floor = 2;
 
+    const neighbourCell = th.nextElementSibling as HTMLElement | null;
+    let applied = 0;
+
     const onMove = (move: MouseEvent) => {
       const delta = (move.clientX - startX) * sharePerPx;
-      const clamped = Math.max(
+      applied = Math.max(
         Math.min(delta, neighbourShare - floor),
         floor - startShare,
       );
 
-      this.columnWidths[col.field!] = startShare + clamped;
-      this.columnWidths[neighbour.field!] = neighbourShare - clamped;
+      // The preview is written straight to the two header cells. Under the fixed layout their
+      // widths are what lay the grid out, so this IS the live drag — and it costs no change
+      // detection, where routing it through `columnWidths` ran a full-grid pass per mouse move
+      // (~60/sec) to move two cells. The bindings overwrite these on the next pass anyway.
+      th.style.width = `${startShare + applied}rem`;
+      if (neighbourCell) {
+        neighbourCell.style.width = `${neighbourShare - applied}rem`;
+      }
     };
 
     const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      this.persistColumnLayout();
+      controller.abort();
+      this.resizeAbort = null;
+
+      this.zone.run(() => {
+        this.columnWidths[col.field!] = startShare + applied;
+        this.columnWidths[neighbour.field!] = neighbourShare - applied;
+        this.persistColumnLayout();
+      });
 
       // Sorting hangs off CLICK, which stopPropagation on mousedown never touched — so every
       // resize also reordered the grid. Swallowing the click on the grip is not enough either:
@@ -1589,24 +1685,36 @@ export class SpiderlyDataTableComponent
       );
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    // One controller for the pair, aborted by `onUp` AND by ngOnDestroy. Left to `removeEventListener`
+    // inside `onUp` alone, navigating away mid-drag stranded `mousemove` on the document — patched
+    // by zone.js, so it ticked the app on every mouse move for the rest of the session, with its
+    // closure pinning the dead component and the page of rows it captured.
+    this.zone.runOutsideAngular(() => {
+      document.addEventListener('mousemove', onMove, {
+        signal: controller.signal,
+      });
+      document.addEventListener('mouseup', onUp, { signal: controller.signal });
+    });
   }
 
+  /**
+   * The column's declared {@link Column.width}, or the default for its filter type.
+   *
+   * A width, not a minimum: under the fixed layout {@link tableStyle} establishes, this is what
+   * the column is sized from, and the table shares its surplus in PROPORTION to these numbers.
+   * Columns declaring none would otherwise take an equal share, which throws away what the
+   * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
+   */
   getColWidth(col: Column): string {
-    if (col.field && this.columnWidths[col.field] != null) {
-      return `${this.columnWidths[col.field]}rem`;
-    }
+    const override = col.field ? this.columnWidths[col.field] : undefined;
+    if (override != null) return `${override}rem`;
 
+    // A declared width passes through VERBATIM so a consumer keeps % and px; every other branch is
+    // a share and renders in rem. Both halves resolve through `columnShare` otherwise, because
+    // this chain and that one were written twice and had already drifted apart on the px case.
     if (col.width != null) return col.width;
 
-    if (col.filterType) return `${DEFAULT_COLUMN_WIDTH_REM[col.filterType]}rem`;
-
-    // What is left declares no filterType: an actions column. It cannot shrink to fit any more,
-    // so the icons need a reservation — each sits in a flex row whose gap is set beside them in
-    // the template, inside the cell's own padding. 2.5, not 2.2, so the arithmetic stays exact in
-    // binary and the string never reads `8.6000000001rem`.
-    return `${2 + (col.actions?.length ?? 0) * 2.5}rem`;
+    return `${this.defaultShare(col)}rem`;
   }
 
   /**
@@ -1878,6 +1986,7 @@ export class SpiderlyDataTableComponent
     this.destroy$.next();
     this.destroy$.complete();
     this.selectionWidthObserver?.disconnect();
+    this.resizeAbort?.abort();
   }
 
   get showSelectAllCheckbox(): boolean {

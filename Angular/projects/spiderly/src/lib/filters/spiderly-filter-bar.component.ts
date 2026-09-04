@@ -29,19 +29,23 @@ import {
   SortKeyLabel,
 } from './filter-store';
 
-export { FilterBarSource };
-
 /**
  * Lowercased and stripped of diacritics for matching. NFD decomposition handles č/ć/š/ž, but NOT
- * đ — it is its own letter (U+0111), not a d with a mark, so it decomposes to nothing and has to
- * be mapped by hand. Missing that is how "djordje" silently fails to find "Đorđe".
+ * đ — it is its own letter (U+0111), not a d carrying a mark, so it decomposes to nothing and has
+ * to be mapped by hand.
+ *
+ * It maps to "dj", which is what the rest of this workspace already does (pa-cms's
+ * `normalizePlaceQuery` and `toAscii`, the backend's `PlaceNameNormalizer`) and what someone
+ * without a Serbian layout actually types. Mapping it to "d" — as this first shipped — folds
+ * "Đorđe" to "dorde", so typing "djordje" finds nothing: the exact case the comment claimed to
+ * fix, and one no spec covered because the test used "drzava", which has no đ in it.
  */
-function foldForSearch(value: string): string {
+export function foldForSearch(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\u0111/g, 'd')
-    .replace(/\u0110/g, 'D')
+    .replace(/\u0111/g, 'dj')
+    .replace(/\u0110/g, 'Dj')
     .toLowerCase()
     .trim();
 }
@@ -221,7 +225,7 @@ function foldForSearch(value: string): string {
               <p-select
                 size="small"
                 styleClass="filter-editor-operator"
-                [options]="operatorChoices(handle)"
+                [options]="operatorChoices()"
                 optionLabel="label"
                 optionValue="value"
                 [ngModel]="handle.operator() ?? handle.defaultOperator"
@@ -333,11 +337,6 @@ export class SpiderlyFilterBarComponent {
   readonly editing = signal<FilterHandle | null>(null);
 
   /**
-   * What "+ Filter" offers: every declared filter that is not already on the bar. Sourced from the
-   * DEFINITIONS, so a filter reaches this list whether or not it has a column, and whether or not
-   * that column is visible. That is the whole reason the bar exists.
-   */
-  /**
    * `addable` narrowed by the search box. Matching is unaccented and case-folded because that is
    * how the label gets typed: "drzava" for "Država" on any keyboard without a Serbian layout. The
    * backend's own product search is unaccented for the same reason.
@@ -351,6 +350,11 @@ export class SpiderlyFilterBarComponent {
     );
   });
 
+  /**
+   * What "+ Filter" offers: every declared filter that is not already on the bar. Sourced from the
+   * DEFINITIONS, so a filter reaches this list whether or not it has a column, and whether or not
+   * that column is visible. That is the whole reason the bar exists.
+   */
   readonly addable = computed(() => {
     const onBar = new Set(this.filters().applied().map((chip) => chip.id));
 
@@ -359,17 +363,7 @@ export class SpiderlyFilterBarComponent {
       .map(([id, definition]) => ({ id, ...definition }));
   });
 
-  /**
-   * Opens the control ANCHORED to what was clicked. It used to render inline at the end of the
-   * bar, where `margin-left: auto` on the clear button pushed everything after it to the far
-   * right — so clicking the second filter opened its control across the screen from the click
-   * (Filip, on /tags). A popover cannot drift.
-   *
-   * The anchor is passed explicitly because the add-menu path clicks an option INSIDE a popover
-   * that is about to close; anchoring to the event target would pin the editor to an element on
-   * its way out of the DOM. It anchors to the "+ Filter" button instead, and a chip anchors to
-   * itself.
-   */
+  /** Opens a filter's control. Where it renders, and why not a popover: the template comment. */
   startEditing(id: string): void {
     this.isAddOpen.set(false);
     this.editing.set(this.filters().get(id));
@@ -391,15 +385,23 @@ export class SpiderlyFilterBarComponent {
     return match?.template ?? null;
   }
 
-  /** The picker's own options, already translated — p-select takes labels, not keys. */
-  operatorChoices(
-    handle: FilterHandle,
-  ): { label: string; value: MatchModeCodes }[] {
+  /**
+   * The open editor's operator options, already translated — p-select takes labels, not keys.
+   *
+   * A `computed`, not a method in the binding: both inputs are fixed for the life of an open
+   * editor, and PrimeNG's `Select.options` setter deep-compares whatever it is handed — so a
+   * freshly mapped array per change-detection pass paid for a recursive structural compare to
+   * conclude nothing had changed.
+   */
+  readonly operatorChoices = computed(() => {
+    const handle = this.editing();
+    if (!handle) return [];
+
     return handle.operators.map((option) => ({
       label: this.transloco.translate(option.labelKey),
       value: option.value,
     }));
-  }
+  });
 
   /**
    * The ONE write path, whatever the control. Every PrimeNG control here hands back a value of

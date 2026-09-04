@@ -27,18 +27,17 @@ function renderBar(filters: FilterBarSource): ComponentFixture<SpiderlyFilterBar
     imports: [
       SpiderlyFilterBarComponent,
       // Real words for the chip phrases, so the assertions read as the sentence an operator sees
-      // rather than as a key. Everything else falls back to the shared empty map.
-      TranslocoTestingModule.forRoot({
-        ...translocoTesting(),
-        langs: {
-          en: {
-            FilterChipContains: 'contains',
-            FilterChipIn: 'is one of',
-            FilterChipEquals: 'is',
-            FilterChipBefore: 'before',
-          },
-        },
-      }),
+      // rather than as a key. Through the helper's own `words` parameter, which this change added
+      // for exactly this case — spreading the helper and then overwriting its `langs` left that
+      // parameter dead for its motivating caller.
+      TranslocoTestingModule.forRoot(
+        translocoTesting({
+          FilterChipContains: 'contains',
+          FilterChipIn: 'is one of',
+          FilterChipEquals: 'is',
+          FilterChipBefore: 'before',
+        }),
+      ),
     ],
     providers: [provideNoopAnimations()],
   });
@@ -455,6 +454,7 @@ describe('SpiderlyFilterBarComponent', () => {
       companyName: textFilter({ label: 'Firma' }),
       orderStatusId: numberFilter({ label: 'Status' }),
       shippingCountry: textFilter({ label: 'Država isporuke' }),
+      handledBy: textFilter({ label: 'Đorđe' }),
     });
 
     const fixture = renderBar(filters);
@@ -480,5 +480,14 @@ describe('SpiderlyFilterBarComponent', () => {
     search.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     expect(offered()).toEqual(['Država isporuke']);
+
+    // đ is the one that does NOT fall out of NFD — it is its own letter, not a d with a mark — so
+    // it is mapped by hand, and it has to map the way the rest of the workspace maps it. Folding
+    // it to "d" shipped first and made this exact search return nothing while the comment above
+    // the function claimed it was the case being fixed.
+    search.value = 'djordje';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(offered()).toEqual(['Đorđe']);
   });
 });

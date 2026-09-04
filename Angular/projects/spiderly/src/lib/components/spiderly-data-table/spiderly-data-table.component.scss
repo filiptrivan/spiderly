@@ -186,8 +186,11 @@
 
   // The seam. NN/g calls for a shadow so the pinned columns read as floating ABOVE the rest
   // rather than as the first two columns of a table that happens not to move.
-  th.frozen-column:last-of-type,
-  td.frozen-column:last-of-type {
+  //
+  // `:last-of-type` shipped here first and drew NOTHING: it means "last th among its siblings",
+  // and the frozen cells are the FIRST ones — it was written for "the last frozen column", which
+  // is a concept the markup never expressed. The class does.
+  .frozen-column-last {
     box-shadow: 2px 0 4px -2px rgb(0 0 0 / 15%);
   }
 

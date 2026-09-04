@@ -105,12 +105,9 @@
               [disabled]="!menuColumn || !canToggleColumn(menuColumn)"
               (click)="hideMenuColumn()"
             >
-              <i class="pi pi-eye-slash"></i> {{ t('HideColumn') }}
+              <i class="pi pi-eye-slash"></i>
+              <span class="column-menu-item-label">{{ t('HideColumn') }}</span>
             </button>
-            <!-- menuitemcheckbox, not menuitem: this one TOGGLES, and a label reading the same
-                 in both states leaves the operator to find out by clicking — which on a wide
-                 column means re-laying the grid out to learn what it was already set to. The
-                 check is the state; the label stays put, which is what the role is for. -->
             <button
               type="button"
               role="menuitem"
@@ -176,6 +173,10 @@
               <i class="pi pi-arrows-h"></i>
               <span class="column-menu-item-label">{{ t('FitWidth') }}</span>
             </button>
+            <!-- menuitemcheckbox, not menuitem: this one TOGGLES, and a label reading the same
+                 in both states leaves the operator to find out by clicking — which on a wide
+                 column means re-laying the grid out to learn what it was already set to. The
+                 check is the state; the label stays put, which is what the role is for. -->
             <button
               type="button"
               role="menuitemcheckbox"
@@ -223,6 +224,7 @@
           <th
             #selectionHeader
             class="frozen-column"
+            [class.frozen-column-last]="isSelectionColumnLastFrozen"
             [style.width]="selectionColumnWidth"
             [style.left]="'0'"
             *ngIf="selectionMode == 'multiple'"
@@ -245,6 +247,7 @@
               [pSortableColumnDisabled]="!isColumnSortable(col)"
               [style.width]="getColWidth(col)"
               [class.frozen-column]="isColumnFrozen(col)"
+              [class.frozen-column-last]="isLastFrozenColumn(col)"
               [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
               [attr.draggable]="hasLazyLoad && !col.lockVisible ? true : null"
               (mousedown)="onHeaderMouseDown($event)"
@@ -387,6 +390,7 @@
           <td
             *ngIf="selectionMode == 'multiple'"
             class="selection-cell row-interactive frozen-column"
+            [class.frozen-column-last]="isSelectionColumnLastFrozen"
             [style.left]="'0'"
             (mousedown)="onSelectionCellMouseDown($event, rowData[idField])"
           >
@@ -403,6 +407,7 @@
               [class.clickable]="col.onCellClick"
               [class.row-interactive]="col.onCellClick"
               [class.frozen-column]="isColumnFrozen(col)"
+              [class.frozen-column-last]="isLastFrozenColumn(col)"
               [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
               (click)="onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"
@@ -442,6 +447,7 @@
               *ngIf="col.editable"
               class="row-interactive"
               [class.frozen-column]="isColumnFrozen(col)"
+              [class.frozen-column-last]="isLastFrozenColumn(col)"
               [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
             >
               <spiderly-number

@@ -3051,12 +3051,17 @@ describe('SpiderlyDataTableComponent — the clamped cell says what it hides', (
   it('titles a cell only while its text does not fit', async () => {
     const { fixture } = createWithDataTable(HostWithACrampedColumnComponent);
     await renderRows(fixture);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    fixture.detectChanges();
 
     const cells = (fixture.nativeElement as HTMLElement).querySelectorAll(
       'tbody .cell-text',
     );
+
+    // Measured when the pointer arrives, which is the only moment a native title can surface —
+    // and the reason there is no per-cell observer for it (see the directive).
+    for (const cell of Array.from(cells)) {
+      cell.dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }));
+    }
+    fixture.detectChanges();
 
     expect(cells[0].getAttribute('title')).toBe(
       'kupac javio da nije kod kuce do petka, zvati posle 16h',
@@ -3072,12 +3077,13 @@ describe('SpiderlyDataTableComponent — the clamped cell says what it hides', (
       HostWithACrampedColumnComponent,
     );
     await renderRows(fixture);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    fixture.detectChanges();
 
     const cell = () =>
       (fixture.nativeElement as HTMLElement).querySelector('tbody .cell-text')!;
+    const hover = () =>
+      cell().dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }));
 
+    hover();
     expect(cell().getAttribute('title')).not.toBeNull();
     const before = dataTable.columnShare(dataTable.cols[0]);
 
@@ -3086,10 +3092,9 @@ describe('SpiderlyDataTableComponent — the clamped cell says what it hides', (
       .querySelector<HTMLButtonElement>('[data-testid="column-menu-fit"]')!
       .click();
     await renderRows(fixture);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    fixture.detectChanges();
 
     expect(dataTable.columnShare(dataTable.cols[0])).toBeGreaterThan(before);
+    hover();
     expect(cell().getAttribute('title')).toBeNull();
   });
 

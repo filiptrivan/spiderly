@@ -3,18 +3,18 @@ import { computed, signal, Signal } from '@angular/core';
 import { FilterRule } from '../entities/filter-rule';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 
-/**
- * A filter declaration. It carries its VALUE type, never a UI control name — that separation is
- * the whole point: `multiselect` is a control, and it emits `In`, which `AllowedMatchModes` allows
- * on a number and forbids on a string. Conflating the two is what shipped `paymentGatewayCode` as
- * a text filter with a hand-written comment instead of a compile error.
- */
 /** One tickable choice. `value` is the filter's own value type — an id, not a display string. */
 export interface FilterOption {
   value: unknown;
   label: string;
 }
 
+/**
+ * A filter declaration. It carries its VALUE type, never a UI control name — that separation is
+ * the whole point: `multiselect` is a control, and it emits `In`, which `AllowedMatchModes` allows
+ * on a number and forbids on a string. Conflating the two is what shipped `paymentGatewayCode` as
+ * a text filter with a hand-written comment instead of a compile error.
+ */
 export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKind> {
   kind: TKind;
   label: string;
@@ -96,7 +96,8 @@ const OPERATOR_WORDS: Record<
       pickerKey: 'Equals',
       phraseKey: 'FilterChipEquals',
     },
-    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
+    // No `In` for text: ALLOWED_OPERATORS.text does not carry it, so the entry was unreachable —
+    // and it made `textFilter({ options })` look supported when the store throws on it.
   },
   number: {
     [MatchModeCodes.Equals]: {
@@ -199,13 +200,16 @@ interface ValueByKind {
   date: Date;
 }
 
-export function textFilter(config: {
-  label: string;
-  options?: FilterOption[];
-}): FilterDefinition<'text'> {
-  return { kind: 'text', label: config.label, options: config.options };
+export function textFilter(config: { label: string }): FilterDefinition<'text'> {
+  return { kind: 'text', label: config.label };
 }
 
+/**
+ * Only a NUMBER filter accepts options, and the asymmetry is forced rather than chosen: options
+ * mean `In`, and `In` is the one operator ALLOWED_OPERATORS grants to numbers alone — because the
+ * generated paginator answers it with InvalidMatchMode on a string column. A text pick-list used
+ * to type-check and then throw at the first `set`.
+ */
 export function numberFilter(config: {
   label: string;
   options?: FilterOption[];
@@ -215,24 +219,16 @@ export function numberFilter(config: {
 
 export function booleanFilter(config: {
   label: string;
-  options?: FilterOption[];
 }): FilterDefinition<'boolean'> {
-  return { kind: 'boolean', label: config.label, options: config.options };
+  return { kind: 'boolean', label: config.label };
 }
 
 export function dateFilter(config: {
   label: string;
-  options?: FilterOption[];
 }): FilterDefinition<'date'> {
-  return { kind: 'date', label: config.label, options: config.options };
+  return { kind: 'date', label: config.label };
 }
 
-/**
- * The kind is what carries BOTH halves — which operators are legal and what the value is. It has
- * to stay a literal all the way from the factory to here: typing the definition's `kind` as the
- * widened `FilterValueKind` silently allows every operator on every filter, which is the shape
- * this first had (the runtime guard still fired, so only a `@ts-expect-error` pin caught it).
- */
 /**
  * `In` is the only multi-valued operator MatchModeCodes has, so it is the only one whose value is
  * a list. Distributing over the operator union yields a discriminated union rather than a loose
@@ -244,6 +240,12 @@ type ConstraintFor<TKind extends FilterValueKind, TOperator> =
     ? { operator: TOperator; value: ValueByKind[TKind][] | null | undefined }
     : { operator: TOperator; value: ValueByKind[TKind] | null | undefined };
 
+/**
+ * The kind is what carries BOTH halves — which operators are legal and what the value is. It has
+ * to stay a literal all the way from the factory to here: typing the definition's `kind` as the
+ * widened `FilterValueKind` silently allows every operator on every filter, which is the shape
+ * this first had (the runtime guard still fired, so only a `@ts-expect-error` pin caught it).
+ */
 export type FilterConstraint<TKind extends FilterValueKind> = ConstraintFor<
   TKind,
   (typeof ALLOWED_OPERATORS)[TKind][number]
@@ -255,11 +257,6 @@ interface StoredConstraint {
   value: unknown;
 }
 
-/**
- * What the CHIP BAR needs from a store, and no more: it reads the applied set and removes from it.
- * Narrow on purpose — it keeps the bar free of the store's generics, so the bar renders any store
- * without the two types having to agree on filter ids.
- */
 /** One filter, addressed on its own. The placement API, and what the bar's editor drives. */
 export interface FilterHandle {
   id: string;
@@ -279,6 +276,11 @@ export interface FilterHandle {
   reset(): void;
 }
 
+/**
+ * What the CHIP BAR needs from a store, and no more: it reads the applied set and removes from it.
+ * Narrow on purpose — it keeps the bar free of the store's generics, so the bar renders any store
+ * without the two types having to agree on filter ids.
+ */
 export interface FilterBarSource {
   /** Every DECLARED filter, which is what "+ Filter" offers — not every visible column. */
   definitions: Record<string, FilterDefinition<FilterValueKind>>;
@@ -320,10 +322,6 @@ export interface AppliedFilter {
 }
 
 /**
- * The filter engine. It knows nothing about columns: a filter has an id, a value type and a
- * constraint, and that is the entire vocabulary.
- */
-/**
  * A blanked value is NOT a constraint. `contains ''` matches every row, so emitting one would
  * narrow nothing while the bar claims the grid is filtered.
  */
@@ -337,6 +335,10 @@ function isBlank(value: unknown): boolean {
   return false;
 }
 
+/**
+ * The filter engine. It knows nothing about columns: a filter has an id, a value type and a
+ * constraint, and that is the entire vocabulary.
+ */
 export function createFilterStore<
   TDefs extends Record<string, FilterDefinition<FilterValueKind>>,
 >(definitions: TDefs) {
