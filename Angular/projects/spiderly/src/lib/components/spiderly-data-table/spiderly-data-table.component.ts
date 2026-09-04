@@ -1081,6 +1081,10 @@ export class SpiderlyDataTableComponent
     return col.field != null && this.columnWrap[col.field] === true;
   }
 
+  get isMenuColumnWrapped(): boolean {
+    return this.menuColumn != null && this.isColumnWrapped(this.menuColumn);
+  }
+
   toggleWrapForMenuColumn(): void {
     const col = this.menuColumn;
     this.columnMenu().hide();

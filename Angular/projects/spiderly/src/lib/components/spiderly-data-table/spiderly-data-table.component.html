@@ -107,14 +107,21 @@
             >
               <i class="pi pi-eye-slash"></i> {{ t('HideColumn') }}
             </button>
+            <!-- menuitemcheckbox, not menuitem: this one TOGGLES, and a label reading the same
+                 in both states leaves the operator to find out by clicking — which on a wide
+                 column means re-laying the grid out to learn what it was already set to. The
+                 check is the state; the label stays put, which is what the role is for. -->
             <button
               type="button"
-              role="menuitem"
+              role="menuitemcheckbox"
               class="column-menu-item"
               data-testid="column-menu-wrap"
+              [attr.aria-checked]="isMenuColumnWrapped"
               (click)="toggleWrapForMenuColumn()"
             >
-              <i class="pi pi-align-left"></i> {{ t('WrapText') }}
+              <i class="pi pi-align-left"></i>
+              <span class="column-menu-item-label">{{ t('WrapText') }}</span>
+              <i *ngIf="isMenuColumnWrapped" class="pi pi-check"></i>
             </button>
           </div>
         </p-popover>

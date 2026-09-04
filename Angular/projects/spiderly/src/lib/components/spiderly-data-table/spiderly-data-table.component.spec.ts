@@ -2830,4 +2830,33 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
     );
     expect(stored.wrap).toEqual({ name: true });
   });
+
+  // It is a toggle, so the second click has to undo the first — and the menu has to SAY which way
+  // it is set. A menu item whose label reads the same in both states leaves the operator to
+  // discover by clicking, which on a wide column means re-laying the grid out to find out.
+  it('unwraps on a second click, and shows which way it is set', async () => {
+    const { fixture } = createWithDataTable(HostWithTwoColumnsComponent);
+    await renderRows(fixture);
+
+    const cell = () =>
+      (fixture.nativeElement as HTMLElement).querySelector('tbody .cell-text')!;
+    const wrapItem = () =>
+      columnMenu(fixture).querySelector<HTMLButtonElement>(
+        '[data-testid="column-menu-wrap"]',
+      )!;
+
+    await openColumnMenu(fixture);
+    expect(wrapItem().getAttribute('aria-checked')).toBe('false');
+    wrapItem().click();
+    await renderRows(fixture);
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('normal');
+
+    await openColumnMenu(fixture);
+    expect(wrapItem().getAttribute('aria-checked')).toBe('true');
+    wrapItem().click();
+    await renderRows(fixture);
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
+  });
 });
