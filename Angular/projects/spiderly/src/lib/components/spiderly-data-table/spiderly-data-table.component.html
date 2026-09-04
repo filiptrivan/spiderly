@@ -230,6 +230,11 @@
               [style.width]="getColWidth(col)"
               [class.frozen-column]="isColumnFrozen(col)"
               [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
+              [attr.draggable]="hasLazyLoad && !col.lockVisible ? true : null"
+              (mousedown)="onHeaderMouseDown($event)"
+              (dragstart)="onHeaderDragStart(col, $event)"
+              (dragover)="onHeaderDragOver(col, $event)"
+              (drop)="onHeaderDrop(col, $event)"
             >
               <!-- Ours, not PrimeNG's: enabling [resizableColumns] makes it persist widths by
                    th:nth-child INDEX into our own stateKey, which slides every stored width onto

@@ -614,16 +614,76 @@ export class SpiderlyDataTableComponent
     this.columnMenu().hide();
     if (!col || !this.canMoveColumn(col, direction)) return;
 
-    const order = this.orderedCols().filter(
-      SpiderlyDataTableComponent.isDataColumn,
-    );
-    const from = order.indexOf(col);
+    const order = this.dataColumnsInOrder();
+    this.placeColumn(order, col, order.indexOf(col) + direction);
+  }
 
-    order.splice(from + direction, 0, ...order.splice(from, 1));
+  /** The move itself, shared by the menu and the drag — two entry points, one rule. */
+  private placeColumn(order: Column[], col: Column, to: number): void {
+    order.splice(to, 0, ...order.splice(order.indexOf(col), 1));
 
     this.columnOrder = order.map((entry) => entry.field!);
     this.persistColumnLayout();
     this.refreshVisibleCols();
+  }
+
+  private dataColumnsInOrder(): Column[] {
+    return this.orderedCols().filter(SpiderlyDataTableComponent.isDataColumn);
+  }
+
+  /**
+   * Header drag, ours rather than PrimeNG's `pReorderableColumn`. Its `onMouseDown` sets the th
+   * draggable for anything that is not an INPUT, a TEXTAREA or its own resizer — so our menu
+   * button and our resize grip would both start a column drag — and its `onColumnDrop` reorders
+   * blind, with no notion of a locked column (CLAUDE.md -> decision 6).
+   *
+   * A shortcut for neighbours, never the mechanism: HTML5 dnd has no edge auto-scroll, so a
+   * column scrolled off the right is unreachable this way, and there is no keyboard path at all.
+   * The menu carries both of those.
+   */
+  /**
+   * Arms the header for dragging, unless the gesture began on a control that owns it. This is the
+   * exclusion list PrimeNG's directive gets wrong for us: it arms the th for anything that is not
+   * an INPUT, a TEXTAREA or its OWN resizer, so our menu chevron and our resize grip would each
+   * start a column drag — reaching for a width would silently reorder the grid.
+   */
+  onHeaderMouseDown(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+
+    this.headerDragArmed = !target.closest(
+      '.column-menu-button, .column-resizer',
+    );
+  }
+
+  onHeaderDragStart(col: Column, event: DragEvent): void {
+    if (col.lockVisible || !this.headerDragArmed) {
+      event.preventDefault();
+      return;
+    }
+
+    this.draggedColumn = col;
+    event.dataTransfer?.setData('text/plain', col.field ?? '');
+  }
+
+  onHeaderDragOver(col: Column, event: DragEvent): void {
+    if (this.canDropOn(col)) event.preventDefault();
+  }
+
+  onHeaderDrop(col: Column, event: DragEvent): void {
+    event.preventDefault();
+
+    const dragged = this.draggedColumn;
+    this.draggedColumn = null;
+    if (!dragged || dragged === col || !this.canDropOn(col)) return;
+
+    const order = this.dataColumnsInOrder();
+    this.placeColumn(order, dragged, order.indexOf(col));
+  }
+
+  /** Nothing lands on, or in front of, the locked column. Enforced here as well as in the menu:
+   * a drop is a separate entry point, and the rule is about the grid rather than about a button. */
+  private canDropOn(col: Column): boolean {
+    return !col.lockVisible && SpiderlyDataTableComponent.isDataColumn(col);
   }
 
   private refreshVisibleCols(): void {
@@ -1196,6 +1256,11 @@ export class SpiderlyDataTableComponent
   menuColumn: Column | null = null;
 
   private menuHeaderCell: HTMLElement | null = null;
+
+  private draggedColumn: Column | null = null;
+
+  /** False while a gesture that began on the menu chevron or the resize grip is in flight. */
+  private headerDragArmed = true;
 
   /**
    * A ViewChild rather than a template reference passed in from the header. The popover lives in
