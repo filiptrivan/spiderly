@@ -14,6 +14,7 @@ describe('createFilterStore — a filter needs no column', () => {
       operator: MatchModeCodes.Contains,
       value: 'Elektromont',
     });
+    filters.commit('companyName');
 
     expect(filters.toFilterPayload()).toEqual({
       companyName: [{ matchMode: MatchModeCodes.Contains, value: 'Elektromont' }],
@@ -32,7 +33,10 @@ describe('createFilterStore — a filter needs no column', () => {
       operator: MatchModeCodes.Contains,
       value: 'Elektromont',
     });
+    filters.commit('companyName');
+
     filters.set('companyName', { operator: MatchModeCodes.Contains, value: '' });
+    filters.commit('companyName');
 
     expect(filters.toFilterPayload()).toEqual({});
   });
@@ -57,5 +61,72 @@ describe('createFilterStore — a filter needs no column', () => {
         value: 'Elektromont',
       }),
     ).toThrowError(/companyName/);
+  });
+});
+
+// The bar shows APPLIED, never TYPED. This is the one mistake in this component that has already
+// shipped: reading `table.filters` filled the header's filter icon on the first keystroke, so the
+// grid claimed to be narrowed while it still showed everything (spiderly-data-table CLAUDE.md ->
+// "Active-filter header icon"). A chip drawn off a draft would be the same lie, louder.
+describe('createFilterStore — typed is not applied', () => {
+  it('keeps a set-but-uncommitted filter out of applied() and out of the payload', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elek',
+    });
+
+    expect(filters.applied()).toEqual([]);
+    expect(filters.toFilterPayload()).toEqual({});
+  });
+
+  // The chip's x. It has to clear the DRAFT as well as the committed constraint: leaving the draft
+  // behind empties the chip while the control still shows the old text, and the next commit brings
+  // the filter back with nobody having typed anything. The last assertion is that trap.
+  it('reset clears the chip, the payload key and the draft behind them', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+    filters.commit('companyName');
+
+    filters.reset('companyName');
+
+    expect(filters.applied()).toEqual([]);
+    expect(filters.toFilterPayload()).toEqual({});
+
+    filters.commit('companyName');
+    expect(filters.applied()).toEqual([]);
+  });
+
+  // The shape the bar draws a chip from. Asserted whole rather than by length, because the label
+  // is plumbed from the DEFINITION while the operator and value come from the constraint, and a
+  // chip reading "undefined: Elektromont" is the failure this catches.
+  it('publishes a committed constraint to applied(), labelled from its definition', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+    filters.commit('companyName');
+
+    expect(filters.applied()).toEqual([
+      {
+        id: 'companyName',
+        label: 'Firma',
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      },
+    ]);
   });
 });

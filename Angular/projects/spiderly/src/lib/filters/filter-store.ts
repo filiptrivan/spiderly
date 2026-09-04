@@ -1,3 +1,5 @@
+import { computed, signal, Signal } from '@angular/core';
+
 import { FilterRule } from '../entities/filter-rule';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 
@@ -65,6 +67,14 @@ export interface FilterConstraint<TKind extends FilterValueKind> {
   value: ValueByKind[TKind] | null | undefined;
 }
 
+/** One applied constraint, in the shape the chip bar draws. */
+export interface AppliedFilter {
+  id: string;
+  label: string;
+  operator: MatchModeCodes;
+  value: unknown;
+}
+
 /**
  * The filter engine. It knows nothing about columns: a filter has an id, a value type and a
  * constraint, and that is the entire vocabulary.
@@ -84,10 +94,27 @@ function isBlank(value: unknown): boolean {
 export function createFilterStore<
   TDefs extends Record<string, FilterDefinition<FilterValueKind>>,
 >(definitions: TDefs) {
-  const constraints = new Map<keyof TDefs, FilterConstraint<FilterValueKind>>();
+  // Two stores, and the split is the whole point: `set` writes a DRAFT, `commit` publishes it.
+  // A chip drawn off a draft would repeat the mistake the header's filter icon already shipped —
+  // claiming the grid is narrowed on the first keystroke. Controls that apply on change
+  // (multiselect, boolean, date) call both at once; a text box commits on Enter or blur.
+  const drafts = new Map<keyof TDefs, FilterConstraint<FilterValueKind>>();
+  const committed = signal<
+    ReadonlyMap<keyof TDefs, FilterConstraint<FilterValueKind>>
+  >(new Map());
+
+  const applied: Signal<AppliedFilter[]> = computed(() =>
+    [...committed()].map(([id, constraint]) => ({
+      id: id as string,
+      label: definitions[id].label,
+      operator: constraint.operator,
+      value: constraint.value,
+    })),
+  );
 
   return {
     definitions,
+    applied,
 
     set<K extends keyof TDefs>(
       id: K,
@@ -107,16 +134,41 @@ export function createFilterStore<
         );
       }
 
-      constraints.set(id, constraint);
+      drafts.set(id, constraint);
+    },
+
+    /**
+     * Publishes the draft. A blanked draft REMOVES the constraint rather than committing an empty
+     * one, so `applied()` and the payload agree: no chip, no key, no `contains ''`.
+     */
+    commit<K extends keyof TDefs>(id: K): void {
+      const draft = drafts.get(id);
+      const next = new Map(committed());
+
+      if (draft === undefined || isBlank(draft.value)) next.delete(id);
+      else next.set(id, draft);
+
+      committed.set(next);
+    },
+
+    /**
+     * The chip's `x`. Drops the DRAFT as well as the committed constraint: a surviving draft
+     * leaves the control still showing the cleared text, and the next commit would restore a
+     * filter nobody re-typed.
+     */
+    reset<K extends keyof TDefs>(id: K): void {
+      drafts.delete(id);
+
+      const next = new Map(committed());
+      next.delete(id);
+      committed.set(next);
     },
 
     /** The `filters` half of `Filter` — what the generated paginator reads. */
     toFilterPayload(): Record<string, FilterRule[]> {
       const payload: Record<string, FilterRule[]> = {};
 
-      for (const [id, constraint] of constraints) {
-        if (isBlank(constraint.value)) continue;
-
+      for (const [id, constraint] of committed()) {
         payload[id as string] = [
           { matchMode: constraint.operator, value: constraint.value } as FilterRule,
         ];
