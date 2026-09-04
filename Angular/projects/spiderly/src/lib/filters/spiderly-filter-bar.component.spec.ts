@@ -5,6 +5,7 @@ import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
 import {
   booleanFilter,
+  dateFilter,
   createFilterStore,
   FilterBarSource,
   numberFilter,
@@ -276,5 +277,33 @@ describe('SpiderlyFilterBarComponent', () => {
     });
     // And the chip says so in words: String(false) would put "false" in front of an operator.
     expect(chips(fixture)[0].textContent).toContain('No');
+  });
+
+  // Two things at once, because they only fail together: the direction has to be pickable (a date
+  // filter is useless if it can only ever mean "after"), and the control's "2026-09-01" has to
+  // become the LOCAL midnight a person means. new Date("2026-09-01") parses as UTC, which in
+  // Belgrade is 02:00 on the 1st — two hours of rows on the wrong side of "before".
+  it('applies a date in the chosen direction, at local midnight', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+
+    const operator = el(fixture).querySelector<HTMLSelectElement>(
+      '[data-testid="filter-editor-operator"]',
+    )!;
+    operator.value = MatchModeCodes.LessThan;
+    operator.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    typeAndApply(fixture, '2026-09-01');
+
+    expect(filters.toFilterPayload()).toEqual({
+      createdAt: [
+        { matchMode: MatchModeCodes.LessThan, value: new Date(2026, 8, 1) },
+      ],
+    });
   });
 });

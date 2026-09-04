@@ -45,6 +45,55 @@ const ALLOWED_OPERATORS = {
 export type FilterValueKind = keyof typeof ALLOWED_OPERATORS;
 
 /**
+ * Transloco keys for the operator a control offers. Reuses the keys the data table's
+ * `matchModeDateOptions` / `matchModeTextOptions` / `matchModeNumberOptions` already populate, so
+ * no new seed is needed and one operator cannot be worded two ways in one admin. The wording is
+ * per KIND on purpose: `LessThan` reads "Less than" for a number and "Dates before" for a date.
+ *
+ * Note for whoever touches this next: "which operators exist per kind" is now recorded in THREE
+ * hand-kept places — this file's ALLOWED_OPERATORS, `AllowedMatchModes<T>` in
+ * entities/filter-rule.ts, and those three option lists in the data table. The option lists are
+ * derived from ALLOWED_OPERATORS here so this file adds no fourth; collapse the other two when
+ * either is next edited.
+ */
+const OPERATOR_LABEL_KEY: Record<
+  FilterValueKind,
+  Partial<Record<MatchModeCodes, string>>
+> = {
+  text: {
+    [MatchModeCodes.StartsWith]: 'StartsWith',
+    [MatchModeCodes.Contains]: 'Contains',
+    [MatchModeCodes.Equals]: 'Equals',
+  },
+  number: {
+    [MatchModeCodes.Equals]: 'Equals',
+    [MatchModeCodes.GreaterThan]: 'MoreThan',
+    [MatchModeCodes.LessThan]: 'LessThan',
+    [MatchModeCodes.In]: 'In',
+  },
+  boolean: { [MatchModeCodes.Equals]: 'Equals' },
+  date: {
+    [MatchModeCodes.Equals]: 'OnDate',
+    [MatchModeCodes.LessThan]: 'DatesBefore',
+    [MatchModeCodes.GreaterThan]: 'DatesAfter',
+  },
+};
+
+export interface OperatorOption {
+  value: MatchModeCodes;
+  /** Transloco key, resolved by the control — the store holds no translations. */
+  labelKey: string;
+}
+
+/** Derived from ALLOWED_OPERATORS, so the offered list and the accepted list cannot disagree. */
+export function operatorOptions(kind: FilterValueKind): OperatorOption[] {
+  return ALLOWED_OPERATORS[kind].map((value) => ({
+    value,
+    labelKey: OPERATOR_LABEL_KEY[kind][value] ?? value,
+  }));
+}
+
+/**
  * The operator applied when nobody picked one, which has to be what a person MEANS by filling in
  * the control. `Contains` for a fragment typed into a box; `GreaterThan` for a date, never
  * `Equals` — a date equality against a TIMESTAMP matches only the row written in that exact
@@ -129,6 +178,8 @@ export interface FilterHandle {
   /** The DRAFT — what a control shows. `applied()` answers the other question. */
   value: Signal<unknown>;
   operator: Signal<MatchModeCodes | undefined>;
+  /** Every operator this filter's kind accepts, in display order. */
+  operators: OperatorOption[];
   set(constraint: { operator: MatchModeCodes; value: unknown }): void;
   commit(): void;
   reset(): void;
@@ -221,6 +272,7 @@ export function createFilterStore<
         kind: definitions[id].kind,
         value: computed(() => drafts().get(id)?.value),
         operator: computed(() => drafts().get(id)?.operator),
+        operators: operatorOptions(definitions[id].kind),
         set: (constraint: FilterConstraint<TDefs[K]['kind']>) =>
           store.set(id, constraint),
         commit: () => store.commit(id),

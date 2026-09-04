@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, input, signal } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 
+import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
   AppliedFilter,
   DEFAULT_OPERATOR,
@@ -91,6 +92,19 @@ export { FilterBarSource };
           <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
+            @if (handle.operators.length > 1) {
+              <select
+                class="filter-editor-operator"
+                data-testid="filter-editor-operator"
+                [value]="handle.operator() ?? defaultOperator(handle)"
+                (change)="pickOperator(handle, $event)"
+              >
+                @for (option of handle.operators; track option.value) {
+                  <option [value]="option.value">{{ t(option.labelKey) }}</option>
+                }
+              </select>
+            }
+
             @if (handle.kind === 'boolean') {
               <input
                 type="checkbox"
@@ -98,6 +112,14 @@ export { FilterBarSource };
                 data-testid="filter-editor-value"
                 [checked]="handle.value() === true"
                 (change)="draftBoolean(handle, $event)"
+              />
+            } @else if (handle.kind === 'date') {
+              <input
+                type="date"
+                class="filter-editor-value"
+                data-testid="filter-editor-value"
+                [value]="dateInputValue(handle)"
+                (input)="draft(handle, $event)"
               />
             } @else if (handle.kind === 'text' || handle.kind === 'number') {
               <!-- A DOM control's raw value is always a string. It is coerced on the way into
@@ -168,6 +190,31 @@ export class SpiderlyFilterBarComponent {
     });
   }
 
+  defaultOperator(handle: FilterHandle): MatchModeCodes {
+    return DEFAULT_OPERATOR[handle.kind];
+  }
+
+  /**
+   * Changing the direction re-commits nothing on its own — it rewrites the draft, so the operator
+   * survives until Apply like the value does.
+   */
+  pickOperator(handle: FilterHandle, event: Event): void {
+    handle.set({
+      operator: (event.target as HTMLSelectElement).value as MatchModeCodes,
+      value: handle.value(),
+    });
+  }
+
+  /** An input[type=date] reads and writes "YYYY-MM-DD" in LOCAL time. */
+  dateInputValue(handle: FilterHandle): string {
+    const value = handle.value();
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) return '';
+
+    const pad = (part: number) => String(part).padStart(2, '0');
+
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  }
+
   /**
    * The checkbox writes its own draft: its value is `checked`, not `value`. And `false` is a
    * constraint here ("not a company order"), never an empty control.
@@ -188,6 +235,17 @@ export class SpiderlyFilterBarComponent {
    * either of them as "nothing was entered", because by then they are perfectly good numbers.
    */
   private coerce(kind: FilterValueKind, raw: string): unknown {
+    if (kind === 'date') {
+      // Built from parts, never `new Date(raw)`: that parses a bare "YYYY-MM-DD" as UTC, so in
+      // Belgrade "before 1 Sep" would include two hours of the 1st. A person picking a day in a
+      // date box means that day where they are standing.
+      if (raw === '') return null;
+
+      const [year, month, day] = raw.split('-').map(Number);
+
+      return new Date(year, month - 1, day);
+    }
+
     if (kind !== 'number') return raw;
     if (raw.trim() === '') return null;
 
