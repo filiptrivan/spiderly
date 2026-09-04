@@ -150,6 +150,34 @@ is a delta per view, so the storage key gains a view segment. The alternative (l
 carrying only filters and sort) was rejected because it re-creates the original problem one level up:
 a picking view and a payments view want different COLUMNS, not just different rows.
 
+**What has shipped, as of 2026-09-05.** All five complaints are answered; the record above is
+still the design, and this is where it stands against it.
+
+- **Done:** the filter engine and chip bar (decisions 1, 2, 2b) with text/number/boolean/date
+  controls and a pick-list; the result count and sort chip; `+ Filter` as a searchable popover;
+  a column header menu carrying Hide, Wrap and Move left/right; per-column wrap, order and width
+  persisted by `field` under `${resolvedStateKey}:layout` (decisions 5, 7); resize by dragging a
+  header edge, trading share with the neighbour (decision 4); `resetColumnLayout` undoing all of
+  it. PACMS `tag-list` is the first table on the bar.
+- **Not done, and none of it is a gap the five complaints left open:** the menu's `Filter…` and
+  `Fit width` items and the sort entries (decision 3 is three of six); header drag-to-reorder
+  (decision 6 — the menu path shipped first because it is the only one that works from a
+  keyboard and the only one that reaches a column scrolled off the right edge); the frozen left
+  edge (decision 8); `spiderlyFilterTemplate`; views (decision 10, wave 3).
+- **Superseded here:** decision 9's `title`-on-overflow directive is still unwritten, and per-column
+  wrap now covers most of what it was for. Write it anyway — wrap is a choice someone makes, and
+  the clamped default still hides a value with no way to read it.
+
+**Two traps this component now has, both cost an afternoon each:**
+
+- **The template is a JS template literal, so a backtick anywhere in it — including inside an HTML
+  comment — terminates it**, and TypeScript reports the error lines away from the cause. Twice.
+- **PrimeNG does not re-project content an `@if` inside a popover has destroyed.** Reopening gives
+  a container with `overlayVisible` true and nothing in it. Render the menu items once and hold
+  the target in a field (`menuColumn`); never key the popover's content on the thing it acts on.
+  A template reference variable also does not cross an `ng-template` boundary, so the header's
+  button reaches the caption's popover through a `viewChild`, not through `#ref`.
+
 **Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The filter engine, the
 slot directive and the chip bar — decisions 1, 2 and 2b, with 9's `title` directive as a rider, and
 the 27 PACMS tables migrated one at a time across it. (2) Header menu, chooser drag list, own reorder directive,
