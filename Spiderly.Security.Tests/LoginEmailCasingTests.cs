@@ -1,6 +1,4 @@
-using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
@@ -9,6 +7,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Spiderly.Security.DTO;
+using Spiderly.Security.Helpers;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
 using Spiderly.Shared;
@@ -21,23 +20,18 @@ using Spiderly.Shared.Localization;
 namespace Spiderly.Security.Tests
 {
     /// <summary>
-    /// An email address identifies an account, and identity is case-insensitive: nobody who typed
-    /// <c>Kupac@Example.com</c> at signup believes they own something different from
-    /// <c>kupac@example.com</c>. The login path used to disagree — every user lookup was an ordinal
-    /// <c>==</c> and every user it created stored the address exactly as typed — so a second casing
-    /// silently minted a SECOND account, splitting one person's orders, addresses and external
-    /// logins across two rows with no way back. Observed in production on two real customers.
-    ///
-    /// The store is SQLite rather than the EF in-memory provider deliberately: its TEXT columns use
-    /// BINARY collation, so <c>==</c> is case-sensitive exactly as it is on Postgres and SQL Server
-    /// with a case-sensitive collation. A provider that folded case would make these tests pass
-    /// against unfixed code.
-    ///
-    /// The token layer is the REAL <see cref="JwtAuthManagerService"/> over a real in-memory store,
-    /// not a stub, because the two halves of this fix are only correct together: the verification
-    /// code is stored under one address and validated against another, both compared ordinally, so
-    /// normalizing the database lookup alone turns a silent duplicate account into a login that
-    /// cannot complete at all.
+    /// Pins that an address identifies ONE account whatever its casing — the rule and its rationale
+    /// live on <see cref="EmailNormalizer"/>; what follows is why these tests can see a violation.
+    /// <para>
+    /// The store is SQLite rather than the EF in-memory provider: its TEXT columns use BINARY
+    /// collation, so <c>==</c> is case-sensitive exactly as it is on Postgres. A provider that
+    /// folded case would make every one of these pass against unfixed code.
+    /// </para>
+    /// <para>
+    /// The token layer is the REAL <see cref="JwtAuthManagerService"/> over a real store, not a
+    /// stub, so a fix that normalized the database lookup alone would fail
+    /// <see cref="Login_AcceptsACodeThatWasRequestedUnderADifferentCasing"/> rather than pass.
+    /// </para>
     /// </summary>
     public class LoginEmailCasingTests
     {
@@ -70,10 +64,7 @@ namespace Spiderly.Security.Tests
 
         /// <summary>
         /// The two steps are separate requests, so nothing guarantees the address is spelled the
-        /// same way twice. This is the half a lookup-only fix breaks: normalize where the account is
-        /// found but not where the code is stored, and the code is minted under the row's stored
-        /// casing while the request carries the typed one — an ordinal compare away from an expired
-        /// -code error on a login that is entirely legitimate.
+        /// same way twice — and this is the half a lookup-only fix breaks.
         /// </summary>
         [Fact]
         public async Task Login_AcceptsACodeThatWasRequestedUnderADifferentCasing()
@@ -96,10 +87,8 @@ namespace Spiderly.Security.Tests
         }
 
         /// <summary>
-        /// The provider asserts whatever casing it holds, and an account created through the
-        /// email-code path holds whatever the customer typed — so the two disagree by default. This
-        /// is how the production split actually happened: a Google sign-in supplied the lowercase
-        /// form, the typed form later minted the second row.
+        /// The provider asserts whatever casing it holds, which need not match what an earlier
+        /// email-code sign-in stored. This is how the observed production split actually happened.
         /// </summary>
         [Fact]
         public async Task ExternalLogin_LinksToAnExistingAccountSpelledInAnotherCasing()
@@ -107,9 +96,9 @@ namespace Spiderly.Security.Tests
             using SqliteConnection connection = NewOpenConnection();
             using TestDbContext context = NewContext(connection);
             SeedUser(context);
-            TestableSecurityService sut = NewTestableSut(context);
+            Harness harness = NewHarness(context);
 
-            TestUser resolved = await sut.ResolveExternalUserForTest(new ExternalIdentity
+            TestUser resolved = await harness.Sut.ResolveExternalUserForTest(new ExternalIdentity
             {
                 Provider = "google",
                 Subject = "google-subject-1",
@@ -143,7 +132,7 @@ namespace Spiderly.Security.Tests
             context.SaveChanges();
         }
 
-        private sealed record Harness(SecurityServiceBase<TestUser, TestUserExternalLogin> Sut, IJwtAuthManager JwtAuthManager)
+        private sealed record Harness(TestableSecurityService Sut, IJwtAuthManager JwtAuthManager)
         {
             /// <summary>The code as the customer would read it out of the email: the store is keyed by it.</summary>
             public async Task<string> ReadIssuedCodeAsync() =>
@@ -176,7 +165,7 @@ namespace Spiderly.Security.Tests
                 }),
                 Options.Create(new AuthPolicyOptions()));
 
-            SecurityServiceBase<TestUser, TestUserExternalLogin> sut = new(
+            TestableSecurityService sut = new(
                 context,
                 jwtAuthManager,
                 new StubEmailingService(),
@@ -184,8 +173,6 @@ namespace Spiderly.Security.Tests
                 new StubWebHostEnvironment(),
                 new PassthroughStringLocalizer(),
                 Options.Create(new AuthPolicyOptions()),
-                externalAuthProviderRegistry: null!,
-                externalAuthCodeFlow: null!,
                 new StubDataProtectionProvider(),
                 Options.Create(new Shared.Settings()));
 
@@ -197,56 +184,23 @@ namespace Spiderly.Security.Tests
         /// <c>LoginExternal</c> would mean standing up a provider registry and a signed id token to
         /// assert one thing about account resolution. This exposes it directly instead.
         /// </summary>
-        private sealed class TestableSecurityService : SecurityServiceBase<TestUser, TestUserExternalLogin>
+        private sealed class TestableSecurityService(
+            IApplicationDbContext context,
+            IJwtAuthManager jwtAuthManager,
+            IEmailingService emailingService,
+            AuthenticationService authenticationService,
+            IWebHostEnvironment environment,
+            IStringLocalizer localizer,
+            IOptions<AuthPolicyOptions> authPolicyOptions,
+            IDataProtectionProvider dataProtectionProvider,
+            IOptions<Shared.Settings> sharedSettings)
+            : SecurityServiceBase<TestUser, TestUserExternalLogin>(
+                context, jwtAuthManager, emailingService, authenticationService, environment,
+                localizer, authPolicyOptions, externalAuthProviderRegistry: null!,
+                externalAuthCodeFlow: null!, dataProtectionProvider, sharedSettings)
         {
-            public TestableSecurityService(
-                IApplicationDbContext context,
-                IJwtAuthManager jwtAuthManager,
-                IEmailingService emailingService,
-                AuthenticationService authenticationService,
-                IWebHostEnvironment environment,
-                IStringLocalizer localizer,
-                IOptions<AuthPolicyOptions> authPolicyOptions,
-                IDataProtectionProvider dataProtectionProvider,
-                IOptions<Shared.Settings> sharedSettings)
-                : base(context, jwtAuthManager, emailingService, authenticationService, environment,
-                    localizer, authPolicyOptions, externalAuthProviderRegistry: null!,
-                    externalAuthCodeFlow: null!, dataProtectionProvider, sharedSettings)
-            {
-            }
-
             public Task<TestUser> ResolveExternalUserForTest(ExternalIdentity externalIdentity) =>
                 ResolveExternalUser(externalIdentity);
-        }
-
-        private static TestableSecurityService NewTestableSut(TestDbContext context) => new(
-            context,
-            new StubJwtAuthManagerForExternal(),
-            new StubEmailingService(),
-            new StubAuthenticationService(context),
-            new StubWebHostEnvironment(),
-            new PassthroughStringLocalizer(),
-            Options.Create(new AuthPolicyOptions()),
-            new StubDataProtectionProvider(),
-            Options.Create(new Shared.Settings()));
-
-        /// <summary>No token is issued while resolving the account — that happens after.</summary>
-        private sealed class StubJwtAuthManagerForExternal : IJwtAuthManager
-        {
-            public Task<IImmutableDictionary<string, RefreshTokenDTO>> GetUsersRefreshTokensReadOnlyDictionaryAsync() => throw new NotSupportedException();
-            public Task<IImmutableDictionary<string, LoginVerificationTokenDTO>> GetUsersLoginVerificationTokensReadOnlyDictionaryAsync() => throw new NotSupportedException();
-            public Task<JwtAuthResultDTO> GenerateAccessAndRefreshTokensAsync(long userId, string? ipAddress, string? browserId) => throw new NotSupportedException();
-            public Task<JwtAuthResultDTO> RefreshAsync(RefreshTokenRequestDTO request, long? userIdFromAccessToken) => throw new NotSupportedException();
-            public List<Claim> GenerateClaims(long userId) => throw new NotSupportedException();
-            public Task<List<Claim>> GetClaimsForTheAccessTokenAsync(RefreshTokenRequestDTO request, string accessToken) => throw new NotSupportedException();
-            public Task RemoveExpiredRefreshTokensAsync() => throw new NotSupportedException();
-            public Task RemoveRefreshTokenByUserIdAsync(long userId) => throw new NotSupportedException();
-            public Task LogoutAsync(string? browserId, long userId) => throw new NotSupportedException();
-            public Task<bool> RemoveLastRefreshTokenFromTheSameBrowserAndUserIdAsync(string? browserId, long userId) => throw new NotSupportedException();
-            public Task<LoginVerificationTokenDTO> ValidateAndGetLoginVerificationTokenDTOAsync(string verificationToken, string? browserId, string email) => throw new NotSupportedException();
-            public Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string? browserId) => throw new NotSupportedException();
-            public Task RemoveLoginVerificationTokensByEmailAsync(string email) => throw new NotSupportedException();
-            public Task<bool> IsLoginVerificationSendBlockedAsync(string email) => throw new NotSupportedException();
         }
 
         private sealed class TestUser : IUser
@@ -274,8 +228,6 @@ namespace Spiderly.Security.Tests
             public TestDbContext(DbContextOptions options) : base(options) { }
 
             public DbSet<TestUser> Users => Set<TestUser>();
-
-            public DbSet<TestUserExternalLogin> ExternalLogins => Set<TestUserExternalLogin>();
 
             public DbSet<TEntity> DbSet<TEntity>() where TEntity : class => Set<TEntity>();
 

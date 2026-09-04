@@ -87,19 +87,16 @@ namespace Spiderly.Security.Services
 
             // Canonicalized before anything reads it, so the account lookup below, the verification
             // code minted further down, and Login's validation of that code all key on ONE string
-            // (see EmailNormalizer). Assigned back onto the DTO because Authenticate reads it.
-            loginDTO.Email = EmailNormalizer.Normalize(loginDTO.Email)!;
+            // (see EmailNormalizer). Everything downstream reads loginDTO.Email rather than the
+            // located row's own Email: a legacy row whose stored casing differs would otherwise
+            // mint a code under a string Login's canonicalized request can never match.
+            loginDTO.Email = EmailNormalizer.Normalize(loginDTO.Email);
 
+            // Runs for its rejection of a disabled account as much as for its result.
             TUser? user = await Authenticate(loginDTO);
 
             if (user == null && _authPolicySettings.OnlyAdminCanAddUsers)
                 throw new BusinessException(_localizer["AuthenticationEmailDoesNotExistException"]);
-
-            // The canonical address, NOT user.Email, even when a row was found. The code is stored
-            // under this string and Login validates it against its own canonicalized request, so a
-            // legacy row whose stored casing differs would otherwise mint a code that can never be
-            // redeemed.
-            string userEmail = loginDTO.Email;
 
             // Per-recipient guard against inbox-flooding / email-quota abuse on this (storefront-and-admin
             // shared) endpoint — see IsLoginVerificationSendBlockedAsync. Only applied when emailing is
@@ -107,12 +104,12 @@ namespace Spiderly.Security.Services
             // local/e2e logins are unaffected. Silently report success — never an error — so the endpoint
             // leaks neither whether the address exists nor that it's being targeted.
             if (_emailingService.IsConfigured()
-                && await _jwtAuthManagerService.IsLoginVerificationSendBlockedAsync(userEmail))
+                && await _jwtAuthManagerService.IsLoginVerificationSendBlockedAsync(loginDTO.Email))
             {
                 return new SendLoginVerificationEmailResultDTO { Message = string.Empty };
             }
 
-            string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(userEmail, loginDTO.BrowserId);
+            string verificationCode = await _jwtAuthManagerService.GenerateAndSaveLoginVerificationCodeAsync(loginDTO.Email, loginDTO.BrowserId);
 
             if (ShouldShowVerificationCodeInNotification())
             {
@@ -127,12 +124,12 @@ namespace Spiderly.Security.Services
 
             try
             {
-                await _emailingService.SendVerificationEmailAsync(userEmail, emailTemplate);
+                await _emailingService.SendVerificationEmailAsync(loginDTO.Email, emailTemplate);
             }
             catch (Exception)
             {
                 // We didn't send email, set all verification tokens invalid then
-                await _jwtAuthManagerService.RemoveLoginVerificationTokensByEmailAsync(userEmail);
+                await _jwtAuthManagerService.RemoveLoginVerificationTokensByEmailAsync(loginDTO.Email);
                 throw;
             }
 
@@ -157,7 +154,7 @@ namespace Spiderly.Security.Services
 
             // Same canonicalization SendLoginVerificationEmail applied, so the code minted there
             // validates here and the user this creates on a first login is stored canonically.
-            verificationRequestDTO.Email = EmailNormalizer.Normalize(verificationRequestDTO.Email)!;
+            verificationRequestDTO.Email = EmailNormalizer.Normalize(verificationRequestDTO.Email);
 
             // Can not be null, if its null it already has thrown
             LoginVerificationTokenDTO loginVerificationTokenDTO = await _jwtAuthManagerService.ValidateAndGetLoginVerificationTokenDTOAsync(
@@ -609,7 +606,7 @@ namespace Spiderly.Security.Services
         {
             // Public and consumer-callable, so it canonicalizes its own argument rather than
             // trusting the caller (see EmailNormalizer).
-            string normalized = EmailNormalizer.Normalize(email)!;
+            string normalized = EmailNormalizer.Normalize(email);
 
             return await _context.WithTransactionAsync(async () =>
             {
@@ -662,7 +659,7 @@ namespace Spiderly.Security.Services
             // The provider asserts whatever casing it holds, and it need not match what we stored on
             // an earlier sign-in — Google returning "Kupac@Example.com" for an account created as
             // "kupac@example.com" must LINK to it, not auto-provision a second one.
-            string externalEmail = EmailNormalizer.Normalize(externalIdentity.Email)!;
+            string externalEmail = EmailNormalizer.Normalize(externalIdentity.Email);
 
             TUser? user = await userDbSet.Where(x => x.Email == externalEmail).SingleOrDefaultAsync();
 
@@ -709,8 +706,12 @@ namespace Spiderly.Security.Services
         {
             return await _context.WithTransactionAsync(async () =>
             {
+                // Folds its own argument rather than trusting the caller to have done it two
+                // statements earlier — the guarantee is then structural, not positional.
+                string email = EmailNormalizer.Normalize(loginDTO.Email);
+
                 TUser? currentUser = await _context.DbSet<TUser>()
-                    .Where(x => x.Email == loginDTO.Email)
+                    .Where(x => x.Email == email)
                     .SingleOrDefaultAsync();
 
                 if (currentUser == null)

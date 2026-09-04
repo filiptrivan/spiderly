@@ -18,6 +18,19 @@ namespace Spiderly.Security.Helpers
     /// against the other, both compared ordinally, and the login stops completing at all.
     /// </para>
     /// <para>
+    /// <b>The framework canonicalizes only what flows through <c>SecurityServiceBase</c>.</b> A
+    /// consumer that inserts a <c>TUser</c> row by any other path — a guest checkout that provisions
+    /// an account, an admin CRUD save — owns that write and must fold through here too, or it
+    /// reintroduces exactly the split this prevents.
+    /// </para>
+    /// <para>
+    /// Normalization stops new splits; it cannot make them unrepresentable. That needs a
+    /// case-insensitive unique key on the consumer's own user table (a functional
+    /// <c>lower(Email)</c> index, or <c>citext</c>), which is provider-specific SQL a portable EF
+    /// <c>HasIndex</c> cannot express — so it stays the consumer's to add, after folding whatever
+    /// rows predate this.
+    /// </para>
+    /// <para>
     /// <see cref="string.ToLowerInvariant"/>, never <c>ToLower()</c> — under a Turkish culture the
     /// latter maps <c>I</c> to <c>ı</c>, so the same address would canonicalize differently
     /// depending on the server's locale.
@@ -33,7 +46,7 @@ namespace Spiderly.Security.Helpers
     /// </remarks>
     public static class EmailNormalizer
     {
-        /// <summary>Trims surrounding whitespace and lower-cases invariantly. Null in, null out.</summary>
-        public static string? Normalize(string? email) => email?.Trim().ToLowerInvariant();
+        /// <summary>Trims surrounding whitespace and lower-cases invariantly.</summary>
+        public static string Normalize(string email) => email.Trim().ToLowerInvariant();
     }
 }
