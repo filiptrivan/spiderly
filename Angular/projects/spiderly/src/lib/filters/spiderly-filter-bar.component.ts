@@ -5,9 +5,9 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
   AppliedFilter,
-  DEFAULT_OPERATOR,
   FilterBarSource,
   FilterHandle,
+  FilterOption,
   FilterValueKind,
 } from './filter-store';
 
@@ -105,7 +105,19 @@ export { FilterBarSource };
               </select>
             }
 
-            @if (handle.kind === 'boolean') {
+            @if (handle.options) {
+              @for (option of handle.options; track option.value) {
+                <label class="filter-editor-tick">
+                  <input
+                    type="checkbox"
+                    data-testid="filter-editor-option"
+                    [checked]="isTicked(handle, option)"
+                    (change)="toggleOption(handle, option, $event)"
+                  />
+                  {{ option.label }}
+                </label>
+              }
+            } @else if (handle.kind === 'boolean') {
               <input
                 type="checkbox"
                 class="filter-editor-value"
@@ -185,13 +197,37 @@ export class SpiderlyFilterBarComponent {
   /** Writes the draft. Nothing reaches the bar or the query until `apply`. */
   draft(handle: FilterHandle, event: Event): void {
     handle.set({
-      operator: handle.operator() ?? DEFAULT_OPERATOR[handle.kind],
+      operator: handle.operator() ?? handle.defaultOperator,
       value: this.coerce(handle.kind, (event.target as HTMLInputElement).value),
     });
   }
 
   defaultOperator(handle: FilterHandle): MatchModeCodes {
-    return DEFAULT_OPERATOR[handle.kind];
+    return handle.defaultOperator;
+  }
+
+  isTicked(handle: FilterHandle, option: FilterOption): boolean {
+    const value = handle.value();
+
+    return Array.isArray(value) && value.includes(option.value);
+  }
+
+  /**
+   * A pick-list's value is the LIST, so each tick rewrites the whole draft. Untick everything and
+   * the draft is an empty array, which the store already treats as blank — no chip, no key, rather
+   * than an `In ()` the paginator would have to answer.
+   */
+  toggleOption(handle: FilterHandle, option: FilterOption, event: Event): void {
+    const current = handle.value();
+    const ticked = Array.isArray(current) ? [...current] : [];
+    const next = (event.target as HTMLInputElement).checked
+      ? [...ticked, option.value]
+      : ticked.filter((value) => value !== option.value);
+
+    handle.set({
+      operator: handle.operator() ?? handle.defaultOperator,
+      value: next,
+    });
   }
 
   /**
@@ -221,7 +257,7 @@ export class SpiderlyFilterBarComponent {
    */
   draftBoolean(handle: FilterHandle, event: Event): void {
     handle.set({
-      operator: handle.operator() ?? DEFAULT_OPERATOR[handle.kind],
+      operator: handle.operator() ?? handle.defaultOperator,
       value: (event.target as HTMLInputElement).checked,
     });
   }

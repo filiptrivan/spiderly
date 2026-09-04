@@ -9,9 +9,21 @@ import { MatchModeCodes } from '../enums/match-mode-enum-codes';
  * on a number and forbids on a string. Conflating the two is what shipped `paymentGatewayCode` as
  * a text filter with a hand-written comment instead of a compile error.
  */
+/** One tickable choice. `value` is the filter's own value type — an id, not a display string. */
+export interface FilterOption {
+  value: unknown;
+  label: string;
+}
+
 export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKind> {
   kind: TKind;
   label: string;
+  /**
+   * Declaring options turns this filter into a pick-list, which means `In` — the same rule as the
+   * table's `[filters]`, where the SHAPE of what is supplied decides, not a mode flag. It is also
+   * the only way "Processing OR PreparingForShipping" can be expressed at all.
+   */
+  options?: FilterOption[];
 }
 
 /**
@@ -85,12 +97,34 @@ export interface OperatorOption {
   labelKey: string;
 }
 
-/** Derived from ALLOWED_OPERATORS, so the offered list and the accepted list cannot disagree. */
-export function operatorOptions(kind: FilterValueKind): OperatorOption[] {
-  return ALLOWED_OPERATORS[kind].map((value) => ({
+/**
+ * Derived from ALLOWED_OPERATORS, so the offered list and the accepted list cannot disagree.
+ * A pick-list offers only `In`: "equals" over a set of ticked boxes is not a question anyone asks.
+ */
+export function operatorOptions(
+  kind: FilterValueKind,
+  hasOptions = false,
+): OperatorOption[] {
+  // Widened first: the per-kind tuples are literal, so `boolean`'s `[Equals]` makes the `In`
+  // comparison a "no overlap" error rather than an empty result.
+  const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
+  const operators = hasOptions
+    ? accepted.filter((value) => value === MatchModeCodes.In)
+    : accepted;
+
+  return operators.map((value) => ({
     value,
     labelKey: OPERATOR_LABEL_KEY[kind][value] ?? value,
   }));
+}
+
+/** The operator applied when nobody picked one. Options mean `In`, whatever the kind's default. */
+export function defaultOperatorFor(
+  definition: FilterDefinition<FilterValueKind>,
+): MatchModeCodes {
+  return definition.options != null
+    ? MatchModeCodes.In
+    : DEFAULT_OPERATOR[definition.kind];
 }
 
 /**
@@ -115,26 +149,32 @@ interface ValueByKind {
   date: Date;
 }
 
-export function textFilter(config: { label: string }): FilterDefinition<'text'> {
-  return { kind: 'text', label: config.label };
+export function textFilter(config: {
+  label: string;
+  options?: FilterOption[];
+}): FilterDefinition<'text'> {
+  return { kind: 'text', label: config.label, options: config.options };
 }
 
 export function numberFilter(config: {
   label: string;
+  options?: FilterOption[];
 }): FilterDefinition<'number'> {
-  return { kind: 'number', label: config.label };
+  return { kind: 'number', label: config.label, options: config.options };
 }
 
 export function booleanFilter(config: {
   label: string;
+  options?: FilterOption[];
 }): FilterDefinition<'boolean'> {
-  return { kind: 'boolean', label: config.label };
+  return { kind: 'boolean', label: config.label, options: config.options };
 }
 
 export function dateFilter(config: {
   label: string;
+  options?: FilterOption[];
 }): FilterDefinition<'date'> {
-  return { kind: 'date', label: config.label };
+  return { kind: 'date', label: config.label, options: config.options };
 }
 
 /**
@@ -178,8 +218,12 @@ export interface FilterHandle {
   /** The DRAFT — what a control shows. `applied()` answers the other question. */
   value: Signal<unknown>;
   operator: Signal<MatchModeCodes | undefined>;
-  /** Every operator this filter's kind accepts, in display order. */
+  /** Every operator this filter accepts, in display order. */
   operators: OperatorOption[];
+  /** Applied when nobody picked an operator. */
+  defaultOperator: MatchModeCodes;
+  /** The tickable choices, when this filter declares any. */
+  options?: FilterOption[];
   set(constraint: { operator: MatchModeCodes; value: unknown }): void;
   commit(): void;
   reset(): void;
@@ -272,7 +316,12 @@ export function createFilterStore<
         kind: definitions[id].kind,
         value: computed(() => drafts().get(id)?.value),
         operator: computed(() => drafts().get(id)?.operator),
-        operators: operatorOptions(definitions[id].kind),
+        operators: operatorOptions(
+          definitions[id].kind,
+          definitions[id].options != null,
+        ),
+        defaultOperator: defaultOperatorFor(definitions[id]),
+        options: definitions[id].options,
         set: (constraint: FilterConstraint<TDefs[K]['kind']>) =>
           store.set(id, constraint),
         commit: () => store.commit(id),

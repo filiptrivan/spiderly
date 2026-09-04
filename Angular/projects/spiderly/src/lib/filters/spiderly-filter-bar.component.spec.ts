@@ -306,4 +306,45 @@ describe('SpiderlyFilterBarComponent', () => {
       ],
     });
   });
+
+  // The only path by which orderStatusId can exist: "Processing OR PreparingForShipping" is the
+  // question asked before every bulk action, and only `In` expresses it. Declaring options is what
+  // asks for it — the same rule as the table's [filters], where the shape of the input is the
+  // switch rather than a mode flag.
+  it('sends In over the ticked options when a filter declares them', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({
+        label: 'Status',
+        options: [
+          { value: 2, label: 'U pripremi' },
+          { value: 3, label: 'Spremna' },
+        ],
+      }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+
+    const ticks = Array.from(
+      el(fixture).querySelectorAll<HTMLInputElement>(
+        '[data-testid="filter-editor-option"]',
+      ),
+    );
+    expect(ticks.length).toBe(2);
+
+    for (const tick of ticks) {
+      tick.checked = true;
+      tick.dispatchEvent(new Event('change'));
+    }
+    fixture.detectChanges();
+
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(filters.toFilterPayload()).toEqual({
+      orderStatusId: [{ matchMode: MatchModeCodes.In, value: [2, 3] }],
+    });
+  });
 });
