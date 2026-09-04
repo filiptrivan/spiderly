@@ -175,8 +175,9 @@ function foldForSearch(value: string): string {
           <div class="filter-add-menu" role="menu">
             <input
               pInputText
+              pSize="small"
               type="search"
-              class="p-inputtext-sm filter-add-search"
+              class="filter-add-search"
               data-testid="add-filter-search"
               [value]="addSearch()"
               [attr.aria-label]="t('AddFilter')"
@@ -215,7 +216,8 @@ function foldForSearch(value: string): string {
 
             @if (handle.operators.length > 1) {
               <p-select
-                styleClass="p-inputtext-sm filter-editor-operator"
+                size="small"
+                styleClass="filter-editor-operator"
                 [options]="operatorChoices(handle)"
                 optionLabel="label"
                 optionValue="value"
@@ -226,7 +228,8 @@ function foldForSearch(value: string): string {
 
             @if (handle.options) {
               <p-multiSelect
-                styleClass="p-inputtext-sm filter-editor-value"
+                size="small"
+                styleClass="filter-editor-value"
                 [options]="handle.options"
                 optionLabel="label"
                 optionValue="value"
@@ -243,7 +246,8 @@ function foldForSearch(value: string): string {
               ></p-checkbox>
             } @else if (handle.kind === 'date') {
               <p-datepicker
-                styleClass="p-inputtext-sm filter-editor-value"
+                size="small"
+                styleClass="filter-editor-value"
                 [ngModel]="handle.value()"
                 (onSelect)="draftValue(handle, $event)"
               ></p-datepicker>
@@ -254,8 +258,9 @@ function foldForSearch(value: string): string {
                    and one terminates it, with the error landing lines away. -->
               <input
                 pInputText
+                pSize="small"
                 [type]="handle.kind === 'number' ? 'number' : 'text'"
-                class="p-inputtext-sm filter-editor-value"
+                class="filter-editor-value"
                 data-testid="filter-editor-value"
                 [value]="handle.value() ?? ''"
                 (input)="draft(handle, $event)"

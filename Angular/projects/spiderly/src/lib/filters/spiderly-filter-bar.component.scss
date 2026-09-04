@@ -113,6 +113,10 @@
 
 // Its own row under the chips, full width, so the controls have room and always appear in one
 // predictable place.
+// Every control here is sized through its own `size="small"` input, never a hand-written
+// `p-inputtext-sm`: each PrimeNG component has its OWN small class (p-select-sm,
+// p-multiselect-sm), so the input class silently did nothing on a select and left it a head
+// taller than the box beside it.
 .filter-editor {
   display: flex;
   margin-top: 8px;
