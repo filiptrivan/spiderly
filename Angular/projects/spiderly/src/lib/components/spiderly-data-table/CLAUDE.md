@@ -165,11 +165,27 @@ still the design, and this is where it stands against it.
   is untyped against the store on purpose: a `Column<T>` knows its row type and nothing about
   which store it renders beside, so the compile-time key check stays at `createFilterStore`.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
-- **Not done, and none of it is a gap the five complaints left open:** header drag-to-reorder
-  (decision 6 — the menu path shipped first because it is the only one that works from a
-  keyboard and the only one that reaches a column scrolled off the right edge); the frozen left
-  edge (decision 8); `spiderlyFilterTemplate`; views (decision 10, wave 3). PACMS has ONE of 27
-  tables migrated.
+  Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
+  views (decision 10) all shipped too — every decision in this record is now built.
+- **What is left is CONSUMER work, not library work:** PACMS has ONE of 27 tables migrated
+  (`tag-list`, which carries filters, `filterId` links and three views). Orders is the one the
+  whole rework was argued from and it is untouched: nineteen columns, four two-line cell
+  templates, and the filter-only / display split already written out above `buildColumns`.
+- **Two rules a later table must not re-derive:** a view CLEARS before it applies, so two never
+  compose; and both layout keys carry the active view, so a table with no views reads exactly the
+  keys it already wrote — which is what keeps the twenty-six unmigrated grids working untouched.
+
+**Three more traps, all found by a spec and none visible by eye:**
+
+- **`ResizeObserver`'s first callback lands an animation frame after paint.** The frozen column
+  sat at `left: 0`, on top of the checkbox column it starts after, for that frame — and its own
+  spec had been passing on timing luck until adding suites reordered the run. Measure once on a
+  microtask as well; writing it inline in `ngAfterViewInit` is an NG0100.
+- **A `once` listener on `document` outlives the gesture that armed it.** The click-swallower
+  that stops a resize from also sorting ate an unrelated spec's first click, and would eat an
+  operator's next click after any drag that ends without one. Remove it on the next tick.
+- **PrimeNG's `p-inputtext-sm` does nothing on a `p-select`.** Every component has its own small
+  class, so size controls through the component's `size` input, never a borrowed class.
 
 **Two arithmetic traps in the width model, both found by a spec and neither visible by eye:**
 
