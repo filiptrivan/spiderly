@@ -1150,6 +1150,8 @@ export class SpiderlyDataTableComponent
    */
   private readonly columnMenu = viewChild.required<Popover>('columnMenu');
 
+  private readonly filterBar = viewChild(SpiderlyFilterBarComponent);
+
   openColumnMenu(col: Column, event: Event): void {
     this.menuColumn = col;
     // Kept so `fitMenuColumn` can find the column's cells: it needs the header's position among
@@ -1167,6 +1169,25 @@ export class SpiderlyDataTableComponent
    * A column the generated paginator has no sort case for answers every load with a 400, so the
    * items are disabled by the same predicate that keeps its header from being clickable.
    */
+  /** Whether the header menu can offer `Filter…` — a store, and a column that names one of it. */
+  canFilterColumn(col: Column): boolean {
+    return this.filters != null && col.filterId != null;
+  }
+
+  /**
+   * Opens the bar's editor for this column's filter. The bar took the filter off the header and
+   * the header is still where an operator reaches for it, which is twenty-seven tables' worth of
+   * habit; this is the shortcut back rather than a second filter surface — it drives the same
+   * editor, on the same bar, that `+ Filter` opens.
+   */
+  filterMenuColumn(): void {
+    const col = this.menuColumn;
+    this.columnMenu().hide();
+    if (!col || !this.canFilterColumn(col)) return;
+
+    this.filterBar()?.startEditing(col.filterId!);
+  }
+
   sortMenuColumn(order: 1 | -1): void {
     const col = this.menuColumn;
     this.columnMenu().hide();
@@ -2131,6 +2152,16 @@ export class Column<T = any> {
   field?: string & keyof T;
   filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
   filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
+  /**
+   * The id of the filter in the table's store that this column stands for, which is what the
+   * header menu's `Filter…` opens. A LINK, not a declaration: the filter exists in the store
+   * whether or not any column names it, and a column needs this only to offer the shortcut.
+   *
+   * Untyped against the store on purpose — a `Column<T>` knows its row type and nothing about
+   * which store it will be rendered beside, so the compile-time key check lives where the store
+   * is declared (`createFilterStore`), not here.
+   */
+  filterId?: string;
   filterPlaceholder?: string;
   showMatchModes?: boolean;
   /**
@@ -2192,6 +2223,7 @@ export class Column<T = any> {
     field,
     filterField,
     filterType,
+    filterId,
     filterPlaceholder,
     showMatchModes,
     matchModes,
@@ -2211,6 +2243,7 @@ export class Column<T = any> {
     field?: string & keyof T;
     filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future;
     filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
+    filterId?: string;
     filterPlaceholder?: string;
     showMatchModes?: boolean;
     matchModes?: MatchModeCodes[];
@@ -2230,6 +2263,7 @@ export class Column<T = any> {
     this.field = field;
     this.filterField = filterField;
     this.filterType = filterType;
+    this.filterId = filterId;
     this.filterPlaceholder = filterPlaceholder;
     this.showMatchModes = showMatchModes;
     this.matchModes = matchModes;

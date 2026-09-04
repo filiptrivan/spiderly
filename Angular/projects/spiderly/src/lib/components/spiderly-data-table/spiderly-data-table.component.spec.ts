@@ -3156,3 +3156,60 @@ class HostWithUnsortableColumnComponent {
   ];
   getList = emptyList;
 }
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithLinkedFilterComponent {
+  filters = createFilterStore({ name: textFilter({ label: 'Naziv' }) });
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text', filterId: 'name' },
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+  ];
+  getList = emptyList;
+}
+
+// The bar took the filter off the header, and the header is still where an operator looks for it
+// — twenty-seven tables' worth of habit. This is the shortcut back, and the only thing in the
+// design that needs a column to KNOW its filter (decision 1's filterId, deliberately unbuilt
+// until something asked for it).
+describe('SpiderlyDataTableComponent — filtering from the header menu', () => {
+  it('opens the bar editor for the column that declares a filter', async () => {
+    const { fixture } = createWithDataTable(HostWithLinkedFilterComponent);
+    await renderRows(fixture);
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="filter-editor"]')).toBeNull();
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-filter"]')!
+      .click();
+    await renderRows(fixture);
+
+    const editor = el.querySelector('[data-testid="filter-editor"]');
+    expect(editor).not.toBeNull();
+    expect(editor!.textContent).toContain('Naziv');
+  });
+
+  it('offers nothing to a column that declares no filter', async () => {
+    const { fixture } = createWithDataTable(HostWithLinkedFilterComponent);
+    await renderRows(fixture);
+
+    await openColumnMenu(fixture, 1);
+
+    expect(
+      columnMenu(fixture).querySelector<HTMLButtonElement>(
+        '[data-testid="column-menu-filter"]',
+      )!.disabled,
+    ).toBeTrue();
+  });
+});

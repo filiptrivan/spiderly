@@ -115,6 +115,17 @@
               type="button"
               role="menuitem"
               class="column-menu-item"
+              data-testid="column-menu-filter"
+              [disabled]="!menuColumn || !canFilterColumn(menuColumn)"
+              (click)="filterMenuColumn()"
+            >
+              <i class="pi pi-filter"></i>
+              <span class="column-menu-item-label">{{ t('Filter') }}…</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
               data-testid="column-menu-sort-asc"
               [disabled]="!menuColumn || !isColumnSortable(menuColumn)"
               (click)="sortMenuColumn(1)"
