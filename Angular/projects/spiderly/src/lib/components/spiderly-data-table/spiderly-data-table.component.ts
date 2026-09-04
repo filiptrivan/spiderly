@@ -718,6 +718,14 @@ export class SpiderlyDataTableComponent
   /** Data-column fields in the operator's order. Empty means "as declared". */
   private columnOrder: string[] = [];
 
+  /**
+   * Per-column width overrides, as SHARES in the same unit `getColWidth` emits — never pixels.
+   * Under the fixed layout the browser splits surplus in proportion to these, so a pixel would
+   * pin the column and stop it answering the window: the operator on a 1280 laptop and the one
+   * on a 2560 monitor would get the same frozen column (decision 4).
+   */
+  private columnWidths: Record<string, number> = {};
+
   private get layoutStateKey(): string | null {
     return this.resolvedStateKey ? `${this.resolvedStateKey}:layout` : null;
   }
@@ -726,10 +734,15 @@ export class SpiderlyDataTableComponent
   private persistColumnLayout(): void {
     if (!this.layoutStateKey) return;
 
-    const layout = { wrap: this.columnWrap, order: this.columnOrder };
+    const layout = {
+      wrap: this.columnWrap,
+      order: this.columnOrder,
+      widths: this.columnWidths,
+    };
     const isDefault =
       Object.keys(this.columnWrap).length === 0 &&
-      this.columnOrder.length === 0;
+      this.columnOrder.length === 0 &&
+      Object.keys(this.columnWidths).length === 0;
 
     if (isDefault) localStorage.removeItem(this.layoutStateKey);
     else writeStoredJson(localStorage, this.layoutStateKey, layout);
@@ -741,6 +754,7 @@ export class SpiderlyDataTableComponent
     const layout = readStoredJson(localStorage, this.layoutStateKey);
     this.columnWrap = layout?.wrap ?? {};
     this.columnOrder = layout?.order ?? [];
+    this.columnWidths = layout?.widths ?? {};
   }
 
   private persistColumnVisibility(): void {
@@ -1194,7 +1208,84 @@ export class SpiderlyDataTableComponent
     );
   }
 
+  /** This column's share, override first, then its declared width, then the per-type default. */
+  columnShare(col: Column): number {
+    if (col.field && this.columnWidths[col.field] != null) {
+      return this.columnWidths[col.field];
+    }
+
+    if (col.width != null) return parseFloat(col.width) || 0;
+    if (col.filterType) return DEFAULT_COLUMN_WIDTH_REM[col.filterType];
+
+    return 2 + (col.actions?.length ?? 0) * 2.5;
+  }
+
+  /**
+   * Trades share between the column being dragged and the one on its right, so the table keeps
+   * its total: widening a column never starts a horizontal scroll by itself, which only happens
+   * once the SUM of the minimums stops fitting. The px delta is converted through the column's
+   * own rendered width, which is the only place the share-to-pixel scale is actually known.
+   */
+  startColumnResize(col: Column, event: MouseEvent, th: HTMLElement): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const neighbour = this.visibleCols[this.visibleCols.indexOf(col) + 1];
+    if (!col.field || !neighbour?.field) return;
+
+    const startX = event.clientX;
+    const startShare = this.columnShare(col);
+    const neighbourShare = this.columnShare(neighbour);
+    const sharePerPx = startShare / Math.max(th.offsetWidth, 1);
+    // A column that reaches zero share disappears with no way back from the header it lost.
+    const floor = 2;
+
+    const onMove = (move: MouseEvent) => {
+      const delta = (move.clientX - startX) * sharePerPx;
+      const clamped = Math.max(
+        Math.min(delta, neighbourShare - floor),
+        floor - startShare,
+      );
+
+      this.columnWidths[col.field!] = startShare + clamped;
+      this.columnWidths[neighbour.field!] = neighbourShare - clamped;
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      this.persistColumnLayout();
+
+      // Sorting hangs off CLICK, which stopPropagation on mousedown never touched — so every
+      // resize also reordered the grid. Swallowing the click on the grip is not enough either:
+      // on a drag that ends away from it, the click fires on their common ancestor, the th.
+      // One capturing listener, once, on the document.
+      const swallow = (click: MouseEvent) => {
+        click.stopPropagation();
+        click.preventDefault();
+      };
+      document.addEventListener('click', swallow, {
+        capture: true,
+        once: true,
+      });
+      // Removed on the next tick rather than left to `once`. The click that follows a mouseup
+      // fires synchronously, so this always catches it — while a drag that ends with no click at
+      // all (the pointer leaves the window, the operator navigates away) would otherwise leave a
+      // listener sitting on the document to eat someone's next click entirely.
+      setTimeout(() =>
+        document.removeEventListener('click', swallow, { capture: true }),
+      );
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
   getColWidth(col: Column): string {
+    if (col.field && this.columnWidths[col.field] != null) {
+      return `${this.columnWidths[col.field]}rem`;
+    }
+
     if (col.width != null) return col.width;
 
     if (col.filterType) return `${DEFAULT_COLUMN_WIDTH_REM[col.filterType]}rem`;

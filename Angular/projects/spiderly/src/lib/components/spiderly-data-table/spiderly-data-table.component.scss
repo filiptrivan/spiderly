@@ -141,6 +141,22 @@
     opacity: 1;
   }
 
+  // The grab handle on a header's right edge. The th is position:relative through PrimeNG's own
+  // styles; the strip is wider than the line it draws so it can actually be hit.
+  th {
+    position: relative;
+  }
+
+  .column-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+  }
+
   // Belt to onSelectionCellMouseDown's preventDefault (shift+click text-selection suppression).
   td.selection-cell {
     user-select: none;

@@ -175,10 +175,21 @@
           </th>
           <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
             <th
+              #headerCell
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="!isColumnSortable(col)"
               [style.width]="getColWidth(col)"
             >
+              <!-- Ours, not PrimeNG's: enabling [resizableColumns] makes it persist widths by
+                   th:nth-child INDEX into our own stateKey, which slides every stored width onto
+                   the wrong column the first time the chooser hides one (CLAUDE.md -> decision
+                   5). We take the gesture and keep the state. -->
+              <span
+                *ngIf="hasLazyLoad && isDataColumn(col)"
+                class="column-resizer"
+                data-testid="column-resizer"
+                (mousedown)="startColumnResize(col, $event, headerCell)"
+              ></span>
               <div
                 style="
                   display: flex;
