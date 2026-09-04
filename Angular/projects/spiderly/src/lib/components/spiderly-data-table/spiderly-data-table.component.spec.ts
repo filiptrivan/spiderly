@@ -3089,4 +3089,70 @@ describe('SpiderlyDataTableComponent — the clamped cell says what it hides', (
     expect(dataTable.columnShare(dataTable.cols[0])).toBeGreaterThan(before);
     expect(cell().getAttribute('title')).toBeNull();
   });
+
 });
+
+// Clicking a header cycles through asc, desc and off, which is fine for one column and unreadable
+// for a direction someone wants NOW — you click and look, and click again if it went the other
+// way. Naming the direction removes the guess, and it is the only sort path that works from a
+// keyboard.
+describe('SpiderlyDataTableComponent — sorting from the header menu', () => {
+  it('sorts in the named direction', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-sort-desc"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.sortKeys).toEqual([
+      { label: 'Naziv', descending: true },
+    ]);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-sort-asc"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.sortKeys).toEqual([
+      { label: 'Naziv', descending: false },
+    ]);
+  });
+
+  // A column the backend has no sort case for answers with a 400 on every load, so the menu must
+  // not offer the gesture at all — the same rule that keeps its header from being clickable.
+  it('offers no sort on a column that cannot be sorted', async () => {
+    const { fixture } = createWithDataTable(HostWithUnsortableColumnComponent);
+    await renderRows(fixture);
+
+    await openColumnMenu(fixture);
+
+    expect(
+      columnMenu(fixture).querySelector<HTMLButtonElement>(
+        '[data-testid="column-menu-sort-asc"]',
+      )!.disabled,
+    ).toBeTrue();
+  });
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithUnsortableColumnComponent {
+  cols: Column[] = [
+    { name: 'Napomena', field: 'note', sortable: false },
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+  ];
+  getList = emptyList;
+}

@@ -1159,6 +1159,24 @@ export class SpiderlyDataTableComponent
   }
 
   /**
+   * Sorts by this column in the NAMED direction. Clicking a header cycles asc, desc and off,
+   * which is fine for one column and a guess for a direction someone wants now — you click, look,
+   * and click again if it went the other way. This is also the only sort path that works from a
+   * keyboard.
+   *
+   * A column the generated paginator has no sort case for answers every load with a 400, so the
+   * items are disabled by the same predicate that keeps its header from being clickable.
+   */
+  sortMenuColumn(order: 1 | -1): void {
+    const col = this.menuColumn;
+    this.columnMenu().hide();
+    if (!col?.field || !this.isColumnSortable(col)) return;
+
+    this.table._multiSortMeta = [{ field: col.field, order }];
+    this.table.sortMultiple();
+  }
+
+  /**
    * Sizes the column to the widest thing in it. The cheaper escape from a cramped column: no
    * drag, no aim. Unlike a drag it does NOT trade with the neighbour — a minimum that grew is
    * exactly the case decision 4 lets push the table past its container and start scrolling.

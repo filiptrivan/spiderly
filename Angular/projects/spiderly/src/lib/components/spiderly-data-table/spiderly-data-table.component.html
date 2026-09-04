@@ -115,6 +115,28 @@
               type="button"
               role="menuitem"
               class="column-menu-item"
+              data-testid="column-menu-sort-asc"
+              [disabled]="!menuColumn || !isColumnSortable(menuColumn)"
+              (click)="sortMenuColumn(1)"
+            >
+              <i class="pi pi-sort-amount-up-alt"></i>
+              <span class="column-menu-item-label">{{ t('SortAscending') }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-sort-desc"
+              [disabled]="!menuColumn || !isColumnSortable(menuColumn)"
+              (click)="sortMenuColumn(-1)"
+            >
+              <i class="pi pi-sort-amount-down"></i>
+              <span class="column-menu-item-label">{{ t('SortDescending') }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
               data-testid="column-menu-left"
               [disabled]="!menuColumn || !canMoveColumn(menuColumn, -1)"
               (click)="moveMenuColumn(-1)"

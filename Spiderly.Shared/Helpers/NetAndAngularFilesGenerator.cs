@@ -3959,6 +3959,8 @@ export const ThemePreset = definePreset(Aura, {
   "MoveLeft": "Move left",
   "MoveRight": "Move right",
   "FitWidth": "Fit width",
+  "SortAscending": "Sort ascending",
+  "SortDescending": "Sort descending",
   "FilterChipContains": "contains",
   "FilterChipStartsWith": "starts with",
   "FilterChipEquals": "is",
