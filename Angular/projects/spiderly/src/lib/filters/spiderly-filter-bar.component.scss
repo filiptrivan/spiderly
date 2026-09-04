@@ -69,18 +69,9 @@
   }
 }
 
+// PrimeNG's button owns the look; only placement belongs here.
 .filter-add {
-  border: 1px dashed var(--p-content-border-color);
-  border-radius: 999px;
-  background: none;
-  color: var(--p-primary-color);
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 4px 12px;
-
-  &:hover {
-    border-style: solid;
-  }
+  flex: none;
 }
 
 // The add menu is teleported into document.body with its popover, so its rules must sit at TOP
@@ -100,12 +91,6 @@
 }
 
 .filter-add-search {
-  border: 1px solid var(--p-content-border-color);
-  border-radius: var(--p-content-border-radius);
-  background: var(--p-content-background);
-  color: inherit;
-  font: inherit;
-  padding: 6px 8px;
   margin-bottom: 4px;
   position: sticky;
   top: 0;
@@ -126,8 +111,11 @@
   }
 }
 
+// Its own row under the chips, full width, so the controls have room and always appear in one
+// predictable place.
 .filter-editor {
   display: flex;
+  margin-top: 8px;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
@@ -170,17 +158,10 @@
 }
 
 .filter-bar-clear {
-  border: none;
-  background: none;
-  color: var(--p-primary-color);
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 4px 8px;
   // Pushed to the far end, away from the chips: a destructive action next to the x it resembles
-  // is how a single chip gets removed by someone reaching for all of them.
+  // is how a single chip gets removed by someone reaching for all of them. It is also the LAST
+  // child, because an auto margin here pushes everything after it to the right edge too — which
+  // is how the editor ended up across the screen from the click it answered.
   margin-left: auto;
-
-  &:hover {
-    text-decoration: underline;
-  }
+  flex: none;
 }

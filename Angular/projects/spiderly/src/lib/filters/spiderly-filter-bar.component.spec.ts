@@ -18,7 +18,7 @@ import { SpiderlyFilterBarComponent } from './spiderly-filter-bar.component';
 
 // Typed, not `unknown`: the parameter IS the assertion that a store built from `createFilterStore`
 // satisfies the bar's narrow source interface without the two agreeing on filter ids.
-function renderBar(filters: FilterBarSource) {
+function renderBar(filters: FilterBarSource): ComponentFixture<SpiderlyFilterBarComponent> {
   TestBed.configureTestingModule({
     imports: [
       SpiderlyFilterBarComponent,
@@ -55,12 +55,31 @@ type Rendered = { nativeElement: unknown; detectChanges(): void };
 // Once open, PrimeNG appends the popover to document.body, where stale ones from earlier fixtures
 // linger — so query THIS fixture's Popover instance, never the document. Same rule the column
 // chooser's specs already follow (spiderly-data-table/CLAUDE.md).
-function addMenu(fixture: Rendered): HTMLElement {
-  const popover = (fixture as unknown as ComponentFixture<unknown>).debugElement
-    .query(By.directive(Popover))
-    ?.componentInstance as Popover | undefined;
+// There is more than one popover on the bar now, so find the container by what it HOLDS rather
+// than by position — an index would silently follow whichever was declared first.
+function overlay(fixture: Rendered, selector: string): HTMLElement {
+  const containers = (fixture as unknown as ComponentFixture<unknown>).debugElement
+    .queryAll(By.directive(Popover))
+    .map((debugEl) => (debugEl.componentInstance as Popover).container)
+    .filter(Boolean) as HTMLElement[];
 
-  return popover?.container as HTMLElement;
+  return containers.find((container) => container.querySelector(selector))!;
+}
+
+function addMenu(fixture: Rendered): HTMLElement {
+  return overlay(fixture, '[data-testid="add-filter-option"]');
+}
+
+// In-template, unlike the add menu: the editor is a row under the chips, not an overlay.
+function editor(fixture: Rendered): HTMLElement {
+  return el(fixture).querySelector<HTMLElement>('[data-testid="filter-editor"]')!;
+}
+
+async function settle(fixture: Rendered): Promise<void> {
+  fixture.detectChanges();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  await (fixture as unknown as ComponentFixture<unknown>).whenStable();
+  fixture.detectChanges();
 }
 
 // Async because the popover renders its container a tick after toggle() — the same ritual
@@ -83,17 +102,19 @@ async function startEditing(fixture: Rendered, index = 0): Promise<void> {
     ),
   )[index].click();
   fixture.detectChanges();
+  await (fixture as unknown as ComponentFixture<unknown>).whenStable();
+  fixture.detectChanges();
 }
 
 function typeAndApply(fixture: Rendered, value: string): void {
-  const input = el(fixture).querySelector<HTMLInputElement>(
+  const input = editor(fixture).querySelector<HTMLInputElement>(
     '[data-testid="filter-editor-value"]',
   )!;
   input.value = value;
   input.dispatchEvent(new Event('input'));
   fixture.detectChanges();
 
-  el(fixture)
+  editor(fixture)
     .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
     .click();
   fixture.detectChanges();
@@ -188,7 +209,7 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const input = el(fixture).querySelector<HTMLInputElement>(
+    const input = editor(fixture).querySelector<HTMLInputElement>(
       '[data-testid="filter-editor-value"]',
     )!;
     input.value = 'Elektromont';
@@ -198,7 +219,7 @@ describe('SpiderlyFilterBarComponent', () => {
     // Still a draft: nothing on the bar until Apply.
     expect(chips(fixture).length).toBe(0);
 
-    el(fixture)
+    editor(fixture)
       .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
       .click();
     fixture.detectChanges();
@@ -269,7 +290,7 @@ describe('SpiderlyFilterBarComponent', () => {
     fixture.detectChanges();
 
     expect(
-      el(fixture).querySelector<HTMLInputElement>(
+      editor(fixture).querySelector<HTMLInputElement>(
         '[data-testid="filter-editor-value"]',
       )!.value,
     ).toBe('Elektromont');
@@ -286,14 +307,14 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const checkbox = el(fixture).querySelector<HTMLInputElement>(
+    const checkbox = editor(fixture).querySelector<HTMLInputElement>(
       '[data-testid="filter-editor-value"]',
     )!;
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    el(fixture)
+    editor(fixture)
       .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
       .click();
     fixture.detectChanges();
@@ -317,7 +338,7 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const operator = el(fixture).querySelector<HTMLSelectElement>(
+    const operator = editor(fixture).querySelector<HTMLSelectElement>(
       '[data-testid="filter-editor-operator"]',
     )!;
     operator.value = MatchModeCodes.LessThan;
@@ -352,7 +373,7 @@ describe('SpiderlyFilterBarComponent', () => {
     await startEditing(fixture);
 
     const ticks = Array.from(
-      el(fixture).querySelectorAll<HTMLInputElement>(
+      editor(fixture).querySelectorAll<HTMLInputElement>(
         '[data-testid="filter-editor-option"]',
       ),
     );
@@ -364,7 +385,7 @@ describe('SpiderlyFilterBarComponent', () => {
     }
     fixture.detectChanges();
 
-    el(fixture)
+    editor(fixture)
       .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
       .click();
     fixture.detectChanges();
@@ -385,7 +406,7 @@ describe('SpiderlyFilterBarComponent', () => {
     await startEditing(fixture);
 
     const offered = Array.from(
-      el(fixture).querySelectorAll<HTMLOptionElement>(
+      editor(fixture).querySelectorAll<HTMLOptionElement>(
         '[data-testid="filter-editor-operator"] option',
       ),
     ).map((option) => option.value);

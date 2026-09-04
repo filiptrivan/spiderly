@@ -2680,7 +2680,9 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
     await renderRows(fixture);
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.pi-filter-slash')).toBeNull();
+    // Scoped to the TOOLBAR: the bar's own clear button carries the same icon, deliberately (one
+    // meaning, one glyph), so a bare icon query stopped meaning "the toolbar button is gone".
+    expect(el.querySelector('.table-header .pi-filter-slash')).toBeNull();
 
     await fixture.ngZone!.run(async () => {
       el.querySelector<HTMLButtonElement>(

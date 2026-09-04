@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, input, output, signal } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { PopoverModule } from 'primeng/popover';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
@@ -41,7 +43,13 @@ function foldForSearch(value: string): string {
  */
 @Component({
   selector: 'spiderly-filter-bar',
-  imports: [CommonModule, TranslocoDirective, PopoverModule],
+  imports: [
+    CommonModule,
+    TranslocoDirective,
+    ButtonModule,
+    InputTextModule,
+    PopoverModule,
+  ],
   styleUrl: 'spiderly-filter-bar.component.scss',
   template: `
     <ng-container *transloco="let t">
@@ -120,14 +128,15 @@ function foldForSearch(value: string): string {
                same way. The teleport into document.body costs the specs a container lookup; that
                cost belongs to the tests, not to the operator. -->
           <button
+            pButton
             type="button"
-            class="filter-add"
+            class="p-button-text p-button-sm filter-add"
+            icon="pi pi-plus"
+            [label]="t('AddFilter')"
             data-testid="add-filter"
             [attr.aria-expanded]="isAddOpen()"
             (click)="addMenu.toggle($event); isAddOpen.set(!isAddOpen())"
-          >
-            + {{ t('AddFilter') }}
-          </button>
+          ></button>
         }
 
         @if (filters().applied().length) {
@@ -136,20 +145,22 @@ function foldForSearch(value: string): string {
                itself, because whoever owns the query also owns the persisted state and the sort
                that a full clear has to reach. -->
           <button
+            pButton
             type="button"
-            class="filter-bar-clear"
+            class="p-button-text p-button-sm filter-bar-clear"
+            icon="pi pi-filter-slash"
+            [label]="t('ClearFilters')"
             data-testid="filter-bar-clear"
             (click)="clearAll.emit()"
-          >
-            {{ t('ClearFilters') }}
-          </button>
+          ></button>
         }
 
         <p-popover #addMenu (onHide)="isAddOpen.set(false); addSearch.set('')">
           <div class="filter-add-menu" role="menu">
             <input
+              pInputText
               type="search"
-              class="filter-add-search"
+              class="p-inputtext-sm filter-add-search"
               data-testid="add-filter-search"
               [value]="addSearch()"
               [attr.aria-label]="t('AddFilter')"
@@ -171,8 +182,19 @@ function foldForSearch(value: string): string {
           </div>
         </p-popover>
 
-        @if (editing(); as handle) {
-          <div class="filter-editor" data-testid="filter-editor">
+      </div>
+
+      <!-- Its OWN ROW, directly under the chips. It used to render at the end of the bar, where
+           the clear button's auto left margin pushed everything after it to the far right, so the
+           control for the second filter opened across the screen from the click (Filip, on
+           /tags). A popover anchored to the click was tried first and abandoned: PrimeNG's
+           ng-content slot does not re-project content once the editor's @if has destroyed it, so
+           reopening gave an empty container with overlayVisible true. A fixed row is predictable,
+           which is the property the complaint was actually about.
+           NO BACKTICKS IN THIS TEMPLATE: it is a JS template literal and one terminates it, with
+           the error landing lines away. This is the second time. -->
+      @if (editing(); as handle) {
+        <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
             @if (handle.operators.length > 1) {
@@ -210,8 +232,9 @@ function foldForSearch(value: string): string {
               />
             } @else if (handle.kind === 'date') {
               <input
+                pInputText
                 type="date"
-                class="filter-editor-value"
+                class="p-inputtext-sm filter-editor-value"
                 data-testid="filter-editor-value"
                 [value]="dateInputValue(handle)"
                 (input)="draft(handle, $event)"
@@ -222,8 +245,9 @@ function foldForSearch(value: string): string {
                    right. Backticks are forbidden in this template: it is a JS template literal
                    and one terminates it, with the error landing lines away. -->
               <input
+                pInputText
                 [type]="handle.kind === 'number' ? 'number' : 'text'"
-                class="filter-editor-value"
+                class="p-inputtext-sm filter-editor-value"
                 data-testid="filter-editor-value"
                 [value]="handle.value() ?? ''"
                 (input)="draft(handle, $event)"
@@ -237,17 +261,16 @@ function foldForSearch(value: string): string {
               }}</span>
             }
 
-            <button
-              type="button"
-              class="filter-editor-apply"
-              data-testid="filter-editor-apply"
-              (click)="apply(handle)"
-            >
-              {{ t('Apply') }}
-            </button>
-          </div>
-        }
-      </div>
+          <button
+            pButton
+            type="button"
+            class="p-button-sm filter-editor-apply"
+            [label]="t('Apply')"
+            data-testid="filter-editor-apply"
+            (click)="apply(handle)"
+          ></button>
+        </div>
+      }
     </ng-container>
   `,
 })
@@ -301,6 +324,17 @@ export class SpiderlyFilterBarComponent {
       .map(([id, definition]) => ({ id, ...definition }));
   });
 
+  /**
+   * Opens the control ANCHORED to what was clicked. It used to render inline at the end of the
+   * bar, where `margin-left: auto` on the clear button pushed everything after it to the far
+   * right — so clicking the second filter opened its control across the screen from the click
+   * (Filip, on /tags). A popover cannot drift.
+   *
+   * The anchor is passed explicitly because the add-menu path clicks an option INSIDE a popover
+   * that is about to close; anchoring to the event target would pin the editor to an element on
+   * its way out of the DOM. It anchors to the "+ Filter" button instead, and a chip anchors to
+   * itself.
+   */
   startEditing(id: string): void {
     this.isAddOpen.set(false);
     this.editing.set(this.filters().get(id));
