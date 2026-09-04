@@ -7,6 +7,7 @@ import {
   DEFAULT_OPERATOR,
   FilterBarSource,
   FilterHandle,
+  FilterValueKind,
 } from './filter-store';
 
 export { FilterBarSource };
@@ -28,8 +29,18 @@ export { FilterBarSource };
       <div class="filter-bar" data-testid="filter-bar">
         @for (chip of filters().applied(); track chip.id) {
           <span class="filter-chip" data-testid="filter-chip">
-            <span class="filter-chip-label">{{ chip.label }}</span>
-            <span class="filter-chip-value">{{ chipValue(chip) }}</span>
+            <!-- The chip body reopens the filter. Once applied it is no longer offered under
+                 "+ Filter", so without this the only way to narrow Elektromont to Elektro is to
+                 delete the filter and rebuild it. -->
+            <button
+              type="button"
+              class="filter-chip-edit"
+              data-testid="filter-chip-edit"
+              (click)="startEditing(chip.id)"
+            >
+              <span class="filter-chip-label">{{ chip.label }}</span>
+              <span class="filter-chip-value">{{ chipValue(chip) }}</span>
+            </button>
             <button
               type="button"
               class="filter-chip-remove"
@@ -74,19 +85,22 @@ export { FilterBarSource };
           <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
-            @if (handle.kind === 'text') {
+            @if (handle.kind === 'text' || handle.kind === 'number') {
+              <!-- A DOM control's raw value is always a string. It is coerced on the way into
+                   the store (see coerce), which is the one place the value type can be got
+                   right. Backticks are forbidden in this template: it is a JS template literal
+                   and one terminates it, with the error landing lines away. -->
               <input
-                type="text"
+                [type]="handle.kind === 'number' ? 'number' : 'text'"
                 class="filter-editor-value"
                 data-testid="filter-editor-value"
                 [value]="handle.value() ?? ''"
                 (input)="draft(handle, $event)"
               />
             } @else {
-              <!-- Only the text control exists so far. Rendering a text box for a number or a date
-                   would write the wrong VALUE TYPE into the store, which nothing checks at
-                   runtime — the operator is checked, the value is not. Visibly missing beats
-                   silently wrong. -->
+              <!-- No control for this kind yet. A text box would write the wrong VALUE TYPE into
+                   the store, which nothing checks at runtime — the operator is checked, the value
+                   is not. Visibly missing beats silently wrong. -->
               <span data-testid="filter-editor-unsupported">{{
                 t('FilterControlNotAvailable')
               }}</span>
@@ -136,8 +150,25 @@ export class SpiderlyFilterBarComponent {
   draft(handle: FilterHandle, event: Event): void {
     handle.set({
       operator: handle.operator() ?? DEFAULT_OPERATOR[handle.kind],
-      value: (event.target as HTMLInputElement).value,
+      value: this.coerce(handle.kind, (event.target as HTMLInputElement).value),
     });
+  }
+
+  /**
+   * A DOM control hands back a string; the store holds the value type the filter declared.
+   *
+   * The empty case is the trap and it is not symmetric: `Number('')` is 0, so an emptied number
+   * box would apply a filter for zero and draw a chip over a control the operator had just
+   * cleared. `NaN` is folded in for the same reason — the store's `isBlank` cannot recognise
+   * either of them as "nothing was entered", because by then they are perfectly good numbers.
+   */
+  private coerce(kind: FilterValueKind, raw: string): unknown {
+    if (kind !== 'number') return raw;
+    if (raw.trim() === '') return null;
+
+    const parsed = Number(raw);
+
+    return Number.isNaN(parsed) ? null : parsed;
   }
 
   apply(handle: FilterHandle): void {

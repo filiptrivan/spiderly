@@ -31,6 +31,37 @@ function renderBar(filters: FilterBarSource) {
 const el = (fixture: { nativeElement: unknown }): HTMLElement =>
   fixture.nativeElement as HTMLElement;
 
+// Pick a filter from "+ Filter" and open its control.
+type Rendered = { nativeElement: unknown; detectChanges(): void };
+
+function startEditing(fixture: Rendered, index = 0): void {
+  el(fixture)
+    .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
+    .click();
+  fixture.detectChanges();
+
+  Array.from(
+    el(fixture).querySelectorAll<HTMLButtonElement>(
+      '[data-testid="add-filter-option"]',
+    ),
+  )[index].click();
+  fixture.detectChanges();
+}
+
+function typeAndApply(fixture: Rendered, value: string): void {
+  const input = el(fixture).querySelector<HTMLInputElement>(
+    '[data-testid="filter-editor-value"]',
+  )!;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+
+  el(fixture)
+    .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+    .click();
+  fixture.detectChanges();
+}
+
 const chips = (fixture: { nativeElement: unknown }): HTMLElement[] =>
   Array.from(el(fixture).querySelectorAll('[data-testid="filter-chip"]'));
 
@@ -156,5 +187,62 @@ describe('SpiderlyFilterBarComponent', () => {
       },
     ]);
     expect(chips(fixture).length).toBe(1);
+  });
+
+  // Every DOM control hands back a string. Storing it as one puts `"5"` in a numeric constraint,
+  // which the paginator compares against an integer column — so the coercion belongs here, at the
+  // one place the control's raw value enters the store.
+  it('coerces the number control back to a number', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+    typeAndApply(fixture, '5');
+
+    expect(filters.toFilterPayload()).toEqual({
+      orderStatusId: [{ matchMode: MatchModeCodes.Equals, value: 5 }],
+    });
+  });
+
+  // An emptied number box hands back "", and Number("") is 0. Coercing naively would apply a
+  // filter for zero and draw a chip reading "0" over a control the operator had just cleared.
+  it('treats an emptied number control as blank, not as zero', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+    typeAndApply(fixture, '');
+
+    expect(filters.applied()).toEqual([]);
+    expect(filters.toFilterPayload()).toEqual({});
+  });
+
+  // An applied filter is a chip and no longer in "+ Filter", so without this the only way to
+  // change Elektromont to Elektro is to remove the filter and build it again.
+  it('reopens an applied filter from its chip, with its value in the control', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+    typeAndApply(fixture, 'Elektromont');
+
+    expect(chips(fixture).length).toBe(1);
+
+    chips(fixture)[0]
+      .querySelector<HTMLButtonElement>('[data-testid="filter-chip-edit"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(
+      el(fixture).querySelector<HTMLInputElement>(
+        '[data-testid="filter-editor-value"]',
+      )!.value,
+    ).toBe('Elektromont');
   });
 });
