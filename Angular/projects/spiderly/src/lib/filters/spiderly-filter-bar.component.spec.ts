@@ -2,7 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TranslocoTestingModule } from '@jsverse/transloco';
+import { Checkbox } from 'primeng/checkbox';
+import { DatePicker } from 'primeng/datepicker';
+import { MultiSelect } from 'primeng/multiselect';
 import { Popover } from 'primeng/popover';
+import { Select } from 'primeng/select';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
@@ -73,6 +77,18 @@ function addMenu(fixture: Rendered): HTMLElement {
 // In-template, unlike the add menu: the editor is a row under the chips, not an overlay.
 function editor(fixture: Rendered): HTMLElement {
   return el(fixture).querySelector<HTMLElement>('[data-testid="filter-editor"]')!;
+}
+
+/**
+ * The four PrimeNG controls render their own markup and open their lists in body-teleported
+ * overlays, so these drive the control's OUTPUT — the same event a click produces, and the seam
+ * this component actually consumes. Their internal DOM is PrimeNG's to change; what must not
+ * change is what the control hands us and what the store does with it.
+ */
+function control<T>(fixture: Rendered, type: new (...args: never[]) => T): T {
+  return (fixture as unknown as ComponentFixture<unknown>).debugElement.query(
+    By.directive(type as never),
+  ).componentInstance as T;
 }
 
 async function settle(fixture: Rendered): Promise<void> {
@@ -307,11 +323,10 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const checkbox = editor(fixture).querySelector<HTMLInputElement>(
-      '[data-testid="filter-editor-value"]',
-    )!;
-    checkbox.checked = false;
-    checkbox.dispatchEvent(new Event('change'));
+    control(fixture, Checkbox).onChange.emit({
+      originalEvent: new Event('change'),
+      checked: false,
+    });
     fixture.detectChanges();
 
     editor(fixture)
@@ -338,14 +353,20 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const operator = editor(fixture).querySelector<HTMLSelectElement>(
-      '[data-testid="filter-editor-operator"]',
-    )!;
-    operator.value = MatchModeCodes.LessThan;
-    operator.dispatchEvent(new Event('change'));
+    control(fixture, Select).onChange.emit({
+      originalEvent: new Event('change'),
+      value: MatchModeCodes.LessThan,
+    });
     fixture.detectChanges();
 
-    typeAndApply(fixture, '2026-09-01');
+    // The datepicker hands back a real Date at local midnight; nothing parses a string here.
+    control(fixture, DatePicker).onSelect.emit(new Date(2026, 8, 1));
+    fixture.detectChanges();
+
+    editor(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
 
     expect(filters.toFilterPayload()).toEqual({
       createdAt: [
@@ -372,17 +393,10 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const ticks = Array.from(
-      editor(fixture).querySelectorAll<HTMLInputElement>(
-        '[data-testid="filter-editor-option"]',
-      ),
-    );
-    expect(ticks.length).toBe(2);
+    const picker = control(fixture, MultiSelect);
+    expect(picker.options!.length).toBe(2);
 
-    for (const tick of ticks) {
-      tick.checked = true;
-      tick.dispatchEvent(new Event('change'));
-    }
+    picker.onChange.emit({ originalEvent: new Event('change'), value: [2, 3] });
     fixture.detectChanges();
 
     editor(fixture)
@@ -405,10 +419,8 @@ describe('SpiderlyFilterBarComponent', () => {
     const fixture = renderBar(filters);
     await startEditing(fixture);
 
-    const offered = Array.from(
-      editor(fixture).querySelectorAll<HTMLOptionElement>(
-        '[data-testid="filter-editor-operator"] option',
-      ),
+    const offered = (
+      control(fixture, Select).options as { value: MatchModeCodes }[]
     ).map((option) => option.value);
 
     expect(offered).toEqual([

@@ -1,16 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input, output, signal } from '@angular/core';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { FormsModule } from '@angular/forms';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
+import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { PopoverModule } from 'primeng/popover';
+import { SelectModule } from 'primeng/select';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
   AppliedFilter,
   FilterBarSource,
   FilterHandle,
-  FilterOption,
   FilterValueKind,
   SortKeyLabel,
 } from './filter-store';
@@ -45,10 +56,15 @@ function foldForSearch(value: string): string {
   selector: 'spiderly-filter-bar',
   imports: [
     CommonModule,
+    FormsModule,
     TranslocoDirective,
     ButtonModule,
+    CheckboxModule,
+    DatePickerModule,
     InputTextModule,
+    MultiSelectModule,
     PopoverModule,
+    SelectModule,
   ],
   styleUrl: 'spiderly-filter-bar.component.scss',
   template: `
@@ -198,47 +214,39 @@ function foldForSearch(value: string): string {
             <span class="filter-editor-label">{{ handle.label }}</span>
 
             @if (handle.operators.length > 1) {
-              <select
-                class="filter-editor-operator"
-                data-testid="filter-editor-operator"
-                [value]="handle.operator() ?? defaultOperator(handle)"
-                (change)="pickOperator(handle, $event)"
-              >
-                @for (option of handle.operators; track option.value) {
-                  <option [value]="option.value">{{ t(option.labelKey) }}</option>
-                }
-              </select>
+              <p-select
+                styleClass="p-inputtext-sm filter-editor-operator"
+                [options]="operatorChoices(handle)"
+                optionLabel="label"
+                optionValue="value"
+                [ngModel]="handle.operator() ?? handle.defaultOperator"
+                (onChange)="pickOperator(handle, $event.value)"
+              ></p-select>
             }
 
             @if (handle.options) {
-              @for (option of handle.options; track option.value) {
-                <label class="filter-editor-tick">
-                  <input
-                    type="checkbox"
-                    data-testid="filter-editor-option"
-                    [checked]="isTicked(handle, option)"
-                    (change)="toggleOption(handle, option, $event)"
-                  />
-                  {{ option.label }}
-                </label>
-              }
+              <p-multiSelect
+                styleClass="p-inputtext-sm filter-editor-value"
+                [options]="handle.options"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="t('All')"
+                [ngModel]="handle.value()"
+                (onChange)="draftValue(handle, $event.value)"
+              ></p-multiSelect>
             } @else if (handle.kind === 'boolean') {
-              <input
-                type="checkbox"
-                class="filter-editor-value"
-                data-testid="filter-editor-value"
-                [checked]="handle.value() === true"
-                (change)="draftBoolean(handle, $event)"
-              />
+              <p-checkbox
+                styleClass="filter-editor-value"
+                [binary]="true"
+                [ngModel]="handle.value() === true"
+                (onChange)="draftValue(handle, $event.checked)"
+              ></p-checkbox>
             } @else if (handle.kind === 'date') {
-              <input
-                pInputText
-                type="date"
-                class="p-inputtext-sm filter-editor-value"
-                data-testid="filter-editor-value"
-                [value]="dateInputValue(handle)"
-                (input)="draft(handle, $event)"
-              />
+              <p-datepicker
+                styleClass="p-inputtext-sm filter-editor-value"
+                [ngModel]="handle.value()"
+                (onSelect)="draftValue(handle, $event)"
+              ></p-datepicker>
             } @else if (handle.kind === 'text' || handle.kind === 'number') {
               <!-- A DOM control's raw value is always a string. It is coerced on the way into
                    the store (see coerce), which is the one place the value type can be got
@@ -288,6 +296,8 @@ export class SpiderlyFilterBarComponent {
 
   /** Asked for, never done here — see the button's comment. */
   readonly clearAll = output<void>();
+
+  private readonly transloco = inject(TranslocoService);
 
   readonly isAddOpen = signal(false);
 
@@ -340,39 +350,34 @@ export class SpiderlyFilterBarComponent {
     this.editing.set(this.filters().get(id));
   }
 
-  /** Writes the draft. Nothing reaches the bar or the query until `apply`. */
+  /** The raw-string controls only. Nothing reaches the bar or the query until `apply`. */
   draft(handle: FilterHandle, event: Event): void {
-    handle.set({
-      operator: handle.operator() ?? handle.defaultOperator,
-      value: this.coerce(handle.kind, (event.target as HTMLInputElement).value),
-    });
+    this.draftValue(
+      handle,
+      this.coerce(handle.kind, (event.target as HTMLInputElement).value),
+    );
   }
 
-  defaultOperator(handle: FilterHandle): MatchModeCodes {
-    return handle.defaultOperator;
-  }
-
-  isTicked(handle: FilterHandle, option: FilterOption): boolean {
-    const value = handle.value();
-
-    return Array.isArray(value) && value.includes(option.value);
+  /** The picker's own options, already translated — p-select takes labels, not keys. */
+  operatorChoices(
+    handle: FilterHandle,
+  ): { label: string; value: MatchModeCodes }[] {
+    return handle.operators.map((option) => ({
+      label: this.transloco.translate(option.labelKey),
+      value: option.value,
+    }));
   }
 
   /**
-   * A pick-list's value is the LIST, so each tick rewrites the whole draft. Untick everything and
-   * the draft is an empty array, which the store already treats as blank — no chip, no key, rather
-   * than an `In ()` the paginator would have to answer.
+   * The ONE write path, whatever the control. Every PrimeNG control here hands back a value of
+   * the right type already — a Date from the datepicker, a boolean from the checkbox, the whole
+   * array from the multiselect — so only the raw string ones need coercing, and only they go
+   * through `draft`.
    */
-  toggleOption(handle: FilterHandle, option: FilterOption, event: Event): void {
-    const current = handle.value();
-    const ticked = Array.isArray(current) ? [...current] : [];
-    const next = (event.target as HTMLInputElement).checked
-      ? [...ticked, option.value]
-      : ticked.filter((value) => value !== option.value);
-
+  draftValue(handle: FilterHandle, value: unknown): void {
     handle.set({
       operator: handle.operator() ?? handle.defaultOperator,
-      value: next,
+      value,
     });
   }
 
@@ -380,32 +385,8 @@ export class SpiderlyFilterBarComponent {
    * Changing the direction re-commits nothing on its own — it rewrites the draft, so the operator
    * survives until Apply like the value does.
    */
-  pickOperator(handle: FilterHandle, event: Event): void {
-    handle.set({
-      operator: (event.target as HTMLSelectElement).value as MatchModeCodes,
-      value: handle.value(),
-    });
-  }
-
-  /** An input[type=date] reads and writes "YYYY-MM-DD" in LOCAL time. */
-  dateInputValue(handle: FilterHandle): string {
-    const value = handle.value();
-    if (!(value instanceof Date) || Number.isNaN(value.getTime())) return '';
-
-    const pad = (part: number) => String(part).padStart(2, '0');
-
-    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-  }
-
-  /**
-   * The checkbox writes its own draft: its value is `checked`, not `value`. And `false` is a
-   * constraint here ("not a company order"), never an empty control.
-   */
-  draftBoolean(handle: FilterHandle, event: Event): void {
-    handle.set({
-      operator: handle.operator() ?? handle.defaultOperator,
-      value: (event.target as HTMLInputElement).checked,
-    });
+  pickOperator(handle: FilterHandle, operator: MatchModeCodes): void {
+    handle.set({ operator, value: handle.value() });
   }
 
   /**
@@ -417,17 +398,6 @@ export class SpiderlyFilterBarComponent {
    * either of them as "nothing was entered", because by then they are perfectly good numbers.
    */
   private coerce(kind: FilterValueKind, raw: string): unknown {
-    if (kind === 'date') {
-      // Built from parts, never `new Date(raw)`: that parses a bare "YYYY-MM-DD" as UTC, so in
-      // Belgrade "before 1 Sep" would include two hours of the 1st. A person picking a day in a
-      // date box means that day where they are standing.
-      if (raw === '') return null;
-
-      const [year, month, day] = raw.split('-').map(Number);
-
-      return new Date(year, month - 1, day);
-    }
-
     if (kind !== 'number') return raw;
     if (raw.trim() === '') return null;
 
