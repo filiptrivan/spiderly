@@ -30,6 +30,14 @@ one definition serves every surface with no branching.
 - `filterId` is typed as `keyof` the store's declaration, never a bare `string`. `Column.field` is
   already `string & keyof T` and fails the build on a typo; agents will migrate 195 declarations
   across 27 files, where a silent name miss is the worst failure mode on offer.
+- **`Column.filterId` is NOT built yet, deliberately (2026-09-04).** With the bar owning every
+  filter, no column references one: the first migration (PACMS `tag-list`) declares its store
+  beside its columns and needs no link between them. `filterId` becomes necessary only when a
+  control is placed back into a header cell, i.e. with `spiderlyFilterTemplate`. Build it then.
+- **What `Column.filterType` means has split, and nothing renames it.** On a table WITH a store it
+  is only the column's value shape, feeding `getColWidth` and the blob/value cell branch; on a
+  table without one it additionally renders the header filter. Renaming it would be the 195-line
+  migration decision 2 exists to avoid, so it keeps its name and loses a job.
 - **The schema is DERIVED from what the generated paginator implements, not hand-written.** This is
   the one gap in the sketch, and it has already bitten twice by hand: `paymentGatewayCode` is `text`
   rather than `multiselect` because the paginator answers `In` on a string column with
