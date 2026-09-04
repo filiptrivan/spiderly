@@ -457,6 +457,7 @@ export class SpiderlyDataTableComponent
     this.mergeActivePageSizesIntoOptions();
 
     this.restoreColumnVisibility();
+    this.restoreColumnWrap();
     this.reconcileVisibilityWithPersistedConstraints();
     this.reconcilePersistedMatchModes();
     // Restored filters are applied by definition — mark them before the first paint rather
@@ -646,6 +647,36 @@ export class SpiderlyDataTableComponent
     }
 
     this.appliedFilterKeys = applied;
+  }
+
+  /**
+   * Per-column wrap, by `field`. A SEPARATE key from the visibility overrides on purpose: folding
+   * both into one object would invalidate every layout already in an operator's localStorage, and
+   * this is the key the width and order overrides will join (decision 5).
+   */
+  private columnWrap: Record<string, boolean> = {};
+
+  private get layoutStateKey(): string | null {
+    return this.resolvedStateKey ? `${this.resolvedStateKey}:layout` : null;
+  }
+
+  private persistColumnWrap(): void {
+    if (!this.layoutStateKey) return;
+
+    if (Object.keys(this.columnWrap).length === 0) {
+      localStorage.removeItem(this.layoutStateKey);
+    } else {
+      writeStoredJson(localStorage, this.layoutStateKey, {
+        wrap: this.columnWrap,
+      });
+    }
+  }
+
+  private restoreColumnWrap(): void {
+    if (!this.layoutStateKey) return;
+
+    this.columnWrap =
+      readStoredJson(localStorage, this.layoutStateKey)?.wrap ?? {};
   }
 
   private persistColumnVisibility(): void {
@@ -1035,6 +1066,30 @@ export class SpiderlyDataTableComponent
   hideMenuColumn(): void {
     if (this.menuColumn) this.toggleColumn(this.menuColumn, false);
     this.columnMenu().hide();
+  }
+
+  /**
+   * Whether this column's default cells give up the one-line clamp. The DEFAULT stays clamped
+   * (CLAUDE.md -> "Operator-owned view", decision 9); what changes is that the operator picks
+   * which column pays the row height, not whoever wrote `cols`.
+   *
+   * Reaches `#defaultCell` only, like the clamp it undoes — a consumer's `spiderlyCellTemplate`
+   * carries the CONSUMER's `_ngcontent` and is unreachable from here by design. Say that when a
+   * consumer reports a column that will not wrap, rather than reaching for ::ng-deep.
+   */
+  isColumnWrapped(col: Column): boolean {
+    return col.field != null && this.columnWrap[col.field] === true;
+  }
+
+  toggleWrapForMenuColumn(): void {
+    const col = this.menuColumn;
+    this.columnMenu().hide();
+    if (!col?.field) return;
+
+    if (this.columnWrap[col.field]) delete this.columnWrap[col.field];
+    else this.columnWrap[col.field] = true;
+
+    this.persistColumnWrap();
   }
 
   /** Exposed for the template: actions columns carry no field and get no menu. */

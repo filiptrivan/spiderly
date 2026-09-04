@@ -107,6 +107,15 @@
             >
               <i class="pi pi-eye-slash"></i> {{ t('HideColumn') }}
             </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-wrap"
+              (click)="toggleWrapForMenuColumn()"
+            >
+              <i class="pi pi-align-left"></i> {{ t('WrapText') }}
+            </button>
           </div>
         </p-popover>
 
@@ -250,7 +259,11 @@
             <img width="45" [src]="displayValue" alt="" />
           </ng-container>
           <ng-container *ngIf="col.filterType !== 'blob'">
-            <span class="cell-text">{{ displayValue }}</span>
+            <span
+              class="cell-text"
+              [class.cell-text-wrap]="isColumnWrapped(col)"
+              >{{ displayValue }}</span
+            >
           </ng-container>
         </ng-template>
         <tr

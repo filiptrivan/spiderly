@@ -2743,7 +2743,20 @@ class HostWithTwoColumnsComponent {
     { name: 'Naziv', field: 'name', filterType: 'text' },
     { name: 'Id', field: 'id', filterType: 'numeric' },
   ];
-  getList = emptyList;
+  getList = (): Observable<PaginatedResult> =>
+    paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
+}
+
+async function openColumnMenu(
+  fixture: ComponentFixture<unknown>,
+  index = 0,
+): Promise<void> {
+  (fixture.nativeElement as HTMLElement)
+    .querySelectorAll<HTMLButtonElement>('[data-testid="column-menu"]')[index]
+    .click();
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
 }
 
 // Hiding a column meant opening the chooser popover and hunting for its row. The column itself is
@@ -2761,12 +2774,7 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
       'id',
     ]);
 
-    (fixture.nativeElement as HTMLElement)
-      .querySelectorAll<HTMLButtonElement>('[data-testid="column-menu"]')[0]
-      .click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await openColumnMenu(fixture);
 
     columnMenu(fixture)
       .querySelector<HTMLButtonElement>('[data-testid="column-menu-hide"]')!
@@ -2790,5 +2798,36 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
     fixture.detectChanges();
 
     expect(dataTable.sortKeys).toEqual([]);
+  });
+
+  // The other half of the truncation complaint. The default is one clamped line and stays that
+  // way (CLAUDE.md -> decision 9), but WHICH column gives up its row height is the operator's
+  // call, not the author of `cols` — the same rule Notion follows, per column, from the same menu
+  // that hides it. Asserted on the computed style rather than a class name: what matters is that
+  // the text wraps.
+  it('wraps a column from its header menu, and remembers the choice', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    const cell = () =>
+      (fixture.nativeElement as HTMLElement).querySelector('tbody .cell-text')!;
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('normal');
+    // Durable, like a hidden column: a layout choice re-made every morning is not a choice. Read
+    // out of storage rather than off the live instance, which would pass with nothing persisted.
+    const stored = JSON.parse(
+      localStorage.getItem(`${dataTable.resolvedStateKey}:layout`)!,
+    );
+    expect(stored.wrap).toEqual({ name: true });
   });
 });

@@ -154,6 +154,16 @@
     white-space: nowrap;
   }
 
+  // The operator's opt-out, per column, from the header menu. The row grows for this column and
+  // that is the point — the clamp above is the default precisely because a row that grows by
+  // content costs more than the line saves, so this is a choice someone makes about one column
+  // rather than a shape every table inherits.
+  .cell-text.cell-text-wrap {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   // PrimeNG-rendered markup, so ::ng-deep is the only way in; the mixin carries the contract.
   ::ng-deep .p-datatable-mask {
     @include table-pending-veil();
