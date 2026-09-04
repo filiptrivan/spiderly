@@ -28,8 +28,11 @@ function renderBar(filters: FilterBarSource) {
   return fixture;
 }
 
-const chips = (fixture: { nativeElement: HTMLElement }): HTMLElement[] =>
-  Array.from(fixture.nativeElement.querySelectorAll('[data-testid="filter-chip"]'));
+const el = (fixture: { nativeElement: unknown }): HTMLElement =>
+  fixture.nativeElement as HTMLElement;
+
+const chips = (fixture: { nativeElement: unknown }): HTMLElement[] =>
+  Array.from(el(fixture).querySelectorAll('[data-testid="filter-chip"]'));
 
 // The bar is the visible surface that lets a hidden column keep its filter. Everything it shows
 // comes from `applied()`, so a chip can never claim a constraint the grid is not actually under.
@@ -78,5 +81,80 @@ describe('SpiderlyFilterBarComponent', () => {
 
     expect(filters.applied()).toEqual([]);
     expect(chips(fixture).length).toBe(0);
+  });
+
+  // "+ Filter" is what makes a filter reachable without a column, which is the whole point: the
+  // firm a row prints on 82% of company orders has no column and no search, so the only way to
+  // ask for it is a list that offers every DECLARED filter, not every visible one.
+  it('offers the filters that are not applied, and not the ones that are', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    filters.set('companyName', {
+      operator: MatchModeCodes.Contains,
+      value: 'Elektromont',
+    });
+    filters.commit('companyName');
+
+    const fixture = renderBar(filters);
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
+      .click();
+    fixture.detectChanges();
+
+    const offered = Array.from(
+      el(fixture).querySelectorAll<HTMLElement>(
+        '[data-testid="add-filter-option"]',
+      ),
+    ).map((option) => option.textContent!.trim());
+
+    expect(offered).toEqual(['Status']);
+  });
+
+  // End to end through the DOM: pick a filter that has no column anywhere, type a value, apply,
+  // and the grid is narrowed by it. This is the path `Order.CompanyName` had none of.
+  it('applies a filter picked from the list, with the default operator for its kind', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    const fixture = renderBar(filters);
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
+      .click();
+    fixture.detectChanges();
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="add-filter-option"]')!
+      .click();
+    fixture.detectChanges();
+
+    const input = el(fixture).querySelector<HTMLInputElement>(
+      '[data-testid="filter-editor-value"]',
+    )!;
+    input.value = 'Elektromont';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    // Still a draft: nothing on the bar until Apply.
+    expect(chips(fixture).length).toBe(0);
+
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(filters.applied()).toEqual([
+      {
+        id: 'companyName',
+        label: 'Firma',
+        // `Contains` is the text default: an operator nobody chose has to be the one a person
+        // means by typing a fragment into a box.
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      },
+    ]);
+    expect(chips(fixture).length).toBe(1);
   });
 });

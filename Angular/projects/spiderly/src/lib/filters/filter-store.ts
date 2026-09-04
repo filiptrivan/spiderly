@@ -44,6 +44,20 @@ const ALLOWED_OPERATORS = {
 
 export type FilterValueKind = keyof typeof ALLOWED_OPERATORS;
 
+/**
+ * The operator applied when nobody picked one, which has to be what a person MEANS by filling in
+ * the control. `Contains` for a fragment typed into a box; `GreaterThan` for a date, never
+ * `Equals` — a date equality against a TIMESTAMP matches only the row written in that exact
+ * second, and answers with an empty grid rather than an error (PACMS ran into this on all three
+ * of its date columns, Filip 2026-08-28).
+ */
+export const DEFAULT_OPERATOR = {
+  text: MatchModeCodes.Contains,
+  number: MatchModeCodes.Equals,
+  boolean: MatchModeCodes.Equals,
+  date: MatchModeCodes.GreaterThan,
+} as const satisfies Record<FilterValueKind, MatchModeCodes>;
+
 /** The value each kind carries. Exhaustive over the kinds by construction. */
 interface ValueByKind {
   text: string;
@@ -107,8 +121,24 @@ interface StoredConstraint {
  * Narrow on purpose — it keeps the bar free of the store's generics, so the bar renders any store
  * without the two types having to agree on filter ids.
  */
+/** One filter, addressed on its own. The placement API, and what the bar's editor drives. */
+export interface FilterHandle {
+  id: string;
+  label: string;
+  kind: FilterValueKind;
+  /** The DRAFT — what a control shows. `applied()` answers the other question. */
+  value: Signal<unknown>;
+  operator: Signal<MatchModeCodes | undefined>;
+  set(constraint: { operator: MatchModeCodes; value: unknown }): void;
+  commit(): void;
+  reset(): void;
+}
+
 export interface FilterBarSource {
+  /** Every DECLARED filter, which is what "+ Filter" offers — not every visible column. */
+  definitions: Record<string, FilterDefinition<FilterValueKind>>;
   applied: Signal<AppliedFilter[]>;
+  get(id: string): FilterHandle;
   reset(id: string): void;
 }
 
