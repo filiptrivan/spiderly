@@ -3,6 +3,7 @@ using Spiderly.Shared.BaseEntities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Spiderly.Shared.Interfaces;
 using System.Reflection;
+using Spiderly.Security.Helpers;
 using Spiderly.Security.Interfaces;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Spiderly.Infrastructure.Converters;
@@ -52,7 +53,50 @@ namespace Spiderly.Infrastructure
             mutableEntityTypes.ConfigureManyToOneRelationships(modelBuilder);
             mutableEntityTypes.ConfigureOneToOneRelationships(modelBuilder);
 
+            ConstrainAccountKeyToCanonicalForm(modelBuilder);
+
             base.OnModelCreating(modelBuilder);
+        }
+
+        /// <summary>
+        /// Constrains the user entity's e-mail to its canonical (lower-cased) form, so the unique
+        /// index over it means ONE ACCOUNT PER ADDRESS whatever casing was typed.
+        /// </summary>
+        /// <remarks>
+        /// Without it that guarantee silently depends on the database: SQL Server's default collation
+        /// is case-insensitive, so a unique index there already enforces it, while on Postgres
+        /// <c>a@x.com</c> and <c>A@x.com</c> are two rows — and <c>SecurityServiceBase</c> will
+        /// happily auto-provision the second account. This makes both providers promise the same
+        /// thing, which is why it is expressed as a constraint on the value rather than as a
+        /// case-insensitive column type (<c>citext</c>): a type would apply case-insensitive
+        /// semantics to comparisons the consumer never asked about, including joins against their own
+        /// ordinary e-mail columns.
+        /// <para>
+        /// <see cref="CanonicalizeAccountKey"/> is what normally satisfies it, so in a healthy app
+        /// this never fires. It is the backstop for what that cannot reach — the synchronous
+        /// <c>SaveChanges</c> and raw SQL.
+        /// </para>
+        /// <para>
+        /// <b>On upgrade this can fail to apply</b>, and that is the point: it fails exactly when the
+        /// database already holds two accounts for one address. Merging those is a per-pair judgement
+        /// about which account survives, not a script, so it is deliberately the consumer's to make
+        /// before the migration runs.
+        /// </para>
+        /// <para>
+        /// The entity is registered here rather than assumed: discovery finds it in a consumer, but
+        /// registering makes the constraint independent of whether it did.
+        /// </para>
+        /// </remarks>
+        void ConstrainAccountKeyToCanonicalForm(ModelBuilder modelBuilder)
+        {
+            // The two supported providers quote identifiers differently, and a check constraint is
+            // raw SQL — there is no provider-agnostic way to name a column inside one.
+            string email = Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
+                ? "\"Email\""
+                : "[Email]";
+
+            modelBuilder.Entity<TUser>().ToTable(t => t.HasCheckConstraint(
+                $"CK_{typeof(TUser).Name}_Email_Lowercase", $"{email} = LOWER({email})"));
         }
 
 
@@ -66,9 +110,43 @@ namespace Spiderly.Infrastructure
             foreach (EntityEntry changedEntity in ChangeTracker.Entries())
             {
                 HandleObjectChanges(changedEntity);
+                CanonicalizeAccountKey(changedEntity);
             }
 
             return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Stamps the canonical form of the account key on every tracked write of the user entity.
+        /// </summary>
+        /// <remarks>
+        /// Beside the audit stamping because it is the same kind of fact — a framework invariant
+        /// about a framework-owned column — and because this is the one seam every tracked write
+        /// passes, including a consumer's own <c>DbSet&lt;TUser&gt;().Add(...)</c> that no generated
+        /// service can see. <c>SecurityServiceBase</c> already mints and links accounts on this
+        /// address (see <see cref="Security.Helpers.EmailNormalizer"/>), so the framework asserts
+        /// its semantics whether or not it stamps them; stamping them is what makes the assertion
+        /// hold for writes the framework did not originate.
+        /// <para>
+        /// Deliberately scoped to <see cref="IUser"/>'s <c>Email</c>. An address on any other entity
+        /// is contact data the consumer's operator typed, and folding it would be the framework
+        /// rewriting input it does not own.
+        /// </para>
+        /// <para>
+        /// The <c>CK_{TUser}_Email_Lowercase</c> constraint in <c>OnModelCreating</c> is the backstop
+        /// for what this cannot reach — the synchronous <c>SaveChanges</c>, which Spiderly does not
+        /// override, and raw SQL. Reaching it is a bug, and it fails loudly rather than admitting a
+        /// second identity for one address.
+        /// </para>
+        /// </remarks>
+        void CanonicalizeAccountKey(EntityEntry changedEntity)
+        {
+            if (changedEntity.Entity is IUser user
+                && changedEntity.State is EntityState.Added or EntityState.Modified
+                && user.Email != null)
+            {
+                user.Email = EmailNormalizer.Normalize(user.Email);
+            }
         }
 
         void HandleObjectChanges(EntityEntry changedEntity)
