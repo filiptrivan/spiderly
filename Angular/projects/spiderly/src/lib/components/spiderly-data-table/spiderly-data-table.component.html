@@ -113,6 +113,28 @@
                  check is the state; the label stays put, which is what the role is for. -->
             <button
               type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-left"
+              [disabled]="!menuColumn || !canMoveColumn(menuColumn, -1)"
+              (click)="moveMenuColumn(-1)"
+            >
+              <i class="pi pi-arrow-left"></i>
+              <span class="column-menu-item-label">{{ t('MoveLeft') }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-right"
+              [disabled]="!menuColumn || !canMoveColumn(menuColumn, 1)"
+              (click)="moveMenuColumn(1)"
+            >
+              <i class="pi pi-arrow-right"></i>
+              <span class="column-menu-item-label">{{ t('MoveRight') }}</span>
+            </button>
+            <button
+              type="button"
               role="menuitemcheckbox"
               class="column-menu-item"
               data-testid="column-menu-wrap"

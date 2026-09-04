@@ -457,7 +457,7 @@ export class SpiderlyDataTableComponent
     this.mergeActivePageSizesIntoOptions();
 
     this.restoreColumnVisibility();
-    this.restoreColumnWrap();
+    this.restoreColumnLayout();
     this.reconcileVisibilityWithPersistedConstraints();
     this.reconcilePersistedMatchModes();
     // Restored filters are applied by definition — mark them before the first paint rather
@@ -512,8 +512,67 @@ export class SpiderlyDataTableComponent
     return this.columnVisibilityOverrides[col.field] ?? col.visible !== false;
   }
 
+  /**
+   * `cols` in the operator's order. A field the stored order has never seen — a column added in a
+   * later release — sorts to the END rather than displacing a layout someone built by hand
+   * (CLAUDE.md -> "Operator-owned view", decision 7); the sort is stable, so those keep their
+   * declared order among themselves. Actions columns carry no field and are always last, which is
+   * where every consumer already declares them.
+   */
+  private orderedCols(): Column[] {
+    if (this.columnOrder.length === 0) return this.cols;
+
+    const rank = new Map(
+      this.columnOrder.map((field, index) => [field, index]),
+    );
+
+    return [...this.cols].sort(
+      (a, b) =>
+        (rank.get(a.field!) ?? Number.MAX_SAFE_INTEGER) -
+        (rank.get(b.field!) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }
+
+  /**
+   * Whether this column can move one place in `direction` (-1 left, 1 right). A locked column is
+   * the row's anchor — and, once the left edge freezes, the thing a horizontal scroll keeps in
+   * view — so it does not move and nothing moves in front of it.
+   */
+  canMoveColumn(col: Column, direction: -1 | 1): boolean {
+    if (col.lockVisible || !col.field) return false;
+
+    const order = this.orderedCols().filter(
+      SpiderlyDataTableComponent.isDataColumn,
+    );
+    const from = order.indexOf(col);
+    const to = from + direction;
+
+    if (from < 0 || to < 0 || to >= order.length) return false;
+
+    return !order[to].lockVisible;
+  }
+
+  moveMenuColumn(direction: -1 | 1): void {
+    const col = this.menuColumn;
+    this.columnMenu().hide();
+    if (!col || !this.canMoveColumn(col, direction)) return;
+
+    const order = this.orderedCols().filter(
+      SpiderlyDataTableComponent.isDataColumn,
+    );
+    const from = order.indexOf(col);
+
+    order.splice(from + direction, 0, ...order.splice(from, 1));
+
+    this.columnOrder = order.map((entry) => entry.field!);
+    this.persistColumnLayout();
+    this.refreshVisibleCols();
+  }
+
   private refreshVisibleCols(): void {
-    this.visibleCols = this.cols.filter((col) => this.isColumnVisible(col));
+    this.visibleCols = this.orderedCols().filter((col) =>
+      this.isColumnVisible(col),
+    );
     this.visibleDataColsCount = this.visibleCols.filter(
       SpiderlyDataTableComponent.isDataColumn,
     ).length;
@@ -656,27 +715,32 @@ export class SpiderlyDataTableComponent
    */
   private columnWrap: Record<string, boolean> = {};
 
+  /** Data-column fields in the operator's order. Empty means "as declared". */
+  private columnOrder: string[] = [];
+
   private get layoutStateKey(): string | null {
     return this.resolvedStateKey ? `${this.resolvedStateKey}:layout` : null;
   }
 
-  private persistColumnWrap(): void {
+  /** One key for the whole layout — wrap now, widths next (decision 5). */
+  private persistColumnLayout(): void {
     if (!this.layoutStateKey) return;
 
-    if (Object.keys(this.columnWrap).length === 0) {
-      localStorage.removeItem(this.layoutStateKey);
-    } else {
-      writeStoredJson(localStorage, this.layoutStateKey, {
-        wrap: this.columnWrap,
-      });
-    }
+    const layout = { wrap: this.columnWrap, order: this.columnOrder };
+    const isDefault =
+      Object.keys(this.columnWrap).length === 0 &&
+      this.columnOrder.length === 0;
+
+    if (isDefault) localStorage.removeItem(this.layoutStateKey);
+    else writeStoredJson(localStorage, this.layoutStateKey, layout);
   }
 
-  private restoreColumnWrap(): void {
+  private restoreColumnLayout(): void {
     if (!this.layoutStateKey) return;
 
-    this.columnWrap =
-      readStoredJson(localStorage, this.layoutStateKey)?.wrap ?? {};
+    const layout = readStoredJson(localStorage, this.layoutStateKey);
+    this.columnWrap = layout?.wrap ?? {};
+    this.columnOrder = layout?.order ?? [];
   }
 
   private persistColumnVisibility(): void {
@@ -1093,7 +1157,7 @@ export class SpiderlyDataTableComponent
     if (this.columnWrap[col.field]) delete this.columnWrap[col.field];
     else this.columnWrap[col.field] = true;
 
-    this.persistColumnWrap();
+    this.persistColumnLayout();
   }
 
   /** Exposed for the template: actions columns carry no field and get no menu. */

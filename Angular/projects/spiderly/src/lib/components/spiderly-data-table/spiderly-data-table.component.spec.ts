@@ -2859,4 +2859,49 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
 
     expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
   });
+
+  // Tvoja tačka 4. The menu path before the drag one, deliberately: it is the only reorder that
+  // works from a keyboard, and it reaches a column that is scrolled off the right edge.
+  it('moves a column from its menu, and remembers the order', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    expect(dataTable.visibleCols.map((col) => col.field)).toEqual([
+      'name',
+      'id',
+    ]);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-right"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.visibleCols.map((col) => col.field)).toEqual([
+      'id',
+      'name',
+    ]);
+
+    const stored = JSON.parse(
+      localStorage.getItem(`${dataTable.resolvedStateKey}:layout`)!,
+    );
+    expect(stored.order).toEqual(['id', 'name']);
+  });
+
+  // The identity column is the row's anchor and, once the left edge freezes, the thing a
+  // horizontal scroll keeps in view. It does not move, and nothing moves in front of it.
+  it('refuses to move a locked column, or anything past it', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithLockedColumnComponent,
+    );
+    await renderRows(fixture);
+
+    const locked = dataTable.cols[0];
+    expect(locked.lockVisible).toBeTrue();
+    expect(dataTable.canMoveColumn(locked, -1)).toBeFalse();
+    expect(dataTable.canMoveColumn(locked, 1)).toBeFalse();
+    expect(dataTable.canMoveColumn(dataTable.cols[1], -1)).toBeFalse();
+  });
 });
