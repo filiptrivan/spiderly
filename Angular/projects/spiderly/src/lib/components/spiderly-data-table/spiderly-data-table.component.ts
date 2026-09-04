@@ -573,7 +573,9 @@ export class SpiderlyDataTableComponent
    * are a transient working set — different natural lifetimes.
    */
   private get columnsStateKey(): string | null {
-    return this.resolvedStateKey ? `${this.resolvedStateKey}:columns` : null;
+    return this.resolvedStateKey
+      ? `${this.resolvedStateKey}${this.viewScope}:columns`
+      : null;
   }
 
   /** Actions columns always render; data columns follow reveal/override, then declared default. */
@@ -868,8 +870,23 @@ export class SpiderlyDataTableComponent
    */
   private columnWidths: Record<string, number> = {};
 
+  /**
+   * Layout keys carry the ACTIVE VIEW, which is what makes a view more than a saved filter: a
+   * picking view and a payments view want different COLUMNS, not just different rows. Global
+   * layout would re-create the original complaint one level up — the operator still re-picking
+   * columns every time the job changes.
+   *
+   * A table with no views has no segment, so the twenty-six tables that have not migrated keep
+   * reading exactly the keys they already wrote.
+   */
+  private get viewScope(): string {
+    return this.activeViewId ? `:${this.activeViewId}` : '';
+  }
+
   private get layoutStateKey(): string | null {
-    return this.resolvedStateKey ? `${this.resolvedStateKey}:layout` : null;
+    return this.resolvedStateKey
+      ? `${this.resolvedStateKey}${this.viewScope}:layout`
+      : null;
   }
 
   /** One key for the whole layout — wrap now, widths next (decision 5). */
@@ -1323,6 +1340,12 @@ export class SpiderlyDataTableComponent
    */
   selectView(view: TableView): void {
     this.activeViewId = view.id;
+
+    // The keys just changed under us, so the layout has to be re-read for the view being entered
+    // — otherwise the one being left keeps rendering until something else forces a reload.
+    this.restoreColumnVisibility();
+    this.restoreColumnLayout();
+    this.refreshVisibleCols();
 
     if (!this.filters) return;
 

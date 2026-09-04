@@ -3523,3 +3523,44 @@ describe('SpiderlyDataTableComponent — views', () => {
     expect(host.captured.at(-1)!.filters).toEqual({} as any);
   });
 });
+
+
+// The other half of decision 10, and the reason a view is more than a saved filter: a picking view
+// and a payments view want different COLUMNS, not just different rows. Layout global to the table
+// would re-create the original complaint one level up.
+describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
+  it('keeps each view\'s wrapped columns apart', async () => {
+    const { fixture, dataTable } = createWithDataTable(HostWithViewsComponent);
+    await renderRows(fixture);
+
+    const views = () =>
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        '[data-testid="table-view"]',
+      );
+
+    await fixture.ngZone!.run(async () => views()[0].click());
+    await renderRows(fixture);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(dataTable.isColumnWrapped(dataTable.cols[0])).toBeTrue();
+
+    await fixture.ngZone!.run(async () => views()[1].click());
+    await renderRows(fixture);
+
+    expect(dataTable.isColumnWrapped(dataTable.cols[0]))
+      .withContext('the other view must not inherit it')
+      .toBeFalse();
+
+    await fixture.ngZone!.run(async () => views()[0].click());
+    await renderRows(fixture);
+
+    expect(dataTable.isColumnWrapped(dataTable.cols[0]))
+      .withContext('and going back must find it again')
+      .toBeTrue();
+  });
+});
