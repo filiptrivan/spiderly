@@ -18,6 +18,7 @@ import {
   Output,
   QueryList,
   TemplateRef,
+  viewChild,
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -29,7 +30,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { PopoverModule } from 'primeng/popover';
+import { Popover, PopoverModule } from 'primeng/popover';
 import {
   Table,
   TableFilterEvent,
@@ -1015,6 +1016,32 @@ export class SpiderlyDataTableComponent
    * Columns declaring none would otherwise take an equal share, which throws away what the
    * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
    */
+  /** The column the header menu is currently open for. */
+  menuColumn: Column | null = null;
+
+  /**
+   * A ViewChild rather than a template reference passed in from the header. The popover lives in
+   * the CAPTION template and the button that opens it in the HEADER one, and a reference variable
+   * does not cross an ng-template boundary — it arrived as undefined, and the click did nothing
+   * at all.
+   */
+  private readonly columnMenu = viewChild.required<Popover>('columnMenu');
+
+  openColumnMenu(col: Column, event: Event): void {
+    this.menuColumn = col;
+    this.columnMenu().toggle(event);
+  }
+
+  hideMenuColumn(): void {
+    if (this.menuColumn) this.toggleColumn(this.menuColumn, false);
+    this.columnMenu().hide();
+  }
+
+  /** Exposed for the template: actions columns carry no field and get no menu. */
+  isDataColumn(col: Column): boolean {
+    return SpiderlyDataTableComponent.isDataColumn(col);
+  }
+
   /**
    * What the grid is ordered by, resolved to COLUMN NAMES for the bar. Read off PrimeNG's live
    * meta rather than mirrored into a field, so it cannot fall out of step with the sort the table

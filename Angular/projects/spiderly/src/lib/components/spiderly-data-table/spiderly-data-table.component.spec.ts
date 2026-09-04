@@ -298,14 +298,33 @@ async function openChooser(fixture: ComponentFixture<unknown>): Promise<void> {
   fixture.detectChanges();
 }
 
+// There is more than one popover on this component now (the chooser and the header menu), so a
+// container is found by what it HOLDS. Taking the first by declaration order silently followed
+// whichever happened to be written first, which is how adding the header menu broke two
+// clear-on-hide specs that had nothing to do with it.
+function overlayHolding(
+  fixture: ComponentFixture<unknown>,
+  selector: string,
+): HTMLElement | undefined {
+  return fixture.debugElement
+    .queryAll(By.directive(Popover))
+    .map((debugEl) => (debugEl.componentInstance as Popover).container)
+    .filter(Boolean)
+    .find((container) => (container as HTMLElement).querySelector(selector)) as
+    | HTMLElement
+    | undefined;
+}
+
+function columnMenu(fixture: ComponentFixture<unknown>): HTMLElement {
+  return overlayHolding(fixture, '[data-testid="column-menu-hide"]')!;
+}
+
 // Query THIS fixture's popover container — once open, PrimeNG appends it to
 // document.body, where stale popovers from earlier fixtures may also linger.
 function chooserContainer(
   fixture: ComponentFixture<unknown>,
 ): HTMLElement | undefined {
-  const popover = fixture.debugElement.query(By.directive(Popover))
-    .componentInstance as Popover;
-  return popover.container as HTMLElement | undefined;
+  return overlayHolding(fixture, '.column-chooser');
 }
 
 function chooserOptions(
@@ -2706,5 +2725,70 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
 
     expect(count.textContent!.trim()).not.toBe('812');
     expect(count.textContent).toContain('812');
+  });
+
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithTwoColumnsComponent {
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+  ];
+  getList = emptyList;
+}
+
+// Hiding a column meant opening the chooser popover and hunting for its row. The column itself is
+// where the gesture belongs, and the menu is the surface the width, order and wrap controls will
+// share (CLAUDE.md -> "Operator-owned view", decision 3).
+describe('SpiderlyDataTableComponent — the column header menu', () => {
+  it('hides a column from its own header', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    expect(dataTable.visibleCols.map((col) => col.field)).toEqual([
+      'name',
+      'id',
+    ]);
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelectorAll<HTMLButtonElement>('[data-testid="column-menu"]')[0]
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-hide"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(dataTable.visibleCols.map((col) => col.field)).toEqual(['id']);
+  });
+
+  // The th carries pSortableColumn, so a click that reaches it sorts. Opening a menu must not
+  // reorder 71.629 rows on the way.
+  it('does not sort the grid when the menu is opened', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithTwoColumnsComponent,
+    );
+    await renderRows(fixture);
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelectorAll<HTMLButtonElement>('[data-testid="column-menu"]')[0]
+      .click();
+    fixture.detectChanges();
+
+    expect(dataTable.sortKeys).toEqual([]);
   });
 });

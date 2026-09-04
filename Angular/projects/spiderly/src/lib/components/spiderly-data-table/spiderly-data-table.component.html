@@ -91,6 +91,25 @@
             ></button>
           </div>
         </div>
+        <!-- ONE menu for every column, with the target held in `menuColumn`. Rendering its items
+             inside an @if keyed on the column would put them inside the popover's projected
+             content, and PrimeNG does not re-project content an @if has destroyed — the filter
+             bar's editor lost a whole afternoon to exactly that. -->
+        <p-popover #columnMenu>
+          <div class="column-menu" role="menu">
+            <button
+              type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-hide"
+              [disabled]="!menuColumn || !canToggleColumn(menuColumn)"
+              (click)="hideMenuColumn()"
+            >
+              <i class="pi pi-eye-slash"></i> {{ t('HideColumn') }}
+            </button>
+          </div>
+        </p-popover>
+
         <spiderly-filter-bar
           *ngIf="filters"
           [filters]="filters"
@@ -135,6 +154,19 @@
                     *ngIf="isColumnSortable(col)"
                     [field]="col.field!"
                   ></p-sortIcon>
+                  <!-- stopPropagation is load-bearing: the th carries pSortableColumn, so a click
+                       that reaches it sorts the grid. Opening a menu must not reorder the table on
+                       the way. -->
+                  <button
+                    *ngIf="hasLazyLoad && isDataColumn(col)"
+                    type="button"
+                    class="column-menu-button"
+                    data-testid="column-menu"
+                    [attr.aria-label]="t('Columns')"
+                    (click)="$event.stopPropagation(); openColumnMenu(col, $event)"
+                  >
+                    <i class="pi pi-chevron-down"></i>
+                  </button>
                 </span>
                 <!-- hideOnClear: Apply is what closes this menu in PrimeNG (applyFilter =
                      _filter + hide), so wherever Apply is hidden Clear is the only button
