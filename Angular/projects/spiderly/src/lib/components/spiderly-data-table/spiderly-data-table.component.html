@@ -88,6 +88,10 @@
             ></button>
           </div>
         </div>
+        <spiderly-filter-bar
+          *ngIf="filters"
+          [filters]="filters"
+        ></spiderly-filter-bar>
       </ng-template>
       <ng-template pTemplate="header">
         <tr>
@@ -132,7 +136,7 @@
                      leaves the menu open deliberately — a multiselect gets ticked several
                      times per visit; dismissal is the popover's own (outside click, Esc). -->
                 <p-columnFilter
-                  *ngIf="col.filterType != null && col.filterType !== 'blob'"
+                  *ngIf="showHeaderFilter(col)"
                   [type]="col.filterType"
                   [field]="filterKey(col)"
                   display="menu"

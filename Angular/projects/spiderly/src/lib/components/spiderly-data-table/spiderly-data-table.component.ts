@@ -47,6 +47,10 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import {
+  FilterBarSource,
+  SpiderlyFilterBarComponent,
+} from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import {
   exportListToExcel,
@@ -98,6 +102,7 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
     PopoverModule,
     DatePickerModule,
     CheckboxModule,
+    SpiderlyFilterBarComponent,
     TooltipModule,
   ],
 })
@@ -129,6 +134,15 @@ export class SpiderlyDataTableComponent
   /** Paginator page-size choices; merge rules and persistence: CLAUDE.md → "Rows-per-page". */
   @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
   @Input() cols: Column[];
+
+  /**
+   * The consumer's filter store. Supplying it switches this table's filter surface to the chip
+   * bar and takes `p-columnFilter` out of the header; supplying nothing keeps the legacy
+   * `Column.filterType` header filters. The SHAPE of the input is the switch, deliberately — see
+   * CLAUDE.md -> "Operator-owned view", decision 2 — so consumers migrate one table at a time and
+   * the legacy path is deletable once nothing passes the old shape.
+   */
+  @Input() filters?: FilterBarSource;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
   /** Whether the table is wrapped in a card container. Defaults to `false`. */
@@ -992,6 +1006,16 @@ export class SpiderlyDataTableComponent
    * Columns declaring none would otherwise take an equal share, which throws away what the
    * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
    */
+  /**
+   * The legacy header filter, rendered only while no store is supplied. Deleted with the rest of
+   * that path once no consumer passes the old shape.
+   */
+  showHeaderFilter(col: Column): boolean {
+    return (
+      !this.filters && col.filterType != null && col.filterType !== 'blob'
+    );
+  }
+
   getColWidth(col: Column): string {
     if (col.width != null) return col.width;
 

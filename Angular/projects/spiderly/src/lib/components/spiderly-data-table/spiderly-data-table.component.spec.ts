@@ -23,6 +23,11 @@ import { Filter } from '../../entities/filter';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { SpiderlyCellTemplateDirective } from '../../directives/spiderly-cell-template.directive';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
+import {
+  createFilterStore,
+  textFilter,
+} from '../../filters/filter-store';
+import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import {
@@ -2439,5 +2444,54 @@ describe('SpiderlyDataTableComponent — pending overlay styling', () => {
         '.p-datatable-mask',
       ),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The filter surface is chosen by the SHAPE of the input, not by a flag. A table handed a filter
+// store renders the chip bar; a table handed none keeps its Column.filterType header filters, so
+// the 27 consumer tables migrate one at a time and the legacy path deletes itself once nothing
+// passes the old shape. See spiderly-data-table/CLAUDE.md -> "Operator-owned view", decision 2.
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithFilterStoreComponent {
+  cols = cols;
+  getList = emptyList;
+  filters = createFilterStore({
+    companyName: textFilter({ label: 'Firma' }),
+  });
+}
+
+describe('SpiderlyDataTableComponent — the filter surface follows the input', () => {
+  it('renders the chip bar and drops the header filters when given a store', () => {
+    const { fixture } = createWithDataTable(HostWithFilterStoreComponent);
+
+    expect(
+      fixture.debugElement.query(By.directive(SpiderlyFilterBarComponent)),
+    ).not.toBeNull();
+    expect(fixture.debugElement.queryAll(By.directive(ColumnFilter)).length).toBe(
+      0,
+    );
+  });
+
+  it('keeps the header filters and draws no bar when given none', () => {
+    const { fixture } = createWithDataTable(HostWithoutActionsComponent);
+
+    expect(
+      fixture.debugElement.query(By.directive(SpiderlyFilterBarComponent)),
+    ).toBeNull();
+    expect(
+      fixture.debugElement.queryAll(By.directive(ColumnFilter)).length,
+    ).toBeGreaterThan(0);
   });
 });
