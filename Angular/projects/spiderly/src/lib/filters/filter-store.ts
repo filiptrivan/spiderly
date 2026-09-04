@@ -56,15 +56,38 @@ export function textFilter(config: { label: string }): FilterDefinition<'text'> 
   return { kind: 'text', label: config.label };
 }
 
+export function numberFilter(config: {
+  label: string;
+}): FilterDefinition<'number'> {
+  return { kind: 'number', label: config.label };
+}
+
 /**
  * The kind is what carries BOTH halves — which operators are legal and what the value is. It has
  * to stay a literal all the way from the factory to here: typing the definition's `kind` as the
  * widened `FilterValueKind` silently allows every operator on every filter, which is the shape
  * this first had (the runtime guard still fired, so only a `@ts-expect-error` pin caught it).
  */
-export interface FilterConstraint<TKind extends FilterValueKind> {
-  operator: (typeof ALLOWED_OPERATORS)[TKind][number];
-  value: ValueByKind[TKind] | null | undefined;
+/**
+ * `In` is the only multi-valued operator MatchModeCodes has, so it is the only one whose value is
+ * a list. Distributing over the operator union yields a discriminated union rather than a loose
+ * `T | T[]`, so `{ operator: Equals, value: [2, 3] }` is a compile error rather than a query the
+ * paginator answers in some way nobody predicted.
+ */
+type ConstraintFor<TKind extends FilterValueKind, TOperator> =
+  TOperator extends MatchModeCodes.In
+    ? { operator: TOperator; value: ValueByKind[TKind][] | null | undefined }
+    : { operator: TOperator; value: ValueByKind[TKind] | null | undefined };
+
+export type FilterConstraint<TKind extends FilterValueKind> = ConstraintFor<
+  TKind,
+  (typeof ALLOWED_OPERATORS)[TKind][number]
+>;
+
+/** What the maps hold. The public generic precision is for the CALLER; internally it is noise. */
+interface StoredConstraint {
+  operator: MatchModeCodes;
+  value: unknown;
 }
 
 /** One applied constraint, in the shape the chip bar draws. */
@@ -98,10 +121,10 @@ export function createFilterStore<
   // A chip drawn off a draft would repeat the mistake the header's filter icon already shipped —
   // claiming the grid is narrowed on the first keystroke. Controls that apply on change
   // (multiselect, boolean, date) call both at once; a text box commits on Enter or blur.
-  const drafts = new Map<keyof TDefs, FilterConstraint<FilterValueKind>>();
-  const committed = signal<
-    ReadonlyMap<keyof TDefs, FilterConstraint<FilterValueKind>>
-  >(new Map());
+  const drafts = new Map<keyof TDefs, StoredConstraint>();
+  const committed = signal<ReadonlyMap<keyof TDefs, StoredConstraint>>(
+    new Map(),
+  );
 
   const applied: Signal<AppliedFilter[]> = computed(() =>
     [...committed()].map(([id, constraint]) => ({

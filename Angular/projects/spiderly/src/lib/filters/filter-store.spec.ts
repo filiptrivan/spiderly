@@ -1,5 +1,5 @@
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
-import { createFilterStore, textFilter } from './filter-store';
+import { createFilterStore, numberFilter, textFilter } from './filter-store';
 
 // The claim this whole design rests on: a filter is an entity of its own, so it can exist and
 // reach the server with no column anywhere near it. `Order.CompanyName` is the case that forced
@@ -128,5 +128,35 @@ describe('createFilterStore — typed is not applied', () => {
         value: 'Elektromont',
       },
     ]);
+  });
+
+  // The other direction of the SAME table. `In` is what a multiselect emits, and it is legal here
+  // for exactly the reason it was refused on the text filter above: ALLOWED_OPERATORS says so,
+  // once. `In` is also the only multi-valued operator, so its value is a list where every other
+  // operator on the same kind takes a scalar.
+  it('accepts In on a number filter, over a list of ids', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    filters.set('orderStatusId', { operator: MatchModeCodes.In, value: [2, 3] });
+    filters.commit('orderStatusId');
+
+    expect(filters.toFilterPayload()).toEqual({
+      orderStatusId: [{ matchMode: MatchModeCodes.In, value: [2, 3] }],
+    });
+  });
+
+  // Compile-time only: nothing at runtime tells a list from a scalar, so this pin is the entire
+  // guard. `In` is the multi-valued operator; every other one on the same kind takes a scalar.
+  it('refuses a list on a scalar operator', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    // @ts-expect-error `Equals` takes a single id, not a list.
+    filters.set('orderStatusId', { operator: MatchModeCodes.Equals, value: [2, 3] });
+
+    expect(filters.toFilterPayload()).toEqual({});
   });
 });
