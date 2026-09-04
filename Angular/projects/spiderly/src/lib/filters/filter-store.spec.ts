@@ -238,4 +238,30 @@ describe('createFilterStore — typed is not applied', () => {
     filters.commit('orderStatusId');
     expect(filters.applied()).toEqual([]);
   });
+
+});
+
+// The placement API. A handle is bound to one filter and needs nothing from the component tree,
+// which is what lets a filter be driven from a drawer or a modal rendered at app root — somewhere
+// a directive could never reach. Its `value` is the DRAFT, because that is what a control shows:
+// a text box displays what you typed, not what is applied.
+describe('createFilterStore — per-filter handles', () => {
+  it('hands out a handle whose value is the draft, separate from what the bar shows', () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+    const companyName = filters.get('companyName');
+
+    expect(companyName.label).toBe('Firma');
+    expect(companyName.value()).toBeUndefined();
+
+    companyName.set({ operator: MatchModeCodes.Contains, value: 'Elektro' });
+
+    expect(companyName.value()).toBe('Elektro');
+    expect(filters.applied()).toEqual([]);
+
+    companyName.commit();
+
+    expect(filters.applied().length).toBe(1);
+  });
 });

@@ -135,7 +135,14 @@ export function createFilterStore<
   // A chip drawn off a draft would repeat the mistake the header's filter icon already shipped —
   // claiming the grid is narrowed on the first keystroke. Controls that apply on change
   // (multiselect, boolean, date) call both at once; a text box commits on Enter or blur.
-  const drafts = new Map<keyof TDefs, StoredConstraint>();
+  const drafts = signal<ReadonlyMap<keyof TDefs, StoredConstraint>>(new Map());
+
+  const writeDraft = (id: keyof TDefs, constraint: StoredConstraint | null) => {
+    const next = new Map(drafts());
+    if (constraint === null) next.delete(id);
+    else next.set(id, constraint);
+    drafts.set(next);
+  };
   const committed = signal<ReadonlyMap<keyof TDefs, StoredConstraint>>(
     new Map(),
   );
@@ -149,9 +156,29 @@ export function createFilterStore<
     })),
   );
 
-  return {
+  const store = {
     definitions,
     applied,
+
+    /**
+     * A handle bound to one filter. This is the PLACEMENT api: it needs nothing from the component
+     * tree, so the same filter can be driven from the bar, from a header cell, or from a drawer
+     * rendered at app root. `value` is the DRAFT — a control shows what was typed, not what was
+     * applied; `applied()` is the other question and the bar asks that one.
+     */
+    get<K extends keyof TDefs>(id: K) {
+      return {
+        id: id as string,
+        label: definitions[id].label,
+        kind: definitions[id].kind,
+        value: computed(() => drafts().get(id)?.value),
+        operator: computed(() => drafts().get(id)?.operator),
+        set: (constraint: FilterConstraint<TDefs[K]['kind']>) =>
+          store.set(id, constraint),
+        commit: () => store.commit(id),
+        reset: () => store.reset(id),
+      };
+    },
 
     set<K extends keyof TDefs>(
       id: K,
@@ -171,7 +198,7 @@ export function createFilterStore<
         );
       }
 
-      drafts.set(id, constraint);
+      writeDraft(id, constraint);
     },
 
     /**
@@ -179,7 +206,7 @@ export function createFilterStore<
      * one, so `applied()` and the payload agree: no chip, no key, no `contains ''`.
      */
     commit<K extends keyof TDefs>(id: K): void {
-      const draft = drafts.get(id);
+      const draft = drafts().get(id);
       const next = new Map(committed());
 
       if (draft === undefined || isBlank(draft.value)) next.delete(id);
@@ -194,7 +221,7 @@ export function createFilterStore<
      * filter nobody re-typed.
      */
     reset<K extends keyof TDefs>(id: K): void {
-      drafts.delete(id);
+      writeDraft(id, null);
 
       const next = new Map(committed());
       next.delete(id);
@@ -203,7 +230,7 @@ export function createFilterStore<
 
     /** The bar's "Clear all". `reset` for every filter, drafts included. */
     clear(): void {
-      drafts.clear();
+      drafts.set(new Map());
       committed.set(new Map());
     },
 
@@ -220,4 +247,6 @@ export function createFilterStore<
       return payload;
     },
   };
+
+  return store;
 }
