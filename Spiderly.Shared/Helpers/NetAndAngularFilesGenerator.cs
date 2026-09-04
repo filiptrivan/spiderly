@@ -3958,6 +3958,7 @@ export const ThemePreset = definePreset(Aura, {
   "WrapText": "Wrap text",
   "MoveLeft": "Move left",
   "MoveRight": "Move right",
+  "FitWidth": "Fit width",
   "FilterChipContains": "contains",
   "FilterChipStartsWith": "starts with",
   "FilterChipEquals": "is",

@@ -3060,4 +3060,33 @@ describe('SpiderlyDataTableComponent — the clamped cell says what it hides', (
     );
     expect(cells[1].getAttribute('title')).toBeNull();
   });
+
+  // The other escape from a cramped column, and the cheaper one: no drag, no aim. Asserted
+  // through the overflow title rather than a number — what the operator wanted was to READ the
+  // value, and the title disappearing is that, measured.
+  it('fits a column to its widest cell', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithACrampedColumnComponent,
+    );
+    await renderRows(fixture);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    fixture.detectChanges();
+
+    const cell = () =>
+      (fixture.nativeElement as HTMLElement).querySelector('tbody .cell-text')!;
+
+    expect(cell().getAttribute('title')).not.toBeNull();
+    const before = dataTable.columnShare(dataTable.cols[0]);
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-fit"]')!
+      .click();
+    await renderRows(fixture);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    fixture.detectChanges();
+
+    expect(dataTable.columnShare(dataTable.cols[0])).toBeGreaterThan(before);
+    expect(cell().getAttribute('title')).toBeNull();
+  });
 });

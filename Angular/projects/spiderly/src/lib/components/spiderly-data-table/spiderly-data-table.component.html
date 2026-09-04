@@ -135,6 +135,16 @@
             </button>
             <button
               type="button"
+              role="menuitem"
+              class="column-menu-item"
+              data-testid="column-menu-fit"
+              (click)="fitMenuColumn()"
+            >
+              <i class="pi pi-arrows-h"></i>
+              <span class="column-menu-item-label">{{ t('FitWidth') }}</span>
+            </button>
+            <button
+              type="button"
               role="menuitemcheckbox"
               class="column-menu-item"
               data-testid="column-menu-wrap"

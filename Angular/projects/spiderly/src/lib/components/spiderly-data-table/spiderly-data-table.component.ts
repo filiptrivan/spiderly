@@ -1137,8 +1137,10 @@ export class SpiderlyDataTableComponent
    * Columns declaring none would otherwise take an equal share, which throws away what the
    * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
    */
-  /** The column the header menu is currently open for. */
+  /** The column the header menu is currently open for, and its header cell. */
   menuColumn: Column | null = null;
+
+  private menuHeaderCell: HTMLElement | null = null;
 
   /**
    * A ViewChild rather than a template reference passed in from the header. The popover lives in
@@ -1150,7 +1152,82 @@ export class SpiderlyDataTableComponent
 
   openColumnMenu(col: Column, event: Event): void {
     this.menuColumn = col;
+    // Kept so `fitMenuColumn` can find the column's cells: it needs the header's position among
+    // its siblings, which is the only thing that ties a Column to a table column in the DOM.
+    this.menuHeaderCell = (event.target as HTMLElement).closest('th');
     this.columnMenu().toggle(event);
+  }
+
+  /**
+   * Sizes the column to the widest thing in it. The cheaper escape from a cramped column: no
+   * drag, no aim. Unlike a drag it does NOT trade with the neighbour — a minimum that grew is
+   * exactly the case decision 4 lets push the table past its container and start scrolling.
+   *
+   * Measures the CELL CONTENT, not the cell: the clamp lives on the inner span, so a `td` reports
+   * a scrollWidth that fits while the text inside it does not.
+   */
+  fitMenuColumn(): void {
+    const col = this.menuColumn;
+    const th = this.menuHeaderCell;
+    this.columnMenu().hide();
+    if (!col?.field || !th?.parentElement) return;
+
+    // Walked up from the header rather than reached through PrimeNG's own ElementRef: the th is
+    // the only thing that ties a Column to a table column in the DOM, and it already knows which
+    // table it is in.
+    const index = Array.from(th.parentElement.children).indexOf(th) + 1;
+    const cells = th
+      .closest('table')
+      ?.querySelectorAll<HTMLElement>(`tbody tr > td:nth-child(${index})`);
+    if (!cells?.length) return;
+
+    let widest = th.scrollWidth;
+    for (const cell of Array.from(cells)) {
+      const styles = getComputedStyle(cell);
+      const padding =
+        (parseFloat(styles.paddingLeft) || 0) +
+        (parseFloat(styles.paddingRight) || 0);
+
+      // Every descendant, not `firstElementChild`: the clamp lives on an inner span, so the td
+      // reports a scrollWidth that fits while the text inside it does not — and a consumer's
+      // cell template can nest the overflowing element arbitrarily deep.
+      for (const node of [cell, ...Array.from(cell.querySelectorAll('*'))]) {
+        widest = Math.max(widest, (node as HTMLElement).scrollWidth + padding);
+      }
+    }
+    this.columnWidths[col.field] = this.shareThatFits(col, th, widest);
+    this.persistColumnLayout();
+  }
+
+  /**
+   * The share that actually yields `needed` pixels — not `needed` scaled by the column's current
+   * px-per-share, which is the obvious answer and the wrong one. Shares are a PROPORTION of
+   * whatever width the table has, so growing this column's share also shrinks the realized width
+   * of every other column, and the naive figure lands short. The spec caught it as a cell that
+   * was still clipped after being told to fit.
+   *
+   * While the columns fit, the table keeps the container's width and the proportion has to solve
+   *   needed / tableWidth = newShare / (otherShares + newShare)
+   * with `otherShares` recovered from what this column currently renders at. Once `needed` is the
+   * whole container the proportional regime has no answer: the table is about to overrun its
+   * container and scroll (decision 4), and there a share IS its own length, so the pixels convert
+   * straight through the root font size.
+   */
+  private shareThatFits(col: Column, th: HTMLElement, needed: number): number {
+    const share = this.columnShare(col);
+    const thPx = Math.max(th.offsetWidth, 1);
+    const tableWidth = (th.closest('table') as HTMLElement | null)?.offsetWidth ?? 0;
+
+    if (needed < tableWidth) {
+      const otherShares = (share * (tableWidth - thPx)) / thPx;
+
+      return (needed * otherShares) / (tableWidth - needed);
+    }
+
+    const rootFontSize =
+      parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+
+    return needed / rootFontSize;
   }
 
   hideMenuColumn(): void {
