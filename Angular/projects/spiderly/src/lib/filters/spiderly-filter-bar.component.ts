@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { Popover, PopoverModule } from 'primeng/popover';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
@@ -25,7 +26,7 @@ export { FilterBarSource };
  */
 @Component({
   selector: 'spiderly-filter-bar',
-  imports: [CommonModule, TranslocoDirective],
+  imports: [CommonModule, TranslocoDirective, PopoverModule],
   styleUrl: 'spiderly-filter-bar.component.scss',
   template: `
     <ng-container *transloco="let t">
@@ -41,7 +42,15 @@ export { FilterBarSource };
               data-testid="filter-chip-edit"
               (click)="startEditing(chip.id)"
             >
-              <span class="filter-chip-label">{{ chip.label }}</span>
+              <!-- &ngsp; is a space the template parser keeps. Angular collapses whitespace
+                   between elements by default, which glued these three into
+                   "FirmacontainsElektromont" — how a screen reader reads the chip and how it
+                   lands when copied, not merely how the spec saw it. The flex gap only spaced
+                   them visually. -->
+              <span class="filter-chip-label">{{ chip.label }}</span>&ngsp;
+              <span class="filter-chip-operator">{{
+                t(chip.operatorPhraseKey)
+              }}</span>&ngsp;
               <span class="filter-chip-value">{{
                 chip.kind === 'boolean'
                   ? chip.value
@@ -85,23 +94,43 @@ export { FilterBarSource };
                filter is otherwise a mystery. The CURRENT query's count only: the unfiltered total
                would cost a second request the paginator does not offer. -->
           <span class="filter-bar-count" data-testid="filter-bar-count">{{
-            totalRecords()
+            t('ResultCount', { count: totalRecords() })
           }}</span>
         }
 
         @if (addable().length) {
+          <!-- A popover, not an inline list. Seven filters already fill the toolbar row inline,
+               and the orders grid declares nineteen — they would wrap into three lines and shove
+               the table down the page. Shopify's Filters component opens its "more filters" the
+               same way. The teleport into document.body costs the specs a container lookup; that
+               cost belongs to the tests, not to the operator. -->
           <button
             type="button"
             class="filter-add"
             data-testid="add-filter"
             [attr.aria-expanded]="isAddOpen()"
-            (click)="isAddOpen.set(!isAddOpen())"
+            (click)="addMenu.toggle($event); isAddOpen.set(!isAddOpen())"
           >
             + {{ t('AddFilter') }}
           </button>
         }
 
-        @if (isAddOpen()) {
+        @if (filters().applied().length) {
+          <!-- The bar owns clearing now: the toolbar's button sat a row away from the chips it
+               cleared, which is two affordances for one job. Emits rather than clearing the store
+               itself, because whoever owns the query also owns the persisted state and the sort
+               that a full clear has to reach. -->
+          <button
+            type="button"
+            class="filter-bar-clear"
+            data-testid="filter-bar-clear"
+            (click)="clearAll.emit()"
+          >
+            {{ t('ClearFilters') }}
+          </button>
+        }
+
+        <p-popover #addMenu (onHide)="isAddOpen.set(false)">
           <div class="filter-add-menu" role="menu">
             @for (option of addable(); track option.id) {
               <button
@@ -109,13 +138,13 @@ export { FilterBarSource };
                 role="menuitem"
                 class="filter-add-option"
                 data-testid="add-filter-option"
-                (click)="startEditing(option.id)"
+                (click)="startEditing(option.id); addMenu.hide()"
               >
                 {{ option.label }}
               </button>
             }
           </div>
-        }
+        </p-popover>
 
         @if (editing(); as handle) {
           <div class="filter-editor" data-testid="filter-editor">
@@ -208,6 +237,9 @@ export class SpiderlyFilterBarComponent {
    * about columns, so whoever owns the sort resolves the names.
    */
   readonly sort = input<SortKeyLabel[]>([]);
+
+  /** Asked for, never done here — see the button's comment. */
+  readonly clearAll = output<void>();
 
   readonly isAddOpen = signal(false);
 

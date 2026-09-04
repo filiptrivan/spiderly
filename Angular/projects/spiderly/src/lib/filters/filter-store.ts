@@ -68,27 +68,71 @@ export type FilterValueKind = keyof typeof ALLOWED_OPERATORS;
  * derived from ALLOWED_OPERATORS here so this file adds no fourth; collapse the other two when
  * either is next edited.
  */
-const OPERATOR_LABEL_KEY: Record<
+interface OperatorWords {
+  /** The picker's option label. Reuses the data table's existing keys. */
+  pickerKey: string;
+  /**
+   * The chip's inline phrase, which cannot reuse the picker key: those are capitalised option
+   * labels and one of them is a plural noun, so a chip would read "Datum Datumi pre 1.9." A chip
+   * is a sentence — "Firma sadrži Elektromont" — and needs its own words.
+   */
+  phraseKey: string;
+}
+
+const OPERATOR_WORDS: Record<
   FilterValueKind,
-  Partial<Record<MatchModeCodes, string>>
+  Partial<Record<MatchModeCodes, OperatorWords>>
 > = {
   text: {
-    [MatchModeCodes.StartsWith]: 'StartsWith',
-    [MatchModeCodes.Contains]: 'Contains',
-    [MatchModeCodes.Equals]: 'Equals',
+    [MatchModeCodes.StartsWith]: {
+      pickerKey: 'StartsWith',
+      phraseKey: 'FilterChipStartsWith',
+    },
+    [MatchModeCodes.Contains]: {
+      pickerKey: 'Contains',
+      phraseKey: 'FilterChipContains',
+    },
+    [MatchModeCodes.Equals]: {
+      pickerKey: 'Equals',
+      phraseKey: 'FilterChipEquals',
+    },
+    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
   },
   number: {
-    [MatchModeCodes.Equals]: 'Equals',
-    [MatchModeCodes.GreaterThan]: 'MoreThan',
-    [MatchModeCodes.LessThan]: 'LessThan',
-    // No key for `In`: a pick-list is the only place it appears, and there it is the only
-    // operator, so the picker is never rendered and the label is never read.
+    [MatchModeCodes.Equals]: {
+      pickerKey: 'Equals',
+      phraseKey: 'FilterChipEquals',
+    },
+    [MatchModeCodes.GreaterThan]: {
+      pickerKey: 'MoreThan',
+      phraseKey: 'FilterChipGreaterThan',
+    },
+    [MatchModeCodes.LessThan]: {
+      pickerKey: 'LessThan',
+      phraseKey: 'FilterChipLessThan',
+    },
+    // The picker never renders for a pick-list (one operator), but the CHIP always does.
+    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
   },
-  boolean: { [MatchModeCodes.Equals]: 'Equals' },
+  boolean: {
+    [MatchModeCodes.Equals]: {
+      pickerKey: 'Equals',
+      phraseKey: 'FilterChipEquals',
+    },
+  },
   date: {
-    [MatchModeCodes.Equals]: 'OnDate',
-    [MatchModeCodes.LessThan]: 'DatesBefore',
-    [MatchModeCodes.GreaterThan]: 'DatesAfter',
+    [MatchModeCodes.Equals]: {
+      pickerKey: 'OnDate',
+      phraseKey: 'FilterChipEquals',
+    },
+    [MatchModeCodes.LessThan]: {
+      pickerKey: 'DatesBefore',
+      phraseKey: 'FilterChipBefore',
+    },
+    [MatchModeCodes.GreaterThan]: {
+      pickerKey: 'DatesAfter',
+      phraseKey: 'FilterChipAfter',
+    },
   },
 };
 
@@ -120,7 +164,7 @@ export function operatorOptions(
 
   return operators.map((value) => ({
     value,
-    labelKey: OPERATOR_LABEL_KEY[kind][value] ?? value,
+    labelKey: OPERATOR_WORDS[kind][value]?.pickerKey ?? value,
   }));
 }
 
@@ -241,6 +285,7 @@ export interface FilterBarSource {
   applied: Signal<AppliedFilter[]>;
   get(id: string): FilterHandle;
   reset(id: string): void;
+  clear(): void;
 }
 
 /** What the TABLE needs: the bar's half, plus the payload it sends to the paginator. */
@@ -265,6 +310,12 @@ export interface AppliedFilter {
   /** The bar reads this to word the chip — `String(false)` would print "false" at an operator. */
   kind: FilterValueKind;
   operator: MatchModeCodes;
+  /**
+   * Transloco key for the chip's middle word. Without it a chip reads "Firma Elektromont", which
+   * leaves the reader to guess whether the grid is narrowed by `contains` or by `equals` — very
+   * different sets for one typed value, on a surface whose only claim is that it cannot lie.
+   */
+  operatorPhraseKey: string;
   value: unknown;
 }
 
@@ -311,6 +362,9 @@ export function createFilterStore<
       label: definitions[id].label,
       kind: definitions[id].kind,
       operator: constraint.operator,
+      operatorPhraseKey:
+        OPERATOR_WORDS[definitions[id].kind][constraint.operator]?.phraseKey ??
+        constraint.operator,
       value: constraint.value,
     })),
   );

@@ -51,8 +51,11 @@
               icon="pi pi-sliders-h"
               (click)="columnChooser.toggle($event)"
             ></button>
+            <!-- Only without a store: with one, the chip bar carries this, next to the chips
+                 it clears. Two buttons a row apart for one job is what that replaced. -->
             <button
               pButton
+              *ngIf="!filters"
               [label]="t('ClearFilters')"
               class="p-button-outlined"
               style="flex: none"
@@ -93,6 +96,7 @@
           [filters]="filters"
           [totalRecords]="totalRecords"
           [sort]="sortKeys"
+          (clearAll)="clear(dt)"
         ></spiderly-filter-bar>
       </ng-template>
       <ng-template pTemplate="header">

@@ -6,6 +6,7 @@
   display: block;
 }
 
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -82,10 +83,32 @@
   }
 }
 
-// Inline rather than a p-popover on purpose: PrimeNG teleports a popover into document.body, which
-// costs every spec here the container dance the chooser's specs already pay (CLAUDE.md → Column
-// chooser, the spec gotcha). Revisit only if the list grows past what fits in a row.
-.filter-add-menu,
+// The add menu is teleported into document.body with its popover, so its rules must sit at TOP
+// LEVEL — `:host` nesting dies on teleport, exactly as the column chooser's do (Angular/CLAUDE.md
+// → overlay styling). The editor is in-template and could be nested, but the two are kept together
+// so nobody has to remember which is which.
+.filter-add-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 12rem;
+}
+
+.filter-add-option {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--p-content-border-radius);
+
+  &:hover {
+    background: var(--p-content-hover-background);
+  }
+}
+
 .filter-editor {
   display: flex;
   flex-wrap: wrap;
@@ -95,20 +118,6 @@
   border-radius: var(--p-content-border-radius);
   background: var(--p-content-background);
   padding: 8px;
-}
-
-.filter-add-option {
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--p-content-border-radius);
-
-  &:hover {
-    background: var(--p-content-hover-background);
-  }
 }
 
 .filter-editor-label {
@@ -141,4 +150,20 @@
   // The direction arrow is the non-colour channel; the priority is the reading order, which is
   // the thing the scattered header icons could never show.
   color: var(--p-text-color);
+}
+
+.filter-bar-clear {
+  border: none;
+  background: none;
+  color: var(--p-primary-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  // Pushed to the far end, away from the chips: a destructive action next to the x it resembles
+  // is how a single chip gets removed by someone reaching for all of them.
+  margin-left: auto;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }

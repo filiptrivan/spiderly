@@ -12,9 +12,15 @@ import { PaginatedResult } from '../entities/paginated-result';
 // Every control in this library routes static text through Transloco
 // (Angular/CLAUDE.md), so component specs boot it from this one empty-map
 // config instead of each carrying its own copy.
-export function translocoTesting(): TranslocoTestingOptions {
+export function translocoTesting(
+  words: Record<string, string> = {},
+): TranslocoTestingOptions {
   return {
-    langs: { en: {} },
+    // Empty by default: a spec asserting on static text is usually asserting on the wrong thing.
+    // `words` is for the cases where the RENDERED SENTENCE is the behaviour — a chip reading
+    // "Firma sadrži Elektromont", or a count that must not be a bare digit — where matching the
+    // key would pass while the sentence was nonsense.
+    langs: { en: words },
     translocoConfig: { availableLangs: ['en'], defaultLang: 'en' },
     preloadLangs: true,
   };

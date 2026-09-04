@@ -1491,7 +1491,14 @@ export class SpiderlyDataTableComponent
     exportListToExcel(this.exportListToExcelObservableMethod, filter);
   }
 
+  /**
+   * Clears everything that narrows the grid. With a store supplied it has to reach BOTH — the
+   * store holds the constraints and PrimeNG holds the persisted state and sort — or the bar goes
+   * empty while a reload brings the old filters back.
+   */
   clear(table: Table) {
+    this.filters?.clear();
+
     table.clear();
     table.clearState();
     // clear() re-queries without emitting (onFilter), so the icons would keep their fill

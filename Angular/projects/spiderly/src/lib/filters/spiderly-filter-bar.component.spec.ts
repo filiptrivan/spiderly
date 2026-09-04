@@ -1,5 +1,8 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TranslocoTestingModule } from '@jsverse/transloco';
+import { Popover } from 'primeng/popover';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
@@ -19,8 +22,21 @@ function renderBar(filters: FilterBarSource) {
   TestBed.configureTestingModule({
     imports: [
       SpiderlyFilterBarComponent,
-      TranslocoTestingModule.forRoot(translocoTesting()),
+      // Real words for the chip phrases, so the assertions read as the sentence an operator sees
+      // rather than as a key. Everything else falls back to the shared empty map.
+      TranslocoTestingModule.forRoot({
+        ...translocoTesting(),
+        langs: {
+          en: {
+            FilterChipContains: 'contains',
+            FilterChipIn: 'is one of',
+            FilterChipEquals: 'is',
+            FilterChipBefore: 'before',
+          },
+        },
+      }),
     ],
+    providers: [provideNoopAnimations()],
   });
 
   const fixture = TestBed.createComponent(SpiderlyFilterBarComponent);
@@ -36,14 +52,33 @@ const el = (fixture: { nativeElement: unknown }): HTMLElement =>
 // Pick a filter from "+ Filter" and open its control.
 type Rendered = { nativeElement: unknown; detectChanges(): void };
 
-function startEditing(fixture: Rendered, index = 0): void {
+// Once open, PrimeNG appends the popover to document.body, where stale ones from earlier fixtures
+// linger — so query THIS fixture's Popover instance, never the document. Same rule the column
+// chooser's specs already follow (spiderly-data-table/CLAUDE.md).
+function addMenu(fixture: Rendered): HTMLElement {
+  const popover = (fixture as unknown as ComponentFixture<unknown>).debugElement
+    .query(By.directive(Popover))
+    ?.componentInstance as Popover | undefined;
+
+  return popover?.container as HTMLElement;
+}
+
+// Async because the popover renders its container a tick after toggle() — the same ritual
+// openChooser follows in the data table's specs.
+async function openAddMenu(fixture: Rendered): Promise<void> {
   el(fixture)
     .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
     .click();
   fixture.detectChanges();
+  await (fixture as unknown as ComponentFixture<unknown>).whenStable();
+  fixture.detectChanges();
+}
+
+async function startEditing(fixture: Rendered, index = 0): Promise<void> {
+  await openAddMenu(fixture);
 
   Array.from(
-    el(fixture).querySelectorAll<HTMLButtonElement>(
+    addMenu(fixture).querySelectorAll<HTMLButtonElement>(
       '[data-testid="add-filter-option"]',
     ),
   )[index].click();
@@ -70,7 +105,7 @@ const chips = (fixture: { nativeElement: unknown }): HTMLElement[] =>
 // The bar is the visible surface that lets a hidden column keep its filter. Everything it shows
 // comes from `applied()`, so a chip can never claim a constraint the grid is not actually under.
 describe('SpiderlyFilterBarComponent', () => {
-  it('draws one chip per applied filter and leaves uncommitted ones off it', () => {
+  it('draws one chip per applied filter and leaves uncommitted ones off it', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
       orderStatusId: numberFilter({ label: 'Status' }),
@@ -95,7 +130,7 @@ describe('SpiderlyFilterBarComponent', () => {
     expect(chips(fixture)[0].textContent).toContain('Elektromont');
   });
 
-  it("removes the filter when the chip's x is clicked", () => {
+  it("removes the filter when the chip's x is clicked", async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
     });
@@ -119,7 +154,7 @@ describe('SpiderlyFilterBarComponent', () => {
   // "+ Filter" is what makes a filter reachable without a column, which is the whole point: the
   // firm a row prints on 82% of company orders has no column and no search, so the only way to
   // ask for it is a list that offers every DECLARED filter, not every visible one.
-  it('offers the filters that are not applied, and not the ones that are', () => {
+  it('offers the filters that are not applied, and not the ones that are', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
       orderStatusId: numberFilter({ label: 'Status' }),
@@ -132,13 +167,10 @@ describe('SpiderlyFilterBarComponent', () => {
     filters.commit('companyName');
 
     const fixture = renderBar(filters);
-    el(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
-      .click();
-    fixture.detectChanges();
+    await openAddMenu(fixture);
 
     const offered = Array.from(
-      el(fixture).querySelectorAll<HTMLElement>(
+      addMenu(fixture).querySelectorAll<HTMLElement>(
         '[data-testid="add-filter-option"]',
       ),
     ).map((option) => option.textContent!.trim());
@@ -148,20 +180,13 @@ describe('SpiderlyFilterBarComponent', () => {
 
   // End to end through the DOM: pick a filter that has no column anywhere, type a value, apply,
   // and the grid is narrowed by it. This is the path `Order.CompanyName` had none of.
-  it('applies a filter picked from the list, with the default operator for its kind', () => {
+  it('applies a filter picked from the list, with the default operator for its kind', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
     });
 
     const fixture = renderBar(filters);
-    el(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
-      .click();
-    fixture.detectChanges();
-    el(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="add-filter-option"]')!
-      .click();
-    fixture.detectChanges();
+    await startEditing(fixture);
 
     const input = el(fixture).querySelector<HTMLInputElement>(
       '[data-testid="filter-editor-value"]',
@@ -186,6 +211,7 @@ describe('SpiderlyFilterBarComponent', () => {
         // `Contains` is the text default: an operator nobody chose has to be the one a person
         // means by typing a fragment into a box.
         operator: MatchModeCodes.Contains,
+        operatorPhraseKey: 'FilterChipContains',
         value: 'Elektromont',
       },
     ]);
@@ -195,13 +221,13 @@ describe('SpiderlyFilterBarComponent', () => {
   // Every DOM control hands back a string. Storing it as one puts `"5"` in a numeric constraint,
   // which the paginator compares against an integer column — so the coercion belongs here, at the
   // one place the control's raw value enters the store.
-  it('coerces the number control back to a number', () => {
+  it('coerces the number control back to a number', async () => {
     const filters = createFilterStore({
       orderStatusId: numberFilter({ label: 'Status' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
     typeAndApply(fixture, '5');
 
     expect(filters.toFilterPayload()).toEqual({
@@ -211,13 +237,13 @@ describe('SpiderlyFilterBarComponent', () => {
 
   // An emptied number box hands back "", and Number("") is 0. Coercing naively would apply a
   // filter for zero and draw a chip reading "0" over a control the operator had just cleared.
-  it('treats an emptied number control as blank, not as zero', () => {
+  it('treats an emptied number control as blank, not as zero', async () => {
     const filters = createFilterStore({
       orderStatusId: numberFilter({ label: 'Status' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
     typeAndApply(fixture, '');
 
     expect(filters.applied()).toEqual([]);
@@ -226,13 +252,13 @@ describe('SpiderlyFilterBarComponent', () => {
 
   // An applied filter is a chip and no longer in "+ Filter", so without this the only way to
   // change Elektromont to Elektro is to remove the filter and build it again.
-  it('reopens an applied filter from its chip, with its value in the control', () => {
+  it('reopens an applied filter from its chip, with its value in the control', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
     typeAndApply(fixture, 'Elektromont');
 
     expect(chips(fixture).length).toBe(1);
@@ -252,13 +278,13 @@ describe('SpiderlyFilterBarComponent', () => {
   // `false` is a FILTER ("show me the ones that are not company orders"), not an empty control.
   // Every naive blank check treats it as nothing, which is why it gets its own test rather than
   // riding along with the `true` case.
-  it('applies a boolean control, and false narrows rather than clearing', () => {
+  it('applies a boolean control, and false narrows rather than clearing', async () => {
     const filters = createFilterStore({
       isCompanyOrder: booleanFilter({ label: 'Firma' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
 
     const checkbox = el(fixture).querySelector<HTMLInputElement>(
       '[data-testid="filter-editor-value"]',
@@ -283,13 +309,13 @@ describe('SpiderlyFilterBarComponent', () => {
   // filter is useless if it can only ever mean "after"), and the control's "2026-09-01" has to
   // become the LOCAL midnight a person means. new Date("2026-09-01") parses as UTC, which in
   // Belgrade is 02:00 on the 1st — two hours of rows on the wrong side of "before".
-  it('applies a date in the chosen direction, at local midnight', () => {
+  it('applies a date in the chosen direction, at local midnight', async () => {
     const filters = createFilterStore({
       createdAt: dateFilter({ label: 'Datum' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
 
     const operator = el(fixture).querySelector<HTMLSelectElement>(
       '[data-testid="filter-editor-operator"]',
@@ -311,7 +337,7 @@ describe('SpiderlyFilterBarComponent', () => {
   // question asked before every bulk action, and only `In` expresses it. Declaring options is what
   // asks for it — the same rule as the table's [filters], where the shape of the input is the
   // switch rather than a mode flag.
-  it('sends In over the ticked options when a filter declares them', () => {
+  it('sends In over the ticked options when a filter declares them', async () => {
     const filters = createFilterStore({
       orderStatusId: numberFilter({
         label: 'Status',
@@ -323,7 +349,7 @@ describe('SpiderlyFilterBarComponent', () => {
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
 
     const ticks = Array.from(
       el(fixture).querySelectorAll<HTMLInputElement>(
@@ -350,13 +376,13 @@ describe('SpiderlyFilterBarComponent', () => {
 
   // `In` needs a list of values, and the editor only draws one when the filter declares options.
   // Offering it on a plain number filter hands the operator a mode with no control behind it.
-  it('does not offer In on a number filter that declares no options', () => {
+  it('does not offer In on a number filter that declares no options', async () => {
     const filters = createFilterStore({
       total: numberFilter({ label: 'Iznos' }),
     });
 
     const fixture = renderBar(filters);
-    startEditing(fixture);
+    await startEditing(fixture);
 
     const offered = Array.from(
       el(fixture).querySelectorAll<HTMLOptionElement>(
@@ -369,5 +395,22 @@ describe('SpiderlyFilterBarComponent', () => {
       MatchModeCodes.GreaterThan,
       MatchModeCodes.LessThan,
     ]);
+  });
+
+  // "Firma Elektromont" leaves the operator to be guessed at, and a bar whose whole claim is that
+  // it cannot lie must not omit the half that says HOW the grid is narrowed. Contains and
+  // StartsWith return very different sets for the same typed value.
+  it('spells the operator on the chip', async () => {
+    const filters = createFilterStore({
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    const fixture = renderBar(filters);
+    await startEditing(fixture);
+    typeAndApply(fixture, 'Elektromont');
+
+    expect(chips(fixture)[0].textContent!.replace(/\s+/g, ' ')).toContain(
+      'Firma contains Elektromont',
+    );
   });
 });

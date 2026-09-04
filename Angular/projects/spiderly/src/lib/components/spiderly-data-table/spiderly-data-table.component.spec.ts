@@ -60,7 +60,12 @@ afterEach(() => {
 
 function createFixture<T>(host: new () => T): ComponentFixture<T> {
   TestBed.configureTestingModule({
-    imports: [host, TranslocoTestingModule.forRoot(translocoTesting())],
+    imports: [
+      host,
+      TranslocoTestingModule.forRoot(
+        translocoTesting({ ResultCount: '{{count}} results' }),
+      ),
+    ],
     providers: [
       provideNoopAnimations(),
       provideRouter([]),
@@ -2654,5 +2659,50 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
     expect(sortChip!.textContent).toContain('Naziv');
     expect(sortChip!.textContent).toContain('↓');
     expect(sortChip!.textContent).not.toContain('name');
+  });
+
+  // Two buttons for one job is the complaint. With a store supplied the toolbar's "Clear filters"
+  // sits a row away from the chips it clears, so it goes and the bar owns the gesture — and the
+  // bar's one has to do everything the toolbar's did, persisted state included.
+  it('clears from the bar, and the toolbar no longer offers a second way', async () => {
+    const { fixture, host } = createWithDataTable(
+      HostWithCapturingFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => {
+      host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+      host.filters.commit('companyName');
+    });
+    await renderRows(fixture);
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.pi-filter-slash')).toBeNull();
+
+    await fixture.ngZone!.run(async () => {
+      el.querySelector<HTMLButtonElement>(
+        '[data-testid="filter-bar-clear"]',
+      )!.click();
+    });
+    await renderRows(fixture);
+
+    expect(host.filters.applied()).toEqual([]);
+    expect(host.captured.at(-1)!.filters).toEqual({} as any);
+  });
+
+  // A bare digit beside a chip reads as a badge on it. The number needs a word.
+  it('labels the result count instead of printing a bare number', async () => {
+    const { fixture } = createWithDataTable(HostWithCountingFilterStoreComponent);
+    await renderRows(fixture);
+
+    const count = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="filter-bar-count"]',
+    )!;
+
+    expect(count.textContent!.trim()).not.toBe('812');
+    expect(count.textContent).toContain('812');
   });
 });
