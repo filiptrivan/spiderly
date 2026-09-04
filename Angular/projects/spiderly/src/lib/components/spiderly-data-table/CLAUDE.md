@@ -171,6 +171,13 @@ still the design, and this is where it stands against it.
   (`tag-list`, which carries filters, `filterId` links and three views). Orders is the one the
   whole rework was argued from and it is untouched: nineteen columns, four two-line cell
   templates, and the filter-only / display split already written out above `buildColumns`.
+- **Custom views were asked for and PARKED (Filip, 2026-09-05).** Views ship declared in consumer
+  code; an operator cannot save their own. Filip asked for that after using the tags grid, then
+  agreed to wait for a signal rather than build it — Plaky "Waiting" 7387519 carries the full
+  reasoning and what would have to happen. Do not build it on a hunch: if it lands, it needs
+  saving a named snapshot, a list mixing built-in and personal, deletion, and a name-collision
+  rule — and if views must be SHARED between operators it stops being localStorage and becomes a
+  table, a CRUD surface and permissions.
 - **Two rules a later table must not re-derive:** a view CLEARS before it applies, so two never
   compose; and both layout keys carry the active view, so a table with no views reads exactly the
   keys it already wrote — which is what keeps the twenty-six unmigrated grids working untouched.
