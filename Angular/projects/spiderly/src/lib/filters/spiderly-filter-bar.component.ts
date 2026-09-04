@@ -9,6 +9,7 @@ import {
   FilterHandle,
   FilterOption,
   FilterValueKind,
+  SortKeyLabel,
 } from './filter-store';
 
 export { FilterBarSource };
@@ -58,6 +59,24 @@ export { FilterBarSource };
             >
               &times;
             </button>
+          </span>
+        }
+
+        @if (sort().length) {
+          <!-- Read-only, and that is the scope on purpose. Multi-sort is invisible today (sort
+               icons scattered over headers, nothing saying which is primary), so saying it in one
+               place is the whole gain. An x here would have to mean "back to the DEFAULT sort"
+               rather than "no sort", because applyDefaultSortIfUnsorted puts the default straight
+               back — an affordance that lies is worse than none. -->
+          <span class="sort-chip" data-testid="sort-chip">
+            <span class="sort-chip-label">{{ t('SortedBy') }}</span>
+            @for (key of sort(); track key.label; let last = $last) {
+              <span class="sort-chip-key"
+                >{{ key.label }} {{ key.descending ? '↓' : '↑' }}{{
+                  last ? '' : ','
+                }}</span
+              >
+            }
           </span>
         }
 
@@ -183,6 +202,12 @@ export class SpiderlyFilterBarComponent {
 
   /** The current query's row count, supplied by whoever owns the query. Null hides the counter. */
   readonly totalRecords = input<number | null>(null);
+
+  /**
+   * What the grid is ordered by, in priority order and already LABELLED — the bar knows nothing
+   * about columns, so whoever owns the sort resolves the names.
+   */
+  readonly sort = input<SortKeyLabel[]>([]);
 
   readonly isAddOpen = signal(false);
 

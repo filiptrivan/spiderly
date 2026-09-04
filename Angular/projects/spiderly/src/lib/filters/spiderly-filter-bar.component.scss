@@ -128,3 +128,17 @@
   // Pushed away from the chips it summarises, not crowded against the last one.
   margin-left: 4px;
 }
+
+.sort-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}
+
+.sort-chip-key {
+  // The direction arrow is the non-colour channel; the priority is the reading order, which is
+  // the thing the scattered header icons could never show.
+  color: var(--p-text-color);
+}

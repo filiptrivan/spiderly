@@ -2502,6 +2502,27 @@ describe('SpiderlyDataTableComponent — the filter surface follows the input', 
     <spiderly-data-table
       [cols]="cols"
       [filters]="filters"
+      [defaultSortField]="'name'"
+      [defaultSortOrder]="-1"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithSortedFilterStoreComponent {
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+  ];
+  getList = emptyList;
+  filters = createFilterStore({ name: textFilter({ label: 'Naziv' }) });
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
       [getPaginatedListObservableMethod]="getList"
     ></spiderly-data-table>
   `,
@@ -2616,5 +2637,22 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
         '[data-testid="filter-bar-count"]',
       )!.textContent,
     ).toContain('812');
+  });
+
+  // Multi-sort is invisible today: the only sign is sort icons scattered across headers, and
+  // nothing says which of them is the primary key. The chip answers "why is the list in this
+  // order" in one place, using the COLUMN NAME rather than the field an operator never sees.
+  it('shows what the grid is sorted by, by name and direction', async () => {
+    const { fixture } = createWithDataTable(HostWithSortedFilterStoreComponent);
+    await renderRows(fixture);
+
+    const sortChip = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="sort-chip"]',
+    );
+
+    expect(sortChip).not.toBeNull();
+    expect(sortChip!.textContent).toContain('Naziv');
+    expect(sortChip!.textContent).toContain('↓');
+    expect(sortChip!.textContent).not.toContain('name');
   });
 });

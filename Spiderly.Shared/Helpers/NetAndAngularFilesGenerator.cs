@@ -3951,6 +3951,7 @@ export const ThemePreset = definePreset(Aura, {
   "AddFilter": "Add filter",
   "Apply": "Apply",
   "RemoveFilter": "Remove filter",
+  "SortedBy": "Sorted by:",
   "FilterControlNotAvailable": "No control for this filter yet",
   "ResetToDefault": "Reset to default",
   "PartnerUserList": "Users",

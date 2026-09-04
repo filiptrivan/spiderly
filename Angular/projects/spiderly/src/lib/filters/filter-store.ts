@@ -248,6 +248,16 @@ export interface FilterSource extends FilterBarSource {
   toFilterPayload(): Record<string, FilterRule[]>;
 }
 
+/**
+ * One sort key as the bar draws it. Sort deliberately does NOT live in the filter store:
+ * `multiSortMeta` already holds it, keyed by field, and a copy here would be a second source of
+ * truth for one fact. The bar is one surface reading two owners.
+ */
+export interface SortKeyLabel {
+  label: string;
+  descending: boolean;
+}
+
 /** One applied constraint, in the shape the chip bar draws. */
 export interface AppliedFilter {
   id: string;

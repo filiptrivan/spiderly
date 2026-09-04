@@ -50,7 +50,7 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
-import { FilterSource } from '../../filters/filter-store';
+import { FilterSource, SortKeyLabel } from '../../filters/filter-store';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
 import {
@@ -1015,6 +1015,25 @@ export class SpiderlyDataTableComponent
    * Columns declaring none would otherwise take an equal share, which throws away what the
    * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
    */
+  /**
+   * What the grid is ordered by, resolved to COLUMN NAMES for the bar. Read off PrimeNG's live
+   * meta rather than mirrored into a field, so it cannot fall out of step with the sort the table
+   * is actually applying. A field with no column left (hidden, or removed in a later release)
+   * falls back to its own name rather than vanishing from the list.
+   */
+  get sortKeys(): SortKeyLabel[] {
+    // The last REQUEST's sort, not `table._multiSortMeta`. On a first load with a declared
+    // default that field is still null: `applyDefaultSortIfUnsorted` writes the default onto the
+    // lazy-load event, and PrimeNG only fills its own meta once someone clicks a header. Reading
+    // the table there showed no sort on exactly the tables that always have one.
+    const meta = this.lastLazyLoadEvent?.multiSortMeta ?? [];
+
+    return meta.map((key) => ({
+      label: this.cols.find((col) => col.field === key.field)?.name ?? key.field,
+      descending: key.order === -1,
+    }));
+  }
+
   /**
    * The legacy header filter, rendered only while no store is supplied. Deleted with the rest of
    * that path once no consumer passes the old shape.
