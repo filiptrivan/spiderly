@@ -3016,4 +3016,48 @@ describe('SpiderlyDataTableComponent — resetting the layout', () => {
       localStorage.getItem(`${dataTable.resolvedStateKey}:layout`),
     ).toBeNull();
   });
+
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithACrampedColumnComponent {
+  cols: Column[] = [
+    { name: 'Napomena', field: 'note', filterType: 'text', width: '4rem' },
+    { name: 'Kratko', field: 'short', filterType: 'text', width: '20rem' },
+  ];
+  getList = (): Observable<PaginatedResult> =>
+    paginated([
+      { id: 1, note: 'kupac javio da nije kod kuce do petka, zvati posle 16h', short: 'ok' },
+    ]);
+}
+
+// The clamp hides the value and, until now, offered nothing to read it with — which is why PACMS
+// hand-added [title] in four places. Wrapping is a choice someone makes; this is for the default
+// nobody touched (CLAUDE.md -> decision 9). Only when it actually overflows: a title on a cell
+// that fits is noise on every hover across a dense grid, which is what got the SKU tooltip
+// removed in the first place.
+describe('SpiderlyDataTableComponent — the clamped cell says what it hides', () => {
+  it('titles a cell only while its text does not fit', async () => {
+    const { fixture } = createWithDataTable(HostWithACrampedColumnComponent);
+    await renderRows(fixture);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    fixture.detectChanges();
+
+    const cells = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      'tbody .cell-text',
+    );
+
+    expect(cells[0].getAttribute('title')).toBe(
+      'kupac javio da nije kod kuce do petka, zvati posle 16h',
+    );
+    expect(cells[1].getAttribute('title')).toBeNull();
+  });
 });

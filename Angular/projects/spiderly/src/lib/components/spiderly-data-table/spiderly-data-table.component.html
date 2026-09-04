@@ -300,6 +300,7 @@
           </ng-container>
           <ng-container *ngIf="col.filterType !== 'blob'">
             <span
+              spiderlyOverflowTitle
               class="cell-text"
               [class.cell-text-wrap]="isColumnWrapped(col)"
               >{{ displayValue }}</span

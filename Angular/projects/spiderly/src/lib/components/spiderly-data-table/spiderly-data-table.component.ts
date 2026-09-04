@@ -46,6 +46,7 @@ import {
   SpiderlyCellTemplateDirective,
 } from '../../directives/spiderly-cell-template.directive';
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
+import { SpiderlyOverflowTitleDirective } from '../../directives/spiderly-overflow-title.directive';
 import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { PaginatedResult } from '../../entities/paginated-result';
@@ -105,6 +106,7 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
     DatePickerModule,
     CheckboxModule,
     SpiderlyFilterBarComponent,
+    SpiderlyOverflowTitleDirective,
     TooltipModule,
   ],
 })
