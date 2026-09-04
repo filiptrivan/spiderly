@@ -129,6 +129,7 @@ describe('createFilterStore — typed is not applied', () => {
       {
         id: 'companyName',
         label: 'Firma',
+        kind: 'text',
         operator: MatchModeCodes.Contains,
         value: 'Elektromont',
       },

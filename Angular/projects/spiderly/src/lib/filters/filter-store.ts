@@ -151,6 +151,8 @@ export interface FilterSource extends FilterBarSource {
 export interface AppliedFilter {
   id: string;
   label: string;
+  /** The bar reads this to word the chip — `String(false)` would print "false" at an operator. */
+  kind: FilterValueKind;
   operator: MatchModeCodes;
   value: unknown;
 }
@@ -196,6 +198,7 @@ export function createFilterStore<
     [...committed()].map(([id, constraint]) => ({
       id: id as string,
       label: definitions[id].label,
+      kind: definitions[id].kind,
       operator: constraint.operator,
       value: constraint.value,
     })),

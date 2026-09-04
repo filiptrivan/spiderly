@@ -39,7 +39,13 @@ export { FilterBarSource };
               (click)="startEditing(chip.id)"
             >
               <span class="filter-chip-label">{{ chip.label }}</span>
-              <span class="filter-chip-value">{{ chipValue(chip) }}</span>
+              <span class="filter-chip-value">{{
+                chip.kind === 'boolean'
+                  ? chip.value
+                    ? t('Yes')
+                    : t('No')
+                  : chipValue(chip)
+              }}</span>
             </button>
             <button
               type="button"
@@ -85,7 +91,15 @@ export { FilterBarSource };
           <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
-            @if (handle.kind === 'text' || handle.kind === 'number') {
+            @if (handle.kind === 'boolean') {
+              <input
+                type="checkbox"
+                class="filter-editor-value"
+                data-testid="filter-editor-value"
+                [checked]="handle.value() === true"
+                (change)="draftBoolean(handle, $event)"
+              />
+            } @else if (handle.kind === 'text' || handle.kind === 'number') {
               <!-- A DOM control's raw value is always a string. It is coerced on the way into
                    the store (see coerce), which is the one place the value type can be got
                    right. Backticks are forbidden in this template: it is a JS template literal
@@ -151,6 +165,17 @@ export class SpiderlyFilterBarComponent {
     handle.set({
       operator: handle.operator() ?? DEFAULT_OPERATOR[handle.kind],
       value: this.coerce(handle.kind, (event.target as HTMLInputElement).value),
+    });
+  }
+
+  /**
+   * The checkbox writes its own draft: its value is `checked`, not `value`. And `false` is a
+   * constraint here ("not a company order"), never an empty control.
+   */
+  draftBoolean(handle: FilterHandle, event: Event): void {
+    handle.set({
+      operator: handle.operator() ?? DEFAULT_OPERATOR[handle.kind],
+      value: (event.target as HTMLInputElement).checked,
     });
   }
 

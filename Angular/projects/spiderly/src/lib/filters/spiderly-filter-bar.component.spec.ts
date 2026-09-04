@@ -4,6 +4,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
 import {
+  booleanFilter,
   createFilterStore,
   FilterBarSource,
   numberFilter,
@@ -180,6 +181,7 @@ describe('SpiderlyFilterBarComponent', () => {
       {
         id: 'companyName',
         label: 'Firma',
+        kind: 'text',
         // `Contains` is the text default: an operator nobody chose has to be the one a person
         // means by typing a fragment into a box.
         operator: MatchModeCodes.Contains,
@@ -244,5 +246,35 @@ describe('SpiderlyFilterBarComponent', () => {
         '[data-testid="filter-editor-value"]',
       )!.value,
     ).toBe('Elektromont');
+  });
+
+  // `false` is a FILTER ("show me the ones that are not company orders"), not an empty control.
+  // Every naive blank check treats it as nothing, which is why it gets its own test rather than
+  // riding along with the `true` case.
+  it('applies a boolean control, and false narrows rather than clearing', () => {
+    const filters = createFilterStore({
+      isCompanyOrder: booleanFilter({ label: 'Firma' }),
+    });
+
+    const fixture = renderBar(filters);
+    startEditing(fixture);
+
+    const checkbox = el(fixture).querySelector<HTMLInputElement>(
+      '[data-testid="filter-editor-value"]',
+    )!;
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(filters.toFilterPayload()).toEqual({
+      isCompanyOrder: [{ matchMode: MatchModeCodes.Equals, value: false }],
+    });
+    // And the chip says so in words: String(false) would put "false" in front of an operator.
+    expect(chips(fixture)[0].textContent).toContain('No');
   });
 });
