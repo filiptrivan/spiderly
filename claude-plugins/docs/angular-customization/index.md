@@ -263,7 +263,7 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 - **Late-arriving options go through `store.setOptions(id, options)`** — it re-resolves the offered operators and open editors read it live. Never write `definitions[id].options` by hand.
 - **Programmatic writes use `setAndCommit(id, { operator, value })`** (a view's `apply`, a bulk-action flow). A bare `set` without `commit` changes only the draft and fails silently.
 - **`offered: false`** keeps a filter out of `+ Filter` when a dedicated control on the page drives it through `filters.get(id)` (render the handle's `value()` draft, `commit()` on your own cadence — a search box, typically). Its chip still renders when applied.
-- **Applied filters persist** under `` `${stateKey}:filters` `` in the `stateStorage` storage (session by default), separately from PrimeNG's own sort/pagination blob under `` `${stateKey}` ``.
+- **Applied filters persist** under `` `${stateKey}:filters` `` in the `stateStorage` storage (session by default), separately from PrimeNG's own sort/pagination blob under `` `${stateKey}` ``. On a table with `[views]` the filters key always carries the active view segment (`` `${stateKey}:${viewId}:filters` ``, seeded from the first view).
 - **A custom editor control for one filter** is a projected `<ng-template spiderlyFilterTemplate="filterId" let-f>`: drive it through the handle (`f.value()`, `f.set(...)`, `f.commit()`). Filters without a template keep the control the bar draws for their kind.
 
 **Views** (`[views]`, `TableView[]`) are saved questions rendered as tabs above the bar: each `apply` receives the cleared store (a view is a state, not an addition) and writes with `setAndCommit`; a view whose apply is a function of *now* ("received today") declares `transient: true` so selecting it re-derives instead of restoring yesterday's answer. Column layout (visibility, order, widths, wrap) persists per view.
@@ -326,7 +326,7 @@ Project an `<ng-template spiderlyCellTemplate="field">` to render one column's c
 - **Cells only.** The header and its sorting are untouched, and the column's filter (a store entry, see Filtering above) works whatever the template draws.
 - The template binds to the **consuming component**, so its handlers and pipes are yours.
 - A real `<a [routerLink]>` here beats `onCellClick` for navigation — middle-click and Ctrl+click open a new tab, which a JavaScript `navigate()` does not.
-- This is also the way out of the enum-cell limit: a `multiselect` column renders the raw stored value in its cell (the table does not map it through `dropdownOrMultiselectValues`), so a template that draws the label from the row's id gets the checkbox filter *and* readable cells.
+- A `multiselect` column needs no template for readable cells — `getRowData` already maps the stored value through the column's `dropdownOrMultiselectValues` (raw value as the fallback while options load). Reach for a template only when the row carries a better display value than the option list can give (e.g. a `*DisplayName` the DTO already holds).
 
 ### Custom Toolbar Actions
 

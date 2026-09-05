@@ -150,6 +150,21 @@ function toOperatorOptions(
 }
 
 /**
+ * A KIND's operator picker options, for callers with no filter behind them — today that is
+ * `spiderly-data-view`, whose own filter config derives its operator lists here instead of
+ * hand-keeping copies (the drift `allowed-operators.ts` exists to end). Per-FILTER narrowing
+ * lives in the store (`createFilterStore` resolves it once per declaration), so this cannot be
+ * handed a fake definition to satisfy — that shape shipped once and interpolated an empty
+ * filter name into its own error message.
+ */
+export function operatorOptionsForKind(
+  kind: FilterValueKind,
+  hasOptions = false,
+): OperatorOption[] {
+  return toOperatorOptions(kind, baseOperators(kind, hasOptions));
+}
+
+/**
  * The operator applied when nobody picked one, which has to be what a person MEANS by filling in
  * the control. `Contains` for a fragment typed into a box; `GreaterThan` for a date, never
  * `Equals` — a date equality against a TIMESTAMP matches only the row written in that exact

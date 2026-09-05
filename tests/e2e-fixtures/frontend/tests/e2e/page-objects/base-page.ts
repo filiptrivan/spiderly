@@ -94,9 +94,11 @@ export class BasePage {
   // .p-paginator-page-selected (selected pager page).
 
   // The one matching policy for user-visible labels: whole string, case-insensitive,
-  // whitespace-tolerant. Shared so a label edge case is fixed in one place.
+  // whitespace-tolerant, and the label is TEXT — metacharacters are escaped, so 'Price (EUR)'
+  // matches literally instead of silently matching something else (or throwing on 'C++').
   private exactLabel(label: string): RegExp {
-    return new RegExp(`^\\s*${label}\\s*$`, 'i');
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^\\s*${escaped}\\s*$`, 'i');
   }
 
   private columnHeader(columnLabel: string) {
@@ -113,23 +115,44 @@ export class BasePage {
     await expect(this.page.locator('.p-datatable-mask')).toBeHidden({ timeout: 15000 });
   }
 
-  // Opens the bar's editor for the named filter via "+ Filter". The popover teleports to
+  // Opens the bar's editor for the named filter. An ALREADY-APPLIED filter is no longer offered
+  // under "+ Filter" (the addable list excludes it), so refining goes through its chip instead —
+  // the same two entry points an operator has. The "+ Filter" popover teleports to
   // document.body, so its options are addressed from the page, not the bar.
   private async openFilterEditor(filterLabel: string) {
     await this.waitForTableLoad();
-    await this.page.getByTestId('add-filter').click();
-    await this.page.getByTestId('add-filter-option').filter({ hasText: this.exactLabel(filterLabel) }).first().click();
+
+    const chip = this.page
+      .getByTestId('filter-chip')
+      .filter({ has: this.page.locator('.filter-chip-label', { hasText: this.exactLabel(filterLabel) }) })
+      .getByTestId('filter-chip-edit');
+    if ((await chip.count()) > 0) {
+      await chip.first().click();
+    } else {
+      await this.page.getByTestId('add-filter').click();
+      await this.page.getByTestId('add-filter-option').filter({ hasText: this.exactLabel(filterLabel) }).first().click();
+    }
+
     await expect(this.page.getByTestId('filter-editor')).toBeVisible();
   }
 
   // Every kind commits through the editor's Apply, and a commit re-queries — awaited to its
   // own list fetch because the table does not sequence concurrent lazy loads: overlapping
   // this filter's load with the next helper's would be a race authored into the suite.
+  // A commit can legitimately produce NO request (the store bails on a blank draft or a
+  // constraint equal to the applied one); that is spec misuse here, and it used to surface as
+  // a bare 30s hang on waitForResponse — now it fails with the reason named.
   private async applyFilterEditor() {
-    const applied = this.page.waitForResponse((r) => /\/GetPaginated\w+List$/.test(new URL(r.url()).pathname));
+    const applied = this.page
+      .waitForResponse((r) => /\/GetPaginated\w+List$/.test(new URL(r.url()).pathname), { timeout: 15000 })
+      .catch(() => null);
     await this.page.getByTestId('filter-editor-apply').click();
-    await applied;
     await expect(this.page.getByTestId('filter-editor')).toBeHidden();
+    if ((await applied) === null) {
+      throw new Error(
+        'applyFilterEditor: Apply produced no paginated-list request — the draft was blank or equal to the already-applied constraint, so the store bailed. Apply a value that actually changes the filter.',
+      );
+    }
   }
 
   async applyTextFilter(filterLabel: string, value: string) {
@@ -138,13 +161,24 @@ export class BasePage {
     await this.applyFilterEditor();
   }
 
-  async applyNumericFilter(filterLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
+  async applyNumericFilter(filterLabel: string, value: number, matchMode?: 'equals' | 'lessThan' | 'greaterThan') {
     const matchModeLabels = { equals: 'Equals', lessThan: 'Less than', greaterThan: 'More than' } as const;
     await this.openFilterEditor(filterLabel);
-    await this.page.getByTestId('filter-editor-operator').click();
-    // The option list is PrimeNG-rendered inside a teleported overlay, so only the trigger
-    // carries a testid; the option class is the one PrimeNG dependency left here.
-    await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
+    if (matchMode) {
+      // The operator picker renders only when the filter offers MORE than one operator — a
+      // store declaration narrowed to a single operator (or a pick-list) has no trigger, and a
+      // blind click here would be the stale-helper 30s timeout wearing a new face.
+      const operatorTrigger = this.page.getByTestId('filter-editor-operator');
+      if ((await operatorTrigger.count()) === 0) {
+        throw new Error(
+          `applyNumericFilter: the '${filterLabel}' filter offers a single operator, so there is no picker to set '${matchMode}' with — drop the matchMode argument or widen the filter's operators.`,
+        );
+      }
+      await operatorTrigger.click();
+      // The option list is PrimeNG-rendered inside a teleported overlay, so only the trigger
+      // carries a testid; the option class is the one PrimeNG dependency left here.
+      await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
+    }
     await this.page.getByTestId('filter-editor-value').fill(String(value));
     await this.applyFilterEditor();
   }
@@ -171,10 +205,13 @@ export class BasePage {
 
   // The persistence-key rule's one home on the test side: applied filters live under
   // `${stateKey}:filters` as the store snapshot — filter id → { operator, value } on the wire
-  // vocabulary ('contains', 'greaterThan', ...). Specs assert the CONTENT; the key shape is ours.
-  async storedFilterSnapshot(stateKey: string) {
+  // vocabulary ('contains', 'greaterThan', ...). On a table with [views] the key ALWAYS carries
+  // the active view's id (seeded from the first view), so pass it — a bare `:filters` key never
+  // exists there. Specs assert the CONTENT; the key shape is ours.
+  async storedFilterSnapshot(stateKey: string, viewId?: string) {
+    const scope = viewId ? `:${viewId}` : '';
     return await this.getSessionStorageEntry<Record<string, { operator: string; value: unknown }>>(
-      `${stateKey}:filters`,
+      `${stateKey}${scope}:filters`,
     );
   }
 

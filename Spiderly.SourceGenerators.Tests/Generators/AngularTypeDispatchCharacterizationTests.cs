@@ -116,12 +116,12 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("long", "numeric")]
     [InlineData("byte?", "numeric")]
     [InlineData("Guid", null)]
-    public void GetTableColFilterType(string type, string expected)
+    public void GetTableColFilterType(string type, string? expected)
         => Assert.Equal(expected, NgDetailsDataGenerator.GetTableColFilterType(Prop(type)));
 
-    // `showMatchModes` died with the legacy header-filter path (19.12.x): scalar columns get no
-    // additional properties any more; only dropdown/comma-separated columns (cell label mapping)
-    // and a decimal carrying a scale still emit one.
+    // `showMatchModes` died with the header-filter deletion wave (2026-09-05): scalar columns
+    // get no additional properties any more; only dropdown/comma-separated columns (cell label
+    // mapping) and a decimal carrying a scale still emit one.
     [Theory]
     [InlineData("DateTime", null)]
     [InlineData("DateOnly?", null)]
@@ -134,6 +134,6 @@ public class AngularTypeDispatchCharacterizationTests
     [InlineData("string", null)]
     [InlineData("bool", null)]
     [InlineData("Guid", null)]
-    public void GetTableColAdditionalProperties(string type, string expected)
+    public void GetTableColAdditionalProperties(string type, string? expected)
         => Assert.Equal(expected, NgDetailsDataGenerator.GetTableColAdditionalProperties(Prop(type), new SpiderlyClass()));
 }

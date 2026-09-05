@@ -2186,9 +2186,17 @@ export class Column<T = any> {
    * only so details-table cols emitted by an OLDER Spiderly.SourceGenerators (which wrote
    * `showMatchModes: true`) still compile against this library during a mixed-version window —
    * a consumer on published NuGet generators plus an npm-linked library build. Delete it once
-   * every consumer regenerates with a generator from this release or later.
+   * every consumer regenerates with a generator from this release or later (spiderly#407).
    */
   showMatchModes?: boolean;
+  /**
+   * @deprecated The same version-skew bridge as {@link showMatchModes}, and nothing else: older
+   * generators emit `filterField: 'xxxId'` for every dropdown-typed details-table column, so
+   * deleting it breaks the mixed window the moment a consumer adds one. NOTHING reads it —
+   * filter ids live in the store, linked from a column via {@link filterId}. Delete with
+   * `showMatchModes` (spiderly#407).
+   */
+  filterField?: string & keyof T;
   dropdownOrMultiselectValues?: PrimengOption[];
   actions?: Action[];
   editable?: boolean;
@@ -2232,6 +2240,7 @@ export class Column<T = any> {
     filterType,
     filterId,
     showMatchModes,
+    filterField,
     dropdownOrMultiselectValues,
     actions,
     editable,
@@ -2248,6 +2257,7 @@ export class Column<T = any> {
     filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
     filterId?: string;
     showMatchModes?: boolean;
+    filterField?: string & keyof T;
     dropdownOrMultiselectValues?: PrimengOption[];
     actions?: Action[];
     editable?: boolean;
@@ -2264,6 +2274,7 @@ export class Column<T = any> {
     this.filterType = filterType;
     this.filterId = filterId;
     this.showMatchModes = showMatchModes;
+    this.filterField = filterField;
     this.dropdownOrMultiselectValues = dropdownOrMultiselectValues;
     this.actions = actions;
     this.editable = editable;

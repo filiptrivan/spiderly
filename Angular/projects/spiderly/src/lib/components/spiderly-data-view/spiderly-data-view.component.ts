@@ -28,6 +28,10 @@ import { ButtonModule } from 'primeng/button';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import {
+  FilterValueKind,
+} from '../../filters/allowed-operators';
+import { operatorOptionsForKind } from '../../filters/filter-store';
 import { Action } from '../spiderly-data-table/spiderly-data-table.component';
 import { SelectItem } from 'primeng/api';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -100,35 +104,17 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.matchModeDateOptions = [
-      {
-        label: this.translocoService.translate('OnDate'),
-        value: MatchModeCodes.Equals,
-      },
-      {
-        label: this.translocoService.translate('DatesBefore'),
-        value: MatchModeCodes.LessThan,
-      },
-      {
-        label: this.translocoService.translate('DatesAfter'),
-        value: MatchModeCodes.GreaterThan,
-      },
-    ];
+    // Derived from the ONE operator table (`filters/allowed-operators.ts`) rather than
+    // hand-kept: these were the last hand-written copies of the per-kind lists, and a backend
+    // operator change edited in the shared table would silently never have reached them.
+    const matchModeOptionsFor = (kind: FilterValueKind): SelectItem[] =>
+      operatorOptionsForKind(kind).map((option) => ({
+        label: this.translocoService.translate(option.labelKey),
+        value: option.value,
+      }));
 
-    this.matchModeNumberOptions = [
-      {
-        label: this.translocoService.translate('Equals'),
-        value: MatchModeCodes.Equals,
-      },
-      {
-        label: this.translocoService.translate('LessThan'),
-        value: MatchModeCodes.LessThan,
-      },
-      {
-        label: this.translocoService.translate('MoreThan'),
-        value: MatchModeCodes.GreaterThan,
-      },
-    ];
+    this.matchModeDateOptions = matchModeOptionsFor('date');
+    this.matchModeNumberOptions = matchModeOptionsFor('number');
   }
 
   // Paging semantics and the scroll-margin contract are documented once, on the data table:

@@ -9,7 +9,8 @@ Wraps PrimeNG v19 `<p-table>` and exposes Spiderly's column-based filter / sort 
 filtericon, Apply/hideOnClear, match-mode narrowing, the "hidden contributes nothing" trio,
 `Column.filterField`/`filterPlaceholder`/`matchModes`/per-column `showAddButton`) is gone — a
 table handed no store now has NO filter surface at all. This block stays as the decision record;
-the deletion-wave rulings are at the end of it.
+the deletion-wave rulings live in the bullet list under "What has shipped" below, and interior
+decision prose keeps its original tense as history — the rulings win where they disagree.
 
 **The premise that broke.** Every presentational knob on this grid is set by whoever writes
 `Column[]`: which columns show, their width, their order, whether a value is clamped — and, because
@@ -33,7 +34,8 @@ one definition serves every surface with no branching.
 - `filterId` is typed as `keyof` the store's declaration, never a bare `string`. `Column.field` is
   already `string & keyof T` and fails the build on a typo; agents will migrate 195 declarations
   across 27 files, where a silent name miss is the worst failure mode on offer.
-- **`Column.filterId` is NOT built yet, deliberately (2026-09-04).** With the bar owning every
+- **`Column.filterId` is NOT built yet, deliberately (2026-09-04). [Superseded: it shipped with
+  the header menu's `Filter…` — see "What has shipped".]** With the bar owning every
   filter, no column references one: the first migration (PACMS `tag-list`) declares its store
   beside its columns and needs no link between them. `filterId` becomes necessary only when a
   control is placed back into a header cell, i.e. with `spiderlyFilterTemplate`. Build it then.
@@ -47,8 +49,10 @@ one definition serves every surface with no branching.
   `InvalidMatchMode`, and `lastCommentText` is `sortable: false` because sorting a projection is a
   400. Today a human not declaring the wrong thing is the only guard; an engine that assembles
   operators itself removes that human, so the per-type operator set has to come from the generator.
-- `filterField` disappears with this. It exists today only as the multiautocomplete patch
-  (`filterKey(col)` = `filterField ?? field`), i.e. as the coupling already cracking.
+- `filterField` disappears with this. It existed only as the multiautocomplete patch
+  (`filterKey(col)` = `filterField ?? field`), i.e. as the coupling already cracking — both were
+  deleted with the wave (the type keeps a dead `@deprecated filterField` as the same
+  version-skew bridge as `showMatchModes`; see the rulings).
 - Sort needs no equivalent and must not be re-coupled: `multiSortMeta` is keyed by `field`, so the
   bar's sort chip already works without any notion of a column.
 
@@ -174,20 +178,26 @@ still the design, and this is where it stands against it.
   views (decision 10) all shipped too — every decision in this record is now built.
 - **The legacy header-filter path is DELETED (2026-09-05), with four rulings made at the wave:**
   - **`spiderly-data-view` is EXCLUDED, deliberately.** It has its own parallel filter config
-    (`DataViewFilter` — its own `filterField`/`showMatchModes`, its own hand-kept match-mode
-    lists) and no bar equivalent, so deleting its header filters would leave a fresh
-    `spiderly init` app's data view with no filtering at all. It keeps `p-columnFilter` until it
-    either grows a bar or is migrated onto the store engine — a decision for its own rework, not
-    a leftover to "clean up" on sight.
-  - **`operatorOptionsForKind` was deleted with the path.** Its only callers were the legacy
-    header dropdowns; the store resolves per-filter operators internally
-    (`baseOperators`/`toOperatorOptions`), so nothing public asks a KIND-only question any more.
-  - **`Column.showMatchModes` survives as a dead, `@deprecated` prop — a version-skew bridge,
-    not an oversight.** An older Spiderly.SourceGenerators (published NuGet) still emits
-    `showMatchModes: true` into generated details-table cols (`base-details.generated.ts`), and
-    a consumer in mixed dev state (npm-linked new library + NuGet old generator — pa-cms's
-    normal dev mode) must keep compiling. Nothing reads it. Delete it once consumers regenerate
-    with a generator from the same release train.
+    (`DataViewFilter` — its own `filterField`/`showMatchModes`) and no bar equivalent, so
+    deleting its header filters would leave a fresh `spiderly init` app's data view with no
+    filtering at all. It keeps `p-columnFilter` until it either grows a bar or is migrated onto
+    the store engine — a decision for its own rework, not a leftover to "clean up" on sight.
+    (Its operator lists are no longer hand-kept, though — they derive from
+    `operatorOptionsForKind` since the review sweep.)
+  - **`operatorOptionsForKind` was deleted with the path, then CAME BACK in the review sweep
+    (2026-09-05):** the "no kind-only callers left" claim missed that `spiderly-data-view`
+    hand-keeps copies of the same per-kind lists — the exact drift `allowed-operators.ts`
+    exists to end. The data view now derives its lists through it; per-filter narrowing still
+    lives in the store.
+  - **`Column.showMatchModes` AND `Column.filterField` survive as dead, `@deprecated` props —
+    a version-skew bridge, not an oversight.** An older Spiderly.SourceGenerators (published
+    NuGet) still emits `showMatchModes: true` for scalar and `filterField: 'xxxId'` for
+    dropdown details-table cols (`base-details.generated.ts`), and a consumer in mixed dev
+    state (npm-linked new library + NuGet old generators — pa-cms's normal dev mode) must keep
+    compiling. Nothing reads either. Delete both once consumers regenerate with a generator
+    from this release train or later (spiderly#407). (`filterField` was dropped outright at
+    first; the review caught that the bridge was asymmetric — one dropdown `[UITableColumn]`
+    away from breaking the exact window it exists for.)
   - **Generated details-page M2M tables (`[SimpleManyToManyTableLazyLoad]` /
     `[ComplexManyToManyReadonlyTable]`) ship with NO filter surface** until
     `NgDetailsDataGenerator` scaffolds a store for them — the generator stopped emitting the
@@ -231,7 +241,7 @@ still the design, and this is where it stands against it.
     `Column.matchModes` semantics on the store side. The wire contract stays ALLOWED_OPERATORS;
     a restored old operator keeps filtering. Resolved ONCE per store (a per-store map, not the
     WeakMap this first shipped as — that memo was keyed on a definition object consumers
-    mutate); the kind-only callers (legacy header dropdowns) use `operatorOptionsForKind`.
+    mutate); the one kind-only caller left (the data view's lists) uses `operatorOptionsForKind`.
   - `setOptions(id, options)` is the ONE seam for late-arriving choices — it re-resolves the
     offered operators (options' presence flips a filter to `In`) and handles read it via live
     getters, so an editor already open when the lookup answers fills instead of staying empty.
@@ -242,18 +252,22 @@ still the design, and this is where it stands against it.
     options upgrade a restored chip from ids to labels when they land (`chipValue`). Follow-up
     if a second chip-drawing surface ever appears: make options a signal and let `applied()`
     carry a `valueLabel`, so the whole chip sentence has one home.
-  - **The "hidden contributes nothing" apparatus is GONE** (deleted with the legacy path;
-    while both paths coexisted it was gated off on store tables) — decision 2b's other half:
-    hiding a column keeps its filter AND sort, `defaultMultiSortMeta` applies the default even
-    on a hidden column, and stale header-filter meta in an old persisted blob never reaches a
-    request (`lazyLoad` overwrites `event.filters` with the store payload, or `{}` on a
-    storeless table — unconditional, so the guarantee holds by construction). The bar and sort
-    chip are the visible surface for all of it.
+  - **The "hidden contributes nothing" apparatus is GONE on store tables** (while both paths
+    coexisted it was gated off there) — decision 2b's other half: hiding a column keeps its
+    filter AND sort, `defaultMultiSortMeta` applies the default even on a hidden column, and
+    stale header-filter meta in an old persisted blob never reaches a request (`lazyLoad`
+    overwrites `event.filters` with the store payload, or `{}` on a storeless table —
+    unconditional, so the guarantee holds by construction). The bar and sort chip are the
+    visible surface for all of it. **STORELESS tables keep the SORT half** (the review sweep,
+    2026-09-05): they have no chip to name a hidden column's sort, so hide and layout-reset
+    drop it and a hidden `defaultSortField` does not apply — `dropHiddenColumnSort`, with its
+    own spec suite. The filter half needs no storeless heir, per the unconditional overwrite
+    above.
   - `TableView.transient` — a view whose `apply` is a function of NOW ("Danas primljene")
     re-applies on every select instead of restoring; stored-wins would put yesterday's date
     under a tab claiming "today". Layout still persists per view.
   - **The operator table has ONE home now:** `filters/allowed-operators.ts`, a leaf module the
-    store's runtime checks, `FilterRule`'s compile-time unions and the legacy header dropdowns
+    store's runtime checks, `FilterRule`'s compile-time unions and the data view's kind lists
     all derive from (the three hand-kept copies this file's git history warned about). Tuple
     order is display order everywhere.
   - **Declined the same day: extracting the layout state (`columnWrap`/`columnOrder`/
@@ -393,7 +407,7 @@ Spec note: any test that drives a refetch must do it inside `fixture.ngZone.run(
 
 ## State persistence
 
-`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior (sort, pagination) under `resolvedStateKey`; the store's applied filters persist beside it under `` `${resolvedStateKey}:filters` `` in the `stateStorage` storage, and layout keys carry the active view segment (decision 10). When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method (the bar's Clear filters) also calls `table.clearState()` so the persisted state is wiped, not just the in-memory table.
+`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior (sort, pagination) under `resolvedStateKey`; the store's applied filters persist beside it under `` `${resolvedStateKey}${viewScope}:filters` `` in the `stateStorage` storage. **The view segment is on the FILTER key too, not just the layout keys** (decision 10 — a view IS a saved question): on a table with views the segment is always present, because `activeViewId` seeds from the first view, so on PACMS `order-list` the key is `…:all:filters` and a bare `…:filters` never exists. A table with no views has no segment — which is what keeps its keys stable. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method (the bar's Clear filters) also calls `table.clearState()` so the persisted state is wiped, not just the in-memory table.
 
 ## Per-cell click — `Column.onCellClick`
 

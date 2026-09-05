@@ -801,20 +801,29 @@ export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, Role
         private static string GetRoleTableComponentHtmlData() =>
             GetSpiderlyAngularTableHtmlTemplate("Role");
 
-        private static string GetRoleTableComponentTsData()
-        {
-            return GetAngularTableListComponentTs(
-                "Role",
-                spiderlyImports: "Column, createFilterStore, dateFilter, MatchModeCodes, SpiderlyDataTableComponent, textFilter",
-                filterEntries: """
-        name: textFilter({ label: t('Name') }),
+        // The seeded Role/User pages share one datetime filter declaration — hoisted so the
+        // narrowing (equals on a timestamp matches one second and answers with an empty grid)
+        // cannot drift between the two templates.
+        private const string SeededListSpiderlyImports =
+            "Column, createFilterStore, dateFilter, MatchModeCodes, SpiderlyDataTableComponent, textFilter";
+
+        private const string SeededCreatedAtFilterEntry = """
         // Equals on a timestamp matches only the row written in that exact second and answers
         // with an empty grid, so a datetime filter offers only after/before.
         createdAt: dateFilter({
             label: t('CreatedAt'),
             operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
         }),
-""",
+""";
+
+        private static string GetRoleTableComponentTsData()
+        {
+            return GetAngularTableListComponentTs(
+                "Role",
+                spiderlyImports: SeededListSpiderlyImports,
+                filterEntries: """
+        name: textFilter({ label: t('Name') }),
+""" + "\n" + SeededCreatedAtFilterEntry,
                 colEntries: """
             {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'},
             {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
@@ -922,16 +931,10 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
         {
             return GetAngularTableListComponentTs(
                 "User",
-                spiderlyImports: "Column, createFilterStore, dateFilter, MatchModeCodes, SpiderlyDataTableComponent, textFilter",
+                spiderlyImports: SeededListSpiderlyImports,
                 filterEntries: """
         email: textFilter({ label: t('Email') }),
-        // Equals on a timestamp matches only the row written in that exact second and answers
-        // with an empty grid, so a datetime filter offers only after/before.
-        createdAt: dateFilter({
-            label: t('CreatedAt'),
-            operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
-        }),
-""",
+""" + "\n" + SeededCreatedAtFilterEntry,
                 colEntries: """
             {name: this.translocoService.translate('Email'), filterType: 'text', field: 'email'},
             {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
