@@ -103,6 +103,36 @@ function createWithDataTable<T>(host: new () => T): {
   return { fixture, host: fixture.componentInstance, dataTable };
 }
 
+// A reload, as far as this component is concerned: a brand-new module and a brand-new store,
+// with only the storage carried across.
+async function remount<T>(
+  fixture: ComponentFixture<unknown>,
+  host: new () => T,
+): Promise<{
+  fixture: ComponentFixture<T>;
+  host: T;
+  dataTable: SpiderlyDataTableComponent;
+}> {
+  fixture.destroy();
+  TestBed.resetTestingModule();
+  const next = createWithDataTable(host);
+  await renderRows(next.fixture);
+  return next;
+}
+
+const viewTabs = (fixture: ComponentFixture<unknown>) =>
+  (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+    '[data-testid="table-view"]',
+  );
+
+async function clickView(
+  fixture: ComponentFixture<unknown>,
+  index: number,
+): Promise<void> {
+  await fixture.ngZone!.run(async () => viewTabs(fixture)[index].click());
+  await renderRows(fixture);
+}
+
 @Component({
   imports: [SpiderlyDataTableComponent, SpiderlyDataTableActionsDirective],
   template: `
@@ -2995,6 +3025,17 @@ describe('SpiderlyDataTableComponent — a projected filter control', () => {
 });
 
 
+// One home for the view both view-hosts declare — two describes assert its filter shape, so a
+// second copy would let them drift apart. Arrival timing is what differs between the hosts.
+const packingView: TableView = {
+  id: 'packing',
+  label: 'Za pakovanje',
+  apply: (filters) => {
+    filters.set('status', { operator: MatchModeCodes.Equals, value: 2 });
+    filters.commit('status');
+  },
+};
+
 @Component({
   imports: [SpiderlyDataTableComponent],
   template: `
@@ -3012,17 +3053,7 @@ class HostWithViewsComponent {
     { name: 'Naziv', field: 'name', filterType: 'text' },
     { name: 'Status', field: 'status', filterType: 'numeric' },
   ];
-  views: TableView[] = [
-    { id: 'all', label: 'Sve' },
-    {
-      id: 'packing',
-      label: 'Za pakovanje',
-      apply: (filters) => {
-        filters.set('status', { operator: MatchModeCodes.Equals, value: 2 });
-        filters.commit('status');
-      },
-    },
-  ];
+  views: TableView[] = [{ id: 'all', label: 'Sve' }, packingView];
   captured: Filter[] = [];
   getList = capturingGetList(this.captured);
 }
@@ -3031,26 +3062,14 @@ class HostWithViewsComponent {
 // asked in one click. Without them the first two waves are a pile of knobs someone re-sets daily
 // (CLAUDE.md -> decision 10).
 describe('SpiderlyDataTableComponent — views', () => {
-  function selectView(fixture: ComponentFixture<unknown>, index: number): void {
-    (fixture.nativeElement as HTMLElement)
-      .querySelectorAll<HTMLButtonElement>('[data-testid="table-view"]')
-      [index].click();
-    fixture.detectChanges();
-  }
-
   it('applies a view when it is picked, and asks the server again', async () => {
     const { fixture, host } = createWithDataTable(HostWithViewsComponent);
     await renderRows(fixture);
 
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelectorAll(
-        '[data-testid="table-view"]',
-      ).length,
-    ).toBe(2);
+    expect(viewTabs(fixture).length).toBe(2);
     expect(host.filters.applied()).toEqual([]);
 
-    await fixture.ngZone!.run(async () => selectView(fixture, 1));
-    await renderRows(fixture);
+    await clickView(fixture, 1);
 
     expect(host.filters.applied().map((chip) => chip.id)).toEqual(['status']);
     expect(host.captured.at(-1)!.filters).toEqual({
@@ -3064,10 +3083,8 @@ describe('SpiderlyDataTableComponent — views', () => {
     const { fixture, host } = createWithDataTable(HostWithViewsComponent);
     await renderRows(fixture);
 
-    await fixture.ngZone!.run(async () => selectView(fixture, 1));
-    await renderRows(fixture);
-    await fixture.ngZone!.run(async () => selectView(fixture, 0));
-    await renderRows(fixture);
+    await clickView(fixture, 1);
+    await clickView(fixture, 0);
 
     expect(host.filters.applied()).toEqual([]);
     expect(host.captured.at(-1)!.filters).toEqual({} as any);
@@ -3118,20 +3135,11 @@ describe('SpiderlyDataTableComponent — transient views', () => {
     const { fixture, host } = createWithDataTable(HostWithTransientViewComponent);
     await renderRows(fixture);
 
-    const views = () =>
-      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
-        '[data-testid="table-view"]',
-      );
-
-    await fixture.ngZone!.run(async () => views()[1].click());
-    await renderRows(fixture);
+    await clickView(fixture, 1);
     expect(host.filters.applied()[0].value).toBe(1);
 
-    await fixture.ngZone!.run(async () => views()[0].click());
-    await renderRows(fixture);
-
-    await fixture.ngZone!.run(async () => views()[1].click());
-    await renderRows(fixture);
+    await clickView(fixture, 0);
+    await clickView(fixture, 1);
 
     expect(host.filters.applied()[0].value)
       .withContext('the second visit must re-derive, not remember')
@@ -3168,17 +3176,7 @@ class HostWithLateViewsComponent {
   getList = capturingGetList(this.captured);
 
   revealPacking(): void {
-    this.views = [
-      ...this.views,
-      {
-        id: 'packing',
-        label: 'Za pakovanje',
-        apply: (filters) => {
-          filters.set('status', { operator: MatchModeCodes.Equals, value: 2 });
-          filters.commit('status');
-        },
-      },
-    ];
+    this.views = [...this.views, packingView];
   }
 }
 
@@ -3188,24 +3186,30 @@ class HostWithLateViewsComponent {
 // intact under `…:packing:filters` (Filip, on /porudzbine). The id persists now, beside the
 // filters it scopes.
 describe('SpiderlyDataTableComponent — the active view survives a reload', () => {
-  const viewTabs = (fixture: ComponentFixture<unknown>) =>
-    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
-      '[data-testid="table-view"]',
-    );
+  async function mountWithStoredPacking() {
+    sessionStorage.setItem('sdt-late-views-spec:view', JSON.stringify('packing'));
+    const mounted = createWithDataTable(HostWithLateViewsComponent);
+    await renderRows(mounted.fixture);
+    return mounted;
+  }
+
+  async function revealLateView(mounted: {
+    fixture: ComponentFixture<HostWithLateViewsComponent>;
+    host: HostWithLateViewsComponent;
+  }): Promise<void> {
+    await mounted.fixture.ngZone!.run(async () => {
+      mounted.host.revealPacking();
+      mounted.fixture.detectChanges();
+    });
+    await renderRows(mounted.fixture);
+  }
 
   it('lands on the stored view with its filters in the first request', async () => {
     const first = createWithDataTable(HostWithViewsComponent);
     await renderRows(first.fixture);
+    await clickView(first.fixture, 1);
 
-    await first.fixture.ngZone!.run(async () =>
-      viewTabs(first.fixture)[1].click(),
-    );
-    await renderRows(first.fixture);
-    first.fixture.destroy();
-    TestBed.resetTestingModule();
-
-    const next = createWithDataTable(HostWithViewsComponent);
-    await renderRows(next.fixture);
+    const next = await remount(first.fixture, HostWithViewsComponent);
 
     expect(next.dataTable.activeViewId).toBe('packing');
     expect(
@@ -3235,78 +3239,51 @@ describe('SpiderlyDataTableComponent — the active view survives a reload', () 
   });
 
   it('restores a transient view\'s tab but re-derives its question', async () => {
-    const first = createWithDataTable(HostWithTransientViewComponent);
-    await renderRows(first.fixture);
+    // Storage deliberately holds a DIFFERENT answer (2) than a fresh apply derives (1) — the
+    // discriminator between re-deriving and restoring. The click→persist path that writes these
+    // keys is already pinned by the transient-views suite and the spec above.
+    sessionStorage.setItem('sdt-transient-view-spec:view', JSON.stringify('today'));
+    sessionStorage.setItem(
+      'sdt-transient-view-spec:today:filters',
+      JSON.stringify({ createdAt: { operator: MatchModeCodes.Equals, value: 2 } }),
+    );
 
-    // Visit today twice (via all) so storage holds apply's SECOND answer — the discriminator
-    // between re-deriving on the fresh host (1) and restoring what the old one stored (2).
-    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[1].click());
-    await renderRows(first.fixture);
-    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[0].click());
-    await renderRows(first.fixture);
-    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[1].click());
-    await renderRows(first.fixture);
-    first.fixture.destroy();
-    TestBed.resetTestingModule();
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithTransientViewComponent,
+    );
+    await renderRows(fixture);
 
-    const next = createWithDataTable(HostWithTransientViewComponent);
-    await renderRows(next.fixture);
-
-    expect(next.dataTable.activeViewId).toBe('today');
-    expect(next.host.filters.applied()[0].value)
+    expect(dataTable.activeViewId).toBe('today');
+    expect(host.filters.applied()[0].value)
       .withContext('a reload must re-derive, not restore yesterday\'s answer')
       .toBe(1);
   });
 
   it('adopts a stored view that only arrives on a later [views] change', async () => {
-    sessionStorage.setItem(
-      'sdt-late-views-spec:view',
-      JSON.stringify('packing'),
-    );
+    const mounted = await mountWithStoredPacking();
 
-    const { fixture, host, dataTable } = createWithDataTable(
-      HostWithLateViewsComponent,
-    );
-    await renderRows(fixture);
-
-    expect(dataTable.activeViewId)
+    expect(mounted.dataTable.activeViewId)
       .withContext('until the view exists, the seed stands')
       .toBe('all');
 
-    await fixture.ngZone!.run(async () => {
-      host.revealPacking();
-      fixture.detectChanges();
-    });
-    await renderRows(fixture);
+    await revealLateView(mounted);
 
-    expect(dataTable.activeViewId).toBe('packing');
-    expect(host.filters.applied().map((chip) => chip.id)).toEqual(['status']);
-    expect(host.captured.at(-1)!.filters).toEqual({
+    expect(mounted.dataTable.activeViewId).toBe('packing');
+    expect(mounted.host.filters.applied().map((chip) => chip.id)).toEqual([
+      'status',
+    ]);
+    expect(mounted.host.captured.at(-1)!.filters).toEqual({
       status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
     } as any);
   });
 
   it('lets an explicit pick beat a stored view that arrives later', async () => {
-    sessionStorage.setItem(
-      'sdt-late-views-spec:view',
-      JSON.stringify('packing'),
-    );
+    const mounted = await mountWithStoredPacking();
 
-    const { fixture, host, dataTable } = createWithDataTable(
-      HostWithLateViewsComponent,
-    );
-    await renderRows(fixture);
+    await clickView(mounted.fixture, 1);
+    await revealLateView(mounted);
 
-    await fixture.ngZone!.run(async () => viewTabs(fixture)[1].click());
-    await renderRows(fixture);
-
-    await fixture.ngZone!.run(async () => {
-      host.revealPacking();
-      fixture.detectChanges();
-    });
-    await renderRows(fixture);
-
-    expect(dataTable.activeViewId)
+    expect(mounted.dataTable.activeViewId)
       .withContext('the operator picked companies since the reload — that wins')
       .toBe('companies');
   });
@@ -3320,13 +3297,7 @@ describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
     const { fixture, dataTable } = createWithDataTable(HostWithViewsComponent);
     await renderRows(fixture);
 
-    const views = () =>
-      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
-        '[data-testid="table-view"]',
-      );
-
-    await fixture.ngZone!.run(async () => views()[0].click());
-    await renderRows(fixture);
+    await clickView(fixture, 0);
 
     await openColumnMenu(fixture);
     columnMenu(fixture)
@@ -3336,15 +3307,13 @@ describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
 
     expect(dataTable.isColumnWrapped(dataTable.cols[0])).toBeTrue();
 
-    await fixture.ngZone!.run(async () => views()[1].click());
-    await renderRows(fixture);
+    await clickView(fixture, 1);
 
     expect(dataTable.isColumnWrapped(dataTable.cols[0]))
       .withContext('the other view must not inherit it')
       .toBeFalse();
 
-    await fixture.ngZone!.run(async () => views()[0].click());
-    await renderRows(fixture);
+    await clickView(fixture, 0);
 
     expect(dataTable.isColumnWrapped(dataTable.cols[0]))
       .withContext('and going back must find it again')
@@ -3515,13 +3484,11 @@ describe('SpiderlyDataTableComponent — applied filters survive a reload', () =
       first.host.filters.commit('companyName');
     });
     await renderRows(first.fixture);
-    first.fixture.destroy();
-    // A reload, as far as this component is concerned: a brand-new module and a brand-new store,
-    // with only the storage carried across.
-    TestBed.resetTestingModule();
 
-    const next = createWithDataTable(HostWithCapturingFilterStoreComponent);
-    await renderRows(next.fixture);
+    const next = await remount(
+      first.fixture,
+      HostWithCapturingFilterStoreComponent,
+    );
 
     expect(next.host.filters.applied().map((chip) => chip.id)).toEqual([
       'companyName',
@@ -3546,13 +3513,11 @@ describe('SpiderlyDataTableComponent — applied filters survive a reload', () =
       first.host.filters.clear();
     });
     await renderRows(first.fixture);
-    first.fixture.destroy();
-    // A reload, as far as this component is concerned: a brand-new module and a brand-new store,
-    // with only the storage carried across.
-    TestBed.resetTestingModule();
 
-    const next = createWithDataTable(HostWithCapturingFilterStoreComponent);
-    await renderRows(next.fixture);
+    const next = await remount(
+      first.fixture,
+      HostWithCapturingFilterStoreComponent,
+    );
 
     expect(next.host.filters.applied()).toEqual([]);
   });

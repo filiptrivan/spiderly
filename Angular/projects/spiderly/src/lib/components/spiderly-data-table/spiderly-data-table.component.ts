@@ -19,6 +19,7 @@ import {
   OnInit,
   Output,
   QueryList,
+  SimpleChanges,
   TemplateRef,
   viewChild,
   ViewChild,
@@ -249,12 +250,6 @@ export class SpiderlyDataTableComponent
    * clicks the first tab — and no tab reads as selected until they do.
    */
   activeViewId: string | null = null;
-  /**
-   * A stored view id whose view was not in `views` at restore time. Kept rather than dropped,
-   * because "vanished by deploy" and "not yet arrived" are indistinguishable at init — see
-   * `restoreActiveView` / `adoptPendingStoredView`.
-   */
-  private pendingStoredViewId: string | null = null;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
   /** Whether the table is wrapped in a card container. Defaults to `false`. */
@@ -487,10 +482,10 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  ngOnChanges(): void {
+  ngOnChanges(changes: SimpleChanges): void {
     // Only meaningful once ngOnInit has resolved the defaults; before that it is a no-op re-run.
     if (this.rows != null) this.mergeActivePageSizesIntoOptions();
-    this.adoptPendingStoredView();
+    if (changes['views']) this.adoptStoredView();
   }
 
   ngOnInit(): void {
@@ -535,17 +530,7 @@ export class SpiderlyDataTableComponent
     this.restoreColumnVisibility();
     this.restoreColumnLayout();
 
-    // A restored TRANSIENT view re-derives its question instead of reading the stored answer —
-    // `persistAppliedFilters` wrote whatever `apply` computed LAST time, and restoring that puts
-    // yesterday's date under a tab claiming "today" — the same inversion `selectView` makes. A
-    // non-transient view whose stored filters are absent stays empty on purpose: the operator
-    // cleared it, and F5 must give the cleared state back; re-asking the view's question is
-    // click semantics, not refresh semantics.
-    if (restoredView?.transient && this.filters) {
-      restoredView.apply?.(this.filters);
-    } else {
-      this.restoreAppliedFilters();
-    }
+    this.enterViewFilters(restoredView, 'refresh');
     if (this.filters) this.requeryOnAppliedFilters();
 
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
@@ -861,8 +846,8 @@ export class SpiderlyDataTableComponent
    *
    * An id naming no current view keeps the seed AND the stored key: "vanished by deploy" and
    * "not yet arrived" are indistinguishable here (order-list's catalog-licensed "Za pakovanje"
-   * is literally both), so the id is parked in `pendingStoredViewId` for `adoptPendingStoredView`
-   * and the key self-heals on the next explicit click.
+   * is literally both), so `adoptStoredView` re-reads the key on every `[views]` change and the
+   * key self-heals on the next explicit click.
    */
   private restoreActiveView(): TableView | null {
     if (!this.viewStateKey || !this.views?.length) return null;
@@ -870,31 +855,33 @@ export class SpiderlyDataTableComponent
     const storedId = readStoredJson(this.filterStorage, this.viewStateKey);
     if (typeof storedId !== 'string') return null;
 
-    const view = this.views.find((candidate) => candidate.id === storedId);
+    const view = this.viewById(storedId) ?? null;
     if (view) this.activeViewId = view.id;
-    else this.pendingStoredViewId = storedId;
 
-    return view ?? null;
+    return view;
   }
 
   /**
    * The second half of `restoreActiveView`: a stored view that did not exist at init is adopted
    * when a later `[views]` change brings it — through `selectView`, so it gets the same
-   * stored-wins/transient/layout/requery semantics a click would have had. Any explicit select
-   * since init clears the pending id, so the operator's own choice always wins. Accepted cost of
-   * adopting late instead of holding the first request: a brief flash of the seeded view's rows
-   * and a second request when the late view lands.
+   * stored-wins/transient/layout/requery semantics a click would have had. There is no parked
+   * copy of the stored id — the key itself is re-read, and because every explicit pick
+   * overwrites it, the operator's own choice wins by construction. Accepted cost of adopting
+   * late instead of holding the first request: a brief flash of the seeded view's rows and a
+   * second request when the late view lands.
    */
-  private adoptPendingStoredView(): void {
-    if (!this.pendingStoredViewId) return;
+  private adoptStoredView(): void {
+    if (!this.viewStateKey) return;
 
-    const view = this.views?.find(
-      (candidate) => candidate.id === this.pendingStoredViewId,
-    );
-    if (!view) return;
+    const storedId = readStoredJson(this.filterStorage, this.viewStateKey);
+    if (typeof storedId !== 'string' || storedId === this.activeViewId) return;
 
-    this.pendingStoredViewId = null;
-    this.selectView(view);
+    const view = this.viewById(storedId);
+    if (view) this.selectView(view);
+  }
+
+  private viewById(id: string): TableView | undefined {
+    return this.views?.find((candidate) => candidate.id === id);
   }
 
   private persistAppliedFilters(): void {
@@ -909,11 +896,30 @@ export class SpiderlyDataTableComponent
     }
   }
 
-  private restoreAppliedFilters(): void {
-    if (!this.filtersStateKey || !this.filters) return;
+  /**
+   * Applies the right filters for entering `view` — the transient rule's one home. A TRANSIENT
+   * view's `apply` is a function of NOW, so it always re-derives; restoring would put
+   * yesterday's date under a tab claiming "today" (`persistAppliedFilters` has no transient
+   * guard, so storage holds the LAST answer). A non-transient view's own stored answer wins
+   * over its `apply`. The semantics argument is the one deliberate difference between the
+   * callers: a 'click' re-asks the view's question when nothing is stored, a 'refresh' returns
+   * the empty state the operator left — they cleared it, and F5 must give the cleared state
+   * back. On a table with no views, `view` is null and this is a plain restore of the
+   * `persistAppliedFilters` snapshot.
+   */
+  private enterViewFilters(
+    view: TableView | null,
+    semantics: 'click' | 'refresh',
+  ): void {
+    if (!this.filters) return;
 
-    const snapshot = readStoredJson(this.filterStorage, this.filtersStateKey);
-    if (snapshot) this.filters.restore(snapshot);
+    const stored =
+      !view?.transient && this.filtersStateKey
+        ? readStoredJson(this.filterStorage, this.filtersStateKey)
+        : null;
+
+    if (stored) this.filters.restore(stored);
+    else if (view?.transient || semantics === 'click') view?.apply?.(this.filters);
   }
 
   private get layoutStateKey(): string | null {
@@ -1275,9 +1281,9 @@ export class SpiderlyDataTableComponent
    */
   selectView(view: TableView): void {
     this.activeViewId = view.id;
-    // An explicit pick wins over a stored id still waiting for its view to arrive, and always
-    // writes — including the first view, so a deliberate "Sve" during a deploy race sticks.
-    this.pendingStoredViewId = null;
+    // Always writes — including the first view, so a deliberate "Sve" during a deploy race
+    // sticks, and so an explicit pick beats a stored id whose view has not arrived yet
+    // (`adoptStoredView` compares against this key).
     this.persistActiveView();
 
     // The keys just changed under us, so the layout has to be re-read for the view being entered
@@ -1288,18 +1294,10 @@ export class SpiderlyDataTableComponent
 
     if (!this.filters) return;
 
-    // The filter key moved with the view too, so this view's own stored answer wins over whatever
-    // the last one left applied; `apply` runs only when the view has nothing stored yet. A
-    // TRANSIENT view inverts that: its apply is a function of now, so it always re-derives —
-    // restoring would put yesterday's date under a tab claiming "today".
+    // The filter key moved with the view too; `enterViewFilters` holds the stored-wins and
+    // transient rules.
     this.filters.clear();
-    const stored =
-      !view.transient && this.filtersStateKey
-        ? readStoredJson(this.filterStorage, this.filtersStateKey)
-        : null;
-
-    if (stored) this.filters.restore(stored);
-    else view.apply?.(this.filters);
+    this.enterViewFilters(view, 'click');
   }
 
   /**
