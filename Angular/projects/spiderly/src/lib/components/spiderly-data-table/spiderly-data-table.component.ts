@@ -1568,13 +1568,13 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Whether this column's default cells give up the one-line clamp. The DEFAULT stays clamped
+   * Whether this column's cells give up the one-line clamp. The DEFAULT stays clamped
    * (CLAUDE.md -> "Operator-owned view", decision 9); what changes is that the operator picks
    * which column pays the row height, not whoever wrote `cols`.
    *
-   * Reaches `#defaultCell` only, like the clamp it undoes — a consumer's `spiderlyCellTemplate`
-   * carries the CONSUMER's `_ngcontent` and is unreachable from here by design. Say that when a
-   * consumer reports a column that will not wrap, rather than reaching for ::ng-deep.
+   * Lands on the td as `.cell-wrap`, whose inherited `--spiderly-cell-*` properties are how the
+   * toggle crosses into a projected `spiderlyCellTemplate` too — the contract's one telling is
+   * on that SCSS rule; a consumer clamp that hard-codes its values opts out.
    */
   isColumnWrapped(col: Column): boolean {
     return col.field != null && this.columnWrap[col.field] === true;

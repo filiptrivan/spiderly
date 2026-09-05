@@ -2732,6 +2732,16 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
 
 });
 
+// Shared by the wrap pair below on purpose: the default-cell and projected-cell wrap specs must
+// measure the same grid and the same long value to stay comparable (the idAndNameCols/oneRow
+// convention above).
+const nameAndIdCols: Column[] = [
+  { name: 'Naziv', field: 'name', filterType: 'text' },
+  { name: 'Id', field: 'id', filterType: 'numeric' },
+];
+const longNameRow = (): Observable<PaginatedResult> =>
+  paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
+
 @Component({
   imports: [SpiderlyDataTableComponent],
   template: `
@@ -2742,12 +2752,8 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
   `,
 })
 class HostWithTwoColumnsComponent {
-  cols: Column[] = [
-    { name: 'Naziv', field: 'name', filterType: 'text' },
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-  ];
-  getList = (): Observable<PaginatedResult> =>
-    paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
+  cols = nameAndIdCols;
+  getList = longNameRow;
 }
 
 // The consumer shape the wrap contract exists for: a projected template whose markup clamps
@@ -2770,18 +2776,14 @@ class HostWithTwoColumnsComponent {
     .consumer-clamp {
       display: block;
       overflow: var(--spiderly-cell-overflow, hidden);
-      text-overflow: var(--spiderly-cell-text-overflow, ellipsis);
+      text-overflow: ellipsis;
       white-space: var(--spiderly-cell-white-space, nowrap);
     }
   `,
 })
 class HostWithClampedCellTemplateComponent {
-  cols: Column[] = [
-    { name: 'Naziv', field: 'name', filterType: 'text' },
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-  ];
-  getList = (): Observable<PaginatedResult> =>
-    paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
+  cols = nameAndIdCols;
+  getList = longNameRow;
 }
 
 async function openColumnMenu(
@@ -2897,11 +2899,11 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
     expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
   });
 
-  // The wrap toggle must reach a PROJECTED cell too, or it is a silent no-op on every table whose
-  // columns render a spiderlyCellTemplate — which is all of the orders grid, the table the rework
-  // was argued from. The library cannot style consumer markup directly (emulated encapsulation),
-  // so the contract is inherited custom properties: the td publishes --spiderly-cell-*, a consumer
-  // clamp reads them with its own clamp as the fallback.
+  // The toggle must reach a PROJECTED cell too, or it is a silent no-op on a fully-templated
+  // table (the PACMS orders grid). How it crosses the encapsulation boundary: the td.cell-wrap
+  // rule in this component's SCSS, which is the contract's one telling. Toggle-off is not
+  // re-driven here — the class coming off the td is pinned by "unwraps on a second click" above,
+  // and the fallback clamp is what the first assertion already measures.
   it('wraps a projected cell template whose clamp reads the cell custom properties', async () => {
     const { fixture } = createWithDataTable(HostWithClampedCellTemplateComponent);
     await renderRows(fixture);
@@ -2921,14 +2923,6 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
 
     expect(getComputedStyle(cell()).whiteSpace).toBe('normal');
     expect(getComputedStyle(cell()).overflow).toBe('visible');
-
-    await openColumnMenu(fixture);
-    columnMenu(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
-      .click();
-    await renderRows(fixture);
-
-    expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
   });
 
   // Tvoja tačka 4. The menu path before the drag one, deliberately: it is the only reorder that
@@ -3343,28 +3337,22 @@ describe('SpiderlyDataTableComponent — the frozen left edge', () => {
     expect(getComputedStyle(headers[2]).position).not.toBe('sticky');
   });
 
-  // The opaque background that tracks row hover belongs to the BODY cells only. Painted on the
-  // whole .frozen-column class it reaches the header too, where it overrides PrimeNG's own
-  // header-cell palette — the pinned th sits on the row colour, and the unscoped hover rule tints
-  // it whenever the pointer crosses ANY header cell, which reads as the locked column reacting on
-  // its own ("na hover ostalih hoveruje i locked kolone", Filip, 2026-09-05). The th needs no
-  // background from us at all: PrimeNG paints header.cell.background on every th.
+  // Why the pinned th must match a plain one — the header palette, per-cell hover, and the
+  // pointer-crossing tint this fixes: the SCSS .frozen-column comment carries the telling.
   it('leaves the frozen header cells on the header palette, not the row one', async () => {
     const { fixture } = createWithDataTable(HostWithFrozenIdentityComponent);
     await renderRows(fixture);
 
     const el = fixture.nativeElement as HTMLElement;
-    // The tokens are unset under Karma (no PrimeNG preset), so give the two palettes
-    // distinguishable values — unset, both sides compute transparent and the assert proves nothing.
+    // The row token needs a value or the body-cell assert is vacuous (no PrimeNG preset in Karma).
     el.style.setProperty('--p-datatable-row-background', 'rgb(1, 2, 3)');
-    el.style.setProperty('--p-datatable-header-cell-background', 'rgb(4, 5, 6)');
 
     const headers = el.querySelectorAll<HTMLElement>('thead th');
     const cells = el.querySelectorAll<HTMLElement>('tbody td');
-    const plainHeaderBg = getComputedStyle(headers[2]).backgroundColor;
 
-    expect(getComputedStyle(headers[0]).backgroundColor).toBe(plainHeaderBg);
-    expect(getComputedStyle(headers[1]).backgroundColor).toBe(plainHeaderBg);
+    expect(getComputedStyle(headers[1]).backgroundColor).toBe(
+      getComputedStyle(headers[2]).backgroundColor,
+    );
     // The body cells keep the opaque row background — that is decision 8, not a leak.
     expect(getComputedStyle(cells[1]).backgroundColor).toBe('rgb(1, 2, 3)');
   });

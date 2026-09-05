@@ -227,11 +227,11 @@
 
   // The operator's per-column wrap (header menu) travels as inherited custom properties, because
   // the library cannot style a projected spiderlyCellTemplate directly (CLAUDE.md → Column
-  // widths). Unset, every var() below falls back to the clamp; a wrapped td flips all three, and
-  // any consumer clamp written against the same vars follows — that is the whole contract.
+  // widths). Unset, the var()s below fall back to the clamp; a wrapped td flips both, and any
+  // consumer clamp written against the same vars follows — that is the whole contract. Only these
+  // two: text-overflow needs no property, since it has no effect once overflow is visible.
   td.cell-wrap {
     --spiderly-cell-overflow: visible;
-    --spiderly-cell-text-overflow: clip;
     --spiderly-cell-white-space: normal;
   }
 
@@ -244,7 +244,7 @@
   .cell-text {
     display: block;
     overflow: var(--spiderly-cell-overflow, hidden);
-    text-overflow: var(--spiderly-cell-text-overflow, ellipsis);
+    text-overflow: ellipsis;
     white-space: var(--spiderly-cell-white-space, nowrap);
   }
 

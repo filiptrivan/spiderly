@@ -218,12 +218,12 @@ Because a column no longer widens to fit its text, long values wrap and would gr
 ```scss
 .my-cell-line {
   overflow: var(--spiderly-cell-overflow, hidden);
-  text-overflow: var(--spiderly-cell-text-overflow, ellipsis);
+  text-overflow: ellipsis;
   white-space: var(--spiderly-cell-white-space, nowrap);
 }
 ```
 
-The table sets those three properties on a cell whose column the operator wrapped from the header menu ("wrap text"), and they inherit into projected markup — so a clamp written this way follows the toggle for free, while a hard-coded `white-space: nowrap` turns the menu item into a silent no-op for your column. Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
+The table sets those two properties on a cell whose column the operator wrapped from the header menu ("wrap text"), and they inherit into projected markup — so a clamp written this way follows the toggle for free, while a hard-coded `white-space: nowrap` turns the menu item into a silent no-op for your column. (`text-overflow` stays literal: it has no effect once `overflow` is `visible`, so the contract doesn't carry it.) Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
 
 `matchModes` narrows the match modes a column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
 

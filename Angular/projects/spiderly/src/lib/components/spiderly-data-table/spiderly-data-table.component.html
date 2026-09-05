@@ -176,12 +176,15 @@
             <!-- menuitemcheckbox, not menuitem: this one TOGGLES, and a label reading the same
                  in both states leaves the operator to find out by clicking — which on a wide
                  column means re-laying the grid out to learn what it was already set to. The
-                 check is the state; the label stays put, which is what the role is for. -->
+                 check is the state; the label stays put, which is what the role is for.
+                 Disabled for an editable column: its cell holds an input, not clamped text, so
+                 the toggle could only persist a preference that changes nothing. -->
             <button
               type="button"
               role="menuitemcheckbox"
               class="column-menu-item"
               data-testid="column-menu-wrap"
+              [disabled]="!menuColumn || menuColumn.editable === true"
               [attr.aria-checked]="isMenuColumnWrapped"
               (click)="toggleWrapForMenuColumn()"
             >
