@@ -213,7 +213,17 @@ Widths default per `filterType` and are sized for the **header** — the filter 
 
 Declared widths behave as **ratios**, not caps: the table shares its surplus in proportion to them, so a column carrying long values wants the larger number. A table whose columns need more room than its container gets is widened to their sum and scrolls horizontally, rather than crushing the columns.
 
-Because a column no longer widens to fit its text, long values wrap and would grow the row instead. The default cell clamps to one line with an ellipsis. **A column rendering its own `spiderlyCellTemplate` clamps its own lines** — the library's rule cannot reach markup that carries the consumer's style encapsulation. Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
+Because a column no longer widens to fit its text, long values wrap and would grow the row instead. The default cell clamps to one line with an ellipsis. **A column rendering its own `spiderlyCellTemplate` clamps its own lines** — the library's rule cannot reach markup that carries the consumer's style encapsulation. Write the clamp against the cell custom properties, with your clamp as the fallback:
+
+```scss
+.my-cell-line {
+  overflow: var(--spiderly-cell-overflow, hidden);
+  text-overflow: var(--spiderly-cell-text-overflow, ellipsis);
+  white-space: var(--spiderly-cell-white-space, nowrap);
+}
+```
+
+The table sets those three properties on a cell whose column the operator wrapped from the header menu ("wrap text"), and they inherit into projected markup — so a clamp written this way follows the toggle for free, while a hard-coded `white-space: nowrap` turns the menu item into a silent no-op for your column. Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
 
 `matchModes` narrows the match modes a column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
 

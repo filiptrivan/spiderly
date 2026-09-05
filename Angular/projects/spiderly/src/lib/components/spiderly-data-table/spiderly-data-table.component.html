@@ -374,12 +374,9 @@
             <img width="45" [src]="displayValue" alt="" />
           </ng-container>
           <ng-container *ngIf="col.filterType !== 'blob'">
-            <span
-              spiderlyOverflowTitle
-              class="cell-text"
-              [class.cell-text-wrap]="isColumnWrapped(col)"
-              >{{ displayValue }}</span
-            >
+            <span spiderlyOverflowTitle class="cell-text">{{
+              displayValue
+            }}</span>
           </ng-container>
         </ng-template>
         <tr
@@ -408,6 +405,7 @@
               [class.row-interactive]="col.onCellClick"
               [class.frozen-column]="isColumnFrozen(col)"
               [class.frozen-column-last]="isLastFrozenColumn(col)"
+              [class.cell-wrap]="isColumnWrapped(col)"
               [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
               (click)="onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"

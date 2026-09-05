@@ -128,9 +128,11 @@ column into view with a brief highlight.
 **8. The left edge freezes: the `lockVisible` column plus the selection column,** `position: sticky`
 with an edge shadow. Once the grid scrolls horizontally a row loses its identity, and NN/g's *Data
 Tables* is explicit that the leftmost header column must lock in place. `lockVisible` already names
-exactly the right column in every table, so this needs no new API. Costs to plan for: a sticky cell
-needs an opaque background that tracks row hover and striping, and the second frozen column's offset
-needs the first one's measured px width.
+exactly the right column in every table, so this needs no new API. Costs to plan for: a sticky BODY
+cell needs an opaque background that tracks row hover and striping — the header th instead keeps
+PrimeNG's own header palette and per-cell sortable hover (painting the row palette there tinted the
+pinned th whenever the pointer crossed any header cell; the SCSS carries the telling) — and the
+second frozen column's offset needs the first one's measured px width.
 
 **9. Truncation stays the default; what changes is that it stops being SILENT.** Flipping to wrap was
 considered and rejected: under `table-layout: fixed` a wrapped value grows the ROW, and one free-text
@@ -422,7 +424,7 @@ Editing notes:
 - **`width: 0rem` is not "shrink to content" any more.** It meant that under auto layout; fixed layout reads it literally and the column vanishes. Two sites had it and both now carry a real width — the selection `<th>` in the template, and the fallthrough in `getColWidth` (actions columns, sized from `actions.length`, against a gap set beside them in the template).
 - **`DEFAULT_COLUMN_WIDTH_REM` is exhaustive on purpose.** It replaced a `switch` whose `default:` silently absorbed `blob`, sizing a 45px thumbnail's column at 2rem. A new `filterType` now fails the build there instead of inheriting the actions reservation.
 - **The table needs no `min-width` of its own** — don't add a computed floor to `tableStyle`. The browser already widens a table past its container to the sum of its declared column widths, so `overflow-auto` still scrolls; the "too wide for its container scrolls" spec holds the measurement.
-- **The clamp reaches `#defaultCell` only.** `.cell-text` is authored in this template, so a plain `:host` rule matches it. A consumer's `spiderlyCellTemplate` renders markup carrying the CONSUMER's `_ngcontent` and is unreachable from here by design — say so when a consumer reports a growing row, rather than reaching for `::ng-deep`.
+- **The library styles `#defaultCell` directly; a projected template is reached through custom properties, never selectors.** `.cell-text` is authored in this template, so a plain `:host` rule matches it. A consumer's `spiderlyCellTemplate` renders markup carrying the CONSUMER's `_ngcontent` and is unreachable from here by selector — don't reach for `::ng-deep`. What DOES cross that boundary is inheritance: `td.cell-wrap` publishes the three `--spiderly-cell-*` properties (see the SCSS), the default cell's own clamp reads them with the clamp as fallback, and a consumer clamp written the same way follows the operator's wrap toggle for free (consumer-facing recipe: `claude-plugins/docs/angular-customization/index.md` → column widths). Before this contract the toggle was a silent no-op on any templated column — every visible column of the PACMS orders grid — while the menu showed a checkmark. A consumer clamp that hard-codes `white-space: nowrap` still no-ops; that is the residue the contract accepts, not a bug in the toggle.
 
 ## Active-filter header icon — the projected `filtericon` template
 
