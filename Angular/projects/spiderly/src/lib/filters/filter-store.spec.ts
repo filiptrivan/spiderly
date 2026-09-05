@@ -1,5 +1,6 @@
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import {
+  booleanFilter,
   createFilterStore,
   dateFilter,
   numberFilter,
@@ -367,7 +368,12 @@ describe('createFilterStore — narrowing the offered operators', () => {
     const filters = createFilterStore({
       createdAt: dateFilter({
         label: 'Datum',
-        operators: [MatchModeCodes.In],
+        operators: [
+          // @ts-expect-error `In` is not an operator a date filter offers — this comment IS the
+          // compile-time pin (FilterConfig types `operators` per kind). The runtime drop below
+          // covers only what dodges the type system: a dynamically built array.
+          MatchModeCodes.In,
+        ],
       }),
     });
 
@@ -377,6 +383,55 @@ describe('createFilterStore — narrowing the offered operators', () => {
       MatchModeCodes.GreaterThan,
     ]);
     expect(errors).toHaveBeenCalled();
+  });
+});
+
+// Every programmatic write (a view's apply, a flow like the picking sheet) is set-then-commit
+// with one id; a bare `set` whose commit is forgotten fails silently — draft written, nothing
+// published, a labelled tab narrowing by nothing. The one-breath form removes the failure mode.
+describe('createFilterStore — setAndCommit', () => {
+  it('publishes in one call what set + commit publish in two', () => {
+    const filters = createFilterStore({
+      isCompanyOrder: booleanFilter({ label: 'Firma' }),
+    });
+
+    filters.setAndCommit('isCompanyOrder', {
+      operator: MatchModeCodes.Equals,
+      value: true,
+    });
+
+    expect(filters.toFilterPayload()).toEqual({
+      isCompanyOrder: [{ matchMode: MatchModeCodes.Equals, value: true }],
+    });
+  });
+});
+
+// Choices that arrive after the store is built — PACMS fills every pick-list from lookups that
+// race a deploy. setOptions is the ONE seam: it also re-resolves the offered operators, because
+// options' PRESENCE is what makes a filter a pick-list, and a handle taken BEFORE the fill (the
+// bar's editor holds one for the life of the popover) must see the choices land.
+describe('createFilterStore — options that arrive late', () => {
+  it('an already-taken handle sees options set later, operators and default included', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+    const handle = filters.get('orderStatusId');
+
+    expect(handle.options).toBeUndefined();
+    expect(handle.defaultOperator).toBe(MatchModeCodes.Equals);
+
+    filters.setOptions('orderStatusId', [
+      { value: 3, label: 'Processing' },
+      { value: 8, label: 'Preparing' },
+    ]);
+
+    expect(handle.options).toEqual([
+      { value: 3, label: 'Processing' },
+      { value: 8, label: 'Preparing' },
+    ]);
+    // A pick-list's control emits a LIST, so the operator flips with the shape.
+    expect(handle.operators.map((option) => option.value)).toEqual([MatchModeCodes.In]);
+    expect(handle.defaultOperator).toBe(MatchModeCodes.In);
   });
 });
 

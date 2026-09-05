@@ -535,6 +535,11 @@
       "signature": "getFileNameFromContentDisposition(resp: HttpResponse<Blob>, defaultName: string): string"
     },
     {
+      "name": "getFilterOptions",
+      "signature": "getFilterOptions(namebookList: Namebook[]): FilterOption[]",
+      "description": "The filter store's twin of `getPrimengNamebookOptions` — same namebook in, the store's `{ value, label }` shape out (a `FilterOption` is not a `PrimengOption`: that one's `code` is deliberate, see `primeng-option.ts`). Every consumer filling a pick-list filter from a lookup needs this map; without it each page re-derives the three lines."
+    },
+    {
       "name": "getHtmlImgDisplayString64",
       "signature": "getHtmlImgDisplayString64(base64String: string)"
     },

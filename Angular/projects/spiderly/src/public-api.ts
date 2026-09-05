@@ -48,6 +48,7 @@ export * from './lib/components/spiderly-buttons/spiderly-split-button/spiderly-
 export * from './lib/components/spiderly-data-table/spiderly-data-table.component';
 export * from './lib/directives/spiderly-filter-template.directive';
 export * from './lib/directives/spiderly-overflow-title.directive';
+export * from './lib/filters/allowed-operators';
 export * from './lib/filters/filter-store';
 export * from './lib/filters/spiderly-filter-bar.component';
 export * from './lib/components/spiderly-data-view/spiderly-data-view.component';

@@ -21,13 +21,22 @@ import { SelectModule } from 'primeng/select';
 
 import { SpiderlyFilterTemplateDirective } from '../directives/spiderly-filter-template.directive';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
+import { FilterValueKind } from './allowed-operators';
 import {
   AppliedFilter,
   FilterBarSource,
   FilterHandle,
-  FilterValueKind,
+  FilterOption,
   SortKeyLabel,
 } from './filter-store';
+
+/** One option's word for one value — the honest raw value when no option matches (failed lookup). */
+function spellOptionValue(
+  options: FilterOption[] | undefined,
+  value: unknown,
+): string {
+  return String(options?.find((option) => option.value === value)?.label ?? value);
+}
 
 /**
  * Lowercased and stripped of diacritics for matching. NFD decomposition handles č/ć/š/ž, but NOT
@@ -456,13 +465,9 @@ export class SpiderlyFilterBarComponent {
    */
   chipValue(chip: AppliedFilter): string {
     const options = this.filters().definitions[chip.id]?.options;
-    const spell = (value: unknown): string =>
-      String(
-        options?.find((option) => option.value === value)?.label ?? value,
-      );
 
     return Array.isArray(chip.value)
-      ? chip.value.map(spell).join(', ')
-      : spell(chip.value);
+      ? chip.value.map((value) => spellOptionValue(options, value)).join(', ')
+      : spellOptionValue(options, chip.value);
   }
 }

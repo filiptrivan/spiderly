@@ -2,9 +2,11 @@ import { computed, signal, Signal } from '@angular/core';
 
 import { FilterRule } from '../entities/filter-rule';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
-import { ALLOWED_OPERATORS, FilterValueKind } from './allowed-operators';
-
-export { ALLOWED_OPERATORS, FilterValueKind } from './allowed-operators';
+import {
+  ALLOWED_OPERATORS,
+  AllowedOperatorFor,
+  FilterValueKind,
+} from './allowed-operators';
 
 /** One tickable choice. `value` is the filter's own value type — an id, not a display string. */
 export interface FilterOption {
@@ -27,7 +29,7 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
    * the only way "Processing OR PreparingForShipping" can be expressed at all.
    */
   options?: FilterOption[];
-  /** Offered-operator narrowing; semantics on the factory config (`dateFilter`). */
+  /** Offered-operator narrowing; semantics on `FilterConfig.operators`, the factories' door. */
   operators?: MatchModeCodes[];
 }
 
@@ -116,84 +118,47 @@ export interface OperatorOption {
 }
 
 /**
- * Memoized per definition so an invalid narrowing is said ONCE, not on every editor open —
- * `get()` builds a fresh handle each time and both the picker list and the default read this.
+ * `In` and options are the same fact seen from two sides: `In` needs a list of values, and the
+ * editor only draws one when the filter declares options. So options mean `In` and nothing else,
+ * and their absence rules `In` out — offering it on a plain number filter would hand the
+ * operator a mode with no control behind it.
+ *
+ * Widened first: the per-kind tuples are literal, so `boolean`'s `[Equals]` makes the `In`
+ * comparison a "no overlap" error rather than an empty result.
  */
-const offeredOperatorsCache = new WeakMap<
-  FilterDefinition<FilterValueKind>,
-  readonly MatchModeCodes[]
->();
-
-/**
- * What this filter's editor OFFERS, derived from ALLOWED_OPERATORS so the offered list and the
- * accepted list cannot disagree, then narrowed by the definition's own `operators` (declaration
- * order, first entry is the default). Same polarity as the column path's `computeMatchModes`: an
- * entry the kind does not allow is dropped and reported, and a narrowing that leaves nothing
- * falls back to the full list rather than shipping an editor with no operators.
- */
-function offeredOperators(
-  definition: FilterDefinition<FilterValueKind>,
+function baseOperators(
+  kind: FilterValueKind,
+  hasOptions: boolean,
 ): readonly MatchModeCodes[] {
-  const cached = offeredOperatorsCache.get(definition);
-  if (cached) return cached;
+  const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
 
-  // `In` and options are the same fact seen from two sides: `In` needs a list of values, and the
-  // editor only draws one when the filter declares options. So options mean `In` and nothing else,
-  // and their absence rules `In` out — offering it on a plain number filter would hand the
-  // operator a mode with no control behind it.
-  //
-  // Widened first: the per-kind tuples are literal, so `boolean`'s `[Equals]` makes the `In`
-  // comparison a "no overlap" error rather than an empty result.
-  const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[definition.kind];
-  const base = accepted.filter((value) =>
-    definition.options != null
-      ? value === MatchModeCodes.In
-      : value !== MatchModeCodes.In,
+  return accepted.filter((value) =>
+    hasOptions ? value === MatchModeCodes.In : value !== MatchModeCodes.In,
   );
-
-  let offered = base;
-  if (definition.operators?.length) {
-    const survivors = definition.operators.filter((operator) =>
-      base.includes(operator),
-    );
-
-    if (survivors.length < definition.operators.length) {
-      console.error(
-        `Filter '${definition.label}' narrows to operators its ${definition.kind} kind does not ` +
-          `offer (${definition.operators.join(', ')}; offered: ${base.join(', ')}). ` +
-          `Unsupported entries are ignored${survivors.length ? '' : '; falling back to the full list'}.`,
-      );
-    }
-
-    offered = survivors.length ? survivors : base;
-  }
-
-  offeredOperatorsCache.set(definition, offered);
-
-  return offered;
 }
 
-export function operatorOptions(
-  definition: FilterDefinition<FilterValueKind>,
+function toOperatorOptions(
+  kind: FilterValueKind,
+  operators: readonly MatchModeCodes[],
 ): OperatorOption[] {
-  return offeredOperators(definition).map((value) => ({
+  return operators.map((value) => ({
     value,
-    labelKey: OPERATOR_WORDS[definition.kind][value]?.pickerKey ?? value,
+    labelKey: OPERATOR_WORDS[kind][value]?.pickerKey ?? value,
   }));
 }
 
 /**
- * The operator applied when nobody picked one. Options mean `In`, whatever the kind's default;
- * a narrowed filter defaults to its FIRST declared operator, the `Column.matchModes` rule.
+ * A KIND's operator picker options, for callers with no filter behind them — the legacy header
+ * dropdowns, which have a filter TYPE and nothing else. Per-FILTER narrowing lives in the store
+ * (`createFilterStore` resolves it once per declaration), so this cannot be handed a fake
+ * definition to satisfy — that shape shipped once and interpolated an empty filter name into its
+ * own error message.
  */
-export function defaultOperatorFor(
-  definition: FilterDefinition<FilterValueKind>,
-): MatchModeCodes {
-  if (definition.options != null) return MatchModeCodes.In;
-
-  return definition.operators?.length
-    ? offeredOperators(definition)[0]
-    : DEFAULT_OPERATOR[definition.kind];
+export function operatorOptionsForKind(
+  kind: FilterValueKind,
+  hasOptions = false,
+): OperatorOption[] {
+  return toOperatorOptions(kind, baseOperators(kind, hasOptions));
 }
 
 /**
@@ -218,8 +183,25 @@ interface ValueByKind {
   date: Date;
 }
 
-export function textFilter(config: { label: string }): FilterDefinition<'text'> {
-  return { kind: 'text', label: config.label };
+/**
+ * What every factory takes, so narrowing does not have to be re-plumbed per factory (its adjacent
+ * asymmetry — `options` on `numberFilter` only — is FORCED and documented there; this one is not).
+ *
+ * `operators` narrows what the editor OFFERS, in display order; the first entry becomes the
+ * default. Typed per kind, so declaring an operator the kind cannot answer is a build error at
+ * the declaration — the store's runtime drop-and-report covers only what dodges the type system
+ * (a dynamically built array). The store still accepts every wire-legal operator on restore, so
+ * an old persisted constraint keeps filtering: the narrowing shapes the controls, not the
+ * contract. The forcing case: date-equality against a timestamp matches one second and answers
+ * with an empty grid, so PACMS's order dates offer only "posle"/"pre".
+ */
+interface FilterConfig<TKind extends FilterValueKind> {
+  label: string;
+  operators?: AllowedOperatorFor<TKind>[];
+}
+
+export function textFilter(config: FilterConfig<'text'>): FilterDefinition<'text'> {
+  return { kind: 'text', label: config.label, operators: config.operators };
 }
 
 /**
@@ -228,30 +210,24 @@ export function textFilter(config: { label: string }): FilterDefinition<'text'> 
  * generated paginator answers it with InvalidMatchMode on a string column. A text pick-list used
  * to type-check and then throw at the first `set`.
  */
-export function numberFilter(config: {
-  label: string;
-  options?: FilterOption[];
-}): FilterDefinition<'number'> {
-  return { kind: 'number', label: config.label, options: config.options };
+export function numberFilter(
+  config: FilterConfig<'number'> & { options?: FilterOption[] },
+): FilterDefinition<'number'> {
+  return {
+    kind: 'number',
+    label: config.label,
+    options: config.options,
+    operators: config.operators,
+  };
 }
 
-export function booleanFilter(config: {
-  label: string;
-}): FilterDefinition<'boolean'> {
-  return { kind: 'boolean', label: config.label };
+export function booleanFilter(
+  config: FilterConfig<'boolean'>,
+): FilterDefinition<'boolean'> {
+  return { kind: 'boolean', label: config.label, operators: config.operators };
 }
 
-export function dateFilter(config: {
-  label: string;
-  /**
-   * Narrows the operators the editor OFFERS, in display order; the first entry becomes the
-   * default. The store still accepts every wire-legal operator on restore, so an old persisted
-   * constraint keeps filtering — the narrowing shapes the controls, not the contract. The
-   * forcing case: date-equality against a timestamp matches one second and answers with an
-   * empty grid, so PACMS's order dates offer only "posle"/"pre".
-   */
-  operators?: MatchModeCodes[];
-}): FilterDefinition<'date'> {
+export function dateFilter(config: FilterConfig<'date'>): FilterDefinition<'date'> {
   return { kind: 'date', label: config.label, operators: config.operators };
 }
 
@@ -411,6 +387,62 @@ function constraintEquals(
 export function createFilterStore<
   TDefs extends Record<string, FilterDefinition<FilterValueKind>>,
 >(definitions: TDefs) {
+  // Per-filter offered operators, resolved ONCE per declaration — so an invalid narrowing is
+  // said once, not on every editor open — and re-resolved only where the inputs can actually
+  // change: `setOptions`, because options' PRESENCE flips a filter between pick-list (`In`) and
+  // plain operators. A per-store Map rather than the module-level WeakMap this first shipped
+  // as: that memo was keyed on a definition object consumers mutate, so late-filled options
+  // could freeze a filter's operators at the wrong answer.
+  const resolveOffered = (id: keyof TDefs) => {
+    const definition = definitions[id];
+    const base = baseOperators(definition.kind, definition.options != null);
+
+    let codes: readonly MatchModeCodes[] = base;
+    if (definition.operators?.length) {
+      const survivors = definition.operators.filter((operator) =>
+        base.includes(operator),
+      );
+
+      // Same polarity as the column path's computeMatchModes: a bad entry is dropped and said
+      // out loud, and a narrowing that leaves nothing falls back to the full list — an editor
+      // with no operators would be unusable, which is worse than an unwanted one. Mostly
+      // unreachable now that FilterConfig types `operators` per kind; kept for dynamically
+      // built arrays.
+      if (survivors.length < definition.operators.length) {
+        console.error(
+          `Filter '${definition.label}' narrows to operators its ${definition.kind} kind does not ` +
+            `offer (${definition.operators.join(', ')}; offered: ${base.join(', ')}). ` +
+            `Unsupported entries are ignored${survivors.length ? '' : '; falling back to the full list'}.`,
+        );
+      }
+
+      codes = survivors.length ? survivors : base;
+    }
+
+    return { codes, options: toOperatorOptions(definition.kind, codes) };
+  };
+
+  const offered = new Map<
+    keyof TDefs,
+    { codes: readonly MatchModeCodes[]; options: OperatorOption[] }
+  >();
+  for (const id of Object.keys(definitions) as (keyof TDefs)[]) {
+    offered.set(id, resolveOffered(id));
+  }
+
+  /**
+   * The operator applied when nobody picked one. Options mean `In`, whatever the kind's default;
+   * a narrowed filter defaults to its FIRST declared operator, the `Column.matchModes` rule.
+   */
+  const defaultOperatorFor = (id: keyof TDefs): MatchModeCodes => {
+    const definition = definitions[id];
+    if (definition.options != null) return MatchModeCodes.In;
+
+    return definition.operators?.length
+      ? offered.get(id)!.codes[0]
+      : DEFAULT_OPERATOR[definition.kind];
+  };
+
   // Two stores, and the split is the whole point: `set` writes a DRAFT, `commit` publishes it.
   // A chip drawn off a draft would repeat the mistake the header's filter icon already shipped —
   // claiming the grid is narrowed on the first keystroke. Controls that apply on change
@@ -457,14 +489,36 @@ export function createFilterStore<
         kind: definitions[id].kind,
         value: computed(() => drafts().get(id)?.value),
         operator: computed(() => drafts().get(id)?.operator),
-        operators: operatorOptions(definitions[id]),
-        defaultOperator: defaultOperatorFor(definitions[id]),
-        options: definitions[id].options,
+        // Getters, not snapshots: options can land AFTER a handle is taken — the bar's editor
+        // holds one for the life of the popover, and PACMS fills its lookups asynchronously —
+        // and a snapshot left an already-open pick-list empty until it was reopened. The
+        // operator list rides along, since setOptions can flip it to `In`.
+        get operators() {
+          return offered.get(id)!.options;
+        },
+        get defaultOperator() {
+          return defaultOperatorFor(id);
+        },
+        get options() {
+          return definitions[id].options;
+        },
         set: (constraint: FilterConstraint<TDefs[K]['kind']>) =>
           store.set(id, constraint),
         commit: () => store.commit(id),
         reset: () => store.reset(id),
       };
+    },
+
+    /**
+     * The ONE seam for choices that arrive after the store is built (PACMS fills its pick-lists
+     * from lookups that race a deploy). Never write `definitions[id].options` by hand: options'
+     * PRESENCE is what makes a filter a pick-list, so the setter also re-resolves the offered
+     * operators — a hand write would leave a late-filled filter offering `Equals` on a control
+     * that emits a list.
+     */
+    setOptions<K extends keyof TDefs>(id: K, options: FilterOption[]): void {
+      definitions[id].options = options;
+      offered.set(id, resolveOffered(id));
     },
 
     set<K extends keyof TDefs>(
@@ -486,6 +540,21 @@ export function createFilterStore<
       }
 
       writeDraft(id, constraint);
+    },
+
+    /**
+     * `set` + `commit` in one breath — the shape every PROGRAMMATIC write takes (a view's
+     * `apply`, the sheet flow). The split API stays for controls, where draft-on-type /
+     * publish-on-Apply is the point; but a bare `set` whose `commit` is forgotten (or written
+     * with the wrong id — the pair repeats the string twice) fails silently: the draft is
+     * written, nothing is published, and a view narrows by nothing under a labelled tab.
+     */
+    setAndCommit<K extends keyof TDefs>(
+      id: K,
+      constraint: FilterConstraint<TDefs[K]['kind']>,
+    ): void {
+      store.set(id, constraint);
+      store.commit(id);
     },
 
     /**

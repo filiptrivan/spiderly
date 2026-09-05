@@ -14,6 +14,7 @@ Reusable helpers exported from `helper-functions.ts`. Import the one you need in
 | `exportListToExcel(exportListToExcelObservableMethod: (filter: Filter) => Observable<any>, filter: Filter)` |  |
 | `firstCharToUpper(input: string): string` |  |
 | `getFileNameFromContentDisposition(resp: HttpResponse<Blob>, defaultName: string): string` |  |
+| `getFilterOptions(namebookList: Namebook[]): FilterOption[]` | The filter store's twin of `getPrimengNamebookOptions` — same namebook in, the store's `{ value, label }` shape out (a `FilterOption` is not a `PrimengOption`: that one's `code` is deliberate, see `primeng-option.ts`). Every consumer filling a pick-list filter from a lookup needs this map; without it each page re-derives the three lines. |
 | `getHtmlImgDisplayString64(base64String: string)` |  |
 | `getImageDimensions(file: File): Promise<{ width: number; height: number }>` |  |
 | `getMimeTypeForFileName(fileName: string): string` |  |

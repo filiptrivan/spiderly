@@ -54,10 +54,10 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
+import { FilterValueKind } from '../../filters/allowed-operators';
 import {
   FilterSource,
-  FilterValueKind,
-  operatorOptions,
+  operatorOptionsForKind,
   SortKeyLabel,
 } from '../../filters/filter-store';
 import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
@@ -513,7 +513,7 @@ export class SpiderlyDataTableComponent
     // list adds notContains/endsWith/notEquals, modes the backend answers with InvalidMatchMode,
     // i.e. a 400 on every load once the user picks one.
     const matchModeOptionsFor = (kind: FilterValueKind): SelectItem[] =>
-      operatorOptions({ kind, label: '' }).map((option) => ({
+      operatorOptionsForKind(kind).map((option) => ({
         label: this.translocoService.translate(option.labelKey),
         value: option.value,
       }));
@@ -774,17 +774,32 @@ export class SpiderlyDataTableComponent
   }
 
   /**
+   * The ONE spelling of decision 2b's other half, so its three gates are findable as a set: on a
+   * store table, hidden columns KEEP their filters and sorts — the chip bar names every filter
+   * and the sort chip names the sort, hidden or not, so the legacy "hidden contributes nothing"
+   * invariant's premise (the header is the only visible surface) is gone, and dropping a
+   * constraint on hide would be the destructive act rather than the safe one.
+   *
+   * Its three consumers die TOGETHER when the legacy header path is deleted — unlike the other
+   * `this.filters` reads in this component (payload source, requery wiring, header suppression,
+   * view application, persistence), which each mean something else and survive it:
+   * `clearHiddenColumnConstraints`, `reconcileVisibilityWithPersistedConstraints`, and the
+   * hidden-column null in `defaultMultiSortMeta`.
+   */
+  private get hiddenColumnsKeepConstraints(): boolean {
+    return this.filters != null;
+  }
+
+  /**
    * A hidden column contributes nothing to filtering or sorting: the header is the only
    * filter surface, so a kept constraint would restrict the data invisibly. Reloads (once)
    * only when a constraint was actually cleared — plain hides don't need a server round-trip.
    *
-   * LEGACY TABLES ONLY. On a store table the premise is gone — the chip bar names every filter
-   * and the sort chip names the sort, hidden columns included — so dropping a constraint on hide
-   * would be the destructive act, not the safe one (decision 2b's other half). The `_filter()`
-   * below would also wipe a live selection through PrimeNG's filter hook.
+   * LEGACY TABLES ONLY (`hiddenColumnsKeepConstraints`) — and note the `_filter()` below would
+   * also wipe a live selection through PrimeNG's filter hook.
    */
   private clearHiddenColumnConstraints(cols: Column[]): void {
-    if (!this.table || this.filters) return;
+    if (!this.table || this.hiddenColumnsKeepConstraints) return;
 
     let cleared = false;
     for (const col of cols) {
@@ -1007,11 +1022,11 @@ export class SpiderlyDataTableComponent
    * In-memory only — once the constraint is gone, the user's stored choice reapplies.
    */
   private reconcileVisibilityWithPersistedConstraints(): void {
-    // Store tables skip this whole apparatus: filter meta in the persisted blob is a leftover of
-    // the header-filter days and never reaches a request (the store payload replaces it), so a
-    // reveal would resurrect a phantom — on every load, forever, since nothing rewrites the stale
-    // blob. Sorts still apply, but the sort chip names them, hidden column or not.
-    if (this.filters) return;
+    // Store tables skip this whole apparatus (`hiddenColumnsKeepConstraints`): filter meta in
+    // the persisted blob is a leftover of the header-filter days and never reaches a request
+    // (the store payload replaces it), so a reveal would resurrect a phantom — on every load,
+    // forever, since nothing rewrites the stale blob.
+    if (this.hiddenColumnsKeepConstraints) return;
 
     const state = this.persistedTableState();
     if (!state) return;
@@ -1047,9 +1062,13 @@ export class SpiderlyDataTableComponent
     const defaultSortCol = this.cols?.find(
       (col) => col.field === this.defaultSortField,
     );
-    // Hidden kills the default only on LEGACY tables, where nothing would show the ordering; a
-    // store table's sort chip names it, hidden column or not (decision 2b's other half).
-    if (defaultSortCol && !this.filters && !this.isColumnVisible(defaultSortCol))
+    // Hidden kills the default only on LEGACY tables, where nothing would show the ordering
+    // (`hiddenColumnsKeepConstraints` — a store table's sort chip names it, hidden or not).
+    if (
+      defaultSortCol &&
+      !this.hiddenColumnsKeepConstraints &&
+      !this.isColumnVisible(defaultSortCol)
+    )
       return null;
     // A declared default on a non-sortable column is a consumer mistake the backend answers
     // with a 400 on every load; fall back to its implicit Id DESC instead (see keepSortableMeta).

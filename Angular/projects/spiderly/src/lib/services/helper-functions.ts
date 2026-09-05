@@ -11,6 +11,7 @@ import { SpiderlyTab } from '../components/spiderly-panels/panel-header/panel-he
 import { Codebook } from '../entities/codebook';
 import { Filter } from '../entities/filter';
 import { Namebook } from '../entities/namebook';
+import { FilterOption } from '../filters/filter-store';
 import { PrimengOption } from '../entities/primeng-option';
 
 // Helper function for PrecisionScale validation (to be added in the TypeScript output):
@@ -245,6 +246,16 @@ export function getPrimengNamebookOptions(
   namebookList: Namebook[],
 ): PrimengOption[] {
   return namebookList.map((x) => ({ label: x.displayName, code: x.id }));
+}
+
+/**
+ * The filter store's twin of `getPrimengNamebookOptions` — same namebook in, the store's
+ * `{ value, label }` shape out (a `FilterOption` is not a `PrimengOption`: that one's `code` is
+ * deliberate, see `primeng-option.ts`). Every consumer filling a pick-list filter from a lookup
+ * needs this map; without it each page re-derives the three lines.
+ */
+export function getFilterOptions(namebookList: Namebook[]): FilterOption[] {
+  return namebookList.map((x) => ({ value: x.id, label: x.displayName }));
 }
 
 export function getPrimengDropdownNamebookOptions(

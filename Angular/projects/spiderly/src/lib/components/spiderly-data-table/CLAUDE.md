@@ -188,12 +188,23 @@ still the design, and this is where it stands against it.
   - `commit()` bails on an EQUAL constraint, not an equal draft object (`valueEquals`) — a paste
     over itself or a double Apply spends no request; the page-side `lastCommittedTerm` guard this
     retires was PACMS's hand-rolled copy.
-  - Per-filter operator narrowing (`dateFilter({ operators })`): offer-only, first entry is the
-    default, invalid entries dropped loudly with full-list fallback — `Column.matchModes`
-    semantics on the store side. The wire contract stays ALLOWED_OPERATORS; a restored old
-    operator keeps filtering.
+  - Per-filter operator narrowing (`FilterConfig.operators`, on every factory and TYPED per
+    kind, so a wrong operator is a build error at the declaration): offer-only, first entry is
+    the default, a dynamically built bad entry still dropped loudly with full-list fallback —
+    `Column.matchModes` semantics on the store side. The wire contract stays ALLOWED_OPERATORS;
+    a restored old operator keeps filtering. Resolved ONCE per store (a per-store map, not the
+    WeakMap this first shipped as — that memo was keyed on a definition object consumers
+    mutate); the kind-only callers (legacy header dropdowns) use `operatorOptionsForKind`.
+  - `setOptions(id, options)` is the ONE seam for late-arriving choices — it re-resolves the
+    offered operators (options' presence flips a filter to `In`) and handles read it via live
+    getters, so an editor already open when the lookup answers fills instead of staying empty.
+    Never write `definitions[id].options` by hand. `setAndCommit` is the one-breath write every
+    programmatic caller (view `apply`, the sheet flow) uses — a bare `set` with a forgotten
+    commit fails silently.
   - A pick-list chip speaks its OPTIONS' labels, read live off the definition so async-filled
-    options upgrade a restored chip from ids to labels when they land (`chipValue`).
+    options upgrade a restored chip from ids to labels when they land (`chipValue`). Follow-up
+    if a second chip-drawing surface ever appears: make options a signal and let `applied()`
+    carry a `valueLabel`, so the whole chip sentence has one home.
   - **On a store table the whole "hidden contributes nothing" apparatus is OFF** — decision 2b's
     other half: `clearHiddenColumnConstraints` no-ops (hide keeps filter AND sort; its
     `_filter()` would also wipe a live selection), `reconcileVisibilityWithPersistedConstraints`
