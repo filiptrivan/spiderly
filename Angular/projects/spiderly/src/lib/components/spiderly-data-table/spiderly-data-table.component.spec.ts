@@ -3147,6 +3147,135 @@ describe('SpiderlyDataTableComponent — transient views', () => {
   });
 });
 
+const VIEW_SORT_STATE_KEY = 'sdt-view-sort-spec';
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [views]="views"
+      [stateKey]="stateKey"
+      [defaultSortField]="'id'"
+      [defaultSortOrder]="-1"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithViewSortComponent {
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Status', field: 'status', filterType: 'numeric' },
+  ];
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    { id: 'oldest', label: 'Najstarije', sort: [{ field: 'name', order: 1 }] },
+  ];
+  stateKey = VIEW_SORT_STATE_KEY;
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+// Decision 10's sort half: a view whose question includes an ordering ("oldest shipped first")
+// declares it, entering the view applies it, and the operator's own sort layers on top per view
+// — otherwise sort stays table-global and every view switch drags the last view's ordering along.
+describe('SpiderlyDataTableComponent — a view carries its sort', () => {
+  const NAME_ASC = [{ field: 'name', order: 1 }];
+  const STATUS_ASC = [{ field: 'status', order: 1 }];
+
+  const mount = async () => {
+    const mounted = createWithDataTable(HostWithViewSortComponent);
+    await renderRows(mounted.fixture);
+    return mounted;
+  };
+
+  const headerSort = (dataTable: SpiderlyDataTableComponent, field: string) =>
+    dataTable.table.sort({ originalEvent: new MouseEvent('click'), field });
+
+  it('the initial load of a restored view carries its declared sort', async () => {
+    sessionStorage.setItem(
+      `${VIEW_SORT_STATE_KEY}:view`,
+      JSON.stringify('oldest'),
+    );
+
+    const { host } = await mount();
+
+    expect(host.captured[0].multiSortMeta).toEqual(NAME_ASC);
+  });
+
+  // The flows-through rule `columnVisibilityOverrides` documents, applied to sort: only a
+  // GESTURE writes an override, so a later change to the view's declared sort reaches every
+  // operator who never touched sort.
+  it('a merely-inherited sort never crystallizes into an override', async () => {
+    sessionStorage.setItem(
+      `${VIEW_SORT_STATE_KEY}:view`,
+      JSON.stringify('oldest'),
+    );
+
+    await mount();
+
+    expect(
+      sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:oldest:sort`),
+    ).toBeNull();
+  });
+
+  // The two views share one filter answer (none), so the requery effect stays silent — the
+  // sort-only switch must fetch on its own or the tab lies about its ordering until page flip.
+  it('entering the view applies its sort and refetches although no filter changed', async () => {
+    const { fixture, host } = await mount();
+    const before = host.captured.length;
+
+    await clickView(fixture, 1);
+
+    expect(host.captured.length).toBe(before + 1);
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual(NAME_ASC);
+  });
+
+  it('un-sorting inside the view lands on the view sort, not the table default', async () => {
+    const { fixture, host, dataTable } = await mount();
+    await clickView(fixture, 1);
+
+    headerSort(dataTable, 'status'); // ascending — an operator override
+    headerSort(dataTable, 'status'); // descending
+    headerSort(dataTable, 'status'); // un-sort — substitutes the VIEW's declared sort
+
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual(NAME_ASC);
+    // …and the override slot empties with it, back to declared-flows-through.
+    expect(
+      sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:oldest:sort`),
+    ).toBeNull();
+  });
+
+  it('each view remembers the operator sort it was given', async () => {
+    const { fixture, host, dataTable } = await mount();
+
+    await clickView(fixture, 1);
+    headerSort(dataTable, 'status'); // "oldest" overridden to status asc
+
+    await clickView(fixture, 0); // "all" states no preference — keeps the grid's sort…
+    headerSort(dataTable, 'name'); // …until sorted, which becomes ITS override
+
+    await clickView(fixture, 1);
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual(STATUS_ASC);
+
+    await clickView(fixture, 0);
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual(NAME_ASC);
+  });
+
+  it('the operator override survives a reload', async () => {
+    const first = await mount();
+    await clickView(first.fixture, 1);
+    headerSort(first.dataTable, 'status');
+
+    const { host } = await remount(first.fixture, HostWithViewSortComponent);
+
+    expect(host.captured[0].multiSortMeta).toEqual(STATUS_ASC);
+  });
+});
+
 // The order-list shape: a view licensed by an async catalog ("Za pakovanje" exists only once a
 // status row claims awaitsCourierPickup) is NOT in [views] at the table's ngOnInit — it arrives
 // on a later input change. A restore that only looks at init would miss it on every reload.

@@ -175,7 +175,16 @@ still the design, and this is where it stands against it.
   which store it renders beside, so the compile-time key check stays at `createFilterStore`.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
-  views (decision 10) all shipped too — every decision in this record is now built.
+  views (decision 10) all shipped too — every decision in this record is now built. Decision
+  10's SORT half arrived last (2026-09-05, for PACMS's "Poslate, oldest first" order view):
+  `TableView.sort` declares a view's ordering, the tri-state un-sort / Clear filters land on it
+  instead of the table default (`defaultMultiSortMeta` is view-aware now), and the operator's
+  own sort persists per view under `…:<viewId>:sort` — written only by explicit gestures, so a
+  changed declared sort flows through to operators who never sorted, same rule as column
+  visibility. Sort-only view switches refetch explicitly in `selectView`, because `clear()` on
+  an already-empty store leaves the requery effect silent. PrimeNG's table-global persisted
+  sort survives as a fallback for views declaring nothing, and its stored copy is rewritten at
+  init (`alignPersistedTableStateSort`) so restoreState() cannot re-impose another view's sort.
 - **The legacy header-filter path is DELETED (2026-09-05), with four rulings made at the wave:**
   - **`spiderly-data-view` is EXCLUDED, deliberately.** It has its own parallel filter config
     (`DataViewFilter` — its own `filterField`/`showMatchModes`) and no bar equivalent, so
