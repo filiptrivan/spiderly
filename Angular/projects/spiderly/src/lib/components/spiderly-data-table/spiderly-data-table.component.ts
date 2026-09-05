@@ -486,6 +486,16 @@ export class SpiderlyDataTableComponent
   }
 
   ngOnInit(): void {
+    // Fail loud, not half-broken: the store commits through the paginated request, and a
+    // client-side (form-array) table has none — armed anyway, the first commit would call the
+    // absent getPaginatedListObservableMethod inside the requery effect and strand the pending
+    // overlay forever. Client-side store predicates are unbuilt (spiderly#407 territory).
+    if (this.filters && !this.hasLazyLoad) {
+      throw new Error(
+        'spiderly-data-table: [filters] requires a lazy table — client-side filtering through a store is not implemented. Remove [filters] or make the table lazy.',
+      );
+    }
+
     if (this.rows == null) this.rows = this.configService.defaultPageSize;
 
     this.activeViewId ??= this.views?.[0]?.id ?? null;
@@ -700,6 +710,8 @@ export class SpiderlyDataTableComponent
 
     this.persistColumnVisibility();
     this.refreshVisibleCols();
+
+    if (!visible) this.dropHiddenColumnSort([col]);
   }
 
   /**
@@ -707,9 +719,10 @@ export class SpiderlyDataTableComponent
    * wrap, order and width alike. It undid visibility only until the header menu shipped three
    * more gestures beside it, and a layout with no way back is worse than one with no knobs.
    *
-   * Hiding — here or from the menu — never touches filters or sort: the chip bar names every
-   * applied filter and the sort chip names the sort, hidden column or not (decision 2b). The
-   * legacy "hidden contributes nothing" apparatus died with the header-filter path.
+   * On a STORE table, hiding — here or from the menu — never touches filters or sort: the chip
+   * bar names every applied filter and the sort chip names the sort, hidden column or not
+   * (decision 2b). A storeless table keeps the sort half of the legacy invariant instead — see
+   * `dropHiddenColumnSort`.
    */
   resetColumnLayout(): void {
     this.columnWrap = {};
@@ -717,9 +730,41 @@ export class SpiderlyDataTableComponent
     this.columnWidths = {};
     this.persistColumnLayout();
 
+    const wasVisible = this.visibleCols.filter(
+      SpiderlyDataTableComponent.isDataColumn,
+    );
+
     this.columnVisibilityOverrides = {};
     this.persistColumnVisibility();
     this.refreshVisibleCols();
+
+    // Columns the reset just hid follow the same rule as a manual hide.
+    this.dropHiddenColumnSort(
+      wasVisible.filter((col) => !this.isColumnVisible(col)),
+    );
+  }
+
+  /**
+   * The sort half of the legacy "hidden contributes nothing" invariant, kept ONLY for storeless
+   * tables (the generated M2M details grids, until spiderly#407 scaffolds their stores): they
+   * have no sort chip, so a hidden column's sort would order the grid with nothing on screen
+   * naming it and no control left to clear it. The filter half needs no heir — `lazyLoad`
+   * overwrites the outgoing filters unconditionally. On a store table this is a no-op:
+   * decision 2b's chips are the visible surface, hidden column or not.
+   */
+  private dropHiddenColumnSort(cols: Column[]): void {
+    if (!this.table || this.filters) return;
+
+    const sorted = cols.filter((col) =>
+      this.table._multiSortMeta?.some((m) => m.field === col.field),
+    );
+    if (!sorted.length) return;
+
+    this.table._multiSortMeta = this.table._multiSortMeta.filter(
+      (m) => !sorted.some((col) => col.field === m.field),
+    );
+    this.table.tableService.onSort(this.table._multiSortMeta);
+    this.table._filter(); // re-emits the lazy load and saves the cleaned state
   }
 
   /**
@@ -859,9 +904,11 @@ export class SpiderlyDataTableComponent
   //#endregion
 
   /**
-   * The declared default as PrimeNG sort meta, or null when none is declared. Applies even
-   * while its column is hidden: the sort chip names the ordering whether or not the column
-   * is on screen (decision 2b).
+   * The declared default as PrimeNG sort meta, or null when none is declared. On a store table
+   * it applies even while its column is hidden — the sort chip names the ordering whether or
+   * not the column is on screen (decision 2b). A STORELESS table has no chip, so a hidden
+   * default would order the grid with nothing on screen naming it; there the default dies with
+   * the column, exactly as the legacy invariant had it (see `dropHiddenColumnSort`).
    */
   private defaultMultiSortMeta(): SortMeta[] | null {
     if (!this.defaultSortField) return null;
@@ -869,6 +916,12 @@ export class SpiderlyDataTableComponent
     const defaultSortCol = this.cols?.find(
       (col) => col.field === this.defaultSortField,
     );
+    if (
+      defaultSortCol &&
+      !this.filters &&
+      !this.isColumnVisible(defaultSortCol)
+    )
+      return null;
     // A declared default on a non-sortable column is a consumer mistake the backend answers
     // with a 400 on every load; fall back to its implicit Id DESC instead (see keepSortableMeta).
     if (defaultSortCol && !this.isColumnSortable(defaultSortCol)) return null;
@@ -1678,6 +1731,11 @@ export class SpiderlyDataTableComponent
         this.persistAppliedFilters();
         this.table.first = 0;
         this.table.firstChange.emit(0);
+        // PrimeNG saves state only from its own interactions, so without this the pre-commit
+        // page offset survives in storage and the NEXT visit replays it against the narrowed
+        // result set — the backend answers data=[] for an offset the filtered total no longer
+        // reaches, and the grid renders empty under chips claiming matches.
+        if (this.table.isStateful()) this.table.saveState();
         this.lazyLoad(this.table.createLazyLoadMetadata());
       },
       { injector: this.injector },

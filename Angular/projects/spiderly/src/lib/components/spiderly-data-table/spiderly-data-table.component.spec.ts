@@ -3539,3 +3539,33 @@ describe('SpiderlyDataTableComponent — a committed filter re-persists page one
       .toBe(0);
   });
 });
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [hasLazyLoad]="false"
+      [getFormArrayItems]="getItems"
+    ></spiderly-data-table>
+  `,
+})
+class HostClientSideWithStoreComponent {
+  cols = cols;
+  getItems = () => [{ id: 1 }];
+  filters = createFilterStore({
+    companyName: textFilter({ label: 'Firma' }),
+  });
+}
+
+describe('SpiderlyDataTableComponent — a store on a client-side table fails loud', () => {
+  // Armed anyway, the first commit would call the absent getPaginatedListObservableMethod
+  // inside the requery effect and strand the pending overlay forever — a half-broken table
+  // that looks fine until the first Apply. Client-side store predicates are unbuilt.
+  it('throws at init instead of stranding the first commit', () => {
+    expect(() => createFixture(HostClientSideWithStoreComponent)).toThrowError(
+      /\[filters\] requires a lazy table/,
+    );
+  });
+});
