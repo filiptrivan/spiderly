@@ -192,8 +192,9 @@ still the design, and this is where it stands against it.
     `[ComplexManyToManyReadonlyTable]`) ship with NO filter surface** until
     `NgDetailsDataGenerator` scaffolds a store for them — the generator stopped emitting the
     header-filter props, and scaffolding a store there (options plumbing for dropdown columns
-    included) is its own upstream piece of work, tracked as a spiderly issue. The only PACMS
-    instance is the Cart items readonly grid (2 columns).
+    included) is its own upstream piece of work — spiderly#407, which also carries the
+    `Column.showMatchModes` bridge-prop cleanup. The only PACMS instance is the Cart items
+    readonly grid (2 columns).
 - **The consumer migration is COMPLETE — all 27 PACMS tables carry a store (2026-09-05).**
   Three earned views: `tag-list` (three), `order-list` (the table the rework was argued from:
   17 filters, six views — a catalog-driven "Za pakovanje" hidden mid-deploy while no row

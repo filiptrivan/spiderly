@@ -385,7 +385,7 @@ namespace Spiderly.SourceGenerators.Angular
             // `dropdownOrMultiselectValues` maps the CELL value to its label — it is not filter
             // wiring, so it survives the header-filter deletion. `filterField`/`showMatchModes`
             // used to be emitted here and died with `p-columnFilter`; the generated details-table
-            // has no filter surface until it scaffolds a filter store (tracked upstream).
+            // has no filter surface until it scaffolds a filter store (spiderly#407).
             if (property.IsDropdownControlType())
                 return $", dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
 
