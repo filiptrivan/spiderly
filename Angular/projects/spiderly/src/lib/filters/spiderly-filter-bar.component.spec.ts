@@ -463,6 +463,59 @@ describe('SpiderlyFilterBarComponent', () => {
     ).toBe('Processing, Preparing, 99');
   });
 
+  // A filter can have a DEDICATED control somewhere on the page (PACMS's order search box is a
+  // placement of the store's mixedSearch filter). Offering it under "+ Filter" too gives one
+  // question two entry points and confused the first operator who saw it — but the CHIP must
+  // still render when it is applied, or the bar's claim to list every constraint breaks.
+  it('does not offer a filter declared offered: false, yet still draws its chip', async () => {
+    const filters = createFilterStore({
+      mixedSearch: textFilter({ label: 'Pretraga', offered: false }),
+      companyName: textFilter({ label: 'Firma' }),
+    });
+
+    const fixture = renderBar(filters);
+    await openAddMenu(fixture);
+
+    // UNAPPLIED, and still not offered — an applied filter leaves the menu anyway, which is how
+    // a first version of this spec passed against a bar with no such feature.
+    const offeredLabels = Array.from(
+      addMenu(fixture).querySelectorAll('[data-testid="add-filter-option"]'),
+    ).map((option) => option.textContent!.trim());
+    expect(offeredLabels).toEqual(['Firma']);
+
+    filters.setAndCommit('mixedSearch', {
+      operator: MatchModeCodes.Contains,
+      value: 'bosch',
+    });
+    fixture.detectChanges();
+
+    expect(
+      chips(fixture)[0].querySelector('.filter-chip-label')!.textContent!.trim(),
+    ).toBe('Pretraga');
+  });
+
+  // `String(new Date())` is the full JS toString — "Sat Sep 05 2026 00:00:00 GMT+0200 (Central
+  // European Summer Time)" on a chip an operator scans (Filip, on /orders). Dates go through the
+  // same formatDate + LOCALE_ID mechanism the table's cells use; mediumDate, because shortDate's
+  // two-digit year reads badly on a chip claiming a boundary. The harness runs Angular's default
+  // en-US locale, so the assertion is that locale's medium date.
+  it('spells a date chip in the locale’s words, never Date.toString', async () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Kreirano' }),
+    });
+
+    filters.setAndCommit('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: new Date(2026, 8, 5),
+    });
+
+    const fixture = renderBar(filters);
+
+    expect(
+      chips(fixture)[0].querySelector('.filter-chip-value')!.textContent!.trim(),
+    ).toBe('Sep 5, 2026');
+  });
+
   it('spells the operator on the chip', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),

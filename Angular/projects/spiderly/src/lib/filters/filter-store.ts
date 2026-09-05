@@ -31,6 +31,8 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
   options?: FilterOption[];
   /** Offered-operator narrowing; semantics on `FilterConfig.operators`, the factories' door. */
   operators?: MatchModeCodes[];
+  /** Whether "+ Filter" offers it; semantics on `FilterConfig.offered`, the factories' door. */
+  offered?: boolean;
 }
 
 /**
@@ -198,10 +200,22 @@ interface ValueByKind {
 interface FilterConfig<TKind extends FilterValueKind> {
   label: string;
   operators?: AllowedOperatorFor<TKind>[];
+  /**
+   * `false` keeps the filter out of the bar's "+ Filter" menu — for a filter with a DEDICATED
+   * control somewhere on the page (PACMS's order search box is a placement of the store's
+   * `mixedSearch`), where the generic entry point would give one question two homes. The chip
+   * still renders when the filter is applied, so the bar's claim to list every constraint holds.
+   */
+  offered?: boolean;
 }
 
 export function textFilter(config: FilterConfig<'text'>): FilterDefinition<'text'> {
-  return { kind: 'text', label: config.label, operators: config.operators };
+  return {
+    kind: 'text',
+    label: config.label,
+    operators: config.operators,
+    offered: config.offered,
+  };
 }
 
 /**
@@ -218,17 +232,28 @@ export function numberFilter(
     label: config.label,
     options: config.options,
     operators: config.operators,
+    offered: config.offered,
   };
 }
 
 export function booleanFilter(
   config: FilterConfig<'boolean'>,
 ): FilterDefinition<'boolean'> {
-  return { kind: 'boolean', label: config.label, operators: config.operators };
+  return {
+    kind: 'boolean',
+    label: config.label,
+    operators: config.operators,
+    offered: config.offered,
+  };
 }
 
 export function dateFilter(config: FilterConfig<'date'>): FilterDefinition<'date'> {
-  return { kind: 'date', label: config.label, operators: config.operators };
+  return {
+    kind: 'date',
+    label: config.label,
+    operators: config.operators,
+    offered: config.offered,
+  };
 }
 
 /**

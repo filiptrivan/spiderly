@@ -1,10 +1,11 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   Component,
   computed,
   inject,
   input,
+  LOCALE_ID,
   output,
   QueryList,
   signal,
@@ -328,6 +329,9 @@ export class SpiderlyFilterBarComponent {
 
   private readonly transloco = inject(TranslocoService);
 
+  /** For the chip's date wording — the same locale mechanism the table's cells format with. */
+  private readonly locale = inject(LOCALE_ID);
+
   /**
    * Controls a consumer projected for specific filters, collected by whoever hosts this bar. A
    * filter with no template keeps the control the bar draws for its kind, so a table opts in one
@@ -363,12 +367,16 @@ export class SpiderlyFilterBarComponent {
    * What "+ Filter" offers: every declared filter that is not already on the bar. Sourced from the
    * DEFINITIONS, so a filter reaches this list whether or not it has a column, and whether or not
    * that column is visible. That is the whole reason the bar exists.
+   *
+   * `offered: false` filters stay out — they have a dedicated control of their own on the page
+   * (PACMS's order search box), so the generic entry point would give one question two homes.
+   * Their chips still render: the applied list above reads no such flag.
    */
   readonly addable = computed(() => {
     const onBar = new Set(this.filters().applied().map((chip) => chip.id));
 
     return Object.entries(this.filters().definitions)
-      .filter(([id]) => !onBar.has(id))
+      .filter(([id, definition]) => !onBar.has(id) && definition.offered !== false)
       .map(([id, definition]) => ({ id, ...definition }));
   });
 
@@ -464,6 +472,13 @@ export class SpiderlyFilterBarComponent {
    * honest raw value.
    */
   chipValue(chip: AppliedFilter): string {
+    // `String(date)` is the full JS toString — a GMT offset and a timezone name on a chip an
+    // operator scans. Same formatDate + LOCALE_ID mechanism the table's cells use; mediumDate,
+    // because shortDate's two-digit year reads badly on a chip claiming a boundary.
+    if (chip.value instanceof Date) {
+      return formatDate(chip.value, 'mediumDate', this.locale);
+    }
+
     const options = this.filters().definitions[chip.id]?.options;
 
     return Array.isArray(chip.value)
