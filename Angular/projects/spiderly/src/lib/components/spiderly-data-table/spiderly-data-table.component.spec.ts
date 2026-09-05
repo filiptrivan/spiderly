@@ -3139,6 +3139,139 @@ describe('SpiderlyDataTableComponent — transient views', () => {
   });
 });
 
+// The order-list shape: a view licensed by an async catalog ("Za pakovanje" exists only once a
+// status row claims awaitsCourierPickup) is NOT in [views] at the table's ngOnInit — it arrives
+// on a later input change. A restore that only looks at init would miss it on every reload.
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [views]="views"
+      [stateKey]="'sdt-late-views-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithLateViewsComponent {
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Status', field: 'status', filterType: 'numeric' },
+  ];
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    { id: 'companies', label: 'Pravna lica' },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+
+  revealPacking(): void {
+    this.views = [
+      ...this.views,
+      {
+        id: 'packing',
+        label: 'Za pakovanje',
+        apply: (filters) => {
+          filters.set('status', { operator: MatchModeCodes.Equals, value: 2 });
+          filters.commit('status');
+        },
+      },
+    ];
+  }
+}
+
+// Every persisted key carries the view segment, but the segment's SOURCE — activeViewId — lived
+// only in memory: an F5 seeded it back to the first view and the restore read `…:all:filters`,
+// so the tab snapped to "Sve" and the bar came back empty while the operator's filters sat
+// intact under `…:packing:filters` (Filip, on /porudzbine). The id persists now, beside the
+// filters it scopes.
+describe('SpiderlyDataTableComponent — the active view survives a reload', () => {
+  const viewTabs = (fixture: ComponentFixture<unknown>) =>
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+      '[data-testid="table-view"]',
+    );
+
+  it('lands on the stored view with its filters in the first request', async () => {
+    const first = createWithDataTable(HostWithViewsComponent);
+    await renderRows(first.fixture);
+
+    await first.fixture.ngZone!.run(async () =>
+      viewTabs(first.fixture)[1].click(),
+    );
+    await renderRows(first.fixture);
+    first.fixture.destroy();
+    TestBed.resetTestingModule();
+
+    const next = createWithDataTable(HostWithViewsComponent);
+    await renderRows(next.fixture);
+
+    expect(next.dataTable.activeViewId).toBe('packing');
+    expect(
+      viewTabs(next.fixture)[1].classList.contains('table-view-active'),
+    ).toBeTrue();
+    expect(next.host.filters.applied().map((chip) => chip.id)).toEqual([
+      'status',
+    ]);
+    expect(next.host.captured[0].filters).toEqual({
+      status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
+    } as any);
+  });
+
+  it('restores a transient view\'s tab but re-derives its question', async () => {
+    const first = createWithDataTable(HostWithTransientViewComponent);
+    await renderRows(first.fixture);
+
+    // Visit today twice (via all) so storage holds apply's SECOND answer — the discriminator
+    // between re-deriving on the fresh host (1) and restoring what the old one stored (2).
+    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[1].click());
+    await renderRows(first.fixture);
+    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[0].click());
+    await renderRows(first.fixture);
+    await first.fixture.ngZone!.run(async () => viewTabs(first.fixture)[1].click());
+    await renderRows(first.fixture);
+    first.fixture.destroy();
+    TestBed.resetTestingModule();
+
+    const next = createWithDataTable(HostWithTransientViewComponent);
+    await renderRows(next.fixture);
+
+    expect(next.dataTable.activeViewId).toBe('today');
+    expect(next.host.filters.applied()[0].value)
+      .withContext('a reload must re-derive, not restore yesterday\'s answer')
+      .toBe(1);
+  });
+
+  it('adopts a stored view that only arrives on a later [views] change', async () => {
+    sessionStorage.setItem(
+      'sdt-late-views-spec:view',
+      JSON.stringify('packing'),
+    );
+
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithLateViewsComponent,
+    );
+    await renderRows(fixture);
+
+    expect(dataTable.activeViewId)
+      .withContext('until the view exists, the seed stands')
+      .toBe('all');
+
+    await fixture.ngZone!.run(async () => {
+      host.revealPacking();
+      fixture.detectChanges();
+    });
+    await renderRows(fixture);
+
+    expect(dataTable.activeViewId).toBe('packing');
+    expect(host.filters.applied().map((chip) => chip.id)).toEqual(['status']);
+    expect(host.captured.at(-1)!.filters).toEqual({
+      status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
+    } as any);
+  });
+});
+
 // The other half of decision 10, and the reason a view is more than a saved filter: a picking view
 // and a payments view want different COLUMNS, not just different rows. Layout global to the table
 // would re-create the original complaint one level up.
