@@ -86,7 +86,16 @@ Use PascalCase for migration names. If the migration looks wrong, `spiderly remo
 
 ### List component (`{kebab-name}-list.component.ts`)
 
-Update the `cols` array in `ngOnInit()` with actual entity columns:
+Update **both** the filter store (the `create{EntityName}Filters` function the scaffold declares above the component) and the `cols` array in `ngOnInit()` with actual entity columns. The store is the table's whole filter surface — a column without a matching store entry renders fine but cannot be filtered:
+
+```typescript
+function createProductFilters(t: (key: string) => string) {
+  return createFilterStore({
+    name: textFilter({ label: t("Name") }),
+    price: numberFilter({ label: t("Price") }),
+  });
+}
+```
 
 ```typescript
 this.cols = [
@@ -108,6 +117,8 @@ this.cols = [
   },
 ];
 ```
+
+Store ids are backend property names (they go straight into the paginated request), so they normally repeat the column's `field`. Factories: `textFilter`, `numberFilter` (accepts `options` for a pick-list), `booleanFilter`, `dateFilter` — all imported from `spiderly`.
 
 ### Translation keys
 

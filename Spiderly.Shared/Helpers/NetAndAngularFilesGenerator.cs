@@ -593,7 +593,15 @@ import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
 import { {{entityName}} } from 'src/app/business/entities/entities.generated';
-import { Column, SpiderlyDataTableComponent } from 'spiderly';
+import { Column, createFilterStore, numberFilter, SpiderlyDataTableComponent } from 'spiderly';
+
+// The table's filter surface: one declared filter per filterable column. Declared apart from the
+// component so the store's ids stay typed at every call site (views, programmatic writes).
+function create{{entityName}}Filters(t: (key: string) => string) {
+    return createFilterStore({
+        id: numberFilter({ label: t('Id') }),
+    });
+}
 
 @Component({
     selector: '{{kebabEntityName}}-list',
@@ -605,6 +613,7 @@ import { Column, SpiderlyDataTableComponent } from 'spiderly';
 })
 export class {{entityName}}ListComponent implements OnInit {
     cols: Column<{{entityName}}>[];
+    filters: ReturnType<typeof create{{entityName}}Filters>;
 
     getPaginated{{entityName}}ListObservableMethod = this.apiService.getPaginated{{entityName}}List;
     export{{entityName}}ListToExcelObservableMethod = this.apiService.export{{entityName}}ListToExcel;
@@ -617,6 +626,7 @@ export class {{entityName}}ListComponent implements OnInit {
     ) { }
 
     ngOnInit(){
+        this.filters = create{{entityName}}Filters((key) => this.translocoService.translate(key));
         this.cols = [
             {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
             {actions:[
@@ -634,9 +644,10 @@ export class {{entityName}}ListComponent implements OnInit {
             return $$"""
 <ng-container *transloco="let t">
 
-    <spiderly-data-table [tableTitle]="t('{{entityName}}List')" 
-    [cols]="cols" 
-    [getPaginatedListObservableMethod]="getPaginated{{entityName}}ListObservableMethod" 
+    <spiderly-data-table [tableTitle]="t('{{entityName}}List')"
+    [cols]="cols"
+    [filters]="filters"
+    [getPaginatedListObservableMethod]="getPaginated{{entityName}}ListObservableMethod"
     [exportListToExcelObservableMethod]="export{{entityName}}ListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="delete{{entityName}}ObservableMethod"
     [deleteListFromTableObservableMethod]="delete{{entityName}}ListObservableMethod"
@@ -771,10 +782,11 @@ export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, Role
         {
             return $$"""
 <ng-container *transloco="let t">
-    <spiderly-data-table 
-    [tableTitle]="t('RoleList')" 
-    [cols]="cols" 
-    [getPaginatedListObservableMethod]="getPaginatedRoleListObservableMethod" 
+    <spiderly-data-table
+    [tableTitle]="t('RoleList')"
+    [cols]="cols"
+    [filters]="filters"
+    [getPaginatedListObservableMethod]="getPaginatedRoleListObservableMethod"
     [exportListToExcelObservableMethod]="exportRoleListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteRoleObservableMethod"
     [deleteListFromTableObservableMethod]="deleteRoleListObservableMethod"
@@ -789,8 +801,15 @@ export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, Role
 import { Component, OnInit } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { ApiService } from 'src/app/business/services/api/api.service';
-import { Column, SpiderlyDataTableComponent } from 'spiderly';
+import { Column, createFilterStore, dateFilter, SpiderlyDataTableComponent, textFilter } from 'spiderly';
 import { Role } from 'src/app/business/entities/entities.generated';
+
+function createRoleFilters(t: (key: string) => string) {
+    return createFilterStore({
+        name: textFilter({ label: t('Name') }),
+        createdAt: dateFilter({ label: t('CreatedAt') }),
+    });
+}
 
 @Component({
     selector: 'role-list',
@@ -802,6 +821,7 @@ import { Role } from 'src/app/business/entities/entities.generated';
 })
 export class RoleListComponent implements OnInit {
     cols: Column<Role>[];
+    filters: ReturnType<typeof createRoleFilters>;
 
     getPaginatedRoleListObservableMethod = this.apiService.getPaginatedRoleList;
     exportRoleListToExcelObservableMethod = this.apiService.exportRoleListToExcel;
@@ -814,9 +834,10 @@ export class RoleListComponent implements OnInit {
     ) { }
 
     ngOnInit(){
+        this.filters = createRoleFilters((key) => this.translocoService.translate(key));
         this.cols = [
             {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
+            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
             {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name: this.translocoService.translate('Delete'), field: 'Delete'},
@@ -926,10 +947,11 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
         {
             return $$"""
 <ng-container *transloco="let t">
-    <spiderly-data-table 
-    [tableTitle]="t('UserList')" 
-    [cols]="cols" 
-    [getPaginatedListObservableMethod]="getPaginatedUserListObservableMethod" 
+    <spiderly-data-table
+    [tableTitle]="t('UserList')"
+    [cols]="cols"
+    [filters]="filters"
+    [getPaginatedListObservableMethod]="getPaginatedUserListObservableMethod"
     [exportListToExcelObservableMethod]="exportUserListToExcelObservableMethod"
     [deleteItemFromTableObservableMethod]="deleteUserObservableMethod"
     [deleteListFromTableObservableMethod]="deleteUserListObservableMethod"
@@ -945,7 +967,14 @@ import { ApiService } from '../../../business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
 import { User } from 'src/app/business/entities/entities.generated';
-import { Column, SpiderlyDataTableComponent } from 'spiderly';
+import { Column, createFilterStore, dateFilter, SpiderlyDataTableComponent, textFilter } from 'spiderly';
+
+function createUserFilters(t: (key: string) => string) {
+    return createFilterStore({
+        email: textFilter({ label: t('Email') }),
+        createdAt: dateFilter({ label: t('CreatedAt') }),
+    });
+}
 
 @Component({
     selector: 'user-list',
@@ -957,6 +986,7 @@ import { Column, SpiderlyDataTableComponent } from 'spiderly';
 })
 export class UserListComponent implements OnInit {
     cols: Column<User>[];
+    filters: ReturnType<typeof createUserFilters>;
 
     getPaginatedUserListObservableMethod = this.apiService.getPaginatedUserList;
     exportUserListToExcelObservableMethod = this.apiService.exportUserListToExcel;
@@ -969,9 +999,10 @@ export class UserListComponent implements OnInit {
     ) { }
 
     ngOnInit(){
+        this.filters = createUserFilters((key) => this.translocoService.translate(key));
         this.cols = [
             {name: this.translocoService.translate('Email'), filterType: 'text', field: 'email'},
-            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true},
+            {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
             {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
                 {name:  this.translocoService.translate('Delete'), field: 'Delete'},

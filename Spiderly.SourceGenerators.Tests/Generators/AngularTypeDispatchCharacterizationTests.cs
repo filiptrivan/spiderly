@@ -119,15 +119,18 @@ public class AngularTypeDispatchCharacterizationTests
     public void GetTableColFilterType(string type, string expected)
         => Assert.Equal(expected, NgDetailsDataGenerator.GetTableColFilterType(Prop(type)));
 
+    // `showMatchModes` died with the legacy header-filter path (19.12.x): scalar columns get no
+    // additional properties any more; only dropdown/comma-separated columns (cell label mapping)
+    // and a decimal carrying a scale still emit one.
     [Theory]
-    [InlineData("DateTime", ", showMatchModes: true")]
-    [InlineData("DateOnly?", ", showMatchModes: true")]
-    [InlineData("TimeOnly", ", showMatchModes: true")]
-    [InlineData("decimal", ", showMatchModes: true")]
-    [InlineData("double?", ", showMatchModes: true")]
-    [InlineData("int", ", showMatchModes: true")]
-    [InlineData("long?", ", showMatchModes: true")]
-    [InlineData("byte", ", showMatchModes: true")]
+    [InlineData("DateTime", null)]
+    [InlineData("DateOnly?", null)]
+    [InlineData("TimeOnly", null)]
+    [InlineData("decimal", null)]
+    [InlineData("double?", null)]
+    [InlineData("int", null)]
+    [InlineData("long?", null)]
+    [InlineData("byte", null)]
     [InlineData("string", null)]
     [InlineData("bool", null)]
     [InlineData("Guid", null)]

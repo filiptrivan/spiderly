@@ -382,27 +382,21 @@ namespace Spiderly.SourceGenerators.Angular
 
         internal static string? GetTableColAdditionalProperties(SpiderlyProperty property, SpiderlyClass entity)
         {
+            // `dropdownOrMultiselectValues` maps the CELL value to its label — it is not filter
+            // wiring, so it survives the header-filter deletion. `filterField`/`showMatchModes`
+            // used to be emitted here and died with `p-columnFilter`; the generated details-table
+            // has no filter surface until it scaffolds a filter store (tracked upstream).
             if (property.IsDropdownControlType())
-                return $", filterField: '{property.Name.FirstCharToLower()}Id', dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
+                return $", dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
 
             if (property.HasGenerateCommaSeparatedDisplayNameAttribute())
                 return $", dropdownOrMultiselectValues: await firstValueFrom(getPrimengDropdownNamebookOptions(this.apiService.get{property.Name}DropdownListFor{entity.Name}))";
 
-            switch (property.Type.ScalarKind)
+            if (property.Type.ScalarKind == SpiderlyScalarKind.Decimal)
             {
-                case SpiderlyScalarKind.DateTime:
-                case SpiderlyScalarKind.DateOnly:
-                case SpiderlyScalarKind.TimeOnly:
-                    return ", showMatchModes: true";
-                case SpiderlyScalarKind.Decimal:
-                    string? decimalScale = property.GetDecimalScale();
-                    return decimalScale != null
-                        ? $", showMatchModes: true, decimalPlaces: {decimalScale}"
-                        : ", showMatchModes: true";
-                case SpiderlyScalarKind.Integer:
-                    return ", showMatchModes: true";
-                default:
-                    break;
+                string? decimalScale = property.GetDecimalScale();
+                if (decimalScale != null)
+                    return $", decimalPlaces: {decimalScale}";
             }
 
             return null;
