@@ -3384,3 +3384,158 @@ describe('SpiderlyDataTableComponent — applied filters survive a reload', () =
     expect(next.host.filters.applied()).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// STORELESS tables (the generated M2M details grids, until spiderly#407 scaffolds their stores)
+// have no bar — so nothing on screen can name a hidden column's sort. For them alone, the old
+// "hidden contributes nothing" rule survives on the SORT axis: hiding a sorted column drops its
+// sort, and a hidden defaultSortField column does not apply. Store tables keep decision 2b.
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [stateKey]="'sdt-storeless-hidden-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostStorelessSortableComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Name', field: 'name', filterType: 'text' },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [defaultSortField]="'id'"
+      [stateKey]="'sdt-storeless-hidden-default-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostStorelessDefaultSortComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Name', field: 'name', filterType: 'text' },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+describe('SpiderlyDataTableComponent — a storeless table drops a hidden column\'s sort', () => {
+  it('hiding a sorted column removes its sort and reloads exactly once, without it', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostStorelessSortableComponent,
+    );
+
+    dataTable.table.sort({
+      originalEvent: new MouseEvent('click'),
+      field: 'name',
+    });
+    fixture.detectChanges();
+    const loadsBefore = host.captured.length;
+
+    await openChooser(fixture);
+    clickOption(fixture, 'Name');
+
+    expect(host.captured.length)
+      .withContext('one reload after hiding a sorted column')
+      .toBe(loadsBefore + 1);
+    expect(
+      (host.captured.at(-1)!.multiSortMeta ?? []).some((m) => m.field === 'name'),
+    )
+      .withContext('a hidden column must not sort a table with no surface to name it')
+      .toBeFalse();
+  });
+
+  it('does not reload when hiding an unsorted column', async () => {
+    const { fixture, host } = createWithDataTable(HostStorelessSortableComponent);
+    const loadsBefore = host.captured.length;
+
+    await openChooser(fixture);
+    clickOption(fixture, 'Name');
+
+    expect(host.captured.length).toBe(loadsBefore);
+  });
+
+  it('leaves the reload unsorted instead of re-applying an invisible default sort', async () => {
+    const { fixture, host } = createWithDataTable(HostStorelessDefaultSortComponent);
+    expect(host.captured[0].multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
+
+    await openChooser(fixture);
+    clickOption(fixture, 'Id');
+
+    expect(
+      (host.captured.at(-1)!.multiSortMeta ?? []).some((m) => m.field === 'id'),
+    )
+      .withContext('hidden default-sort column must not sort a storeless table')
+      .toBeFalse();
+  });
+});
+
+const REQUERY_PERSIST_STATE_KEY = 'sdt-requery-persist-spec';
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [stateKey]="stateKey"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithPersistedFilterStoreComponent {
+  cols = cols;
+  stateKey = REQUERY_PERSIST_STATE_KEY;
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+  filters = createFilterStore({
+    companyName: textFilter({ label: 'Firma' }),
+  });
+}
+
+describe('SpiderlyDataTableComponent — a committed filter re-persists page one', () => {
+  // The commit path resets table.first to 0 but PrimeNG saves state only from its own
+  // interactions — so without an explicit re-persist, the pre-commit page offset survives in
+  // storage and the NEXT visit replays it against the narrowed result set: the backend answers
+  // data=[] for an offset the filtered total no longer reaches, and the grid renders empty
+  // under chips claiming matches.
+  it('overwrites a persisted deep page offset with 0 at commit', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithPersistedFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    fixture.ngZone!.run(() => {
+      dataTable.table.first = 100;
+      dataTable.table.saveState();
+    });
+
+    await fixture.ngZone!.run(async () => {
+      host.filters.set('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+      host.filters.commit('companyName');
+    });
+    await renderRows(fixture);
+
+    const persisted = JSON.parse(
+      sessionStorage.getItem(REQUERY_PERSIST_STATE_KEY) ?? '{}',
+    );
+    expect(persisted.first)
+      .withContext('the persisted offset must follow the commit back to page one')
+      .toBe(0);
+  });
+});
