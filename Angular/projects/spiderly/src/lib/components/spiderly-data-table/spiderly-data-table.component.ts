@@ -245,6 +245,13 @@ export class SpiderlyDataTableComponent
    * `Column.filterType` header filters. The SHAPE of the input is the switch, deliberately — see
    * CLAUDE.md -> "Operator-owned view", decision 2 — so consumers migrate one table at a time and
    * the legacy path is deletable once nothing passes the old shape.
+   *
+   * READ ONCE, in ngOnInit — a store assigned later is silently ignored: the requery effect
+   * stays subscribed to the first store's `applied()`, and `resolvedStateKey` (which
+   * `additionalFilterIdLong` feeds) is never re-derived either. A consumer that must swap
+   * stores at runtime destroys and recreates the table around the swap — PACMS
+   * `integration-matching-products` nulls its view model for exactly this. Teaching
+   * ngOnChanges to re-arm both is the open upstream fix.
    */
   @Input() filters?: FilterSource;
 
