@@ -182,8 +182,14 @@ export class BasePage {
     // Same loading-mask block as openFilterEditor — each prior filter/sort
     // triggers a reload, and the mask covers headers until it resolves.
     await this.waitForTableLoad();
-    const header = this.columnHeader(columnLabel).first();
-    await (opts.multi ? header.click({ modifiers: ['Control'] }) : header.click());
+    // Click the sort icon, never the th by its center: hovering the header reveals
+    // the column-menu chevron right after the label + icon, and for CI's column
+    // widths the th's midpoint lands exactly on it — its stopPropagation swallows
+    // the click and the column menu opens instead of sorting (run 33944205103).
+    // The icon click bubbles to the th's pSortableColumn handler, the same path a
+    // user's sort click takes.
+    const sortIcon = this.columnHeader(columnLabel).first().locator('p-sorticon');
+    await (opts.multi ? sortIcon.click({ modifiers: ['Control'] }) : sortIcon.click());
   }
 
   async gotoTablePage(pageNumber: number) {
