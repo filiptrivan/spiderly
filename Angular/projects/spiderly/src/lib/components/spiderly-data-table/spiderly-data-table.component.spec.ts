@@ -3530,6 +3530,70 @@ describe('SpiderlyDataTableComponent — views', () => {
 });
 
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [views]="views"
+      [stateKey]="'sdt-transient-view-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithTransientViewComponent {
+  filters = createFilterStore({ createdAt: numberFilter({ label: 'Datum' }) });
+  cols: Column[] = [{ name: 'Naziv', field: 'name', filterType: 'text' }];
+  applyCount = 0;
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    {
+      id: 'today',
+      label: 'Danas primljene',
+      transient: true,
+      apply: (filters) => {
+        filters.set('createdAt', {
+          operator: MatchModeCodes.Equals,
+          value: ++this.applyCount,
+        });
+        filters.commit('createdAt');
+      },
+    },
+  ];
+  getList = emptyList;
+}
+
+// A view whose apply is a function of NOW cannot live under stored-wins-over-apply: "Danas
+// primljene" clicked yesterday stores yesterday's midnight, and today's click would restore it —
+// a tab named "today" showing yesterday, with only the chip's date to give it away. A transient
+// view re-derives instead of remembering.
+describe('SpiderlyDataTableComponent — transient views', () => {
+  it('re-applies on every select instead of restoring what an earlier visit stored', async () => {
+    const { fixture, host } = createWithDataTable(HostWithTransientViewComponent);
+    await renderRows(fixture);
+
+    const views = () =>
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        '[data-testid="table-view"]',
+      );
+
+    await fixture.ngZone!.run(async () => views()[1].click());
+    await renderRows(fixture);
+    expect(host.filters.applied()[0].value).toBe(1);
+
+    await fixture.ngZone!.run(async () => views()[0].click());
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => views()[1].click());
+    await renderRows(fixture);
+
+    expect(host.filters.applied()[0].value)
+      .withContext('the second visit must re-derive, not remember')
+      .toBe(2);
+  });
+});
+
 // The other half of decision 10, and the reason a view is more than a saved filter: a picking view
 // and a payments view want different COLUMNS, not just different rows. Layout global to the table
 // would re-create the original complaint one level up.
@@ -3570,6 +3634,152 @@ describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
   });
 });
 
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [stateKey]="'sdt-store-hide-keeps-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithSortableFilterStoreComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+  ];
+  filters = createFilterStore({ name: textFilter({ label: 'Naziv' }) });
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+// Decision 2b's other half: the whole "hidden contributes nothing" apparatus exists because the
+// HEADER was the only place a constraint could be seen. On a store table the chip bar names the
+// filters and the sort chip names the sort, so hiding a column no longer silently hides what the
+// grid is narrowed or ordered by — and dropping the constraint on hide becomes the destructive
+// act, not the safe one.
+describe('SpiderlyDataTableComponent — a store table hides columns without touching constraints', () => {
+  it('hiding a sorted column keeps the sort: the sort chip names it now', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithSortableFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () =>
+      dataTable.table.sort({
+        originalEvent: new MouseEvent('click'),
+        field: 'name',
+      }),
+    );
+    await renderRows(fixture);
+    const loadsBefore = host.captured.length;
+
+    await openChooser(fixture);
+    clickOption(fixture, 'Naziv');
+    await renderRows(fixture);
+
+    expect(host.captured.length)
+      .withContext('a hide is a layout change, not a query change')
+      .toBe(loadsBefore);
+
+    await fixture.ngZone!.run(async () => dataTable.reload());
+    await renderRows(fixture);
+
+    expect(
+      (host.captured.at(-1)!.multiSortMeta ?? []).some(
+        (meta) => meta.field === 'name',
+      ),
+    )
+      .withContext('the hidden column must keep sorting')
+      .toBeTrue();
+  });
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [stateKey]="'sdt-store-no-phantom-reveal-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithHiddenColumnFilterStoreComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Naziv', field: 'name', filterType: 'text', visible: false },
+  ];
+  filters = createFilterStore({ name: textFilter({ label: 'Naziv' }) });
+  getList = emptyList;
+}
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [defaultSortField]="'name'"
+      [stateKey]="'sdt-store-hidden-default-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithHiddenDefaultSortFilterStoreComponent {
+  cols: Column[] = [
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+    { name: 'Naziv', field: 'name', filterType: 'text', visible: false },
+  ];
+  filters = createFilterStore({ name: textFilter({ label: 'Naziv' }) });
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+describe('SpiderlyDataTableComponent — a store table default-sorts by a hidden column', () => {
+  // The legacy null-on-hidden exists so clear-on-hide is not undone by the default sneaking back
+  // in — an invisible ordering. On a store table the sort chip names the default like any other
+  // sort, so a hidden column is as good a default as a visible one.
+  it('applies the declared default sort even while its column is hidden', () => {
+    const fixture = createFixture(HostWithHiddenDefaultSortFilterStoreComponent);
+    const host = fixture.componentInstance;
+
+    expect(host.captured[0].multiSortMeta).toEqual([
+      { field: 'name', order: 1 },
+    ]);
+  });
+});
+
+// A table migrated to the bar reads the same PrimeNG state key its header-filter days wrote, and
+// that blob can still hold constraint meta. Under the store those constraints never reach a
+// request (the payload replaces them), so revealing a hidden column for them resurrects a phantom
+// — and on a localStorage table it does so on EVERY load, because nothing ever rewrites the stale
+// blob. PACMS's order list is exactly this: stateStorage 'local', operators with weeks of
+// header-filter state.
+describe('SpiderlyDataTableComponent — a store table ignores stale header-filter state', () => {
+  it('does not reveal a hidden column for persisted header-filter meta', () => {
+    sessionStorage.setItem(
+      'sdt-store-no-phantom-reveal-spec',
+      JSON.stringify({
+        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
+      }),
+    );
+
+    const fixture = createFixture(HostWithHiddenColumnFilterStoreComponent);
+
+    expect(
+      headerTexts(fixture.nativeElement).some((header) =>
+        header.includes('Naziv'),
+      ),
+    )
+      .withContext('a constraint the store never sends must not reveal anything')
+      .toBeFalse();
+  });
+});
 
 // The header filters were persisted for free by PrimeNG's stateful table; the bar owns them now,
 // so nothing was writing them and a refresh dropped every one (Filip, on /tags). This is the

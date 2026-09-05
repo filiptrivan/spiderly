@@ -243,6 +243,143 @@ describe('createFilterStore — typed is not applied', () => {
 
 });
 
+// The table's requery effect refetches on every change of `applied()`'s identity, so a commit
+// that changes nothing must not publish a new identity. Draft-object identity is not the test:
+// every `set` builds a fresh draft, and the case this exists for is a re-committed IDENTICAL
+// value — a paste over itself, a keystroke undone inside one debounce window, Apply pressed
+// twice. The page-side guard for this (`lastCommittedTerm` in PACMS's order list) is exactly the
+// hand-rolled copy of this rule the store exists to retire.
+describe('createFilterStore — a no-op commit publishes nothing', () => {
+  it('re-committing an identical scalar constraint keeps applied() at the same identity', () => {
+    const filters = createFilterStore({
+      mixedSearch: textFilter({ label: 'Pretraga' }),
+    });
+
+    filters.set('mixedSearch', {
+      operator: MatchModeCodes.Contains,
+      value: 'bosch',
+    });
+    filters.commit('mixedSearch');
+    const before = filters.applied();
+
+    filters.set('mixedSearch', {
+      operator: MatchModeCodes.Contains,
+      value: 'bosch',
+    });
+    filters.commit('mixedSearch');
+
+    expect(filters.applied()).toBe(before);
+  });
+
+  // A multiselect hands back a FRESH array on every change, identical contents included — ticking
+  // a box and unticking it again must not refetch.
+  it('re-committing an In list with the same ids in a new array keeps the identity', () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({ label: 'Status' }),
+    });
+
+    filters.set('orderStatusId', { operator: MatchModeCodes.In, value: [2, 3] });
+    filters.commit('orderStatusId');
+    const before = filters.applied();
+
+    filters.set('orderStatusId', { operator: MatchModeCodes.In, value: [2, 3] });
+    filters.commit('orderStatusId');
+
+    expect(filters.applied()).toBe(before);
+  });
+
+  // Two Date instances at the same instant are the same constraint. Without this, reopening a
+  // date chip and pressing Apply refetches the identical query.
+  it('re-committing the same instant in a new Date keeps the identity', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: new Date('2026-09-01T00:00:00.000Z'),
+    });
+    filters.commit('createdAt');
+    const before = filters.applied();
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: new Date('2026-09-01T00:00:00.000Z'),
+    });
+    filters.commit('createdAt');
+
+    expect(filters.applied()).toBe(before);
+  });
+
+  // The bail is on VALUE equality, so a changed operator over the same value still publishes:
+  // "posle 1.9." and "pre 1.9." are different questions.
+  it('the same value under a different operator still publishes', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.GreaterThan,
+      value: new Date('2026-09-01T00:00:00.000Z'),
+    });
+    filters.commit('createdAt');
+    const before = filters.applied();
+
+    filters.set('createdAt', {
+      operator: MatchModeCodes.LessThan,
+      value: new Date('2026-09-01T00:00:00.000Z'),
+    });
+    filters.commit('createdAt');
+
+    expect(filters.applied()).not.toBe(before);
+    expect(filters.applied()[0].operator).toBe(MatchModeCodes.LessThan);
+  });
+});
+
+// The same narrowing `Column.matchModes` gives a header filter, for the same reason: the full
+// list can contain an operator that is legal on the wire but never the question. The forcing
+// case is date-equality against a TIMESTAMP — it matches only the row written in that exact
+// second and answers with an empty grid (PACMS, all three order-list date columns, Filip
+// 2026-08-28) — so those columns must be able to offer "posle"/"pre" and nothing else.
+describe('createFilterStore — narrowing the offered operators', () => {
+  it('offers exactly the declared operators, in declaration order, first as default', () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({
+        label: 'Datum',
+        operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
+      }),
+    });
+    const createdAt = filters.get('createdAt');
+
+    expect(createdAt.operators.map((option) => option.value)).toEqual([
+      MatchModeCodes.GreaterThan,
+      MatchModeCodes.LessThan,
+    ]);
+    expect(createdAt.defaultOperator).toBe(MatchModeCodes.GreaterThan);
+  });
+
+  // Same polarity as the column's `computeMatchModes`: a bad entry is dropped and said out loud,
+  // and a narrowing that leaves nothing falls back to the full list — an editor with no operator
+  // options would be unusable, which is worse than an unwanted one.
+  it('drops operators the kind does not allow, and falls back to the full list when none survive', () => {
+    const errors = spyOn(console, 'error');
+
+    const filters = createFilterStore({
+      createdAt: dateFilter({
+        label: 'Datum',
+        operators: [MatchModeCodes.In],
+      }),
+    });
+
+    expect(filters.get('createdAt').operators.map((option) => option.value)).toEqual([
+      MatchModeCodes.Equals,
+      MatchModeCodes.LessThan,
+      MatchModeCodes.GreaterThan,
+    ]);
+    expect(errors).toHaveBeenCalled();
+  });
+});
+
 // The placement API. A handle is bound to one filter and needs nothing from the component tree,
 // which is what lets a filter be driven from a drawer or a modal rendered at app root — somewhere
 // a directive could never reach. Its `value` is the DRAFT, because that is what a control shows:

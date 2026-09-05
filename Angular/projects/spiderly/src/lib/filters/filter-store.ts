@@ -2,6 +2,9 @@ import { computed, signal, Signal } from '@angular/core';
 
 import { FilterRule } from '../entities/filter-rule';
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
+import { ALLOWED_OPERATORS, FilterValueKind } from './allowed-operators';
+
+export { ALLOWED_OPERATORS, FilterValueKind } from './allowed-operators';
 
 /** One tickable choice. `value` is the filter's own value type — an id, not a display string. */
 export interface FilterOption {
@@ -24,37 +27,9 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
    * the only way "Processing OR PreparingForShipping" can be expressed at all.
    */
   options?: FilterOption[];
+  /** Offered-operator narrowing; semantics on the factory config (`dateFilter`). */
+  operators?: MatchModeCodes[];
 }
-
-/**
- * What each value type may be asked. ONE telling, and the compile-time half is derived from it
- * below rather than written twice — a second hand-kept copy is how the offered list and the
- * accepted list drift apart.
- *
- * Its older twin is `AllowedMatchModes<T>` in `entities/filter-rule.ts`, keyed by TS type instead
- * of by kind. Collapse the two when `FilterRule` next moves; they must not be edited apart.
- */
-const ALLOWED_OPERATORS = {
-  text: [
-    MatchModeCodes.Contains,
-    MatchModeCodes.StartsWith,
-    MatchModeCodes.Equals,
-  ],
-  number: [
-    MatchModeCodes.Equals,
-    MatchModeCodes.GreaterThan,
-    MatchModeCodes.LessThan,
-    MatchModeCodes.In,
-  ],
-  boolean: [MatchModeCodes.Equals],
-  date: [
-    MatchModeCodes.Equals,
-    MatchModeCodes.GreaterThan,
-    MatchModeCodes.LessThan,
-  ],
-} as const satisfies Record<string, readonly MatchModeCodes[]>;
-
-export type FilterValueKind = keyof typeof ALLOWED_OPERATORS;
 
 /**
  * Transloco keys for the operator a control offers. Reuses the keys the data table's
@@ -62,11 +37,8 @@ export type FilterValueKind = keyof typeof ALLOWED_OPERATORS;
  * no new seed is needed and one operator cannot be worded two ways in one admin. The wording is
  * per KIND on purpose: `LessThan` reads "Less than" for a number and "Dates before" for a date.
  *
- * Note for whoever touches this next: "which operators exist per kind" is now recorded in THREE
- * hand-kept places — this file's ALLOWED_OPERATORS, `AllowedMatchModes<T>` in
- * entities/filter-rule.ts, and those three option lists in the data table. The option lists are
- * derived from ALLOWED_OPERATORS here so this file adds no fourth; collapse the other two when
- * either is next edited.
+ * The operator TABLE itself lives in `allowed-operators.ts`, the one telling all three surfaces
+ * derive from (this store, `FilterRule`'s compile-time union, the legacy header dropdowns).
  */
 interface OperatorWords {
   /** The picker's option label. Reuses the data table's existing keys. */
@@ -144,13 +116,27 @@ export interface OperatorOption {
 }
 
 /**
- * Derived from ALLOWED_OPERATORS, so the offered list and the accepted list cannot disagree.
- * A pick-list offers only `In`: "equals" over a set of ticked boxes is not a question anyone asks.
+ * Memoized per definition so an invalid narrowing is said ONCE, not on every editor open —
+ * `get()` builds a fresh handle each time and both the picker list and the default read this.
  */
-export function operatorOptions(
-  kind: FilterValueKind,
-  hasOptions = false,
-): OperatorOption[] {
+const offeredOperatorsCache = new WeakMap<
+  FilterDefinition<FilterValueKind>,
+  readonly MatchModeCodes[]
+>();
+
+/**
+ * What this filter's editor OFFERS, derived from ALLOWED_OPERATORS so the offered list and the
+ * accepted list cannot disagree, then narrowed by the definition's own `operators` (declaration
+ * order, first entry is the default). Same polarity as the column path's `computeMatchModes`: an
+ * entry the kind does not allow is dropped and reported, and a narrowing that leaves nothing
+ * falls back to the full list rather than shipping an editor with no operators.
+ */
+function offeredOperators(
+  definition: FilterDefinition<FilterValueKind>,
+): readonly MatchModeCodes[] {
+  const cached = offeredOperatorsCache.get(definition);
+  if (cached) return cached;
+
   // `In` and options are the same fact seen from two sides: `In` needs a list of values, and the
   // editor only draws one when the filter declares options. So options mean `In` and nothing else,
   // and their absence rules `In` out — offering it on a plain number filter would hand the
@@ -158,23 +144,55 @@ export function operatorOptions(
   //
   // Widened first: the per-kind tuples are literal, so `boolean`'s `[Equals]` makes the `In`
   // comparison a "no overlap" error rather than an empty result.
-  const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
-  const operators = accepted.filter((value) =>
-    hasOptions ? value === MatchModeCodes.In : value !== MatchModeCodes.In,
+  const accepted: readonly MatchModeCodes[] = ALLOWED_OPERATORS[definition.kind];
+  const base = accepted.filter((value) =>
+    definition.options != null
+      ? value === MatchModeCodes.In
+      : value !== MatchModeCodes.In,
   );
 
-  return operators.map((value) => ({
+  let offered = base;
+  if (definition.operators?.length) {
+    const survivors = definition.operators.filter((operator) =>
+      base.includes(operator),
+    );
+
+    if (survivors.length < definition.operators.length) {
+      console.error(
+        `Filter '${definition.label}' narrows to operators its ${definition.kind} kind does not ` +
+          `offer (${definition.operators.join(', ')}; offered: ${base.join(', ')}). ` +
+          `Unsupported entries are ignored${survivors.length ? '' : '; falling back to the full list'}.`,
+      );
+    }
+
+    offered = survivors.length ? survivors : base;
+  }
+
+  offeredOperatorsCache.set(definition, offered);
+
+  return offered;
+}
+
+export function operatorOptions(
+  definition: FilterDefinition<FilterValueKind>,
+): OperatorOption[] {
+  return offeredOperators(definition).map((value) => ({
     value,
-    labelKey: OPERATOR_WORDS[kind][value]?.pickerKey ?? value,
+    labelKey: OPERATOR_WORDS[definition.kind][value]?.pickerKey ?? value,
   }));
 }
 
-/** The operator applied when nobody picked one. Options mean `In`, whatever the kind's default. */
+/**
+ * The operator applied when nobody picked one. Options mean `In`, whatever the kind's default;
+ * a narrowed filter defaults to its FIRST declared operator, the `Column.matchModes` rule.
+ */
 export function defaultOperatorFor(
   definition: FilterDefinition<FilterValueKind>,
 ): MatchModeCodes {
-  return definition.options != null
-    ? MatchModeCodes.In
+  if (definition.options != null) return MatchModeCodes.In;
+
+  return definition.operators?.length
+    ? offeredOperators(definition)[0]
     : DEFAULT_OPERATOR[definition.kind];
 }
 
@@ -225,8 +243,16 @@ export function booleanFilter(config: {
 
 export function dateFilter(config: {
   label: string;
+  /**
+   * Narrows the operators the editor OFFERS, in display order; the first entry becomes the
+   * default. The store still accepts every wire-legal operator on restore, so an old persisted
+   * constraint keeps filtering — the narrowing shapes the controls, not the contract. The
+   * forcing case: date-equality against a timestamp matches one second and answers with an
+   * empty grid, so PACMS's order dates offer only "posle"/"pre".
+   */
+  operators?: MatchModeCodes[];
 }): FilterDefinition<'date'> {
-  return { kind: 'date', label: config.label };
+  return { kind: 'date', label: config.label, operators: config.operators };
 }
 
 /**
@@ -356,6 +382,29 @@ function isBlank(value: unknown): boolean {
 }
 
 /**
+ * Whether two constraint values are the same QUESTION. Identity is not it: every `set` builds a
+ * fresh draft, a multiselect hands back a fresh array per change, and two Dates at one instant
+ * are one constraint. This is what `commit` bails on, so a paste-over-itself or a double Apply
+ * cannot spend a request — the rule PACMS's order list used to hand-roll as `lastCommittedTerm`.
+ */
+function valueEquals(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => valueEquals(item, b[i]));
+  }
+
+  return false;
+}
+
+function constraintEquals(
+  a: StoredConstraint | undefined,
+  b: StoredConstraint,
+): boolean {
+  return a != null && a.operator === b.operator && valueEquals(a.value, b.value);
+}
+
+/**
  * The filter engine. It knows nothing about columns: a filter has an id, a value type and a
  * constraint, and that is the entire vocabulary.
  */
@@ -408,10 +457,7 @@ export function createFilterStore<
         kind: definitions[id].kind,
         value: computed(() => drafts().get(id)?.value),
         operator: computed(() => drafts().get(id)?.operator),
-        operators: operatorOptions(
-          definitions[id].kind,
-          definitions[id].options != null,
-        ),
+        operators: operatorOptions(definitions[id]),
         defaultOperator: defaultOperatorFor(definitions[id]),
         options: definitions[id].options,
         set: (constraint: FilterConstraint<TDefs[K]['kind']>) =>
@@ -452,8 +498,10 @@ export function createFilterStore<
       const shouldRemove = draft === undefined || isBlank(draft.value);
 
       // A new Map is a new identity even with identical contents, and everything downstream
-      // reacts to identity — so a no-op commit would spend a request. Bail before building one.
-      if (shouldRemove ? !current.has(id) : current.get(id) === draft) return;
+      // reacts to identity — so a no-op commit would spend a request. The bail compares the
+      // CONSTRAINT, not the draft object: every set() builds a fresh draft, and the case that
+      // matters is an identical value re-committed (see valueEquals).
+      if (shouldRemove ? !current.has(id) : constraintEquals(current.get(id), draft)) return;
 
       const next = new Map(current);
       if (shouldRemove) next.delete(id);

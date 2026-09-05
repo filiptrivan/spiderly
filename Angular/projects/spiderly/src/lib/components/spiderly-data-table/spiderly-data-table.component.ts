@@ -54,7 +54,12 @@ import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
-import { FilterSource, SortKeyLabel } from '../../filters/filter-store';
+import {
+  FilterSource,
+  FilterValueKind,
+  operatorOptions,
+  SortKeyLabel,
+} from '../../filters/filter-store';
 import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
@@ -503,54 +508,19 @@ export class SpiderlyDataTableComponent
       this.selectionMode = 'multiple';
     }
 
-    this.matchModeDateOptions = [
-      {
-        label: this.translocoService.translate('OnDate'),
-        value: MatchModeCodes.Equals,
-      },
-      {
-        label: this.translocoService.translate('DatesBefore'),
-        value: MatchModeCodes.LessThan,
-      },
-      {
-        label: this.translocoService.translate('DatesAfter'),
-        value: MatchModeCodes.GreaterThan,
-      },
-    ];
+    // Derived from the ONE operator table (`filters/allowed-operators.ts`) rather than hand-kept
+    // here: only what the generated paginator implements per type is offered — PrimeNG's own text
+    // list adds notContains/endsWith/notEquals, modes the backend answers with InvalidMatchMode,
+    // i.e. a 400 on every load once the user picks one.
+    const matchModeOptionsFor = (kind: FilterValueKind): SelectItem[] =>
+      operatorOptions({ kind, label: '' }).map((option) => ({
+        label: this.translocoService.translate(option.labelKey),
+        value: option.value,
+      }));
 
-    // Only the three the generated paginator implements for strings
-    // (PaginatedResultGenerator.GetCaseForString). Declared rather than left to PrimeNG,
-    // whose own text list adds notContains/endsWith/notEquals — modes the backend answers
-    // with InvalidMatchMode, i.e. a 400 on every load once the user picks one.
-    this.matchModeTextOptions = [
-      {
-        label: this.translocoService.translate('StartsWith'),
-        value: MatchModeCodes.StartsWith,
-      },
-      {
-        label: this.translocoService.translate('Contains'),
-        value: MatchModeCodes.Contains,
-      },
-      {
-        label: this.translocoService.translate('Equals'),
-        value: MatchModeCodes.Equals,
-      },
-    ];
-
-    this.matchModeNumberOptions = [
-      {
-        label: this.translocoService.translate('Equals'),
-        value: MatchModeCodes.Equals,
-      },
-      {
-        label: this.translocoService.translate('LessThan'),
-        value: MatchModeCodes.LessThan,
-      },
-      {
-        label: this.translocoService.translate('MoreThan'),
-        value: MatchModeCodes.GreaterThan,
-      },
-    ];
+    this.matchModeDateOptions = matchModeOptionsFor('date');
+    this.matchModeTextOptions = matchModeOptionsFor('text');
+    this.matchModeNumberOptions = matchModeOptionsFor('number');
 
     if (this.hasLazyLoad) {
       const baseKey = this.stateKey ?? `spiderly-table:${this.router.url}`;
@@ -807,9 +777,14 @@ export class SpiderlyDataTableComponent
    * A hidden column contributes nothing to filtering or sorting: the header is the only
    * filter surface, so a kept constraint would restrict the data invisibly. Reloads (once)
    * only when a constraint was actually cleared — plain hides don't need a server round-trip.
+   *
+   * LEGACY TABLES ONLY. On a store table the premise is gone — the chip bar names every filter
+   * and the sort chip names the sort, hidden columns included — so dropping a constraint on hide
+   * would be the destructive act, not the safe one (decision 2b's other half). The `_filter()`
+   * below would also wipe a live selection through PrimeNG's filter hook.
    */
   private clearHiddenColumnConstraints(cols: Column[]): void {
-    if (!this.table) return;
+    if (!this.table || this.filters) return;
 
     let cleared = false;
     for (const col of cols) {
@@ -1032,6 +1007,12 @@ export class SpiderlyDataTableComponent
    * In-memory only — once the constraint is gone, the user's stored choice reapplies.
    */
   private reconcileVisibilityWithPersistedConstraints(): void {
+    // Store tables skip this whole apparatus: filter meta in the persisted blob is a leftover of
+    // the header-filter days and never reaches a request (the store payload replaces it), so a
+    // reveal would resurrect a phantom — on every load, forever, since nothing rewrites the stale
+    // blob. Sorts still apply, but the sort chip names them, hidden column or not.
+    if (this.filters) return;
+
     const state = this.persistedTableState();
     if (!state) return;
 
@@ -1066,7 +1047,10 @@ export class SpiderlyDataTableComponent
     const defaultSortCol = this.cols?.find(
       (col) => col.field === this.defaultSortField,
     );
-    if (defaultSortCol && !this.isColumnVisible(defaultSortCol)) return null;
+    // Hidden kills the default only on LEGACY tables, where nothing would show the ordering; a
+    // store table's sort chip names it, hidden column or not (decision 2b's other half).
+    if (defaultSortCol && !this.filters && !this.isColumnVisible(defaultSortCol))
+      return null;
     // A declared default on a non-sortable column is a consumer mistake the backend answers
     // with a 400 on every load; fall back to its implicit Id DESC instead (see keepSortableMeta).
     if (defaultSortCol && !this.isColumnSortable(defaultSortCol)) return null;
@@ -1409,11 +1393,14 @@ export class SpiderlyDataTableComponent
     if (!this.filters) return;
 
     // The filter key moved with the view too, so this view's own stored answer wins over whatever
-    // the last one left applied; `apply` runs only when the view has nothing stored yet.
+    // the last one left applied; `apply` runs only when the view has nothing stored yet. A
+    // TRANSIENT view inverts that: its apply is a function of now, so it always re-derives —
+    // restoring would put yesterday's date under a tab claiming "today".
     this.filters.clear();
-    const stored = this.filtersStateKey
-      ? readStoredJson(this.filterStorage, this.filtersStateKey)
-      : null;
+    const stored =
+      !view.transient && this.filtersStateKey
+        ? readStoredJson(this.filterStorage, this.filtersStateKey)
+        : null;
 
     if (stored) this.filters.restore(stored);
     else view.apply?.(this.filters);
@@ -2516,6 +2503,14 @@ export interface TableView<TFilters = any> {
    * with the store's typing. Called on a CLEARED store: a view is a state, not an addition.
    */
   apply?: (filters: TFilters) => void;
+  /**
+   * A view whose `apply` is a function of NOW — "Danas primljene", "this week". Selecting it
+   * always re-runs `apply` instead of restoring what an earlier visit stored: under the normal
+   * stored-wins rule a relative-date view clicked yesterday would restore yesterday's date under
+   * a tab claiming "today". Layout (columns, widths, wrap) still persists per view as usual —
+   * transience is about the QUESTION, not the furniture.
+   */
+  transient?: boolean;
 }
 
 export class Column<T = any> {

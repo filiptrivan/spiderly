@@ -1,3 +1,16 @@
+// A <button> stripped to bare text — the reset behind the library chrome's chips, view tabs,
+// menu rows and plain-text actions. Only the reset lives here: colour, padding, radius and hover
+// stay at the call site (declared AFTER the include, so they win), because what a bare button
+// looks like is per surface — that it stops looking like a UA button is not.
+@mixin bare-button() {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
 @mixin focused() {
   outline: 0 none;
   outline-offset: 0;

@@ -181,6 +181,30 @@ still the design, and this is where it stands against it.
 - **Two rules a later table must not re-derive:** a view CLEARS before it applies, so two never
   compose; and both layout keys carry the active view, so a table with no views reads exactly the
   keys it already wrote — which is what keeps the twenty-six unmigrated grids working untouched.
+- **What the orders migration added (2026-09-05),** each spec-pinned; pointers, not copies:
+  - `commit()` bails on an EQUAL constraint, not an equal draft object (`valueEquals`) — a paste
+    over itself or a double Apply spends no request; the page-side `lastCommittedTerm` guard this
+    retires was PACMS's hand-rolled copy.
+  - Per-filter operator narrowing (`dateFilter({ operators })`): offer-only, first entry is the
+    default, invalid entries dropped loudly with full-list fallback — `Column.matchModes`
+    semantics on the store side. The wire contract stays ALLOWED_OPERATORS; a restored old
+    operator keeps filtering.
+  - A pick-list chip speaks its OPTIONS' labels, read live off the definition so async-filled
+    options upgrade a restored chip from ids to labels when they land (`chipValue`).
+  - **On a store table the whole "hidden contributes nothing" apparatus is OFF** — decision 2b's
+    other half: `clearHiddenColumnConstraints` no-ops (hide keeps filter AND sort; its
+    `_filter()` would also wipe a live selection), `reconcileVisibilityWithPersistedConstraints`
+    skips (stale header-filter meta in the persisted blob never reaches a request, so revealing
+    for it resurrects a phantom — on every load on a localStorage table), and
+    `defaultMultiSortMeta` applies the default even on a hidden column. The bar and sort chip
+    are the visible surface for all three.
+  - `TableView.transient` — a view whose `apply` is a function of NOW ("Danas primljene")
+    re-applies on every select instead of restoring; stored-wins would put yesterday's date
+    under a tab claiming "today". Layout still persists per view.
+  - **The operator table has ONE home now:** `filters/allowed-operators.ts`, a leaf module the
+    store's runtime checks, `FilterRule`'s compile-time unions and the legacy header dropdowns
+    all derive from (the three hand-kept copies this file's git history warned about). Tuple
+    order is display order everywhere.
 
 **Three more traps, all found by a spec and none visible by eye:**
 

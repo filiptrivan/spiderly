@@ -1,3 +1,5 @@
+@use "../styles/layout/mixins" as *;
+
 // Not teleported, so `:host` scoping holds here — unlike the column chooser, whose rules must sit
 // at top level because PrimeNG moves its popover into document.body (Angular/CLAUDE.md → overlay
 // styling). Colours come from the PrimeNG theme's variables so the bar follows the admin's theme
@@ -30,14 +32,10 @@
 }
 
 .filter-chip-edit {
+  @include bare-button();
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
   padding: 4px 4px 4px 10px;
   border-radius: 999px 0 0 999px;
 
@@ -55,12 +53,10 @@
 }
 
 .filter-chip-remove {
-  border: none;
-  background: none;
+  @include bare-button();
   color: var(--p-text-muted-color);
   font-size: 1.05rem;
   line-height: 1;
-  cursor: pointer;
   padding: 4px 9px 5px 4px;
   border-radius: 0 999px 999px 0;
 
@@ -97,12 +93,8 @@
 }
 
 .filter-add-option {
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
+  @include bare-button();
   text-align: left;
-  cursor: pointer;
   padding: 6px 10px;
   border-radius: var(--p-content-border-radius);
 

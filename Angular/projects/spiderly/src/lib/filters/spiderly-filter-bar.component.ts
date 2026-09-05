@@ -446,10 +446,23 @@ export class SpiderlyFilterBarComponent {
     this.editing.set(null);
   }
 
-  /** `In` is the multi-valued operator, so its chip reads as a list. */
+  /**
+   * `In` is the multi-valued operator, so its chip reads as a list — in the OPTIONS' words, not
+   * the wire's: "Status is one of 2, 3" narrates ids nobody chose by number. The lookup is live
+   * off the definition rather than snapshotted at commit, because option lists can be filled
+   * asynchronously (PACMS's admin/backend deploy race): a chip restored before the lookup answers
+   * upgrades from ids to labels the moment the options land, and a failed lookup degrades to the
+   * honest raw value.
+   */
   chipValue(chip: AppliedFilter): string {
+    const options = this.filters().definitions[chip.id]?.options;
+    const spell = (value: unknown): string =>
+      String(
+        options?.find((option) => option.value === value)?.label ?? value,
+      );
+
     return Array.isArray(chip.value)
-      ? chip.value.join(', ')
-      : String(chip.value);
+      ? chip.value.map(spell).join(', ')
+      : spell(chip.value);
   }
 }

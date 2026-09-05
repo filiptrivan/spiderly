@@ -422,16 +422,47 @@ describe('SpiderlyFilterBarComponent', () => {
       control(fixture, Select).options as { value: MatchModeCodes }[]
     ).map((option) => option.value);
 
+    // Display order comes from the one operator table (`allowed-operators.ts`) — the order the
+    // legacy header dropdowns always shipped.
     expect(offered).toEqual([
       MatchModeCodes.Equals,
-      MatchModeCodes.GreaterThan,
       MatchModeCodes.LessThan,
+      MatchModeCodes.GreaterThan,
     ]);
   });
 
   // "Firma Elektromont" leaves the operator to be guessed at, and a bar whose whole claim is that
   // it cannot lie must not omit the half that says HOW the grid is narrowed. Contains and
   // StartsWith return very different sets for the same typed value.
+  // The chip is the visible claim about the grid, so a pick-list's chip must speak the OPTIONS'
+  // language, not the wire's: "Status is one of 2, 3" narrates ids nobody chose by number. Read
+  // LIVE from the definition rather than snapshotted at commit, because PACMS fills option lists
+  // asynchronously (the admin/backend deploy race) — a chip restored before the lookup answers
+  // upgrades from ids to labels the moment the options land.
+  it('spells a pick-list chip in option labels, falling back to the raw id when one is unknown', async () => {
+    const filters = createFilterStore({
+      orderStatusId: numberFilter({
+        label: 'Status',
+        options: [
+          { value: 3, label: 'Processing' },
+          { value: 8, label: 'Preparing' },
+        ],
+      }),
+    });
+
+    filters.set('orderStatusId', {
+      operator: MatchModeCodes.In,
+      value: [3, 8, 99],
+    });
+    filters.commit('orderStatusId');
+
+    const fixture = renderBar(filters);
+
+    expect(
+      chips(fixture)[0].querySelector('.filter-chip-value')!.textContent!.trim(),
+    ).toBe('Processing, Preparing, 99');
+  });
+
   it('spells the operator on the chip', async () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
