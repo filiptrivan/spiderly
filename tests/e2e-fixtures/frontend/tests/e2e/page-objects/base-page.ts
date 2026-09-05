@@ -206,8 +206,9 @@ export class BasePage {
   // The persistence-key rule's one home on the test side: applied filters live under
   // `${stateKey}:filters` as the store snapshot — filter id → { operator, value } on the wire
   // vocabulary ('contains', 'greaterThan', ...). On a table with [views] the key ALWAYS carries
-  // the active view's id (seeded from the first view), so pass it — a bare `:filters` key never
-  // exists there. Specs assert the CONTENT; the key shape is ours.
+  // the active view's id (restored from `${stateKey}:view`, else seeded from the first view),
+  // so pass it — a bare `:filters` key never exists there. Specs assert the CONTENT; the key
+  // shape is ours.
   async storedFilterSnapshot(stateKey: string, viewId?: string) {
     const scope = viewId ? `:${viewId}` : '';
     return await this.getSessionStorageEntry<Record<string, { operator: string; value: unknown }>>(

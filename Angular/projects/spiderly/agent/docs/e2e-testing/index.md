@@ -101,7 +101,7 @@ Filtering is the chip bar above the table (a `spiderly-data-table` given a filte
 
 - **Operator option labels are transloco output** (`'More than'`, `'Less than'`), not `MatchModeCodes` keys. Match Playwright selectors against the value in your `en.json` (or the locale your test runs under). Which operators a filter offers is the store declaration's `operators` (or the kind's full list).
 - **The boolean editor is a binary `<p-checkbox>`** starting unchecked: one click drafts `true`, a second drafts `false`; commit with Apply.
-- **Applied filters persist under `` `${stateKey}:filters` ``** (the store snapshot: `{ id: { operator, value } }` on the wire vocabulary — `'contains'`, `'greaterThan'`, …); sort and pagination stay in PrimeNG's own blob under `` `${stateKey}` ``. Assert each in its own key. **On a table with `[views]` the filters key always carries the active view segment** — `` `${stateKey}:${viewId}:filters` ``, seeded from the FIRST view — so a bare `:filters` key never exists there.
+- **Applied filters persist under `` `${stateKey}:filters` ``** (the store snapshot: `{ id: { operator, value } }` on the wire vocabulary — `'contains'`, `'greaterThan'`, …); sort and pagination stay in PrimeNG's own blob under `` `${stateKey}` ``. Assert each in its own key. **On a table with `[views]` the filters key always carries the active view segment** — `` `${stateKey}:${viewId}:filters` ``, where the active view restores from `` `${stateKey}:view` `` and seeds from the FIRST view only when nothing is stored — so a bare `:filters` key never exists there.
 
 ## Test data: seed and clean
 

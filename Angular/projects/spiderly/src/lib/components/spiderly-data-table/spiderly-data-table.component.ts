@@ -242,12 +242,19 @@ export class SpiderlyDataTableComponent
   @Input() views?: TableView[];
 
   /**
-   * The view currently selected. Seeded from the first view in `ngOnInit`, never left null on a
+   * The view currently selected. Seeded from the first view in `ngOnInit` — then overridden by
+   * `restoreActiveView`, so a reload lands where the operator was — and never left null on a
    * table that has views: `viewScope` keys the layout off it, so an unseeded table writes its
    * width and order to the SAME key an unmigrated table uses — orphaned the moment the operator
    * clicks the first tab — and no tab reads as selected until they do.
    */
   activeViewId: string | null = null;
+  /**
+   * A stored view id whose view was not in `views` at restore time. Kept rather than dropped,
+   * because "vanished by deploy" and "not yet arrived" are indistinguishable at init — see
+   * `restoreActiveView` / `adoptPendingStoredView`.
+   */
+  private pendingStoredViewId: string | null = null;
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
   /** Whether the table is wrapped in a card container. Defaults to `false`. */
@@ -483,6 +490,7 @@ export class SpiderlyDataTableComponent
   ngOnChanges(): void {
     // Only meaningful once ngOnInit has resolved the defaults; before that it is a no-op re-run.
     if (this.rows != null) this.mergeActivePageSizesIntoOptions();
+    this.adoptPendingStoredView();
   }
 
   ngOnInit(): void {
@@ -517,14 +525,27 @@ export class SpiderlyDataTableComponent
 
     this.mergeActivePageSizesIntoOptions();
 
+    // AFTER `resolvedStateKey` is derived, which is what every restore below keys off — placed
+    // above it they read a null key and silently restore nothing. The view restore runs FIRST,
+    // because the other three read the `viewScope` it decides. And all of it before the effect
+    // is armed, so the first request already carries the filters and the effect's skipped first
+    // run sees the state it will be watching.
+    const restoredView = this.restoreActiveView();
+
     this.restoreColumnVisibility();
     this.restoreColumnLayout();
 
-    // AFTER `resolvedStateKey` is derived, which is what both of these key off — placed above it
-    // first, they read a null key and silently restored nothing. And before the effect is armed,
-    // so the first request already carries the filters and the effect's skipped first run sees
-    // the state it will be watching.
-    this.restoreAppliedFilters();
+    // A restored TRANSIENT view re-derives its question instead of reading the stored answer —
+    // `persistAppliedFilters` wrote whatever `apply` computed LAST time, and restoring that puts
+    // yesterday's date under a tab claiming "today" — the same inversion `selectView` makes. A
+    // non-transient view whose stored filters are absent stays empty on purpose: the operator
+    // cleared it, and F5 must give the cleared state back; re-asking the view's question is
+    // click semantics, not refresh semantics.
+    if (restoredView?.transient && this.filters) {
+      restoredView.apply?.(this.filters);
+    } else {
+      this.restoreAppliedFilters();
+    }
     if (this.filters) this.requeryOnAppliedFilters();
 
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
@@ -813,6 +834,67 @@ export class SpiderlyDataTableComponent
 
   private get filterStorage(): Storage {
     return this.stateStorage === 'local' ? localStorage : sessionStorage;
+  }
+
+  /**
+   * Where the active view id lives. Deliberately NOT view-scoped — it is the input `viewScope`
+   * derives from — and it follows `stateStorage` like the filters rather than the layout's
+   * always-local rule, because the id and the filters it scopes are one question: a durable id
+   * over session-scoped filters would restore a tab with nothing under it.
+   */
+  private get viewStateKey(): string | null {
+    return this.resolvedStateKey ? `${this.resolvedStateKey}:view` : null;
+  }
+
+  /** Only `selectView` writes; the `ngOnInit` seed does not — absence means "the default". */
+  private persistActiveView(): void {
+    if (!this.viewStateKey || !this.activeViewId) return;
+
+    writeStoredJson(this.filterStorage, this.viewStateKey, this.activeViewId);
+  }
+
+  /**
+   * Puts a reload back on the view the operator was using. Every persisted key carries the view
+   * segment, so before this existed the seed decided what got restored: F5 landed on the first
+   * view and read `…:all:filters` — the tab snapped to "Sve" and the bar came back empty while
+   * the operator's filters sat intact under the old view's segment (Filip, on /porudzbine).
+   *
+   * An id naming no current view keeps the seed AND the stored key: "vanished by deploy" and
+   * "not yet arrived" are indistinguishable here (order-list's catalog-licensed "Za pakovanje"
+   * is literally both), so the id is parked in `pendingStoredViewId` for `adoptPendingStoredView`
+   * and the key self-heals on the next explicit click.
+   */
+  private restoreActiveView(): TableView | null {
+    if (!this.viewStateKey || !this.views?.length) return null;
+
+    const storedId = readStoredJson(this.filterStorage, this.viewStateKey);
+    if (typeof storedId !== 'string') return null;
+
+    const view = this.views.find((candidate) => candidate.id === storedId);
+    if (view) this.activeViewId = view.id;
+    else this.pendingStoredViewId = storedId;
+
+    return view ?? null;
+  }
+
+  /**
+   * The second half of `restoreActiveView`: a stored view that did not exist at init is adopted
+   * when a later `[views]` change brings it — through `selectView`, so it gets the same
+   * stored-wins/transient/layout/requery semantics a click would have had. Any explicit select
+   * since init clears the pending id, so the operator's own choice always wins. Accepted cost of
+   * adopting late instead of holding the first request: a brief flash of the seeded view's rows
+   * and a second request when the late view lands.
+   */
+  private adoptPendingStoredView(): void {
+    if (!this.pendingStoredViewId) return;
+
+    const view = this.views?.find(
+      (candidate) => candidate.id === this.pendingStoredViewId,
+    );
+    if (!view) return;
+
+    this.pendingStoredViewId = null;
+    this.selectView(view);
   }
 
   private persistAppliedFilters(): void {
@@ -1193,6 +1275,10 @@ export class SpiderlyDataTableComponent
    */
   selectView(view: TableView): void {
     this.activeViewId = view.id;
+    // An explicit pick wins over a stored id still waiting for its view to arrive, and always
+    // writes — including the first view, so a deliberate "Sve" during a deploy race sticks.
+    this.pendingStoredViewId = null;
+    this.persistActiveView();
 
     // The keys just changed under us, so the layout has to be re-read for the view being entered
     // — otherwise the one being left keeps rendering until something else forces a reload.

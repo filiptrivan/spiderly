@@ -3219,6 +3219,21 @@ describe('SpiderlyDataTableComponent — the active view survives a reload', () 
     } as any);
   });
 
+  it('falls back to the first view when the stored one does not exist, keeping the key', async () => {
+    sessionStorage.setItem('spiderly-table:/:view', JSON.stringify('ghost'));
+
+    const { fixture, dataTable } = createWithDataTable(HostWithViewsComponent);
+    await renderRows(fixture);
+
+    expect(dataTable.activeViewId).toBe('all');
+    expect(
+      viewTabs(fixture)[0].classList.contains('table-view-active'),
+    ).toBeTrue();
+    expect(sessionStorage.getItem('spiderly-table:/:view'))
+      .withContext('"vanished" and "not yet arrived" look the same — keep the key')
+      .toBe(JSON.stringify('ghost'));
+  });
+
   it('restores a transient view\'s tab but re-derives its question', async () => {
     const first = createWithDataTable(HostWithTransientViewComponent);
     await renderRows(first.fixture);
@@ -3269,6 +3284,31 @@ describe('SpiderlyDataTableComponent — the active view survives a reload', () 
     expect(host.captured.at(-1)!.filters).toEqual({
       status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
     } as any);
+  });
+
+  it('lets an explicit pick beat a stored view that arrives later', async () => {
+    sessionStorage.setItem(
+      'sdt-late-views-spec:view',
+      JSON.stringify('packing'),
+    );
+
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithLateViewsComponent,
+    );
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => viewTabs(fixture)[1].click());
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => {
+      host.revealPacking();
+      fixture.detectChanges();
+    });
+    await renderRows(fixture);
+
+    expect(dataTable.activeViewId)
+      .withContext('the operator picked companies since the reload — that wins')
+      .toBe('companies');
   });
 });
 
