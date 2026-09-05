@@ -267,7 +267,12 @@ still the design, and this is where it stands against it.
 - **`ResizeObserver`'s first callback lands an animation frame after paint.** The frozen column
   sat at `left: 0`, on top of the checkbox column it starts after, for that frame — and its own
   spec had been passing on timing luck until adding suites reordered the run. Measure once on a
-  microtask as well; writing it inline in `ngAfterViewInit` is an NG0100.
+  microtask as well; writing it inline in `ngAfterViewInit` is an NG0100. The microtask measure
+  itself races the first row render (rows land on a macrotask), so where the rendered rows
+  re-split the shares the correction arrives at frame timing `whenStable` never waits for —
+  Linux headless Chrome re-split by 2px while macOS did not (CI run 33943130146, 2026-09-05),
+  a green local suite proving nothing. A spec asserting the offset must settle animation frames
+  first: `settleFrozenOffset` in the spec.
 - **A `once` listener on `document` outlives the gesture that armed it.** The click-swallower
   that stops a resize from also sorting ate an unrelated spec's first click, and would eat an
   operator's next click after any drag that ends without one. Remove it on the next tick.

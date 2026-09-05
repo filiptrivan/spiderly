@@ -2743,9 +2743,32 @@ class HostWithFrozenIdentityComponent {
 // place, and `lockVisible` already names exactly that column in every table — so freezing needs
 // no new API (CLAUDE.md -> decision 8).
 describe('SpiderlyDataTableComponent — the frozen left edge', () => {
+  // The offset is a MEASUREMENT, and the microtask measure in `observeSelectionWidth` races the
+  // first row render: `paginated()` emits on a macrotask, so the measure sees the row-less
+  // layout. Where the rendered rows re-split the fixed-layout shares (Linux headless Chrome
+  // did — CI run 33943130146, 105px vs 103px; macOS happened to split identically, so local
+  // stayed green), the ResizeObserver's correction arrives at animation-frame timing that
+  // `whenStable` never waits for, and its `zone.run` write still needs a `detectChanges` to
+  // reach the DOM. So settle frames until the invariant holds; on non-convergence the asserts
+  // below fail loudly with the real values.
+  async function settleFrozenOffset(
+    fixture: ComponentFixture<unknown>,
+  ): Promise<void> {
+    const el = fixture.nativeElement as HTMLElement;
+    for (let i = 0; i < 10; i++) {
+      const headers = el.querySelectorAll<HTMLElement>('thead th');
+      if (getComputedStyle(headers[1]).left === `${headers[0].offsetWidth}px`) {
+        return;
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      fixture.detectChanges();
+    }
+  }
+
   it('pins the identity column and the selection box, in that order', async () => {
     const { fixture } = createWithDataTable(HostWithFrozenIdentityComponent);
     await renderRows(fixture);
+    await settleFrozenOffset(fixture);
 
     const el = fixture.nativeElement as HTMLElement;
     const headers = el.querySelectorAll<HTMLElement>('thead th');
