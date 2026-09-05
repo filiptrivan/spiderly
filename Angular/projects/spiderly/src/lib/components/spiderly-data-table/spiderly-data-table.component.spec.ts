@@ -2750,6 +2750,40 @@ class HostWithTwoColumnsComponent {
     paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
 }
 
+// The consumer shape the wrap contract exists for: a projected template whose markup clamps
+// itself, deferring to the cell custom properties the way pa-cms's order grid does.
+@Component({
+  imports: [SpiderlyDataTableComponent, SpiderlyCellTemplateDirective],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    >
+      <ng-template spiderlyCellTemplate="name" let-displayValue="displayValue">
+        <span data-testid="clamped-cell" class="consumer-clamp">{{
+          displayValue
+        }}</span>
+      </ng-template>
+    </spiderly-data-table>
+  `,
+  styles: `
+    .consumer-clamp {
+      display: block;
+      overflow: var(--spiderly-cell-overflow, hidden);
+      text-overflow: var(--spiderly-cell-text-overflow, ellipsis);
+      white-space: var(--spiderly-cell-white-space, nowrap);
+    }
+  `,
+})
+class HostWithClampedCellTemplateComponent {
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text' },
+    { name: 'Id', field: 'id', filterType: 'numeric' },
+  ];
+  getList = (): Observable<PaginatedResult> =>
+    paginated([{ id: 1, name: 'kupac javio da nije kod kuce do petka' }]);
+}
+
 async function openColumnMenu(
   fixture: ComponentFixture<unknown>,
   index = 0,
@@ -2858,6 +2892,40 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
     await openColumnMenu(fixture);
     expect(wrapItem().getAttribute('aria-checked')).toBe('true');
     wrapItem().click();
+    await renderRows(fixture);
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
+  });
+
+  // The wrap toggle must reach a PROJECTED cell too, or it is a silent no-op on every table whose
+  // columns render a spiderlyCellTemplate — which is all of the orders grid, the table the rework
+  // was argued from. The library cannot style consumer markup directly (emulated encapsulation),
+  // so the contract is inherited custom properties: the td publishes --spiderly-cell-*, a consumer
+  // clamp reads them with its own clamp as the fallback.
+  it('wraps a projected cell template whose clamp reads the cell custom properties', async () => {
+    const { fixture } = createWithDataTable(HostWithClampedCellTemplateComponent);
+    await renderRows(fixture);
+
+    const cell = () =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="clamped-cell"]',
+      )!;
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
+      .click();
+    await renderRows(fixture);
+
+    expect(getComputedStyle(cell()).whiteSpace).toBe('normal');
+    expect(getComputedStyle(cell()).overflow).toBe('visible');
+
+    await openColumnMenu(fixture);
+    columnMenu(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="column-menu-wrap"]')!
+      .click();
     await renderRows(fixture);
 
     expect(getComputedStyle(cell()).whiteSpace).toBe('nowrap');
@@ -3273,6 +3341,32 @@ describe('SpiderlyDataTableComponent — the frozen left edge', () => {
 
     // Everything after it scrolls.
     expect(getComputedStyle(headers[2]).position).not.toBe('sticky');
+  });
+
+  // The opaque background that tracks row hover belongs to the BODY cells only. Painted on the
+  // whole .frozen-column class it reaches the header too, where it overrides PrimeNG's own
+  // header-cell palette — the pinned th sits on the row colour, and the unscoped hover rule tints
+  // it whenever the pointer crosses ANY header cell, which reads as the locked column reacting on
+  // its own ("na hover ostalih hoveruje i locked kolone", Filip, 2026-09-05). The th needs no
+  // background from us at all: PrimeNG paints header.cell.background on every th.
+  it('leaves the frozen header cells on the header palette, not the row one', async () => {
+    const { fixture } = createWithDataTable(HostWithFrozenIdentityComponent);
+    await renderRows(fixture);
+
+    const el = fixture.nativeElement as HTMLElement;
+    // The tokens are unset under Karma (no PrimeNG preset), so give the two palettes
+    // distinguishable values — unset, both sides compute transparent and the assert proves nothing.
+    el.style.setProperty('--p-datatable-row-background', 'rgb(1, 2, 3)');
+    el.style.setProperty('--p-datatable-header-cell-background', 'rgb(4, 5, 6)');
+
+    const headers = el.querySelectorAll<HTMLElement>('thead th');
+    const cells = el.querySelectorAll<HTMLElement>('tbody td');
+    const plainHeaderBg = getComputedStyle(headers[2]).backgroundColor;
+
+    expect(getComputedStyle(headers[0]).backgroundColor).toBe(plainHeaderBg);
+    expect(getComputedStyle(headers[1]).backgroundColor).toBe(plainHeaderBg);
+    // The body cells keep the opaque row background — that is decision 8, not a leak.
+    expect(getComputedStyle(cells[1]).backgroundColor).toBe('rgb(1, 2, 3)');
   });
 });
 
