@@ -275,8 +275,16 @@ test.describe('Product CRUD Operations', () => {
 
     await listPage.clearTableFilters();
     await page.waitForLoadState('networkidle');
-    const afterClear = await listPage.getSessionStorageEntry(stateKey);
-    expect(afterClear).toBeNull();
+    // Clear wipes the persisted state, then the store's requery effect re-persists the CLEARED
+    // state (its page-one reset must survive a reload — see the "re-persists page one" Karma
+    // pin), so PrimeNG's blob may exist again but must carry no offset and no sort; the filter
+    // snapshot key stays gone.
+    const afterClear = await listPage.getSessionStorageEntry<{
+      first?: number;
+      multiSortMeta?: Array<{ field: string; order: number }>;
+    }>(stateKey);
+    expect(afterClear?.first ?? 0).toBe(0);
+    expect(afterClear?.multiSortMeta ?? []).toEqual([]);
     const afterClearFilters = await listPage.storedFilterSnapshot(stateKey);
     expect(afterClearFilters).toBeNull();
   });
