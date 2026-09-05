@@ -455,12 +455,12 @@ export class SpiderlyDataTableComponent
           this.table.saveState();
         }
 
-        this.persistActiveViewSort();
         this.table.anchorRowIndex = null;
-        return;
+      } else {
+        originalSort(event);
       }
 
-      originalSort(event);
+      // Every explicit header-sort gesture, un-sort included, records the view's override.
       this.persistActiveViewSort();
     };
   }
@@ -547,17 +547,17 @@ export class SpiderlyDataTableComponent
     this.refreshVisibleCols();
 
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
-    // sort. The active view's stored override wins, then its declared sort, then the
-    // persisted table-global sort, then the table default; we read it all ourselves
-    // because PrimeNG's restoreState() runs on the first [value] change — after the
-    // initial lazy emit has already left — and is then told to agree (see
-    // `alignPersistedTableStateSort`).
+    // sort. The view's own sort wins; the persisted table-global sort sits deliberately
+    // BETWEEN it and the table default, so a view declaring nothing keeps the ordering the
+    // operator last chose. We read it all ourselves because PrimeNG's restoreState() runs on
+    // the first [value] change — after the initial lazy emit has already left — and is then
+    // told to agree (see `alignPersistedTableStateSort`).
+    const tableState = this.persistedTableState();
     this.initialMultiSortMeta =
-      this.persistedViewSort() ??
-      this.viewDeclaredMultiSortMeta() ??
-      this.persistedMultiSortMeta() ??
+      this.viewSort() ??
+      this.sanitizedSortMeta(tableState?.multiSortMeta) ??
       this.tableDefaultMultiSortMeta();
-    this.alignPersistedTableStateSort();
+    this.alignPersistedTableStateSort(tableState);
   }
 
   //#region Column visibility
@@ -1011,12 +1011,15 @@ export class SpiderlyDataTableComponent
 
   /**
    * Where the operator's per-view sort override lives. Null on a table without views — those
-   * keep the pure PrimeNG sort persistence they always had; this key exists only where a view
-   * segment gives it meaning. Follows `stateStorage` like the filters and the view id: the sort
+   * keep the pure PrimeNG sort persistence they always had — and null on a STORELESS table:
+   * there "hidden contributes nothing" retires a hidden column's sort (`dropHiddenColumnSort`)
+   * with no persist call at the hide site, so an override restored blind at the next init
+   * would re-impose a sort no chip can name. Store tables — where every viewed consumer
+   * lives — have the chip. Follows `stateStorage` like the filters and the view id: the sort
    * is part of the same question they scope.
    */
   private get viewSortStateKey(): string | null {
-    if (!this.views?.length) return null;
+    if (!this.views?.length || !this.filters) return null;
 
     return this.resolvedStateKey
       ? `${this.resolvedStateKey}${this.viewScope}:sort`
@@ -1028,10 +1031,12 @@ export class SpiderlyDataTableComponent
     if (!this.viewSortStateKey) return null;
 
     const stored = readStoredJson(this.filterStorage, this.viewSortStateKey);
-    if (!Array.isArray(stored)) return null;
+    return Array.isArray(stored) ? this.sanitizedSortMeta(stored) : null;
+  }
 
-    const sortable = this.keepSortableMeta(stored);
-    return sortable.length ? sortable : null;
+  /** The sort this view asks for: the operator's stored override, else its declared sort. */
+  private viewSort(): SortMeta[] | null {
+    return this.persistedViewSort() ?? this.viewDeclaredMultiSortMeta();
   }
 
   /**
@@ -1063,12 +1068,11 @@ export class SpiderlyDataTableComponent
    * store and storeless paths.
    */
   private applyViewSort(): boolean {
-    const target = this.persistedViewSort() ?? this.viewDeclaredMultiSortMeta();
+    const target = this.viewSort();
     if (!target) return false;
     if (sortMetaEquals(target, this.table._multiSortMeta ?? [])) return false;
 
-    this.table._multiSortMeta = target;
-    this.table.tableService.onSort(target);
+    this.broadcastSort(target);
     return true;
   }
 
@@ -1077,13 +1081,11 @@ export class SpiderlyDataTableComponent
    * can disagree only on a viewed table — PrimeNG's state is table-global while the resolved
    * sort is the view's — and PrimeNG's restoreState() applies its copy on the first [value]
    * change, AFTER the initial request already left with ours: without this line the grid's
-   * arrows and every later request silently fall back to the other view's sort.
+   * arrows and every later request silently fall back to the other view's sort. Handed the
+   * already-parsed state: `ngOnInit` reads the blob once for the whole init pass.
    */
-  private alignPersistedTableStateSort(): void {
-    if (!this.views?.length || !this.resolvedStateKey) return;
-
-    const state = this.persistedTableState();
-    if (!state) return;
+  private alignPersistedTableStateSort(state: any): void {
+    if (!this.views?.length || !this.resolvedStateKey || !state) return;
 
     const resolved = this.initialMultiSortMeta ?? [];
     if (sortMetaEquals(state.multiSortMeta ?? [], resolved)) return;
@@ -1110,11 +1112,7 @@ export class SpiderlyDataTableComponent
    * whose declaration sanitizes to nothing falls through to the table default.
    */
   private viewDeclaredMultiSortMeta(): SortMeta[] | null {
-    const declared = this.activeView()?.sort;
-    if (!declared?.length) return null;
-
-    const sortable = this.keepSortableMeta(declared);
-    return sortable.length ? sortable : null;
+    return this.sanitizedSortMeta(this.activeView()?.sort);
   }
 
   /**
@@ -1143,9 +1141,15 @@ export class SpiderlyDataTableComponent
     return [{ field: this.defaultSortField, order: this.defaultSortOrder }];
   }
 
-  private persistedMultiSortMeta(): SortMeta[] | null {
-    const state = this.persistedTableState();
-    const sortable = this.keepSortableMeta(state?.multiSortMeta);
+  /**
+   * `keepSortableMeta` with "sanitized to nothing" surfaced as null — the rule every sort
+   * SOURCE shares ("a sort that sanitizes to nothing is no sort"), so the resolution chains
+   * can `??` past an empty answer instead of stopping on an empty array.
+   */
+  private sanitizedSortMeta(
+    multiSortMeta: SortMeta[] | null | undefined,
+  ): SortMeta[] | null {
+    const sortable = this.keepSortableMeta(multiSortMeta);
     return sortable.length ? sortable : null;
   }
 
@@ -1181,10 +1185,13 @@ export class SpiderlyDataTableComponent
 
     event.multiSortMeta = defaultSort;
 
-    if (this.table) {
-      this.table._multiSortMeta = defaultSort;
-      this.table.tableService.onSort(defaultSort);
-    }
+    if (this.table) this.broadcastSort(defaultSort);
+  }
+
+  /** Puts `meta` on the grid and tells the header icons — no fetch; the caller owns that. */
+  private broadcastSort(meta: SortMeta[]): void {
+    this.table._multiSortMeta = meta;
+    this.table.tableService.onSort(meta);
   }
 
   onPageChange(container: HTMLElement): void {
@@ -1436,13 +1443,10 @@ export class SpiderlyDataTableComponent
 
     // The requery effect runs only when the applied set actually changed — `clear()` on an
     // already-empty store writes nothing (two views sharing one filter answer are exactly that)
-    // — so a sort-only switch fetches here, mirroring the effect body. `applied` is a computed:
-    // reference equality across the transition means none of its sources moved.
+    // — so a sort-only switch fetches here. `applied` is a computed: reference equality across
+    // the transition means none of its sources moved.
     if (sortChanged && this.filters.applied() === appliedBefore) {
-      this.table.first = 0;
-      this.table.firstChange.emit(0);
-      if (this.table.isStateful()) this.table.saveState();
-      this.lazyLoad(this.table.createLazyLoadMetadata());
+      this.refetchFromFirstPage();
     }
   }
 
@@ -1960,17 +1964,25 @@ export class SpiderlyDataTableComponent
         }
 
         this.persistAppliedFilters();
-        this.table.first = 0;
-        this.table.firstChange.emit(0);
-        // PrimeNG saves state only from its own interactions, so without this the pre-commit
-        // page offset survives in storage and the NEXT visit replays it against the narrowed
-        // result set — the backend answers data=[] for an offset the filtered total no longer
-        // reaches, and the grid renders empty under chips claiming matches.
-        if (this.table.isStateful()) this.table.saveState();
-        this.lazyLoad(this.table.createLazyLoadMetadata());
+        this.refetchFromFirstPage();
       },
       { injector: this.injector },
     );
+  }
+
+  /**
+   * Back to page one, state saved, one fetch off FRESH metadata — the shared tail of the
+   * requery effect and `selectView`'s sort-only switch. The save is load-bearing: PrimeNG
+   * saves state only from its own interactions, so without it the pre-change page offset
+   * survives in storage and the NEXT visit replays it against a narrowed result set — the
+   * backend answers data=[] for an offset the filtered total no longer reaches, and the grid
+   * renders empty under chips claiming matches.
+   */
+  private refetchFromFirstPage(): void {
+    this.table.first = 0;
+    this.table.firstChange.emit(0);
+    if (this.table.isStateful()) this.table.saveState();
+    this.lazyLoad(this.table.createLazyLoadMetadata());
   }
 
   reload() {
@@ -2398,8 +2410,9 @@ export interface TableView<TFilters = any> {
    * The view's declared ordering — for the view whose question includes one ("oldest shipped
    * first" IS the work list, not a reading preference). Entering the view applies it; the
    * tri-state un-sort and Clear filters return to it instead of the table default; an operator's
-   * own sort overrides it, persisted per view (decision 10's sort half). A view declaring none
-   * keeps whatever ordering the grid already has, exactly as before this field existed.
+   * own sort overrides it, persisted per view on store tables (decision 10's sort half). A view
+   * declaring none keeps whatever ordering the grid already has, exactly as before this field
+   * existed.
    */
   sort?: SortMeta[];
 }

@@ -185,6 +185,13 @@ still the design, and this is where it stands against it.
   an already-empty store leaves the requery effect silent. PrimeNG's table-global persisted
   sort survives as a fallback for views declaring nothing, and its stored copy is rewritten at
   init (`alignPersistedTableStateSort`) so restoreState() cannot re-impose another view's sort.
+  Override persistence is store-tables-only (`viewSortStateKey` gates on `filters`): a
+  storeless table's hide/reset gestures retire sorts through `dropHiddenColumnSort` with no
+  persist call there, so a blind-restored override would re-impose a sort no chip can name.
+  One recorded signal for the still-unbuilt declared-COLUMNS half of this decision: PACMS's
+  "Poslate" view ships its highest-signal column (`deliveredAt`) `visible: false` and tells
+  operators to add it to that view's layout by hand — a second consumer with that shape is the
+  trigger to let a view declare columns too.
 - **The legacy header-filter path is DELETED (2026-09-05), with four rulings made at the wave:**
   - **`spiderly-data-view` is EXCLUDED, deliberately.** It has its own parallel filter config
     (`DataViewFilter` — its own `filterField`/`showMatchModes`) and no bar equivalent, so
