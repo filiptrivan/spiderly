@@ -586,6 +586,26 @@ export class {{entityName}}DetailsComponent extends BaseFormComponent<{{entityNa
 
         public static string GetSpiderlyAngularTableTsTemplate(string entityName)
         {
+            return GetAngularTableListComponentTs(
+                entityName,
+                spiderlyImports: "Column, createFilterStore, numberFilter, SpiderlyDataTableComponent",
+                filterEntries: """
+        id: numberFilter({ label: t('Id') }),
+""",
+                colEntries: """
+            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
+""");
+        }
+
+        /// <summary>
+        /// The ONE list-component TS template — the generic entity scaffold and the seeded
+        /// Role/User pages all emit through it, so a new table-surface feature (a store entry
+        /// shape, a new input) lands in every scaffold with one edit. Nothing snapshots these
+        /// templates; the e2e init pipeline compiling the emitted app is the only gate, which is
+        /// exactly why three hand-kept near-copies kept drifting.
+        /// </summary>
+        private static string GetAngularTableListComponentTs(string entityName, string spiderlyImports, string filterEntries, string colEntries)
+        {
             string kebabEntityName = entityName.ToKebabCase();
 
             return $$"""
@@ -593,13 +613,13 @@ import { ApiService } from 'src/app/business/services/api/api.service';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { Component, OnInit } from '@angular/core';
 import { {{entityName}} } from 'src/app/business/entities/entities.generated';
-import { Column, createFilterStore, numberFilter, SpiderlyDataTableComponent } from 'spiderly';
+import { {{spiderlyImports}} } from 'spiderly';
 
 // The table's filter surface: one declared filter per filterable column. Declared apart from the
 // component so the store's ids stay typed at every call site (views, programmatic writes).
 function create{{entityName}}Filters(t: (key: string) => string) {
     return createFilterStore({
-        id: numberFilter({ label: t('Id') }),
+{{filterEntries.TrimEnd()}}
     });
 }
 
@@ -628,10 +648,10 @@ export class {{entityName}}ListComponent implements OnInit {
     ngOnInit(){
         this.filters = create{{entityName}}Filters((key) => this.translocoService.translate(key));
         this.cols = [
-            {name: this.translocoService.translate('Id'), filterType: 'numeric', field: 'id'},
+{{colEntries.TrimEnd()}}
             {actions:[
                 {name: this.translocoService.translate('Details'), field: 'Details'},
-                {name:  this.translocoService.translate('Delete'), field: 'Delete'},
+                {name: this.translocoService.translate('Delete'), field: 'Delete'},
             ]},
         ]
     }
@@ -778,75 +798,27 @@ export class RoleDetailsComponent extends BaseFormComponent<RoleMainUIForm, Role
 """;
         }
 
-        private static string GetRoleTableComponentHtmlData()
-        {
-            return $$"""
-<ng-container *transloco="let t">
-    <spiderly-data-table
-    [tableTitle]="t('RoleList')"
-    [cols]="cols"
-    [filters]="filters"
-    [getPaginatedListObservableMethod]="getPaginatedRoleListObservableMethod"
-    [exportListToExcelObservableMethod]="exportRoleListToExcelObservableMethod"
-    [deleteItemFromTableObservableMethod]="deleteRoleObservableMethod"
-    [deleteListFromTableObservableMethod]="deleteRoleListObservableMethod"
-    ></spiderly-data-table>
-</ng-container>
-""";
-        }
+        private static string GetRoleTableComponentHtmlData() =>
+            GetSpiderlyAngularTableHtmlTemplate("Role");
 
         private static string GetRoleTableComponentTsData()
         {
-            return $$"""
-import { Component, OnInit } from '@angular/core';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { ApiService } from 'src/app/business/services/api/api.service';
-import { Column, createFilterStore, dateFilter, SpiderlyDataTableComponent, textFilter } from 'spiderly';
-import { Role } from 'src/app/business/entities/entities.generated';
-
-function createRoleFilters(t: (key: string) => string) {
-    return createFilterStore({
+            return GetAngularTableListComponentTs(
+                "Role",
+                spiderlyImports: "Column, createFilterStore, dateFilter, MatchModeCodes, SpiderlyDataTableComponent, textFilter",
+                filterEntries: """
         name: textFilter({ label: t('Name') }),
-        createdAt: dateFilter({ label: t('CreatedAt') }),
-    });
-}
-
-@Component({
-    selector: 'role-list',
-    templateUrl: './role-list.component.html',
-    imports: [
-        TranslocoDirective,
-        SpiderlyDataTableComponent
-    ]
-})
-export class RoleListComponent implements OnInit {
-    cols: Column<Role>[];
-    filters: ReturnType<typeof createRoleFilters>;
-
-    getPaginatedRoleListObservableMethod = this.apiService.getPaginatedRoleList;
-    exportRoleListToExcelObservableMethod = this.apiService.exportRoleListToExcel;
-    deleteRoleObservableMethod = this.apiService.deleteRole;
-    deleteRoleListObservableMethod = this.apiService.deleteRoleList;
-
-    constructor(
-        private apiService: ApiService,
-        private translocoService: TranslocoService,
-    ) { }
-
-    ngOnInit(){
-        this.filters = createRoleFilters((key) => this.translocoService.translate(key));
-        this.cols = [
+        // Equals on a timestamp matches only the row written in that exact second and answers
+        // with an empty grid, so a datetime filter offers only after/before.
+        createdAt: dateFilter({
+            label: t('CreatedAt'),
+            operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
+        }),
+""",
+                colEntries: """
             {name: this.translocoService.translate('Name'), filterType: 'text', field: 'name'},
             {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
-            {actions:[
-                {name: this.translocoService.translate('Details'), field: 'Details'},
-                {name: this.translocoService.translate('Delete'), field: 'Delete'},
-            ]},
-        ]
-    }
-}
-
-""";
+""");
         }
 
         private static string GetUserDetailsComponentHtmlData()
@@ -943,75 +915,27 @@ export class UserDetailsComponent extends BaseFormComponent<UserMainUIForm, User
 """;
         }
 
-        private static string GetUserTableComponentHtmlData()
-        {
-            return $$"""
-<ng-container *transloco="let t">
-    <spiderly-data-table
-    [tableTitle]="t('UserList')"
-    [cols]="cols"
-    [filters]="filters"
-    [getPaginatedListObservableMethod]="getPaginatedUserListObservableMethod"
-    [exportListToExcelObservableMethod]="exportUserListToExcelObservableMethod"
-    [deleteItemFromTableObservableMethod]="deleteUserObservableMethod"
-    [deleteListFromTableObservableMethod]="deleteUserListObservableMethod"
-    ></spiderly-data-table>
-</ng-container>
-""";
-        }
+        private static string GetUserTableComponentHtmlData() =>
+            GetSpiderlyAngularTableHtmlTemplate("User");
 
         private static string GetUserTableComponentTsData()
         {
-            return $$"""
-import { ApiService } from '../../../business/services/api/api.service';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Component, OnInit } from '@angular/core';
-import { User } from 'src/app/business/entities/entities.generated';
-import { Column, createFilterStore, dateFilter, SpiderlyDataTableComponent, textFilter } from 'spiderly';
-
-function createUserFilters(t: (key: string) => string) {
-    return createFilterStore({
+            return GetAngularTableListComponentTs(
+                "User",
+                spiderlyImports: "Column, createFilterStore, dateFilter, MatchModeCodes, SpiderlyDataTableComponent, textFilter",
+                filterEntries: """
         email: textFilter({ label: t('Email') }),
-        createdAt: dateFilter({ label: t('CreatedAt') }),
-    });
-}
-
-@Component({
-    selector: 'user-list',
-    templateUrl: './user-list.component.html',
-    imports: [
-        TranslocoDirective,
-        SpiderlyDataTableComponent,
-    ]
-})
-export class UserListComponent implements OnInit {
-    cols: Column<User>[];
-    filters: ReturnType<typeof createUserFilters>;
-
-    getPaginatedUserListObservableMethod = this.apiService.getPaginatedUserList;
-    exportUserListToExcelObservableMethod = this.apiService.exportUserListToExcel;
-    deleteUserObservableMethod = this.apiService.deleteUser;
-    deleteUserListObservableMethod = this.apiService.deleteUserList;
-
-    constructor(
-        private apiService: ApiService,
-        private translocoService: TranslocoService,
-    ) { }
-
-    ngOnInit(){
-        this.filters = createUserFilters((key) => this.translocoService.translate(key));
-        this.cols = [
+        // Equals on a timestamp matches only the row written in that exact second and answers
+        // with an empty grid, so a datetime filter offers only after/before.
+        createdAt: dateFilter({
+            label: t('CreatedAt'),
+            operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
+        }),
+""",
+                colEntries: """
             {name: this.translocoService.translate('Email'), filterType: 'text', field: 'email'},
             {name: this.translocoService.translate('CreatedAt'), filterType: 'date', field: 'createdAt'},
-            {actions:[
-                {name: this.translocoService.translate('Details'), field: 'Details'},
-                {name:  this.translocoService.translate('Delete'), field: 'Delete'},
-            ]},
-        ]
-    }
-}
-
-""";
+""");
         }
 
         private static string GetHomepageComponentHtmlData(string appName)

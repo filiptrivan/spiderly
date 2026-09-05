@@ -255,9 +255,7 @@ test.describe('Product CRUD Operations', () => {
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1)).toBeTruthy();
 
     // The store snapshot: filter id → { operator, value }, operators on the wire vocabulary.
-    const preReloadFilters = await listPage.getSessionStorageEntry<
-      Record<string, { operator: string; value: unknown }>
-    >(`${stateKey}:filters`);
+    const preReloadFilters = await listPage.storedFilterSnapshot(stateKey);
     expect(preReloadFilters).not.toBeNull();
     expect(preReloadFilters!['name']).toEqual({ operator: 'contains', value: 'Widget' });
     expect(preReloadFilters!['price']).toEqual({ operator: 'greaterThan', value: 100 });
@@ -269,7 +267,7 @@ test.describe('Product CRUD Operations', () => {
 
     const postReload = await listPage.getSessionStorageEntry<typeof preReload>(stateKey);
     expect(postReload).toEqual(preReload);
-    const postReloadFilters = await listPage.getSessionStorageEntry(`${stateKey}:filters`);
+    const postReloadFilters = await listPage.storedFilterSnapshot(stateKey);
     expect(postReloadFilters).toEqual(preReloadFilters);
     // The restored constraints are visible on the bar, one chip each.
     await expect(page.getByTestId('filter-chip')).toHaveCount(3);
@@ -279,7 +277,7 @@ test.describe('Product CRUD Operations', () => {
     await page.waitForLoadState('networkidle');
     const afterClear = await listPage.getSessionStorageEntry(stateKey);
     expect(afterClear).toBeNull();
-    const afterClearFilters = await listPage.getSessionStorageEntry(`${stateKey}:filters`);
+    const afterClearFilters = await listPage.storedFilterSnapshot(stateKey);
     expect(afterClearFilters).toBeNull();
   });
 });

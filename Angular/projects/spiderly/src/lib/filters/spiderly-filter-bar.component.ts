@@ -235,6 +235,7 @@ export function foldForSearch(value: string): string {
               <p-select
                 size="small"
                 styleClass="filter-editor-operator"
+                data-testid="filter-editor-operator"
                 [options]="operatorChoices()"
                 optionLabel="label"
                 optionValue="value"
@@ -255,6 +256,7 @@ export function foldForSearch(value: string): string {
               <p-multiSelect
                 size="small"
                 styleClass="filter-editor-value"
+                data-testid="filter-editor-value"
                 [options]="handle.options"
                 optionLabel="label"
                 optionValue="value"
@@ -265,6 +267,7 @@ export function foldForSearch(value: string): string {
             } @else if (handle.kind === 'boolean') {
               <p-checkbox
                 styleClass="filter-editor-value"
+                data-testid="filter-editor-value"
                 [binary]="true"
                 [ngModel]="handle.value() === true"
                 (onChange)="draftValue(handle, $event.checked)"
@@ -273,6 +276,7 @@ export function foldForSearch(value: string): string {
               <p-datepicker
                 size="small"
                 styleClass="filter-editor-value"
+                data-testid="filter-editor-value"
                 [ngModel]="handle.value()"
                 (onSelect)="draftValue(handle, $event)"
               ></p-datepicker>

@@ -246,8 +246,9 @@ still the design, and this is where it stands against it.
     while both paths coexisted it was gated off on store tables) — decision 2b's other half:
     hiding a column keeps its filter AND sort, `defaultMultiSortMeta` applies the default even
     on a hidden column, and stale header-filter meta in an old persisted blob never reaches a
-    request (the store payload replaces `event.filters`). The bar and sort chip are the visible
-    surface for all of it.
+    request (`lazyLoad` overwrites `event.filters` with the store payload, or `{}` on a
+    storeless table — unconditional, so the guarantee holds by construction). The bar and sort
+    chip are the visible surface for all of it.
   - `TableView.transient` — a view whose `apply` is a function of NOW ("Danas primljene")
     re-applies on every select instead of restoring; stored-wins would put yesterday's date
     under a tab claiming "today". Layout still persists per view.

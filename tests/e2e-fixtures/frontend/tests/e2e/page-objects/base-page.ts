@@ -80,20 +80,26 @@ export class BasePage {
   // --- Spiderly data-table helpers ---
   // The filter surface is the chip bar above the table (spiderly-filter-bar). Its DOM is
   // spiderly-authored and addressed by data-testid:
-  //   add-filter          — the "+ Filter" button (opens a searchable popover of filters)
-  //   add-filter-option   — one filter in that popover, matched by its label
-  //   filter-editor       — the editor row that opens under the chips
-  //   filter-editor-value — the editor's text/number input (bar-drawn controls only)
-  //   filter-editor-apply — the commit button; every kind commits through it
-  //   filter-chip         — one applied constraint
-  //   filter-bar-clear    — Clear filters (renders only while something is applied)
+  //   add-filter             — the "+ Filter" button (opens a searchable popover of filters)
+  //   add-filter-option      — one filter in that popover, matched by its label
+  //   filter-editor          — the editor row that opens under the chips
+  //   filter-editor-operator — the operator picker's trigger (its option list is PrimeNG-rendered)
+  //   filter-editor-value    — the editor's value control, whatever its kind draws
+  //   filter-editor-apply    — the commit button; every kind commits through it
+  //   filter-chip            — one applied constraint
+  //   filter-bar-clear       — Clear filters (renders only while something is applied)
   // Operator labels are the translocoService output (en.json): 'MoreThan' key → 'More than'.
   // PrimeNG bits that remain: .p-datatable-mask (loading overlay),
   // .p-paginator-page-selected (selected pager page).
 
+  // The one matching policy for user-visible labels: whole string, case-insensitive,
+  // whitespace-tolerant. Shared so a label edge case is fixed in one place.
+  private exactLabel(label: string): RegExp {
+    return new RegExp(`^\\s*${label}\\s*$`, 'i');
+  }
+
   private columnHeader(columnLabel: string) {
-    const pattern = new RegExp(`^\\s*${columnLabel}\\s*$`, 'i');
-    return this.page.locator('thead th').filter({ has: this.page.locator('span', { hasText: pattern }) });
+    return this.page.locator('thead th').filter({ has: this.page.locator('span', { hasText: this.exactLabel(columnLabel) }) });
   }
 
   // PrimeNG v19 renders <div class="p-datatable-mask p-overlay-mask"> over the
@@ -111,8 +117,7 @@ export class BasePage {
   private async openFilterEditor(filterLabel: string) {
     await this.waitForTableLoad();
     await this.page.getByTestId('add-filter').click();
-    const pattern = new RegExp(`^\\s*${filterLabel}\\s*$`, 'i');
-    await this.page.getByTestId('add-filter-option').filter({ hasText: pattern }).first().click();
+    await this.page.getByTestId('add-filter-option').filter({ hasText: this.exactLabel(filterLabel) }).first().click();
     await expect(this.page.getByTestId('filter-editor')).toBeVisible();
   }
 
@@ -135,8 +140,9 @@ export class BasePage {
   async applyNumericFilter(filterLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
     const matchModeLabels = { equals: 'Equals', lessThan: 'Less than', greaterThan: 'More than' } as const;
     await this.openFilterEditor(filterLabel);
-    const editor = this.page.getByTestId('filter-editor');
-    await editor.locator('p-select').first().click();
+    await this.page.getByTestId('filter-editor-operator').click();
+    // The option list is PrimeNG-rendered inside a teleported overlay, so only the trigger
+    // carries a testid; the option class is the one PrimeNG dependency left here.
     await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
     await this.page.getByTestId('filter-editor-value').fill(String(value));
     await this.applyFilterEditor();
@@ -147,7 +153,7 @@ export class BasePage {
     // The editor draws a BINARY p-checkbox that starts unchecked: one click drafts true,
     // a second drafts false. Drafts reach nothing until Apply commits them.
     const clicks = value ? 1 : 2;
-    const box = this.page.getByTestId('filter-editor').locator('.p-checkbox-box').first();
+    const box = this.page.getByTestId('filter-editor-value').locator('.p-checkbox-box').first();
     for (let i = 0; i < clicks; i++) {
       await box.click();
     }
@@ -158,8 +164,17 @@ export class BasePage {
     await this.page.getByTestId('filter-bar-clear').click();
   }
 
+  // The persistence-key rule's one home on the test side: applied filters live under
+  // `${stateKey}:filters` as the store snapshot — filter id → { operator, value } on the wire
+  // vocabulary ('contains', 'greaterThan', ...). Specs assert the CONTENT; the key shape is ours.
+  async storedFilterSnapshot(stateKey: string) {
+    return await this.getSessionStorageEntry<Record<string, { operator: string; value: unknown }>>(
+      `${stateKey}:filters`,
+    );
+  }
+
   async sortByColumn(columnLabel: string, opts: { multi?: boolean } = {}) {
-    // Same loading-mask block as openColumnFilter — each prior filter/sort
+    // Same loading-mask block as openFilterEditor — each prior filter/sort
     // triggers a reload, and the mask covers headers until it resolves.
     await this.waitForTableLoad();
     const header = this.columnHeader(columnLabel).first();

@@ -36,16 +36,16 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
 }
 
 /**
- * Transloco keys for the operator a control offers. Reuses the keys the data table's
- * `matchModeDateOptions` / `matchModeTextOptions` / `matchModeNumberOptions` already populate, so
- * no new seed is needed and one operator cannot be worded two ways in one admin. The wording is
- * per KIND on purpose: `LessThan` reads "Less than" for a number and "Dates before" for a date.
+ * Transloco keys for the operator a control offers. The keys are seeded in the init template's
+ * en block (`NetAndAngularFilesGenerator.cs`), so one operator cannot be worded two ways in one
+ * admin. The wording is per KIND on purpose: `LessThan` reads "Less than" for a number and
+ * "Dates before" for a date.
  *
- * The operator TABLE itself lives in `allowed-operators.ts`, the one telling all three surfaces
- * derive from (this store, `FilterRule`'s compile-time union, the legacy header dropdowns).
+ * The operator TABLE itself lives in `allowed-operators.ts`, the one telling both consumers
+ * derive from (this store's runtime lists, `FilterRule`'s compile-time union).
  */
 interface OperatorWords {
-  /** The picker's option label. Reuses the data table's existing keys. */
+  /** The picker's option label. */
   pickerKey: string;
   /**
    * The chip's inline phrase, which cannot reuse the picker key: those are capitalised option

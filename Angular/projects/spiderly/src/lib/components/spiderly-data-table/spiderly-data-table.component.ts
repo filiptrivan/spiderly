@@ -29,9 +29,7 @@ import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { SortMeta } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
-import { DatePickerModule } from 'primeng/datepicker';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { MultiSelectModule } from 'primeng/multiselect';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { Table, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
@@ -103,9 +101,7 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
     SpiderlyControlsModule,
     TableModule,
     ButtonModule,
-    MultiSelectModule,
     PopoverModule,
-    DatePickerModule,
     CheckboxModule,
     SpiderlyFilterBarComponent,
     SpiderlyOverflowTitleDirective,
@@ -229,11 +225,9 @@ export class SpiderlyDataTableComponent
   @Input() cols: Column[];
 
   /**
-   * The consumer's filter store. Supplying it switches this table's filter surface to the chip
-   * bar and takes `p-columnFilter` out of the header; supplying nothing keeps the legacy
-   * `Column.filterType` header filters. The SHAPE of the input is the switch, deliberately — see
-   * CLAUDE.md -> "Operator-owned view", decision 2 — so consumers migrate one table at a time and
-   * the legacy path is deletable once nothing passes the old shape.
+   * The consumer's filter store — the table's WHOLE filter surface, rendered as the chip bar. A
+   * table given none has no filtering at all (`Column.filterType` is only the value's shape; the
+   * legacy header-filter fallback was deleted — CLAUDE.md -> "Operator-owned view").
    *
    * READ ONCE, in ngOnInit — a store assigned later is silently ignored: the requery effect
    * stays subscribed to the first store's `applied()`, and `resolvedStateKey` (which
@@ -959,9 +953,12 @@ export class SpiderlyDataTableComponent
     let tableFilter: Filter = event as unknown as Filter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
 
-    // With a store supplied, IT is the source of truth for what narrows the grid — PrimeNG's own
-    // `event.filters` carries only what its header controls wrote, and those are gone.
-    if (this.filters) tableFilter.filters = this.filters.toFilterPayload();
+    // The store is the ONLY source of what narrows the grid, on every table. Unconditional on
+    // purpose: with the header filters gone, the one remaining writer of PrimeNG's own
+    // `event.filters` is a stale persisted blob from the header-filter era replayed by
+    // `restoreState` — and letting that through would narrow a storeless table invisibly, with
+    // no chip and no button left to clear it.
+    tableFilter.filters = this.filters?.toFilterPayload() ?? {};
 
     this.onLazyLoad.next(tableFilter);
 
@@ -1753,9 +1750,8 @@ export class SpiderlyDataTableComponent
         const local = typeof raw === 'string' ? parseDateOnlyLocal(raw) : null;
         return formatDate(local ?? raw, 'shortDate', this.locale);
       case 'multiselect': {
-        // Translate through the column's own option list — the same list its filter dropdown
-        // already renders labels from. Without this the cell shows the stored value, so an enum
-        // column reads `1` while its filter offers "Info", and an FK column reads the id.
+        // Translate through the column's own option list. Without this the cell shows the stored
+        // value, so an enum column reads `1` instead of "Info", and an FK column reads the id.
         //
         // Match on `code`, not `value`: that is the property PrimengOption carries (see the note
         // on the class). The raw value is the fallback rather than an empty cell, because the
