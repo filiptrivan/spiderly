@@ -190,7 +190,7 @@ Every paginated table offers a rows-per-page dropdown — `rowsPerPageOptions`, 
 ```typescript
 cols: Column<ProductDTO>[] = [
   new Column({ field: 'title', name: 'Title', filterType: 'text', lockVisible: true }),
-  new Column({ field: 'price', name: 'Price', filterType: 'numeric', showMatchModes: true, decimalPlaces: 2 }),
+  new Column({ field: 'price', name: 'Price', filterType: 'numeric', decimalPlaces: 2 }),
   new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true, visible: false }),
   new Column({ field: 'isActive', name: 'Active', filterType: 'boolean' }),
   new Column({ field: 'categoryDisplayName', name: 'Category', filterType: 'multiselect',
@@ -209,7 +209,7 @@ Headers are click-to-sort by default; disable with `sortable: false`. Columns wh
 
 The table lays its columns out from their **declared widths, never from the rows on screen** (`table-layout: fixed`). The browser default would size every column from the content of the page currently rendered, so a column is one width on this page and another on the next, and a filter — which narrows the variety of values in the column it filters — shifts the whole grid under an operator who is scanning it.
 
-Widths default per `filterType` and are sized for the **header** — the filter input plus its match-mode dropdown — so a column of short values (an amount, a status code) reserves more than it uses. `width: '8rem'` overrides the default for one column.
+Widths default per `filterType` (the column's value shape) and are generous, so a column of short values (an amount, a status code) may reserve more than it uses. `width: '8rem'` overrides the default for one column.
 
 Declared widths behave as **ratios**, not caps: the table shares its surplus in proportion to them, so a column carrying long values wants the larger number. A table whose columns need more room than its container gets is widened to their sum and scrolls horizontally, rather than crushing the columns.
 
@@ -225,22 +225,52 @@ Because a column no longer widens to fit its text, long values wrap and would gr
 
 The table sets those two properties on a cell whose column the operator wrapped from the header menu ("wrap text"), and they inherit into projected markup — so a clamp written this way follows the toggle for free, while a hard-coded `white-space: nowrap` turns the menu item into a silent no-op for your column. (`text-overflow` stays literal: it has no effect once `overflow` is `visible`, so the contract doesn't carry it.) Two traps when you write that rule: a flex item needs `min-width: 0` (its default `min-width: auto` floors it at the content width and the ellipsis never fires), and any pill or badge sitting beside the text needs `flex: none` so the text is what gives way.
 
-`matchModes` narrows the match modes a column offers: declaration order is display order, and the **first entry becomes the column's default** match mode. Use it when a mode can only mislead — e.g. a datetime column, where an exact-equals match on a timestamp can never hit:
+### Filtering — the filter store and chip bar
+
+The table's **whole filter surface is a store the page owns** and hands to `[filters]`; a table given none has no filtering at all (`Column.filterType` describes the value's shape — width, cell rendering — never a filter). Declare the store beside the columns, one filter per question the screen answers:
 
 ```typescript
-new Column({ field: 'createdAt', name: 'Created', filterType: 'date', showTime: true,
-  showMatchModes: true, matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan] }),
+import { booleanFilter, createFilterStore, dateFilter, MatchModeCodes, numberFilter, textFilter } from 'spiderly';
+
+function createProductFilters(t: (key: string) => string) {
+  return createFilterStore({
+    name: textFilter({ label: t('Name') }),
+    price: numberFilter({ label: t('Price') }),
+    isActive: booleanFilter({ label: t('IsActive') }),
+    // `operators` narrows what the editor offers; the FIRST entry is the default. Typed per
+    // kind, so an operator the backend cannot answer is a build error at the declaration.
+    createdAt: dateFilter({ label: t('CreatedAt'),
+      operators: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan] }),
+    // options make it a pick-list (the `in` operator); only numberFilter accepts them.
+    statusId: numberFilter({ label: t('Status'), options: this.statusOptions }),
+  });
+}
 ```
 
-Three things to know:
+```typescript
+filters = createProductFilters((key) => this.translocoService.translate(key));
+```
 
-- The offered list is only *visible* with `showMatchModes: true`, but the **default applies either way** — declaring `matchModes` on a column with no picker is the supported way to change just that column's default mode.
-- It is read at **declaration time**. PrimeNG builds the dropdown once, so reassigning `col.matchModes` later never reaches the rendered menu.
-- Only modes the filter type actually offers are honored (`text`: starts-with / contains / equals; `numeric` and `date`: their three each). Anything else is logged to the console and ignored, and a narrowing that leaves nothing falls back to the full list — the alternative is an empty dropdown you cannot pick from, plus a match mode the backend rejects with a 400.
+```html
+<spiderly-data-table [cols]="cols" [filters]="filters" ...></spiderly-data-table>
+```
+
+The table renders the store as a **chip bar** above the header: one chip per *applied* filter, a read-only sort chip, the result count, `+ Filter` (a searchable popover of every declared filter) and Clear filters. Rules that follow:
+
+- **Store ids are backend property names** — they go straight into the paginated request — so they normally repeat the column's `field`. A column whose filter id differs links to it with `Column.filterId` (that is what the header menu's `Filter…` opens); columns never *declare* filters.
+- **Filters live independently of columns.** A filter with no column, or with a hidden one, is still offered and still narrows the grid — the chip is the visible surface, so hiding a column keeps its filter and sort.
+- **`[filters]` is read once, in the table's `ngOnInit`.** A store assigned later is silently ignored; a page that must swap stores at runtime destroys and recreates the table around the swap (`@if` on a view-model field).
+- **Late-arriving options go through `store.setOptions(id, options)`** — it re-resolves the offered operators and open editors read it live. Never write `definitions[id].options` by hand.
+- **Programmatic writes use `setAndCommit(id, { operator, value })`** (a view's `apply`, a bulk-action flow). A bare `set` without `commit` changes only the draft and fails silently.
+- **`offered: false`** keeps a filter out of `+ Filter` when a dedicated control on the page drives it through `filters.get(id)` (render the handle's `value()` draft, `commit()` on your own cadence — a search box, typically). Its chip still renders when applied.
+- **Applied filters persist** under `` `${stateKey}:filters` `` in the `stateStorage` storage (session by default), separately from PrimeNG's own sort/pagination blob under `` `${stateKey}` ``.
+- **A custom editor control for one filter** is a projected `<ng-template spiderlyFilterTemplate="filterId" let-f>`: drive it through the handle (`f.value()`, `f.set(...)`, `f.commit()`). Filters without a template keep the control the bar draws for their kind.
+
+**Views** (`[views]`, `TableView[]`) are saved questions rendered as tabs above the bar: each `apply` receives the cleared store (a view is a state, not an addition) and writes with `setAndCommit`; a view whose apply is a function of *now* ("received today") declares `transient: true` so selecting it re-derives instead of restoring yesterday's answer. Column layout (visibility, order, widths, wrap) persists per view.
 
 ### Column chooser (show/hide columns)
 
-Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Because a column's header is the table's only filter surface, showing a column is what makes it filterable — declare rarely-needed but filter-worthy columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Rules the table enforces: hiding a column clears its active filter + sort (one reload; plain hides don't hit the server), choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
+Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Declare rarely-needed columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Hiding a column never touches its filter or sort — the chip bar is where both stay visible. Choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
 
 The `onClick` callback receives an `ActionClickEvent` — `{ id, row, element, originalEvent }`. Use `element` (or `originalEvent`) to anchor an overlay/popover to the clicked action; `row` gives you the full row object. It fires only for custom `field` values (never `'Details'` / `'Delete'`).
 
@@ -293,14 +323,14 @@ Project an `<ng-template spiderlyCellTemplate="field">` to render one column's c
 ```
 
 - Context: `let-row` (`$implicit`, the full row), `let-value="value"` (raw), `let-displayValue="displayValue"` (**what the table would have rendered** — formatted for the column's `filterType` and the app's `LOCALE_ID`, so a template that only decorates the value never re-implements that), `let-col="col"`. `value` / `displayValue` mean the same here as on `CellClickEvent`, so a column carrying both a click handler and a template reads one vocabulary.
-- **Cells only.** The header, its filter and its sorting are untouched, and the filter still works on the underlying `field` whatever the template draws.
+- **Cells only.** The header and its sorting are untouched, and the column's filter (a store entry, see Filtering above) works whatever the template draws.
 - The template binds to the **consuming component**, so its handlers and pipes are yours.
 - A real `<a [routerLink]>` here beats `onCellClick` for navigation — middle-click and Ctrl+click open a new tab, which a JavaScript `navigate()` does not.
 - This is also the way out of the enum-cell limit: a `multiselect` column renders the raw stored value in its cell (the table does not map it through `dropdownOrMultiselectValues`), so a template that draws the label from the row's id gets the checkbox filter *and* readable cells.
 
 ### Custom Toolbar Actions
 
-Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or any markup) to the table's toolbar, alongside the built-in Clear Filters / Export to Excel / Reload / Delete Selected buttons. Import `SpiderlyDataTableActionsDirective` in the consuming component.
+Project an `<ng-template spiderlyDataTableActions>` to add your own buttons (or any markup) to the table's toolbar, alongside the built-in Columns / Export to Excel / Reload / Delete Selected buttons. Import `SpiderlyDataTableActionsDirective` in the consuming component.
 
 ```html
 <spiderly-data-table [cols]="cols" [getPaginatedListObservableMethod]="getListMethod">
@@ -340,6 +370,8 @@ Set the inset rather than stretching `--spiderly-topbar-height`, which is the to
 | Input                              | Type                     | Default | Purpose                 |
 | ---------------------------------- | ------------------------ | ------- | ----------------------- |
 | `cols`                             | `Column[]`               | —       | Column definitions      |
+| `filters`                          | `FilterSource`           | —       | The page's filter store (see Filtering); read once at init |
+| `views`                            | `TableView[]`            | —       | Saved questions rendered as tabs above the bar |
 | `getPaginatedListObservableMethod` | `(filter) => Observable` | —       | Server-side data source |
 | `additionalFilterIdLong`           | `number`                 | —       | Parent entity filter    |
 | `hasLazyLoad`                      | `boolean`                | `true`  | Server vs client mode   |

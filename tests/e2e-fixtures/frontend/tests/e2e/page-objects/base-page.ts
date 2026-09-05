@@ -78,15 +78,18 @@ export class BasePage {
   }
 
   // --- Spiderly data-table helpers ---
-  // PrimeNG v19 DOM (verified from primeng-table source + live CI trace):
-  //   .p-datatable-mask                  — loading overlay (z-index 3, covers headers too)
-  //   .p-datatable-column-filter-button  — filter icon in the column header
-  //   .p-datatable-filter-overlay        — popup containing the filter form
-  //   .p-paginator-page-selected         — selected pager page
-  // The Apply/Clear buttons in the popup footer are <p-button> elements without
-  // any identifying class (the pcFilterApplyButton entry in PrimeNG's classes
-  // table is unused at render time), so we match them by accessible name.
-  // Spiderly's matchModeNumberOptions render labels 'Equals', 'LessThan', 'MoreThan'.
+  // The filter surface is the chip bar above the table (spiderly-filter-bar). Its DOM is
+  // spiderly-authored and addressed by data-testid:
+  //   add-filter          — the "+ Filter" button (opens a searchable popover of filters)
+  //   add-filter-option   — one filter in that popover, matched by its label
+  //   filter-editor       — the editor row that opens under the chips
+  //   filter-editor-value — the editor's text/number input (bar-drawn controls only)
+  //   filter-editor-apply — the commit button; every kind commits through it
+  //   filter-chip         — one applied constraint
+  //   filter-bar-clear    — Clear filters (renders only while something is applied)
+  // Operator labels are the translocoService output (en.json): 'MoreThan' key → 'More than'.
+  // PrimeNG bits that remain: .p-datatable-mask (loading overlay),
+  // .p-paginator-page-selected (selected pager page).
 
   private columnHeader(columnLabel: string) {
     const pattern = new RegExp(`^\\s*${columnLabel}\\s*$`, 'i');
@@ -95,7 +98,7 @@ export class BasePage {
 
   // PrimeNG v19 renders <div class="p-datatable-mask p-overlay-mask"> over the
   // ENTIRE table (including thead) at z-index 3 while [loading]="true". The mask
-  // intercepts pointer events, so a click on the filter button times out on the
+  // intercepts pointer events, so a click on a header times out on the
   // visibility/stability gate until the lazy data load resolves. `toBeHidden`
   // passes both when the mask is hidden AND when it never appeared, so it stays
   // correct on tables that load synchronously.
@@ -103,65 +106,56 @@ export class BasePage {
     await expect(this.page.locator('.p-datatable-mask')).toBeHidden({ timeout: 15000 });
   }
 
-  private async openColumnFilter(columnLabel: string) {
+  // Opens the bar's editor for the named filter via "+ Filter". The popover teleports to
+  // document.body, so its options are addressed from the page, not the bar.
+  private async openFilterEditor(filterLabel: string) {
     await this.waitForTableLoad();
-    await this.columnHeader(columnLabel).locator('.p-datatable-column-filter-button').first().click();
-    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeVisible();
+    await this.page.getByTestId('add-filter').click();
+    const pattern = new RegExp(`^\\s*${filterLabel}\\s*$`, 'i');
+    await this.page.getByTestId('add-filter-option').filter({ hasText: pattern }).first().click();
+    await expect(this.page.getByTestId('filter-editor')).toBeVisible();
   }
 
-  private async applyColumnFilter() {
-    await this.page.locator('.p-datatable-filter-overlay').getByRole('button', { name: 'Apply' }).first().click();
-    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeHidden();
+  // Every kind commits through the editor's Apply, and a commit re-queries — awaited to its
+  // own list fetch because the table does not sequence concurrent lazy loads: overlapping
+  // this filter's load with the next helper's would be a race authored into the suite.
+  private async applyFilterEditor() {
+    const applied = this.page.waitForResponse((r) => /\/GetPaginated\w+List$/.test(new URL(r.url()).pathname));
+    await this.page.getByTestId('filter-editor-apply').click();
+    await applied;
+    await expect(this.page.getByTestId('filter-editor')).toBeHidden();
   }
 
-  async applyTextFilter(columnLabel: string, value: string) {
-    await this.openColumnFilter(columnLabel);
-    await this.page.locator('.p-datatable-filter-overlay input[type="text"]').first().fill(value);
-    await this.applyColumnFilter();
+  async applyTextFilter(filterLabel: string, value: string) {
+    await this.openFilterEditor(filterLabel);
+    await this.page.getByTestId('filter-editor-value').fill(value);
+    await this.applyFilterEditor();
   }
 
-  async applyNumericFilter(columnLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
-    // Match mode option labels are the translocoService output (en.json):
-    // 'MoreThan' key → 'More than' rendered text. Spiderly's column must have
-    // showMatchModes:true for PrimeNG to render the match-mode <p-select>.
+  async applyNumericFilter(filterLabel: string, value: number, matchMode: 'equals' | 'lessThan' | 'greaterThan') {
     const matchModeLabels = { equals: 'Equals', lessThan: 'Less than', greaterThan: 'More than' } as const;
-    await this.openColumnFilter(columnLabel);
-    const overlay = this.page.locator('.p-datatable-filter-overlay');
-    await overlay.locator('p-select').first().click();
+    await this.openFilterEditor(filterLabel);
+    const editor = this.page.getByTestId('filter-editor');
+    await editor.locator('p-select').first().click();
     await this.page.locator('.p-select-overlay .p-select-option', { hasText: matchModeLabels[matchMode] }).first().click();
-    await overlay.locator('p-inputnumber input').first().fill(String(value));
-    await this.applyColumnFilter();
+    await this.page.getByTestId('filter-editor-value').fill(String(value));
+    await this.applyFilterEditor();
   }
 
-  // Boolean is an AUTO-APPLYING filter type, so this menu has no Apply button to press and
-  // does not close itself on commit — the contract is the library's
-  // spiderly-data-table/CLAUDE.md § 'Filter menu Apply button — hidden for auto-applying types'.
-  // PrimeNG's ColumnFilterFormElement.onModelChange calls dt._filter() on every checkbox
-  // change, so the click IS the commit and dismissal is ours (Esc, handled by the overlay's
-  // own keydown.escape; focus sits on the checkbox input inside it after the click).
-  // Each click is awaited to its own list fetch because the table does not sequence
-  // concurrent lazy loads — overlapping this filter's load with the next helper's would be a
-  // race authored into the suite.
-  async applyBooleanFilter(columnLabel: string, value: boolean) {
-    await this.openColumnFilter(columnLabel);
-    // PrimeNG renders <p-checkbox binary indeterminate> with click cycle null → true → false → null.
-    // Force click bypasses stability check: when the column sits near the viewport
-    // edge (e.g. last column), PrimeNG keeps repositioning the overlay so .p-checkbox-box
-    // never settles long enough for a normal click.
+  async applyBooleanFilter(filterLabel: string, value: boolean) {
+    await this.openFilterEditor(filterLabel);
+    // The editor draws a BINARY p-checkbox that starts unchecked: one click drafts true,
+    // a second drafts false. Drafts reach nothing until Apply commits them.
     const clicks = value ? 1 : 2;
-    const box = this.page.locator('.p-datatable-filter-overlay .p-checkbox-box').first();
+    const box = this.page.getByTestId('filter-editor').locator('.p-checkbox-box').first();
     for (let i = 0; i < clicks; i++) {
-      const applied = this.page.waitForResponse((r) => /\/GetPaginated\w+List$/.test(new URL(r.url()).pathname));
-      await box.click({ force: true });
-      await applied;
+      await box.click();
     }
-    await this.page.keyboard.press('Escape');
-    await expect(this.page.locator('.p-datatable-filter-overlay')).toBeHidden();
+    await this.applyFilterEditor();
   }
 
   async clearTableFilters() {
-    // Spiderly's t('ClearFilters') renders as "Clear all filters" in en.json.
-    await this.page.locator('.table-header button', { hasText: /Clear/i }).click();
+    await this.page.getByTestId('filter-bar-clear').click();
   }
 
   async sortByColumn(columnLabel: string, opts: { multi?: boolean } = {}) {

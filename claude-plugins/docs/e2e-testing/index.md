@@ -93,20 +93,15 @@ The backend allows one CORS origin — `Spiderly.Shared:FrontendUrl` in `appsett
 
 Spiderly's admin UI is built on PrimeNG v19. A few selectors that look obvious from the docs do not work — match what's actually rendered.
 
-- **Filter Apply / Clear buttons have no identifying class.** PrimeNG's documented `pcFilterApplyButton` / `pcFilterClearButton` style classes are not applied to the rendered `<p-button>` elements. Match by accessible name:
-  ```ts
-  overlay.getByRole('button', { name: 'Apply' })
-  ```
-- **Match-mode dropdown is `<p-select>`, not `<p-dropdown>`** — PrimeNG renamed Dropdown to Select in v19. Spiderly's `<spiderly-dropdown>` wraps `<p-select>` internally.
-- **Boolean filter is `<p-checkbox [binary]="true" [indeterminate]="value === null">`**, not `pTriStateCheckbox`. Initial state is `null` (rendered as a horizontal dash); each click cycles `null → true → false → null`.
-- **Filter overlays for the rightmost column get clipped against the viewport.** PrimeNG repositions the overlay frame-by-frame, so Playwright's stability check on inner elements fails (`waiting for element to be visible, enabled and stable`). Pass `click({ force: true })` to bypass the stability gate. Apply/Clear buttons (matched by role) do not need this — only the elements *inside* the overlay (e.g. `.p-checkbox-box`).
+- **Operator dropdown is `<p-select>`, not `<p-dropdown>`** — PrimeNG renamed Dropdown to Select in v19. Spiderly's `<spiderly-dropdown>` wraps `<p-select>` internally.
 
-## Match-mode column configuration
+## Driving the filter bar
 
-For column-config behavior (when the match-mode dropdown renders, how labels resolve), see `Angular/projects/spiderly/src/lib/components/spiderly-data-table/CLAUDE.md`. Two points that commonly bite test authors:
+Filtering is the chip bar above the table (a `spiderly-data-table` given a filter store), addressed by spiderly's own `data-testid`s — stable by contract, unlike PrimeNG's classes: `add-filter` (the `+ Filter` button; its popover teleports to `document.body`), `add-filter-option` (one filter, matched by label), `filter-editor` (the editor row), `filter-editor-value` (its text/number input), `filter-editor-apply` (every kind commits through it), `filter-chip`, `filter-chip-remove`, `filter-bar-clear` (renders only while something is applied), `filter-bar-count`, `sort-chip`. The flow is always open → draft → Apply; a draft reaches nothing until Apply, and each Apply re-queries, so await the paginated-list response per commit rather than stacking them.
 
-- **Numeric and date columns need `showMatchModes: true`** on the `Column<T>` for the match-mode `<p-select>` to render at all. Without it the match-mode UI is silently absent and Playwright selectors for "More than" / "Less than" will time out.
-- **Match-mode option labels are transloco output** (`'More than'`, `'Less than'`), not `MatchModeCodes` keys. Match Playwright selectors against the value in your `en.json` (or the locale your test runs under).
+- **Operator option labels are transloco output** (`'More than'`, `'Less than'`), not `MatchModeCodes` keys. Match Playwright selectors against the value in your `en.json` (or the locale your test runs under). Which operators a filter offers is the store declaration's `operators` (or the kind's full list).
+- **The boolean editor is a binary `<p-checkbox>`** starting unchecked: one click drafts `true`, a second drafts `false`; commit with Apply.
+- **Applied filters persist under `` `${stateKey}:filters` ``** (the store snapshot: `{ id: { operator, value } }` on the wire vocabulary — `'contains'`, `'greaterThan'`, …); sort and pagination stay in PrimeNG's own blob under `` `${stateKey}` ``. Assert each in its own key.
 
 ## Test data: seed and clean
 
@@ -117,12 +112,12 @@ Tests should own their data. Two patterns:
 
 Always use `Promise.all` for seed and cleanup batches. Sequential 40× HTTP round-trips noticeably slow CI; the database has no problem with the concurrency.
 
-## Generated lists ship with the Id column only
+## Generated lists ship with the Id column and an Id filter only
 
-`spiderly add-new-entity` produces a list component with a single numeric Id column plus Details/Delete actions. If your test needs to drive text/numeric/boolean filters, you have two options:
+`spiderly add-new-entity` produces a list component with a single numeric Id column, a filter store declaring just the `id` filter, and Details/Delete actions. If your test needs to drive text/boolean filters, you have two options:
 
-1. **Extend the list component** in your app — add the columns you want to filter on (text, numeric, boolean). The Spiderly admin then has the filter UI your test can target.
-2. **Drive filtering through the API directly** — call the paginated-list endpoint with a `FilterDTO` payload and assert on the response, skipping the UI. Faster, less brittle, but doesn't exercise the column-config code path.
+1. **Extend the list component** in your app — add the columns and the matching store entries (`textFilter`, `numberFilter`, `booleanFilter`, `dateFilter`) for what you want to filter on. The bar then offers them under `+ Filter`.
+2. **Drive filtering through the API directly** — call the paginated-list endpoint with a `FilterDTO` payload and assert on the response, skipping the UI. Faster, less brittle, but doesn't exercise the store-config code path.
 
 ## Debugging a failing Playwright test in CI
 

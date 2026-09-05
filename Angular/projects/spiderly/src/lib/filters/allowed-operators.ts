@@ -5,11 +5,10 @@ import { MatchModeCodes } from '../enums/match-mode-enum-codes';
  * paginator implements per type (`PaginatedResultGenerator`): `In` on a string column answers
  * with InvalidMatchMode, PrimeNG's own text list adds three modes the backend 400s, and so on.
  *
- * Deliberately a LEAF module (imports nothing but the codes) so all three consumers can derive
- * from it without a cycle: the store's runtime validation and offered lists (`filter-store.ts`),
- * the compile-time `FilterRule.matchMode` union (`entities/filter-rule.ts`), and the legacy
- * header filters' dropdown options (`spiderly-data-table`). Those used to be three hand-kept
- * copies; edit the table here and every surface follows.
+ * Deliberately a LEAF module (imports nothing but the codes) so both consumers can derive from
+ * it without a cycle: the store's runtime validation and offered lists (`filter-store.ts`), and
+ * the compile-time `FilterRule.matchMode` union (`entities/filter-rule.ts`). These used to be
+ * hand-kept copies; edit the table here and every surface follows.
  *
  * Tuple order is DISPLAY order for every operator picker (Equals, then "less/before", then
  * "more/after" — the order the header dropdowns always shipped).

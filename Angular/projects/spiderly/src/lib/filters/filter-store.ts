@@ -150,20 +150,6 @@ function toOperatorOptions(
 }
 
 /**
- * A KIND's operator picker options, for callers with no filter behind them — the legacy header
- * dropdowns, which have a filter TYPE and nothing else. Per-FILTER narrowing lives in the store
- * (`createFilterStore` resolves it once per declaration), so this cannot be handed a fake
- * definition to satisfy — that shape shipped once and interpolated an empty filter name into its
- * own error message.
- */
-export function operatorOptionsForKind(
-  kind: FilterValueKind,
-  hasOptions = false,
-): OperatorOption[] {
-  return toOperatorOptions(kind, baseOperators(kind, hasOptions));
-}
-
-/**
  * The operator applied when nobody picked one, which has to be what a person MEANS by filling in
  * the control. `Contains` for a fragment typed into a box; `GreaterThan` for a date, never
  * `Equals` — a date equality against a TIMESTAMP matches only the row written in that exact
@@ -457,7 +443,7 @@ export function createFilterStore<
 
   /**
    * The operator applied when nobody picked one. Options mean `In`, whatever the kind's default;
-   * a narrowed filter defaults to its FIRST declared operator, the `Column.matchModes` rule.
+   * a narrowed filter defaults to its FIRST declared operator.
    */
   const defaultOperatorFor = (id: keyof TDefs): MatchModeCodes => {
     const definition = definitions[id];

@@ -128,25 +128,23 @@ class HostWithoutActionsComponent {
 }
 
 describe('SpiderlyDataTableComponent — toolbar actions projection slot', () => {
-  it('renders the projected actions ahead of the built-in Clear Filters button', () => {
+  it('renders the projected actions ahead of the built-in Export to Excel button', () => {
     const el: HTMLElement = createFixture(HostWithActionsComponent).nativeElement;
 
     const custom = el.querySelector('[data-testid="custom-action"]');
-    const clearFilters = el
-      .querySelector('.pi-filter-slash')
-      ?.closest('button');
+    const exportToExcel = el.querySelector('.pi-download')?.closest('button');
 
     expect(custom)
       .withContext('projected action button should render')
       .toBeTruthy();
-    expect(clearFilters)
-      .withContext('built-in Clear Filters button should render')
+    expect(exportToExcel)
+      .withContext('built-in Export to Excel button should render')
       .toBeTruthy();
 
-    // DOCUMENT_POSITION_FOLLOWING means clearFilters appears *after* custom in DOM order.
-    const relativePosition = custom!.compareDocumentPosition(clearFilters!);
+    // DOCUMENT_POSITION_FOLLOWING means exportToExcel appears *after* custom in DOM order.
+    const relativePosition = custom!.compareDocumentPosition(exportToExcel!);
     expect(relativePosition & Node.DOCUMENT_POSITION_FOLLOWING)
-      .withContext('projected action should precede Clear Filters')
+      .withContext('projected action should precede Export to Excel')
       .toBeTruthy();
   });
 
@@ -155,7 +153,7 @@ describe('SpiderlyDataTableComponent — toolbar actions projection slot', () =>
 
     expect(el.querySelector('[data-testid="custom-action"]')).toBeNull();
     // The built-in toolbar still renders.
-    expect(el.querySelector('.pi-filter-slash')).toBeTruthy();
+    expect(el.querySelector('.pi-download')).toBeTruthy();
   });
 });
 
@@ -474,61 +472,6 @@ describe('SpiderlyDataTableComponent — chooser styles survive the body telepor
   });
 });
 
-describe('SpiderlyDataTableComponent — hidden-but-constrained reconciliation on load', () => {
-  it('never persists a reconciliation reveal — a later toggle keeps the stored choice intact', async () => {
-    // User hid Name, but persisted state still filters by it → revealed on init.
-    localStorage.setItem(
-      `${COLUMNS_STATE_KEY}:columns`,
-      JSON.stringify({ name: false }),
-    );
-    sessionStorage.setItem(
-      COLUMNS_STATE_KEY,
-      JSON.stringify({
-        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
-      }),
-    );
-
-    const fixture = createFixture(HostWithColumnsStateKeyComponent);
-    await openChooser(fixture);
-    clickOption(fixture, 'Stock'); // unrelated toggle — persists the override map
-
-    const stored = JSON.parse(
-      localStorage.getItem(`${COLUMNS_STATE_KEY}:columns`)!,
-    );
-    expect(stored['name'])
-      .withContext('transient reveal must not overwrite the stored user choice')
-      .toBe(false);
-    expect(stored['stock']).toBeTrue();
-  });
-
-  it('reveals hidden columns that persisted state still filters or sorts by', () => {
-    // User hid Name; Stock is hidden by declaration.
-    localStorage.setItem(
-      `${COLUMNS_STATE_KEY}:columns`,
-      JSON.stringify({ name: false }),
-    );
-    // But the persisted table state still filters by Name and sorts by Stock —
-    // rendering either constraint invisibly would restrict/order data with no visible cause.
-    sessionStorage.setItem(
-      COLUMNS_STATE_KEY,
-      JSON.stringify({
-        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
-        multiSortMeta: [{ field: 'stock', order: 1 }],
-      }),
-    );
-
-    const fixture = createFixture(HostWithColumnsStateKeyComponent);
-
-    const headers = headerTexts(fixture.nativeElement);
-    expect(headers.some((h) => h.includes('Name')))
-      .withContext('filtered column must be revealed')
-      .toBeTrue();
-    expect(headers.some((h) => h.includes('Stock')))
-      .withContext('sorted column must be revealed')
-      .toBeTrue();
-  });
-});
-
 @Component({
   imports: [SpiderlyDataTableComponent],
   template: `
@@ -576,106 +519,6 @@ describe('SpiderlyDataTableComponent — visibility guards', () => {
     expect(
       chooserOptions(fixture).find((o) => o.label === 'Id')!.input.disabled,
     ).toBeFalse();
-  });
-});
-
-@Component({
-  imports: [SpiderlyDataTableComponent],
-  template: `
-    <spiderly-data-table
-      [cols]="cols"
-      [stateKey]="'sdt-clear-on-hide-spec'"
-      [getPaginatedListObservableMethod]="getList"
-    ></spiderly-data-table>
-  `,
-})
-class HostForClearOnHideComponent {
-  cols: Column[] = [
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-    { name: 'Name', field: 'name', filterType: 'text' },
-    { name: 'Stock', field: 'stock', filterType: 'numeric' },
-  ];
-  captured: Filter[] = [];
-  getList = capturingGetList(this.captured);
-}
-
-describe('SpiderlyDataTableComponent — hiding a column clears its filter and sort', () => {
-  const setup = () => createWithDataTable(HostForClearOnHideComponent);
-
-  it('clears the hidden column\'s filter and sort and reloads exactly once, without them', async () => {
-    const { fixture, host, dataTable } = setup();
-
-    dataTable.table.filter('abc', 'name', 'contains');
-    dataTable.table.sort({
-      originalEvent: new MouseEvent('click'),
-      field: 'name',
-    });
-    fixture.detectChanges();
-    const loadsBefore = host.captured.length;
-
-    await openChooser(fixture);
-    clickOption(fixture, 'Name');
-
-    expect(host.captured.length)
-      .withContext('one reload after hiding a constrained column')
-      .toBe(loadsBefore + 1);
-    const last = host.captured[host.captured.length - 1];
-    const nameFilters = (last.filters as any)?.['name'] ?? [];
-    const nameFilterValues = (
-      Array.isArray(nameFilters) ? nameFilters : [nameFilters]
-    ).map((f: any) => f?.value ?? null);
-    expect(nameFilterValues.every((v: any) => v === null))
-      .withContext('hidden column must not filter')
-      .toBeTrue();
-    expect((last.multiSortMeta ?? []).some((m) => m.field === 'name'))
-      .withContext('hidden column must not sort')
-      .toBeFalse();
-  });
-
-  it('does not reload when hiding a column with no active filter or sort', async () => {
-    const { fixture, host } = setup();
-    const loadsBefore = host.captured.length;
-
-    await openChooser(fixture);
-    clickOption(fixture, 'Name');
-
-    expect(host.captured.length).toBe(loadsBefore);
-  });
-});
-
-@Component({
-  imports: [SpiderlyDataTableComponent],
-  template: `
-    <spiderly-data-table
-      [cols]="cols"
-      [defaultSortField]="'id'"
-      [stateKey]="'sdt-hidden-default-sort-spec'"
-      [getPaginatedListObservableMethod]="getList"
-    ></spiderly-data-table>
-  `,
-})
-class HostWithHideableDefaultSortComponent {
-  cols: Column[] = [
-    { name: 'Id', field: 'id', filterType: 'numeric' },
-    { name: 'Name', field: 'name', filterType: 'text' },
-  ];
-  captured: Filter[] = [];
-  getList = capturingGetList(this.captured);
-}
-
-describe('SpiderlyDataTableComponent — hiding the default-sort column', () => {
-  it('leaves the reload unsorted instead of re-applying an invisible default sort', async () => {
-    const fixture = createFixture(HostWithHideableDefaultSortComponent);
-    const host = fixture.componentInstance;
-    expect(host.captured[0].multiSortMeta).toEqual([{ field: 'id', order: 1 }]);
-
-    await openChooser(fixture);
-    clickOption(fixture, 'Id');
-
-    const last = host.captured[host.captured.length - 1];
-    expect((last.multiSortMeta ?? []).some((m) => m.field === 'id'))
-      .withContext('hidden default-sort column must not sort')
-      .toBeFalse();
   });
 });
 
@@ -820,7 +663,7 @@ describe('SpiderlyDataTableComponent — persisted sort on a non-sortable column
 
 // ── per-column cell templates ────────────────────────────────────────────────
 // The point of the slot is that a column opts in ALONE: everything not named by a template keeps
-// rendering exactly as before, and the column's header, filter and sort are untouched by it.
+// rendering exactly as before, and the column's header and sort are untouched by it.
 
 const idAndNameCols: Column[] = [
   { name: 'Id', field: 'id', filterType: 'numeric' },
@@ -903,14 +746,14 @@ describe('SpiderlyDataTableComponent — per-column cell templates', () => {
   });
 
   // The template replaces the CELL. If it ever swallowed the header the column would lose its
-  // only filter surface, which is the one thing a data table must not trade for looks.
-  it('leaves the templated column its header filter', async () => {
+  // name and sort affordance, which is the one thing a data table must not trade for looks.
+  it('leaves the templated column its header', async () => {
     const fixture = createFixture(HostWithCellTemplateComponent);
     const el = await renderRows(fixture);
 
     const headers = Array.from(el.querySelectorAll('thead th'));
     const idHeader = headers.find((th) => th.textContent!.includes('Id'))!;
-    expect(idHeader.querySelector('p-columnfilter')).toBeTruthy();
+    expect(idHeader.querySelector('p-sorticon')).toBeTruthy();
   });
 });
 
@@ -1697,415 +1540,6 @@ describe('SpiderlyDataTableComponent — row navigation vs interactive cells', (
   });
 });
 
-// The filter menu button PrimeNG renders in each filterable column's header.
-const FILTER_BUTTON = '.p-datatable-column-filter-button';
-
-// The projected filtericon template's element in the named column's header. PrimeNG
-// wraps a projected template in `span.pi-filter-icon`; without the projection it renders
-// its own SVG <FilterIcon>, so a null here means the template is missing entirely.
-const filterIcon = (el: HTMLElement, headerName: string): HTMLElement | null =>
-  headerNamed(el, headerName).querySelector<HTMLElement>(
-    `${FILTER_BUTTON} i.pi`,
-  );
-
-describe('SpiderlyDataTableComponent — active-filter header icon', () => {
-  it('leaves the icon unfilled while a value is typed but not yet applied', () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithoutActionsComponent,
-    );
-    const el: HTMLElement = fixture.nativeElement;
-
-    // Exactly what PrimeNG does on each keystroke in a text/numeric filter: onModelChange
-    // writes the value straight into the table's filter meta and calls _filter() ONLY for
-    // the auto-applying types. So the constraint sits there, pending, until Apply/Enter —
-    // and the icon has to describe the DATA on screen, not the edit in progress.
-    dataTable.table.filters['id'] = [
-      { value: 5, matchMode: 'equals', operator: 'and' },
-    ];
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('a typed but unapplied value must not mark the column filtered')
-      .not.toContain('pi-filter-fill');
-
-    dataTable.table._filter();
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('applying it is what fills the icon')
-      .toContain('pi-filter-fill');
-  });
-
-  // The same claim as the spec above, but driven through the REAL widget instead of by
-  // hand-writing `table.filters`. That distinction is the whole point: the hand-written
-  // version encodes what we BELIEVE PrimeNG does on a keystroke, so it cannot catch us
-  // believing wrong — it passed while the live admin still filled the icon mid-typing.
-  it('leaves the icon unfilled while the operator types into the real filter input', async () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithColumnsStateKeyComponent,
-    );
-    const el: HTMLElement = fixture.nativeElement;
-
-    headerNamed(el, 'Name')
-      .querySelector<HTMLElement>(FILTER_BUTTON)!
-      .click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const columnFilter = fixture.debugElement
-      .queryAll(By.directive(ColumnFilter))
-      .map((de) => de.componentInstance as ColumnFilter)
-      .find((cf) => cf.overlayVisible)!;
-    const overlay = columnFilter.overlay as HTMLElement;
-
-    const input = overlay.querySelector<HTMLInputElement>('input');
-    expect(input).withContext('the text filter renders an input').toBeTruthy();
-
-    input!.value = 'bosch';
-    input!.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    // Negative control: prove the keystroke actually landed in the table's filter meta.
-    // Without this the spec would also pass when the input event never reached ngModel —
-    // an unfilled icon for the wrong reason, i.e. a test that inspected nothing.
-    expect((dataTable.table.filters['name'] as any[])?.[0]?.value)
-      .withContext('the typed value reaches the meta — this is the state that used to fill the icon')
-      .toBe('bosch');
-
-    expect(filterIcon(el, 'Name')!.classList)
-      .withContext('typing alone must not mark the column filtered')
-      .not.toContain('pi-filter-fill');
-
-    // Apply is what commits it — the same button the operator presses.
-    const apply = Array.from(
-      overlay.querySelectorAll<HTMLButtonElement>(
-        '.p-datatable-filter-buttonbar button',
-      ),
-    ).find((b) => !(b.textContent ?? '').toLowerCase().includes('clear'))!;
-    apply.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Name')!.classList)
-      .withContext('applying it fills the icon')
-      .toContain('pi-filter-fill');
-    expect(dataTable.table.filters['name'])
-      .withContext('and the constraint really did reach the table')
-      .toBeTruthy();
-  });
-
-  it('fills the icon while a constraint is active and unfills it after clear', () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithoutActionsComponent,
-    );
-    const el: HTMLElement = fixture.nativeElement;
-
-    expect(filterIcon(el, 'Id'))
-      .withContext('the filtericon template should render an .pi icon')
-      .toBeTruthy();
-    expect(filterIcon(el, 'Id')!.classList).not.toContain('pi-filter-fill');
-
-    dataTable.table.filters['id'] = [
-      { value: 5, matchMode: 'equals', operator: 'and' },
-    ];
-    dataTable.table._filter();
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('an applied constraint should fill the icon')
-      .toContain('pi-filter-fill');
-
-    dataTable.clear(dataTable.table);
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('clearing all filters should unfill the icon')
-      .not.toContain('pi-filter-fill');
-  });
-
-  // The worst case the icon exists for: stateStorage restores filters on reload with no
-  // interaction. Karma runs dev mode, so this spec also guards the `#dt`-parameter timing —
-  // an implementation reading the non-static `this.table` ViewChild would paint inactive
-  // first and throw ExpressionChangedAfterItHasBeenCheckedError right here.
-  it('marks a restored filter on first paint, with no interaction', () => {
-    sessionStorage.setItem(
-      COLUMNS_STATE_KEY,
-      JSON.stringify({
-        filters: { name: [{ value: 'abc', matchMode: 'contains' }] },
-      }),
-    );
-
-    const el: HTMLElement = createFixture(HostWithColumnsStateKeyComponent)
-      .nativeElement;
-
-    expect(filterIcon(el, 'Name')!.classList)
-      .withContext('the restored constraint should fill its column icon')
-      .toContain('pi-filter-fill');
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('an unfiltered column stays unfilled')
-      .not.toContain('pi-filter-fill');
-  });
-
-  // Guards against "simplifying" onto the template's `let-hasFilter`: PrimeNG's getter
-  // reads only the first constraint of array meta, so this state — first slot blanked,
-  // second still constraining — is genuinely filtered while hasFilter reports it isn't.
-  it('stays filled when only a later constraint of a multi-constraint column holds a value', () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithoutActionsComponent,
-    );
-    const el: HTMLElement = fixture.nativeElement;
-
-    dataTable.table.filters['id'] = [
-      { value: null, matchMode: 'equals', operator: 'and' },
-      { value: 5, matchMode: 'equals', operator: 'and' },
-    ];
-    dataTable.table._filter();
-    fixture.detectChanges();
-
-    expect(filterIcon(el, 'Id')!.classList)
-      .withContext('a live second constraint should keep the icon filled')
-      .toContain('pi-filter-fill');
-  });
-});
-
-describe('SpiderlyDataTableComponent — filter menu Apply button', () => {
-  @Component({
-    imports: [SpiderlyDataTableComponent],
-    template: `
-      <spiderly-data-table
-        [cols]="cols"
-        [getPaginatedListObservableMethod]="getList"
-      ></spiderly-data-table>
-    `,
-  })
-  class HostWithBooleanColumnComponent {
-    cols: Column[] = [
-      { name: 'Name', field: 'name', filterType: 'text' },
-      { name: 'Active', field: 'active', filterType: 'boolean' },
-    ];
-    getList = emptyList;
-  }
-
-  // Opens the named column's filter menu and returns its buttonbar's button labels.
-  //
-  // Async, and read through the ColumnFilter's own `overlay`, for one reason: PrimeNG
-  // assigns `overlay` and teleports it to document.body from its animation-start callback,
-  // which under provideNoopAnimations runs in a MICROTASK after detectChanges() returns.
-  // So synchronously the panel is still inline and `overlay` is undefined — a fixture-root
-  // query would pass today and silently return [] the moment anything awaited stability.
-  // Awaiting first is what the component CLAUDE.md prescribes for overlay specs, and
-  // querying the instance's own element (never document) keeps stale popovers from earlier
-  // fixtures out of the result.
-  const buttonbarLabels = async (
-    fixture: ComponentFixture<unknown>,
-    headerName: string,
-  ): Promise<string[]> => {
-    headerNamed(fixture.nativeElement, headerName)
-      .querySelector<HTMLElement>(FILTER_BUTTON)!
-      .click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const columnFilter = fixture.debugElement
-      .queryAll(By.directive(ColumnFilter))
-      .map((de) => de.componentInstance as ColumnFilter)
-      .find((cf) => cf.overlayVisible)!;
-
-    return Array.from(
-      (columnFilter.overlay as HTMLElement).querySelectorAll<HTMLButtonElement>(
-        '.p-datatable-filter-buttonbar button',
-      ),
-    ).map((button) => button.textContent?.trim() ?? '');
-  };
-
-  it('renders no Apply button for an auto-applying filter type', async () => {
-    const fixture = createFixture(HostWithBooleanColumnComponent);
-
-    // Boolean applies on every checkbox change (PrimeNG's own onModelChange), so an Apply
-    // button would promise a pending state that cannot exist. Asserting WHICH button
-    // survives, not how many: Clear is the only way from checked/unchecked back to "no
-    // constraint", so a change that dropped Clear instead of Apply must not stay green.
-    const labels = (await buttonbarLabels(fixture, 'Active')).map((l) =>
-      l.toLowerCase(),
-    );
-
-    expect(labels.length).toBe(1);
-    expect(labels[0])
-      .withContext('the surviving button is Clear, not Apply')
-      .toContain('clear');
-  });
-
-  it('keeps the Apply button for typed filter input', async () => {
-    const fixture = createFixture(HostWithBooleanColumnComponent);
-
-    const labels = (await buttonbarLabels(fixture, 'Name')).map((l) =>
-      l.toLowerCase(),
-    );
-
-    expect(labels.some((l) => l.includes('apply')))
-      .withContext('text filter commits on Enter/Apply, so Apply must stay')
-      .toBeTrue();
-    expect(labels.some((l) => l.includes('clear')))
-      .withContext('and Clear stays alongside it')
-      .toBeTrue();
-  });
-});
-
-describe('SpiderlyDataTableComponent — Column.matchModes narrowing', () => {
-  @Component({
-    imports: [SpiderlyDataTableComponent],
-    template: `
-      <spiderly-data-table
-        [cols]="cols"
-        [getPaginatedListObservableMethod]="getList"
-      ></spiderly-data-table>
-    `,
-  })
-  class HostWithDateColumnsComponent {
-    cols: Column[] = [
-      {
-        name: 'CreatedAt',
-        field: 'createdAt',
-        filterType: 'date',
-        showMatchModes: true,
-        matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
-      },
-      { name: 'PaidAt', field: 'paidAt', filterType: 'date', showMatchModes: true },
-    ];
-    getList = emptyList;
-  }
-
-  it('offers only the declared match modes, in declared order, defaulting to the first', () => {
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithDateColumnsComponent,
-    );
-
-    const columnFilters = fixture.debugElement
-      .queryAll(By.directive(ColumnFilter))
-      .map((de) => de.componentInstance as ColumnFilter);
-    const narrowed = columnFilters.find((cf) => cf.field === 'createdAt')!;
-    const untouched = columnFilters.find((cf) => cf.field === 'paidAt')!;
-
-    // Assert `matchModes` (what PrimeNG RENDERS), never `matchModeOptions` (the input we
-    // just handed in): PrimeNG resolves `matchModeOptions || <its own type defaults>`, so
-    // an assertion on the input cannot tell a real narrowing from a silent fallback to
-    // PrimeNG's list — which is exactly how a regression here would hide.
-    expect(narrowed.matchModes!.map((o) => o.value))
-      .withContext('declared modes only, in declared order')
-      .toEqual([MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]);
-    // PrimeNG initializes the field's constraint from the matchMode input, so the
-    // table's own filter model is where the column default is observable.
-    expect(
-      (dataTable.table.filters['createdAt'] as any[])[0].matchMode,
-    )
-      .withContext('the first declared mode is the column default')
-      .toBe(MatchModeCodes.GreaterThan);
-
-    expect(untouched.matchModes!.map((o) => o.value))
-      .withContext("a column without matchModes keeps the library's own list")
-      .toEqual([
-        MatchModeCodes.Equals,
-        MatchModeCodes.LessThan,
-        MatchModeCodes.GreaterThan,
-      ]);
-    expect((dataTable.table.filters['paidAt'] as any[])[0].matchMode)
-      .withContext('and the filter type standard default')
-      .toBe(MatchModeCodes.Equals);
-  });
-
-  it('falls back to the full list, loudly, when no declared mode is supported', () => {
-    @Component({
-      imports: [SpiderlyDataTableComponent],
-      template: `
-        <spiderly-data-table
-          [cols]="cols"
-          [getPaginatedListObservableMethod]="getList"
-        ></spiderly-data-table>
-      `,
-    })
-    class HostWithImpossibleMatchModesComponent {
-      cols: Column[] = [
-        {
-          name: 'Qty',
-          field: 'qty',
-          filterType: 'numeric',
-          showMatchModes: true,
-          matchModes: [MatchModeCodes.In],
-        },
-      ];
-      getList = emptyList;
-    }
-
-    spyOn(console, 'error');
-    const { fixture, dataTable } = createWithDataTable(
-      HostWithImpossibleMatchModesComponent,
-    );
-
-    const columnFilter = fixture.debugElement.query(By.directive(ColumnFilter))
-      .componentInstance as ColumnFilter;
-
-    // An empty array is TRUTHY in PrimeNG's `matchModeOptions || defaults`, so a narrowing
-    // that filtered everything out would render a dropdown with no options while the
-    // unsupported mode still seeded the constraint (and 400'd server-side).
-    expect(columnFilter.matchModes!.length)
-      .withContext('an unusable narrowing keeps the full list rather than emptying it')
-      .toBe(3);
-    expect((dataTable.table.filters['qty'] as any[])[0].matchMode)
-      .withContext('and the default stays the filter type standard')
-      .toBe(MatchModeCodes.Equals);
-    expect(console.error).toHaveBeenCalled();
-  });
-
-  it('repairs a persisted match mode the column no longer offers', () => {
-    sessionStorage.setItem(
-      COLUMNS_STATE_KEY,
-      JSON.stringify({
-        filters: {
-          createdAt: [{ value: '2026-01-01', matchMode: MatchModeCodes.Equals }],
-        },
-      }),
-    );
-
-    @Component({
-      imports: [SpiderlyDataTableComponent],
-      template: `
-        <spiderly-data-table
-          [cols]="cols"
-          [stateKey]="stateKey"
-          [getPaginatedListObservableMethod]="getList"
-        ></spiderly-data-table>
-      `,
-    })
-    class HostWithNarrowedDateComponent {
-      cols: Column[] = [
-        {
-          name: 'CreatedAt',
-          field: 'createdAt',
-          filterType: 'date',
-          showMatchModes: true,
-          matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan],
-        },
-      ];
-      stateKey = COLUMNS_STATE_KEY;
-      getList = emptyList;
-    }
-
-    const { dataTable } = createWithDataTable(HostWithNarrowedDateComponent);
-
-    // ColumnFilter.ngOnInit skips initFieldFilterConstraint() when the field already has a
-    // constraint, so [matchMode] never applies to a restored one — without the repair the
-    // column keeps filtering by `equals` while its <p-select> renders blank.
-    expect((dataTable.table.filters['createdAt'] as any[])[0].matchMode)
-      .withContext('a stored mode outside the narrowing is reset to the column default')
-      .toBe(MatchModeCodes.GreaterThan);
-    expect((dataTable.table.filters['createdAt'] as any[])[0].value)
-      .withContext('the value itself survives the repair')
-      .toBe('2026-01-01');
-  });
-});
 
 // A table with more records than fit on one page, so the paginator's Next is live.
 const oneOfManyPages = (): Observable<PaginatedResult> => paginated([{ id: 1 }], 100);
@@ -2475,10 +1909,9 @@ describe('SpiderlyDataTableComponent — pending overlay styling', () => {
 });
 
 // ---------------------------------------------------------------------------
-// The filter surface is chosen by the SHAPE of the input, not by a flag. A table handed a filter
-// store renders the chip bar; a table handed none keeps its Column.filterType header filters, so
-// the 27 consumer tables migrate one at a time and the legacy path deletes itself once nothing
-// passes the old shape. See spiderly-data-table/CLAUDE.md -> "Operator-owned view", decision 2.
+// The filter surface is the consumer's store, rendered as the chip bar. A table handed none has
+// no filter surface at all — the legacy Column.filterType header filters were deleted once no
+// consumer passed the old shape. See spiderly-data-table/CLAUDE.md -> "Operator-owned view".
 // ---------------------------------------------------------------------------
 
 @Component({
@@ -2500,7 +1933,7 @@ class HostWithFilterStoreComponent {
 }
 
 describe('SpiderlyDataTableComponent — the filter surface follows the input', () => {
-  it('renders the chip bar and drops the header filters when given a store', () => {
+  it('renders the chip bar, and nothing in the headers, when given a store', () => {
     const { fixture } = createWithDataTable(HostWithFilterStoreComponent);
 
     expect(
@@ -2511,7 +1944,7 @@ describe('SpiderlyDataTableComponent — the filter surface follows the input', 
     );
   });
 
-  it('keeps the header filters and draws no bar when given none', () => {
+  it('renders no filter surface at all when given none', () => {
     const { fixture } = createWithDataTable(HostWithoutActionsComponent);
 
     expect(
@@ -2519,7 +1952,7 @@ describe('SpiderlyDataTableComponent — the filter surface follows the input', 
     ).toBeNull();
     expect(
       fixture.debugElement.queryAll(By.directive(ColumnFilter)).length,
-    ).toBeGreaterThan(0);
+    ).toBe(0);
   });
 });
 

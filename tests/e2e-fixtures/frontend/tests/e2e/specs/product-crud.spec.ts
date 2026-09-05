@@ -190,10 +190,12 @@ test.describe('Product CRUD Operations', () => {
   });
 
   // Relies on the product-list.component.ts override shipped in e2e-fixtures/frontend/app/
-  // (spiderly-cli's default list renders only the Id column, which can't exercise
+  // (spiderly-cli's default list declares only an Id filter, which can't exercise
   // text/numeric/boolean filters). Exercises the full stateful-table feature:
-  // three filter types + multi-column sort + pagination, then a page.reload()
-  // must restore every bit of state from sessionStorage.
+  // three filter kinds committed through the chip bar + multi-column sort + pagination,
+  // then a page.reload() must restore every bit of state from sessionStorage — the
+  // applied filters live under `${stateKey}:filters` (the store snapshot), while sort and
+  // pagination stay in PrimeNG's own blob under `${stateKey}`.
   test('product list table restores filters, multi-sort, and pagination after refresh', async ({ page, request }) => {
     // 40 products so filters leave enough rows to span multiple pager pages:
     // 20 "Widget N" and 20 "Gadget N"; prices 10..410 step 10; stock 0..312 step 8;
@@ -242,7 +244,6 @@ test.describe('Product CRUD Operations', () => {
     await page.waitForLoadState('networkidle');
 
     const preReload = await listPage.getSessionStorageEntry<{
-      filters?: Record<string, unknown>;
       multiSortMeta?: Array<{ field: string; order: number }>;
       first?: number;
       rows?: number;
@@ -252,7 +253,15 @@ test.describe('Product CRUD Operations', () => {
     expect(preReload!.multiSortMeta?.length).toBe(2);
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'price' && m.order === -1)).toBeTruthy();
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1)).toBeTruthy();
-    expect(Object.keys(preReload!.filters ?? {})).toEqual(expect.arrayContaining(['name', 'price', 'isActive']));
+
+    // The store snapshot: filter id → { operator, value }, operators on the wire vocabulary.
+    const preReloadFilters = await listPage.getSessionStorageEntry<
+      Record<string, { operator: string; value: unknown }>
+    >(`${stateKey}:filters`);
+    expect(preReloadFilters).not.toBeNull();
+    expect(preReloadFilters!['name']).toEqual({ operator: 'contains', value: 'Widget' });
+    expect(preReloadFilters!['price']).toEqual({ operator: 'greaterThan', value: 100 });
+    expect(preReloadFilters!['isActive']).toEqual({ operator: 'equals', value: true });
 
     await page.reload();
     await page.locator('sidebar-menu').waitFor({ state: 'visible', timeout: 15000 });
@@ -260,11 +269,17 @@ test.describe('Product CRUD Operations', () => {
 
     const postReload = await listPage.getSessionStorageEntry<typeof preReload>(stateKey);
     expect(postReload).toEqual(preReload);
+    const postReloadFilters = await listPage.getSessionStorageEntry(`${stateKey}:filters`);
+    expect(postReloadFilters).toEqual(preReloadFilters);
+    // The restored constraints are visible on the bar, one chip each.
+    await expect(page.getByTestId('filter-chip')).toHaveCount(3);
     await expect(page.locator('.p-paginator-page-selected', { hasText: '2' })).toBeVisible();
 
     await listPage.clearTableFilters();
     await page.waitForLoadState('networkidle');
     const afterClear = await listPage.getSessionStorageEntry(stateKey);
     expect(afterClear).toBeNull();
+    const afterClearFilters = await listPage.getSessionStorageEntry(`${stateKey}:filters`);
+    expect(afterClearFilters).toBeNull();
   });
 });

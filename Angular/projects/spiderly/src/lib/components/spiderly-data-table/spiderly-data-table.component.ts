@@ -26,19 +26,14 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { SelectItem, SortMeta } from 'primeng/api';
+import { SortMeta } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { Popover, PopoverModule } from 'primeng/popover';
-import {
-  Table,
-  TableFilterEvent,
-  TableLazyLoadEvent,
-  TableModule,
-} from 'primeng/table';
+import { Table, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -53,13 +48,7 @@ import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
-import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
-import { FilterValueKind } from '../../filters/allowed-operators';
-import {
-  FilterSource,
-  operatorOptionsForKind,
-  SortKeyLabel,
-} from '../../filters/filter-store';
+import { FilterSource, SortKeyLabel } from '../../filters/filter-store';
 import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
@@ -78,9 +67,9 @@ import {
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 
 /**
- * Default column width per filter type, in rem. Sized for the HEADER — the filter input plus its
- * match-mode dropdown — so a column of short values reserves more than its content needs; that is
- * deliberate, and {@link Column.width} is the per-column override.
+ * Default column width per value type, in rem — generous on purpose (these numbers date from when
+ * the header carried a filter input, and nobody has re-derived them from values yet), and
+ * {@link Column.width} is the per-column override.
  *
  * A table, not a switch, so the mapping is exhaustive: a new `filterType` fails the build here
  * instead of silently inheriting the actions-column reservation below.
@@ -322,9 +311,6 @@ export class SpiderlyDataTableComponent
   ) => Observable<LazyLoadSelectedIdsResult>;
   @Input() additionalFilterIdLong: number;
 
-  matchModeDateOptions: SelectItem[] = [];
-  matchModeNumberOptions: SelectItem[] = [];
-  matchModeTextOptions: SelectItem[] = [];
   /** Whether the "Add" button is shown. Defaults to `true`. */
   @Input() showAddButton: boolean = true;
   /** Whether the "Export to Excel" button is shown. Defaults to `true`. */
@@ -515,20 +501,6 @@ export class SpiderlyDataTableComponent
       this.selectionMode = 'multiple';
     }
 
-    // Derived from the ONE operator table (`filters/allowed-operators.ts`) rather than hand-kept
-    // here: only what the generated paginator implements per type is offered — PrimeNG's own text
-    // list adds notContains/endsWith/notEquals, modes the backend answers with InvalidMatchMode,
-    // i.e. a 400 on every load once the user picks one.
-    const matchModeOptionsFor = (kind: FilterValueKind): SelectItem[] =>
-      operatorOptionsForKind(kind).map((option) => ({
-        label: this.translocoService.translate(option.labelKey),
-        value: option.value,
-      }));
-
-    this.matchModeDateOptions = matchModeOptionsFor('date');
-    this.matchModeTextOptions = matchModeOptionsFor('text');
-    this.matchModeNumberOptions = matchModeOptionsFor('number');
-
     if (this.hasLazyLoad) {
       const baseKey = this.stateKey ?? `spiderly-table:${this.router.url}`;
       this.resolvedStateKey =
@@ -551,11 +523,6 @@ export class SpiderlyDataTableComponent
     this.restoreAppliedFilters();
     if (this.filters) this.requeryOnAppliedFilters();
 
-    this.reconcileVisibilityWithPersistedConstraints();
-    this.reconcilePersistedMatchModes();
-    // Restored filters are applied by definition — mark them before the first paint rather
-    // than waiting for the first response, which is the reload case the icon exists for.
-    this.snapshotAppliedFilters(this.persistedTableState()?.filters);
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
 
@@ -576,13 +543,6 @@ export class SpiderlyDataTableComponent
    */
   private columnVisibilityOverrides: Record<string, boolean> = {};
 
-  /**
-   * Columns revealed by the load-time reconciliation. Kept apart from
-   * `columnVisibilityOverrides` so persisting a later unrelated toggle can't promote a
-   * transient safety reveal into a durable choice.
-   */
-  private revealedByConstraint = new Set<string>();
-
   /** A data column shows values for a `field`; anything else (the actions column) always renders. */
   private static isDataColumn(col: Column): boolean {
     return !!col.field;
@@ -599,11 +559,10 @@ export class SpiderlyDataTableComponent
       : null;
   }
 
-  /** Actions columns always render; data columns follow reveal/override, then declared default. */
+  /** Actions columns always render; data columns follow the override, then declared default. */
   isColumnVisible(col: Column): boolean {
     if (!SpiderlyDataTableComponent.isDataColumn(col)) return true;
     if (col.lockVisible) return true; // pinned — wins over any (possibly stale) override
-    if (this.revealedByConstraint.has(col.field)) return true;
     return this.columnVisibilityOverrides[col.field] ?? col.visible !== false;
   }
 
@@ -739,8 +698,6 @@ export class SpiderlyDataTableComponent
   }
 
   toggleColumn(col: Column, visible: boolean): void {
-    this.revealedByConstraint.delete(col.field); // an explicit choice supersedes a safety reveal
-
     if (visible === (col.visible !== false)) {
       delete this.columnVisibilityOverrides[col.field]; // back at the declared default
     } else {
@@ -749,8 +706,6 @@ export class SpiderlyDataTableComponent
 
     this.persistColumnVisibility();
     this.refreshVisibleCols();
-
-    if (!visible) this.clearHiddenColumnConstraints([col]);
   }
 
   /**
@@ -758,6 +713,9 @@ export class SpiderlyDataTableComponent
    * wrap, order and width alike. It undid visibility only until the header menu shipped three
    * more gestures beside it, and a layout with no way back is worse than one with no knobs.
    *
+   * Hiding — here or from the menu — never touches filters or sort: the chip bar names every
+   * applied filter and the sort chip names the sort, hidden column or not (decision 2b). The
+   * legacy "hidden contributes nothing" apparatus died with the header-filter path.
    */
   resetColumnLayout(): void {
     this.columnWrap = {};
@@ -765,127 +723,9 @@ export class SpiderlyDataTableComponent
     this.columnWidths = {};
     this.persistColumnLayout();
 
-    const wasVisible = this.visibleCols.filter(
-      SpiderlyDataTableComponent.isDataColumn,
-    );
-
-    this.revealedByConstraint.clear();
     this.columnVisibilityOverrides = {};
     this.persistColumnVisibility();
     this.refreshVisibleCols();
-
-    // Columns the reset just hid follow the same rule as a manual hide.
-    this.clearHiddenColumnConstraints(
-      wasVisible.filter((col) => !this.isColumnVisible(col)),
-    );
-  }
-
-  /**
-   * The ONE spelling of decision 2b's other half, so its three gates are findable as a set: on a
-   * store table, hidden columns KEEP their filters and sorts — the chip bar names every filter
-   * and the sort chip names the sort, hidden or not, so the legacy "hidden contributes nothing"
-   * invariant's premise (the header is the only visible surface) is gone, and dropping a
-   * constraint on hide would be the destructive act rather than the safe one.
-   *
-   * Its three consumers die TOGETHER when the legacy header path is deleted — unlike the other
-   * `this.filters` reads in this component (payload source, requery wiring, header suppression,
-   * view application, persistence), which each mean something else and survive it:
-   * `clearHiddenColumnConstraints`, `reconcileVisibilityWithPersistedConstraints`, and the
-   * hidden-column null in `defaultMultiSortMeta`.
-   */
-  private get hiddenColumnsKeepConstraints(): boolean {
-    return this.filters != null;
-  }
-
-  /**
-   * A hidden column contributes nothing to filtering or sorting: the header is the only
-   * filter surface, so a kept constraint would restrict the data invisibly. Reloads (once)
-   * only when a constraint was actually cleared — plain hides don't need a server round-trip.
-   *
-   * LEGACY TABLES ONLY (`hiddenColumnsKeepConstraints`) — and note the `_filter()` below would
-   * also wipe a live selection through PrimeNG's filter hook.
-   */
-  private clearHiddenColumnConstraints(cols: Column[]): void {
-    if (!this.table || this.hiddenColumnsKeepConstraints) return;
-
-    let cleared = false;
-    for (const col of cols) {
-      if (this.columnHasConstraint(this.table, col)) {
-        delete this.table.filters[this.filterKey(col)];
-        cleared = true;
-      }
-
-      if (this.table._multiSortMeta?.some((m) => m.field === col.field)) {
-        this.table._multiSortMeta = this.table._multiSortMeta.filter(
-          (m) => m.field !== col.field,
-        );
-        this.table.tableService.onSort(this.table._multiSortMeta);
-        cleared = true;
-      }
-    }
-
-    if (cleared) this.table._filter(); // re-emits the lazy load and saves the cleaned state
-  }
-
-  /** Whether filter metadata (single or array) carries a real constraint, not just an empty slot. */
-  private static isActiveFilterMeta(meta: unknown): boolean {
-    return (Array.isArray(meta) ? meta : [meta]).some(
-      (m: any) =>
-        m?.value != null &&
-        m.value !== '' &&
-        (!Array.isArray(m.value) || m.value.length > 0),
-    );
-  }
-
-  /**
-   * The one home of the filter-state key rule (sort meta is keyed by `field` instead).
-   * Instance rather than static so the template's `[field]` binding can share it.
-   */
-  filterKey(col: Column): string | undefined {
-    return col.filterField ?? col.field;
-  }
-
-  /**
-   * The filter keys the rows on screen were actually narrowed by. Kept apart from
-   * `table.filters` because those are not the same question: PrimeNG's `onModelChange`
-   * writes each keystroke of a text/numeric filter straight into the meta and only calls
-   * `_filter()` for the auto-applying types, so `table.filters` holds PENDING edits too.
-   * Reading it for the header icon marked a column filtered the moment the operator typed
-   * a character, before Apply — claiming the grid was narrowed when it was not.
-   */
-  private appliedFilterKeys = new Set<string>();
-
-  /**
-   * Whether the rows on screen are narrowed by this column — feeds the projected
-   * `filtericon` template. Why not the template's `let-hasFilter`, and why applied rather
-   * than pending state: CLAUDE.md → "Active-filter header icon".
-   */
-  isColumnFiltered(col: Column): boolean {
-    return this.appliedFilterKeys.has(this.filterKey(col));
-  }
-
-  /** Whether the column carries a constraint at all, applied or still being typed. */
-  private columnHasConstraint(table: Table, col: Column): boolean {
-    return SpiderlyDataTableComponent.isActiveFilterMeta(
-      table.filters?.[this.filterKey(col)],
-    );
-  }
-
-  /**
-   * Records what a just-applied filter set narrows by. Called from every path that commits
-   * one: `(onFilter)` (Apply, auto-apply, a per-column Clear), `lazyLoad` (which also covers
-   * `table.clear()` — it re-queries WITHOUT emitting onFilter), the caption's Clear filters,
-   * and once from `ngOnInit` off persisted state, so a restored filter is marked on first
-   * paint rather than after the first response.
-   */
-  private snapshotAppliedFilters(filters: any): void {
-    const applied = new Set<string>();
-
-    for (const [field, meta] of Object.entries(filters ?? {})) {
-      if (SpiderlyDataTableComponent.isActiveFilterMeta(meta)) applied.add(field);
-    }
-
-    this.appliedFilterKeys = applied;
   }
 
   /**
@@ -1022,46 +862,12 @@ export class SpiderlyDataTableComponent
     );
   }
 
-  /**
-   * Guards the "hidden contributes nothing" invariant against state this component didn't
-   * write (older blobs, hand-edited storage): a hidden column the persisted table state
-   * still filters or sorts by is revealed rather than constraining the data invisibly.
-   * In-memory only — once the constraint is gone, the user's stored choice reapplies.
-   */
-  private reconcileVisibilityWithPersistedConstraints(): void {
-    // Store tables skip this whole apparatus (`hiddenColumnsKeepConstraints`): filter meta in
-    // the persisted blob is a leftover of the header-filter days and never reaches a request
-    // (the store payload replaces it), so a reveal would resurrect a phantom — on every load,
-    // forever, since nothing rewrites the stale blob.
-    if (this.hiddenColumnsKeepConstraints) return;
-
-    const state = this.persistedTableState();
-    if (!state) return;
-
-    const constrained = new Set<string>();
-    for (const [field, meta] of Object.entries(state.filters ?? {})) {
-      if (SpiderlyDataTableComponent.isActiveFilterMeta(meta))
-        constrained.add(field);
-    }
-    for (const sortMeta of state.multiSortMeta ?? []) {
-      if (sortMeta?.field) constrained.add(sortMeta.field);
-    }
-
-    for (const col of this.cols) {
-      if (!SpiderlyDataTableComponent.isDataColumn(col)) continue;
-      if (this.isColumnVisible(col)) continue;
-      if (constrained.has(this.filterKey(col)) || constrained.has(col.field)) {
-        this.revealedByConstraint.add(col.field);
-      }
-    }
-  }
-
   //#endregion
 
   /**
-   * The declared default as PrimeNG sort meta, or null when none is declared — or when its
-   * column is hidden ("hidden contributes nothing"): the table then falls back to the
-   * backend's implicit Id DESC, exactly as if no default were declared.
+   * The declared default as PrimeNG sort meta, or null when none is declared. Applies even
+   * while its column is hidden: the sort chip names the ordering whether or not the column
+   * is on screen (decision 2b).
    */
   private defaultMultiSortMeta(): SortMeta[] | null {
     if (!this.defaultSortField) return null;
@@ -1069,14 +875,6 @@ export class SpiderlyDataTableComponent
     const defaultSortCol = this.cols?.find(
       (col) => col.field === this.defaultSortField,
     );
-    // Hidden kills the default only on LEGACY tables, where nothing would show the ordering
-    // (`hiddenColumnsKeepConstraints` — a store table's sort chip names it, hidden or not).
-    if (
-      defaultSortCol &&
-      !this.hiddenColumnsKeepConstraints &&
-      !this.isColumnVisible(defaultSortCol)
-    )
-      return null;
     // A declared default on a non-sortable column is a consumer mistake the backend answers
     // with a 400 on every load; fall back to its implicit Id DESC instead (see keepSortableMeta).
     if (defaultSortCol && !this.isColumnSortable(defaultSortCol)) return null;
@@ -1106,50 +904,6 @@ export class SpiderlyDataTableComponent
       const col = this.cols?.find((c) => c.field === sortMeta?.field);
       return col == null || this.isColumnSortable(col);
     });
-  }
-
-  /**
-   * The filter twin of `keepSortableMeta` — persisted state outlives the rule that produced
-   * it, here a match mode stored before the column declared `matchModes`. It has to REWRITE
-   * storage rather than filter a value on the way past: `ColumnFilter.ngOnInit` skips
-   * `initFieldFilterConstraint()` whenever the field already carries a constraint, so our
-   * `[matchMode]` never applies to a restored one. Left alone, the column keeps filtering by
-   * a mode it no longer offers while its match-mode `<p-select>` renders blank (the stored
-   * value is not among the options). Runs before PrimeNG's `restoreState()`, which reads this
-   * same key on the first `[value]` change.
-   *
-   * Deliberately narrow: it touches only constraints whose mode the declaring column no
-   * longer offers, so every other byte of the persisted blob survives.
-   */
-  private reconcilePersistedMatchModes(): void {
-    if (!this.resolvedStateKey) return;
-
-    const state = this.persistedTableState();
-    if (!state?.filters) return;
-
-    let changed = false;
-    for (const col of this.cols ?? []) {
-      if (!col.matchModes?.length) continue;
-
-      const offered = this.getColMatchModeOptions(col);
-      const meta = state.filters[this.filterKey(col)];
-      if (!offered?.length || !Array.isArray(meta)) continue;
-
-      for (const constraint of meta) {
-        if (constraint?.matchMode == null) continue;
-        if (offered.some((option) => option.value === constraint.matchMode))
-          continue;
-
-        constraint.matchMode = this.getColMatchMode(col);
-        changed = true;
-      }
-    }
-
-    if (!changed) return;
-
-    const storage =
-      this.stateStorage === 'local' ? localStorage : sessionStorage;
-    storage.setItem(this.resolvedStateKey, JSON.stringify(state));
   }
 
   // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()
@@ -1201,7 +955,6 @@ export class SpiderlyDataTableComponent
     this.lastLazyLoadEvent = event;
     this.refreshSortKeys();
     this.rangeAnchorId = null;
-    this.snapshotAppliedFilters(event.filters);
 
     let tableFilter: Filter = event as unknown as Filter;
     tableFilter.additionalFilterIdLong = this.additionalFilterIdLong;
@@ -1320,25 +1073,6 @@ export class SpiderlyDataTableComponent
     this.setFakeIsAllSelected();
   }
 
-  private clientFilterCount = 0;
-
-  filter(event: TableFilterEvent) {
-    // Fires from _filter(), i.e. only once a filter is COMMITTED — never on a keystroke.
-    this.snapshotAppliedFilters(event.filters ?? this.table?.filters);
-
-    if (this.hasLazyLoad && this.selectionMode === 'multiple')
-      this.selectAll(false); // We need to do it like this because: totalRecords: 1 -> selectedRecords from earlyer selection 2 -> unselect current -> all checkbox is set to true
-
-    if (this.hasLazyLoad === false && this.selectionMode === 'multiple') {
-      if (this.clientFilterCount === 0) {
-        this.loadFormArrayItems();
-        this.clientFilterCount++;
-      } else {
-        this.clientFilterCount--;
-      }
-    }
-  }
-
   private loadFormArrayItems() {
     this.items = this.getFormArrayItems(this.additionalIndexes);
     this.rangeAnchorId = null;
@@ -1433,14 +1167,14 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * The filter this column stands for. Defaults to the key the column already filters under
-   * (`filterKey` = `filterField ?? field`), because a store id IS a backend property name —
-   * `toFilterPayload` emits it straight into `Filter.filters`. So `filterId` is an escape hatch
-   * for the rare mismatch, not something every column restates: all eight of the first migrated
-   * table's declarations were the field name written a second time.
+   * The filter this column stands for. Defaults to the column's own `field`, because a store id
+   * IS a backend property name — `toFilterPayload` emits it straight into `Filter.filters`. So
+   * `filterId` is an escape hatch for the rare mismatch, not something every column restates:
+   * all eight of the first migrated table's declarations were the field name written a second
+   * time.
    */
   private filterIdFor(col: Column): string | undefined {
-    return col.filterId ?? this.filterKey(col);
+    return col.filterId ?? col.field;
   }
 
   /**
@@ -1630,16 +1364,6 @@ export class SpiderlyDataTableComponent
     }));
   }
 
-  /**
-   * The legacy header filter, rendered only while no store is supplied. Deleted with the rest of
-   * that path once no consumer passes the old shape.
-   */
-  showHeaderFilter(col: Column): boolean {
-    return (
-      !this.filters && col.filterType != null && col.filterType !== 'blob'
-    );
-  }
-
   /** This column's share, override first, then its declared width, then the per-type default. */
   columnShare(col: Column): number {
     if (col.field && this.columnWidths[col.field] != null) {
@@ -1785,151 +1509,6 @@ export class SpiderlyDataTableComponent
     if (col.width != null) return col.width;
 
     return `${this.defaultShare(col)}rem`;
-  }
-
-  /**
-   * Memo for the resolution below. Two jobs: the narrowing maps to a NEW array and a
-   * template binding must not hand PrimeNG a fresh reference every CD pass, and both
-   * halves (offered list, default mode) must come from ONE computation so they cannot
-   * disagree. Keyed on the declared array's identity, so reassigning `col.matchModes`
-   * recomputes — note PrimeNG itself reads `matchModeOptions` only in its own `ngOnInit`,
-   * so a post-init change still never reaches the rendered dropdown.
-   */
-  private matchModeResolutions = new WeakMap<
-    Column,
-    { source: MatchModeCodes[] | undefined; resolution: ResolvedMatchModes }
-  >();
-
-  getColMatchModeOptions(col: Column): SelectItem[] | null {
-    return this.resolveMatchModes(col).options;
-  }
-
-  getColMatchMode(col: Column): any {
-    return this.resolveMatchModes(col).defaultMode;
-  }
-
-  private resolveMatchModes(col: Column): ResolvedMatchModes {
-    const cached = this.matchModeResolutions.get(col);
-    if (cached && cached.source === col.matchModes) return cached.resolution;
-
-    const resolution = this.computeMatchModes(col);
-    this.matchModeResolutions.set(col, {
-      source: col.matchModes,
-      resolution,
-    });
-    return resolution;
-  }
-
-  /**
-   * Applies `Column.matchModes`, and refuses to half-apply it. Both ways a declaration can
-   * be wrong are consumer mistakes that PrimeNG would otherwise turn into a broken filter
-   * rather than an error: it reads `matchModeOptions || <type defaults>`, so handing it
-   * `[]` renders an EMPTY dropdown (an empty array is truthy) while the default mode still
-   * seeds the constraint, and handing it `null` silently restores PrimeNG's own list. So an
-   * unusable narrowing falls back to the full list and says so, instead of shipping a
-   * dropdown the user cannot pick from.
-   */
-  private computeMatchModes(col: Column): ResolvedMatchModes {
-    const options = this.matchModeOptionsForType(col.filterType);
-    const typeDefault = this.defaultMatchModeForType(col.filterType);
-    const declared = col.matchModes;
-
-    if (!declared?.length) return { options, defaultMode: typeDefault };
-
-    if (!options?.length) {
-      console.error(
-        `spiderly-data-table: column "${col.field}" declares matchModes, but filterType "${col.filterType}" has no match modes to narrow — ignoring.`,
-      );
-      return { options, defaultMode: typeDefault };
-    }
-
-    const narrowed = declared
-      .map((code) => options.find((option) => option.value === code))
-      .filter((option): option is SelectItem => option != null);
-
-    if (narrowed.length !== declared.length) {
-      const unsupported = declared.filter(
-        (code) => !options.some((option) => option.value === code),
-      );
-      console.error(
-        `spiderly-data-table: column "${col.field}" declares match mode(s) [${unsupported.join(', ')}] that filterType "${col.filterType}" does not support — ignoring them.`,
-      );
-    }
-
-    if (!narrowed.length) return { options, defaultMode: typeDefault };
-
-    return { options: narrowed, defaultMode: narrowed[0].value };
-  }
-
-  private matchModeOptionsForType(
-    filterType: string | undefined,
-  ): SelectItem[] | null {
-    switch (filterType) {
-      case 'text':
-        return this.matchModeTextOptions;
-      case 'date':
-        return this.matchModeDateOptions;
-      case 'multiselect':
-        return null;
-      case 'boolean':
-        return null;
-      case 'numeric':
-        return this.matchModeNumberOptions;
-      default:
-        return null;
-    }
-  }
-
-  private defaultMatchModeForType(filterType: string | undefined): any {
-    switch (filterType) {
-      case 'text':
-        return MatchModeCodes.Contains;
-      case 'date':
-        return MatchModeCodes.Equals;
-      case 'multiselect':
-        return MatchModeCodes.In;
-      case 'boolean':
-        return MatchModeCodes.Equals;
-      case 'numeric':
-        return MatchModeCodes.Equals;
-      default:
-        return null;
-    }
-  }
-
-  isDropOrMulti(filterType: string) {
-    if (filterType == 'dropdown' || filterType == 'multiselect') {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Whether the filter type applies on every value change, which hides the menu's Apply
-   * button — an Apply there would promise a pending state that cannot exist. Boolean
-   * auto-applies through PrimeNG's own `onModelChange`; date and dropdown/multiselect
-   * through the filter templates THIS component projects, which call `filterCallback`
-   * directly (PrimeNG's built-in element, and with it its `onModelChange`, is only
-   * rendered when no template is projected — so the date path is ours, not PrimeNG's).
-   * With showApplyButton off, PrimeNG also auto-applies match-mode, operator and
-   * constraint-removal changes, so the whole menu stays consistent. Typed input
-   * (text/numeric) is deliberately NOT here — it commits on Enter/Apply, since applying
-   * per keystroke would fire a lazy load per key. Listing the auto types (not the typed
-   * ones) is the safe polarity: an unlisted future type keeps its Apply button rather
-   * than silently losing its commit.
-   *
-   * Known gap this does not close, and it predates the flag: the projected date template
-   * binds `[ngModel]` one-way and commits on `(onSelect)`, which the datepicker raises for
-   * a calendar pick but not for `onUserInput` — so a date TYPED into the field never
-   * reaches the constraint at all, with or without an Apply button.
-   */
-  filterAppliesOnChange(filterType: string): boolean {
-    return (
-      filterType === 'boolean' ||
-      filterType === 'date' ||
-      this.isDropOrMulti(filterType)
-    );
   }
 
   /*
@@ -2235,9 +1814,6 @@ export class SpiderlyDataTableComponent
 
     table.clear();
     table.clearState();
-    // clear() re-queries without emitting (onFilter), so the icons would keep their fill
-    // on a client-side table; on a lazy one lazyLoad already covers it.
-    this.snapshotAppliedFilters(table.filters);
   }
 
   //#region Selection
@@ -2504,14 +2080,6 @@ export class Action {
   }
 }
 
-/** One column's resolved match-mode config — see `computeMatchModes`. */
-interface ResolvedMatchModes {
-  /** What the filter menu offers; `null` hands PrimeNG its own list for the type. */
-  options: SelectItem[] | null;
-  /** The mode a fresh constraint on this column starts with. */
-  defaultMode: any;
-}
-
 /**
  * A saved question. The bar lets an operator BUILD one; a view is the one they ask every morning,
  * asked in a click — and without them the whole column-and-filter rework is a pile of knobs
@@ -2542,7 +2110,12 @@ export interface TableView<TFilters = any> {
 export class Column<T = any> {
   name?: string;
   field?: string & keyof T;
-  filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future
+  /**
+   * The column's VALUE SHAPE: it sizes the column (`getColWidth`), picks the cell rendering
+   * (`getRowData`, the blob branch) and the numeric right-align. The name is a fossil of the
+   * header-filter era — filtering lives in the store handed to `[filters]` — kept because
+   * renaming it would be a 195-declaration migration for zero behavior.
+   */
   filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
   /**
    * The id of the filter in the table's store that this column stands for, which is what the
@@ -2554,24 +2127,14 @@ export class Column<T = any> {
    * is declared (`createFilterStore`), not here.
    */
   filterId?: string;
-  filterPlaceholder?: string;
-  showMatchModes?: boolean;
   /**
-   * Narrows the match modes this column's filter menu offers. Declaration order is display
-   * order, and the FIRST entry becomes the column's default match mode. Omit for the filter
-   * type's full list and standard default. Example — a datetime column where an exact-equals
-   * match can never hit: `matchModes: [MatchModeCodes.GreaterThan, MatchModeCodes.LessThan]`.
-   *
-   * Read at declaration time: PrimeNG generates the dropdown once in its own `ngOnInit`, so
-   * reassigning this later never reaches the rendered menu.
-   *
-   * The OFFERED list needs `showMatchModes: true` to be visible, but the default mode applies
-   * either way — declaring `matchModes` on a column with no picker is the supported way to
-   * change just that column's default. Only modes the filter type actually has are honored;
-   * anything else is logged and ignored (`computeMatchModes`).
+   * @deprecated Dead since the header-filter deletion: NOTHING reads it. It survives on the type
+   * only so details-table cols emitted by an OLDER Spiderly.SourceGenerators (which wrote
+   * `showMatchModes: true`) still compile against this library during a mixed-version window —
+   * a consumer on published NuGet generators plus an npm-linked library build. Delete it once
+   * every consumer regenerates with a generator from this release or later.
    */
-  matchModes?: MatchModeCodes[];
-  showAddButton?: boolean;
+  showMatchModes?: boolean;
   dropdownOrMultiselectValues?: PrimengOption[];
   actions?: Action[];
   editable?: boolean;
@@ -2590,9 +2153,8 @@ export class Column<T = any> {
    */
   lockVisible?: boolean;
   /**
-   * CSS length fixing this column's width (e.g. `'8rem'`). Overrides the per-filter-type default,
-   * which is sized for the HEADER — filter input plus match-mode dropdown — and so is generous
-   * for a column of short values.
+   * CSS length fixing this column's width (e.g. `'8rem'`). Overrides the per-type default,
+   * which is generous for a column of short values.
    *
    * Declare a width on the columns that must stay NARROW and leave the flexible one undeclared:
    * the table distributes its surplus in proportion to the declared widths, so a column carrying
@@ -2613,13 +2175,9 @@ export class Column<T = any> {
   constructor({
     name,
     field,
-    filterField,
     filterType,
     filterId,
-    filterPlaceholder,
     showMatchModes,
-    matchModes,
-    showAddButton,
     dropdownOrMultiselectValues,
     actions,
     editable,
@@ -2633,13 +2191,9 @@ export class Column<T = any> {
   }: {
     name?: string;
     field?: string & keyof T;
-    filterField?: string & keyof T; // Made specificaly for multiautocomplete, maybe for something more in the future;
     filterType?: 'text' | 'date' | 'multiselect' | 'boolean' | 'numeric' | 'blob';
     filterId?: string;
-    filterPlaceholder?: string;
     showMatchModes?: boolean;
-    matchModes?: MatchModeCodes[];
-    showAddButton?: boolean;
     dropdownOrMultiselectValues?: PrimengOption[];
     actions?: Action[];
     editable?: boolean;
@@ -2653,13 +2207,9 @@ export class Column<T = any> {
   } = {}) {
     this.name = name;
     this.field = field;
-    this.filterField = filterField;
     this.filterType = filterType;
     this.filterId = filterId;
-    this.filterPlaceholder = filterPlaceholder;
     this.showMatchModes = showMatchModes;
-    this.matchModes = matchModes;
-    this.showAddButton = showAddButton;
     this.dropdownOrMultiselectValues = dropdownOrMultiselectValues;
     this.actions = actions;
     this.editable = editable;

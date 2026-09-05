@@ -23,7 +23,6 @@
       [loading]="isPending"
       [selectionMode]="selectionMode"
       dataKey="id"
-      (onFilter)="filter($event)"
       sortMode="multiple"
       [multiSortMeta]="initialMultiSortMeta"
       [stateKey]="resolvedStateKey"
@@ -50,17 +49,6 @@
               style="flex: none"
               icon="pi pi-sliders-h"
               (click)="columnChooser.toggle($event)"
-            ></button>
-            <!-- Only without a store: with one, the chip bar carries this, next to the chips
-                 it clears. Two buttons a row apart for one job is what that replaced. -->
-            <button
-              pButton
-              *ngIf="!filters"
-              [label]="t('ClearFilters')"
-              class="p-button-outlined"
-              style="flex: none"
-              icon="pi pi-filter-slash"
-              (click)="clear(dt)"
             ></button>
             <button
               pButton
@@ -295,69 +283,6 @@
                     <i class="pi pi-chevron-down"></i>
                   </button>
                 </span>
-                <!-- hideOnClear: Apply is what closes this menu in PrimeNG (applyFilter =
-                     _filter + hide), so wherever Apply is hidden Clear is the only button
-                     left and would otherwise clear-and-linger. Committing a VALUE still
-                     leaves the menu open deliberately — a multiselect gets ticked several
-                     times per visit; dismissal is the popover's own (outside click, Esc). -->
-                <p-columnFilter
-                  *ngIf="showHeaderFilter(col)"
-                  [type]="col.filterType"
-                  [field]="filterKey(col)"
-                  display="menu"
-                  [placeholder]="col.filterPlaceholder"
-                  [showOperator]="false"
-                  [showMatchModes]="col.showMatchModes"
-                  [showAddButton]="col.showAddButton"
-                  [showApplyButton]="!filterAppliesOnChange(col.filterType)"
-                  [hideOnClear]="true"
-                  [matchModeOptions]="getColMatchModeOptions(col)"
-                  [matchMode]="getColMatchMode(col)"
-                >
-                  <!-- Marks a filtered column — PrimeNG's own <FilterIcon> cannot
-                       (CLAUDE.md → "Active-filter header icon"). Colour: the SCSS. -->
-                  <ng-template pTemplate="filtericon">
-                    <i
-                      [class]="
-                        isColumnFiltered(col) ? 'pi pi-filter-fill' : 'pi pi-filter'
-                      "
-                    ></i>
-                  </ng-template>
-                  <ng-template
-                    *ngIf="isDropOrMulti(col.filterType)"
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-multiSelect
-                      [ngModel]="value"
-                      [options]="col.dropdownOrMultiselectValues"
-                      [placeholder]="t('All')"
-                      (onChange)="filter($event.value)"
-                      optionLabel="label"
-                      optionValue="code"
-                      [style]="{ width: '240px' }"
-                    >
-                      <ng-template let-item pTemplate="item">
-                        <div class="p-multiselect-representative-option">
-                          <span class="ml-2">{{ item.label }}</span>
-                        </div>
-                      </ng-template>
-                    </p-multiSelect>
-                  </ng-template>
-                  <ng-template
-                    *ngIf="col.filterType == 'date'"
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-datepicker
-                      [ngModel]="value"
-                      [showTime]="col.showTime"
-                      (onSelect)="filter($event)"
-                    ></p-datepicker>
-                  </ng-template>
-                </p-columnFilter>
               </div>
             </th>
           </ng-container>

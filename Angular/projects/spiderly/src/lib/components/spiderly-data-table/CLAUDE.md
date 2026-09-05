@@ -4,9 +4,12 @@ Wraps PrimeNG v19 `<p-table>` and exposes Spiderly's column-based filter / sort 
 
 ## Operator-owned view — the rework decided 2026-09-02 (Filip, grilled)
 
-**Status: DESIGN, not shipped.** Every section below this one describes what the component does
-TODAY. This block is the ONE telling of what replaces them and why; the affected sections carry a
-pointer back here rather than a copy.
+**Status: SHIPPED IN FULL, legacy path DELETED (2026-09-05).** Every decision below is built, all
+27 PACMS tables carry a store, and the legacy header-filter path (`p-columnFilter`, the projected
+filtericon, Apply/hideOnClear, match-mode narrowing, the "hidden contributes nothing" trio,
+`Column.filterField`/`filterPlaceholder`/`matchModes`/per-column `showAddButton`) is gone — a
+table handed no store now has NO filter surface at all. This block stays as the decision record;
+the deletion-wave rulings are at the end of it.
 
 **The premise that broke.** Every presentational knob on this grid is set by whoever writes
 `Column[]`: which columns show, their width, their order, whether a value is clamped — and, because
@@ -169,6 +172,28 @@ still the design, and this is where it stands against it.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
   views (decision 10) all shipped too — every decision in this record is now built.
+- **The legacy header-filter path is DELETED (2026-09-05), with four rulings made at the wave:**
+  - **`spiderly-data-view` is EXCLUDED, deliberately.** It has its own parallel filter config
+    (`DataViewFilter` — its own `filterField`/`showMatchModes`, its own hand-kept match-mode
+    lists) and no bar equivalent, so deleting its header filters would leave a fresh
+    `spiderly init` app's data view with no filtering at all. It keeps `p-columnFilter` until it
+    either grows a bar or is migrated onto the store engine — a decision for its own rework, not
+    a leftover to "clean up" on sight.
+  - **`operatorOptionsForKind` was deleted with the path.** Its only callers were the legacy
+    header dropdowns; the store resolves per-filter operators internally
+    (`baseOperators`/`toOperatorOptions`), so nothing public asks a KIND-only question any more.
+  - **`Column.showMatchModes` survives as a dead, `@deprecated` prop — a version-skew bridge,
+    not an oversight.** An older Spiderly.SourceGenerators (published NuGet) still emits
+    `showMatchModes: true` into generated details-table cols (`base-details.generated.ts`), and
+    a consumer in mixed dev state (npm-linked new library + NuGet old generator — pa-cms's
+    normal dev mode) must keep compiling. Nothing reads it. Delete it once consumers regenerate
+    with a generator from the same release train.
+  - **Generated details-page M2M tables (`[SimpleManyToManyTableLazyLoad]` /
+    `[ComplexManyToManyReadonlyTable]`) ship with NO filter surface** until
+    `NgDetailsDataGenerator` scaffolds a store for them — the generator stopped emitting the
+    header-filter props, and scaffolding a store there (options plumbing for dropdown columns
+    included) is its own upstream piece of work, tracked as a spiderly issue. The only PACMS
+    instance is the Cart items readonly grid (2 columns).
 - **The consumer migration is COMPLETE — all 27 PACMS tables carry a store (2026-09-05).**
   Three earned views: `tag-list` (three), `order-list` (the table the rework was argued from:
   17 filters, six views — a catalog-driven "Za pakovanje" hidden mid-deploy while no row
@@ -216,13 +241,12 @@ still the design, and this is where it stands against it.
     options upgrade a restored chip from ids to labels when they land (`chipValue`). Follow-up
     if a second chip-drawing surface ever appears: make options a signal and let `applied()`
     carry a `valueLabel`, so the whole chip sentence has one home.
-  - **On a store table the whole "hidden contributes nothing" apparatus is OFF** — decision 2b's
-    other half: `clearHiddenColumnConstraints` no-ops (hide keeps filter AND sort; its
-    `_filter()` would also wipe a live selection), `reconcileVisibilityWithPersistedConstraints`
-    skips (stale header-filter meta in the persisted blob never reaches a request, so revealing
-    for it resurrects a phantom — on every load on a localStorage table), and
-    `defaultMultiSortMeta` applies the default even on a hidden column. The bar and sort chip
-    are the visible surface for all three.
+  - **The "hidden contributes nothing" apparatus is GONE** (deleted with the legacy path;
+    while both paths coexisted it was gated off on store tables) — decision 2b's other half:
+    hiding a column keeps its filter AND sort, `defaultMultiSortMeta` applies the default even
+    on a hidden column, and stale header-filter meta in an old persisted blob never reaches a
+    request (the store payload replaces `event.filters`). The bar and sort chip are the visible
+    surface for all of it.
   - `TableView.transient` — a view whose `apply` is a function of NOW ("Danas primljene")
     re-applies on every select instead of restoring; stored-wins would put yesterday's date
     under a tab claiming "today". Layout still persists per view.
@@ -308,43 +332,19 @@ Selection checkboxes support Gmail-style ranges: shift+click applies the clicked
 - `onCellClick` keeps its own `stopPropagation` (documented consumer contract, and it also shields consumers' outer handlers); it is belt now, not the mechanism.
 - `onRowClick` resolves the row id through `idField`, not a hardcoded `id` — a table keyed by anything else silently never navigated at all.
 
-## `showMatchModes` defaults to false on every column
+## Operator labels are runtime translations
 
-The match-mode `<p-select>` rendered next to text/numeric/date filter inputs is gated by **two** conditions in PrimeNG (`*ngIf="showMatchModes && matchModes"`). Spiderly always supplies `matchModeOptions` (`matchModeNumberOptions`, `matchModeDateOptions`), so the second condition is satisfied — but the binding `[showMatchModes]="col.showMatchModes"` resolves to `undefined` when a column omits the flag, and PrimeNG's `booleanAttribute` coerces that to `false`. Net effect: the dropdown does not render and the column filters with the default match mode (`Equals` for numeric, `Contains` for text) only.
-
-To let the user pick a match mode, set `showMatchModes: true` on the column. Example:
-
-```typescript
-{ name: t('CreatedAt'), filterType: 'date', field: 'createdAt', showMatchModes: true }
-```
-
-## Match-mode labels are runtime translations
-
-`matchModeNumberOptions` / `matchModeDateOptions` populate `label` from `translocoService.translate(...)`, so the user-visible option text is the **value** in `assets/i18n/<locale>.json`, not the key. For English:
-
-| `MatchModeCodes` | translation key | rendered label |
-|---|---|---|
-| `Equals` | `Equals` | `Equals` |
-| `LessThan` | `LessThan` | `Less than` |
-| `GreaterThan` | `MoreThan` | `More than` |
-| (date) | `OnDate` | `On date` |
-| (date) | `DatesBefore` | `Dates before` |
-| (date) | `DatesAfter` | `Dates after` |
-
-When matching options programmatically (e2e tests, conditional logic), match against the rendered label, not the key. Renaming the key without updating en.json or vice versa silently breaks consumers that match by label.
+The bar's operator picker and chip phrases resolve their labels through `translocoService.translate(...)` from `OPERATOR_WORDS` (`filters/filter-store.ts`), so the user-visible text is the **value** in `assets/i18n/<locale>.json`, not the key. The picker keys in English: `Equals`, `LessThan` → `Less than`, `MoreThan` → `More than`, `OnDate`, `DatesBefore`, `DatesAfter`, `StartsWith`, `Contains`. When matching options programmatically (e2e tests, conditional logic), match against the rendered label, not the key; renaming a key without updating en.json (or vice versa) silently breaks consumers that match by label, and the keys must stay seeded in the init template's en block (`NetAndAngularFilesGenerator.cs`).
 
 ## Column chooser — `Column.visible` / `Column.lockVisible`
 
-**Superseded in part by "Operator-owned view" above** (2026-09-02): the hidden-column invariant
-below, and the v1-scope line deferring reordering and width persistence.
-
 Consumer-facing behavior is documented in `claude-plugins/docs/angular-customization/index.md` → "Column chooser". Editing notes:
 
-- **The invariant everything serves: a hidden column contributes nothing to filtering or sorting.** The header is the only filter surface, so a kept constraint would restrict data invisibly. Three enforcement points, all must stay aligned: `clearHiddenColumnConstraints()` (on hide), `reconcileVisibilityWithPersistedConstraints()` (on init, against state this component didn't write), and `defaultMultiSortMeta()` returning null when its column is hidden (otherwise `applyDefaultSortIfUnsorted` would re-add an invisible sort right after clear-on-hide removed it).
+- **Hiding a column touches nothing but visibility** — its filter and sort survive, named by the chip bar and sort chip (decision 2b). The old "hidden contributes nothing" invariant and its three enforcement points died with the legacy header-filter path.
 - Template loops iterate `visibleCols` (recomputed via `refreshVisibleCols()`), never `cols`. Actions columns (no `field`) always render and never appear in `chooserCols`.
-- Overrides live in `columnVisibilityOverrides` — **only fields the user explicitly toggled off their declared default** (toggling back to default deletes the entry). Persisted to `` `${resolvedStateKey}:columns` `` in **localStorage always** (column layout is a durable preference), unlike the filter state which follows `stateStorage`. `lockVisible` beats a stale persisted override. Reconciliation reveals go in the separate transient `revealedByConstraint` set (never persisted — keeping them out of the override map is what stops a later toggle's persist from promoting a safety reveal into a durable choice; an explicit toggle on that column supersedes the reveal).
-- Filter state is keyed by `filterField ?? field`; sort meta by `field`. The filter half of that rule has ONE home — the `filterKey` method, which the template's `[field]` binding, `isColumnFiltered`, `clearHiddenColumnConstraints` and the reconciliation all share. Never inline the expression again; sort stays on bare `field`.
-- v1 scope: the chooser only renders for lazy tables (`hasLazyLoad`); client-side form-array tables keep their declared columns. Reordering/width persistence deliberately out of scope.
+- Overrides live in `columnVisibilityOverrides` — **only fields the user explicitly toggled off their declared default** (toggling back to default deletes the entry). Persisted to `` `${resolvedStateKey}:columns` `` in **localStorage always** (column layout is a durable preference), unlike the filter state which follows `stateStorage`. `lockVisible` beats a stale persisted override.
+- Filter ids and sort meta are both keyed by `field` now (a column with a differently-named filter links it via `filterId`; `filterField` is gone with the header filters).
+- The chooser only renders for lazy tables (`hasLazyLoad`); client-side form-array tables keep their declared columns.
 - Spec gotcha: the chooser checkboxes' `[ngModel]` writes resolve in a microtask — tests must `await fixture.whenStable()` after opening/toggling (see `openChooser` in the spec). Once open, PrimeNG appends the popover to `document.body`, so specs query the `Popover` instance's `container`, never the document (stale popovers from earlier fixtures linger there).
 - That teleport also means chooser styles are declared at SCSS **top level**, never under `:host` (see `Angular/CLAUDE.md` → overlay styling); every chooser rule gets a row in the spec's `stylePins` table.
 
@@ -384,12 +384,9 @@ Two designs were tried and rejected (2026-08-30); do not re-derive them:
 
 Spec note: any test that drives a refetch must do it inside `fixture.ngZone.run(...)`, or the `delay(0)` is scheduled where `whenStable` will not wait and the assertion measures a still-pending table. That trap is documented once, on `swapRowNameTo`; three older specs call `table._filter()` unwrapped and are exposed to it.
 
-## Filter-state persistence
+## State persistence
 
-**Gains a view segment under "Operator-owned view" above** (2026-09-02, decision 10): layout is
-stored per view, not per table.
-
-`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method also calls `table.clearState()` so the "Clear all filters" caption button wipes the persisted state instead of just resetting the in-memory table.
+`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior (sort, pagination) under `resolvedStateKey`; the store's applied filters persist beside it under `` `${resolvedStateKey}:filters` `` in the `stateStorage` storage, and layout keys carry the active view segment (decision 10). When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method (the bar's Clear filters) also calls `table.clearState()` so the persisted state is wiped, not just the in-memory table.
 
 ## Per-cell click — `Column.onCellClick`
 
@@ -413,9 +410,10 @@ Consumer usage — anchoring a popover, including the re-anchor-while-open patte
 
 ## Column widths — `table-layout: fixed` and `Column.width`
 
-**Reworked by "Operator-owned view" above** (2026-09-02): widths become minimums a drag can set,
-`DEFAULT_COLUMN_WIDTH_REM` is re-derived from values once the header carries no filter input, and
-the missing `title` on `.cell-text` gets an overflow directive. Decisions 1, 4, 5 and 9.
+One rider from the rework is still open: `DEFAULT_COLUMN_WIDTH_REM` still carries the numbers
+sized for the header-filter era (decision 2b said to re-derive them from VALUES once the header
+carried no input); nobody has done that measurement yet, and the per-column drag/fit makes it
+low-stakes.
 
 `getColWidth(col)` takes the **column**, not the filter type — it needs `Column.width`. Why the defaults are generous, and why they are a width rather than a minimum: the `Column.width` doc comment and `tableStyle`.
 
@@ -426,32 +424,6 @@ Editing notes:
 - **The table needs no `min-width` of its own** — don't add a computed floor to `tableStyle`. The browser already widens a table past its container to the sum of its declared column widths, so `overflow-auto` still scrolls; the "too wide for its container scrolls" spec holds the measurement.
 - **The library styles `#defaultCell` directly; a projected template is reached through custom properties, never selectors.** `.cell-text` is authored in this template, so a plain `:host` rule matches it. A consumer's `spiderlyCellTemplate` renders markup carrying the CONSUMER's `_ngcontent` and is unreachable from here by selector — don't reach for `::ng-deep`. What DOES cross that boundary is inheritance: `td.cell-wrap` publishes the `--spiderly-cell-*` properties (see the SCSS), the default cell's own clamp reads them with the clamp as fallback, and a consumer clamp written the same way follows the operator's wrap toggle for free (consumer-facing recipe: `claude-plugins/docs/angular-customization/index.md` → column widths). Before this contract the toggle was a silent no-op on any templated column — every visible column of the PACMS orders grid — while the menu showed a checkmark. A consumer clamp that hard-codes `white-space: nowrap` still no-ops; that is the residue the contract accepts, not a bug in the toggle.
 
-## Active-filter header icon — the projected `filtericon` template
+## The e2e fixture drives the bar, and must move with it
 
-**Moot under `filterSurface: 'bar'`** — the chip bar replaces this whole apparatus. See
-"Operator-owned view" above, decision 1.
-
-PrimeNG 19's menu-mode filter button renders identically whether the column is filtered or not (its class is static, so there is no CSS-only fix), and the worst case is a `stateStorage`-restored filter on reload: the table opens filtered with zero signal. The projected `pTemplate="filtericon"` replaces PrimeNG's `<FilterIcon>` with `pi-filter` / `pi-filter-fill` + primary colour — the fill change is the non-colour channel (WCAG 1.4.1); colour only amplifies. Two traps, both spec-pinned:
-
-- **The icon reads APPLIED state (`appliedFilterKeys`), never `table.filters` — this is the trap, and it shipped once.** `ColumnFilter.onModelChange` writes every keystroke of a text/numeric filter straight into the meta and calls `_filter()` only for the auto-applying types, so `table.filters` also holds constraints the operator is still typing. Reading it filled the icon on the first character, claiming the grid was narrowed while it still showed everything (Filip, 2026-08-29, on the live admin). `snapshotAppliedFilters` records the set at each COMMIT point instead — `(onFilter)` (which `_filter()` emits for lazy and client tables alike), `lazyLoad` (also the `table.clear()` path, which re-queries **without** emitting `onFilter`), the caption's Clear filters, and once in `ngOnInit` off persisted state so a restored filter is marked on first paint. The "typed but not yet applied" spec is the pin; note a spec that sets `filters` without calling `_filter()` now proves nothing.
-- **Two questions, two predicates — don't collapse them.** `isColumnFiltered(col)` answers "are the rows on screen narrowed by this column" (the icon). `columnHasConstraint(table, col)` answers "does this column carry a constraint at all, pending included" — which is the right question for `clearHiddenColumnConstraints`, since a typed-but-unapplied value must still be dropped when the column is hidden.
-- **Truth is our `isActiveFilterMeta`, never the template's `let-hasFilter` context.** PrimeNG's getter reads only the *first* constraint of array meta, so a multi-constraint column whose first slot is blanked but whose second still holds a value is genuinely filtered while `hasFilter` reports it isn't. The "stays filled when only a later constraint…" spec is the pin.
-
-## Filter menu Apply button — hidden for auto-applying types
-
-**Moot under `filterSurface: 'bar'`** — see "Operator-owned view" above, decision 1.
-
-Which types auto-apply, why Apply there would lie, and why the method lists the auto types rather than the typed ones (safe polarity for future filter types): the `filterAppliesOnChange` doc comment. Clear stays either way — for a boolean it is the only path from checked/unchecked back to "no constraint".
-
-**`[hideOnClear]="true"` is part of this, not a preference.** PrimeNG closes the filter menu only from `applyFilter()` (`_filter()` + `hide()`); `clearFilter()` hides only when `hideOnClear` is set, which defaults to false. So on a menu whose Apply is hidden, Clear was the one remaining button and it cleared without closing. Committing a *value* still leaves the menu open deliberately — a multiselect gets ticked several times per visit — so dismissal there is the popover's own (outside click, Esc).
-
-**The e2e fixture mirrors this contract and must move with it.** `tests/e2e-fixtures/frontend/tests/e2e/page-objects/base-page.ts` → `applyBooleanFilter` presses no Apply and dismisses with Esc; it kept clicking the removed Apply for one CI run (33279746074) and timed out at 30s three times. Changing which types auto-apply changes that helper too.
-
-## `Column.matchModes` — narrowing, and the two ways it must not half-apply
-
-Consumer-facing behavior: `claude-plugins/docs/angular-customization/index.md` → the `matchModes` paragraph, and the `Column.matchModes` doc comment (declaration-time only; the default applies even without `showMatchModes`). Editing notes:
-
-- **One resolution feeds both bindings.** `resolveMatchModes` computes the offered list and the default mode together and memoizes them per column (keyed on the declared array's identity), so `[matchModeOptions]` and `[matchMode]` can never disagree, and the narrowed array keeps a stable reference across change-detection passes.
-- **PrimeNG turns a bad narrowing into a broken filter, not an error** — it resolves `matchModeOptions || <type defaults>`, and an empty array is truthy. So `[]` renders a dropdown with NO options while the default mode still seeds the constraint (and the generated backend answers an unsupported mode with a 400), and `null` silently restores PrimeNG's own list. `computeMatchModes` therefore drops unsupported codes, falls back to the full list when nothing survives, and `console.error`s in both cases rather than shipping an unusable menu.
-- **Text has its own list now (`matchModeTextOptions`), and that is a fix, not decoration.** The library used to hand PrimeNG `null` for text, so a `showMatchModes` text column offered PrimeNG's six modes while `PaginatedResultGenerator.GetCaseForString` implements three — `notContains` / `endsWith` / `notEquals` each 400'd. It also made `matchModes` a silent no-op there, since the narrowing has nothing to narrow.
-- **Persisted match modes are reconciled on init** (`reconcilePersistedMatchModes`) — the filter twin of `keepSortableMeta`. `ColumnFilter.ngOnInit` skips `initFieldFilterConstraint()` when the field already carries a restored constraint, so `[matchMode]` never reaches it; a mode stored before the column declared `matchModes` would keep filtering while its `<p-select>` rendered blank. It rewrites storage (before PrimeNG's `restoreState()` reads the same key) and touches only the offending constraint.
+`tests/e2e-fixtures/frontend/tests/e2e/page-objects/base-page.ts` holds the filter helpers (`applyTextFilter` / `applyNumericFilter` / `applyBooleanFilter` / `clearTableFilters`), addressed by the bar's `data-testid`s and committing every kind through `filter-editor-apply`; each commit awaits its own paginated-list response because the table does not sequence concurrent lazy loads. Changing the bar's DOM, the editor's commit flow or the persistence keys changes those helpers and `specs/product-crud.spec.ts`'s storage asserts too — the stale-helper failure mode is a 30s Playwright timeout on an element that no longer exists (it happened to the old header-filter helper on CI run 33279746074).

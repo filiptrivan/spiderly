@@ -337,7 +337,7 @@ describe('createFilterStore — a no-op commit publishes nothing', () => {
   });
 });
 
-// The same narrowing `Column.matchModes` gives a header filter, for the same reason: the full
+// Narrowing exists because the full
 // list can contain an operator that is legal on the wire but never the question. The forcing
 // case is date-equality against a TIMESTAMP — it matches only the row written in that exact
 // second and answers with an empty grid (PACMS, all three order-list date columns, Filip
