@@ -167,10 +167,13 @@ still the design, and this is where it stands against it.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
   views (decision 10) all shipped too — every decision in this record is now built.
-- **What is left is CONSUMER work, not library work:** PACMS has ONE of 27 tables migrated
-  (`tag-list`, which carries filters, `filterId` links and three views). Orders is the one the
-  whole rework was argued from and it is untouched: nineteen columns, four two-line cell
-  templates, and the filter-only / display split already written out above `buildColumns`.
+- **What is left is CONSUMER work, not library work:** PACMS has TWO of 27 tables migrated —
+  `tag-list` (filters + three views) and, since 2026-09-05, `order-list`: the table the whole
+  rework was argued from, now carrying a 17-filter store (six filter-only columns dropped, the
+  `companyName` no-column filter added), the search box as a placement of the store's
+  `mixedSearch` handle, and six views — including a catalog-driven "Za pakovanje" (the status
+  set is server policy, hidden mid-deploy while no row claims it) and a transient
+  "Danas primljene".
 - **Custom views were asked for and PARKED (Filip, 2026-09-05).** Views ship declared in consumer
   code; an operator cannot save their own. Filip asked for that after using the tags grid, then
   agreed to wait for a signal rather than build it — Plaky "Waiting" 7387519 carries the full
@@ -205,6 +208,11 @@ still the design, and this is where it stands against it.
     store's runtime checks, `FilterRule`'s compile-time unions and the legacy header dropdowns
     all derive from (the three hand-kept copies this file's git history warned about). Tuple
     order is display order everywhere.
+  - **Declined the same day: extracting the layout state (`columnWrap`/`columnOrder`/
+    `columnWidths`) into a `ColumnLayout` class.** A pure moving-of-fields with no behavior
+    change, in the file the migration was actively stabilising; nothing currently duplicates or
+    misuses that state, so the refactor bought a diff and no property. Revisit only if a second
+    component needs the same layout model.
 
 **Three more traps, all found by a spec and none visible by eye:**
 
