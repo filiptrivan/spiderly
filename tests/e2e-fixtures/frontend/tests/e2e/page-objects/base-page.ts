@@ -44,7 +44,8 @@ export class BasePage {
 
   async toggleCheckbox(label: string) {
     const checkbox = this.page.locator(`spiderly-checkbox[label="${label}"]`);
-    await checkbox.locator('.p-checkbox-box').click();
+    // Native input, never .p-checkbox-box — see applyBooleanFilter for why the box is unclickable.
+    await checkbox.locator('input[type="checkbox"]').click();
   }
 
   async selectCalendarDate(label: string, day: number) {
@@ -152,10 +153,14 @@ export class BasePage {
     await this.openFilterEditor(filterLabel);
     // The editor draws a BINARY p-checkbox that starts unchecked: one click drafts true,
     // a second drafts false. Drafts reach nothing until Apply commits them.
+    // Click the native input: PrimeNG 19 renders it full-size ON TOP of .p-checkbox-box as a
+    // SIBLING, and Playwright's hit-target check only tolerates an interceptor that descends
+    // from the click target — so a .p-checkbox-box click can never land (CI run 33943130146,
+    // 53 intercepted retries until timeout).
     const clicks = value ? 1 : 2;
-    const box = this.page.getByTestId('filter-editor-value').locator('.p-checkbox-box').first();
+    const checkbox = this.page.getByTestId('filter-editor-value').locator('input[type="checkbox"]').first();
     for (let i = 0; i < clicks; i++) {
-      await box.click();
+      await checkbox.click();
     }
     await this.applyFilterEditor();
   }
