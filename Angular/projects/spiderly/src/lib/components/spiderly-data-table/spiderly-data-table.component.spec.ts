@@ -61,6 +61,13 @@ afterEach(() => {
   errorHandler.handleError.calls.reset();
 });
 
+// Layout specs measure real geometry, and the Karma viewport is not evidence: local `ng test`
+// runs in a real browser window sized by the display, CI in a ~800px headless one. That split
+// is what let "171 green locally" coexist with a red CI twice in one day (2026-09-05: the
+// frozen-offset re-split, the too-wide equality failure). Pinning every host to one width makes
+// a local run measure the same share-splitting CI does, whatever monitor it runs on.
+const FIXTURE_WIDTH_PX = 740;
+
 function createFixture<T>(host: new () => T): ComponentFixture<T> {
   TestBed.configureTestingModule({
     imports: [
@@ -79,6 +86,7 @@ function createFixture<T>(host: new () => T): ComponentFixture<T> {
     ],
   });
   const fixture = TestBed.createComponent(host);
+  fixture.nativeElement.style.width = `${FIXTURE_WIDTH_PX}px`;
   fixture.detectChanges();
   return fixture;
 }
@@ -776,22 +784,16 @@ class HostWithRowActionsComponent {
 
 @Component({
   imports: [SpiderlyDataTableComponent],
-  // The wrapper width is the test's premise, so it is PINNED, not inherited: local `ng test`
-  // runs in a real browser window (karma.conf `browsers: ['Chrome']`) whose width follows the
-  // display, and on a monitor wider than the 72rem the columns need, the table no longer
-  // overflows and the scroll assert fails on equality (1184 vs 1184, 2026-09-05). 740px is the
-  // container the behaviour was originally measured in.
   template: `
-    <div style="width: 740px">
-      <spiderly-data-table
-        [cols]="cols"
-        [getPaginatedListObservableMethod]="getList"
-      ></spiderly-data-table>
-    </div>
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
   `,
 })
 class HostWithMoreColumnsThanFitComponent {
-  // Six text columns at the 12rem default = 72rem, well past the pinned 740px container.
+  // Six text columns at the 12rem default = 72rem, well past FIXTURE_WIDTH_PX — the premise
+  // this suite's scroll assert rests on, held by the pin rather than the Karma window.
   cols: Column[] = Array.from({ length: 6 }, (_, i) => ({
     name: `Col ${i}`,
     field: `c${i}`,
@@ -2750,20 +2752,18 @@ class HostWithFrozenIdentityComponent {
 // place, and `lockVisible` already names exactly that column in every table — so freezing needs
 // no new API (CLAUDE.md -> decision 8).
 describe('SpiderlyDataTableComponent — the frozen left edge', () => {
-  // The offset is a MEASUREMENT, and the microtask measure in `observeSelectionWidth` races the
-  // first row render: `paginated()` emits on a macrotask, so the measure sees the row-less
-  // layout. Where the rendered rows re-split the fixed-layout shares (Linux headless Chrome
-  // did — CI run 33943130146, 105px vs 103px; macOS happened to split identically, so local
-  // stayed green), the ResizeObserver's correction arrives at animation-frame timing that
-  // `whenStable` never waits for, and its `zone.run` write still needs a `detectChanges` to
-  // reach the DOM. So settle frames until the invariant holds; on non-convergence the asserts
-  // below fail loudly with the real values.
+  // The measured offset's correction lands at animation-frame timing `whenStable` never awaits
+  // and needs a `detectChanges` to reach the DOM — CLAUDE.md's ResizeObserver trap bullet
+  // carries the full telling. Settle until the header invariant holds; the body cells bind the
+  // same `frozenOffsetPx`, so they converge with it, and on non-convergence the asserts below
+  // fail loudly with the real values.
   async function settleFrozenOffset(
     fixture: ComponentFixture<unknown>,
   ): Promise<void> {
-    const el = fixture.nativeElement as HTMLElement;
+    const headers = (
+      fixture.nativeElement as HTMLElement
+    ).querySelectorAll<HTMLElement>('thead th');
     for (let i = 0; i < 10; i++) {
-      const headers = el.querySelectorAll<HTMLElement>('thead th');
       if (getComputedStyle(headers[1]).left === `${headers[0].offsetWidth}px`) {
         return;
       }
