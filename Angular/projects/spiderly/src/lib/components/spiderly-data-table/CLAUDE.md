@@ -167,13 +167,21 @@ still the design, and this is where it stands against it.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
   views (decision 10) all shipped too — every decision in this record is now built.
-- **What is left is CONSUMER work, not library work:** PACMS has TWO of 27 tables migrated —
-  `tag-list` (filters + three views) and, since 2026-09-05, `order-list`: the table the whole
-  rework was argued from, now carrying a 17-filter store (six filter-only columns dropped, the
-  `companyName` no-column filter added), the search box as a placement of the store's
-  `mixedSearch` handle, and six views — including a catalog-driven "Za pakovanje" (the status
-  set is server policy, hidden mid-deploy while no row claims it) and a transient
-  "Danas primljene".
+- **The consumer migration is COMPLETE — all 27 PACMS tables carry a store (2026-09-05).**
+  Three earned views: `tag-list` (three), `order-list` (the table the rework was argued from:
+  17 filters, six views — a catalog-driven "Za pakovanje" hidden mid-deploy while no row
+  claims it, a transient "Danas primljene" — and the search box as a placement of the store's
+  `mixedSearch` handle), and `product-list` (Istaknuto / Neobjavljeno, both flags measured
+  NULL-free on prod before trusting `Equals` on a `bool?` column). The other 24 were judged
+  filter-only; two of those judgements are recorded in their factories because they will be
+  challenged: `product-review-list` (the moderation view is refused by DATA — the pending
+  queue lives in `IsApproved IS NULL`, a question no boolean filter can ask; unblock is
+  backend normalization, then the view) and `user-list` (every question there is a lookup,
+  not a recurring cut). `integration-matching-products` builds a store per MODE and nulls its
+  view model on every integration change — the recreation pattern any consumer swapping
+  stores needs, because the table reads `[filters]` and derives its state key only in its own
+  ngOnInit. With nothing left passing the old shape, wave 1's tail — deleting the legacy
+  header-filter path — is unblocked.
 - **Custom views were asked for and PARKED (Filip, 2026-09-05).** Views ship declared in consumer
   code; an operator cannot save their own. Filip asked for that after using the tags grid, then
   agreed to wait for a signal rather than build it — Plaky "Waiting" 7387519 carries the full
@@ -183,7 +191,8 @@ still the design, and this is where it stands against it.
   table, a CRUD surface and permissions.
 - **Two rules a later table must not re-derive:** a view CLEARS before it applies, so two never
   compose; and both layout keys carry the active view, so a table with no views reads exactly the
-  keys it already wrote — which is what keeps the twenty-six unmigrated grids working untouched.
+  keys it already wrote — which is what kept each not-yet-migrated grid working untouched while
+  the 27 landed one at a time.
 - **What the orders migration added (2026-09-05),** each spec-pinned; pointers, not copies:
   - `commit()` bails on an EQUAL constraint, not an equal draft object (`valueEquals`) — a paste
     over itself or a double Apply spends no request; the page-side `lastCommittedTerm` guard this
