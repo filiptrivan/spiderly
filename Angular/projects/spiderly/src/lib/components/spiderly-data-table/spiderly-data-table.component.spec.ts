@@ -776,15 +776,22 @@ class HostWithRowActionsComponent {
 
 @Component({
   imports: [SpiderlyDataTableComponent],
+  // The wrapper width is the test's premise, so it is PINNED, not inherited: local `ng test`
+  // runs in a real browser window (karma.conf `browsers: ['Chrome']`) whose width follows the
+  // display, and on a monitor wider than the 72rem the columns need, the table no longer
+  // overflows and the scroll assert fails on equality (1184 vs 1184, 2026-09-05). 740px is the
+  // container the behaviour was originally measured in.
   template: `
-    <spiderly-data-table
-      [cols]="cols"
-      [getPaginatedListObservableMethod]="getList"
-    ></spiderly-data-table>
+    <div style="width: 740px">
+      <spiderly-data-table
+        [cols]="cols"
+        [getPaginatedListObservableMethod]="getList"
+      ></spiderly-data-table>
+    </div>
   `,
 })
 class HostWithMoreColumnsThanFitComponent {
-  // Six text columns at the 12rem default = 72rem, well past the Karma fixture's width.
+  // Six text columns at the 12rem default = 72rem, well past the pinned 740px container.
   cols: Column[] = Array.from({ length: 6 }, (_, i) => ({
     name: `Col ${i}`,
     field: `c${i}`,
