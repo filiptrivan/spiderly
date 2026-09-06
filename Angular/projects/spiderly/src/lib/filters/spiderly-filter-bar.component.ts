@@ -12,6 +12,7 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { SortMeta } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -29,6 +30,7 @@ import {
   FilterHandle,
   FilterOption,
   SortKeyLabel,
+  SortPickOption,
 } from './filter-store';
 
 /** One option's word for one value — the honest raw value when no option matches (failed lookup). */
@@ -127,15 +129,42 @@ export function foldForSearch(value: string): string {
           </span>
         }
 
-        @if (sort().length) {
-          <!-- Read-only, and that is the scope on purpose. Multi-sort is invisible today (sort
-               icons scattered over headers, nothing saying which is primary), so saying it in one
-               place is the whole gain. An x here would have to mean "back to the DEFAULT sort"
-               rather than "no sort", because applyDefaultSortIfUnsorted puts the default straight
-               back — an affordance that lies is worse than none. -->
+        @if (sortOptions().length) {
+          <!-- The chip is the PICKER's trigger (2026-09-06, grilled) — Polaris's always-present
+               SortButton, in the slot the read-only chip held. Always rendered, sorted or not:
+               with the trigger only on an active sort, an unsorted grid would have no way to
+               sort by a hidden column, which is the capability the picker exists for. It
+               replaced a read-only chip whose stated rationale ("an x would lie — the default
+               snaps back") inverted the day a viewed table had no default: the operator was
+               left with an inherited sort, no chip x, no clear button, and the one header that
+               could un-sort it hidden. -->
+          <button
+            type="button"
+            class="sort-chip sort-chip-trigger"
+            data-testid="sort-chip"
+            [attr.aria-expanded]="isSortOpen()"
+            (click)="sortMenu.toggle($event); isSortOpen.set(!isSortOpen())"
+          >
+            @if (sort().length) {
+              <span class="sort-chip-label">{{ t('SortedBy') }}</span>
+              @for (key of sort(); track key.field; let last = $last) {
+                <span class="sort-chip-key"
+                  >{{ key.label }} {{ key.descending ? '↓' : '↑' }}{{
+                    last ? '' : ','
+                  }}</span
+                >
+              }
+            } @else {
+              <span class="sort-chip-label">{{ t('Sort') }}</span>
+            }
+            <i class="pi pi-chevron-down sort-chip-caret" aria-hidden="true"></i>
+          </button>
+        } @else if (sort().length) {
+          <!-- No options handed over — the chip stays what it was: one read-only place naming
+               the ordering and which key is primary. -->
           <span class="sort-chip" data-testid="sort-chip">
             <span class="sort-chip-label">{{ t('SortedBy') }}</span>
-            @for (key of sort(); track key.label; let last = $last) {
+            @for (key of sort(); track key.field; let last = $last) {
               <span class="sort-chip-key"
                 >{{ key.label }} {{ key.descending ? '↓' : '↑' }}{{
                   last ? '' : ','
@@ -187,6 +216,46 @@ export function foldForSearch(value: string): string {
             (click)="clearAll.emit()"
           ></button>
         }
+
+        <p-popover #sortMenu (onHide)="isSortOpen.set(false)">
+          <div class="filter-add-menu" role="menu">
+            @for (option of sortOptions(); track option.field) {
+              <!-- Click sorts ascending; clicking the already-ascending option flips it. One
+                   gesture, look, one gesture back — the header's cycle without needing the
+                   header, so a hidden column's ordering is reachable too. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="filter-add-option sort-menu-option"
+                data-testid="sort-menu-option"
+                (click)="pickSort(option); sortMenu.hide()"
+              >
+                <!-- &ngsp; keeps a real space between label and arrow — same collapse the
+                     filter chip documents: without it the copied/read text is "Naziv↓". -->
+                <span>{{ option.label }}</span>&ngsp;
+                @if (directionOf(option.field); as direction) {
+                  <span class="sort-menu-direction" aria-hidden="true">{{
+                    direction === -1 ? '↓' : '↑'
+                  }}</span>
+                }
+              </button>
+            }
+
+            @if (!sortIsDefault()) {
+              <!-- Only while there is an override to undo: at the default there is nothing to
+                   reset, and a row that does nothing teaches people to stop reading the menu. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="filter-add-option sort-menu-reset"
+                data-testid="sort-menu-reset"
+                (click)="sortReset.emit(); sortMenu.hide()"
+              >
+                {{ t('ResetSort') }}
+              </button>
+            }
+          </div>
+        </p-popover>
 
         <p-popover #addMenu (onHide)="isAddOpen.set(false); addSearch.set('')">
           <div class="filter-add-menu" role="menu">
@@ -328,8 +397,24 @@ export class SpiderlyFilterBarComponent {
    */
   readonly sort = input<SortKeyLabel[]>([]);
 
+  /**
+   * What the picker offers, labelled by the owner — every sortable column, HIDDEN ones
+   * included (their ordering is otherwise unreachable, which is the trap the picker closes).
+   * Empty keeps the chip read-only and the picker off.
+   */
+  readonly sortOptions = input<SortPickOption[]>([]);
+
+  /** Whether the grid already sits on its default ordering — gates the reset row, nothing else. */
+  readonly sortIsDefault = input(true);
+
   /** Asked for, never done here — see the button's comment. */
   readonly clearAll = output<void>();
+
+  /** A single-sort ask. Multi-sort stays a header gesture (ctrl-click); the picker replaces. */
+  readonly sortPick = output<SortMeta>();
+
+  /** Back to the owner's default ordering — the owner knows what that resolves to, not the bar. */
+  readonly sortReset = output<void>();
 
   private readonly transloco = inject(TranslocoService);
 
@@ -346,6 +431,8 @@ export class SpiderlyFilterBarComponent {
   >(undefined);
 
   readonly isAddOpen = signal(false);
+
+  readonly isSortOpen = signal(false);
 
   /** Cleared when the popover closes, so reopening never starts inside someone's old query. */
   readonly addSearch = signal('');
@@ -388,6 +475,25 @@ export class SpiderlyFilterBarComponent {
   startEditing(id: string): void {
     this.isAddOpen.set(false);
     this.editing.set(this.filters().get(id));
+  }
+
+  /** The picked option's ACTIVE direction — any key, not just the primary — or null. */
+  directionOf(field: string): 1 | -1 | null {
+    const key = this.sort().find((candidate) => candidate.field === field);
+    return key ? (key.descending ? -1 : 1) : null;
+  }
+
+  /**
+   * Ascending first; picking the already-ascending primary flips it. The direction is decided
+   * HERE so the owner applies exactly what the menu showed — an owner guessing "toggle" from its
+   * own state could disagree with a stale menu after a concurrent header click.
+   */
+  pickSort(option: SortPickOption): void {
+    const primary = this.sort()[0];
+    const order =
+      primary?.field === option.field && !primary.descending ? -1 : 1;
+
+    this.sortPick.emit({ field: option.field, order });
   }
 
   /** The raw-string controls only. Nothing reaches the bar or the query until `apply`. */

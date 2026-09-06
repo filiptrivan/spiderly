@@ -147,10 +147,47 @@
   font-size: 0.875rem;
 }
 
+// The picker's trigger — same chip, now a button. bare-button resets the UA chrome; the hover
+// underline mirrors the filter chips' edit affordance so "this opens something" reads the same
+// across the bar.
+button.sort-chip {
+  @include bare-button();
+  cursor: pointer;
+
+  &:hover .sort-chip-key,
+  &:hover .sort-chip-label {
+    text-decoration: underline;
+  }
+}
+
+.sort-chip-caret {
+  font-size: 0.65rem;
+}
+
 .sort-chip-key {
   // The direction arrow is the non-colour channel; the priority is the reading order, which is
   // the thing the scattered header icons could never show.
   color: var(--p-text-color);
+}
+
+// Teleported with its popover into document.body, so TOP LEVEL like the add menu above it
+// (Angular/CLAUDE.md → overlay styling); pinned by the "sort menu styles survive the body
+// teleport" spec. Inherits .filter-add-option for the row look.
+.sort-menu-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.sort-menu-direction {
+  color: var(--p-primary-color);
+}
+
+.sort-menu-reset {
+  border-top: 1px solid var(--p-content-border-color);
+  border-radius: 0;
+  color: var(--p-text-muted-color);
 }
 
 .filter-bar-clear {

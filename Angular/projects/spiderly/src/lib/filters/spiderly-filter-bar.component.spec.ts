@@ -8,6 +8,8 @@ import { MultiSelect } from 'primeng/multiselect';
 import { Popover } from 'primeng/popover';
 import { Select } from 'primeng/select';
 
+import { SortMeta } from 'primeng/api';
+
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
 import {
@@ -16,6 +18,8 @@ import {
   createFilterStore,
   FilterBarSource,
   numberFilter,
+  SortKeyLabel,
+  SortPickOption,
   textFilter,
 } from './filter-store';
 import { SpiderlyFilterBarComponent } from './spiderly-filter-bar.component';
@@ -573,5 +577,153 @@ describe('SpiderlyFilterBarComponent', () => {
     search.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     expect(offered()).toEqual(['Đorđe']);
+  });
+});
+
+// The sort picker (2026-09-06, grilled): the chip is Polaris's always-present SortButton rather
+// than a read-only label. Choosing IS the affordance — there is no "clear sort" x, because the
+// default ordering is just one of the reachable ones; a reset row appears only while an override
+// stands. Direction is decided HERE (ascending first, the active ascending option flips) so the
+// owner applies exactly what the menu showed.
+describe('SpiderlyFilterBarComponent — the sort picker', () => {
+  const OPTIONS: SortPickOption[] = [
+    { field: 'id', label: 'Id' },
+    { field: 'name', label: 'Naziv' },
+  ];
+
+  function renderPicker(
+    input: {
+      sort?: SortKeyLabel[];
+      sortIsDefault?: boolean;
+      sortOptions?: SortPickOption[];
+    } = {},
+  ): ComponentFixture<SpiderlyFilterBarComponent> {
+    const fixture = renderBar(
+      createFilterStore({ name: textFilter({ label: 'Naziv' }) }),
+    );
+    fixture.componentRef.setInput('sortOptions', input.sortOptions ?? OPTIONS);
+    fixture.componentRef.setInput('sort', input.sort ?? []);
+    fixture.componentRef.setInput('sortIsDefault', input.sortIsDefault ?? true);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  async function openSortMenu(
+    fixture: ComponentFixture<SpiderlyFilterBarComponent>,
+  ): Promise<HTMLElement> {
+    el(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="sort-chip"]')!
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return overlay(fixture, '[data-testid="sort-menu-option"]');
+  }
+
+  const optionButtons = (menu: HTMLElement) =>
+    Array.from(
+      menu.querySelectorAll<HTMLButtonElement>(
+        '[data-testid="sort-menu-option"]',
+      ),
+    );
+
+  const spelled = (option: HTMLElement) =>
+    option.textContent!.replace(/\s+/g, ' ').trim();
+
+  it('the trigger renders even while the grid is unsorted', () => {
+    const fixture = renderPicker();
+
+    expect(
+      el(fixture).querySelector('button[data-testid="sort-chip"]'),
+    )
+      .withContext(
+        'a trigger only on an active sort would leave hidden columns unsortable',
+      )
+      .not.toBeNull();
+  });
+
+  it('offers every handed-over column and marks the active direction', async () => {
+    const fixture = renderPicker({
+      sort: [{ field: 'name', label: 'Naziv', descending: true }],
+    });
+
+    const options = optionButtons(await openSortMenu(fixture));
+
+    expect(options.map(spelled)).toEqual(['Id', 'Naziv ↓']);
+  });
+
+  it('asks for ascending first, and flips the active ascending option', async () => {
+    const picks: SortMeta[] = [];
+    const fixture = renderPicker({
+      sort: [{ field: 'name', label: 'Naziv', descending: false }],
+    });
+    fixture.componentInstance.sortPick.subscribe((pick) => picks.push(pick));
+
+    optionButtons(await openSortMenu(fixture))[0].click(); // Id — not active
+    // Let the hide finish before re-toggling: reopening mid-close lets the deferred hide
+    // callback null the popover's target under the new show's align().
+    await settle(fixture);
+    optionButtons(await openSortMenu(fixture))[1].click(); // Naziv — active ascending
+
+    expect(picks).toEqual([
+      { field: 'id', order: 1 },
+      { field: 'name', order: -1 },
+    ]);
+  });
+
+  it('offers the reset row only while off the default, and only asks', async () => {
+    const resets = jasmine.createSpy('sortReset');
+    const fixture = renderPicker({
+      sort: [{ field: 'name', label: 'Naziv', descending: true }],
+      sortIsDefault: false,
+    });
+    fixture.componentInstance.sortReset.subscribe(resets);
+
+    const menu = await openSortMenu(fixture);
+    const reset = menu.querySelector<HTMLButtonElement>(
+      '[data-testid="sort-menu-reset"]',
+    );
+    expect(reset).not.toBeNull();
+    reset!.click();
+    expect(resets).toHaveBeenCalled();
+    await settle(fixture); // same mid-close guard as above before reopening
+
+    fixture.componentRef.setInput('sortIsDefault', true);
+    fixture.detectChanges();
+
+    expect(
+      (await openSortMenu(fixture)).querySelector(
+        '[data-testid="sort-menu-reset"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('stays a read-only chip when no options are handed over', () => {
+    const fixture = renderPicker({
+      sort: [{ field: 'name', label: 'Naziv', descending: true }],
+      sortOptions: [],
+    });
+
+    const chip = el(fixture).querySelector('[data-testid="sort-chip"]')!;
+    expect(chip.tagName).not.toBe('BUTTON');
+    expect(chip.textContent).toContain('Naziv');
+  });
+
+  // The menu is teleported into document.body with its popover, so its rules live at SCSS TOP
+  // LEVEL; a computed-style assert is what notices if they move under :host and die silently
+  // (Angular/CLAUDE.md → overlay styling).
+  it('sort menu styles survive the body teleport', async () => {
+    const fixture = renderPicker({
+      sort: [{ field: 'name', label: 'Naziv', descending: true }],
+      sortIsDefault: false,
+    });
+
+    const menu = await openSortMenu(fixture);
+    const option = menu.querySelector('[data-testid="sort-menu-option"]')!;
+
+    // Not the border: its width rides a theme var Karma does not load, and a var()-invalid
+    // shorthand computes to NO border — a pin there would measure the theme, not the teleport.
+    expect(getComputedStyle(option).display).toBe('flex');
+    expect(getComputedStyle(option).justifyContent).toBe('space-between');
   });
 });

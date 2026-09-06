@@ -3910,6 +3910,8 @@ export const ThemePreset = definePreset(Aura, {
   "Apply": "Apply",
   "RemoveFilter": "Remove filter",
   "SortedBy": "Sorted by:",
+  "Sort": "Sort",
+  "ResetSort": "Reset to default sort",
   "ResultCount": "{{count}} results",
   "Search": "Search",
   "HideColumn": "Hide column",

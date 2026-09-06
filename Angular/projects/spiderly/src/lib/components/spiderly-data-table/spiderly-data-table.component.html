@@ -203,8 +203,12 @@
           [filters]="filters"
           [totalRecords]="totalRecords"
           [sort]="sortKeys"
+          [sortOptions]="sortPickOptions"
+          [sortIsDefault]="sortIsDefault"
           [controlTemplates]="filterTemplates"
           (clearAll)="clear()"
+          (sortPick)="sortFromBar($event)"
+          (sortReset)="resetSortFromBar()"
         ></spiderly-filter-bar>
       </ng-template>
       <ng-template pTemplate="header">

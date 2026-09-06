@@ -2648,7 +2648,7 @@ describe('SpiderlyDataTableComponent — sorting from the header menu', () => {
     await renderRows(fixture);
 
     expect(dataTable.sortKeys).toEqual([
-      { label: 'Naziv', descending: true },
+      { field: 'name', label: 'Naziv', descending: true },
     ]);
 
     await openColumnMenu(fixture);
@@ -2658,7 +2658,7 @@ describe('SpiderlyDataTableComponent — sorting from the header menu', () => {
     await renderRows(fixture);
 
     expect(dataTable.sortKeys).toEqual([
-      { label: 'Naziv', descending: false },
+      { field: 'name', label: 'Naziv', descending: false },
     ]);
   });
 
@@ -3507,6 +3507,65 @@ describe('SpiderlyDataTableComponent — Clear filters clears only the filters',
     expect(sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:all:sort`))
       .withContext('clearing filters must not touch the sort override')
       .not.toBeNull();
+  });
+});
+
+// The bar's picker drives the same contract as the header menu: ONE sort, replacing the whole
+// meta, persisted as the active view's override; reset lands on the resolved default (view
+// declared ?? table default ?? unsorted) and empties the override slot, so the declared
+// ordering flows through again. The options are built from ALL sortable columns — hidden ones
+// included, which is the capability the picker exists for: a hidden column has no header.
+describe('SpiderlyDataTableComponent — sorting from the bar', () => {
+  const barOf = (fixture: ComponentFixture<unknown>) =>
+    fixture.debugElement.query(By.directive(SpiderlyFilterBarComponent))
+      .componentInstance as SpiderlyFilterBarComponent;
+
+  it('a pick sorts the grid and persists as the view override', async () => {
+    const { fixture, host } = createWithDataTable(HostWithViewSortComponent);
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () =>
+      barOf(fixture).sortPick.emit({ field: 'status', order: -1 }),
+    );
+    await renderRows(fixture);
+
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual([
+      { field: 'status', order: -1 },
+    ]);
+    expect(
+      sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:all:sort`),
+    ).not.toBeNull();
+  });
+
+  it('reset lands on the resolved default and empties the override slot', async () => {
+    const { fixture, host } = createWithDataTable(HostWithViewSortComponent);
+    await renderRows(fixture);
+    await fixture.ngZone!.run(async () =>
+      barOf(fixture).sortPick.emit({ field: 'status', order: -1 }),
+    );
+    await renderRows(fixture);
+
+    await fixture.ngZone!.run(async () => barOf(fixture).sortReset.emit());
+    await renderRows(fixture);
+
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual([
+      { field: 'id', order: -1 },
+    ]);
+    expect(
+      sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:all:sort`),
+    ).toBeNull();
+  });
+
+  it('offers hidden sortable columns to the picker', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithHiddenDefaultSortFilterStoreComponent,
+    );
+    await renderRows(fixture);
+
+    expect(dataTable.sortPickOptions).toEqual([
+      { field: 'id', label: 'Id' },
+      { field: 'name', label: 'Naziv' },
+    ]);
   });
 });
 

@@ -47,7 +47,11 @@ import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
-import { FilterSource, SortKeyLabel } from '../../filters/filter-store';
+import {
+  FilterSource,
+  SortKeyLabel,
+  SortPickOption,
+} from '../../filters/filter-store';
 import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
@@ -545,6 +549,14 @@ export class SpiderlyDataTableComponent
 
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
+
+    this.sortPickOptions = this.cols
+      .filter(
+        (col) =>
+          SpiderlyDataTableComponent.isDataColumn(col) &&
+          this.isColumnSortable(col),
+      )
+      .map((col) => ({ field: col.field!, label: col.name }));
 
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
     // sort. On a viewed table the persisted table-global sort is a NON-SOURCE (2026-09-06):
@@ -1648,9 +1660,46 @@ export class SpiderlyDataTableComponent
    */
   private refreshSortKeys(): void {
     this.sortKeys = (this.lastLazyLoadEvent?.multiSortMeta ?? []).map((key) => ({
+      field: key.field,
       label: this.cols.find((col) => col.field === key.field)?.name ?? key.field,
       descending: key.order === -1,
     }));
+    this.sortIsDefault = sortMetaEquals(
+      this.lastLazyLoadEvent?.multiSortMeta ?? [],
+      this.defaultMultiSortMeta() ?? [],
+    );
+  }
+
+  /**
+   * Gates the picker's reset row. Refreshed with `sortKeys` — same request, same reason it is a
+   * field rather than a getter. "Default" is view-aware (`defaultMultiSortMeta`), so inside a
+   * view the row offers the view's ordering back, not the table's.
+   */
+  sortIsDefault = true;
+
+  /**
+   * What the bar's picker offers: every sortable data column, hidden ones INCLUDED — the picker
+   * exists so an ordering does not need its column on screen. Built once in `ngOnInit` (columns
+   * are a declaration, not state) and labelled here because the bar knows nothing about columns.
+   */
+  sortPickOptions: SortPickOption[] = [];
+
+  /** The picker's ask: one sort, replacing the whole meta — the same contract as the header menu. */
+  sortFromBar(pick: SortMeta): void {
+    this.table._multiSortMeta = [pick];
+    this.table.sortMultiple();
+    this.persistActiveViewSort();
+  }
+
+  /**
+   * Back to the resolved default — the view's declared sort, else the table default, else
+   * unsorted. Persisting right after is what empties the override slot: a sort equal to the
+   * default is stored as absence, so the declared ordering flows through again.
+   */
+  resetSortFromBar(): void {
+    this.table._multiSortMeta = this.defaultMultiSortMeta() ?? [];
+    this.table.sortMultiple();
+    this.persistActiveViewSort();
   }
 
   /** This column's share, override first, then its declared width, then the per-type default. */
