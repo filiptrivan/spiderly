@@ -3185,6 +3185,7 @@ class HostWithViewSortComponent {
 describe('SpiderlyDataTableComponent — a view carries its sort', () => {
   const NAME_ASC = [{ field: 'name', order: 1 }];
   const STATUS_ASC = [{ field: 'status', order: 1 }];
+  const ID_DESC = [{ field: 'id', order: -1 }];
 
   const mount = async () => {
     const mounted = createWithDataTable(HostWithViewSortComponent);
@@ -3273,6 +3274,20 @@ describe('SpiderlyDataTableComponent — a view carries its sort', () => {
     const { host } = await remount(first.fixture, HostWithViewSortComponent);
 
     expect(host.captured[0].multiSortMeta).toEqual(STATUS_ASC);
+  });
+
+  // A view is a COMPLETE state, sort included (2026-09-06, grilled; supersedes the "a view
+  // stating no preference keeps the ordering already there" this half of decision 10 first
+  // shipped with). The carried-over ordering read as a bug in its first live week: "Poslate"'s
+  // statusChangedAt rode onto "Sve", whose sorted column ships hidden — read-only chip, no
+  // header to tri-state, no way out (Filip, 2026-09-06, on /orders).
+  it('entering a view with no sort of its own lands on the table default', async () => {
+    const { fixture, host } = await mount();
+    await clickView(fixture, 1); // "oldest" applies its declared name asc
+
+    await clickView(fixture, 0); // "all" declares nothing: the table default, never inheritance
+
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual(ID_DESC);
   });
 });
 
@@ -3415,6 +3430,87 @@ describe('SpiderlyDataTableComponent — the active view survives a reload', () 
     expect(mounted.dataTable.activeViewId)
       .withContext('the operator picked companies since the reload — that wins')
       .toBe('companies');
+  });
+});
+
+// The other half of "a view is a COMPLETE state": with no override, no declared sort and no
+// table default, entering a view means UNSORTED (the backend's implicit order) — deterministic —
+// rather than whatever ordering the previous tab happened to leave on the grid.
+describe('SpiderlyDataTableComponent — a view with no sort anywhere unsorts the grid', () => {
+  it('leaving a sorted view resets, never inherits', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithLateViewsComponent,
+    );
+    await renderRows(fixture);
+
+    dataTable.table.sort({
+      originalEvent: new MouseEvent('click'),
+      field: 'name',
+    }); // becomes "all"'s override
+
+    await clickView(fixture, 1);
+
+    expect(host.captured.at(-1)!.multiSortMeta ?? []).toEqual([]);
+  });
+
+  // The restore chain used to place PrimeNG's table-global multiSortMeta between the view's
+  // sort and the table default, so the last ordering ANY view used greeted every view that
+  // declared nothing — on each F5, forever (the screenshotted "Sve · Sortirano po: U statusu
+  // od" on /orders). On a viewed table that blob is a non-source for sort now; it still
+  // carries rows/first, and stays the sort memory of view-less tables.
+  it('a reload does not resurrect the table-global sort on a viewed table', async () => {
+    sessionStorage.setItem(
+      'sdt-late-views-spec',
+      JSON.stringify({ multiSortMeta: [{ field: 'name', order: -1 }] }),
+    );
+
+    const { host } = createWithDataTable(HostWithLateViewsComponent);
+
+    expect(host.captured[0].multiSortMeta ?? []).toEqual([]);
+  });
+});
+
+// "Clear filters" clears the FILTERS — the sort is not a filter (2026-09-06, grilled): Polaris
+// wires onClearAll to the filters while sort is its own channel, and an operator clearing three
+// chips would be surprised to lose the ordering too. One request, not two: the store's requery
+// effect owns the refetch, and PrimeNG's table.clear() no longer fires the second, unsequenced
+// one the 2026-09-05 review flagged.
+describe('SpiderlyDataTableComponent — Clear filters clears only the filters', () => {
+  it('keeps the sort, keeps its per-view override, and spends one request', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithViewSortComponent,
+    );
+    await renderRows(fixture);
+
+    dataTable.table.sort({
+      originalEvent: new MouseEvent('click'),
+      field: 'status',
+    }); // an operator override on "all"
+    await fixture.ngZone!.run(async () => {
+      host.filters.set('status', {
+        operator: MatchModeCodes.Equals,
+        value: 5,
+      });
+      host.filters.commit('status');
+    });
+    await renderRows(fixture);
+
+    const before = host.captured.length;
+    await fixture.ngZone!.run(async () => {
+      (fixture.nativeElement as HTMLElement)
+        .querySelector<HTMLButtonElement>('[data-testid="filter-bar-clear"]')!
+        .click();
+    });
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before + 1);
+    expect(host.filters.applied()).toEqual([]);
+    expect(host.captured.at(-1)!.multiSortMeta).toEqual([
+      { field: 'status', order: 1 },
+    ]);
+    expect(sessionStorage.getItem(`${VIEW_SORT_STATE_KEY}:all:sort`))
+      .withContext('clearing filters must not touch the sort override')
+      .not.toBeNull();
   });
 });
 
