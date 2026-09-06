@@ -3556,6 +3556,38 @@ describe('SpiderlyDataTableComponent — sorting from the bar', () => {
     ).toBeNull();
   });
 
+  // Re-sorting re-orders the WHOLE result set — page 7 of the new ordering is a continuation
+  // nobody asked for, and the header click already resets (PrimeNG's resetPageOnSort). Every
+  // applySort gesture pages like the header.
+  it('a pick lands on page one, like a header sort', async () => {
+    const { fixture, host, dataTable } = createWithDataTable(
+      HostWithViewSortComponent,
+    );
+    await renderRows(fixture);
+    dataTable.table.first = 25;
+
+    await pickFromBar(fixture, 'status', -1);
+
+    expect(host.captured.at(-1)!.first).toBe(0);
+  });
+
+  // sortMultiple() never saves table state (PrimeNG's sort() does), so on a VIEWLESS store
+  // table — where the PrimeNG blob is the ONLY sort memory — a menu/bar sort evaporated on F5
+  // while the identical header click survived. applySort saves like the header path.
+  it('a bar sort on a viewless table survives a reload', async () => {
+    const first = createWithDataTable(HostWithCapturingFilterStoreComponent);
+    await renderRows(first.fixture);
+
+    first.dataTable.sortFromBar({ field: 'id', order: -1 });
+
+    const { host } = await remount(
+      first.fixture,
+      HostWithCapturingFilterStoreComponent,
+    );
+
+    expect(host.captured[0].multiSortMeta).toEqual([{ field: 'id', order: -1 }]);
+  });
+
   it('offers hidden sortable columns to the picker', async () => {
     const { fixture, dataTable } = createWithDataTable(
       HostWithHiddenDefaultSortFilterStoreComponent,
