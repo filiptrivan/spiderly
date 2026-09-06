@@ -1,6 +1,6 @@
 {
   "name": "spiderly-cli",
-  "version": "19.12.1",
+  "version": "19.12.2",
   "description": "Reserved npm package for the future Spiderly CLI. This placeholder package does not yet provide a working executable.",
   "keywords": [
     "spiderly",
