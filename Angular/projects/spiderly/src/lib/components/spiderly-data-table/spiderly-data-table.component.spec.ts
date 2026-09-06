@@ -261,14 +261,9 @@ describe('SpiderlyDataTableComponent — declared default sort', () => {
     expect(dataTable.table._multiSortMeta).toEqual(ID_ASC);
   });
 
-  it('returns to the declared default when Clear filters wipes the sort', () => {
-    const { host, dataTable } = setup();
-
-    dataTable.clear(dataTable.table);
-
-    expect(host.captured[host.captured.length - 1].multiSortMeta).toEqual(ID_ASC);
-    expect(dataTable.table._multiSortMeta).toEqual(ID_ASC);
-  });
+  // "Clear filters wipes the sort, so it must land on the default" died 2026-09-06: Clear no
+  // longer touches sort at all (its own suite below), and on a storeless table like this one
+  // the bar — Clear's only surface — never renders, so no gesture is left to pin here.
 });
 
 @Component({
@@ -2156,8 +2151,9 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
   });
 
   // Two buttons for one job is the complaint. With a store supplied the toolbar's "Clear filters"
-  // sits a row away from the chips it clears, so it goes and the bar owns the gesture — and the
-  // bar's one has to do everything the toolbar's did, persisted state included.
+  // sits a row away from the chips it clears, so it goes and the bar owns the gesture. (What the
+  // gesture reaches narrowed 2026-09-06 — filters only; the "clears only the filters" suite pins
+  // that side.)
   it('clears from the bar, and the toolbar no longer offers a second way', async () => {
     const { fixture, host } = createWithDataTable(
       HostWithCapturingFilterStoreComponent,
@@ -3256,7 +3252,7 @@ describe('SpiderlyDataTableComponent — a view carries its sort', () => {
     await clickView(fixture, 1);
     headerSort(dataTable, 'status'); // "oldest" overridden to status asc
 
-    await clickView(fixture, 0); // "all" states no preference — keeps the grid's sort…
+    await clickView(fixture, 0); // "all" resets to the table default (id desc)…
     headerSort(dataTable, 'name'); // …until sorted, which becomes ITS override
 
     await clickView(fixture, 1);

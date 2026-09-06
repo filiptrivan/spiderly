@@ -547,16 +547,18 @@ export class SpiderlyDataTableComponent
     this.refreshVisibleCols();
 
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
-    // sort. The view's own sort wins; the persisted table-global sort sits deliberately
-    // BETWEEN it and the table default, so a view declaring nothing keeps the ordering the
-    // operator last chose. We read it all ourselves because PrimeNG's restoreState() runs on
-    // the first [value] change — after the initial lazy emit has already left — and is then
-    // told to agree (see `alignPersistedTableStateSort`).
+    // sort. On a viewed table the persisted table-global sort is a NON-SOURCE (2026-09-06):
+    // sort is per-view state (override ?? declared ?? table default), and the blob — which
+    // holds the last ordering ANY view used — would re-impose across views the exact
+    // carry-over the per-view model removes, on every F5. It still carries rows/first there,
+    // and stays the one sort memory of a view-less table. We read it all ourselves because
+    // PrimeNG's restoreState() runs on the first [value] change — after the initial lazy emit
+    // has already left — and is then told to agree (see `alignPersistedTableStateSort`).
     const tableState = this.persistedTableState();
-    this.initialMultiSortMeta =
-      this.viewSort() ??
-      this.sanitizedSortMeta(tableState?.multiSortMeta) ??
-      this.tableDefaultMultiSortMeta();
+    this.initialMultiSortMeta = this.views?.length
+      ? (this.viewSort() ?? this.tableDefaultMultiSortMeta())
+      : (this.sanitizedSortMeta(tableState?.multiSortMeta) ??
+        this.tableDefaultMultiSortMeta());
     this.alignPersistedTableStateSort(tableState);
   }
 
@@ -1061,15 +1063,17 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Puts the entering view's sort on the grid — stored override first, then the declared sort;
-   * a view stating no preference keeps the ordering already there (the pre-decision-10-sort
-   * behavior, and the least surprising for the tab an operator never sorted). Broadcast only —
-   * the caller owns the refetch, because which request carries the new sort differs between the
-   * store and storeless paths.
+   * Puts the entering view's sort on the grid — stored override, else declared sort, else the
+   * table default, else UNSORTED. A view is a COMPLETE state, sort included (2026-09-06,
+   * grilled — supersedes the "a view stating no preference keeps the ordering already there"
+   * this first shipped with): the carried-over ordering read as a bug in its first live week,
+   * when "Poslate"'s statusChangedAt rode onto "Sve", whose sorted column ships hidden —
+   * read-only chip, no header to tri-state, no way out. Polaris IndexFilters is the model:
+   * sort is part of a view's saved definition. Broadcast only — the caller owns the refetch,
+   * because which request carries the new sort differs between the store and storeless paths.
    */
   private applyViewSort(): boolean {
-    const target = this.viewSort();
-    if (!target) return false;
+    const target = this.viewSort() ?? this.tableDefaultMultiSortMeta() ?? [];
     if (sortMetaEquals(target, this.table._multiSortMeta ?? [])) return false;
 
     this.broadcastSort(target);
@@ -1409,8 +1413,8 @@ export class SpiderlyDataTableComponent
   /**
    * Switches to a view. Clears first, always: a view is a STATE rather than an addition, and two
    * of them composed produce a question nobody asked. The clear runs through the store directly
-   * rather than through `clear(table)`, which would also wipe the sort and the persisted state a
-   * view is entitled to keep.
+   * rather than through `clear()`, whose requery effect would spend a fetch before the entering
+   * view's filters are in place.
    */
   selectView(view: TableView): void {
     this.activeViewId = view.id;
@@ -2102,19 +2106,17 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Clears everything that narrows the grid. With a store supplied it has to reach BOTH — the
-   * store holds the constraints and PrimeNG holds the persisted state and sort — or the bar goes
-   * empty while a reload brings the old filters back.
+   * Clears the FILTERS — and nothing else (2026-09-06, grilled). It used to also reach the
+   * sort and PrimeNG's persisted state, which made "Clear filters" a reset the label never
+   * claimed: sort is its own channel with its own affordances (the bar's picker, the header's
+   * tri-state), mirroring Polaris, where onClearAll is wired to the Filters while
+   * sortSelected never passes through it. The store's requery effect owns the refetch and the
+   * persisted-snapshot update — the button only renders with chips on the bar, so the applied
+   * set always changes — and dropping table.clear() also drops the second, unsequenced
+   * request the 2026-09-05 review flagged on every Clear.
    */
-  clear(table: Table) {
+  clear() {
     this.filters?.clear();
-
-    table.clear();
-    table.clearState();
-    // `table.clear()` landed the grid on the declared default (`applyDefaultSortIfUnsorted`),
-    // so the view's sort override must go with it — or F5 would bring back the sort Clear
-    // visibly removed.
-    this.persistActiveViewSort();
   }
 
   //#region Selection
