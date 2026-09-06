@@ -57,6 +57,7 @@ import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.co
 import { ConfigServiceBase } from '../../services/config.service.base';
 import {
   exportListToExcel,
+  firstCharToUpper,
   getHtmlImgDisplayString64,
   parseDateOnlyLocal,
   scrollElementIntoViewIfAboveViewport,
@@ -436,36 +437,31 @@ export class SpiderlyDataTableComponent
         const mouseEvent = event.originalEvent as MouseEvent;
         const isMultiSortClick = mouseEvent.metaKey || mouseEvent.ctrlKey;
 
-        // Un-sorting substitutes the declared default (when there is one) right here,
-        // so sortMultiple() broadcasts and emits the final meta in one shot.
         if (isMultiSortClick) {
+          // Removing ONE level of a multi-sort keeps the reader's place (PrimeNG's metaKey
+          // path never pages either), so this cannot ride applySort, whose page reset is
+          // half the point. The substituted default keeps sortMultiple() to one emission.
           const remaining = this.table._multiSortMeta.filter(
             (m) => m.field !== event.field,
           );
           this.table._multiSortMeta = remaining.length
             ? remaining
             : (this.defaultMultiSortMeta() ?? remaining);
+
+          this.table.sortMultiple();
+          if (this.table.isStateful()) this.table.saveState();
+          this.table.anchorRowIndex = null;
+          this.persistActiveViewSort();
         } else {
-          this.table._multiSortMeta = this.defaultMultiSortMeta() ?? [];
-          if (this.table.resetPageOnSort) {
-            this.table._first = 0;
-            this.table.firstChange.emit(0);
-          }
+          // A single-click un-sort IS "back to the default" — the exact gesture the bar's
+          // reset row asks for, so it uses the same body.
+          this.resetSortFromBar();
         }
-
-        this.table.sortMultiple();
-
-        if (this.table.isStateful()) {
-          this.table.saveState();
-        }
-
-        this.table.anchorRowIndex = null;
       } else {
         originalSort(event);
+        // PrimeNG's sort() pages/saves itself; the override slot is ours to record.
+        this.persistActiveViewSort();
       }
-
-      // Every explicit header-sort gesture, un-sort included, records the view's override.
-      this.persistActiveViewSort();
     };
   }
 
@@ -1664,7 +1660,13 @@ export class SpiderlyDataTableComponent
 
     this.sortKeys = meta.map((key) => ({
       field: key.field,
-      label: this.cols.find((col) => col.field === key.field)?.name ?? key.field,
+      // A sort may name a field no column declares (keepSortableMeta allows it), and its chip
+      // must still speak the operator's language: the same PascalCase-key convention the
+      // scaffold seeds resolves it (Transloco falls back to the key, so worst case reads
+      // "CreatedAt", never the raw camelCase identifier).
+      label:
+        this.cols.find((col) => col.field === key.field)?.name ??
+        this.translocoService.translate(firstCharToUpper(key.field)),
       descending: key.order === -1,
     }));
     this.sortIsDefault = sortMetaEquals(meta, this.defaultMultiSortMeta() ?? []);
@@ -1686,13 +1688,11 @@ export class SpiderlyDataTableComponent
 
   /**
    * The one body of an explicit sort GESTURE — the thing `persistActiveViewSort`'s doc calls
-   * "explicit gestures only": land on page one, put the meta on the grid, fetch, save, record
-   * the override. The menu and both bar entry points share it; `broadcastSort` is its
-   * deliberate no-fetch sibling. The page reset and `saveState` exist for parity with a header
-   * click (PrimeNG's `sort()` does both, its `sortMultiple()` does neither): page 7 of a new
-   * ordering is a continuation nobody asked for, and on a VIEWLESS store table the PrimeNG
-   * blob is the only sort memory — without the save, a menu/bar sort forgot itself on reload
-   * while the identical header click survived.
+   * "explicit gestures only": page one, meta on the grid, fetch, save, selection anchor
+   * invalidated, override recorded. Shared by the header's single-click un-sort, the header
+   * menu and both bar entry points; `broadcastSort` is its deliberate no-fetch sibling. The
+   * page reset, `saveState` and anchor line mirror PrimeNG's own `sort()` (`sortMultiple()`
+   * does none of the three); the "lands on page one" / "survives a reload" specs pin why.
    */
   private applySort(meta: SortMeta[]): void {
     if (this.table.resetPageOnSort) {
@@ -1704,6 +1704,7 @@ export class SpiderlyDataTableComponent
     this.table.sortMultiple();
 
     if (this.table.isStateful()) this.table.saveState();
+    this.table.anchorRowIndex = null;
     this.persistActiveViewSort();
   }
 

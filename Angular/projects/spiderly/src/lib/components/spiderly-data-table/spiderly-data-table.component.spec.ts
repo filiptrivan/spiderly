@@ -3578,7 +3578,7 @@ describe('SpiderlyDataTableComponent — sorting from the bar', () => {
     const first = createWithDataTable(HostWithCapturingFilterStoreComponent);
     await renderRows(first.fixture);
 
-    first.dataTable.sortFromBar({ field: 'id', order: -1 });
+    await pickFromBar(first.fixture, 'id', -1);
 
     const { host } = await remount(
       first.fixture,
@@ -3598,6 +3598,51 @@ describe('SpiderlyDataTableComponent — sorting from the bar', () => {
       { field: 'id', label: 'Id' },
       { field: 'name', label: 'Naziv' },
     ]);
+  });
+});
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
+      [views]="views"
+      [stateKey]="'sdt-columnless-sort-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithColumnlessViewSortComponent {
+  cols: Column[] = [{ name: 'Id', field: 'id', filterType: 'numeric' }];
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  views: TableView[] = [
+    {
+      id: 'newest',
+      label: 'Najnovije',
+      sort: [{ field: 'createdAt', order: -1 }],
+    },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+}
+
+// Decision 2b's sort half taken literally: an ordering does not need its column — but its chip
+// must not print the raw camelCase identifier at an operator. The label resolves through the
+// scaffold's PascalCase i18n-key convention instead (Transloco falls back to the key itself, so
+// this pins the ROUTE — 'CreatedAt', never 'createdAt' — not the final word).
+describe('SpiderlyDataTableComponent — a column-less sort key still gets a spoken label', () => {
+  it('translates the field instead of printing it raw', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithColumnlessViewSortComponent,
+    );
+    await renderRows(fixture);
+
+    expect(dataTable.sortKeys[0]).toEqual({
+      field: 'createdAt',
+      label: 'CreatedAt',
+      descending: true,
+    });
   });
 });
 
