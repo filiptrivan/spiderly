@@ -1686,14 +1686,24 @@ export class SpiderlyDataTableComponent
 
   /**
    * The one body of an explicit sort GESTURE — the thing `persistActiveViewSort`'s doc calls
-   * "explicit gestures only": put the meta on the grid, fetch, record the override. The menu
-   * and both bar entry points share it; `broadcastSort` is its deliberate no-fetch sibling.
-   * (Known family gap, pre-dating the bar: unlike a header click, none of these reset to page
-   * one or saveState — PrimeNG's sortMultiple() does neither.)
+   * "explicit gestures only": land on page one, put the meta on the grid, fetch, save, record
+   * the override. The menu and both bar entry points share it; `broadcastSort` is its
+   * deliberate no-fetch sibling. The page reset and `saveState` exist for parity with a header
+   * click (PrimeNG's `sort()` does both, its `sortMultiple()` does neither): page 7 of a new
+   * ordering is a continuation nobody asked for, and on a VIEWLESS store table the PrimeNG
+   * blob is the only sort memory — without the save, a menu/bar sort forgot itself on reload
+   * while the identical header click survived.
    */
   private applySort(meta: SortMeta[]): void {
+    if (this.table.resetPageOnSort) {
+      this.table._first = 0;
+      this.table.firstChange.emit(0);
+    }
+
     this.table._multiSortMeta = meta;
     this.table.sortMultiple();
+
+    if (this.table.isStateful()) this.table.saveState();
     this.persistActiveViewSort();
   }
 
