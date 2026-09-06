@@ -2,13 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TranslocoTestingModule } from '@jsverse/transloco';
+import { SortMeta } from 'primeng/api';
 import { Checkbox } from 'primeng/checkbox';
 import { DatePicker } from 'primeng/datepicker';
 import { MultiSelect } from 'primeng/multiselect';
 import { Popover } from 'primeng/popover';
 import { Select } from 'primeng/select';
-
-import { SortMeta } from 'primeng/api';
 
 import { MatchModeCodes } from '../enums/match-mode-enum-codes';
 import { translocoTesting } from '../testing/spec-support.spec';
@@ -102,14 +101,23 @@ async function settle(fixture: Rendered): Promise<void> {
 }
 
 // Async because the popover renders its container a tick after toggle() — the same ritual
-// openChooser follows in the data table's specs.
-async function openAddMenu(fixture: Rendered): Promise<void> {
+// openChooser follows in the data table's specs. One helper for both of the bar's popovers.
+async function openPopover(
+  fixture: Rendered,
+  triggerTestId: string,
+  contentSelector: string,
+): Promise<HTMLElement> {
   el(fixture)
-    .querySelector<HTMLButtonElement>('[data-testid="add-filter"]')!
+    .querySelector<HTMLButtonElement>(`[data-testid="${triggerTestId}"]`)!
     .click();
   fixture.detectChanges();
   await (fixture as unknown as ComponentFixture<unknown>).whenStable();
   fixture.detectChanges();
+  return overlay(fixture, contentSelector);
+}
+
+async function openAddMenu(fixture: Rendered): Promise<void> {
+  await openPopover(fixture, 'add-filter', '[data-testid="add-filter-option"]');
 }
 
 async function startEditing(fixture: Rendered, index = 0): Promise<void> {
@@ -608,17 +616,8 @@ describe('SpiderlyFilterBarComponent — the sort picker', () => {
     return fixture;
   }
 
-  async function openSortMenu(
-    fixture: ComponentFixture<SpiderlyFilterBarComponent>,
-  ): Promise<HTMLElement> {
-    el(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="sort-chip"]')!
-      .click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    return overlay(fixture, '[data-testid="sort-menu-option"]');
-  }
+  const openSortMenu = (fixture: ComponentFixture<SpiderlyFilterBarComponent>) =>
+    openPopover(fixture, 'sort-chip', '[data-testid="sort-menu-option"]');
 
   const optionButtons = (menu: HTMLElement) =>
     Array.from(

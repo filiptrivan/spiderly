@@ -140,29 +140,26 @@ export function foldForSearch(value: string): string {
                could un-sort it hidden. -->
           <button
             type="button"
-            class="sort-chip sort-chip-trigger"
+            class="sort-chip"
             data-testid="sort-chip"
             [attr.aria-expanded]="isSortOpen()"
             (click)="sortMenu.toggle($event); isSortOpen.set(!isSortOpen())"
           >
-            @if (sort().length) {
-              <span class="sort-chip-label">{{ t('SortedBy') }}</span>
-              @for (key of sort(); track key.field; let last = $last) {
-                <span class="sort-chip-key"
-                  >{{ key.label }} {{ key.descending ? '↓' : '↑' }}{{
-                    last ? '' : ','
-                  }}</span
-                >
-              }
-            } @else {
-              <span class="sort-chip-label">{{ t('Sort') }}</span>
-            }
+            <ng-container *ngTemplateOutlet="sortChipBody"></ng-container>
             <i class="pi pi-chevron-down sort-chip-caret" aria-hidden="true"></i>
           </button>
         } @else if (sort().length) {
           <!-- No options handed over — the chip stays what it was: one read-only place naming
                the ordering and which key is primary. -->
           <span class="sort-chip" data-testid="sort-chip">
+            <ng-container *ngTemplateOutlet="sortChipBody"></ng-container>
+          </span>
+        }
+
+        <!-- One home for the chip's sentence, whichever element renders it — the read-only
+             branch never reaches the @else (it is gated on sort().length). -->
+        <ng-template #sortChipBody>
+          @if (sort().length) {
             <span class="sort-chip-label">{{ t('SortedBy') }}</span>
             @for (key of sort(); track key.field; let last = $last) {
               <span class="sort-chip-key"
@@ -171,8 +168,10 @@ export function foldForSearch(value: string): string {
                 }}</span
               >
             }
-          </span>
-        }
+          } @else {
+            <span class="sort-chip-label">{{ t('Sort') }}</span>
+          }
+        </ng-template>
 
         @if (totalRecords() !== null) {
           <!-- What came back, next to the chips that say what was asked. An empty grid under a
@@ -204,8 +203,8 @@ export function foldForSearch(value: string): string {
         @if (filters().applied().length) {
           <!-- The bar owns clearing now: the toolbar's button sat a row away from the chips it
                cleared, which is two affordances for one job. Emits rather than clearing the store
-               itself, because whoever owns the query also owns the persisted state and the sort
-               that a full clear has to reach. -->
+               itself, because whoever owns the query owns the requery and the persisted snapshot
+               that follow a clear. Filters only — sort is its own channel (the picker above). -->
           <button
             pButton
             type="button"
@@ -219,7 +218,7 @@ export function foldForSearch(value: string): string {
 
         <p-popover #sortMenu (onHide)="isSortOpen.set(false)">
           <div class="filter-add-menu" role="menu">
-            @for (option of sortOptions(); track option.field) {
+            @for (option of sortRows(); track option.field) {
               <!-- Click sorts ascending; clicking the already-ascending option flips it. One
                    gesture, look, one gesture back — the header's cycle without needing the
                    header, so a hidden column's ordering is reachable too. -->
@@ -233,9 +232,9 @@ export function foldForSearch(value: string): string {
                 <!-- &ngsp; keeps a real space between label and arrow — same collapse the
                      filter chip documents: without it the copied/read text is "Naziv↓". -->
                 <span>{{ option.label }}</span>&ngsp;
-                @if (directionOf(option.field); as direction) {
+                @if (option.arrow) {
                   <span class="sort-menu-direction" aria-hidden="true">{{
-                    direction === -1 ? '↓' : '↑'
+                    option.arrow
                   }}</span>
                 }
               </button>
@@ -477,11 +476,25 @@ export class SpiderlyFilterBarComponent {
     this.editing.set(this.filters().get(id));
   }
 
-  /** The picked option's ACTIVE direction — any key, not just the primary — or null. */
-  directionOf(field: string): 1 | -1 | null {
-    const key = this.sort().find((candidate) => candidate.field === field);
-    return key ? (key.descending ? -1 : 1) : null;
-  }
+  /**
+   * The menu's rows: each option decorated with its ACTIVE direction's arrow (any key, not
+   * just the primary), or null. A `computed`, not a per-row method call in the binding — the
+   * popover's content is projected, so it change-detects even while closed, and a `find` per
+   * option per pass is exactly what `operatorChoices` documents against.
+   */
+  readonly sortRows = computed(() => {
+    const active = new Map(
+      this.sort().map((key) => [key.field, key.descending] as const),
+    );
+
+    return this.sortOptions().map((option) => {
+      const descending = active.get(option.field);
+      return {
+        ...option,
+        arrow: descending == null ? null : descending ? '↓' : '↑',
+      };
+    });
+  });
 
   /**
    * Ascending first; picking the already-ascending primary flips it. The direction is decided

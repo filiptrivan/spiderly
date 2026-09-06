@@ -550,12 +550,10 @@ export class SpiderlyDataTableComponent
     this.chooserCols = this.cols.filter(SpiderlyDataTableComponent.isDataColumn);
     this.refreshVisibleCols();
 
-    this.sortPickOptions = this.cols
-      .filter(
-        (col) =>
-          SpiderlyDataTableComponent.isDataColumn(col) &&
-          this.isColumnSortable(col),
-      )
+    // From chooserCols, not cols: same "every data column, hidden included" set the chooser
+    // offers — one derivation of that list, so the picker cannot drift from it.
+    this.sortPickOptions = this.chooserCols
+      .filter((col) => this.isColumnSortable(col))
       .map((col) => ({ field: col.field!, label: col.name }));
 
     // Bound to p-table's [multiSortMeta] so the FIRST request already carries the right
@@ -568,7 +566,7 @@ export class SpiderlyDataTableComponent
     // has already left — and is then told to agree (see `alignPersistedTableStateSort`).
     const tableState = this.persistedTableState();
     this.initialMultiSortMeta = this.views?.length
-      ? (this.viewSort() ?? this.tableDefaultMultiSortMeta())
+      ? this.resolvedViewSort()
       : (this.sanitizedSortMeta(tableState?.multiSortMeta) ??
         this.tableDefaultMultiSortMeta());
     this.alignPersistedTableStateSort(tableState);
@@ -1048,18 +1046,24 @@ export class SpiderlyDataTableComponent
     return Array.isArray(stored) ? this.sanitizedSortMeta(stored) : null;
   }
 
-  /** The sort this view asks for: the operator's stored override, else its declared sort. */
-  private viewSort(): SortMeta[] | null {
-    return this.persistedViewSort() ?? this.viewDeclaredMultiSortMeta();
+  /**
+   * THE resolution ladder, named once: the operator's stored override, else the declared
+   * default (`defaultMultiSortMeta` = view's declared sort ?? table default). Null means
+   * "unsorted" — callers append their own `?? []` / blob terms rather than re-spelling the
+   * ladder, so a future term (a per-view default refinement, decision 10's columns half)
+   * lands everywhere at once.
+   */
+  private resolvedViewSort(): SortMeta[] | null {
+    return this.persistedViewSort() ?? this.defaultMultiSortMeta();
   }
 
   /**
    * Records the current sort as the active view's override — called from the EXPLICIT sort
-   * gestures only (header click, menu sort, Clear filters), never from a load: a sort merely
-   * inherited at init must not crystallize into an override, or a later change to the view's
-   * declared sort would stop flowing to operators who never touched sort — the same
-   * flows-through rule `columnVisibilityOverrides` documents. A sort equal to the declared
-   * default is stored as ABSENCE for the same reason.
+   * gestures only (header click, `applySort` — the menu and both bar entry points), never
+   * from a load: a sort merely inherited at init must not crystallize into an override, or a
+   * later change to the view's declared sort would stop flowing to operators who never
+   * touched sort — the same flows-through rule `columnVisibilityOverrides` documents. A sort
+   * equal to the declared default is stored as ABSENCE for the same reason.
    */
   private persistActiveViewSort(): void {
     const key = this.viewSortStateKey;
@@ -1085,7 +1089,7 @@ export class SpiderlyDataTableComponent
    * because which request carries the new sort differs between the store and storeless paths.
    */
   private applyViewSort(): boolean {
-    const target = this.viewSort() ?? this.tableDefaultMultiSortMeta() ?? [];
+    const target = this.resolvedViewSort() ?? [];
     if (sortMetaEquals(target, this.table._multiSortMeta ?? [])) return false;
 
     this.broadcastSort(target);
@@ -1187,12 +1191,11 @@ export class SpiderlyDataTableComponent
     });
   }
 
-  // Safety net: any lazy load still leaving unsorted (Clear filters — PrimeNG's clear()
-  // nulls the sort and emits in one call — or stale persisted state) falls back to the
-  // declared default. Patching the event before it becomes the backend Filter avoids a
-  // second fetch; clear() broadcasts sort state to the header icons before emitting,
-  // hence the explicit re-broadcast. The tri-state un-sort path never gets here — it
-  // substitutes the default at its source in setupRemovableSort().
+  // Safety net: any lazy load still leaving unsorted (stale persisted state; a viewless
+  // table with no sort memory yet) falls back to the declared default. Patching the event
+  // before it becomes the backend Filter avoids a second fetch; the re-broadcast keeps the
+  // header icons agreeing with what was actually sent. The tri-state un-sort path never
+  // gets here — it substitutes the default at its source in setupRemovableSort().
   private applyDefaultSortIfUnsorted(event: TableLazyLoadEvent): void {
     if (event.multiSortMeta?.length) return;
 
@@ -1517,9 +1520,7 @@ export class SpiderlyDataTableComponent
     this.columnMenu().hide();
     if (!col?.field || !this.isColumnSortable(col)) return;
 
-    this.table._multiSortMeta = [{ field: col.field, order }];
-    this.table.sortMultiple();
-    this.persistActiveViewSort();
+    this.applySort([{ field: col.field, order }]);
   }
 
   /**
@@ -1659,15 +1660,14 @@ export class SpiderlyDataTableComponent
    * left falls back to its own name rather than vanishing.
    */
   private refreshSortKeys(): void {
-    this.sortKeys = (this.lastLazyLoadEvent?.multiSortMeta ?? []).map((key) => ({
+    const meta = this.lastLazyLoadEvent?.multiSortMeta ?? [];
+
+    this.sortKeys = meta.map((key) => ({
       field: key.field,
       label: this.cols.find((col) => col.field === key.field)?.name ?? key.field,
       descending: key.order === -1,
     }));
-    this.sortIsDefault = sortMetaEquals(
-      this.lastLazyLoadEvent?.multiSortMeta ?? [],
-      this.defaultMultiSortMeta() ?? [],
-    );
+    this.sortIsDefault = sortMetaEquals(meta, this.defaultMultiSortMeta() ?? []);
   }
 
   /**
@@ -1684,11 +1684,22 @@ export class SpiderlyDataTableComponent
    */
   sortPickOptions: SortPickOption[] = [];
 
-  /** The picker's ask: one sort, replacing the whole meta — the same contract as the header menu. */
-  sortFromBar(pick: SortMeta): void {
-    this.table._multiSortMeta = [pick];
+  /**
+   * The one body of an explicit sort GESTURE — the thing `persistActiveViewSort`'s doc calls
+   * "explicit gestures only": put the meta on the grid, fetch, record the override. The menu
+   * and both bar entry points share it; `broadcastSort` is its deliberate no-fetch sibling.
+   * (Known family gap, pre-dating the bar: unlike a header click, none of these reset to page
+   * one or saveState — PrimeNG's sortMultiple() does neither.)
+   */
+  private applySort(meta: SortMeta[]): void {
+    this.table._multiSortMeta = meta;
     this.table.sortMultiple();
     this.persistActiveViewSort();
+  }
+
+  /** The picker's ask: one sort, replacing the whole meta — the same contract as the header menu. */
+  sortFromBar(pick: SortMeta): void {
+    this.applySort([pick]);
   }
 
   /**
@@ -1697,9 +1708,7 @@ export class SpiderlyDataTableComponent
    * default is stored as absence, so the declared ordering flows through again.
    */
   resetSortFromBar(): void {
-    this.table._multiSortMeta = this.defaultMultiSortMeta() ?? [];
-    this.table.sortMultiple();
-    this.persistActiveViewSort();
+    this.applySort(this.defaultMultiSortMeta() ?? []);
   }
 
   /** This column's share, override first, then its declared width, then the per-type default. */

@@ -133,6 +133,10 @@ async function clickView(
   await renderRows(fixture);
 }
 
+// The tri-state header gesture, as PrimeNG dispatches it.
+const headerSort = (dataTable: SpiderlyDataTableComponent, field: string) =>
+  dataTable.table.sort({ originalEvent: new MouseEvent('click'), field });
+
 @Component({
   imports: [SpiderlyDataTableComponent, SpiderlyDataTableActionsDirective],
   template: `
@@ -3189,9 +3193,6 @@ describe('SpiderlyDataTableComponent — a view carries its sort', () => {
     return mounted;
   };
 
-  const headerSort = (dataTable: SpiderlyDataTableComponent, field: string) =>
-    dataTable.table.sort({ originalEvent: new MouseEvent('click'), field });
-
   it('the initial load of a restored view carries its declared sort', async () => {
     sessionStorage.setItem(
       `${VIEW_SORT_STATE_KEY}:view`,
@@ -3439,10 +3440,7 @@ describe('SpiderlyDataTableComponent — a view with no sort anywhere unsorts th
     );
     await renderRows(fixture);
 
-    dataTable.table.sort({
-      originalEvent: new MouseEvent('click'),
-      field: 'name',
-    }); // becomes "all"'s override
+    headerSort(dataTable, 'name'); // becomes "all"'s override
 
     await clickView(fixture, 1);
 
@@ -3478,10 +3476,7 @@ describe('SpiderlyDataTableComponent — Clear filters clears only the filters',
     );
     await renderRows(fixture);
 
-    dataTable.table.sort({
-      originalEvent: new MouseEvent('click'),
-      field: 'status',
-    }); // an operator override on "all"
+    headerSort(dataTable, 'status'); // an operator override on "all"
     await fixture.ngZone!.run(async () => {
       host.filters.set('status', {
         operator: MatchModeCodes.Equals,
@@ -3520,14 +3515,22 @@ describe('SpiderlyDataTableComponent — sorting from the bar', () => {
     fixture.debugElement.query(By.directive(SpiderlyFilterBarComponent))
       .componentInstance as SpiderlyFilterBarComponent;
 
+  const pickFromBar = async (
+    fixture: ComponentFixture<unknown>,
+    field: string,
+    order: 1 | -1,
+  ) => {
+    await fixture.ngZone!.run(async () =>
+      barOf(fixture).sortPick.emit({ field, order }),
+    );
+    await renderRows(fixture);
+  };
+
   it('a pick sorts the grid and persists as the view override', async () => {
     const { fixture, host } = createWithDataTable(HostWithViewSortComponent);
     await renderRows(fixture);
 
-    await fixture.ngZone!.run(async () =>
-      barOf(fixture).sortPick.emit({ field: 'status', order: -1 }),
-    );
-    await renderRows(fixture);
+    await pickFromBar(fixture, 'status', -1);
 
     expect(host.captured.at(-1)!.multiSortMeta).toEqual([
       { field: 'status', order: -1 },
@@ -3540,10 +3543,7 @@ describe('SpiderlyDataTableComponent — sorting from the bar', () => {
   it('reset lands on the resolved default and empties the override slot', async () => {
     const { fixture, host } = createWithDataTable(HostWithViewSortComponent);
     await renderRows(fixture);
-    await fixture.ngZone!.run(async () =>
-      barOf(fixture).sortPick.emit({ field: 'status', order: -1 }),
-    );
-    await renderRows(fixture);
+    await pickFromBar(fixture, 'status', -1);
 
     await fixture.ngZone!.run(async () => barOf(fixture).sortReset.emit());
     await renderRows(fixture);

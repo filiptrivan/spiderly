@@ -344,19 +344,6 @@ function reviveValue(value: unknown): unknown {
 }
 
 /**
- * One sort key as the bar draws it. Sort deliberately does NOT live in the filter store:
- * `multiSortMeta` already holds it, keyed by field, and a copy here would be a second source of
- * truth for one fact. The bar is one surface reading two owners. `field` is what lets the
- * picker mark the active row and flip its direction; the label alone could not say which
- * option it names once two columns share a name.
- */
-export interface SortKeyLabel {
-  field: string;
-  label: string;
-  descending: boolean;
-}
-
-/**
  * One column the bar's sort picker offers, labelled by whoever owns the columns — the bar knows
  * nothing about them. Hidden sortable columns belong in the list: the picker exists precisely so
  * an ordering does not need its column on screen (decision 2b's sort half).
@@ -364,6 +351,17 @@ export interface SortKeyLabel {
 export interface SortPickOption {
   field: string;
   label: string;
+}
+
+/**
+ * One sort key as the bar draws it — a pick option WITH its direction. Sort deliberately does
+ * NOT live in the filter store: `multiSortMeta` already holds it, keyed by field, and a copy
+ * here would be a second source of truth for one fact. The bar is one surface reading two
+ * owners. `field` is what lets the picker mark the active row and flip its direction; the
+ * label alone could not say which option it names once two columns share a name.
+ */
+export interface SortKeyLabel extends SortPickOption {
+  descending: boolean;
 }
 
 /** One applied constraint, in the shape the chip bar draws. */
