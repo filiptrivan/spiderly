@@ -177,14 +177,31 @@ still the design, and this is where it stands against it.
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
   views (decision 10) all shipped too — every decision in this record is now built. Decision
   10's SORT half arrived last (2026-09-05, for PACMS's "Poslate, oldest first" order view):
-  `TableView.sort` declares a view's ordering, the tri-state un-sort / Clear filters land on it
+  `TableView.sort` declares a view's ordering, the tri-state un-sort lands on it
   instead of the table default (`defaultMultiSortMeta` is view-aware now), and the operator's
   own sort persists per view under `…:<viewId>:sort` — written only by explicit gestures, so a
   changed declared sort flows through to operators who never sorted, same rule as column
   visibility. Sort-only view switches refetch explicitly in `selectView`, because `clear()` on
-  an already-empty store leaves the requery effect silent. PrimeNG's table-global persisted
-  sort survives as a fallback for views declaring nothing, and its stored copy is rewritten at
-  init (`alignPersistedTableStateSort`) so restoreState() cannot re-impose another view's sort.
+  an already-empty store leaves the requery effect silent.
+  **Its "no preference inherits" half was SUPERSEDED one day in (2026-09-06, grilled from the
+  first live complaint):** as shipped, a view declaring no sort kept whatever ordering was on
+  the grid, and PrimeNG's table-global persisted sort backed that up at init — so "Poslate"'s
+  `statusChangedAt` rode onto "Sve" and survived every F5, with no way out (sort chip
+  read-only, no clear button without filter chips, the sorted column hidden). Now `applyViewSort`
+  resolves override ?? declared ?? table default ?? UNSORTED — a view is a COMPLETE state,
+  sort included, which is Polaris IndexFilters' model (sort is part of a saved view's
+  definition: `onSortKeyChange`/`onSortDirectionChange` exist exactly for that) — and on a
+  viewed table the table-global blob is a NON-SOURCE for sort at init (view-less tables keep
+  it as their one sort memory). `alignPersistedTableStateSort` still rewrites the stored copy
+  so restoreState() cannot re-impose anything. Two riders landed with it: **Clear filters
+  clears only the filters** (Polaris wires onClearAll to the Filters; sort is its own channel
+  — `clear()` no longer calls `table.clear()`/`clearState()`, which also removed its
+  unsequenced double fetch), and **the sort chip became the always-present sort PICKER**
+  (Polaris SortButton): a popover of every sortable column, hidden ones included — otherwise
+  unreachable — ascending on pick, the active ascending option flips, a reset row only while
+  off the resolved default; no "clear sort" ✕, since the default is just one of the reachable
+  orderings. The bar decides the direction so the owner applies what the menu showed;
+  `sortFromBar`/`resetSortFromBar` reuse the header-menu contract.
   Override persistence is store-tables-only (`viewSortStateKey` gates on `filters`): a
   storeless table's hide/reset gestures retire sorts through `dropHiddenColumnSort` with no
   persist call there, so a blind-restored override would re-impose a sort no chip can name.
@@ -417,13 +434,13 @@ Two designs were tried and rejected (2026-08-30); do not re-derive them:
 - **`position: sticky` on the spinner**, to keep it in view over a long table, cannot work. The icon's containing block *is* the mask it would need to escape, and in the app the wrapper's `overflow-auto` makes it a scrollport that never scrolls, so the offset resolves to zero. A Karma pin would still pass, because Tailwind is not loaded there — a test asserting a behaviour the app does not have. The mixin anchors the spinner with `align-items: flex-start` instead.
 - **A CSS `animation-delay` anti-flash veil** was dropped rather than shipped. It splits the clock — the delay covers only the mask, while the empty-message suppression flips instantly — and any `prefers-reduced-motion` reset silently deletes it. No debounce ships in v1: the flash was objectionable because the affordance was a black scrim, and with a low-contrast veil it may not be perceptible at all. Add one only if a human reports flicker in the live admin.
 
-**Known follow-up, not fixed here (2026-08-30):** the `lazyLoad` subscription is unmanaged — no `switchMap`, no `takeUntil(destroy$)` — so pending is a boolean rather than a property of an identified in-flight request. Two overlapping refetches (plausible with `[filterDelay]="500"` plus a page click) let the first response lower the flag while the second is still outstanding, and they can land out of order. Pre-existing, but this work is what made `loading` load-bearing for what the reader sees. A `switchMap` over a subject fixes ordering, cancellation and the leak together. **The bar's Clear made this concrete on every store table (found by review, 2026-09-05):** one Clear gesture fires TWO identical requests — `clear(table)` runs the store's `clear()` (whose requery effect issues one fetch) AND `table.clear()` (PrimeNG synchronously emits its own lazy load) — with nothing sequencing them, so they can land out of order. Fix it with (or as part of) the `switchMap` work rather than a one-off guard.
+**Known follow-up, not fixed here (2026-08-30):** the `lazyLoad` subscription is unmanaged — no `switchMap`, no `takeUntil(destroy$)` — so pending is a boolean rather than a property of an identified in-flight request. Two overlapping refetches (plausible with `[filterDelay]="500"` plus a page click) let the first response lower the flag while the second is still outstanding, and they can land out of order. Pre-existing, but this work is what made `loading` load-bearing for what the reader sees. A `switchMap` over a subject fixes ordering, cancellation and the leak together. (The bar's Clear used to make this concrete — `clear(table)` fired the store's requery fetch AND `table.clear()`'s own lazy load, unsequenced; that pair died 2026-09-06 when Clear narrowed to the store alone. The unmanaged subscription itself remains, and `[filterDelay]` + page-click overlaps still need the `switchMap`.)
 
 Spec note: any test that drives a refetch must do it inside `fixture.ngZone.run(...)`, or the `delay(0)` is scheduled where `whenStable` will not wait and the assertion measures a still-pending table. That trap is documented once, on `swapRowNameTo`; three older specs call `table._filter()` unwrapped and are exposed to it.
 
 ## State persistence
 
-`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior (sort, pagination) under `resolvedStateKey`; the store's applied filters persist beside it under `` `${resolvedStateKey}${viewScope}:filters` `` in the `stateStorage` storage. **The view segment is on the FILTER key too, not just the layout keys** (decision 10 — a view IS a saved question): on a table with views the segment is always present — `activeViewId` restores from `` `…:view` `` (below) and seeds from the first view only when nothing is stored — so on PACMS `order-list` the key is `…:<active view>:filters` and a bare `…:filters` never exists. A table with no views has no segment — which is what keeps its keys stable. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear(table)` method (the bar's Clear filters) also calls `table.clearState()` so the persisted state is wiped, not just the in-memory table.
+`@Input() stateKey?: string` plus `@Input() stateStorage: 'session' | 'local' = 'session'` light up PrimeNG's stateful-table behavior (sort, pagination) under `resolvedStateKey`; the store's applied filters persist beside it under `` `${resolvedStateKey}${viewScope}:filters` `` in the `stateStorage` storage. **The view segment is on the FILTER key too, not just the layout keys** (decision 10 — a view IS a saved question): on a table with views the segment is always present — `activeViewId` restores from `` `…:view` `` (below) and seeds from the first view only when nothing is stored — so on PACMS `order-list` the key is `…:<active view>:filters` and a bare `…:filters` never exists. A table with no views has no segment — which is what keeps its keys stable. When `hasLazyLoad` is true, `ngOnInit` derives `resolvedStateKey` from `router.url` (plus `additionalFilterIdLong` to disambiguate parent-child views). Consumers don't normally pass `stateKey` — leave it auto-derived. The `clear()` method (the bar's Clear filters) reaches ONLY the store since 2026-09-06 — no `table.clear()`, no `table.clearState()`: the sort, its per-view override, and the page-size pick all survive a Clear, and the emptied filter snapshot persists as key absence via the requery effect's `persistAppliedFilters`.
 
 **The active view survives a reload (2026-09-05).** The id persists under `` `${resolvedStateKey}:view` `` — deliberately NOT view-scoped (it is what `viewScope` derives from), and in the `stateStorage` storage like the filters rather than always-local like the layout, because the id and the filters it scopes are one question: a durable id over session-scoped filters would restore a tab with nothing under it. The gap this closes: every persisted key carried the view segment while the segment's source lived only in memory, so an F5 seeded `views[0]` back and restored `…:all:filters` — tab on "Sve", bar empty, the operator's filters intact under the abandoned segment (Filip, on /porudzbine; the rework's decision record never addressed reload). Rules, each spec-pinned in the "active view survives a reload" suite:
 

@@ -174,7 +174,7 @@ Two details that decide whether the guard actually works:
 </spiderly-data-table>
 ```
 
-Lazy tables are always deterministically ordered: when no sort is active the backend falls back to `Id` DESC (newest first). Declare `defaultSortField` (+ `defaultSortOrder`) when a page wants a different, user-visible default — it renders as a normal header sort arrow, persisted user sort wins over it, and un-sorting (tri-state header click, Clear filters) returns to it instead of "unsorted".
+Lazy tables are always deterministically ordered: when no sort is active the backend falls back to `Id` DESC (newest first). Declare `defaultSortField` (+ `defaultSortOrder`) when a page wants a different, user-visible default — it renders as a normal header sort arrow, persisted user sort wins over it, and un-sorting (tri-state header click, the sort picker's reset row) returns to it instead of "unsorted". Clear filters never touches the sort — sort has its own affordances.
 
 Every paginated table offers a rows-per-page dropdown — `rowsPerPageOptions`, default `[10, 25, 50, 100]`; a custom initial `rows` value is merged in automatically. The user's pick rides PrimeNG table state, so it persists per table under the existing `stateKey` (session-scoped unless `stateStorage: 'local'`).
 
@@ -255,7 +255,7 @@ filters = createProductFilters((key) => this.translocoService.translate(key));
 <spiderly-data-table [cols]="cols" [filters]="filters" ...></spiderly-data-table>
 ```
 
-The table renders the store as a **chip bar** above the header: one chip per *applied* filter, a read-only sort chip, the result count, `+ Filter` (a searchable popover of every declared filter) and Clear filters. Rules that follow:
+The table renders the store as a **chip bar** above the header: one chip per *applied* filter, the sort picker, the result count, `+ Filter` (a searchable popover of every declared filter) and Clear filters (which clears *only* the filters — never the sort). The sort picker's chip names the current ordering ("Sorted by: …", with the primary key first) and opens a popover of **every sortable column, hidden ones included** — pick to sort ascending, pick the active ascending option to flip it, and a *Reset to default sort* row appears while the ordering differs from the resolved default. Rules that follow:
 
 - **Store ids are backend property names** — they go straight into the paginated request — so they normally repeat the column's `field`. A column whose filter id differs links to it with `Column.filterId` (that is what the header menu's `Filter…` opens); columns never *declare* filters.
 - **Filters live independently of columns.** A filter with no column, or with a hidden one, is still offered and still narrows the grid — the chip is the visible surface, so hiding a column keeps its filter and sort.
@@ -266,7 +266,7 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 - **Applied filters persist** under `` `${stateKey}:filters` `` in the `stateStorage` storage (session by default), separately from PrimeNG's own sort/pagination blob under `` `${stateKey}` ``. On a table with `[views]` the filters key always carries the active view segment (`` `${stateKey}:${viewId}:filters` ``); the active view id itself persists under `` `${stateKey}:view` `` and is restored on reload, seeding from the first view only when nothing is stored.
 - **A custom editor control for one filter** is a projected `<ng-template spiderlyFilterTemplate="filterId" let-f>`: drive it through the handle (`f.value()`, `f.set(...)`, `f.commit()`). Filters without a template keep the control the bar draws for their kind.
 
-**Views** (`[views]`, `TableView[]`) are saved questions rendered as tabs above the bar: each `apply` receives the cleared store (a view is a state, not an addition) and writes with `setAndCommit`; a view whose apply is a function of *now* ("received today") declares `transient: true` so selecting it re-derives instead of restoring yesterday's answer. Column layout (visibility, order, widths, wrap) persists per view. A stored view id whose view is not in `[views]` yet (async-licensed views) is adopted when it arrives — unless the operator picked another tab meanwhile — and a restored transient view re-derives its question.
+**Views** (`[views]`, `TableView[]`) are saved questions rendered as tabs above the bar: each `apply` receives the cleared store (a view is a state, not an addition) and writes with `setAndCommit`; a view whose apply is a function of *now* ("received today") declares `transient: true` so selecting it re-derives instead of restoring yesterday's answer. Column layout (visibility, order, widths, wrap) persists per view. A stored view id whose view is not in `[views]` yet (async-licensed views) is adopted when it arrives — unless the operator picked another tab meanwhile — and a restored transient view re-derives its question. **Sort is view state too**: entering a view resolves the user's per-view sort override ?? the view's declared `sort` ?? the table's `defaultSortField` ?? unsorted — it never inherits the previous tab's ordering, so give the catch-all first view a table-level default when "newest first" isn't what you want there.
 
 ### Column chooser (show/hide columns)
 
