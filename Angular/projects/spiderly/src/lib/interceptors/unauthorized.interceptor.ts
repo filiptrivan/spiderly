@@ -5,8 +5,8 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
-import { throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, from, of, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApiErrorCodes } from '../errors/api-error-codes';
 import { AuthServiceBase } from '../services/auth.service.base';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
@@ -22,7 +22,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const translocoService = inject(TranslocoService);
   const authService = inject(AuthServiceBase);
 
-  const reactToError = (err: HttpErrorResponse, request: HttpRequest<any>): void => {
+  const reactToError = (err: HttpErrorResponse, request: HttpRequest<any>, errorResponse: any): void => {
     // Unconditional, production included, and the only log for a failed request (the global
     // ErrorHandler skips HTTP errors): the toast the user gets is deliberately vague, so this is
     // where a developer reads which request failed and how. See SpiderlyErrorHandler for why
@@ -31,16 +31,9 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
     // tracker's console breadcrumb; the object still follows, to expand in devtools.
     console.error(`HTTP ${err.status} ${request.method} ${request.url}`, err);
 
-    // TODO: type this as an ApiError interface (TS mirror of ApiErrorDTO, next to errors/api-error-codes.ts)
-    // so message/errorCode/traceId reads of the cross-language contract are compile-checked, not conventional.
-    let errorResponse = err.error;
-    if (request.responseType !== 'json' && typeof err.error === 'string') {
-      try {
-        errorResponse = JSON.parse(err.error);
-      } catch {
-        errorResponse = null;
-      }
-    }
+    // TODO: type errorResponse as an ApiError interface (TS mirror of ApiErrorDTO, next to
+    // errors/api-error-codes.ts) so message/errorCode/traceId reads of the cross-language contract
+    // are compile-checked, not conventional.
 
     // ApiErrorDTO.traceId is present only on reportable errors, so this is a no-op everywhere else —
     // the server decides which responses carry a support reference, never this status-code chain.
@@ -90,9 +83,43 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   };
 
   return next(req).pipe(
-    catchError((err: HttpErrorResponse) => {
-      reactToError(err, req);
-      return throwError(() => err);
-    }),
+    catchError((err: HttpErrorResponse) =>
+      readErrorBody(err, req).pipe(
+        switchMap((errorResponse) => {
+          reactToError(err, req, errorResponse);
+          return throwError(() => err);
+        }),
+      ),
+    ),
   );
+};
+
+/**
+ * The server's ApiErrorDTO, whatever body type the request asked for. Angular hands the ERROR body
+ * back in the requested `responseType` too: a `'text'` request gets the JSON as a string, and a
+ * `'blob'` request (every PDF / Excel download) gets it as a Blob, whose text is only readable
+ * asynchronously — which is why this is an Observable and the toast waits for it. Before the Blob
+ * branch existed, a BusinessException on a download endpoint reached the operator as the generic
+ * "bad request" toast: the sentence the server had spelled out was sitting unread in the Blob.
+ * A body that is not JSON resolves to null, so the status-code fallbacks below still apply.
+ */
+const readErrorBody = (err: HttpErrorResponse, request: HttpRequest<any>): Observable<any> => {
+  if (err.error instanceof Blob) {
+    return from(err.error.text()).pipe(
+      map(parseJsonOrNull),
+      catchError(() => of(null)),
+    );
+  }
+  if (request.responseType !== 'json' && typeof err.error === 'string') {
+    return of(parseJsonOrNull(err.error));
+  }
+  return of(err.error);
+};
+
+const parseJsonOrNull = (text: string): any => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 };
