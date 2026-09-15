@@ -34,11 +34,6 @@
       "name": "spiderly-upgrade",
       "surface": "skill",
       "description": "Upgrade a Spiderly consumer app's package version (NuGet + npm) to a newer Spiderly release. Use when the user asks to upgrade Spiderly, bump the Spiderly version, jump to a newer Spiderly release, or migrate to a newer Spiderly package version. Do NOT use for EF Core schema migrations (see ef-migrations skill)."
-    },
-    {
-      "name": "verify-ui",
-      "surface": "skill",
-      "description": "Log past Spiderly's email-code auth wall to visually verify the running Angular admin panel — screenshot a page, click through a flow, or dogfood a UI change without writing a test. Use when asked to \"verify the admin UI\", \"check this page renders\", \"screenshot the admin panel\", \"does this screen look right\", or to eyeball a change in the live app. For authoring Playwright test suites or debugging CI traces, use the e2e-testing skill instead."
     }
   ]
 }

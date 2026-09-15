@@ -45,7 +45,7 @@ Packaging detail to verify: the published tarball must actually include the new 
 
 | → **Bundled docs** (always-on, indexed in `AGENTS.md`) | → **Skill** (explicit user trigger, junctioned into `.claude/skills`) |
 |---|---|
-| entity-design, angular-customization (control/validator maps), filtering-patterns, mapper-customization, custom-endpoints, backend-hooks, authorization, file-storage, backend-localization, frontend-localization, backend-testing, e2e-testing | add-entity, ef-migrations, spiderly-upgrade, deployment, verify-ui, report-gap |
+| entity-design, angular-customization (control/validator maps), filtering-patterns, mapper-customization, custom-endpoints, backend-hooks, authorization, file-storage, backend-localization, frontend-localization, backend-testing, e2e-testing | add-entity, ef-migrations, spiderly-upgrade, deployment, report-gap |
 
 `backend-testing` and `e2e-testing` are pure reference (patterns, not runnable workflows) → docs. `backend-hooks` and `authorization` are reference-shaped but reached for mid-task → docs (no reliable trigger). `add-entity` runs the `spiderly add-new-entity` scaffold workflow → skill.
 
