@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Emailing
             _smtpClient = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
             {
                 Credentials = new NetworkCredential(_emailSettings.EmailSender?.Email, _emailSettings.EmailSenderPassword),
-                EnableSsl = true
+                EnableSsl = _emailSettings.SmtpEnableSsl
             };
             _logger = logger;
         }

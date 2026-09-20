@@ -44,6 +44,21 @@ namespace Spiderly.Shared
         /// <summary>SMTP port.</summary>
         public int SmtpPort { get; set; } = 587;
 
+        /// <summary>
+        /// Whether the SMTP conversation upgrades to TLS (STARTTLS). Defaults to <c>true</c>, which is the
+        /// only correct value for any relay reached over a network.
+        ///
+        /// <para>It is settable for the one case where TLS is not merely unnecessary but impossible: a mail
+        /// CATCHER on a private Docker network — Mailpit, MailHog — whose certificate no client trusts,
+        /// reached over an interface no third party can observe. Before this existed, <see cref="EmailingService"/>
+        /// hardcoded <c>EnableSsl = true</c>, so a consumer that wanted its staging mail caught had to fork the
+        /// sender or run a TLS terminator in front of the catcher.</para>
+        ///
+        /// <para>Turning it off on a host that sends real mail sends credentials in the clear. The default
+        /// stands; set it false only for a catcher, and only inside a private network.</para>
+        /// </summary>
+        public bool SmtpEnableSsl { get; set; } = true;
+
         /// <summary>Brevo API key, used by the Brevo emailing implementation.</summary>
         public string? BrevoApiKey { get; set; }
     }

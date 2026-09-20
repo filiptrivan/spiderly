@@ -20,6 +20,31 @@ namespace Spiderly.Shared.Tests
                 .Build()
                 .GetSection(Settings.ConfigurationSection);
 
+        /// <summary>
+        /// TLS is on unless configuration turns it off, and it is the BINDING that has to be pinned:
+        /// <see cref="EmailingService"/> reads this once in its constructor and never again, so a key
+        /// that fails to bind leaves <c>EnableSsl</c> at its default and the failure surfaces as
+        /// "every mail to the catcher is refused", never as a configuration error.
+        /// </summary>
+        [Fact]
+        public void SmtpEnableSsl_binds_from_configuration_and_defaults_to_true()
+        {
+            EmailOptions configured = Section(new()
+            {
+                ["AppSettings:Spiderly.Shared:SmtpHost"] = "mailpit",
+                ["AppSettings:Spiderly.Shared:SmtpEnableSsl"] = "false",
+            }).Get<EmailOptions>()!;
+
+            Assert.False(configured.SmtpEnableSsl);
+
+            EmailOptions unset = Section(new()
+            {
+                ["AppSettings:Spiderly.Shared:SmtpHost"] = "smtp.example.com",
+            }).Get<EmailOptions>()!;
+
+            Assert.True(unset.SmtpEnableSsl);
+        }
+
         [Fact]
         public void EmailSender_binds_from_an_object()
         {
