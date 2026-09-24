@@ -501,8 +501,7 @@ namespace Spiderly.Security.Services
 
         private static string GenerateVerificationCodeKey()
         {
-            int code = Random.Next(100000, 1000000);
-            return code.ToString("D6");
+            return RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
         }
 
         public virtual async Task RemoveLoginVerificationTokensByEmailAsync(string email)
