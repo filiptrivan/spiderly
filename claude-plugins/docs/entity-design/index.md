@@ -89,8 +89,8 @@ public virtual Brand Brand { get; set; }
 ### Rules
 
 - Naming convention: `{NavigationName}Id` — resolved automatically. Use `[ForeignKey(nameof(OtherName))]` only when you need a different scalar name.
-- Nullability must match the relationship: `[Required]` navigation → non-nullable scalar (`long BrandId`); optional nav (`[SetNull]`) → nullable scalar (`long? BrandId`). Mismatch raises **SPID001**.
-- Scalar type must match the parent's `Id` type (`byte`/`int`/`long`). Mismatch raises **SPID003**.
+- Nullability must match the relationship: `[Required]` navigation → non-nullable scalar (`long BrandId`); optional nav (`[SetNull]`) → nullable scalar (`long? BrandId`). Mismatch raises **SPIDERLY006**.
+- Scalar type must match the parent's `Id` type (`byte`/`int`/`long`). Mismatch raises **SPIDERLY004**.
 
 ### Caveat — generated CRUD still loads the nav
 
