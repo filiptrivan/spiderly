@@ -3709,7 +3709,7 @@ class HostWithViewCountsComponent {
   }
 }
 
-async function refreshCounts(
+async function refreshCountsAndRender(
   mounted: {
     fixture: ComponentFixture<HostWithViewCountsComponent>;
     host: HostWithViewCountsComponent;
@@ -3752,7 +3752,7 @@ describe('SpiderlyDataTableComponent — a view tab shows its count', () => {
     const requestsBefore = mounted.host.captured.length;
 
     localStorage.setItem('sdt-view-counts-spec:view', JSON.stringify('packing'));
-    await refreshCounts(mounted, { all: null, packing: 13, companies: 1 });
+    await refreshCountsAndRender(mounted, { all: null, packing: 13, companies: 1 });
 
     expect(viewCounts(mounted.fixture)).toEqual([null, '13', '1']);
     expect(mounted.dataTable.activeViewId).toBe('all');
@@ -3767,7 +3767,7 @@ describe('SpiderlyDataTableComponent — a view tab shows its count', () => {
     await renderRows(mounted.fixture);
 
     viewTabs(mounted.fixture)[1].focus();
-    await refreshCounts(mounted, { packing: 13 });
+    await refreshCountsAndRender(mounted, { packing: 13 });
 
     expect(document.activeElement).toBe(viewTabs(mounted.fixture)[1]);
   });

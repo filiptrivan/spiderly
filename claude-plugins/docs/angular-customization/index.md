@@ -271,7 +271,7 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 **A view tab can show a count**: `count?: number | null` renders a badge beside the label (`null` or absent shows none, `0` shows one). The table never computes it — run your own count query beside each list load and rebuild `[views]` with the fresh numbers, keeping each view's `id` stable. A rebuild neither re-enters the active view nor sends a request: a stored view id is adopted only from a change that *brings* that view, and the tabs are tracked by `id`, so the focused tab keeps focus.
 
 ```typescript
-this.views = this.views.map((view) => ({ ...view, count: counts[view.id] ?? null }));
+this.views = this.views.map((view) => ({ ...view, count: counts[view.id] }));
 ```
 
 **A view can declare its columns**: `columns` is a field → visible map that overrides `Column.visible` in that view only, naming just the deviation — a column it does not name keeps its `Column.visible`. Visibility resolves per field as the user's own per-view choice ?? the view's `columns` ?? `Column.visible`; the user's choice is stored only where it differs from the view's declaration, *Reset to default* returns to the declaration, and `lockVisible` columns always show. To swap one column for another, declare them next to each other in `cols` (the swapped-in one `visible: false`) and the view's column takes the other's place. Type the row as the second generic to check the field names.
