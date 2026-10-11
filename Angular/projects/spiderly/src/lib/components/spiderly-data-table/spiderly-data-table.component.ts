@@ -44,10 +44,12 @@ import {
 import { SpiderlyDataTableActionsDirective } from '../../directives/spiderly-data-table-actions.directive';
 import { SpiderlyOverflowTitleDirective } from '../../directives/spiderly-overflow-title.directive';
 import { Filter } from '../../entities/filter';
+import { FilterRule } from '../../entities/filter-rule';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
 import { PaginatedResult } from '../../entities/paginated-result';
 import { PrimengOption } from '../../entities/primeng-option';
 import {
+  createFilterStore,
   FilterSource,
   SortKeyLabel,
   SortPickOption,
@@ -835,7 +837,11 @@ export class SpiderlyDataTableComponent
    * reading exactly the keys they already wrote.
    */
   private get viewScope(): string {
-    return this.activeViewId ? `:${this.activeViewId}` : '';
+    return this.viewScopeOf(this.activeViewId);
+  }
+
+  private viewScopeOf(viewId: string | null): string {
+    return viewId ? `:${viewId}` : '';
   }
 
   /**
@@ -846,8 +852,12 @@ export class SpiderlyDataTableComponent
    * durable preference like a column's width.
    */
   private get filtersStateKey(): string | null {
+    return this.filtersStateKeyOf(this.activeViewId);
+  }
+
+  private filtersStateKeyOf(viewId: string | null): string | null {
     return this.resolvedStateKey
-      ? `${this.resolvedStateKey}${this.viewScope}:filters`
+      ? `${this.resolvedStateKey}${this.viewScopeOf(viewId)}:filters`
       : null;
   }
 
@@ -946,20 +956,23 @@ export class SpiderlyDataTableComponent
    * the empty state the operator left — they cleared it, and F5 must give the cleared state
    * back. On a table with no views, `view` is null and this is a plain restore of the
    * `persistAppliedFilters` snapshot.
+   *
+   * `store` and `key` default to the live store and the active view's key; `viewFilterPayload`
+   * passes a scratch store and another view's key, to read what entering it would send.
    */
   private enterViewFilters(
     view: TableView | null,
     semantics: 'click' | 'refresh',
+    store: FilterSource | undefined = this.filters,
+    key: string | null = this.filtersStateKey,
   ): void {
-    if (!this.filters) return;
+    if (!store) return;
 
     const stored =
-      !view?.transient && this.filtersStateKey
-        ? readStoredJson(this.filterStorage, this.filtersStateKey)
-        : null;
+      !view?.transient && key ? readStoredJson(this.filterStorage, key) : null;
 
-    if (stored) this.filters.restore(stored);
-    else if (view?.transient || semantics === 'click') view?.apply?.(this.filters);
+    if (stored) store.restore(stored);
+    else if (view?.transient || semantics === 'click') view?.apply?.(store);
   }
 
   private get layoutStateKey(): string | null {
@@ -1479,6 +1492,32 @@ export class SpiderlyDataTableComponent
     if (sortChanged && this.filters.applied() === appliedBefore) {
       this.refetchFromFirstPage();
     }
+  }
+
+  /**
+   * The `filters` payload a view's own list request carries — the same shape the store's
+   * `toFilterPayload()` emits — so a consumer's count query can narrow each view by the bar
+   * filters the operator saved on it, and a `TableView.count` stays the number of rows a click on
+   * that tab lists (spiderly#439).
+   *
+   * - The ACTIVE view answers with the live filters: its count is the list on screen.
+   * - Any other view answers with what a click would enter (`enterViewFilters`): the filters
+   *   saved on it, else its `apply` — always `apply` for a transient view. That runs on a scratch
+   *   store of the same declarations, so nothing switches, persists or re-queries.
+   *
+   * `{}` on a table without `[filters]`, whose requests carry none; `null` for an id that is not
+   * in `[views]`.
+   */
+  viewFilterPayload(viewId: string): Record<string, FilterRule[]> | null {
+    const view = this.viewById(viewId);
+    if (!view) return null;
+    if (!this.filters) return {};
+    if (view.id === this.activeViewId) return this.filters.toFilterPayload();
+
+    const scratch = createFilterStore(this.filters.definitions);
+    this.enterViewFilters(view, 'click', scratch, this.filtersStateKeyOf(view.id));
+
+    return scratch.toFilterPayload();
   }
 
   /**
@@ -2488,6 +2527,9 @@ export interface TableView<TFilters = any, TRow = any> {
   /**
    * Sets the filters this view asks for. Receives the table's own store, so a consumer writes it
    * with the store's typing. Called on a CLEARED store: a view is a state, not an addition.
+   *
+   * `viewFilterPayload` also calls it, on a scratch store of the same declarations, to read what
+   * entering the view would send, so it writes into the store it receives and nothing else.
    */
   apply?: (filters: TFilters) => void;
   /**
@@ -2514,7 +2556,9 @@ export interface TableView<TFilters = any, TRow = any> {
    *
    * The table never computes it: the consumer runs its own count query and hands the number in,
    * typically by rebuilding `[views]` after every list load. Such a rebuild is safe — it neither
-   * re-enters the active view nor sends a request (see `adoptStoredView`).
+   * re-enters the active view nor sends a request (see `adoptStoredView`). For a count that
+   * honors the bar filters an operator saved on each view, send each view's
+   * `viewFilterPayload(id)` with that query.
    */
   count?: number | null;
   /**

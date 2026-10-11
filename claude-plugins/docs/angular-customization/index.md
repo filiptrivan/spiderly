@@ -274,6 +274,14 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 this.views = this.views.map((view) => ({ ...view, count: counts[view.id] }));
 ```
 
+**A count can honor each view's saved filters**: the table's `viewFilterPayload(viewId)` returns the `filters` payload that view's own list request carries, so a count query that applies it counts exactly the rows a click on the tab lists, including bar filters the user saved on that view. The active view answers with the live filters; any other view with what a click would enter: its saved filters, else its `apply` (always `apply` for a transient view). It switches nothing and sends no request. `apply` runs on a scratch store for this, so it must write only into the store it receives. It returns `{}` on a table without `[filters]` and `null` for an id not in `[views]`. A non-static `@ViewChild` is not resolved during the first list load, so take the table from a template reference (`#table`) there.
+
+```typescript
+const filtersByView = Object.fromEntries(
+  this.views.map((view) => [view.id, table.viewFilterPayload(view.id) ?? {}]),
+);
+```
+
 **A view can declare its columns**: `columns` is a field → visible map that overrides `Column.visible` in that view only, naming just the deviation — a column it does not name keeps its `Column.visible`. Visibility resolves per field as the user's own per-view choice ?? the view's `columns` ?? `Column.visible`; the user's choice is stored only where it differs from the view's declaration, *Reset to default* returns to the declaration, and `lockVisible` columns always show. To swap one column for another, declare them next to each other in `cols` (the swapped-in one `visible: false`) and the view's column takes the other's place. Type the row as the second generic to check the field names.
 
 ```typescript
