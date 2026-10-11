@@ -1,4 +1,4 @@
-import { Component, ErrorHandler } from '@angular/core';
+import { Component, computed, ErrorHandler } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -3783,6 +3783,7 @@ describe('SpiderlyDataTableComponent — a view tab shows its count', () => {
       [filters]="filters"
       [views]="views"
       [stateKey]="'sdt-view-payload-spec'"
+      [stateStorage]="'local'"
       [getPaginatedListObservableMethod]="getList"
     ></spiderly-data-table>
   `,
@@ -3838,6 +3839,24 @@ describe('SpiderlyDataTableComponent — a view\'s filter payload', () => {
       .toEqual(payload!);
   });
 
+  // The operator who saved a filter on a tab yesterday expects today's count to honor it.
+  it('reads the filters saved on a view across a reload', async () => {
+    const first = createWithDataTable(HostWithViewFilterPayloadsComponent);
+    await renderRows(first.fixture);
+    await clickView(first.fixture, 1);
+    await first.fixture.ngZone!.run(async () => companyOrdersOnly(first.host.filters));
+    await renderRows(first.fixture);
+    await clickView(first.fixture, 0);
+
+    const next = await remount(first.fixture, HostWithViewFilterPayloadsComponent);
+
+    expect(next.dataTable.activeViewId).toBe('all');
+    expect(next.dataTable.viewFilterPayload('packing')).toEqual({
+      status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
+      isCompanyOrder: [{ matchMode: MatchModeCodes.Equals, value: true }],
+    } as any);
+  });
+
   // Nothing stored is what a click answers with the view's own question — whether the operator
   // never opened it or cleared it — so the payload asks it too, on a store of its own: the bar the
   // operator is looking at must not change.
@@ -3889,6 +3908,21 @@ describe('SpiderlyDataTableComponent — a view\'s filter payload', () => {
       createdAt: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
     } as any);
     expect(host.applyCount).toBe(2);
+  });
+
+  // A signals-first page derives what it sends from `computed`s, and Angular refuses a signal
+  // write inside one — the scratch store's writes are nobody's business but the read's own.
+  it('can be read inside a computed', async () => {
+    const { fixture, dataTable } = createWithDataTable(
+      HostWithViewFilterPayloadsComponent,
+    );
+    await renderRows(fixture);
+
+    const payload = computed(() => dataTable.viewFilterPayload('packing'));
+
+    expect(payload()).toEqual({
+      status: [{ matchMode: MatchModeCodes.Equals, value: 2 }],
+    } as any);
   });
 
   it('answers null for a view the table does not hold', async () => {

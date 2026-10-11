@@ -21,6 +21,7 @@ import {
   QueryList,
   SimpleChanges,
   TemplateRef,
+  untracked,
   viewChild,
   ViewChild,
 } from '@angular/core';
@@ -957,8 +958,8 @@ export class SpiderlyDataTableComponent
    * back. On a table with no views, `view` is null and this is a plain restore of the
    * `persistAppliedFilters` snapshot.
    *
-   * `store` and `key` default to the live store and the active view's key; `viewFilterPayload`
-   * passes a scratch store and another view's key, to read what entering it would send.
+   * `viewFilterPayload` passes a scratch store and another view's key, to read what entering
+   * that view would send.
    */
   private enterViewFilters(
     view: TableView | null,
@@ -1497,13 +1498,17 @@ export class SpiderlyDataTableComponent
   /**
    * The `filters` payload a view's own list request carries — the same shape the store's
    * `toFilterPayload()` emits — so a consumer's count query can narrow each view by the bar
-   * filters the operator saved on it, and a `TableView.count` stays the number of rows a click on
-   * that tab lists (spiderly#439).
+   * filters the operator saved on it, and a `TableView.count` stays the number of rows that tab
+   * lists: on screen for the active view, after a click for the others (spiderly#439).
    *
-   * - The ACTIVE view answers with the live filters: its count is the list on screen.
+   * - The ACTIVE view answers with the live filters. Not with what a click would enter: clicking
+   *   the active tab re-asks its question when the operator has cleared the bar, but the list on
+   *   screen, and so its count, has not.
    * - Any other view answers with what a click would enter (`enterViewFilters`): the filters
    *   saved on it, else its `apply` — always `apply` for a transient view. That runs on a scratch
-   *   store of the same declarations, so nothing switches, persists or re-queries.
+   *   `createFilterStore` of the same declarations, so nothing switches, persists or re-queries.
+   *   Untracked: the scratch store's signal writes would otherwise make a read inside a
+   *   `computed` throw NG0600.
    *
    * `{}` on a table without `[filters]`, whose requests carry none; `null` for an id that is not
    * in `[views]`.
@@ -1514,10 +1519,13 @@ export class SpiderlyDataTableComponent
     if (!this.filters) return {};
     if (view.id === this.activeViewId) return this.filters.toFilterPayload();
 
-    const scratch = createFilterStore(this.filters.definitions);
-    this.enterViewFilters(view, 'click', scratch, this.filtersStateKeyOf(view.id));
+    const definitions = this.filters.definitions;
+    return untracked(() => {
+      const scratch = createFilterStore(definitions);
+      this.enterViewFilters(view, 'click', scratch, this.filtersStateKeyOf(view.id));
 
-    return scratch.toFilterPayload();
+      return scratch.toFilterPayload();
+    });
   }
 
   /**
