@@ -149,6 +149,16 @@
     background: var(--p-content-hover-background);
   }
 
+  // Inherits the tab's colour, so the active tab's count reads as part of the active tab.
+  .table-view-count {
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--p-content-border-color);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
   // The left edge that survives a horizontal scroll. Geometry only here: the opaque background
   // lives on the BODY cells below, because the header th already gets an opaque
   // header.cell.background from PrimeNG's own th rule. Painting the row palette on the whole

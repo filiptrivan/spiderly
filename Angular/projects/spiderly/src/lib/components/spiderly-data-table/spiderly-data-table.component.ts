@@ -495,7 +495,7 @@ export class SpiderlyDataTableComponent
   ngOnChanges(changes: SimpleChanges): void {
     // Only meaningful once ngOnInit has resolved the defaults; before that it is a no-op re-run.
     if (this.rows != null) this.mergeActivePageSizesIntoOptions();
-    if (changes['views']) this.adoptStoredView();
+    if (changes['views']) this.adoptStoredView(changes['views'].previousValue);
   }
 
   ngOnInit(): void {
@@ -893,12 +893,18 @@ export class SpiderlyDataTableComponent
    * overwrites it, the operator's own choice wins by construction. Accepted cost of adopting
    * late instead of holding the first request: a brief flash of the seeded view's rows and a
    * second request when the late view lands.
+   *
+   * Only a view this change BROUGHT is adopted. A consumer rebuilds `[views]` on every list load
+   * to refresh `TableView.count`, and under `stateStorage: 'local'` the key can name a view the
+   * operator picked in another browser tab — adopting on every change switched this tab's view
+   * at the next count refresh (spiderly#430).
    */
-  private adoptStoredView(): void {
+  private adoptStoredView(previousViews: TableView[] | undefined): void {
     if (!this.viewStateKey) return;
 
     const storedId = readStoredJson(this.filterStorage, this.viewStateKey);
     if (typeof storedId !== 'string' || storedId === this.activeViewId) return;
+    if (previousViews?.some((view) => view.id === storedId)) return;
 
     const view = this.viewById(storedId);
     if (view) this.selectView(view);
@@ -2167,6 +2173,11 @@ export class SpiderlyDataTableComponent
     return `${index}${item.field}`;
   }
 
+  /** By id: a count refresh rebuilds `[views]` as new objects, and must not re-create the focused tab. */
+  viewTrackByFn(index: number, view: TableView) {
+    return view.id;
+  }
+
   exportListToExcel() {
     let filter: Filter = this.lastLazyLoadEvent as unknown as Filter;
     filter.additionalFilterIdLong = this.additionalFilterIdLong;
@@ -2486,6 +2497,16 @@ export interface TableView<TFilters = any> {
    * existed.
    */
   sort?: SortMeta[];
+  /**
+   * How many rows the view holds, shown as a badge beside its label so an operator sees which
+   * work list has something in it without clicking through every tab (Polaris IndexFilters
+   * carries the same badge). `null` or absent shows no badge; `0` shows one.
+   *
+   * The table never computes it: the consumer runs its own count query and hands the number in,
+   * typically by rebuilding `[views]` after every list load. Such a rebuild is safe — it neither
+   * re-enters the active view nor sends a request (see `adoptStoredView`).
+   */
+  count?: number | null;
 }
 
 export class Column<T = any> {

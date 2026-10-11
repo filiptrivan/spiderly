@@ -268,6 +268,12 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 
 **Views** (`[views]`, `TableView[]`) are saved questions rendered as tabs above the bar: each `apply` receives the cleared store (a view is a state, not an addition) and writes with `setAndCommit`; a view whose apply is a function of *now* ("received today") declares `transient: true` so selecting it re-derives instead of restoring yesterday's answer. Column layout (visibility, order, widths, wrap) persists per view. A stored view id whose view is not in `[views]` yet (async-licensed views) is adopted when it arrives — unless the operator picked another tab meanwhile — and a restored transient view re-derives its question. **Sort is view state too**: entering a view resolves the user's per-view sort override ?? the view's declared `sort` ?? the table's `defaultSortField` ?? unsorted — it never inherits the previous tab's ordering, so give the catch-all first view a table-level default when "newest first" isn't what you want there.
 
+**A view tab can show a count**: `count?: number | null` renders a badge beside the label (`null` or absent shows none, `0` shows one). The table never computes it — run your own count query beside each list load and rebuild `[views]` with the fresh numbers, keeping each view's `id` stable. A rebuild neither re-enters the active view nor sends a request: a stored view id is adopted only from a change that *brings* that view, and the tabs are tracked by `id`, so the focused tab keeps focus.
+
+```typescript
+this.views = this.views.map((view) => ({ ...view, count: counts[view.id] ?? null }));
+```
+
 ### Column chooser (show/hide columns)
 
 Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Declare rarely-needed columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Hiding a column never touches its filter or sort — the chip bar is where both stay visible. Choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
@@ -371,7 +377,7 @@ Set the inset rather than stretching `--spiderly-topbar-height`, which is the to
 | ---------------------------------- | ------------------------ | ------- | ----------------------- |
 | `cols`                             | `Column[]`               | —       | Column definitions      |
 | `filters`                          | `FilterSource`           | —       | The page's filter store (see Filtering); read once at init |
-| `views`                            | `TableView[]`            | —       | Saved questions rendered as tabs above the bar |
+| `views`                            | `TableView[]`            | —       | Saved questions rendered as tabs above the bar, each with an optional `count` badge |
 | `getPaginatedListObservableMethod` | `(filter) => Observable` | —       | Server-side data source |
 | `additionalFilterIdLong`           | `number`                 | —       | Parent entity filter    |
 | `hasLazyLoad`                      | `boolean`                | `true`  | Server vs client mode   |

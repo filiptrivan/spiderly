@@ -3685,6 +3685,101 @@ describe('SpiderlyDataTableComponent — layout is scoped to the view', () => {
     <spiderly-data-table
       [cols]="cols"
       [filters]="filters"
+      [views]="views"
+      [stateKey]="'sdt-view-counts-spec'"
+      [stateStorage]="'local'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithViewCountsComponent {
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  cols: Column[] = [{ name: 'Naziv', field: 'name', filterType: 'text' }];
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    { ...packingView, count: 12 },
+    { id: 'companies', label: 'Firme', count: 0 },
+  ];
+  captured: Filter[] = [];
+  getList = capturingGetList(this.captured);
+
+  // What a consumer does after each list load: the same views, rebuilt with fresh numbers.
+  refreshCounts(counts: Record<string, number | null>): void {
+    this.views = this.views.map((view) => ({ ...view, count: counts[view.id] }));
+  }
+}
+
+async function refreshCounts(
+  mounted: {
+    fixture: ComponentFixture<HostWithViewCountsComponent>;
+    host: HostWithViewCountsComponent;
+  },
+  counts: Record<string, number | null>,
+): Promise<void> {
+  await mounted.fixture.ngZone!.run(async () => {
+    mounted.host.refreshCounts(counts);
+    mounted.fixture.detectChanges();
+  });
+  await renderRows(mounted.fixture);
+}
+
+const viewCounts = (fixture: ComponentFixture<unknown>): (string | null)[] =>
+  Array.from(viewTabs(fixture)).map(
+    (tab) =>
+      tab
+        .querySelector('[data-testid="table-view-count"]')
+        ?.textContent?.trim() ?? null,
+  );
+
+// An operator should see which work list has something in it without clicking through every tab
+// (spiderly#430). Polaris IndexFilters carries the same badge on its tabs.
+describe('SpiderlyDataTableComponent — a view tab shows its count', () => {
+  it('shows the count beside the label, zero included, and nothing for a view without one', async () => {
+    const { fixture } = createWithDataTable(HostWithViewCountsComponent);
+    await renderRows(fixture);
+
+    expect(viewCounts(fixture)).toEqual([null, '12', '0']);
+    expect(viewTabs(fixture)[1].textContent).toContain('Za pakovanje');
+  });
+
+  // Counts refresh on every list load, so a refresh that re-entered a view would be a view switch
+  // the operator never asked for. The case that did it: with `stateStorage: 'local'` a pick in a
+  // second browser tab rewrites the stored view id, and the next rebuild of `[views]` here adopted
+  // it — swapping this tab's rows under the operator.
+  it('updates the counts without moving the operator or asking the server again', async () => {
+    const mounted = createWithDataTable(HostWithViewCountsComponent);
+    await renderRows(mounted.fixture);
+    const requestsBefore = mounted.host.captured.length;
+
+    localStorage.setItem('sdt-view-counts-spec:view', JSON.stringify('packing'));
+    await refreshCounts(mounted, { all: null, packing: 13, companies: 1 });
+
+    expect(viewCounts(mounted.fixture)).toEqual([null, '13', '1']);
+    expect(mounted.dataTable.activeViewId).toBe('all');
+    expect(mounted.host.filters.applied()).toEqual([]);
+    expect(mounted.host.captured.length).toBe(requestsBefore);
+  });
+
+  // A rebuilt `[views]` holds new objects every time; re-rendering the tabs for them would drop
+  // keyboard focus from the tab the operator is on, once per list load.
+  it('keeps a focused tab focused through a count refresh', async () => {
+    const mounted = createWithDataTable(HostWithViewCountsComponent);
+    await renderRows(mounted.fixture);
+
+    viewTabs(mounted.fixture)[1].focus();
+    await refreshCounts(mounted, { packing: 13 });
+
+    expect(document.activeElement).toBe(viewTabs(mounted.fixture)[1]);
+  });
+});
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
       [stateKey]="'sdt-store-hide-keeps-sort-spec'"
       [getPaginatedListObservableMethod]="getList"
     ></spiderly-data-table>

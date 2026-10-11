@@ -185,7 +185,7 @@
 
         <div class="table-views" *ngIf="views?.length" role="tablist">
           <button
-            *ngFor="let view of views"
+            *ngFor="let view of views; trackBy: viewTrackByFn"
             type="button"
             role="tab"
             class="table-view"
@@ -195,6 +195,12 @@
             (click)="selectView(view)"
           >
             {{ view.label }}
+            <span
+              *ngIf="view.count != null"
+              class="table-view-count"
+              data-testid="table-view-count"
+              >{{ view.count }}</span
+            >
           </button>
         </div>
 
