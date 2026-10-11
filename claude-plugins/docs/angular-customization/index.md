@@ -274,9 +274,18 @@ The table renders the store as a **chip bar** above the header: one chip per *ap
 this.views = this.views.map((view) => ({ ...view, count: counts[view.id] ?? null }));
 ```
 
+**A view can declare its columns**: `columns` is a field → visible map that overrides `Column.visible` in that view only, naming just the deviation — a column it does not name keeps its `Column.visible`. Visibility resolves per field as the user's own per-view choice ?? the view's `columns` ?? `Column.visible`; the user's choice is stored only where it differs from the view's declaration, *Reset to default* returns to the declaration, and `lockVisible` columns always show. To swap one column for another, declare them next to each other in `cols` (the swapped-in one `visible: false`) and the view's column takes the other's place. Type the row as the second generic to check the field names.
+
+```typescript
+const views: TableView<OrderFilters, Order>[] = [
+  { id: 'all', label: 'All' },
+  { id: 'late', label: 'Late goods', columns: { why: true, assignedLocation: false } },
+];
+```
+
 ### Column chooser (show/hide columns)
 
-Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Declare rarely-needed columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Hiding a column never touches its filter or sort — the chip bar is where both stay visible. Choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration.
+Lazy tables render a **Columns** toolbar button opening a checkbox list of all data columns. Declare rarely-needed columns with `visible: false` (available in the chooser, hidden by default) and pin the row's identifying column with `lockVisible: true`. Hiding a column never touches its filter or sort — the chip bar is where both stay visible. Choices persist per table in `localStorage` under `` `${stateKey}:columns` `` (durable even with `stateStorage: 'session'`; only explicit toggles are stored, so later declared-default changes flow through), the last visible data column can't be hidden, and *Reset to default* restores the declared configuration. On a table with `[views]` the key carries the view (`` `${stateKey}:${viewId}:columns` ``) and the declared configuration is the active view's `columns` over `Column.visible`.
 
 The `onClick` callback receives an `ActionClickEvent` — `{ id, row, element, originalEvent }`. Use `element` (or `originalEvent`) to anchor an overlay/popover to the clicked action; `row` gives you the full row object. It fires only for custom `field` values (never `'Details'` / `'Delete'`).
 
@@ -377,7 +386,7 @@ Set the inset rather than stretching `--spiderly-topbar-height`, which is the to
 | ---------------------------------- | ------------------------ | ------- | ----------------------- |
 | `cols`                             | `Column[]`               | —       | Column definitions      |
 | `filters`                          | `FilterSource`           | —       | The page's filter store (see Filtering); read once at init |
-| `views`                            | `TableView[]`            | —       | Saved questions rendered as tabs above the bar, each with an optional `count` badge |
+| `views`                            | `TableView[]`            | —       | Saved questions rendered as tabs above the bar, each with an optional `count` badge and declared `columns` |
 | `getPaginatedListObservableMethod` | `(filter) => Observable` | —       | Server-side data source |
 | `additionalFilterIdLong`           | `number`                 | —       | Parent entity filter    |
 | `hasLazyLoad`                      | `boolean`                | `true`  | Server vs client mode   |

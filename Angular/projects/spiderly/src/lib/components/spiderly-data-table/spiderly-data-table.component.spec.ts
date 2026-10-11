@@ -3780,6 +3780,115 @@ describe('SpiderlyDataTableComponent — a view tab shows its count', () => {
     <spiderly-data-table
       [cols]="cols"
       [filters]="filters"
+      [views]="views"
+      [stateKey]="'sdt-view-columns-spec'"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithViewColumnsComponent {
+  filters = createFilterStore({ status: numberFilter({ label: 'Status' }) });
+  cols: Column[] = [
+    { name: 'Naziv', field: 'name', filterType: 'text', lockVisible: true },
+    { name: 'Lokacija', field: 'location', filterType: 'text' },
+    { name: 'Zašto', field: 'why', filterType: 'text', visible: false },
+  ];
+  views: TableView[] = [
+    { id: 'all', label: 'Sve' },
+    { id: 'late', label: 'Kasni roba', columns: { why: true, location: false } },
+  ];
+  getList = emptyList;
+}
+
+const shownHeaders = (fixture: ComponentFixture<unknown>): string[] =>
+  headerTexts(fixture.nativeElement).filter((text) =>
+    ['Naziv', 'Lokacija', 'Zašto'].includes(text),
+  );
+
+// Decision 10's columns half (spiderly#431): a work-list view wants a "why is this row here"
+// column the catch-all view has no use for, in the place of one it does not need.
+describe('SpiderlyDataTableComponent — a view declares its columns', () => {
+  it('shows the columns its view declares, and the table defaults elsewhere', async () => {
+    const { fixture } = createWithDataTable(HostWithViewColumnsComponent);
+    await renderRows(fixture);
+
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Lokacija']);
+
+    await clickView(fixture, 1);
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Zašto']);
+
+    await clickView(fixture, 0);
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Lokacija']);
+  });
+
+  it('lets the operator\'s own choice in a view win over its declaration, in that view only', async () => {
+    const first = createWithDataTable(HostWithViewColumnsComponent);
+    await renderRows(first.fixture);
+    await clickView(first.fixture, 1);
+
+    await openChooser(first.fixture);
+    clickOption(first.fixture, 'Zašto'); // hide what the view declares shown
+    expect(shownHeaders(first.fixture)).toEqual(['Naziv']);
+
+    await clickView(first.fixture, 0);
+    expect(shownHeaders(first.fixture))
+      .withContext('the other view keeps its own columns')
+      .toEqual(['Naziv', 'Lokacija']);
+
+    const next = await remount(first.fixture, HostWithViewColumnsComponent);
+    await clickView(next.fixture, 1);
+    expect(shownHeaders(next.fixture))
+      .withContext('the choice survives a reload')
+      .toEqual(['Naziv']);
+  });
+
+  // The operator's layout is a DELTA against the view's declaration, as it already is against
+  // `Column.visible`: a choice equal to the declaration is not a choice, so a later change to the
+  // declaration still reaches everyone who never moved that column.
+  it('stores nothing for a column put back to its view declaration, and Reset returns to it', async () => {
+    const { fixture } = createWithDataTable(HostWithViewColumnsComponent);
+    await renderRows(fixture);
+    await clickView(fixture, 1);
+
+    await openChooser(fixture);
+    clickOption(fixture, 'Zašto');
+    clickOption(fixture, 'Zašto');
+    expect(localStorage.getItem('sdt-view-columns-spec:late:columns')).toBeNull();
+
+    clickOption(fixture, 'Lokacija');
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Lokacija', 'Zašto']);
+
+    chooserReset(fixture)!.click();
+    fixture.detectChanges();
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Zašto']);
+  });
+
+  // Views built from a server answer are rebuilt whenever it changes, and the grid has to follow
+  // the declaration it is handed now rather than the one it entered the view with.
+  it('follows a [views] change that redeclares the active view\'s columns', async () => {
+    const { fixture, host } = createWithDataTable(HostWithViewColumnsComponent);
+    await renderRows(fixture);
+    await clickView(fixture, 1);
+
+    await fixture.ngZone!.run(async () => {
+      host.views = host.views.map((view) =>
+        view.id === 'late' ? { ...view, columns: { why: true } } : view,
+      );
+      fixture.detectChanges();
+    });
+    await renderRows(fixture);
+
+    expect(shownHeaders(fixture)).toEqual(['Naziv', 'Lokacija', 'Zašto']);
+  });
+});
+
+
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [filters]="filters"
       [stateKey]="'sdt-store-hide-keeps-sort-spec'"
       [getPaginatedListObservableMethod]="getList"
     ></spiderly-data-table>

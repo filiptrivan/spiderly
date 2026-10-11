@@ -205,10 +205,17 @@ still the design, and this is where it stands against it.
   Override persistence is store-tables-only (`viewSortStateKey` gates on `filters`): a
   storeless table's hide/reset gestures retire sorts through `dropHiddenColumnSort` with no
   persist call there, so a blind-restored override would re-impose a sort no chip can name.
-  One recorded signal for the still-unbuilt declared-COLUMNS half of this decision: PACMS's
-  "Poslate" view ships its highest-signal column (`deliveredAt`) `visible: false` and tells
-  operators to add it to that view's layout by hand — a second consumer with that shape is the
-  trigger to let a view declare columns too.
+  **The declared-COLUMNS half shipped 2026-10-11 (spiderly#431).** The trigger this record
+  named arrived: PACMS's order views needed a "Zašto" column on eight work lists, in the place
+  of a column the catch-all views keep (the first signal was "Poslate" shipping `deliveredAt`
+  `visible: false` and telling operators to add it by hand). `TableView.columns` is a
+  field → visible map, resolved per field as operator override ?? the view's `columns` ??
+  `Column.visible` (`isDeclaredVisible` is the middle rung), so the override stays a delta
+  against whatever the view declares — `toggleColumn` compares against it, and Reset lands on
+  it. Rejected: an exhaustive `columns: string[]` per view (the issue's first suggestion). It
+  restates every shared column in every view that changes one, and a column added to `cols`
+  later would be silently missing from each such view until someone edits its list; the map
+  names only the deviation. Declared per-view widths and order stay unbuilt — nobody has asked.
 - **The legacy header-filter path is DELETED (2026-09-05), with four rulings made at the wave:**
   - **`spiderly-data-view` is EXCLUDED, deliberately.** It has its own parallel filter config
     (`DataViewFilter` — its own `filterField`/`showMatchModes`) and no bar equivalent, so
@@ -396,7 +403,7 @@ Consumer-facing behavior is documented in `claude-plugins/docs/angular-customiza
 
 - **Hiding a column touches nothing but visibility** — its filter and sort survive, named by the chip bar and sort chip (decision 2b). The old "hidden contributes nothing" invariant and its three enforcement points died with the legacy header-filter path.
 - Template loops iterate `visibleCols` (recomputed via `refreshVisibleCols()`), never `cols`. Actions columns (no `field`) always render and never appear in `chooserCols`.
-- Overrides live in `columnVisibilityOverrides` — **only fields the user explicitly toggled off their declared default** (toggling back to default deletes the entry). Persisted to `` `${resolvedStateKey}:columns` `` in **localStorage always** (column layout is a durable preference), unlike the filter state which follows `stateStorage`. `lockVisible` beats a stale persisted override.
+- Overrides live in `columnVisibilityOverrides` — **only fields the user explicitly toggled off their declared default** (toggling back to default deletes the entry). The declared default is the active view's `TableView.columns` entry, else `Column.visible` (`isDeclaredVisible`). Persisted to `` `${resolvedStateKey}${viewScope}:columns` `` in **localStorage always** (column layout is a durable preference), unlike the filter state which follows `stateStorage`. `lockVisible` beats a stale persisted override.
 - Filter ids and sort meta are both keyed by `field` now (a column with a differently-named filter links it via `filterId`; `filterField` is gone with the header filters).
 - The chooser only renders for lazy tables (`hasLazyLoad`); client-side form-array tables keep their declared columns.
 - Spec gotcha: the chooser checkboxes' `[ngModel]` writes resolve in a microtask — tests must `await fixture.whenStable()` after opening/toggling (see `openChooser` in the spec). Once open, PrimeNG appends the popover to `document.body`, so specs query the `Popover` instance's `container`, never the document (stale popovers from earlier fixtures linger there).
