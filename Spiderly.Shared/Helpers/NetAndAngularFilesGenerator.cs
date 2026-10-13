@@ -178,6 +178,7 @@ namespace Spiderly.Shared.Helpers
                                                 Files =
                                                 {
                                                     new SpiderlyFile { Name = "config.service.ts", Data = GetConfigServiceTsCode() },
+                                                    new SpiderlyFile { Name = "translations.ts", Data = GetTranslationsTsCode() },
                                                 }
                                             },
                                         },
@@ -1254,13 +1255,13 @@ import { routes, scrollConfig, routerConfigOptions } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { providePrimeNG } from 'primeng/config';
 import { ThemePreset } from 'src/assets/primeng-theme';
-import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, SpiderlyTranslocoLoader, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
+import { AuthServiceBase, authInitializer, ConfigServiceBase, httpLoadingInterceptor, jsonHttpInterceptor, jwtInterceptor, LayoutServiceBase, SpiderlyErrorHandler, unauthorizedInterceptor, ValidatorAbstractService } from 'spiderly';
 import { environment } from 'src/environments/environment';
 import { ValidatorService } from './business/services/validators/validators';
 import { AuthService } from 'src/app/business/services/auth/auth.service';
 import { ConfigService } from './business/services/config.service';
 import { LayoutService } from './business/services/layout/layout.service';
-import { provideTransloco } from '@jsverse/transloco';
+import { provideTranslations } from './business/services/translations';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
 import { provideMarkdown } from 'ngx-markdown';
@@ -1271,14 +1272,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withFetch()),
     provideMarkdown(),
-    provideTransloco({
-      config: {
-        availableLangs: ['en'],
-        defaultLang: 'en',
-        reRenderOnLangChange: true,
-      },
-      loader: SpiderlyTranslocoLoader
-    }),
+    provideTranslations(),
     providePrimeNG({
       theme: {
         preset: ThemePreset,
@@ -3290,7 +3284,7 @@ namespace {{appName}}.Business.DataMappers
                         "inlineStyleLanguage": "scss",
                         "assets": [
                             "src/favicon.ico",
-                            "src/assets",
+                            { "glob": "**/*", "input": "src/assets", "output": "assets", "ignore": ["i18n/**"] },
                             "src/robots.txt"
                         ],
                         "styles": [
@@ -3959,6 +3953,37 @@ export class ValidatorService extends ValidatorServiceGenerated {
     }
 }
 
+""";
+        }
+
+        private static string GetTranslationsTsCode()
+        {
+            return $$"""
+import { Injectable } from '@angular/core';
+import { provideTransloco, Translation, TranslocoLoader } from '@jsverse/transloco';
+
+// Imported, never fetched: the build emits each language file as a content-hashed chunk shipped
+// with the code that reads its keys. A file fetched from an unchanging URL like
+// /assets/i18n/en.json can outlive a deploy in the browser cache (a hard reload stops bypassing
+// the cache at the load event, before Transloco asks for it), so new keys render raw. angular.json
+// leaves assets/i18n/ out of the published assets for the same reason.
+@Injectable({ providedIn: 'root' })
+export class ImportedTranslocoLoader implements TranslocoLoader {
+  getTranslation(lang: string): Promise<Translation> {
+    return import(`../../../assets/i18n/${lang}.json`).then((file) => file.default);
+  }
+}
+
+export function provideTranslations() {
+  return provideTransloco({
+    config: {
+      availableLangs: ['en'],
+      defaultLang: 'en',
+      reRenderOnLangChange: true,
+    },
+    loader: ImportedTranslocoLoader,
+  });
+}
 """;
         }
 

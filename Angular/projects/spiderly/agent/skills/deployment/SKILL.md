@@ -183,13 +183,16 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     root * /srv
     encode zstd gzip
 
-    @hashedAssets {
-        path_regexp hashed \.[a-f0-9]{8,}\.(js|css|woff2?|ttf|otf|svg|png|jpg|jpeg|webp|ico)$
+    # Content-hashed build output (main-QCWZPP5O.js, media/primeicons-4GST5W3O.woff2) that exists
+    # on disk; a missing chunk falls back to index.html and must not be marked immutable.
+    @hashed {
+        path_regexp ^/(media/)?[^/]+-[A-Z0-9]{8}\.[a-z0-9]+$
+        file
     }
-    header @hashedAssets Cache-Control "public, max-age=31536000, immutable"
+    header @hashed Cache-Control "public, max-age=31536000, immutable"
 
-    @indexHtml path /index.html
-    header @indexHtml Cache-Control "no-cache, no-store, must-revalidate"
+    # Everything else (index.html under every route, /assets/*) is revalidated on every use.
+    header ?Cache-Control "no-cache"
 
     try_files {path} /index.html
     file_server
@@ -197,6 +200,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 ```
 
 The `try_files {path} /index.html` line is the SPA fallback that lets the Angular router handle deep links.
+
+Two details in the cache rules matter. Angular's esbuild builder names hashed files `name-HASH.js` (eight uppercase letters and digits), so a `\.[a-f0-9]{8,}\.js` pattern written for the old webpack names matches nothing. And `header` runs before `try_files`, so a `path /index.html` matcher never sees a navigation to `/` or `/orders`: the `?Cache-Control` default covers them. Without any `Cache-Control` a browser guesses a freshness lifetime (Chromium: a tenth of the time since `Last-Modified`) and can open the app from a pre-deploy `index.html`.
 
 **Lockfile gotcha:** `npm ci` requires `package.json` and `package-lock.json` to be in sync. If a stale dev-dep pins an older Angular major as a peer (e.g. `@jsverse/transloco-keys-manager` 5.x pins Angular 17 while your project is on Angular 19), `npm ci` fails. Bump the dev-dep to the matching major (e.g. `transloco-keys-manager` 6.x for Angular 19) rather than reaching for `--legacy-peer-deps`.
 
@@ -406,7 +411,7 @@ Postgres data lives in a Docker volume on a single VPS — disk failure, acciden
 - **CORS `FrontendUrl`.** The backend's `AppSettings__Spiderly.Shared__FrontendUrl` must point to the admin subdomain, not a build-preview URL. Update it when you cut over from staging hosting.
 - **First deploy ordering.** The backend compose references `${ADMIN_IMAGE}`. On a fresh VPS, that image must exist in GHCR before backend deploys, or the admin service definition fails to pull. Push admin first, or run the admin workflow once before the first backend deploy.
 - **`docker compose up -d` scoping.** Always scope to the services you're updating: `docker compose up -d backend caddy` for backend deploys, `docker compose up -d admin` for admin deploys. Unscoped `up -d` bounces every service that's currently down or has a config change — including admin and postgres on a backend-only commit. The healthcheck-gated `depends_on` makes the unscoped form *safe* but not *desirable*.
-- **Static assets caching.** Hashed Angular bundles (e.g. `main.abc123.js`) can be cached forever; `index.html` must never cache, or users will get a stale shell after a deploy. The Caddyfile in this skill already handles both cases.
+- **Static assets caching.** Hashed Angular bundles (e.g. `main-QCWZPP5O.js`) can be cached forever; `index.html` and every other unhashed file must be revalidated on each use, or users get a stale shell after a deploy. The Caddyfile in this skill handles both, and translations are imported into the build rather than served from `/assets/i18n/` (see the **frontend-localization** doc).
 - **`tls_private_key` lives in Terraform state in cleartext.** R2 encryption-at-rest is bucket-level; anyone with R2 API access (or a leaked state file) can read the key. Scope the R2 token tightly, audit who can pull state, and never copy `terraform.tfstate` to laptops or shared drives. Rotating the cert means a fresh `terraform apply` followed by re-pasting the new outputs into GitHub Secrets — plan a maintenance window. Add `lifecycle { prevent_destroy = true }` to the `tls_private_key` and `cloudflare_origin_ca_certificate` resources so accidental config changes can't trigger a silent rotation. Also add `ignore_changes = [hostnames, csr]` on the cert — Cloudflare normalizes hostname/CSR ordering server-side, otherwise every plan would show a phantom recreate.
 - **Postgres data on Docker named volumes is not durable across server replacement.** If the VPS itself is Terraform-managed (`hcloud_server`) and gets recreated for any reason — image change, server_type change, accidental destroy — the local Docker named volume `postgres_data` goes with it. Add `lifecycle { prevent_destroy = true }` to the `hcloud_server` resource. For genuine durability, attach an `hcloud_volume` and bind-mount it into postgres (`/var/lib/postgresql` on the 18+ image); volumes survive server destruction and snapshot independently.
 - **Cloudflare in front of Vercel must stay "DNS only".** When the Next.js storefront (or a Vercel-hosted admin) deploys to Vercel and DNS is on Cloudflare, those records must be **DNS only** (grey cloud), not proxied. Vercel terminates TLS and runs its own edge — CDN, image optimization, ISR, PPR — so adding the Cloudflare proxy on top breaks the TLS handshake and double-caches/conflicts with Vercel's edge features. Cloudflare's WAF/cache/analytics/Turnstile belong on the **Hetzner-served** records (`api.*`, `admin.*`) where the orange cloud stays on. If you want Cloudflare features in front of Vercel anyway, that's an advanced setup ("Full (strict)" SSL + custom hostnames) that Vercel does not officially recommend.
