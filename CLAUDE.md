@@ -4,6 +4,8 @@ Spiderly is a .NET 9 + Angular 19 code generator. It reads EF Core entity classe
 
 Spiderly is a fast-moving startup — no backward compatibility needed. Make breaking changes freely.
 
+Spiderly is a framework for any app, not for one. Even while PACMS is its only user, don't add code, names, settings or rules that exist for a single consumer. A feature belongs here only if any Spiderly app could use it as it stands. A consumer's own policy stays in the consumer. For example, PACMS banning `DateTime.UtcNow` stays in PACMS, while the `TimeProvider` that the stamps read is Spiderly's (Filip, 2026-10-21).
+
 ## Config ↔ options binding is a reflective contract — guard it
 
 `appsettings` is bound to options classes (`EmailOptions`, `JwtOptions`, …) **reflectively at runtime**, with no compile-time link. So a shape mismatch between the documented config and the options type binds **silently** to a default/empty value and only fails much later at first use. This actually shipped: `EmailSender` became a `{ Email, Name }` object in code, but the JSON schema + an existing consumer's `appsettings` still had it as a **string** → bound to an empty `EmailSender` (`Email == null`) → 500 "sender is missing" on the first login email, latent for weeks.
