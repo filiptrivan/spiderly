@@ -205,8 +205,8 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Enables the transactional outbox over the consumer's scaffolded outbox entity
         /// <typeparamref name="TOutbox"/> (a <c>[SpiderlyEntity]</c> implementing <see cref="IOutboxMessage"/>).
-        /// Registers <see cref="IOutbox"/> and the generic dispatcher; schedule the sweep in the Configure phase
-        /// with <c>app.SpiderlyUseOutboxRecurringJob&lt;TOutbox&gt;()</c>. Register one <see cref="IOutboxHandler"/>
+        /// Registers <see cref="IOutbox"/> and the three outbox jobs (dispatcher, retention, health); schedule them in the
+        /// Configure phase with <c>app.SpiderlyUseOutboxRecurringJob&lt;TOutbox&gt;()</c>. Register one <see cref="IOutboxHandler"/>
         /// per <see cref="IOutboxMessage.HandlerCode"/> you enqueue.
         /// <example>
         /// <code>
