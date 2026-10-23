@@ -240,7 +240,12 @@ namespace Spiderly.Shared.Extensions
                 // closed here with the runtime type captured by AddOutbox<TOutbox>().
                 Type outboxType = builder.OutboxEntityType!; // Set by AddOutbox<TOutbox>(), which sets OutboxEnabled
                 services.AddScoped(typeof(IOutbox), typeof(Outbox<>).MakeGenericType(outboxType));
+
+                // Every job SpiderlyUseOutboxRecurringJob schedules, closed over the outbox type so a host that
+                // validates its graph at boot judges each one (it cannot judge an open generic registration).
                 services.AddScoped(typeof(OutboxDispatcherJob<>).MakeGenericType(outboxType));
+                services.AddScoped(typeof(OutboxRetentionJob<>).MakeGenericType(outboxType));
+                services.AddScoped(typeof(OutboxHealthJob<>).MakeGenericType(outboxType));
             }
 
             if (builder.NotificationsEnabled)
@@ -695,10 +700,10 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Schedules the recurring outbox jobs for the consumer's outbox entity <typeparamref name="TOutbox"/>: the
         /// dispatcher sweep, plus daily retention (<c>OutboxRetentionJob</c>) and a 5-minute health check
-        /// (<c>OutboxHealthJob</c>). Call in the Configure phase. Requires <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c>
-        /// during service registration. Schedules through the container's <see cref="IRecurringJobManager"/>, so it
-        /// requires <c>services.AddHangfire(...)</c> (or a registered manager) and writes to the storage the container
-        /// holds; tune via <c>OutboxOptions</c>.
+        /// (<c>OutboxHealthJob</c>), all three registered by <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c>. Call in the
+        /// Configure phase. Schedules through the container's <see cref="IRecurringJobManager"/>, so it requires
+        /// <c>services.AddHangfire(...)</c> (or a registered manager) and writes to the storage the container holds;
+        /// tune via <c>OutboxOptions</c>.
         /// </summary>
         /// <param name="app">The application builder, whose services hold the recurring job manager.</param>
         /// <param name="cronExpression">Sweep cadence. Defaults to once a minute; pass a faster (e.g. seconds-based) cron if your Hangfire is configured for it.</param>
