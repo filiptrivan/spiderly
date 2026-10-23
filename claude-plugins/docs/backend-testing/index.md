@@ -1,6 +1,6 @@
 ---
 name: backend-testing
-description: Unit-test a Spiderly backend service against an EF Core InMemory database — covers the two InMemory pitfalls that silently corrupt assertions (the change tracker masking a missing SaveChanges, and WithTransactionAsync throwing TransactionIgnoredWarning). Use when writing xUnit/NUnit tests for entity services, business logic, or save/delete hooks against an InMemory DbContext, or when an InMemory-backed test passes/throws for reasons that don't match production.
+description: Unit-test a Spiderly backend service against an EF Core InMemory database — covers the two InMemory pitfalls that silently corrupt assertions (the change tracker masking a missing SaveChanges, and WithTransactionAsync throwing TransactionIgnoredWarning). Use when writing xUnit/NUnit tests for entity services, business logic, or save/delete hooks against an InMemory DbContext, or when an InMemory-backed test passes/throws for reasons that don't match production. Also covers setting the clock a test runs at (a fake `TimeProvider`), which Spiderly's audit stamps and token, API-key and outbox expiry read.
 ---
 
 # Backend Testing (EF Core InMemory)
@@ -63,3 +63,41 @@ Pass a stable `dbName` (e.g. one per test, `Guid.NewGuid().ToString()`) so each 
 ## When InMemory isn't enough
 
 InMemory ignores relational constraints (unique indexes, FK cascade, check constraints, `[Required]` at the DB level), provider-specific SQL, and real transaction semantics. If the behavior under test depends on any of those, prefer the **SQLite in-memory** provider (`UseSqlite("DataSource=:memory:")`, keep the connection open) or a disposable real database — don't assert relational guarantees against `UseInMemoryDatabase`.
+
+## Controlling the clock
+
+Spiderly reads the time from the `TimeProvider` registered in the app's container. `AddSpiderly` registers `TimeProvider.System` unless the app registers its own, the same way ASP.NET Core's `AddAuthentication` does. That one clock:
+
+- stamps `CreatedAt` / `ModifiedAt` in `SaveChanges`;
+- sets and checks the expiry of access, refresh and login-verification tokens and the external-login nonce, checks an API key's `ExpiresAt`, and judges a bearer token's lifetime on each request;
+- decides when an outbox row is due for retry, which handled rows retention purges, and how old the health check says the backlog is.
+
+ASP.NET Core's own authentication handlers read the same registration. A test sets the time by registering a fake clock, e.g. `FakeTimeProvider` from the `Microsoft.Extensions.TimeProvider.Testing` package:
+
+```csharp
+using Microsoft.Extensions.Time.Testing;
+
+FakeTimeProvider clock = new(new DateTimeOffset(2030, 1, 1, 12, 0, 0, TimeSpan.Zero));
+services.AddSingleton<TimeProvider>(clock); // before or after AddSpiderly, which adds the system clock only when none is registered
+
+// ... save, issue a token, create an API key ...
+
+clock.Advance(TimeSpan.FromHours(2)); // the fake stands still until the test moves it
+```
+
+In a `WebApplicationFactory`, make that registration in `ConfigureTestServices`. Your own code that needs the current time should take `TimeProvider` in its constructor and call `GetUtcNow()`, so it reads the same clock as the stamps and expiries it compares against. Reading `DateTime.UtcNow` beside it gives the code two clocks, and a test with a fake clock can only control one of them.
+
+A context built with `new`, as in the InMemory examples above, is outside the container and stamps the system clock. Give it the test's clock through its options:
+
+```csharp
+ServiceProvider clockOnly = new ServiceCollection()
+    .AddSingleton<TimeProvider>(clock)
+    .BuildServiceProvider();
+
+MyAppDbContext context = new(new DbContextOptionsBuilder<MyAppDbContext>()
+    .UseInMemoryDatabase(dbName)
+    .UseApplicationServiceProvider(clockOnly)
+    .Options);
+```
+
+The clock does not move a cookie's `Expires`: the client judges that by its own clock, so `CookieManager` keeps setting it from the machine's. Libraries that read the machine's clock themselves, such as Hangfire's schedules, are not moved by it either.

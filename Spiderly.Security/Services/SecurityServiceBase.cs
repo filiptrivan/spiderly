@@ -48,6 +48,7 @@ namespace Spiderly.Security.Services
         private readonly IDataProtector _externalLoginProtector;
         private readonly IDataProtector _externalLoginNonceProtector;
         private readonly string _frontendUrl;
+        private readonly TimeProvider _timeProvider;
 
         public SecurityServiceBase(
             IApplicationDbContext context,
@@ -60,7 +61,8 @@ namespace Spiderly.Security.Services
             IExternalAuthProviderRegistry externalAuthProviderRegistry,
             ExternalAuthCodeFlow externalAuthCodeFlow,
             IDataProtectionProvider dataProtectionProvider,
-            IOptions<Spiderly.Shared.Settings> sharedSettings
+            IOptions<Spiderly.Shared.Settings> sharedSettings,
+            TimeProvider timeProvider
         )
         {
             _context = context;
@@ -75,6 +77,7 @@ namespace Spiderly.Security.Services
             _externalLoginProtector = dataProtectionProvider.CreateProtector("Spiderly.Security.ExternalLogin");
             _externalLoginNonceProtector = dataProtectionProvider.CreateProtector("Spiderly.Security.ExternalLoginNonce");
             _frontendUrl = sharedSettings.Value.FrontendUrl;
+            _timeProvider = timeProvider;
         }
 
         #region Authentication
@@ -378,7 +381,7 @@ namespace Spiderly.Security.Services
             ExternalLoginNonce payload = new()
             {
                 Nonce = nonce,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(ExternalLoginNonceLifetimeMinutes),
+                ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(ExternalLoginNonceLifetimeMinutes),
             };
 
             string protectedNonce = _externalLoginNonceProtector.Protect(JsonSerializer.Serialize(payload));
@@ -408,7 +411,7 @@ namespace Spiderly.Security.Services
                 }
             }
 
-            if (payload == null || payload.ExpiresAt < DateTime.UtcNow)
+            if (payload == null || payload.ExpiresAt < _timeProvider.GetUtcNow().UtcDateTime)
                 throw new SecurityViolationException("External login nonce is missing or expired.");
 
             string? tokenNonce = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler()

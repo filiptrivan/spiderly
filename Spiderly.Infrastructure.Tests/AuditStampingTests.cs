@@ -1,5 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Spiderly.Security.Interfaces;
 using Spiderly.Shared.BaseEntities;
 
@@ -59,6 +61,78 @@ namespace Spiderly.Infrastructure.Tests
                 Assert.InRange(reloaded.ModifiedAt, before, after);
                 Assert.Equal(1, reloaded.Version);
             }
+        }
+
+        [Fact]
+        public async Task Stamps_read_the_TimeProvider_registered_in_DI()
+        {
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
+            // Far from the machine's clock, so stamping from it can never pass by coincidence.
+            DateTime createdAt = new(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+            FakeTimeProvider clock = new(new DateTimeOffset(createdAt));
+            using ServiceProvider services = new ServiceCollection()
+                .AddSingleton<TimeProvider>(clock)
+                .AddDbContext<TestDbContext>(options => options.UseSqlite(connection))
+                .BuildServiceProvider();
+
+            long id;
+            using (IServiceScope scope = services.CreateScope())
+            {
+                TestDbContext ctx = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+                ctx.Database.EnsureCreated();
+                AuditEntity entity = new();
+                ctx.Set<AuditEntity>().Add(entity);
+                await ctx.SaveChangesAsync();
+                id = entity.Id;
+            }
+
+            using (IServiceScope scope = services.CreateScope())
+            {
+                AuditEntity reloaded = await scope.ServiceProvider.GetRequiredService<TestDbContext>()
+                    .Set<AuditEntity>().SingleAsync(x => x.Id == id);
+                Assert.Equal(createdAt, reloaded.CreatedAt);
+                Assert.Equal(createdAt, reloaded.ModifiedAt);
+            }
+
+            clock.Advance(TimeSpan.FromHours(1));
+
+            using (IServiceScope scope = services.CreateScope())
+            {
+                TestDbContext ctx = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+                AuditEntity entity = await ctx.Set<AuditEntity>().SingleAsync(x => x.Id == id);
+                ctx.Entry(entity).State = EntityState.Modified;
+                await ctx.SaveChangesAsync();
+            }
+
+            using (IServiceScope scope = services.CreateScope())
+            {
+                AuditEntity reloaded = await scope.ServiceProvider.GetRequiredService<TestDbContext>()
+                    .Set<AuditEntity>().SingleAsync(x => x.Id == id);
+                Assert.Equal(createdAt, reloaded.CreatedAt);
+                Assert.Equal(createdAt.AddHours(1), reloaded.ModifiedAt);
+            }
+        }
+
+        [Fact]
+        public async Task A_context_built_outside_the_container_stamps_the_clock_its_options_carry()
+        {
+            using SqliteConnection connection = TestContexts.NewOpenConnection();
+            DateTime createdAt = new(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+            using ServiceProvider clockOnly = new ServiceCollection()
+                .AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(createdAt)))
+                .BuildServiceProvider();
+
+            using TestDbContext ctx = new(new DbContextOptionsBuilder<TestDbContext>()
+                .UseSqlite(connection)
+                .UseApplicationServiceProvider(clockOnly)
+                .Options);
+            ctx.Database.EnsureCreated();
+            AuditEntity entity = new();
+            ctx.Set<AuditEntity>().Add(entity);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(createdAt, entity.CreatedAt);
+            Assert.Equal(createdAt, entity.ModifiedAt);
         }
 
         [Fact]

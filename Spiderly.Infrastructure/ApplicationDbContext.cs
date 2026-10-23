@@ -19,18 +19,38 @@ namespace Spiderly.Infrastructure
     /// from assemblies with the ".Entities" namespace. Applies custom relationship configurations and handles 
     /// auditing and versioning for tracked business entities.
     /// </summary>
+    /// <remarks>
+    /// <c>CreatedAt</c>/<c>ModifiedAt</c> are stamped from the <see cref="TimeProvider"/> registered in the
+    /// app's container (<c>AddSpiderly</c> registers <see cref="TimeProvider.System"/> unless the app registers
+    /// its own), so a test that registers a fake clock controls the time rows are stamped with. A context built
+    /// outside the container stamps <see cref="TimeProvider.System"/> unless its options carry a container
+    /// through <c>DbContextOptionsBuilder.UseApplicationServiceProvider</c>.
+    /// </remarks>
     /// <typeparam name="TUser">The user type used in the application, which must implement <see cref="IUser"/>.</typeparam>
     public class ApplicationDbContext<TUser> : DbContext, IApplicationDbContext
         where TUser : class, IUser, new()
     {
+        private readonly TimeProvider _timeProvider;
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext<TUser>> options)
                 : base(options)
         {
+            _timeProvider = ResolveTimeProvider(options);
         }
 
         protected ApplicationDbContext(DbContextOptions options)
             : base(options)
         {
+            _timeProvider = ResolveTimeProvider(options);
+        }
+
+        // Read from the application container EF Core records on the options (AddDbContext does), not taken
+        // as a constructor parameter: every consumer context passes only its options to these constructors,
+        // and a parameter its own constructor never forwarded would silently fall back to the system clock.
+        static TimeProvider ResolveTimeProvider(DbContextOptions options)
+        {
+            IServiceProvider? applicationServices = options.FindExtension<CoreOptionsExtension>()?.ApplicationServiceProvider;
+            return applicationServices?.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -192,7 +212,7 @@ namespace Spiderly.Infrastructure
 
         void HandleBusinessObjectChanges<T>(BusinessObject<T> businessObject, EntityEntry changedEntity) where T : struct
         {
-            DateTime now = DateTime.UtcNow;
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
             switch (changedEntity.State)
             {

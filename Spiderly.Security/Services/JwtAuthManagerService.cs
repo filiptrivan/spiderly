@@ -29,6 +29,7 @@ namespace Spiderly.Security.Services
         private readonly AuthPolicyOptions _authPolicySettings;
         private readonly SigningCredentials _signingCredentials;
         private readonly TokenValidationParameters _accessTokenValidationParameters;
+        private readonly TimeProvider _timeProvider;
 
         private static readonly Random Random = new();
         private static readonly JsonWebTokenHandler _jsonWebTokenHandler = new();
@@ -38,13 +39,15 @@ namespace Spiderly.Security.Services
             ITokenStorage<LoginVerificationTokenDTO> loginVerificationTokenStorage,
             IStringLocalizer localizer,
             IOptions<JwtOptions> jwtOptions,
-            IOptions<AuthPolicyOptions> authPolicyOptions)
+            IOptions<AuthPolicyOptions> authPolicyOptions,
+            TimeProvider timeProvider)
         {
             _usersRefreshTokens = refreshTokenStorage;
             _usersLoginVerificationTokens = loginVerificationTokenStorage;
             _localizer = localizer;
             _jwtSettings = jwtOptions.Value;
             _authPolicySettings = authPolicyOptions.Value;
+            _timeProvider = timeProvider;
 
             // Key/issuer/audience are fixed for the service lifetime, so build the signing credentials and
             // validation parameters once instead of per token issue/validate (both on the auth hot path).
@@ -171,7 +174,7 @@ namespace Spiderly.Security.Services
                 IpAddress = ipAddress,
                 BrowserId = browserId,
                 TokenString = GenerateRandomTokenString(),
-                ExpiresAt = DateTime.UtcNow.AddMinutes(_authPolicySettings.RefreshTokenExpiration),
+                ExpiresAt = UtcNow().AddMinutes(_authPolicySettings.RefreshTokenExpiration),
             };
 
             await _generateAccessAndRefreshTokensLock.WaitAsync();
@@ -217,14 +220,21 @@ namespace Spiderly.Security.Services
 
         #region Helpers
 
+        private DateTime UtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
+
         private AccessTokenDTO GenerateAccessToken(List<Claim> claims, int? verificationExpiration = null)
         {
-            DateTime expiresAt = DateTime.UtcNow.AddMinutes(verificationExpiration ?? _authPolicySettings.AccessTokenExpiration);
+            DateTime now = UtcNow();
+            DateTime expiresAt = now.AddMinutes(verificationExpiration ?? _authPolicySettings.AccessTokenExpiration);
 
             SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
             {
                 Issuer = _jwtSettings.JwtIssuer,
                 Audience = _jwtSettings.JwtAudience,
+                // All three from one clock: the handler would default iat/nbf to the machine's, which under any
+                // other clock can put a token's start after its end.
+                IssuedAt = now,
+                NotBefore = now,
                 Expires = expiresAt,
                 Subject = new ClaimsIdentity(claims),
                 SigningCredentials = _signingCredentials,
@@ -329,7 +339,7 @@ namespace Spiderly.Security.Services
                 // Shortening ExpiresAt is what ends the grace window: the storage TTL follows it, so the
                 // token cleans itself up and needs no separate sweep. Keep the window well under
                 // AccessTokenExpiration, or superseded records outnumber live ones.
-                liveBrowserToken.Value.ExpiresAt = DateTime.UtcNow.AddSeconds(graceSeconds);
+                liveBrowserToken.Value.ExpiresAt = UtcNow().AddSeconds(graceSeconds);
                 await _usersRefreshTokens.AddOrUpdateAsync(liveBrowserToken.Key, liveBrowserToken.Value);
             }
         }
@@ -360,7 +370,8 @@ namespace Spiderly.Security.Services
 
         public virtual async Task RemoveExpiredRefreshTokensAsync()
         {
-            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> expiredTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.ExpiresAt < DateTime.UtcNow);
+            DateTime now = UtcNow();
+            IEnumerable<KeyValuePair<string, RefreshTokenDTO>> expiredTokens = await _usersRefreshTokens.WhereAsync(x => x.Value.ExpiresAt < now);
             foreach (var expiredToken in expiredTokens)
                 await _usersRefreshTokens.TryRemoveAsync(expiredToken.Key);
         }
@@ -440,7 +451,7 @@ namespace Spiderly.Security.Services
 
         public virtual async Task<string> GenerateAndSaveLoginVerificationCodeAsync(string userEmail, string? browserId)
         {
-            DateTime now = DateTime.UtcNow;
+            DateTime now = UtcNow();
             LoginVerificationTokenDTO loginVerificationTokenDTO = new LoginVerificationTokenDTO
             {
                 Email = userEmail,
@@ -473,7 +484,7 @@ namespace Spiderly.Security.Services
         /// </example>
         public virtual async Task<bool> IsLoginVerificationSendBlockedAsync(string email)
         {
-            DateTime now = DateTime.UtcNow;
+            DateTime now = UtcNow();
 
             List<LoginVerificationTokenDTO> activeTokens =
                 (await _usersLoginVerificationTokens.GetByIndexAsync(LoginVerificationTokenDTO.EmailIndex, email))
@@ -516,7 +527,8 @@ namespace Spiderly.Security.Services
 
         private async Task RemoveExpiredLoginVerificationTokensAsync()
         {
-            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> expiredTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.ExpiresAt < DateTime.UtcNow);
+            DateTime now = UtcNow();
+            IEnumerable<KeyValuePair<string, LoginVerificationTokenDTO>> expiredTokens = await _usersLoginVerificationTokens.WhereAsync(x => x.Value.ExpiresAt < now);
             foreach (var expiredToken in expiredTokens)
             {
                 await _usersLoginVerificationTokens.TryRemoveAsync(expiredToken.Key);

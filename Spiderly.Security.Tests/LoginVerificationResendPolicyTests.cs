@@ -34,7 +34,8 @@ namespace Spiderly.Security.Tests
                 verificationStore,
                 new PassthroughStringLocalizer(),
                 Options.Create(jwtOptions),
-                Options.Create(policy));
+                Options.Create(policy),
+                TimeProvider.System);
         }
 
         [Fact]

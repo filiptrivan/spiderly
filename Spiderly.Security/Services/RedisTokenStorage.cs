@@ -10,19 +10,23 @@ namespace Spiderly.Security.Services
         private readonly IDatabase _database;
         private readonly string _keyPrefix;
         private readonly Dictionary<string, Func<T, string?>> _indexExtractors;
+        private readonly TimeProvider _timeProvider;
 
-        public RedisTokenStorage(IConnectionMultiplexer redis, string keyPrefix, Dictionary<string, Func<T, string?>>? indexExtractors = null)
+        public RedisTokenStorage(IConnectionMultiplexer redis, string keyPrefix, TimeProvider timeProvider, Dictionary<string, Func<T, string?>>? indexExtractors = null)
         {
             _redis = redis;
             _database = redis.GetDatabase();
             _keyPrefix = keyPrefix;
+            _timeProvider = timeProvider;
             _indexExtractors = indexExtractors ?? new Dictionary<string, Func<T, string?>>();
         }
 
         public async Task AddOrUpdateAsync(string key, T token)
         {
             string redisKey = _keyPrefix + key;
-            TimeSpan? expiration = token.ExpiresAt > DateTime.UtcNow ? token.ExpiresAt - DateTime.UtcNow : null;
+            // The token's ExpiresAt was set by the app's clock, so its time-to-live is measured by the same one.
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+            TimeSpan? expiration = token.ExpiresAt > now ? token.ExpiresAt - now : null;
 
             // Old index entries must be removed before writing, otherwise stale set references accumulate if the indexed property changed
             if (_indexExtractors.Count > 0)

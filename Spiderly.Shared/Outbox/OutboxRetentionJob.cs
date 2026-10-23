@@ -25,22 +25,25 @@ namespace Spiderly.Shared.Outbox
         private readonly IApplicationDbContext _context;
         private readonly OutboxOptions _options;
         private readonly ILogger<OutboxRetentionJob<TOutbox>> _logger;
+        private readonly TimeProvider _timeProvider;
 
-        /// <summary>Creates the retention job over the job-scoped context, the bound options, and a logger.</summary>
+        /// <summary>Creates the retention job over the job-scoped context, the bound options, a logger, and the app's clock.</summary>
         public OutboxRetentionJob(
             IApplicationDbContext context,
             IOptions<OutboxOptions> options,
-            ILogger<OutboxRetentionJob<TOutbox>> logger)
+            ILogger<OutboxRetentionJob<TOutbox>> logger,
+            TimeProvider timeProvider)
         {
             _context = context;
             _options = options.Value;
             _logger = logger;
+            _timeProvider = timeProvider;
         }
 
         /// <summary>Bulk-deletes handled rows older than the retention window. Leaf rows, so no cascade.</summary>
         public async Task PurgeAsync()
         {
-            DateTime cutoff = DateTime.UtcNow.AddDays(-_options.RetentionDays);
+            DateTime cutoff = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-_options.RetentionDays);
 
             int deleted = await _context.DbSet<TOutbox>()
                 .Where(x => x.DispatchedAt != null && x.DispatchedAt < cutoff)

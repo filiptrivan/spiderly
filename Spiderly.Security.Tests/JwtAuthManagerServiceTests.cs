@@ -49,7 +49,7 @@ namespace Spiderly.Security.Tests
                 });
             InMemoryTokenStorage<LoginVerificationTokenDTO> verificationStore = new();
 
-            _sut = new JwtAuthManagerService(refreshStore, verificationStore, new PassthroughStringLocalizer(), Options.Create(jwtOptions), Options.Create(new AuthPolicyOptions()));
+            _sut = new JwtAuthManagerService(refreshStore, verificationStore, new PassthroughStringLocalizer(), Options.Create(jwtOptions), Options.Create(new AuthPolicyOptions()), TimeProvider.System);
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Spiderly.Security.DTO;
 using Spiderly.Security.Interfaces;
 using Spiderly.Security.Services;
@@ -69,6 +70,10 @@ namespace Spiderly.Security.Extensions
 
             if (securitySettings.UseRedisCache)
             {
+                // Redis storage measures each token's time-to-live by the app's clock. TryAdd: a clock the app
+                // registered is kept, and AddSpiderly registers the same default.
+                services.TryAddSingleton(TimeProvider.System);
+
                 services.AddSingleton<IConnectionMultiplexer>(sp =>
                     // !: the ValidateOnStart guard above fails the boot when this is null or empty.
                     ConnectionMultiplexer.Connect(securitySettings.RedisConnectionString!));
@@ -77,12 +82,14 @@ namespace Spiderly.Security.Extensions
                     new RedisTokenStorage<RefreshTokenDTO>(
                         sp.GetRequiredService<IConnectionMultiplexer>(),
                         "refresh:",
+                        sp.GetRequiredService<TimeProvider>(),
                         refreshTokenIndexes));
 
                 services.AddSingleton<ITokenStorage<LoginVerificationTokenDTO>>(sp =>
                     new RedisTokenStorage<LoginVerificationTokenDTO>(
                         sp.GetRequiredService<IConnectionMultiplexer>(),
                         "login_verification:",
+                        sp.GetRequiredService<TimeProvider>(),
                         loginVerificationIndexes));
             }
             else

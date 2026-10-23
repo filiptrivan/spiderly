@@ -17,23 +17,28 @@ namespace Spiderly.Security.Authentication
         where TApiKey : class, IApiKey
     {
         private readonly IApplicationDbContext _context;
+        private readonly TimeProvider _timeProvider;
 
         /// <summary>Creates the authenticator over the application DbContext.</summary>
         /// <param name="context">The application DbContext used to look the key up.</param>
-        public DefaultApiKeyAuthenticator(IApplicationDbContext context)
+        /// <param name="timeProvider">The app's clock, which a key's <see cref="IApiKey.ExpiresAt"/> is judged by.</param>
+        public DefaultApiKeyAuthenticator(IApplicationDbContext context, TimeProvider timeProvider)
         {
             _context = context;
+            _timeProvider = timeProvider;
         }
 
         /// <inheritdoc/>
         public async Task<long?> ResolveActiveApiKeyIdAsync(string keyHash)
         {
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+
             return await _context.DbSet<TApiKey>()
                 .AsNoTracking()
                 .Where(x => x.KeyHash == keyHash
                     && x.IsRevoked != true
                     && x.IsDisabled != true
-                    && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
+                    && (x.ExpiresAt == null || x.ExpiresAt > now))
                 .Select(x => (long?)x.Id)
                 .FirstOrDefaultAsync();
         }
