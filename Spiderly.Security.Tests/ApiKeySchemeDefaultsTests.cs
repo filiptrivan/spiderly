@@ -54,21 +54,4 @@ namespace Spiderly.Security.Tests
             Assert.Equal(ApiKeyAuthenticationDefaults.PolicyScheme, options.DefaultChallengeScheme);
         }
     }
-
-    /// <summary>
-    /// Minimal <see cref="IApiKey"/> so the generic <c>AddSpiderlyApiKeyAuthentication&lt;TApiKey&gt;</c> constraint is
-    /// satisfied. Only the type is needed — the authenticator over it is registered, never resolved, in these tests.
-    /// </summary>
-    file sealed class TestApiKey : IApiKey
-    {
-        public string KeyHash { get; set; } = null!;
-        public bool? IsRevoked { get; set; }
-        public DateTime? ExpiresAt { get; set; }
-        public bool? IsDisabled { get; set; }
-        public IReadOnlyCollection<IRole> Roles => Array.Empty<IRole>();
-        public long Id { get; set; }
-        public int Version { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime ModifiedAt { get; set; }
-    }
 }

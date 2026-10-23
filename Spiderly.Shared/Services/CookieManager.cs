@@ -9,6 +9,12 @@ namespace Spiderly.Shared.Services
     /// <see cref="CookieSettings"/> rather than the global mutable <c>SettingsProvider</c> static.
     /// Registered as a singleton (stateless aside from the injected settings).
     /// </summary>
+    /// <remarks>
+    /// Cookie expiry is computed from the machine's clock, not the app's <see cref="TimeProvider"/> that Spiderly's
+    /// stamps and token checks read: the client judges a cookie's <c>Expires</c> by its own clock, so under a test's
+    /// fake clock a real client (a browser, an <c>HttpClient</c>'s cookie container) would drop or keep the cookie at
+    /// the wrong time. The token inside the cookie is still judged by the app's clock, on the server.
+    /// </remarks>
     public class CookieManager
     {
         private readonly CookieSettings _cookieSettings;

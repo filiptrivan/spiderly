@@ -29,16 +29,19 @@ namespace Spiderly.Shared.Outbox
         private readonly IApplicationDbContext _context;
         private readonly OutboxOptions _options;
         private readonly ILogger<OutboxHealthJob<TOutbox>> _logger;
+        private readonly TimeProvider _timeProvider;
 
-        /// <summary>Creates the health job over the job-scoped context, the bound options, and a logger.</summary>
+        /// <summary>Creates the health job over the job-scoped context, the bound options, a logger, and the app's clock.</summary>
         public OutboxHealthJob(
             IApplicationDbContext context,
             IOptions<OutboxOptions> options,
-            ILogger<OutboxHealthJob<TOutbox>> logger)
+            ILogger<OutboxHealthJob<TOutbox>> logger,
+            TimeProvider timeProvider)
         {
             _context = context;
             _options = options.Value;
             _logger = logger;
+            _timeProvider = timeProvider;
         }
 
         /// <summary>Computes health and logs an error (→ alerting) on breach.</summary>
@@ -59,7 +62,7 @@ namespace Spiderly.Shared.Outbox
         /// <summary>Read-only health snapshot (also callable from a health endpoint), without logging.</summary>
         public async Task<OutboxHealth> ComputeHealthAsync()
         {
-            DateTime now = DateTime.UtcNow;
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
             // Oldest row that is DUE now and still pending — excludes backing-off and dead-lettered rows (both carry a
             // future NextAttemptAt). A growing value = the sweep isn't keeping up (or is wedged).

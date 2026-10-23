@@ -134,6 +134,11 @@ namespace Spiderly.Shared.Extensions
             // Core (always registered)
             services.AddSingleton<CookieManager>();
 
+            // The app's clock, which Spiderly's stamps and expiry checks read. TryAdd, as ASP.NET Core's
+            // AddAuthentication does: a clock the app or a test registered before AddSpiderly is kept, and one
+            // registered after it wins resolution anyway.
+            services.TryAddSingleton(TimeProvider.System);
+
             // Empty-safe principal registry, built from any AddSpiderlyPrincipal<T>() registrations (none →
             // resolves to nothing). Registered unconditionally so authorization resolves even if a consumer
             // wires authz services without enabling the full authentication module. TryAdd lets a consumer
@@ -313,7 +318,7 @@ namespace Spiderly.Shared.Extensions
             // key comes from the same Options instance ValidateOnStart guards — a missing JwtKey surfaces the
             // friendly OptionsValidationException instead of a raw ArgumentNullException from GetBytes(null).
             services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-                .Configure<IOptions<JwtOptions>, IOptions<TokenKeyOptions>>((options, jwtOptions, tokenKeyOptions) =>
+                .Configure<IOptions<JwtOptions>, IOptions<TokenKeyOptions>, TimeProvider>((options, jwtOptions, tokenKeyOptions, timeProvider) =>
             {
                 JwtOptions jwt = jwtOptions.Value;
                 TokenKeyOptions tokenKeys = tokenKeyOptions.Value;
@@ -363,9 +368,50 @@ namespace Spiderly.Shared.Extensions
                     ValidAudience = jwt.JwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.JwtKey)),
                     ClockSkew = TimeSpan.FromMinutes(jwt.ClockSkewMinutes),
+                    // The app's clock, the one JwtAuthManagerService issues tokens by. Without it IdentityModel
+                    // judges lifetime by the machine's clock: its own TimeProvider is internal (8.7.0), and the
+                    // bearer handler passes it nothing, even with a TimeProvider registered.
+                    LifetimeValidator = LifetimeJudgedBy(timeProvider),
                 };
             });
         }
+
+        // IdentityModel's own lifetime check (ValidatorUtilities.ValidateLifetime, 8.7.0) with only the clock swapped,
+        // exception types included, so a rejected token fails exactly as before: the bearer handler reports an
+        // expired token through SecurityTokenExpiredException.Expires.
+        private static LifetimeValidator LifetimeJudgedBy(TimeProvider timeProvider) =>
+            (notBefore, expires, securityToken, parameters) =>
+            {
+                // A LifetimeValidator replaces the ValidateLifetime switch as well as the check.
+                if (!parameters.ValidateLifetime)
+                    return true;
+
+                if (!expires.HasValue && parameters.RequireExpirationTime)
+                    throw new SecurityTokenNoExpirationException("The token has no expiration time.");
+
+                if (notBefore.HasValue && expires.HasValue && notBefore.Value > expires.Value)
+                    throw new SecurityTokenInvalidLifetimeException($"The token's NotBefore '{notBefore.Value:o}' is after its Expires '{expires.Value:o}'.")
+                    {
+                        NotBefore = notBefore,
+                        Expires = expires,
+                    };
+
+                DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+
+                if (notBefore.HasValue && notBefore.Value > now + parameters.ClockSkew)
+                    throw new SecurityTokenNotYetValidException($"The token is not valid before '{notBefore.Value:o}'; now is '{now:o}'.")
+                    {
+                        NotBefore = notBefore.Value,
+                    };
+
+                if (expires.HasValue && expires.Value < now - parameters.ClockSkew)
+                    throw new SecurityTokenExpiredException($"The token expired at '{expires.Value:o}'; now is '{now:o}'.")
+                    {
+                        Expires = expires.Value,
+                    };
+
+                return true;
+            };
 
         public static void SpiderlyConfigureCulture(this IServiceCollection services, SpiderlyBuilder builder)
         {

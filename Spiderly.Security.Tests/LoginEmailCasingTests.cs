@@ -163,7 +163,8 @@ namespace Spiderly.Security.Tests
                     JwtAudience = "https://test-audience",
                     ClockSkewMinutes = 0,
                 }),
-                Options.Create(new AuthPolicyOptions()));
+                Options.Create(new AuthPolicyOptions()),
+                TimeProvider.System);
 
             TestableSecurityService sut = new(
                 context,
@@ -174,7 +175,8 @@ namespace Spiderly.Security.Tests
                 new PassthroughStringLocalizer(),
                 Options.Create(new AuthPolicyOptions()),
                 new StubDataProtectionProvider(),
-                Options.Create(new Shared.Settings()));
+                Options.Create(new Shared.Settings()),
+                TimeProvider.System);
 
             return new Harness(sut, jwtAuthManager);
         }
@@ -193,11 +195,12 @@ namespace Spiderly.Security.Tests
             IStringLocalizer localizer,
             IOptions<AuthPolicyOptions> authPolicyOptions,
             IDataProtectionProvider dataProtectionProvider,
-            IOptions<Shared.Settings> sharedSettings)
+            IOptions<Shared.Settings> sharedSettings,
+            TimeProvider timeProvider)
             : SecurityServiceBase<TestUser, TestUserExternalLogin>(
                 context, jwtAuthManager, emailingService, authenticationService, environment,
                 localizer, authPolicyOptions, externalAuthProviderRegistry: null!,
-                externalAuthCodeFlow: null!, dataProtectionProvider, sharedSettings)
+                externalAuthCodeFlow: null!, dataProtectionProvider, sharedSettings, timeProvider)
         {
             public Task<TestUser> ResolveExternalUserForTest(ExternalIdentity externalIdentity) =>
                 ResolveExternalUser(externalIdentity);

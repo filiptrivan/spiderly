@@ -125,7 +125,8 @@ namespace Spiderly.Security.Tests
                 externalAuthProviderRegistry: null!,
                 externalAuthCodeFlow: null!,
                 new StubDataProtectionProvider(),
-                Options.Create(new Shared.Settings()));
+                Options.Create(new Shared.Settings()),
+                TimeProvider.System);
 
         private sealed class TestUser : IUser
         {

@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Outbox;
 
@@ -42,11 +43,26 @@ namespace Spiderly.Shared.Tests
             await _ctx.SaveChangesAsync();
 
             await new OutboxRetentionJob<TestOutboxMessage>(_ctx, Opts(retentionDays: 30),
-                NullLogger<OutboxRetentionJob<TestOutboxMessage>>.Instance).PurgeAsync();
+                NullLogger<OutboxRetentionJob<TestOutboxMessage>>.Instance, TimeProvider.System).PurgeAsync();
 
             List<TestOutboxMessage> remaining = await _ctx.Set<TestOutboxMessage>().AsNoTracking().ToListAsync();
             Assert.Equal(3, remaining.Count);
             Assert.DoesNotContain(remaining, r => r.DispatchedAt != null && r.DispatchedAt < now.AddDays(-30));
+        }
+
+        [Fact]
+        public async Task Retention_measures_the_window_by_the_registered_clock()
+        {
+            Add(dispatchedAt: FarFromTheMachineClock.AddDays(-40)); // past the window → purged
+            Add(dispatchedAt: FarFromTheMachineClock.AddDays(-5));  // inside it → kept
+            await _ctx.SaveChangesAsync();
+
+            await new OutboxRetentionJob<TestOutboxMessage>(_ctx, Opts(retentionDays: 30),
+                NullLogger<OutboxRetentionJob<TestOutboxMessage>>.Instance,
+                new FakeTimeProvider(new DateTimeOffset(FarFromTheMachineClock))).PurgeAsync();
+
+            TestOutboxMessage kept = await _ctx.Set<TestOutboxMessage>().AsNoTracking().SingleAsync();
+            Assert.Equal(FarFromTheMachineClock.AddDays(-5), kept.DispatchedAt);
         }
 
         [Fact]
@@ -58,7 +74,7 @@ namespace Spiderly.Shared.Tests
             await _ctx.SaveChangesAsync();
 
             OutboxHealth h = await new OutboxHealthJob<TestOutboxMessage>(_ctx, Opts(backlogAgeAlertMinutes: 15),
-                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance).ComputeHealthAsync();
+                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance, TimeProvider.System).ComputeHealthAsync();
 
             Assert.True(h.Alert);
             Assert.Equal(1, h.DeadLetters);
@@ -74,13 +90,30 @@ namespace Spiderly.Shared.Tests
             await _ctx.SaveChangesAsync();
 
             OutboxHealth h = await new OutboxHealthJob<TestOutboxMessage>(_ctx, Opts(backlogAgeAlertMinutes: 15),
-                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance).ComputeHealthAsync();
+                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance, TimeProvider.System).ComputeHealthAsync();
 
             Assert.False(h.Alert);
             Assert.Equal(0, h.DeadLetters);
         }
 
+        [Fact]
+        public async Task Health_measures_a_rows_age_by_the_registered_clock()
+        {
+            Add(dispatchedAt: null, createdAt: FarFromTheMachineClock.AddMinutes(-30));
+            await _ctx.SaveChangesAsync();
+
+            OutboxHealth h = await new OutboxHealthJob<TestOutboxMessage>(_ctx, Opts(backlogAgeAlertMinutes: 15),
+                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance,
+                new FakeTimeProvider(new DateTimeOffset(FarFromTheMachineClock))).ComputeHealthAsync();
+
+            Assert.Equal(30, h.OldestDueMinutes);
+        }
+
         // ---- helpers ----
+
+        // The registered clock's instant in the clock tests: reading the machine's clock instead can never pass by
+        // coincidence.
+        private static readonly DateTime FarFromTheMachineClock = new(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc);
 
         private static IOptions<OutboxOptions> Opts(int retentionDays = 30, int backlogAgeAlertMinutes = 15)
             => Options.Create(new OutboxOptions { RetentionDays = retentionDays, BacklogAgeAlertMinutes = backlogAgeAlertMinutes });

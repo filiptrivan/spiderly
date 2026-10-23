@@ -181,7 +181,8 @@ namespace Spiderly.Security.Tests
                 new InMemoryTokenStorage<LoginVerificationTokenDTO>(),
                 new PassthroughStringLocalizer(),
                 Options.Create(jwtOptions),
-                Options.Create(policy));
+                Options.Create(policy),
+                TimeProvider.System);
         }
 
         #endregion

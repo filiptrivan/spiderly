@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Spiderly.Shared;
 using Spiderly.Shared.Interfaces;
 using Spiderly.Shared.Outbox;
@@ -94,6 +95,26 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
+        public async Task A_backing_off_row_is_dispatched_once_the_registered_clock_reaches_its_next_attempt()
+        {
+            using TestDbContext ctx = NewContext();
+            // Far from the machine's clock, so reading it instead can never pass by coincidence.
+            DateTime now = new(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+            FakeTimeProvider clock = new(new DateTimeOffset(now));
+            TestOutboxMessage row = await SeedAsync(ctx, handlerCode: "Email", attemptCount: 1, nextAttemptAt: now.AddMinutes(5));
+            RecordingHandler handler = new("Email");
+
+            await NewJob(ctx, clock, new OutboxOptions(), handler).ProcessAsync();
+            Assert.Empty(handler.ReceivedPayloads);
+
+            clock.Advance(TimeSpan.FromMinutes(5));
+            await NewJob(ctx, clock, new OutboxOptions(), handler).ProcessAsync();
+
+            Assert.Single(handler.ReceivedPayloads);
+            Assert.Equal(now.AddMinutes(5), row.DispatchedAt);
+        }
+
+        [Fact]
         public async Task Reaching_the_retry_cap_dead_letters_the_row()
         {
             using TestDbContext ctx = NewContext();
@@ -139,8 +160,12 @@ namespace Spiderly.Shared.Tests
 
         private static OutboxDispatcherJob<TestOutboxMessage> NewJob(
             IApplicationDbContext ctx, OutboxOptions options, params IOutboxHandler[] handlers)
+            => NewJob(ctx, TimeProvider.System, options, handlers);
+
+        private static OutboxDispatcherJob<TestOutboxMessage> NewJob(
+            IApplicationDbContext ctx, TimeProvider clock, OutboxOptions options, params IOutboxHandler[] handlers)
             => new(ctx, new FakeScopeFactory(handlers), NullLogger<OutboxDispatcherJob<TestOutboxMessage>>.Instance,
-                Options.Create(options));
+                Options.Create(options), clock);
 
         // The dispatcher resolves handlers from a fresh DI scope per row; this minimal fake hands back the test's
         // handlers when asked for IEnumerable<IOutboxHandler> (what GetServices<IOutboxHandler>() requests).

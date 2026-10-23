@@ -1851,15 +1851,18 @@ namespace {{appName}}.WebAPI.Controllers
         private readonly IApplicationDbContext _context;
         private readonly AuthorizationService _authorizationService;
         private readonly AuthenticationService _authenticationService;
+        private readonly TimeProvider _timeProvider;
 
         public OutboxMessageController(
             IApplicationDbContext context,
             AuthorizationService authorizationService,
-            AuthenticationService authenticationService)
+            AuthenticationService authenticationService,
+            TimeProvider timeProvider)
         {
             _context = context;
             _authorizationService = authorizationService;
             _authenticationService = authenticationService;
+            _timeProvider = timeProvider;
         }
 
         [HttpPost]
@@ -1905,7 +1908,7 @@ namespace {{appName}}.WebAPI.Controllers
                 return Ok();
 
             long currentUserId = _authenticationService.GetCurrentUserId();
-            row.DispatchedAt = DateTime.UtcNow;
+            row.DispatchedAt = _timeProvider.GetUtcNow().UtcDateTime;
             row.DismissedByUserId = currentUserId;
             await _context.SaveChangesAsync();
 
@@ -2875,9 +2878,10 @@ namespace {{appName}}.Business.Services
             IExternalAuthProviderRegistry externalAuthProviderRegistry,
             ExternalAuthCodeFlow externalAuthCodeFlow,
             IDataProtectionProvider dataProtectionProvider,
-            IOptions<Spiderly.Shared.Settings> sharedSettings
+            IOptions<Spiderly.Shared.Settings> sharedSettings,
+            TimeProvider timeProvider
         )
-            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions, externalAuthProviderRegistry, externalAuthCodeFlow, dataProtectionProvider, sharedSettings)
+            : base(context, jwtAuthManagerService, emailingService, authenticationService, environment, localizer, authPolicyOptions, externalAuthProviderRegistry, externalAuthCodeFlow, dataProtectionProvider, sharedSettings, timeProvider)
         {
             _context = context;
         }

@@ -51,18 +51,21 @@ namespace Spiderly.Shared.Outbox
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<OutboxDispatcherJob<TOutbox>> _logger;
         private readonly OutboxOptions _options;
+        private readonly TimeProvider _timeProvider;
 
-        /// <summary>Creates the sweep over the job-scoped context and a scope factory used to isolate each handler.</summary>
+        /// <summary>Creates the sweep over the job-scoped context, a scope factory used to isolate each handler, and the app's clock.</summary>
         public OutboxDispatcherJob(
             IApplicationDbContext context,
             IServiceScopeFactory scopeFactory,
             ILogger<OutboxDispatcherJob<TOutbox>> logger,
-            IOptions<OutboxOptions> options)
+            IOptions<OutboxOptions> options,
+            TimeProvider timeProvider)
         {
             _context = context;
             _scopeFactory = scopeFactory;
             _logger = logger;
             _options = options.Value;
+            _timeProvider = timeProvider;
         }
 
         /// <summary>Claims a batch of pending rows (oldest first, under the retry cap) and dispatches each to its handler.</summary>
@@ -71,7 +74,7 @@ namespace Spiderly.Shared.Outbox
             // Per-handler retry caps are enforced in the loop below (each row's cap depends on its handler's
             // RetryPolicy, which isn't known to this query); a row that crosses its cap is dead-lettered by parking
             // NextAttemptAt at NeverRetry, so the time gate here is the single eligibility filter.
-            DateTime now = DateTime.UtcNow;
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
             List<TOutbox> pending = await _context.DbSet<TOutbox>()
                 .Where(x => x.DispatchedAt == null
                     && (x.NextAttemptAt == null || x.NextAttemptAt <= now))
@@ -115,12 +118,12 @@ namespace Spiderly.Shared.Outbox
 
                     policy = ResolvePolicy(handler);
                     await handler.HandleAsync(msg.Payload, CancellationToken.None);
-                    msg.DispatchedAt = DateTime.UtcNow;
+                    msg.DispatchedAt = _timeProvider.GetUtcNow().UtcDateTime;
                 }
                 catch (Exception ex)
                 {
                     msg.AttemptCount++;
-                    msg.LastAttemptedAt = DateTime.UtcNow;
+                    msg.LastAttemptedAt = _timeProvider.GetUtcNow().UtcDateTime;
                     msg.LastError = ex.Message.Length > LastErrorMaxLength
                         ? ex.Message[..LastErrorMaxLength]
                         : ex.Message;
