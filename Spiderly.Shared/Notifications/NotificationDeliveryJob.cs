@@ -1,4 +1,5 @@
 using Hangfire;
+using Spiderly.Shared.Jobs;
 
 namespace Spiderly.Shared.Notifications
 {
@@ -8,7 +9,7 @@ namespace Spiderly.Shared.Notifications
     /// <see cref="NotificationDeliveryExecutor"/>; arguments are all simple serializable values.
     /// </summary>
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 30, 60, 120 })]
-    public class NotificationDeliveryJob
+    public class NotificationDeliveryJob : ISpiderlyJob
     {
         private readonly NotificationDeliveryExecutor _executor;
 

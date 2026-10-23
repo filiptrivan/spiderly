@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Jobs;
 
 namespace Spiderly.Shared.Outbox
 {
@@ -41,7 +42,7 @@ namespace Spiderly.Shared.Outbox
     /// <typeparam name="TOutbox">The consumer's <c>[SpiderlyEntity]</c> implementing <see cref="IOutboxMessage"/>.</typeparam>
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
-    public class OutboxDispatcherJob<TOutbox>
+    public class OutboxDispatcherJob<TOutbox> : ISpiderlyJob
         where TOutbox : class, IOutboxMessage, new()
     {
         private const int BatchSize = 100;

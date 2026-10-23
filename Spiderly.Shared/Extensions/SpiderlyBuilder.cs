@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -5,6 +6,7 @@ using Spiderly.Shared.Emailing;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Excel;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Jobs;
 using Spiderly.Shared.Notifications;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -67,6 +69,9 @@ namespace Spiderly.Shared.Extensions
 
         internal bool IntegrationEventsEnabled { get; private set; }
         internal List<Type> IntegrationEventTypes { get; private set; } = new();
+
+        internal bool JobsEnabled { get; private set; }
+        internal List<Assembly> JobAssemblies { get; private set; } = new();
 
         internal SpiderlyBuilder(IServiceCollection services, IConfiguration configuration)
         {
@@ -261,6 +266,33 @@ namespace Spiderly.Shared.Extensions
         {
             IntegrationEventsEnabled = true;
             IntegrationEventTypes = eventTypes.Distinct().ToList();
+            return this;
+        }
+
+        /// <summary>
+        /// Has the container build every Hangfire job. Registers each class implementing <see cref="ISpiderlyJob"/> in
+        /// <paramref name="assemblies"/> as a scoped service (one instance per job run, in the scope Hangfire opens for
+        /// it), and replaces Hangfire.NetCore's job activator with <see cref="SpiderlyJobActivator"/>, which builds only
+        /// registered jobs. A host that validates its service graph at boot (<c>ValidateOnBuild</c>) then judges every
+        /// job's constructor before the first job runs. Schedule with the typed
+        /// <see cref="SpiderlyJobSchedulingExtensions"/> methods, which accept only a marked job. Spiderly's own jobs are
+        /// registered by the features that schedule them, whatever assemblies are passed here. Works whether
+        /// <c>services.AddHangfire(...)</c> runs before or after <c>AddSpiderly</c>; it replaces any
+        /// <c>JobActivator</c> registered before it, so an app that wants its own activator registers it after
+        /// <c>AddSpiderly</c>. Calling it again adds assemblies to the earlier call's.
+        /// <example>
+        /// <code>
+        /// spiderly.AddJobs(typeof(Startup).Assembly, typeof(InvoiceExportJob).Assembly);
+        /// </code>
+        /// </example>
+        /// </summary>
+        /// <param name="assemblies">The assemblies to scan for <see cref="ISpiderlyJob"/> classes.</param>
+        public SpiderlyBuilder AddJobs(params Assembly[] assemblies)
+        {
+            JobsEnabled = true;
+            // Added to, never replaced: a later call that dropped an earlier call's assemblies would leave their
+            // jobs unregistered, refused when they run instead of at boot.
+            JobAssemblies = JobAssemblies.Union(assemblies).ToList();
             return this;
         }
 

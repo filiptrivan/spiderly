@@ -28,6 +28,7 @@ using Spiderly.Shared.Exceptions;
 using Spiderly.Shared.Helpers;
 using Spiderly.Shared.IntegrationEvents;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Jobs;
 using Spiderly.Shared.Notifications;
 using Spiderly.Shared.Outbox;
 using Spiderly.Shared.RateLimiting;
@@ -291,6 +292,11 @@ namespace Spiderly.Shared.Extensions
                 // outbox rows (reading [OutboxCode] off the type) in the same transaction as the entity write.
                 Type interceptorType = typeof(IntegrationEventOutboxInterceptor<>).MakeGenericType(builder.OutboxEntityType!); // OutboxEnabled was checked above
                 services.AddSingleton(typeof(ISaveChangesInterceptor), interceptorType);
+            }
+
+            if (builder.JobsEnabled)
+            {
+                SpiderlyJobRegistration.AddJobs(services, builder.JobAssemblies);
             }
 
             if (builder.LocalizerType != null)
@@ -689,10 +695,12 @@ namespace Spiderly.Shared.Extensions
         /// <summary>
         /// Schedules the recurring outbox jobs for the consumer's outbox entity <typeparamref name="TOutbox"/>: the
         /// dispatcher sweep, plus daily retention (<c>OutboxRetentionJob</c>) and a 5-minute health check
-        /// (<c>OutboxHealthJob</c>). Call in the Configure phase, after Hangfire is initialized. Requires
-        /// <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c> during service registration; tune via <c>OutboxOptions</c>.
+        /// (<c>OutboxHealthJob</c>). Call in the Configure phase. Requires <c>spiderly.AddOutbox&lt;TOutbox&gt;()</c>
+        /// during service registration. Schedules through the container's <see cref="IRecurringJobManager"/>, so it
+        /// requires <c>services.AddHangfire(...)</c> (or a registered manager) and writes to the storage the container
+        /// holds; tune via <c>OutboxOptions</c>.
         /// </summary>
-        /// <param name="app">The application builder (Configure phase marker; the schedule is registered globally via Hangfire).</param>
+        /// <param name="app">The application builder, whose services hold the recurring job manager.</param>
         /// <param name="cronExpression">Sweep cadence. Defaults to once a minute; pass a faster (e.g. seconds-based) cron if your Hangfire is configured for it.</param>
         /// <example>
         /// <code>
@@ -702,16 +710,18 @@ namespace Spiderly.Shared.Extensions
         public static void SpiderlyUseOutboxRecurringJob<TOutbox>(this IApplicationBuilder app, string? cronExpression = null)
             where TOutbox : class, IOutboxMessage, new()
         {
-            RecurringJob.AddOrUpdate<OutboxDispatcherJob<TOutbox>>(
+            IRecurringJobManager jobs = app.ApplicationServices.GetRequiredService<IRecurringJobManager>();
+
+            jobs.AddOrUpdateJob<OutboxDispatcherJob<TOutbox>>(
                 "outbox-dispatcher",
                 job => job.ProcessAsync(),
                 cronExpression ?? Cron.Minutely());
 
             // Storage hygiene + ops visibility, both generic over TOutbox and tuned via OutboxOptions: retention purges
             // handled rows past the window; health logs an error (→ your alerting) on backlog age / dead-letters.
-            RecurringJob.AddOrUpdate<OutboxRetentionJob<TOutbox>>(
+            jobs.AddOrUpdateJob<OutboxRetentionJob<TOutbox>>(
                 "outbox-retention", job => job.PurgeAsync(), Cron.Daily());
-            RecurringJob.AddOrUpdate<OutboxHealthJob<TOutbox>>(
+            jobs.AddOrUpdateJob<OutboxHealthJob<TOutbox>>(
                 "outbox-health", job => job.CheckAsync(), "*/5 * * * *");
         }
 
