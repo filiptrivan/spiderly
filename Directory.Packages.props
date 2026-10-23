@@ -95,6 +95,10 @@
     <PackageVersion Include="Verify.Xunit" Version="28.4.0" />
     <PackageVersion Include="Verify.SourceGenerators" Version="2.4.0" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0" />
+    <!-- The job seam's tests run Hangfire.NetCore's real server over in-memory storage, so they prove which
+         activator Hangfire builds jobs with. Hangfire.NetCore matches the Hangfire.Core pin above. -->
+    <PackageVersion Include="Hangfire.NetCore" Version="1.8.23" />
+    <PackageVersion Include="Hangfire.InMemory" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

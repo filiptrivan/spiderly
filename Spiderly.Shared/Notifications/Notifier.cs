@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using Spiderly.Shared.Enums;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Jobs;
 using Spiderly.Shared.Outbox;
 
 namespace Spiderly.Shared.Notifications
@@ -65,7 +66,7 @@ namespace Spiderly.Shared.Notifications
                 switch (notification.Delivery)
                 {
                     case NotificationDelivery.FireNow:
-                        _backgroundJobClient.Enqueue<NotificationDeliveryJob>(
+                        _backgroundJobClient.EnqueueJob<NotificationDeliveryJob>(
                             job => job.DeliverAsync(code, data, recipientId, channel.Code));
                         break;
 

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Interfaces;
+using Spiderly.Shared.Jobs;
 
 namespace Spiderly.Shared.Outbox
 {
@@ -23,7 +24,7 @@ namespace Spiderly.Shared.Outbox
     /// </summary>
     /// <typeparam name="TOutbox">The consumer's <c>[SpiderlyEntity]</c> implementing <see cref="IOutboxMessage"/>.</typeparam>
     [AutomaticRetry(Attempts = 0)]
-    public class OutboxHealthJob<TOutbox>
+    public class OutboxHealthJob<TOutbox> : ISpiderlyJob
         where TOutbox : class, IOutboxMessage, new()
     {
         private readonly IApplicationDbContext _context;
