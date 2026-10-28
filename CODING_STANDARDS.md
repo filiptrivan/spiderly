@@ -123,9 +123,10 @@ bumps all packages together at publish time, and the maintainer owns the release
   nested-O2M dropdown regression test (`8a2714f`) was authored aspirationally, without the matching
   generator fix, and a separate `if (!setupVar) test.skip()` retry-mask kept CI green for a month
   while the bug existed. The discipline: add the test, watch it fail in CI, then push the fix.
-- **No `if (!setupVar) test.skip()` guard.** The variable is seeded in a `beforeAll` (preserved
-  across Playwright retries), or the test fails loudly with a clear assertion error: a skip guard on
-  missing setup state silently converts a consistent failure into a "flaky → exit 0" CI pass.
+- **Setup state a test needs is seeded in a `beforeAll`** (preserved across Playwright retries), or
+  the test fails loudly with a clear assertion error. An `if (!setupVar) test.skip()` guard on
+  missing setup state is a finding: it silently converts a consistent failure into a "flaky → exit
+  0" CI pass.
 - **A new detector lands green, validated by a negative control** — a harness, gate, lint rule or
   diagnostic: anything whose job is to find a class of problem rather than pin one known defect.
   Its red is no evidence about itself: landed red on a pre-existing bug, nobody can tell whether it

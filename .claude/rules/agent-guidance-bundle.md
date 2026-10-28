@@ -17,6 +17,6 @@ out and reaches a consumer: the header of `tools/build-agent-bundle.mjs`; the de
   bundle in the same commit: `node tools/build-agent-bundle.mjs`, run **after**
   `tools/regen-metadata.sh` when both apply (it copies the freshly-generated reference tables). The
   miss: CI regenerates the bundle and fails on any diff.
-- Never hand-edit anything under `agent/`. The miss: the next regeneration (the gated
-  `.githooks/pre-commit`'s included, which auto-stages it) silently replaces the edit with what the
-  authoring trees say.
+- Edit the authoring trees. The miss of a hand edit under `agent/`: the next regeneration (the
+  gated `.githooks/pre-commit`'s included, which auto-stages it) silently replaces it with what
+  they say.
