@@ -149,36 +149,10 @@ bumps all packages together at publish time, and the maintainer owns the release
 
 ## Angular library
 
-The published `spiderly` package, `Angular/projects/spiderly`.
+The published `spiderly` package, `Angular/projects/spiderly`. Its rules are path-scoped, each
+loaded with the files it governs:
 
-- **Content PrimeNG teleports to `document.body` is styled at the SCSS top level, never under
-  `:host`.** PrimeNG appends open overlays to the body (`appendTo` default: `p-popover`,
-  dropdown/calendar/multiselect panels, `p-menu popup`, …). A `:host .foo` rule compiles under
-  emulated encapsulation to a `[_nghost] … [_ngcontent]` descendant selector that stops matching the
-  moment the content leaves the host subtree — the rules die silently, and builds and behavior specs
-  stay green (the data-table column chooser shipped exactly this way). A top-level rule keeps only
-  the `[_ngcontent]` attribute selector, which travels with the teleported nodes, so it stays
-  encapsulated without `::ng-deep`. Any rule targeting teleported content also gets a
-  computed-style assert in the component's spec; the data-table spec's "chooser styles survive the
-  body teleport" describe is the table-driven pattern.
-- **Static UI text in a library template goes through Transloco**, never hardcoded English (button
-  and tab labels, placeholders, headings): the admin a consumer builds on this library is fully
-  localized, so a hardcoded English word would be the one untranslated thing on its screen. The
-  pattern: `TranslocoDirective` in the component's `imports`, the template inside
-  `<ng-container *transloco="let t">`, as `Angular/projects/spiderly/src/lib/controls/spiderly-markdown/`
-  and `Angular/projects/spiderly/src/lib/components/spiderly-buttons/return-button/` do. **Each new
-  key is also seeded** in the init template's base translation file, the `en` i18n JSON block in
-  `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` (search for `"Save": "Save"`): a
-  consumer's `transloco-keys-manager` extraction scans only its own `src/`, **not**
-  `node_modules/spiderly`, so a key used only inside this library would never reach a consumer's
-  translation files unless seeded, and new apps from `spiderly init` then resolve it out of the box.
-- **A component-side rule reading the viewport inset writes `var(--spiderly-viewport-top-inset,
-  0px)`.** Library components are usable without Spiderly's layout, and the fallback is what stops a
-  consumer running its own shell from getting a phantom gap. The layout's own files
-  (`_topbar.scss`, `_content.scss`, `_menu.scss`) deliberately use no fallback: `layout.scss`
-  `@use`s `_main.scss`, which declares the vars, alongside them, so the declaration can never be
-  missing there.
-- **Every runtime `@angular/*` in `Angular/package.json` is pinned exact**, at the version the init
-  template in `NetAndAngularFilesGenerator.cs` emits, so the lock regenerates deterministically; a
-  caret range is a finding: a from-scratch `npm install` then floats to a newer patch and dies on an
-  ERESOLVE peer conflict against the pinned compiler.
+- Library SCSS (content PrimeNG teleports to `document.body`, the viewport inset, scroll
+  behaviour): `.claude/rules/library-scss.md`.
+- Static text in a library template, and seeding its key: `.claude/rules/library-template-text.md`.
+- The runtime `@angular/*` pins and the lockfile: `.claude/rules/angular-dependencies.md`.

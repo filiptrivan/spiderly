@@ -4,7 +4,7 @@ This file covers the **framework-internal** overlay mechanics that turn `tests/e
 
 ## Why a codegen change is not "done" until the e2e is green
 
-Generator unit tests (`Spiderly.SourceGenerators.Tests`) snapshot the **generated text** — they never **compile or run** it, and they run in a **single compilation** where there are no cross-project *referenced* entities. So a whole class of bug is invisible to them and **only** this e2e (which builds, migrates, boots, and drives a real `spiderly init` app on real Postgres) catches it. Adding native one-to-one support surfaced five such bugs, none of which broke a single snapshot test:
+Generator unit tests (`Spiderly.SourceGenerators.Tests`) snapshot the **generated text**; since 2026-07-30 (spiderly `e9d7e15e`) `GeneratedCodeCompilationTests` also **compiles** every .NET generator's output, but nothing there **runs** it, and all of it is a **single compilation** with no cross-project *referenced* entities, so `ControllerGenerator`, which reads referenced assemblies, stays outside it (checked 2026-10-28). So a whole class of bug is invisible to them and **only** this e2e (which builds, migrates, boots, and drives a real `spiderly init` app on real Postgres) catches it. Adding native one-to-one support, before that compile test existed, surfaced five such bugs, none of which broke a single snapshot test:
 
 - Generated C# that references a member the DTO doesn't have (`dto.{Nav}Id` on a side that owns no FK) → CS1061.
 - A `long?`/`long` mismatch in a generated query (`List<long>.Contains(x.{nullableFk})`) → CS1503.
