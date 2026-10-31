@@ -17,7 +17,7 @@ jobs:
       checks: write
       id-token: write
       actions: read
-    uses: filiptrivan/ci-workflows/.github/workflows/claude-gate.yml@v1
+    uses: filiptrivan/ci-workflows/.github/workflows/claude-gate.yml@main
     with:
       same_repo_only: true
       review_spec: |
