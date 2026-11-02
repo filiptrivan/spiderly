@@ -1,0 +1,85 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 9729193f..4dfb2026 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -69,7 +69,7 @@ env:
+ jobs:
+   validate:
+     name: Validate Inputs
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     outputs:
+       new_version: ${{ steps.version.outputs.NEW_VERSION }}
+       is_prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
+@@ -207,7 +207,7 @@ jobs:
+     name: Build .NET Packages
+     needs: validate
+     if: needs.validate.outputs.has_dotnet_packages == 'true'
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     strategy:
+       fail-fast: false
+       matrix:
+@@ -260,7 +260,7 @@ jobs:
+     name: Test .NET
+     needs: [validate, build-dotnet]
+     if: needs.validate.outputs.has_dotnet_packages == 'true'
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+ 
+     steps:
+       - name: Checkout repository
+@@ -284,7 +284,7 @@ jobs:
+     name: Build Angular Package
+     needs: validate
+     if: needs.validate.outputs.publish_angular == 'true'
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+ 
+     steps:
+       - name: Checkout repository
+@@ -335,7 +335,7 @@ jobs:
+     name: Publish to NuGet
+     needs: [validate, build-dotnet, test-dotnet]
+     if: needs.validate.outputs.has_dotnet_packages == 'true' && (inputs.dry_run == true || github.ref == 'refs/heads/main')
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     outputs:
+       published_packages: ${{ steps.publish.outputs.published_packages }}
+ 
+@@ -421,7 +421,7 @@ jobs:
+       needs.validate.outputs.publish_angular == 'true' &&
+       needs.build-angular.result == 'success' &&
+       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped')
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     outputs:
+       published: ${{ steps.publish.outputs.success }}
+ 
+@@ -485,7 +485,7 @@ jobs:
+       (needs.publish-nuget.result == 'success' || needs.publish-nuget.result == 'skipped') &&
+       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
+       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success')
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     permissions:
+       contents: write
+ 
+@@ -572,7 +572,7 @@ jobs:
+       (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') &&
+       (needs.publish-nuget.result == 'success' || needs.publish-npm.result == 'success') &&
+       (needs.create-release.result == 'success' || needs.validate.outputs.is_prerelease == 'true')
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     permissions:
+       contents: write
+ 
+@@ -712,7 +712,7 @@ jobs:
+       always() &&
+       inputs.dry_run == true &&
+       needs.validate.result == 'success'
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     steps:
+       - name: Generate summary
+         run: |

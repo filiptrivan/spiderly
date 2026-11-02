@@ -1,0 +1,31 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 4b13e514..c8a8baa8 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -18,7 +18,7 @@ env:
+ jobs:
+   unit-test:
+     name: Unit Tests (.NET)
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+     timeout-minutes: 10
+ 
+@@ -76,7 +76,7 @@ jobs:
+ 
+   angular-unit-test:
+     name: Unit Tests (Angular)
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+     timeout-minutes: 10
+ 
+@@ -94,7 +94,7 @@ jobs:
+       - name: Install dependencies
+         run: cd Angular && npm ci
+ 
+-      # Karma runs against ubuntu-latest's preinstalled Chrome via the
++      # Karma runs against ubuntu-24.04's preinstalled Chrome via the
+       # ChromeHeadlessNoSandbox launcher defined in projects/spiderly/karma.conf.js
+       # (the runner has no usable Chrome sandbox).
+       - name: Run Angular library unit tests
