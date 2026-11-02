@@ -119,7 +119,7 @@ jobs:
 
       - name: Setup Verdaccio and publish spiderly package
         run: |
-          npm install -g verdaccio
+          npm install -g verdaccio@6
           mkdir -p ~/.config/verdaccio
           cat > ~/.config/verdaccio/config.yaml << 'EOF'
           storage: ./storage
