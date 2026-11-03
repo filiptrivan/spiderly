@@ -1,5 +1,5 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 4b13e514..c8a8baa8 100644
+index 4b13e514..d4d93203 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -18,7 +18,7 @@ env:
@@ -29,3 +29,12 @@ index 4b13e514..c8a8baa8 100644
        # ChromeHeadlessNoSandbox launcher defined in projects/spiderly/karma.conf.js
        # (the runner has no usable Chrome sandbox).
        - name: Run Angular library unit tests
+@@ -323,7 +323,7 @@ jobs:
+                 stderr: 'pipe',
+               },
+               {
+-                command: 'npx -y serve dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
++                command: 'npx -y serve@14.2.6 dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
+                 url: 'http://localhost:4200',
+                 timeout: 120000,
+                 reuseExistingServer: false,
