@@ -1,0 +1,68 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 4b13e514..2e97e672 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -18,7 +18,7 @@ env:
+ jobs:
+   unit-test:
+     name: Unit Tests (.NET)
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+     timeout-minutes: 10
+ 
+@@ -76,7 +76,7 @@ jobs:
+ 
+   angular-unit-test:
+     name: Unit Tests (Angular)
+-    runs-on: ubuntu-latest
++    runs-on: ubuntu-24.04
+     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+     timeout-minutes: 10
+ 
+@@ -94,12 +94,35 @@ jobs:
+       - name: Install dependencies
+         run: cd Angular && npm ci
+ 
+-      # Karma runs against ubuntu-latest's preinstalled Chrome via the
++      # Karma runs against ubuntu-24.04's preinstalled Chrome via the
+       # ChromeHeadlessNoSandbox launcher defined in projects/spiderly/karma.conf.js
+       # (the runner has no usable Chrome sandbox).
+       - name: Run Angular library unit tests
+         run: cd Angular && npx ng test spiderly --watch=false --browsers=ChromeHeadlessNoSandbox
+ 
++  workflow-policy:
++    name: Workflow Policy
++    runs-on: ubuntu-24.04
++    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
++    timeout-minutes: 5
++
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v6
++
++      # ci-workflows' `main`, which a push sends before this repo's.
++      - name: Checkout the workflow policy
++        uses: actions/checkout@v6
++        with:
++          repository: filiptrivan/ci-workflows
++          ref: main
++          path: ci-workflows
++          persist-credentials: false
++
++      # The runner image's own Node, with no setup-node step: the checker imports only Node's built-ins.
++      - name: No job on ubuntu-latest, no unversioned npm package
++        run: node ci-workflows/workflow-policy/pins.mjs --root .
++
+   integration-test:
+     name: Test CLI Generated Application
+     needs: unit-test
+@@ -323,7 +346,7 @@ jobs:
+                 stderr: 'pipe',
+               },
+               {
+-                command: 'npx -y serve dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
++                command: 'npx -y serve@14.2.6 dist/${{ env.TEST_APP_NAME }}/browser -l 4200 -s',
+                 url: 'http://localhost:4200',
+                 timeout: 120000,
+                 reuseExistingServer: false,
