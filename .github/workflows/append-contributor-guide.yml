@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   append-contributor-guide:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: >
       github.event.label.name == 'good first issue' || 
       github.event.label.name == 'help wanted'
