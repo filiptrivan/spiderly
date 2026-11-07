@@ -1,15 +1,14 @@
 diff --git a/.github/workflows/size-cap.yml b/.github/workflows/size-cap.yml
 new file mode 100644
-index 00000000..227a715c
+index 00000000..03f37159
 --- /dev/null
 +++ b/.github/workflows/size-cap.yml
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,21 @@
 +name: Size cap
 +
-+# A hand-written file stays under 20,000 bytes unless .over-cap-list holds it, and the list only
-+# shrinks: ci-workflows' reusable size-cap.yml judges the whole tree, and the list against the pull
-+# request's base or the push's previous tip. It catches what .githooks/pre-commit cannot: a commit
-+# made with --no-verify, or in a clone without the hooks or without ci-workflows beside it.
++# The Size cap over the whole tree on each push and pull request, by ci-workflows' reusable
++# size-cap.yml. It catches what .githooks/pre-commit cannot: a commit made with --no-verify, or in a
++# clone without the hooks or without ci-workflows beside it.
 +
 +on:
 +  push:

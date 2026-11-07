@@ -9,14 +9,13 @@ claude-plugins/skills/**/references/*.generated.md text eol=lf
 # pin LF to keep core.autocrlf from misfiring it on a Windows checkout. See docs/agent-guidance-distribution.md.
 Angular/projects/spiderly/agent/** text eol=lf
 
-# A file a script or tool writes is marked linguist-generated, so the Size cap skips it (ci-workflows
-# size-cap/size-cap.mjs, run by .githooks/pre-commit and CI); every other text file over 20,000 bytes
-# sits on .over-cap-list until it is split. The generators' own sources, NetAndAngularFilesGenerator.cs
-# among them, are written by hand and stay unmarked.
+# What a script or tool writes, which the Size cap skips (ci-workflows size-cap/size-cap.mjs, run by
+# .githooks/pre-commit and CI). The generators' own sources, NetAndAngularFilesGenerator.cs among
+# them, are written by hand and stay unmarked.
 framework-metadata.json linguist-generated
 *.generated.md linguist-generated
 Angular/projects/spiderly/agent/** linguist-generated
 tests/e2e-fixtures/backend/entities/ZooShapes.cs linguist-generated
 package-lock.json linguist-generated
-# Verify's snapshots, which the source generator tests write.
-Spiderly.SourceGenerators.Tests/Generators/*.verified.cs linguist-generated
+# Verify's snapshots, which the tests write.
+*.verified.* linguist-generated
