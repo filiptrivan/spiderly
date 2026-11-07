@@ -10,7 +10,7 @@ Spiderly is a framework for any app, not for one, even while PACMS is its only u
 
 Every feature must be drivable by an AI agent without human intervention: the design principles are the `ai-agentic-design` skill (`.claude/skills/ai-agentic-design/SKILL.md`), contributor-only, so outside the consumer-shipped `claude-plugins/skills/`.
 
-The framework metadata and the agent bundle are committed **artifacts**, regenerated in the commit that changes their sources. Activate the hooks once per clone, `git config core.hooksPath .githooks`: the gated pre-commit then regenerates and stages the artifacts a commit's sources change, and runs the C#↔TS mirror test.
+The framework metadata and the agent bundle are committed **artifacts**, regenerated in the commit that changes their sources. Activate the hooks once per clone, `git config core.hooksPath .githooks`: the gated pre-commit then regenerates and stages the artifacts a commit's sources change, and runs the C#↔TS mirror test. A hand-written file stays under 20,000 bytes unless `.over-cap-list` holds it, judged at commit and in CI; `.gitattributes` marks what a tool writes.
 
 ## Where the rest lives
 

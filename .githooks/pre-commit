@@ -1,6 +1,7 @@
 #!/bin/sh
 # Local mirror of CI's drift guards (.github/workflows/ci.yml) so contract drift fails at commit
 # time instead of after a CI round-trip. Gated: runs only when staged files touch guarded paths.
+# The Size cap, last, runs on every commit.
 # Activate once per clone: git config core.hooksPath .githooks
 # Bypass when needed: git commit --no-verify (CI remains the backstop)
 set -e
@@ -85,4 +86,18 @@ if echo "$staged" | grep -qE "$ts_mirrors"; then
     exit 1
   fi
   echo "pre-commit: contract mirrors are in sync."
+fi
+
+# --- Size cap ------------------------------------------------------------------------------------
+# A hand-written file stays under 20,000 bytes unless .over-cap-list holds it; .gitattributes marks
+# what a script or tool writes. Judges the files this commit adds or modifies, as staged, last so it
+# judges the artifacts the blocks above stage too. The check is ci-workflows' size-cap/size-cap.mjs,
+# run from the ci-workflows clone beside this repo's main checkout; a contributor without one skips
+# it, and CI judges their pull request.
+checker="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/../ci-workflows/size-cap/size-cap.mjs"
+if [ ! -f "$checker" ]; then
+  echo "pre-commit: size cap skipped: no $checker; CI judges the pull request." >&2
+elif ! out=$(node "$checker" --staged 2>&1); then
+  printf '%s\n' "$out"
+  exit 1
 fi
