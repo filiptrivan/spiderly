@@ -1,0 +1,28 @@
+diff --git a/.github/workflows/size-cap.yml b/.github/workflows/size-cap.yml
+new file mode 100644
+index 00000000..227a715c
+--- /dev/null
++++ b/.github/workflows/size-cap.yml
+@@ -0,0 +1,22 @@
++name: Size cap
++
++# A hand-written file stays under 20,000 bytes unless .over-cap-list holds it, and the list only
++# shrinks: ci-workflows' reusable size-cap.yml judges the whole tree, and the list against the pull
++# request's base or the push's previous tip. It catches what .githooks/pre-commit cannot: a commit
++# made with --no-verify, or in a clone without the hooks or without ci-workflows beside it.
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++# No concurrency group that cancels: the next push compares its list with this push's tip, so a
++# cancelled run would leave this push's added lines unjudged.
++
++permissions:
++  contents: read
++
++jobs:
++  size-cap:
++    uses: filiptrivan/ci-workflows/.github/workflows/size-cap.yml@main
