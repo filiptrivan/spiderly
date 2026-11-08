@@ -4,7 +4,7 @@ namespace Spiderly.Shared.Emailing
     /// Structured "From" address for transactional emails.
     /// </summary>
     /// <example>
-    /// new EmailSender { Email = "noreply@dcksrbija.rs", Name = "DCK Srbija" };
+    /// new EmailSender { Email = "noreply@example.com", Name = "Example Shop" };
     /// </example>
     public class EmailSender
     {

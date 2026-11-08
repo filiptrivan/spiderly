@@ -448,7 +448,7 @@ describe('SpiderlyFilterBarComponent', () => {
   // StartsWith return very different sets for the same typed value.
   // The chip is the visible claim about the grid, so a pick-list's chip must speak the OPTIONS'
   // language, not the wire's: "Status is one of 2, 3" narrates ids nobody chose by number. Read
-  // LIVE from the definition rather than snapshotted at commit, because PACMS fills option lists
+  // LIVE from the definition rather than snapshotted at commit, because an app may fill option lists
   // asynchronously (the admin/backend deploy race) — a chip restored before the lookup answers
   // upgrades from ids to labels the moment the options land.
   it('spells a pick-list chip in option labels, falling back to the raw id when one is unknown', async () => {
@@ -475,7 +475,7 @@ describe('SpiderlyFilterBarComponent', () => {
     ).toBe('Processing, Preparing, 99');
   });
 
-  // A filter can have a DEDICATED control somewhere on the page (PACMS's order search box is a
+  // A filter can have a DEDICATED control somewhere on the page (a consuming app's order search box is a
   // placement of the store's mixedSearch filter). Offering it under "+ Filter" too gives one
   // question two entry points and confused the first operator who saw it — but the CHIP must
   // still render when it is applied, or the bar's claim to list every constraint breaks.

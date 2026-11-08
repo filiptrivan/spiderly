@@ -48,8 +48,8 @@ describe('createFilterStore — a filter needs no column', () => {
   });
 
   // `In` is legal on a number and illegal on a string: the generated paginator answers it with
-  // InvalidMatchMode. Today the only guard is a human not declaring it — `paymentGatewayCode` in
-  // PACMS carries a hand-written comment saying exactly this. An engine that assembles operators
+  // InvalidMatchMode. Today the only guard is a human not declaring it — a consuming app's string
+  // column carries a hand-written comment saying exactly this. An engine that assembles operators
   // itself has removed that human, so it has to refuse — in BOTH halves. The `@ts-expect-error`
   // below pins the compile-time refusal (it fails the build if the line stops erroring), and the
   // thrown error covers what dodges the type system: a custom control, or a constraint restored
@@ -248,7 +248,7 @@ describe('createFilterStore — typed is not applied', () => {
 // that changes nothing must not publish a new identity. Draft-object identity is not the test:
 // every `set` builds a fresh draft, and the case this exists for is a re-committed IDENTICAL
 // value — a paste over itself, a keystroke undone inside one debounce window, Apply pressed
-// twice. The page-side guard for this (`lastCommittedTerm` in PACMS's order list) is exactly the
+// twice. The page-side guard for this (`lastCommittedTerm` in a consuming app's order list) is exactly the
 // hand-rolled copy of this rule the store exists to retire.
 describe('createFilterStore — a no-op commit publishes nothing', () => {
   it('re-committing an identical scalar constraint keeps applied() at the same identity', () => {
@@ -340,7 +340,7 @@ describe('createFilterStore — a no-op commit publishes nothing', () => {
 // Narrowing exists because the full
 // list can contain an operator that is legal on the wire but never the question. The forcing
 // case is date-equality against a TIMESTAMP — it matches only the row written in that exact
-// second and answers with an empty grid (PACMS, all three order-list date columns, Filip
+// second and answers with an empty grid (a consuming app's three order-list date columns, Filip
 // 2026-08-28) — so those columns must be able to offer "posle"/"pre" and nothing else.
 describe('createFilterStore — narrowing the offered operators', () => {
   it('offers exactly the declared operators, in declaration order, first as default', () => {
@@ -406,7 +406,7 @@ describe('createFilterStore — setAndCommit', () => {
   });
 });
 
-// Choices that arrive after the store is built — PACMS fills every pick-list from lookups that
+// Choices that arrive after the store is built — a consuming app fills every pick-list from lookups that
 // race a deploy. setOptions is the ONE seam: it also re-resolves the offered operators, because
 // options' PRESENCE is what makes a filter a pick-list, and a handle taken BEFORE the fill (the
 // bar's editor holds one for the life of the popover) must see the choices land.

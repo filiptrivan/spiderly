@@ -23,7 +23,7 @@ paths:
 - **A call site that wants an animated scroll passes `behavior: 'smooth'` itself; the library sets
   no global `scroll-behavior`** (`html { scroll-behavior: smooth }` was removed 2026-08-29). The
   miss of a global one: it silently applied to every programmatic scroll in every consuming app.
-  With the router's `scrollPositionRestoration: 'top'` (PACMS's admin sets it) each
+  With the router's `scrollPositionRestoration: 'top'` (a consuming admin sets it) each
   route change animated the whole way up through the new page's content, it did the same to
   `anchorScrolling` and native `#fragment` jumps, and it overrode `scrollIntoView({ behavior: 'auto' })`
   at every call site. It also ignored `prefers-reduced-motion`, which nothing in the library guards.

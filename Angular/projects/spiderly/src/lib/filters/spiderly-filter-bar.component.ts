@@ -46,8 +46,8 @@ function spellOptionValue(
  * đ — it is its own letter (U+0111), not a d carrying a mark, so it decomposes to nothing and has
  * to be mapped by hand.
  *
- * It maps to "dj", which is what the rest of this workspace already does (pa-cms's
- * `normalizePlaceQuery` and `toAscii`, the backend's `PlaceNameNormalizer`) and what someone
+ * It maps to "dj", which is what a consuming app's own search already does (its place-name
+ * normalizers, on the client and on the backend) and what someone
  * without a Serbian layout actually types. Mapping it to "d" — as this first shipped — folds
  * "Đorđe" to "dorde", so typing "djordje" finds nothing: the exact case the comment claimed to
  * fix, and one no spec covered because the test used "drzava", which has no đ in it.
@@ -459,7 +459,7 @@ export class SpiderlyFilterBarComponent {
    * that column is visible. That is the whole reason the bar exists.
    *
    * `offered: false` filters stay out — they have a dedicated control of their own on the page
-   * (PACMS's order search box), so the generic entry point would give one question two homes.
+   * (a consuming app's order search box), so the generic entry point would give one question two homes.
    * Their chips still render: the applied list above reads no such flag.
    */
   readonly addable = computed(() => {
@@ -590,7 +590,7 @@ export class SpiderlyFilterBarComponent {
    * `In` is the multi-valued operator, so its chip reads as a list — in the OPTIONS' words, not
    * the wire's: "Status is one of 2, 3" narrates ids nobody chose by number. The lookup is live
    * off the definition rather than snapshotted at commit, because option lists can be filled
-   * asynchronously (PACMS's admin/backend deploy race): a chip restored before the lookup answers
+   * asynchronously (an admin/backend deploy race): a chip restored before the lookup answers
    * upgrades from ids to labels the moment the options land, and a failed lookup degrades to the
    * honest raw value.
    */

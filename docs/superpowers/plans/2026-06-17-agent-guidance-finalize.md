@@ -306,37 +306,37 @@ git commit -m "docs(spiderly-upgrade): run agent-sync to refresh projected guida
 
 ---
 
-## Task 5: Smoke-test the projector against the real consumer (pa-cms)
+## Task 5: Smoke-test the projector against a consuming app (`my-app` below)
 
 **Files:** none (verification only).
 
 **Interfaces:**
-- Consumes: the built CLI (Task 2) and a consumer with the bundle installed at `pa-cms/Frontend/node_modules/spiderly/agent/`.
+- Consumes: the built CLI (Task 2) and a consumer with the bundle installed at `my-app/Frontend/node_modules/spiderly/agent/`.
 
-> **Note:** pa-cms's `node_modules/spiderly` is the *published* package, which won't contain the new split until a release. To smoke-test the *new* projector against the *new* layout now, point the run at the freshly built local bundle, or temporarily copy `Angular/projects/spiderly/agent/` over `pa-cms/Frontend/node_modules/spiderly/agent/`. State which you did in the commit/PR notes.
+> **Note:** my-app's `node_modules/spiderly` is the *published* package, which won't contain the new split until a release. To smoke-test the *new* projector against the *new* layout now, point the run at the freshly built local bundle, or temporarily copy `Angular/projects/spiderly/agent/` over `my-app/Frontend/node_modules/spiderly/agent/`. State which you did in the commit/PR notes.
 
-- [ ] **Step 1: Run agent-sync against pa-cms from source**
+- [ ] **Step 1: Run agent-sync against my-app from source**
 
-Run (cwd = repo root `…/PACMS`):
+Run (cwd = the workspace root `…/workspace`, holding spiderly and the app):
 ```bash
 dotnet run --project spiderly/Spiderly.CLI -- agent-sync
 ```
-…with the working directory set to `pa-cms/` (or pass the project root the CLI expects). Expected: `Synced AGENTS.md docs pointer + 6 skill junction(s) …`.
+…with the working directory set to `my-app/` (or pass the project root the CLI expects). Expected: `Synced AGENTS.md docs pointer + 6 skill junction(s) …`.
 
 - [ ] **Step 2: Verify the AGENTS.md block is the static pointer**
 
-Run: `sed -n '/BEGIN:spiderly/,/END:spiderly/p' pa-cms/AGENTS.md`
+Run: `sed -n '/BEGIN:spiderly/,/END:spiderly/p' my-app/AGENTS.md`
 Expected: the `# Spiderly … browse \`Frontend/node_modules/spiderly/agent/docs/\` …` block — **no** per-skill names, **no** version number.
 
 - [ ] **Step 3: Verify junctions exist for the 6 skills and nothing stale**
 
-Run: `ls pa-cms/.claude/skills`
+Run: `ls my-app/.claude/skills`
 Expected: exactly `spiderly-add-entity  spiderly-deployment  spiderly-ef-migrations  spiderly-report-gap  spiderly-spiderly-upgrade  spiderly-verify-ui` (junctions). No `spiderly-backend-testing` / `spiderly-e2e-testing` (those are docs now — pruned if previously present).
 
 - [ ] **Step 4: Re-run to confirm idempotency**
 
 Run the Step 1 command again.
-Expected: same success line, `(0 stale pruned)`, and `git diff pa-cms/AGENTS.md` shows **no change** — the static block is stable across runs.
+Expected: same success line, `(0 stale pruned)`, and `git diff my-app/AGENTS.md` shows **no change** — the static block is stable across runs.
 
 ---
 
@@ -439,13 +439,13 @@ gh issue close 250 --repo filiptrivan/spiderly
 ## Task 8 (optional, local env): Clean up the dev workspace settings
 
 **Files:**
-- Modify: `…/PACMS/.claude/settings.json` (the workspace umbrella — **not** shipped)
+- Modify: `…/workspace/.claude/settings.json` (the workspace umbrella — **not** shipped)
 
-> Do this only **after** Task 5 confirms junctions work in pa-cms, and only if you want the dev workspace off the plugin too. Removing the marketplace while the bundle isn't published yet means the spiderly consumer skills are available only where junctions exist (pa-cms), not when working inside the spiderly repo itself — which is fine, since you edit those skills at source there.
+> Do this only **after** Task 5 confirms junctions work in my-app, and only if you want the dev workspace off the plugin too. Removing the marketplace while the bundle isn't published yet means the spiderly consumer skills are available only where junctions exist (my-app), not when working inside the spiderly repo itself — which is fine, since you edit those skills at source there.
 
 - [ ] **Step 1: Remove the plugin enable + marketplace**
 
-In `…/PACMS/.claude/settings.json`, delete the `"spiderly@spiderly": true` entry from `enabledPlugins` and the `"spiderly"` entry from `extraKnownMarketplaces`. Save. (No commit needed if this file is gitignored in the umbrella; otherwise commit in the umbrella repo, not spiderly.)
+In `…/workspace/.claude/settings.json`, delete the `"spiderly@spiderly": true` entry from `enabledPlugins` and the `"spiderly"` entry from `extraKnownMarketplaces`. Save. (No commit needed if this file is gitignored in the umbrella; otherwise commit in the umbrella repo, not spiderly.)
 
 ---
 

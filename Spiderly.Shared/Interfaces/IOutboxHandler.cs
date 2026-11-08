@@ -12,13 +12,13 @@ namespace Spiderly.Shared.Interfaces
     /// open-extensible replacement for a hard-coded dispatch switch.</para>
     /// <example>
     /// <code>
-    /// public class WingsExportOutboxHandler : IOutboxHandler
+    /// public class ErpExportOutboxHandler : IOutboxHandler
     /// {
-    ///     public string Code => "WingsExport";
+    ///     public string Code => "ErpExport";
     ///     public Task HandleAsync(string payload, CancellationToken ct)
     ///     {
-    ///         WingsPayload p = JsonSerializer.Deserialize&lt;WingsPayload&gt;(payload);
-    ///         _backgroundJobClient.Enqueue&lt;WingsOrderExportJob&gt;(j =&gt; j.ExportAsync(p.OrderId));
+    ///         ErpPayload p = JsonSerializer.Deserialize&lt;ErpPayload&gt;(payload);
+    ///         _backgroundJobClient.Enqueue&lt;ErpOrderExportJob&gt;(j =&gt; j.ExportAsync(p.OrderId));
     ///         return Task.CompletedTask;
     ///     }
     /// }
