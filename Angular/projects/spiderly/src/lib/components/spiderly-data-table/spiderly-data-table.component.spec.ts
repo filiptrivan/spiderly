@@ -589,7 +589,7 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
   // The backend's PaginatedResultGenerator never emits a sort case for *CommaSeparated collection
   // columns (the same naming convention decides both sides), and unknown sort fields are rejected
   // with a 400 — so the header must not offer the click. Before this rule, clicking such a header
-  // (e.g. an admin SKU column) 500'd: the backend's paginated query crashed on the unknown sort field.
+  // (e.g. an admin SKU column) 500'd on the unknown sort field (2026-08-10, QueryableExtensionsApplySortTests).
 
   @Component({
     imports: [SpiderlyDataTableComponent],

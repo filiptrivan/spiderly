@@ -45,7 +45,7 @@ one definition serves every surface with no branching.
   beside its columns and needs no link between them. `filterId` becomes necessary only when a
   control is placed back into a header cell, i.e. with `spiderlyFilterTemplate`. Build it then.
 - **The schema is DERIVED from what the generated paginator implements, not hand-written.** This is
-  the one gap in the sketch, and it has already bitten twice by hand: `paymentGatewayCode` is `text`
+  the one gap in the sketch, and it has already bitten twice by hand: a string code column is `text`
   rather than `multiselect` because the paginator answers `In` on a string column with
   `InvalidMatchMode`, and `lastCommentText` is `sortable: false` because sorting a projection is a
   400. Today a human not declaring the wrong thing is the only guard; an engine that assembles
@@ -245,7 +245,7 @@ still the design, and this is where it stands against it.
   challenged: `product-review-list` (the moderation view is refused by DATA — the pending
   queue lives in `IsApproved IS NULL`, a question no boolean filter can ask; unblock is
   backend normalization, then the view) and `user-list` (every question there is a lookup,
-  not a recurring cut). `integration-matching-products` builds a store per MODE and nulls its
+  not a recurring cut). One of the app's pages builds a store per MODE and nulls its
   view model on every integration change — the recreation pattern any consumer swapping
   stores needs, because the table reads `[filters]` and derives its state key only in its own
   ngOnInit. With nothing left passing the old shape, wave 1's tail — deleting the legacy

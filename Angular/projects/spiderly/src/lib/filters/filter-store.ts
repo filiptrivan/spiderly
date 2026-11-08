@@ -17,7 +17,7 @@ export interface FilterOption {
 /**
  * A filter declaration. It carries its VALUE type, never a UI control name — that separation is
  * the whole point: `multiselect` is a control, and it emits `In`, which `AllowedMatchModes` allows
- * on a number and forbids on a string. Conflating the two is what shipped `paymentGatewayCode` as
+ * on a number and forbids on a string. Conflating the two is what shipped a consuming app's string code column as
  * a text filter with a hand-written comment instead of a compile error.
  */
 export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKind> {

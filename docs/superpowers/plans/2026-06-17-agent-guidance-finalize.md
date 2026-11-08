@@ -306,7 +306,7 @@ git commit -m "docs(spiderly-upgrade): run agent-sync to refresh projected guida
 
 ---
 
-## Task 5: Smoke-test the projector against a real consumer (`my-app`)
+## Task 5: Smoke-test the projector against a consuming app (`my-app` below)
 
 **Files:** none (verification only).
 

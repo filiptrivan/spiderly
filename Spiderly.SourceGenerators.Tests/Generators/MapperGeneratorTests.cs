@@ -42,7 +42,7 @@ public class MapperGeneratorTests
     // Mapster's convention flattening silently projects a dest prop like "ShippingTierIsBulky"
     // through an OPTIONAL nav (src.ShippingTier.IsBulky) — a LEFT JOIN NULL then crashes the EF
     // shaper on any non-nullable member ("Nullable object must have a value", which
-    // took down an admin order grid in production). Generated configs must strip the strategy, and the
+    // took down an admin order grid in production, fixed 2026-07-28). Generated configs must strip the strategy, and the
     // strongly-typed escape hatch for deliberate custom mappings is a Customize* partial hook
     // per config method — real C#, compiler-checked, null-guards expressible.
     [Fact]

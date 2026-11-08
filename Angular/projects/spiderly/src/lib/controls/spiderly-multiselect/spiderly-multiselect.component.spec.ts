@@ -15,7 +15,7 @@ import { ValidatorAbstractService } from '../../services/validator-abstract.serv
 import { translocoTesting } from '../../testing/spec-support.spec';
 import { SpiderlyMultiSelectComponent } from './spiderly-multiselect.component';
 
-// Mirrors a generated SaveBody class (e.g. IntegrationRuleGroupSaveBody.selectedBrandsIds).
+// Mirrors a generated SaveBody class (e.g. a rule group's `selectedBrandsIds`).
 // The control under test MUST come from BaseFormService.initFormGroup — the defect these
 // specs pin lives in the updateOn mode that factory assigns, so a hand-constructed
 // control would exercise the wrong layer.

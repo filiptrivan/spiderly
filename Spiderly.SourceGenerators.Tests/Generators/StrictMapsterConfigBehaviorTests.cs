@@ -7,7 +7,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 //
 // 1. NewStrictConfig (replicated verbatim from MapperGenerator's emitted helper): removing
 //    ValueAccessingStrategy.FlattenMember stops convention flattening (dest.NavX no longer
-//    silently resolves through src.Nav.X — the crash class that took down an admin order grid) while
+//    silently resolves through src.Nav.X — the crash class MapperGeneratorTests describes) while
 //    exact-name convention and explicit .Map keep working.
 // 2. Precedence the Customize* hook docs promise: .Map is first-registration-wins (a hook
 //    .Map on an already-mapped member is a no-op) and .Ignore beats an earlier .Map.

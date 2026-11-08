@@ -14,7 +14,7 @@ namespace Spiderly.Shared
         /// <summary>Global override applied to handlers that don't declare their own policy. Null (or null fields) keeps the framework default <see cref="OutboxRetryPolicy.Default"/>.</summary>
         public OutboxRetryOptions? Default { get; set; }
 
-        /// <summary>Per-handler-code overrides, keyed by <see cref="IOutboxHandler.Code"/> (e.g. "WingsExport"). An entry wins over both the global <see cref="Default"/> and the handler's code-declared policy.</summary>
+        /// <summary>Per-handler-code overrides, keyed by <see cref="IOutboxHandler.Code"/> (e.g. "ErpExport"). An entry wins over both the global <see cref="Default"/> and the handler's code-declared policy.</summary>
         public Dictionary<string, OutboxRetryOptions> Handlers { get; set; } = new();
 
         /// <summary>Days to keep fully-handled (<c>DispatchedAt</c> set) outbox rows before <c>OutboxRetentionJob</c> purges them. Pending/dead-lettered rows are never purged. Default 30.</summary>

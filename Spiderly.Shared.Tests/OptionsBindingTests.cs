@@ -126,15 +126,15 @@ namespace Spiderly.Shared.Tests
             {
                 ["AppSettings:Spiderly.Shared:Outbox:Default:MaxAttempts"] = "15",
                 ["AppSettings:Spiderly.Shared:Outbox:Default:MaxBackoffMinutes"] = "90",
-                ["AppSettings:Spiderly.Shared:Outbox:Handlers:WingsExport:MaxAttempts"] = "20",
+                ["AppSettings:Spiderly.Shared:Outbox:Handlers:ErpExport:MaxAttempts"] = "20",
             }).GetSection("Outbox").Get<OutboxOptions>()!;
 
             // Default is optional on the options type; this config sets it, so the test can rely on it.
             Assert.Equal(15, options.Default!.MaxAttempts);
             Assert.Equal(90, options.Default.MaxBackoffMinutes);
-            Assert.Equal(20, options.Handlers["WingsExport"].MaxAttempts);
+            Assert.Equal(20, options.Handlers["ErpExport"].MaxAttempts);
             // Unset field stays null so it falls through to the next layer at resolution time.
-            Assert.Null(options.Handlers["WingsExport"].MaxBackoffMinutes);
+            Assert.Null(options.Handlers["ErpExport"].MaxBackoffMinutes);
         }
     }
 }

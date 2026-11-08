@@ -54,8 +54,6 @@ Verified directly against Facebook's live endpoints:
 
 **Decided direction (framework):** implicit `response_type=id_token` via full-page redirect → consumer callback parses the `#id_token` fragment (and strips it via `history.replaceState`) → POST to `LoginExternalWithCookies` (session cookie lands on the POST response, so no cross-site redirect-cookie bounce). Facebook is a **second provider on the same storefront id-token front door as Google** — *not* a new mechanism, and *not* the `debug_token` custom provider that decision 2 once implied. Framework deltas: the `["facebook"] = "https://www.facebook.com"` preset, `ExternalProviderConfig.TrustEmailVerified`, `ExternalProviderConfig.ShowInProviderList` (a storefront-only provider with a hardcoded button opts out of the admin-facing `GetExternalProviders` list while still being validated), and `ApiErrorCodes.ExternalEmailMissing`.
 
-The consumer's own specifics (markets, storefront button + `provider` plumbing, Facebook app + go-live checklist) live in the consuming app, not here.
-
 ## Operational lessons (2026-06-10 — stale-binary incident + security re-grill)
 
 Two durable conclusions, recorded so they aren't re-derived.
