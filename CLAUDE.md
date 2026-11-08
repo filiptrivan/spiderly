@@ -6,7 +6,7 @@ Review a Spiderly or spiderly-website change against `CODING_STANDARDS.md` as we
 
 Spiderly is a fast-moving startup: make breaking changes freely.
 
-Spiderly is a framework for any app, not for one, even while PACMS is its only user: code, a name, a setting or a rule belongs here only if any Spiderly app could use it as it stands, and a consumer's own policy stays in the consumer. For example, PACMS banning `DateTime.UtcNow` stays in PACMS, while the `TimeProvider` that the stamps read is Spiderly's (Filip, 2026-10-21).
+Spiderly is a framework for any app, not for one, even while one app is its only user: code, a name, a setting or a rule belongs here only if any Spiderly app could use it as it stands, and a consumer's own policy stays in the consumer. For example, an app banning `DateTime.UtcNow` keeps that ban, while the `TimeProvider` that the stamps read is Spiderly's (Filip, 2026-10-21). This repo is public and names no app that uses it: an example or a regression says "a consuming app" (Filip, 2026-11-08).
 
 Every feature must be drivable by an AI agent without human intervention: the design principles are the `ai-agentic-design` skill (`.claude/skills/ai-agentic-design/SKILL.md`), contributor-only, so outside the consumer-shipped `claude-plugins/skills/`.
 

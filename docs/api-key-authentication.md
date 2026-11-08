@@ -1,13 +1,13 @@
 # API key authentication — Design
 
 > Status: **PROPOSED.** Models an API key as a first-class `ISecurityPrincipal` (a new `PrincipalKinds.ApiKey`) rather than a credential that resolves to a `User` with a capped role. This doc records *why* the principal model is the idiomatic fit, the compiled-framework vs. init-template split, and the behavior changes consumers must accept.
-> Reference implementation being extracted from: PACMS (`prodavnicaalata.rs`), which built API keys the non-principal way (middleware + an `AuthorizationService` role-cap via `HttpContext.Items`) before the principal model existed.
+> Reference implementation being extracted from: a consuming app, which built API keys the non-principal way (middleware + an `AuthorizationService` role-cap via `HttpContext.Items`) before the principal model existed.
 
 ## Problem
 
 An external client (a partner integration, a CI bot, an AI agent that manages store data) needs to authenticate to a Spiderly app's REST API without going through the interactive email-code login. The standard mechanism is a long-lived secret presented in an `X-Api-Key` header, mapped to a set of permissions.
 
-The naive implementation — the one PACMS shipped — treats the key as a way to **impersonate a user**: look the key up, resolve its owning `User`, set that user as the principal, and optionally *cap* the user's permissions to a role attached to the key. That works, but it fights the framework:
+The naive implementation — the one that app shipped — treats the key as a way to **impersonate a user**: look the key up, resolve its owning `User`, set that user as the principal, and optionally *cap* the user's permissions to a role attached to the key. That works, but it fights the framework:
 
 - It needs a parallel "role cap" path (`IsAllowedByApiKeyRole`) bolted onto every `AuthorizationService` authorize method, fed by a stringly-typed `HttpContext.Items["ApiKeyPermissionCodes"]` side channel set in a bespoke middleware that runs *before* `UseAuthentication`.
 - It conflates the key's actions with the owning user's actions (audit, attribution).
@@ -40,7 +40,7 @@ App-agnostic plumbing, written once. **`Spiderly.Shared` cannot reference `Spide
 | `ApiKeyAuthenticationDefaults` / `Options` / `Handler` | A real ASP.NET `AuthenticationHandler` for the `ApiKey` scheme. Reads `X-Api-Key`, hashes it, calls the authenticator, and on success issues a ticket carrying `NameIdentifier = apiKeyId` + `principal_kind = ApiKey`. No permission lookup here — permissions resolve later through the registry. |
 | `AddSpiderlyApiKeyAuthentication<TAuthenticator>()` | Registers the authenticator, the `ApiKey` scheme, and a **forwarding policy scheme** set as the default authenticate/challenge scheme: it forwards to `ApiKey` when the `X-Api-Key` header is present, else to the JWT `Bearer` scheme. So existing `[Authorize]`/`[AuthGuard]` endpoints accept either credential with no per-endpoint change. |
 
-Why a real auth scheme instead of PACMS's middleware: it composes with `UseAuthentication()`, is independently testable, and removes the "runs before auth, sets `context.User` by hand" fragility.
+Why a real auth scheme instead of that app's middleware: it composes with `UseAuthentication()`, is independently testable, and removes the "runs before auth, sets `context.User` by hand" fragility.
 
 ### Layer 2 — opt-in scaffolding (added on demand, NOT baked into every `init`)
 

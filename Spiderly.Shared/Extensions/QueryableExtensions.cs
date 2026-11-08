@@ -26,9 +26,9 @@ namespace Spiderly.Shared.Extensions
         {
             // "Already ordered" is decided on the EXPRESSION TREE's static type — the layer Queryable.ThenBy*
             // validates. The runtime object cannot answer it: EF's EntityQueryable and LINQ's EnumerableQuery
-            // implement IOrderedQueryable<T> whether ordered or not (Sentry BACKEND-RS-1F). The cast is safe
-            // by construction — an ordered expression type only arises from an OrderBy/ThenBy call, whose own
-            // return cast already proved the runtime type.
+            // implement IOrderedQueryable<T> whether ordered or not (a 500 in production on an unknown sort
+            // field, 2026-08-10). The cast is safe by construction — an ordered expression type only arises
+            // from an OrderBy/ThenBy call, whose own return cast already proved the runtime type.
             if (!isFirst && typeof(IOrderedQueryable<T>).IsAssignableFrom(query.Expression.Type))
             {
                 IOrderedQueryable<T> ordered = (IOrderedQueryable<T>)query;

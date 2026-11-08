@@ -64,7 +64,7 @@ internal static class GeneratorTestHarness
     /// <summary>
     /// Builds a compilation whose entities live in a *referenced* compilation rather than its own source — the
     /// metadata path exercised by <see cref="Spiderly.SourceGenerators.Shared.ReferencedAssemblyAnalyzer"/> (e.g.
-    /// PACMS.WebAPI referencing PACMS.Business). <paramref name="referencedSource"/> is compiled to its own assembly
+    /// an app's WebAPI project referencing its Business project). <paramref name="referencedSource"/> is compiled to its own assembly
     /// and attached via <see cref="Compilation.ToMetadataReference"/>, so the analyzer sees real symbols (a generic
     /// base like <c>BusinessObject&lt;long&gt;</c>, <c>List&lt;Foo&gt;</c> properties) exactly as it would in a build.
     /// Unlike the inline tests, the referenced source must actually compile, so it declares the marker attributes and

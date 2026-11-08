@@ -19,7 +19,7 @@ namespace Spiderly.SourceGenerators.Tests.Infrastructure;
 /// text-pin tests structurally cannot see. Two shipped defects motivated it, both invisible to "the
 /// generated text contains line X": <c>ApplySort</c>'s runtime-type guard that could never fire on a
 /// real provider, and the Id tie-breaker running <c>isFirst: false</c> after a client sort matched no
-/// case (Sentry BACKEND-RS-1F, 2026-08-10 — a 500 on any unknown sort field).
+/// case (2026-08-10, a production 500 on any unknown sort field).
 /// <para>
 /// The provider must be EF, not <c>EnumerableQuery</c>: <c>Build</c> ends in <c>CountAsync()</c>,
 /// which needs an async query provider. Compilation + emit happen once (<see cref="Lazy{T}"/>) via

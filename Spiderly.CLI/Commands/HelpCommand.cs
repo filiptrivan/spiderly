@@ -121,7 +121,7 @@ namespace Spiderly.CLI.Commands
                     {
                         "spiderly agent-sync",
                         "spiderly agent-sync --agent-root .. --save",
-                        "spiderly agent-sync --project-root pa-cms"
+                        "spiderly agent-sync --project-root my-app"
                     }
                 }
             };

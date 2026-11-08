@@ -5,7 +5,7 @@ description: How Spiderly localizes Angular admin-panel UI strings — labels, b
 
 # Frontend Localization
 
-The Spiderly Angular admin panel localizes every user-facing string through **Transloco**. Translation files are flat key→value JSON, one per language, imported into the build: each becomes a content-hashed chunk that ships with the code reading its keys, loaded when Transloco first needs the language. Never hardcode user-facing English in a template; route it through a translation key so it localizes with the rest of the panel (e.g. a PACMS app runs entirely in Serbian).
+The Spiderly Angular admin panel localizes every user-facing string through **Transloco**. Translation files are flat key→value JSON, one per language, imported into the build: each becomes a content-hashed chunk that ships with the code reading its keys, loaded when Transloco first needs the language. Never hardcode user-facing English in a template; route it through a translation key so it localizes with the rest of the panel (e.g. an app on Spiderly that runs entirely in Serbian).
 
 This is a **separate system from the backend**: a string shown by the API (a `BusinessException` message) is translated on the .NET side via `IStringLocalizer` (see the **backend-localization** skill); a string rendered by the admin UI is translated here.
 
