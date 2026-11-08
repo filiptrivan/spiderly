@@ -1,0 +1,27 @@
+diff --git a/.github/workflows/size-cap.yml b/.github/workflows/size-cap.yml
+new file mode 100644
+index 00000000..03f37159
+--- /dev/null
++++ b/.github/workflows/size-cap.yml
+@@ -0,0 +1,21 @@
++name: Size cap
++
++# The Size cap over the whole tree on each push and pull request, by ci-workflows' reusable
++# size-cap.yml. It catches what .githooks/pre-commit cannot: a commit made with --no-verify, or in a
++# clone without the hooks or without ci-workflows beside it.
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++# No concurrency group that cancels: the next push compares its list with this push's tip, so a
++# cancelled run would leave this push's added lines unjudged.
++
++permissions:
++  contents: read
++
++jobs:
++  size-cap:
++    uses: filiptrivan/ci-workflows/.github/workflows/size-cap.yml@main
