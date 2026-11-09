@@ -17,7 +17,7 @@ export interface FilterOption {
 /**
  * A filter declaration. It carries its VALUE type, never a UI control name — that separation is
  * the whole point: `multiselect` is a control, and it emits `In`, which `AllowedMatchModes` allows
- * on a number and forbids on a string. Conflating the two is what shipped `paymentGatewayCode` as
+ * on a number and forbids on a string. Conflating the two is what shipped a consuming app's string code column as
  * a text filter with a hand-written comment instead of a compile error.
  */
 export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKind> {
@@ -168,7 +168,7 @@ export function operatorOptionsForKind(
  * The operator applied when nobody picked one, which has to be what a person MEANS by filling in
  * the control. `Contains` for a fragment typed into a box; `GreaterThan` for a date, never
  * `Equals` — a date equality against a TIMESTAMP matches only the row written in that exact
- * second, and answers with an empty grid rather than an error (PACMS ran into this on all three
+ * second, and answers with an empty grid rather than an error (a consuming app ran into this on all three
  * of its date columns, Filip 2026-08-28).
  */
 export const DEFAULT_OPERATOR = {
@@ -196,14 +196,14 @@ interface ValueByKind {
  * (a dynamically built array). The store still accepts every wire-legal operator on restore, so
  * an old persisted constraint keeps filtering: the narrowing shapes the controls, not the
  * contract. The forcing case: date-equality against a timestamp matches one second and answers
- * with an empty grid, so PACMS's order dates offer only "posle"/"pre".
+ * with an empty grid, so a consuming app's order dates offer only "posle"/"pre".
  */
 interface FilterConfig<TKind extends FilterValueKind> {
   label: string;
   operators?: AllowedOperatorFor<TKind>[];
   /**
    * `false` keeps the filter out of the bar's "+ Filter" menu — for a filter with a DEDICATED
-   * control somewhere on the page (PACMS's order search box is a placement of the store's
+   * control somewhere on the page (a consuming app's order search box is a placement of the store's
    * `mixedSearch`), where the generic entry point would give one question two homes. The chip
    * still renders when the filter is applied, so the bar's claim to list every constraint holds.
    */
@@ -398,7 +398,7 @@ function isBlank(value: unknown): boolean {
  * Whether two constraint values are the same QUESTION. Identity is not it: every `set` builds a
  * fresh draft, a multiselect hands back a fresh array per change, and two Dates at one instant
  * are one constraint. This is what `commit` bails on, so a paste-over-itself or a double Apply
- * cannot spend a request — the rule PACMS's order list used to hand-roll as `lastCommittedTerm`.
+ * cannot spend a request — the rule a consuming app's order list used to hand-roll as `lastCommittedTerm`.
  */
 function valueEquals(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -527,7 +527,7 @@ export function createFilterStore<
         value: computed(() => drafts().get(id)?.value),
         operator: computed(() => drafts().get(id)?.operator),
         // Getters, not snapshots: options can land AFTER a handle is taken — the bar's editor
-        // holds one for the life of the popover, and PACMS fills its lookups asynchronously —
+        // holds one for the life of the popover, and an app may fill its lookups asynchronously —
         // and a snapshot left an already-open pick-list empty until it was reopened. The
         // operator list rides along, since setOptions can flip it to `In`.
         get operators() {
@@ -547,7 +547,7 @@ export function createFilterStore<
     },
 
     /**
-     * The ONE seam for choices that arrive after the store is built (PACMS fills its pick-lists
+     * The ONE seam for choices that arrive after the store is built (a consuming app fills its pick-lists
      * from lookups that race a deploy). Never write `definitions[id].options` by hand: options'
      * PRESENCE is what makes a filter a pick-list, so the setter also re-resolves the offered
      * operators — a hand write would leave a late-filled filter offering `Equals` on a control

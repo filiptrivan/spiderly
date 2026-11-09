@@ -249,8 +249,8 @@ export class SpiderlyDataTableComponent
    * READ ONCE, in ngOnInit — a store assigned later is silently ignored: the requery effect
    * stays subscribed to the first store's `applied()`, and `resolvedStateKey` (which
    * `additionalFilterIdLong` feeds) is never re-derived either. A consumer that must swap
-   * stores at runtime destroys and recreates the table around the swap — PACMS
-   * `integration-matching-products` nulls its view model for exactly this. Teaching
+   * stores at runtime destroys and recreates the table around the swap — a consuming
+   * app's page that swaps them nulls its view model for exactly this. Teaching
    * ngOnChanges to re-arm both is the open upstream fix.
    */
   @Input() filters?: FilterSource;

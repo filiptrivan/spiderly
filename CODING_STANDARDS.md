@@ -110,6 +110,17 @@ regressions, but only for code paths the fixture exercises: commit `96ad6b9` rem
 `IFileManager` slot but missed adding `services.AddTransient<DiskStorageService>()` to the
 template, and every freshly init'd app crashed on the first save of a `[DiskStorage]` property.
 
+## A docs page keeps its URL
+
+Search engines and other sites link to spiderly-website's published pages, so a docs page that
+answers 404 loses its search rank and the readers those links bring. A spiderly-website diff that
+renames, moves or deletes a page under `content/docs/` adds a permanent redirect from its old URL in
+`next.config.mjs` `redirects()`, to the page that now holds its content, or for a page deleted
+outright to the nearest one on its subject (`/docs/entity-validation` → `/docs/validation`). No
+check pins it (read 2026-11-03): the code-owner review on `next.config.mjs` (spiderly-website
+`.github/CODEOWNERS`) reaches the maintainer only when a diff touches that file, and a page deleted
+without a redirect never does.
+
 ## Versions
 
 A diff leaves every version as it is, a breaking change's included: `.github/workflows/release.yml`

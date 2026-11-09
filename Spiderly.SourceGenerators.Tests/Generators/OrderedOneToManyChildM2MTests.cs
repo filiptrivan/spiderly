@@ -9,7 +9,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// Pins that multi-control M2M selections on a [UIOrderedOneToMany] CHILD are applied when the child is
 /// saved through its PARENT's save — the only save path the generated UI actually uses for ordered
 /// children (their multiselects render inline on the parent form; nothing routes to the child's own
-/// standalone save). Regression: PACMS IntegrationRuleGroup.Brands/Categories/Tags — the admin selected
+/// standalone save). Regression: a rule group's Brands/Categories/Tags — the admin selected
 /// brands on an integration's rule group, Save returned 200, and the selections were silently dropped:
 /// the ordered-children loop saved the child via the scalars-only Save{Child}AndReturnDTO and emitted the
 /// ComplexManyToManyList updates but not the MultiSelect/MultiAutocomplete ones, and its response DTO
@@ -18,7 +18,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 public class OrderedOneToManyChildM2MTests
 {
     /// <summary>
-    /// The PACMS shape, reduced: ordered child (BoardLane) carrying one MultiSelect M2M (Labels) and one
+    /// That shape, reduced: ordered child (BoardLane) carrying one MultiSelect M2M (Labels) and one
     /// MultiAutocomplete M2M (Members), each over a keyless [M2M] junction.
     /// </summary>
     private const string OrderedChildWithMultiControlM2MSource = """

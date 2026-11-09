@@ -212,7 +212,7 @@ namespace Spiderly.Infrastructure.Tests
 
             // Two contexts load the same row at Version 1. The first save wins (→ Version 2);
             // the second saves against the now-stale Version 1 → 0 rows matched → concurrency throw.
-            // This is the exact mechanism pa-cms's stock-decrement oversell protection rests on.
+            // This is the exact mechanism a consuming app's stock-decrement oversell protection rests on.
             using TestDbContext ctxA = NewContext(connection);
             using TestDbContext ctxB = NewContext(connection);
 

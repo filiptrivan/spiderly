@@ -5,7 +5,7 @@ import { Directive, ElementRef, NgZone, OnDestroy, inject } from '@angular/core'
  * arrives, which is the only moment a native title can surface.
  *
  * The data table clamps a default cell to one line (see the `.cell-text` rule), which hides the
- * value and, before this, offered nothing to read it with — the reason PACMS hand-added `[title]`
+ * value and, before this, offered nothing to read it with — the reason a consuming app hand-added `[title]`
  * on four cells of one grid. Wrapping the column is a choice someone makes; this covers the
  * default nobody touched.
  *

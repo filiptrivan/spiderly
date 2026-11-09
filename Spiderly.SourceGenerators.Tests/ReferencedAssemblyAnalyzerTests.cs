@@ -7,8 +7,8 @@ using Spiderly.SourceGenerators.Tests.Infrastructure;
 namespace Spiderly.SourceGenerators.Tests;
 
 /// <summary>
-/// Covers the referenced-assembly (metadata) path — entities in a referenced project, as in PACMS.WebAPI
-/// referencing PACMS.Business. The inline generator tests only exercise the in-project syntax path, so this
+/// Covers the referenced-assembly (metadata) path — entities in a referenced project, as in an app's WebAPI
+/// project referencing its Business project. The inline generator tests only exercise the in-project syntax path, so this
 /// symbol-to-string conversion was untested and shipped two bugs:
 ///   1. a generic base <c>BusinessObject&lt;long&gt;</c> was mangled to <c>BusinessObject&lt;long</c> (closing
 ///      bracket stripped), so <see cref="Extensions.GetIdType"/> read the PK type as "BusinessObject" and threw a

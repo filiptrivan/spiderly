@@ -589,7 +589,7 @@ describe('SpiderlyDataTableComponent — CommaSeparated columns are not sortable
   // The backend's PaginatedResultGenerator never emits a sort case for *CommaSeparated collection
   // columns (the same naming convention decides both sides), and unknown sort fields are rejected
   // with a 400 — so the header must not offer the click. Before this rule, clicking such a header
-  // (e.g. an admin SKU column) 500'd: Sentry BACKEND-RS-1F.
+  // (e.g. an admin SKU column) 500'd on the unknown sort field (2026-08-10, QueryableExtensionsApplySortTests).
 
   @Component({
     imports: [SpiderlyDataTableComponent],
@@ -2230,7 +2230,7 @@ class HostWithTwoColumnsComponent {
 }
 
 // The consumer shape the wrap contract exists for: a projected template whose markup clamps
-// itself, deferring to the cell custom properties the way pa-cms's order grid does.
+// itself, deferring to the cell custom properties the way a consuming app's order grid does.
 @Component({
   imports: [SpiderlyDataTableComponent, SpiderlyCellTemplateDirective],
   template: `
@@ -2373,7 +2373,7 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
   });
 
   // The toggle must reach a PROJECTED cell too, or it is a silent no-op on a fully-templated
-  // table (the PACMS orders grid). How it crosses the encapsulation boundary: the td.cell-wrap
+  // table (a consuming app's orders grid). How it crosses the encapsulation boundary: the td.cell-wrap
   // rule in this component's SCSS, which is the contract's one telling. Toggle-off is not
   // re-driven here — the class coming off the td is pinned by "unwraps on a second click" above,
   // and the fallback clamp is what the first assertion already measures.
@@ -2577,8 +2577,8 @@ class HostWithACrampedColumnComponent {
     ]);
 }
 
-// The clamp hides the value and, until now, offered nothing to read it with — which is why PACMS
-// hand-added [title] in four places. Wrapping is a choice someone makes; this is for the default
+// The clamp hides the value and, until now, offered nothing to read it with — which is why a consuming
+// app hand-added [title] in four places. Wrapping is a choice someone makes; this is for the default
 // nobody touched (CLAUDE.md -> decision 9). Only when it actually overflows: a title on a cell
 // that fits is noise on every hover across a dense grid, which is what got the SKU tooltip
 // removed in the first place.
@@ -4196,7 +4196,7 @@ describe('SpiderlyDataTableComponent — a store table default-sorts by a hidden
 // that blob can still hold constraint meta. Under the store those constraints never reach a
 // request (the payload replaces them), so revealing a hidden column for them resurrects a phantom
 // — and on a localStorage table it does so on EVERY load, because nothing ever rewrites the stale
-// blob. PACMS's order list is exactly this: stateStorage 'local', operators with weeks of
+// blob. A consuming app's order list was exactly this: stateStorage 'local', operators with weeks of
 // header-filter state.
 describe('SpiderlyDataTableComponent — a store table ignores stale header-filter state', () => {
   it('does not reveal a hidden column for persisted header-filter meta', () => {

@@ -1,0 +1,11 @@
+#!/bin/sh
+# The Ticket: trailer: on an Agent box each commit a ticket's session makes names its ticket in a
+# `Ticket: <repo>#<n>` trailer, the field the box's listings read a commit's ticket from. The box's
+# provisioning sets `agentbox.trailer` to the command that writes it, handed this hook's arguments
+# (githooks(5): the message file, its source, a commit); where it is unset, as in every clone
+# outside an Agent box, this does nothing. It never refuses the commit: a commit holds work, its
+# trailer only whose it is, so a trailer not written is said and the commit goes on.
+# Word for word the same file in every repo that carries it: change them all.
+trailer="$(git config --get agentbox.trailer)" || exit 0
+[ -n "$trailer" ] || exit 0
+eval "$trailer \"\$@\"" || echo "prepare-commit-msg: no Ticket: trailer written; the commit goes on without one" >&2

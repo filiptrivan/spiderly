@@ -11,8 +11,8 @@ namespace Spiderly.Infrastructure.Tests
         /// loaded. A consumer's test suite builds models and lists entities on one thread while another
         /// thread emits a mock, so discovery that loads that assembly's types threw
         /// <see cref="ReflectionTypeLoadException"/> ("Could not load type
-        /// 'Castle.Proxies.AuthorizationServiceProxy' from assembly 'DynamicProxyGenAssembly2'", PACMS,
-        /// 2 of 111 hermetic runs, 2026-09-29). The unfinished type below holds that state for the whole
+        /// 'Castle.Proxies.AuthorizationServiceProxy' from assembly 'DynamicProxyGenAssembly2'", a
+        /// consuming app's suite, 2 of 111 hermetic runs, 2026-09-29). The unfinished type below holds that state for the whole
         /// call instead of for a race's window.
         /// </summary>
         [Fact]

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Landing: on an Agent box each commit moves onto the session's own branch, pushed with its draft
+# pull request. The box's provisioning sets `agentbox.land` to the command that does it; where it is
+# unset, as in every clone outside an Agent box, this does nothing. Here because the hooks path
+# (`git config core.hooksPath .githooks`) turns off the copy of this hook the box writes into `.git/hooks`.
+# A post-commit hook cannot undo its commit: what landing says is the only signal.
+land="$(git config --get agentbox.land)" || exit 0
+[ -n "$land" ] || exit 0
+eval "$land"
