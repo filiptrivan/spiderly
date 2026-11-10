@@ -170,8 +170,9 @@ namespace {{basePartOfNamespace}}.Filtering
                 // Unknown filter/sort fields THROW (400) instead of silently no-opping — a silently
                 // ignored filter returns UNFILTERED rows the caller treats as filtered, and a silently
                 // ignored sort left the query unordered under the Id tie-breaker's isFirst: false
-                // (the BACKEND-RS-1F 500). Hand-written overrides that consume pseudo filter keys must
-                // Filters.Remove(...) them before delegating to the generated base.
+                // (a 500 in production, 2026-08-10: see QueryableExtensionsApplySortTests). Hand-written
+                // overrides that consume pseudo filter keys must Filters.Remove(...) them before delegating
+                // to the generated base.
                 sb.AppendLine($$"""
                             default:
                                 throw PaginationErrors.UnknownFilterField(filter.Key, "{{JoinForErrorMessage(filterableFields)}}");

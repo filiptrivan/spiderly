@@ -10,7 +10,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// deliberately emit placeholder junction DTOs (null FKs, null additional columns) for every
 /// other-side entity without a record, and the generated form posts them back verbatim — so the
 /// generated Update method must treat all-null rows as "no record" and must never read the
-/// current-side FK from the DTO (the id parameter is the truth). Regression: PACMS SaveProduct
+/// current-side FK from the DTO (the id parameter is the truth). Regression: saving a product-like entity
 /// 500'd with "Nullable object must have a value" on dto.ProductVariantId.Value for exactly
 /// such a placeholder row.
 /// </summary>
@@ -18,7 +18,7 @@ public class ComplexManyToManyListTests
 {
     /// <summary>
     /// A [ComplexManyToManyList] over a KEYLESS [M2M] junction carrying one payload column — the shape
-    /// PACMS ships as ProductVariant -> ProductVariantWarehouse(Stock).
+    /// a consuming app ships as ProductVariant -> ProductVariantWarehouse(Stock).
     /// </summary>
     private const string KeylessJunctionWithPayloadSource = """
         using System.Collections.Generic;

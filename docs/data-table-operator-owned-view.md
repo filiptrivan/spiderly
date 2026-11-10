@@ -1,7 +1,7 @@
 # Data table: the operator-owned view — Design
 
 > Status: **SHIPPED IN FULL, legacy path DELETED (2026-09-05).** Every decision below is built, all
-> 27 PACMS tables carry a store, and the legacy header-filter path (`p-columnFilter`, the projected
+> 27 tables of the consuming app carry a store, and the legacy header-filter path (`p-columnFilter`, the projected
 > filtericon, Apply/hideOnClear, match-mode narrowing, the "hidden contributes nothing" trio,
 > `Column.filterField`/`filterPlaceholder`/`matchModes`/per-column `showAddButton`) is gone — a
 > table handed no store now has NO filter surface at all. This note stays as the decision record;
@@ -18,7 +18,7 @@
 **The premise that broke.** Every presentational knob on this grid is set by whoever writes
 `Column[]`: which columns show, their width, their order, whether a value is clamped — and, because
 `clearHiddenColumnConstraints` drops a hidden column's constraints, which filters an operator may
-even use. The operator gets no say. Five complaints landed in one sitting against the PACMS orders
+even use. The operator gets no say. Five complaints landed in one sitting against a consuming app's orders
 grid, and they are one feature rather than five: **presentation belongs to the operator, the data
 contract stays with the developer.**
 
@@ -41,11 +41,11 @@ one definition serves every surface with no branching.
   across 27 files, where a silent name miss is the worst failure mode on offer.
 - **`Column.filterId` is NOT built yet, deliberately (2026-09-04). [Superseded: it shipped with
   the header menu's `Filter…` — see "What has shipped".]** With the bar owning every
-  filter, no column references one: the first migration (PACMS `tag-list`) declares its store
+  filter, no column references one: the first migration (the app's tag list) declares its store
   beside its columns and needs no link between them. `filterId` becomes necessary only when a
   control is placed back into a header cell, i.e. with `spiderlyFilterTemplate`. Build it then.
 - **The schema is DERIVED from what the generated paginator implements, not hand-written.** This is
-  the one gap in the sketch, and it has already bitten twice by hand: `paymentGatewayCode` is `text`
+  the one gap in the sketch, and it has already bitten twice by hand: a string code column is `text`
   rather than `multiselect` because the paginator answers `In` on a string column with
   `InvalidMatchMode`, and `lastCommentText` is `sortable: false` because sorting a projection is a
   400. Today a human not declaring the wrong thing is the only guard; an engine that assembles
@@ -76,11 +76,11 @@ second API, so the injectable path is equal, not a fallback: documented and test
   `@angular/core ^19.2.0`), so our own breaking changes have no major slot to land in.
 - **What keeps the 27-table migration incremental is the SHAPE of the input, not a flag.** A table
   handed a filter store renders the bar; a table handed none keeps its `Column.filterType` header
-  filters. PACMS then migrates a table at a time against one published version, and the legacy path
+  filters. The consuming app then migrates a table at a time against one published version, and the legacy path
   is deleted once nothing passes the old shape — self-removing, with no branch anyone must remember
   to flip. A big-bang migration was rejected because this is NOT mechanical work: each table needs
   the filter-only / filter-mostly / display split made by judgement, and that has so far been done
-  for exactly one of the 27 (PACMS's order list, its `buildColumns`).
+  for exactly one of the 27 (the app's order list, its `buildColumns`).
 
 **2b. What the chip bar carries**, unchanged from the first form of this record: a chip per applied
 filter, one chip for the multi-sort with its priority spelled out, and a result count
@@ -148,7 +148,7 @@ column turns 25 rows into a saw edge — the cost `.cell-text`'s own comment alr
 Verified 2026-09-02 against the tools we measure against: Airtable's grid defaults to "Short", one
 line, truncated, with row height as a view-bar control; Notion's table truncates and puts `Wrap text`
 in the per-column header menu, the same place decision 3 puts it. What WAS broken is that
-`#defaultCell` sets no `title`, so a clamped value had no recovery path at all — which is why PACMS
+`#defaultCell` sets no `title`, so a clamped value had no recovery path at all — which is why the app
 hand-added `[title]` in four places. Fix: a directive setting a native `title` only when
 `scrollWidth > clientWidth` (a `ResizeObserver`; not a blanket title, because a tooltip on a cell
 that fits is noise, and `pTooltip` was already rejected for firing as the cursor crosses a dense
@@ -170,14 +170,14 @@ still the design, and this is where it stands against it.
   a column header menu carrying Hide, Wrap and Move left/right; per-column wrap, order and width
   persisted by `field` under `${resolvedStateKey}:layout` (decisions 5, 7); resize by dragging a
   header edge, trading share with the neighbour (decision 4); `resetColumnLayout` undoing all of
-  it. PACMS `tag-list` is the first table on the bar.
+  it. The app's tag list is the first table on the bar.
   The header menu is complete at six items: `Filter…`, sort ascending/descending, move
   left/right, fit width, wrap text, hide column. `Column.filterId` exists now — decision 1 left
   it unbuilt until something asked, and `Filter…` asked.
   Decision 9's `title`-on-overflow directive shipped too (`SpiderlyOverflowTitleDirective`).
   Header drag (decision 6), the frozen left edge (decision 8), `spiderlyFilterTemplate` and
   views (decision 10) all shipped too — every decision in this record is now built. Decision
-  10's SORT half arrived last (2026-09-05, for PACMS's "Poslate, oldest first" order view):
+  10's SORT half arrived last (2026-09-05, for the app's "shipped, oldest first" order view):
   `TableView.sort` declares a view's ordering, the tri-state un-sort lands on it
   instead of the table default (`defaultMultiSortMeta` is view-aware now), and the operator's
   own sort persists per view under `…:<viewId>:sort` — written only by explicit gestures, so a
@@ -202,8 +202,8 @@ still the design, and this is where it stands against it.
   orderings. The bar decides the direction so the owner applies what the menu showed;
   `sortFromBar`/`resetSortFromBar` reuse the header-menu contract.
   **The declared-COLUMNS half shipped 2026-10-11 (spiderly#431).** The trigger this record
-  named arrived: PACMS's order views needed a "Zašto" column on eight work lists, in the place
-  of a column the catch-all views keep (the first signal was "Poslate" shipping `deliveredAt`
+  named arrived: the app's order views needed a "why" column on eight work lists, in the place
+  of a column the catch-all views keep (the first signal was its "shipped" view shipping `deliveredAt`
   `visible: false` and telling operators to add it by hand). `TableView.columns` is a
   field → visible map, resolved per field as operator override ?? the view's `columns` ??
   `Column.visible` (`isDeclaredVisible` is the middle rung), so the override stays a delta
@@ -233,9 +233,9 @@ still the design, and this is where it stands against it.
     `NgDetailsDataGenerator` scaffolds a store for them — the generator stopped emitting the
     header-filter props, and scaffolding a store there (options plumbing for dropdown columns
     included) is its own upstream piece of work — spiderly#407, which also carries the
-    `Column.showMatchModes` bridge-prop cleanup. The only PACMS instance is the Cart items
+    `Column.showMatchModes` bridge-prop cleanup. The app's only instance is its cart items
     readonly grid (2 columns).
-- **The consumer migration is COMPLETE — all 27 PACMS tables carry a store (2026-09-05).**
+- **The consumer migration is COMPLETE — all 27 tables of the consuming app carry a store (2026-09-05).**
   Three earned views: `tag-list` (three), `order-list` (the table the rework was argued from:
   17 filters, six views — a catalog-driven "Za pakovanje" hidden mid-deploy while no row
   claims it, a transient "Danas primljene" — and the search box as a placement of the store's
@@ -245,7 +245,7 @@ still the design, and this is where it stands against it.
   challenged: `product-review-list` (the moderation view is refused by DATA — the pending
   queue lives in `IsApproved IS NULL`, a question no boolean filter can ask; unblock is
   backend normalization, then the view) and `user-list` (every question there is a lookup,
-  not a recurring cut). `integration-matching-products` builds a store per MODE and nulls its
+  not a recurring cut). One of the app's pages builds a store per MODE and nulls its
   view model on every integration change — the recreation pattern any consumer swapping
   stores needs, because the table reads `[filters]` and derives its state key only in its own
   ngOnInit. With nothing left passing the old shape, wave 1's tail — deleting the legacy
@@ -275,9 +275,9 @@ still the design, and this is where it stands against it.
 
 ## Rollout
 
-**Rollout, three waves, each a spiderly release plus a PACMS upgrade.** (1) The filter engine, the
+**Rollout, three waves, each a spiderly release plus a consumer upgrade.** (1) The filter engine, the
 slot directive and the chip bar — decisions 1, 2 and 2b, with 9's `title` directive as a rider, and
-the 27 PACMS tables migrated one at a time across it. (2) Header menu, chooser drag list, own reorder directive,
+the consuming app's 27 tables migrated one at a time across it. (2) Header menu, chooser drag list, own reorder directive,
 field-keyed width/order/wrap persistence, frozen edge — decisions 3 to 9. (3) Views — decision 10.
 **Wave 3 is not optional.** Without it, waves 1 and 2 are a pile of knobs an operator re-sets by hand
 every morning, and the smaller honest plan (the `title` directive, a two-item header menu, and a bare

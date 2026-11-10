@@ -14,7 +14,7 @@ import { HttpErrorResponse } from '@angular/common/http';
  * console is a developer surface; a user never sees it.
  *
  * An error tracker plugs in by providing an `ErrorHandler` that reports and then delegates here,
- * which keeps this class's toast copy true (see the PACMS admin's `AdminErrorHandler`).
+ * which keeps this class's toast copy true.
  */
 @Injectable({
   providedIn: 'root',

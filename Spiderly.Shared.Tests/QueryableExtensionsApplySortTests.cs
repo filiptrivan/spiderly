@@ -10,7 +10,7 @@ namespace Spiderly.Shared.Tests
     /// <c>IOrderedQueryable&lt;T&gt;</c> whether ordered or not. A runtime <c>is</c> check therefore
     /// waves an unordered query into <c>ThenBy*</c>, which throws
     /// <c>ArgumentException: Expression of type 'IQueryable`1' cannot be used for parameter of type
-    /// 'IOrderedQueryable`1'</c>. Prod case: Sentry BACKEND-RS-1F (2026-08-10) — generated Build's Id
+    /// 'IOrderedQueryable`1'</c>. Production case (2026-08-10), a 500: generated Build's Id
     /// tie-breaker ran with <c>isFirst: false</c> after a client sort field matched no case.
     /// </summary>
     public class QueryableExtensionsApplySortTests

@@ -15,7 +15,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// pages. Build must fall back to Id DESC when MultiSortMeta is empty, and append Id DESC
 /// as a tie-breaker after user sorts (sorting by a non-unique column has the same
 /// page-shuffling problem). M2M junctions have no Id, so they get no fallback.
-/// (PACMS regression: unsorted admin category table surfaced arbitrary high-Id rows first.)
+/// (Regression: an unsorted admin category table surfaced arbitrary high-Id rows first.)
 /// </summary>
 public class PaginatedResultGeneratorTests
 {

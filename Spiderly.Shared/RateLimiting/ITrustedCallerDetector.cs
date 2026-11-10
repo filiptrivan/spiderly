@@ -31,7 +31,7 @@ namespace Spiderly.Shared.RateLimiting
     /// public sealed class EdgeMarkerTrustedCallerDetector : ITrustedCallerDetector
     /// {
     ///     public bool IsTrusted(HttpContext ctx) =&gt;
-    ///         ctx.Request.Headers["X-PACMS-Trusted"] == "1";
+    ///         ctx.Request.Headers["X-Internal-Trusted"] == "1";
     /// }
     /// // Startup: services.AddSingleton&lt;ITrustedCallerDetector, EdgeMarkerTrustedCallerDetector&gt;();
     /// </code>

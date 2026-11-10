@@ -8,7 +8,7 @@
        default. The Spiderly.* projects are PACKED and published to NuGet, and
        when a transitively-pinned project is packed, NuGet promotes the pinned transitives to explicit nuspec
        dependencies (per the CPM docs) — silently widening the public dependency contract every consumer
-       (PACMS, dck, sg-tools, partners) inherits. To force a transitive here, add an explicit
+       inherits. To force a transitive here, add an explicit
        <PackageReference> to the one project that needs it, so the new public dependency is intentional and
        visible in that csproj.
 

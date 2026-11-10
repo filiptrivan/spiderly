@@ -12,7 +12,7 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 /// <summary>
 /// Runtime behavior of the generated <c>Build</c> — see <see cref="GeneratedBuildRuntimeHarness"/> for
 /// why execution (not text pins) is the required altitude here. The contract under test (decided
-/// 2026-08-10, from Sentry BACKEND-RS-1F): client garbage in the pagination payload — an unknown sort
+/// 2026-08-10, from the production 500 <c>QueryableExtensionsApplySortTests</c> describes): client garbage in the pagination payload — an unknown sort
 /// field, an unknown filter key, an invalid match mode — is a 400 <see cref="BusinessException"/>
 /// naming the offender, never a silent no-op and never an opaque 500. Silent no-op was the pre-existing
 /// behavior and is the dangerous one: an unknown filter key returned UNFILTERED results the caller
