@@ -355,8 +355,8 @@ onAfterRefreshToken = () => { ... } // after every authenticated refresh
 No timer refreshes the session. `jwtInterceptor` checks each API request, in the browser, while a user is signed in: when the access token has under 60 seconds left, or none, the request waits on a refresh first, and requests leaving together share one. A refresh ends in a `RefreshOutcome`:
 
 - `authenticated`: the user and the access token's expiry update, and `onAfterRefreshToken` runs.
-- `rejected`, a 4xx (the backend's 401 `invalid_token`, or its 403): the session clears, and the guards send the user to login at the next navigation.
-- `transient`, no response or a 5xx: the session stands, and the request that waited leaves and reports its own failure, so an outage shows one message; the next request tries again. At load (`authInitializer`) a transient refresh signs that load alone out and keeps the cookies, so a reload signs back in.
+- `rejected`, a 4xx other than a 408 or a 429 (the backend's 401 `invalid_token`, or its 403): the session clears, and the guards send the user to login at the next navigation.
+- `transient`, no response, a 5xx, a 429 from the rate limiter, or a 408: the session stands, and the request that waited leaves and reports its own failure, so an outage shows one message; the next request tries again. At load (`authInitializer`) a transient refresh signs that load alone out and keeps the cookies, so a reload signs back in.
 
 `ApiSecurityService`'s login, verification-email, refresh and logout requests carry the `SKIP_REFRESH_CHECK` `HttpContextToken`, so they never wait on a refresh; set it on an auth request of your own. A request that gets a 401 is not refreshed and sent again.
 

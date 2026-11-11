@@ -20,10 +20,16 @@ import { SKIP_ERROR_MESSAGE } from '../interceptors/http-context-tokens';
  * - `authenticated`: the server issued a new access token;
  * - `rejected`: the server said no, a 4xx (the backend's 401 `invalid_token` for a refresh token
  *   expired, revoked or reused, or its 403 for a security violation), so the sign-in is over;
- * - `transient`: the server never answered (no response, a 5xx, or a throw that is not an HTTP
- *   error), so the sign-in stands and the next request tries again.
+ * - `transient`: the server never said no (no response, a 5xx, a NOT_A_NO_STATUSES answer, or a
+ *   throw that is not an HTTP error), so the sign-in stands and the next request tries again.
  */
 export type RefreshOutcome = 'authenticated' | 'rejected' | 'transient';
+
+/**
+ * The 4xx answers that ask for a pause rather than say no: Spiderly's GlobalLimiter
+ * (SpiderlyAddRateLimiters) covers the refresh endpoint and answers 429, and a 408 is a timeout.
+ */
+const NOT_A_NO_STATUSES = new Set([408, 429]);
 
 /**
  * A request leaving with less than this left on the access token, or none, waits on a refresh
@@ -203,7 +209,12 @@ export class AuthServiceBase implements OnDestroy {
   }
 
   private onRefreshFailed(error: unknown): RefreshOutcome {
-    if (error instanceof HttpErrorResponse && error.status >= 400 && error.status < 500) {
+    if (
+      error instanceof HttpErrorResponse &&
+      error.status >= 400 &&
+      error.status < 500 &&
+      !NOT_A_NO_STATUSES.has(error.status)
+    ) {
       this.clearSession();
       return 'rejected';
     }
