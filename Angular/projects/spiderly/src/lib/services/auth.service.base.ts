@@ -1,8 +1,8 @@
 import { Inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, Subscription } from 'rxjs';
-import { catchError, delay, filter, finalize, map, tap } from 'rxjs/operators';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { catchError, filter, finalize, map, shareReplay } from 'rxjs/operators';
 import {
   AuthResultWithCookies,
   Login,
@@ -13,6 +13,24 @@ import { ConfigServiceBase } from './config.service.base';
 import { ApiSecurityService } from './api.service.security';
 import { InitCompanyAuthDialogDetails } from '../entities/init-company-auth-dialog-details';
 import { isPlatformBrowser } from '@angular/common';
+import { SKIP_ERROR_MESSAGE } from '../interceptors/http-context-tokens';
+
+/**
+ * How a refresh ended:
+ * - `authenticated`: the server issued a new access token;
+ * - `rejected`: the server said no, a 4xx (the backend's 401 `invalid_token` for a refresh token
+ *   expired, revoked or reused, or its 403 for a security violation), so the sign-in is over;
+ * - `transient`: the server never answered (no response, a 5xx, or a throw that is not an HTTP
+ *   error), so the sign-in stands and the next request tries again.
+ */
+export type RefreshOutcome = 'authenticated' | 'rejected' | 'transient';
+
+/**
+ * A request leaving with less than this left on the access token, or none, waits on a refresh
+ * first. With the backend's `ClockSkewMinutes` at its default of 1, a browser clock up to about 2
+ * minutes slow still refreshes before the server or the browser drops the token.
+ */
+const ACCESS_TOKEN_REFRESH_MARGIN_MS = 60_000;
 
 /**
  * Cookie-based session auth. The access/refresh JWTs live in HttpOnly cookies set by the backend
@@ -24,8 +42,8 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class AuthServiceBase implements OnDestroy {
   private readonly apiUrl: string = this.config.apiUrl;
-  private timer?: Subscription;
   private accessTokenExpiresAt?: Date;
+  private refreshInFlight?: Observable<RefreshOutcome>;
 
   // External-login error code captured from the bootstrap URL (?externalAuthError=expired|failed) set by the
   // backend's OAuth callback on failure. Captured before routing can strip it, surfaced once by the login page.
@@ -61,7 +79,6 @@ export class AuthServiceBase implements OnDestroy {
   private storageEventListener = (event: StorageEvent) => {
     if (event.storageArea === localStorage) {
       if (event.key === 'logout-event') {
-        this.stopTokenTimer();
         this._user.next(null);
         this._currentUserPermissionCodes.next(null);
       }
@@ -86,9 +103,16 @@ export class AuthServiceBase implements OnDestroy {
     );
   }
 
-  // Establishes the in-memory session from a cookie auth result (login or refresh). No tokens are stored
-  // in JS — only the user identity + the access-token expiry the backend reports (to schedule refresh).
+  // Establishes the in-memory session from a login's cookie auth result, and tells the other tabs.
   handleAuthResult(result: AuthResultWithCookies) {
+    this.setSession(result);
+    localStorage.setItem('login-event', 'login' + Math.random());
+    this.setCurrentUserPermissionCodes().subscribe();
+  }
+
+  // No tokens are stored in JS — only the user identity + the access-token expiry the backend reports,
+  // which refreshTokenIfExpiring reads.
+  private setSession(result: AuthResultWithCookies) {
     this._user.next({
       id: result.userId,
       email: result.email,
@@ -96,9 +120,6 @@ export class AuthServiceBase implements OnDestroy {
     this.accessTokenExpiresAt = result.accessTokenExpiresAt
       ? new Date(result.accessTokenExpiresAt)
       : undefined;
-    localStorage.setItem('login-event', 'login' + Math.random());
-    this.startTokenTimer();
-    this.setCurrentUserPermissionCodes().subscribe();
   }
 
   logout() {
@@ -110,7 +131,6 @@ export class AuthServiceBase implements OnDestroy {
           this._user.next(null);
           localStorage.setItem('logout-event', 'logout' + Math.random());
           this.onAfterLogout();
-          this.stopTokenTimer();
         }),
       )
       .subscribe();
@@ -122,39 +142,78 @@ export class AuthServiceBase implements OnDestroy {
   };
 
   // Clears in-memory session state without calling the backend — used when a request comes back 401
-  // (the backend has already cleared the auth cookies in that case).
+  // (the backend has already cleared the auth cookies in that case) or a refresh is rejected. A
+  // session already signed out (null) has nothing to clear: a load's refresh rejected with a 401
+  // `invalid_token` reaches here twice, from unauthorizedInterceptor and from onRefreshFailed, and
+  // the other tabs hear it once.
   clearSession() {
-    this.stopTokenTimer();
+    if (this._user.value === null) {
+      return;
+    }
     this._user.next(null);
     this._currentUserPermissionCodes.next(null);
     localStorage.setItem('logout-event', 'logout' + Math.random());
   }
 
-  // Called on app init and by the proactive timer. The refresh token is an HttpOnly cookie; a 401 ("no valid
-  // session" — not logged in / expired) propagates from the interceptor and is handled by catchError below,
-  // resolving the session to anonymous (null). map runs only for a real result, so _user is never partial.
-  refreshToken(): Observable<AuthResultWithCookies | null> {
-    const browserId = this.getBrowserId();
-    return this.apiService.refreshTokenWithCookies(browserId).pipe(
-      map((result: AuthResultWithCookies) => {
-        if (result) {
-          // A re-established session makes any pending external-login error moot — drop it so it can't
-          // surface as a stale toast on a later /login visit (e.g. after a subsequent logout).
-          this.externalAuthErrorCode = null;
-          this._user.next({ id: result.userId, email: result.email });
-          this.accessTokenExpiresAt = result.accessTokenExpiresAt
-            ? new Date(result.accessTokenExpiresAt)
-            : undefined;
-          this.startTokenTimer();
-          this.onAfterRefreshToken();
-        }
-        return result;
-      }),
-      catchError(() => {
-        this._user.next(null);
-        return of(null);
-      }),
+  /**
+   * Asks the server for a new access token from the refresh-token cookie. Every caller (the check
+   * before a request, `authInitializer`, the cross-tab `login-event`) shares the one refresh in
+   * flight until it settles.
+   */
+  refreshToken(): Observable<RefreshOutcome> {
+    return this.refresh(new HttpContext());
+  }
+
+  /**
+   * The refresh `jwtInterceptor` makes an API request wait on: in the browser, while a user is
+   * signed in and their access token has under ACCESS_TOKEN_REFRESH_MARGIN_MS left, or none. Null
+   * when the request may leave at once.
+   */
+  refreshTokenIfExpiring(): Observable<RefreshOutcome> | null {
+    if (!isPlatformBrowser(this.platformId) || !this._user.value || !this.accessTokenExpiresAt) {
+      return null;
+    }
+    if (this.accessTokenExpiresAt.getTime() - Date.now() >= ACCESS_TOKEN_REFRESH_MARGIN_MS) {
+      return null;
+    }
+    // No message of its own: whatever the outcome, the request leaves next and reports its own failure.
+    return this.refresh(new HttpContext().set(SKIP_ERROR_MESSAGE, true));
+  }
+
+  // The context is the first caller's: a caller that joins a refresh in flight shares its messages.
+  private refresh(context: HttpContext): Observable<RefreshOutcome> {
+    this.refreshInFlight ??= this.apiService.refreshTokenWithCookies(this.getBrowserId(), context).pipe(
+      map((result) => this.onRefreshAuthenticated(result)),
+      catchError((error) => of(this.onRefreshFailed(error))),
+      finalize(() => (this.refreshInFlight = undefined)),
+      // refCount false: the refresh runs to its end even when every waiting request is cancelled,
+      // since the server may already have rotated the refresh token.
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+    return this.refreshInFlight;
+  }
+
+  private onRefreshAuthenticated(result: AuthResultWithCookies): RefreshOutcome {
+    // A re-established session makes any pending external-login error moot — drop it so it can't
+    // surface as a stale toast on a later /login visit (e.g. after a subsequent logout).
+    this.externalAuthErrorCode = null;
+    this.setSession(result);
+    this.onAfterRefreshToken();
+    return 'authenticated';
+  }
+
+  private onRefreshFailed(error: unknown): RefreshOutcome {
+    if (error instanceof HttpErrorResponse && error.status >= 400 && error.status < 500) {
+      this.clearSession();
+      return 'rejected';
+    }
+    // The user, permission codes and expiry stay as they were. At load they were not known yet
+    // (undefined), and the guards wait for a known user, so this load alone is signed out: no
+    // logout and no cookie touched, so a reload signs back in.
+    if (this._user.value === undefined) {
+      this._user.next(null);
+    }
+    return 'transient';
   }
 
   onAfterRefreshToken = () => {
@@ -190,33 +249,6 @@ export class AuthServiceBase implements OnDestroy {
       localStorage.setItem(this.config.browserIdKey, browserId);
     }
     return browserId;
-  }
-
-  private getTokenRemainingTime(): number {
-    if (!this.accessTokenExpiresAt) {
-      return 0;
-    }
-    return this.accessTokenExpiresAt.getTime() - Date.now();
-  }
-
-  private startTokenTimer() {
-    const timeout = this.getTokenRemainingTime();
-    if (timeout <= 0) {
-      return;
-    }
-    this.stopTokenTimer();
-    this.timer = of(true)
-      .pipe(
-        delay(timeout),
-        tap({
-          next: () => this.refreshToken().subscribe(),
-        }),
-      )
-      .subscribe();
-  }
-
-  private stopTokenTimer() {
-    this.timer?.unsubscribe();
   }
 
   navigateToDashboard() {

@@ -10,6 +10,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApiErrorCodes } from '../errors/api-error-codes';
 import { AuthServiceBase } from '../services/auth.service.base';
 import { SpiderlyMessageService } from '../services/spiderly-message.service';
+import { SKIP_ERROR_MESSAGE } from './http-context-tokens';
 
 /**
  * Owns cross-cutting HTTP-error UX: shows the right message and, on an expired session, clears auth — then
@@ -30,6 +31,10 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
     // HttpErrorResponse on its own stringifies to "[object HttpErrorResponse]" in an error
     // tracker's console breadcrumb; the object still follows, to expand in devtools.
     console.error(`HTTP ${err.status} ${request.method} ${request.url}`, err);
+
+    if (request.context.get(SKIP_ERROR_MESSAGE)) {
+      return;
+    }
 
     // TODO: type errorResponse as an ApiError interface (TS mirror of ApiErrorDTO, next to
     // errors/api-error-codes.ts) so message/errorCode/traceId reads of the cross-language contract

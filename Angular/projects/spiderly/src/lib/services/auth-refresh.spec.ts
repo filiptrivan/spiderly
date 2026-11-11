@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 
+import { ApiErrorCodes } from '../errors/api-error-codes';
 import { jwtInterceptor } from '../interceptors/jwt.interceptor';
 import { unauthorizedInterceptor } from '../interceptors/unauthorized.interceptor';
 import { authInitializer } from './app-initializer';
@@ -125,4 +126,27 @@ describe('the admin refreshes its sign-in', () => {
       expect(currentUser()).toEqual({ id: OPERATOR.userId, email: OPERATOR.email });
     });
   }
+
+  // The refresh token expired or was revoked: the server's no, which the guards act on.
+  it('signs the user out when the refresh is answered 401 invalid_token', () => {
+    signIn();
+    jasmine.clock().tick(21 * MINUTE);
+
+    http.get(PRODUCTS).subscribe({ error: () => {} });
+
+    backend
+      .expectOne(isRefresh)
+      .flush({ errorCode: ApiErrorCodes.InvalidToken }, { status: 401, statusText: 'Unauthorized' });
+    backend.expectOne(PRODUCTS).flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(currentUser()).toBeNull();
+  });
+
+  // The backend restarting as the admin opens: this load shows the login page, and afterEach's
+  // verify() proves no logout went out, so the cookies stay for the next load.
+  it('leaves the user signed out when the admin opens while the server does not answer', () => {
+    authInitializer(auth, TestBed.inject(PLATFORM_ID))().subscribe();
+
+    backend.expectOne(isRefresh).error(new ProgressEvent('error'));
+    expect(currentUser()).toBeNull();
+  });
 });
