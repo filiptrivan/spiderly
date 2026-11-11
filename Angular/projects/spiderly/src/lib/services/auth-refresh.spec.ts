@@ -108,13 +108,15 @@ describe('the admin refreshes its sign-in', () => {
     sent.forEach((req) => req.flush([]));
   });
 
-  // The laptop slept past the access token's expiry and woke before its Wi-Fi did, or the backend
-  // was restarting during a deploy: the server never answered, so it never said no.
-  const unanswered: [string, (req: TestRequest) => void][] = [
+  // The laptop slept past the access token's expiry and woke before its Wi-Fi did, the backend was
+  // restarting during a deploy, or its rate limiter asked for a pause: the server never said no.
+  const notANo: [string, (req: TestRequest) => void][] = [
     ['a 503', (req) => req.flush(null, { status: 503, statusText: 'Service Unavailable' })],
     ['no response (status 0)', (req) => req.error(new ProgressEvent('error'))],
+    ['a 429', (req) => req.flush(null, { status: 429, statusText: 'Too Many Requests' })],
+    ['a 408', (req) => req.flush(null, { status: 408, statusText: 'Request Timeout' })],
   ];
-  for (const [answer, respond] of unanswered) {
+  for (const [answer, respond] of notANo) {
     it(`leaves the user signed in when the refresh gets ${answer}`, () => {
       signIn();
       jasmine.clock().tick(21 * MINUTE);
