@@ -13,8 +13,9 @@ import { HttpContextToken } from '@angular/common/http';
 export const SKIP_REFRESH_CHECK = new HttpContextToken<boolean>(() => false);
 
 /**
- * Marks a request whose failure its caller handles: `unauthorizedInterceptor` logs it and does
- * nothing else, no message and no sign-out. `AuthServiceBase` sets it on the refresh a request
- * waits on, whose outcome signs out on a 4xx, so an outage shows once, on the request behind it.
+ * Marks the refresh a request waits on (`AuthServiceBase.refreshTokenIfExpiring`):
+ * `unauthorizedInterceptor` logs its failure and does nothing else, no message and no sign-out,
+ * since the refresh's outcome signs out on a no and an outage shows once, on the request behind
+ * it. Internal: `public-api.ts` exports SKIP_REFRESH_CHECK alone.
  */
 export const SKIP_ERROR_MESSAGE = new HttpContextToken<boolean>(() => false);

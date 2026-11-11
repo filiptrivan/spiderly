@@ -6,7 +6,7 @@ import { ConfigServiceBase } from '../services/config.service.base';
 import { SKIP_REFRESH_CHECK } from './http-context-tokens';
 
 // Cookie-based auth: the session JWTs are HttpOnly cookies, so we just send credentials on API calls.
-// The browser attaches/refreshes the cookies; JS never holds the tokens (XSS-safe).
+// The browser attaches the cookies; JS never holds the tokens (XSS-safe).
 //
 // CSRF: state-changing requests (POST/PUT/DELETE/PATCH) authenticated via cookie must include the
 // X-CSRF header, otherwise Spiderly.Shared/Attributes/AuthGuardAttribute.cs returns 403 Forbidden
@@ -22,8 +22,8 @@ const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * thing that refreshes a signed-in session: a browser timer fires late under a closed laptop lid
  * or in a long-backgrounded tab, and every request in that gap left with no access cookie. A
  * request that still gets a 401 is not refreshed and sent again (decided 2026-11-11): a browser
- * clock more than about 2 minutes slow, or a sign-out by another app sharing the cookies, shows the
- * `LoginRequired` warning on that request.
+ * clock slower than `ACCESS_TOKEN_REFRESH_MARGIN_MS` allows for, or a sign-out by another app
+ * sharing the cookies, shows the `LoginRequired` warning on that request.
  */
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const config = inject(ConfigServiceBase);

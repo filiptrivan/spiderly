@@ -33,8 +33,8 @@ const NOT_A_NO_STATUSES = new Set([408, 429]);
 
 /**
  * A request leaving with less than this left on the access token, or none, waits on a refresh
- * first. With the backend's `ClockSkewMinutes` at its default of 1, a browser clock up to about 2
- * minutes slow still refreshes before the server or the browser drops the token.
+ * first. With the backend's `JwtOptions.ClockSkewMinutes` at its default of 1, a browser clock up
+ * to about 2 minutes slow still refreshes before the server or the browser drops the token.
  */
 const ACCESS_TOKEN_REFRESH_MARGIN_MS = 60_000;
 
@@ -171,9 +171,8 @@ export class AuthServiceBase implements OnDestroy {
   }
 
   /**
-   * The refresh `jwtInterceptor` makes an API request wait on: in the browser, while a user is
-   * signed in and their access token has under ACCESS_TOKEN_REFRESH_MARGIN_MS left, or none. Null
-   * when the request may leave at once.
+   * The refresh `jwtInterceptor` makes an API request wait on, or null when the request may leave
+   * at once.
    */
   refreshTokenIfExpiring(): Observable<RefreshOutcome> | null {
     if (!isPlatformBrowser(this.platformId) || !this._user.value || !this.accessTokenExpiresAt) {

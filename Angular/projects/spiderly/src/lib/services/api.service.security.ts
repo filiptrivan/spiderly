@@ -25,9 +25,8 @@ export class ApiSecurityService {
 
   //#region Authentication
 
-  // The options of a request that signs in, sends the verification email, refreshes or signs out:
-  // it carries SKIP_REFRESH_CHECK, so it never waits on a refresh.
-  private authRequestOptions<T extends object>(options?: T, context = new HttpContext()) {
+  // An auth request's options, marked with SKIP_REFRESH_CHECK.
+  private authRequestOptions(options: object = {}, context = new HttpContext()) {
     return { ...options, context: context.set(SKIP_REFRESH_CHECK, true) };
   }
 
