@@ -343,11 +343,11 @@ refreshToken(): Observable<RefreshOutcome> // 'authenticated' | 'rejected' | 'tr
 
 External login is a browser navigation to the backend's `ExternalLoginChallenge`, so no method starts it.
 
-Overridable hooks. Each is an arrow-function property, so an override replaces the base's own hook (no `super` call) and repeats the base's work; an example: the angular-customization docs, "AuthServiceBase".
+Overridable hooks (what each base hook does, which an override repeats: the angular-customization docs, "AuthServiceBase"):
 
 ```typescript
-onAfterLogout = () => { ... } // the base clears the permission codes and opens the login page
-onAfterRefreshToken = () => { ... } // after every authenticated refresh; the base loads the permission codes
+onAfterLogout = () => { ... }
+onAfterRefreshToken = () => { ... } // after every authenticated refresh
 ```
 
 ### Session Refresh
