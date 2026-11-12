@@ -148,10 +148,10 @@ export class AuthServiceBase implements OnDestroy {
   };
 
   // Clears in-memory session state without calling the backend — used when a request comes back 401
-  // (the backend has already cleared the auth cookies in that case) or a refresh is rejected. A
-  // session already signed out (null) has nothing to clear: a load's refresh rejected with a 401
-  // `invalid_token` reaches here twice, from unauthorizedInterceptor and from onRefreshFailed, and
-  // the other tabs hear it once.
+  // or a refresh is rejected. The auth cookies stay as they are: the backend clears them only in
+  // LogoutWithCookies. A session already signed out (null) has nothing to clear: a load's refresh
+  // rejected with a 401 `invalid_token` reaches here twice, from unauthorizedInterceptor and from
+  // onRefreshFailed, and the other tabs hear it once.
   clearSession() {
     if (this._user.value === null) {
       return;
