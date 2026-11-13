@@ -448,20 +448,26 @@ Key properties: `apiUrl`, `frontendUrl`, `GoogleClientId`, `companyName`, `prima
 
 ### AuthServiceBase
 
-Override hooks for custom post-auth behavior:
+Override hooks for custom post-auth behavior. Each hook is an arrow-function property, so an
+override replaces the base's own hook (there is no `super` call) and repeats the base's work:
+
+- `onAfterLogout`: the base clears the permission codes and opens the login page. An override
+  that skips this leaves a signed-out user on the page they were on.
+- `onAfterRefreshToken`: the base loads the permission codes after every authenticated refresh,
+  the page load's included. An override that skips this leaves the menu with no permission codes
+  after a reload.
 
 ```typescript
 export class AuthService extends AuthServiceBase {
-  override onAfterLoginExternal = () => {
-    this.analyticsService.trackLogin("google");
-  };
-
   override onAfterLogout = () => {
     this.cacheService.clear();
+    this._currentUserPermissionCodes.next(null); // the base's work
+    this.router.navigate([this.config.loginSlug]); // the base's work
   };
 
   override onAfterRefreshToken = () => {
-    this.syncPermissions();
+    this.analyticsService.trackSessionRefresh();
+    this.setCurrentUserPermissionCodes().subscribe(); // the base's work
   };
 }
 ```
