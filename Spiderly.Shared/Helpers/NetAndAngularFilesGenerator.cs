@@ -3579,7 +3579,11 @@ export const ThemePreset = definePreset(Aura, {
 """;
         }
 
-        private static string GetTranslocoEnJsonCode()
+        /// <summary>
+        /// The init template's English Transloco file. Internal so that <c>TsContractMirrorTests</c> can require a
+        /// value here for every key the library's filter bar shows.
+        /// </summary>
+        internal static string GetTranslocoEnJsonCode()
         {
             return $$$"""
 {
@@ -3695,6 +3699,7 @@ export const ThemePreset = definePreset(Aura, {
   "LessThan": "Less than",
   "StartsWith": "Starts with",
   "Contains": "Contains",
+  "In": "Is one of",
   "AreYouSure": "Are you sure?",
   "SuccessfullyDeletedMessage": "Successfully deleted.",
   "SuccessfullyDeletedListMessage": "Successfully deleted selected records.",

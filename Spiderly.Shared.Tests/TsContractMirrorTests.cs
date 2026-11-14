@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Spiderly.Shared.Contracts;
 using Spiderly.Shared.Enums;
+using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Tests
 {
@@ -40,6 +42,49 @@ namespace Spiderly.Shared.Tests
                 RepoFile("Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes.ts"));
 
             Assert.Equal(csharp, ts);
+        }
+
+        /// <summary>
+        /// The filter bar's operator picker and chip show the VALUE of a key in <c>OPERATOR_WORDS</c>
+        /// (<c>filters/filter-store.ts</c>), never the key. A key with no value renders as the raw key, and a
+        /// consumer that matches an option by its label (an e2e test, conditional logic) breaks silently. The init
+        /// template is the only place these keys reach a consumer, because a consumer's key extraction scans only
+        /// its own <c>src/</c>. English is the only locale the template seeds.
+        /// </summary>
+        [Fact]
+        public void Every_filter_operator_key_has_a_value_in_the_init_template_English_translations()
+        {
+            List<string> keys = OperatorWordKeys(
+                RepoFile("Angular/projects/spiderly/src/lib/filters/filter-store.ts"));
+            using JsonDocument en = JsonDocument.Parse(NetAndAngularFilesGenerator.GetTranslocoEnJsonCode());
+
+            List<string> missing = keys
+                .Where(key => !en.RootElement.TryGetProperty(key, out JsonElement value)
+                    || value.ValueKind != JsonValueKind.String
+                    || string.IsNullOrWhiteSpace(value.GetString()))
+                .ToList();
+
+            Assert.True(missing.Count == 0,
+                $"These OPERATOR_WORDS keys (filter-store.ts) have no value in the init template's English " +
+                $"Transloco file: {string.Join(", ", missing)}. Seed each one in " +
+                $"NetAndAngularFilesGenerator.GetTranslocoEnJsonCode().");
+        }
+
+        /// <summary>
+        /// The distinct <c>pickerKey</c> and <c>phraseKey</c> values inside the <c>OPERATOR_WORDS</c> object literal.
+        /// </summary>
+        private static List<string> OperatorWordKeys(string ts)
+        {
+            Match table = Regex.Match(ts, @"const OPERATOR_WORDS\b[\s\S]*?\n\};");
+            Assert.True(table.Success, "filter-store.ts declares no `const OPERATOR_WORDS ... };` block.");
+
+            List<string> keys = Regex.Matches(table.Value, @"(?:pickerKey|phraseKey)\s*:\s*[""']([^""']+)[""']")
+                .Select(m => m.Groups[1].Value)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            Assert.True(keys.Count > 0, "No pickerKey or phraseKey found in OPERATOR_WORDS (filter-store.ts).");
+
+            return keys;
         }
 
         /// <summary>Public <c>const string</c> members of a static class → name/value map.</summary>
