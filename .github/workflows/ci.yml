@@ -94,6 +94,20 @@ jobs:
       - name: Install dependencies
         run: cd Angular && npm ci
 
+      # The library's lint: each rule's own tests, then the template rule (ng lint) and Stylelint.
+      - name: Lint the Angular library
+        run: |
+          cd Angular
+          npm run test:lint-rules
+          npm run lint
+          npm run lint:scss
+
+      # The pre-commit's own checks (a hand edit under agent/, the Angular lock under the pinned npm, the
+      # library's lint), each run through a real `git commit` in a throwaway repo. It runs in this job
+      # because the lint's checks need the Angular packages.
+      - name: Pre-commit hook self-test
+        run: node --test .githooks/pre-commit.test.mjs
+
       # Karma runs against ubuntu-24.04's preinstalled Chrome via the
       # ChromeHeadlessNoSandbox launcher defined in projects/spiderly/karma.conf.js
       # (the runner has no usable Chrome sandbox).
