@@ -6,6 +6,16 @@ namespace Spiderly.Shared.Tests
         /// <summary>The text of <paramref name="relativePath"/>, a path from the repo root with <c>/</c> separators.</summary>
         internal static string Read(string relativePath)
         {
+            string path = FullPath(relativePath);
+            if (!File.Exists(path))
+                throw new FileNotFoundException($"Expected repo file not found: {path}");
+
+            return File.ReadAllText(path);
+        }
+
+        /// <summary>The full path of <paramref name="relativePath"/>, a path from the repo root with <c>/</c> separators.</summary>
+        internal static string FullPath(string relativePath)
+        {
             DirectoryInfo? dir = new(AppContext.BaseDirectory);
             while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Spiderly.sln")))
                 dir = dir.Parent;
@@ -14,11 +24,7 @@ namespace Spiderly.Shared.Tests
                 throw new DirectoryNotFoundException(
                     $"Could not locate the repo root (Spiderly.sln) above {AppContext.BaseDirectory}.");
 
-            string path = Path.Combine(dir.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            if (!File.Exists(path))
-                throw new FileNotFoundException($"Expected repo file not found: {path}");
-
-            return File.ReadAllText(path);
+            return Path.Combine(dir.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
         }
     }
 }
