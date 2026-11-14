@@ -29,7 +29,7 @@ describe('createFilterStore — a filter needs no column', () => {
 
   // `contains ''` matches every row, so a blanked box would claim to narrow the grid while showing
   // everything — and would draw a chip for it. Same class as the filter icon that filled on the
-  // first keystroke (spiderly-data-table CLAUDE.md -> "Active-filter header icon").
+  // first keystroke (decision 2b).
   it('drops a filter whose value has been blanked, rather than sending an empty constraint', () => {
     const filters = createFilterStore({
       companyName: textFilter({ label: 'Firma' }),
@@ -72,8 +72,8 @@ describe('createFilterStore — a filter needs no column', () => {
 
 // The bar shows APPLIED, never TYPED. This is the one mistake in this component that has already
 // shipped: reading `table.filters` filled the header's filter icon on the first keystroke, so the
-// grid claimed to be narrowed while it still showed everything (spiderly-data-table CLAUDE.md ->
-// "Active-filter header icon"). A chip drawn off a draft would be the same lie, louder.
+// grid claimed to be narrowed while it still showed everything (decision 2b). A chip drawn off a
+// draft would be the same lie, louder.
 describe('createFilterStore — typed is not applied', () => {
   it('keeps a set-but-uncommitted filter out of applied() and out of the payload', () => {
     const filters = createFilterStore({

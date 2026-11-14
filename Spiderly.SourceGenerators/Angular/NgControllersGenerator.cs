@@ -104,7 +104,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 }
 """;
 
-            Helpers.WriteToTheFile(result, outputPath);
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(outputPath, result, nameof(NgControllersGenerator), "the [SpiderlyController] classes, and the [SpiderlyEntity] classes for the CRUD methods");
         }
 
         private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs, HashSet<string> knownTsTypes, ImmutableArray<string> spiderlyEnumNames, SourceProductionContext context)
@@ -890,15 +890,28 @@ import { {{ngType}} } from '../../entities/entities.generated';
             List<KeyValuePair<string, string>> nullableParams = getAndDeleteParams.Where(x => x.Value.EndsWith("null")).ToList();
 
             return $$"""
-        let params = `?{{string.Join("&", nonNullableParams.Select(x => $"{x.Key}=${{{x.Key}}}"))}}`;
+        let params = `?{{string.Join("&", nonNullableParams.Select(x => $"{x.Key}=${{{GetQueryParamValue(x)}}}"))}}`;
 
 {{string.Join("\n", nullableParams.Select(x => $$"""
         if ({{x.Key}}) {
-            params += `&{{x.Key}}=${{{x.Key}}}`;
+            params += `&{{x.Key}}=${{{GetQueryParamValue(x)}}}`;
         }
 """))}}
 """;
         }
+
+        /// <summary>
+        /// The expression that puts a query param's value on the wire. A <c>Date</c> goes in its ISO 8601 form,
+        /// which ASP.NET's model binder reads as a <c>DateTime</c>. Its <c>toString()</c> form, which plain
+        /// interpolation sends, makes the binder answer 400 (spiderly#395).
+        /// <para>
+        /// A <c>DateTime?</c> param is a plain <c>Date</c> too, and the generated app's TypeScript is not strict,
+        /// so a caller can pass null. <c>?.</c> sends that null as text the binder refuses, as a null of any other
+        /// type goes. An omitted optional param is spiderly#392.
+        /// </para>
+        /// </summary>
+        private static string GetQueryParamValue(KeyValuePair<string, string> param)
+            => param.Value == "Date" ? $"{param.Key}?.toISOString()" : param.Key;
 
         private static string? GetPostAndPutParameters(Dictionary<string, string>? postAndPutParameter, HttpTypeCodes httpType)
         {

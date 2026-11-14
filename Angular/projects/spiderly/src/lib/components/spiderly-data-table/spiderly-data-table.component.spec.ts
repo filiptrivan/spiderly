@@ -323,7 +323,10 @@ function headerNamed(el: HTMLElement, name: string): HTMLTableCellElement {
   return headerCells(el).find((th) => (th.textContent ?? '').includes(name))!;
 }
 
-// Async because the checkboxes' [ngModel] writes resolve in a microtask.
+// Async because the checkboxes' [ngModel] writes resolve in a microtask. A spec awaits
+// `fixture.whenStable()` after it opens the chooser or toggles a box. Once open, PrimeNG appends
+// the popover to `document.body`. So a spec reads the `Popover` instance's `container` (see
+// overlayHolding), not the document: stale popovers from earlier fixtures stay there.
 async function openChooser(fixture: ComponentFixture<unknown>): Promise<void> {
   const button = (
     fixture.nativeElement as HTMLElement
@@ -485,7 +488,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
 });
 
 describe('SpiderlyDataTableComponent — chooser styles survive the body teleport', () => {
-  // Guards the `:host` overlay-styling trap — see Angular/CLAUDE.md → overlay styling.
+  // Guards the `:host` overlay-styling trap — see .claude/rules/library-scss.md.
   // One pin per SCSS rule; add a row when a chooser rule is added.
   const stylePins: [selector: string, property: string, expected: string][] = [
     ['.column-chooser', 'display', 'flex'],
@@ -853,7 +856,8 @@ describe('SpiderlyDataTableComponent — a table too wide for its container scro
 });
 
 describe('SpiderlyDataTableComponent — columns carrying no value still get room', () => {
-  // Both leaned on `width: 0rem` meaning "shrink to fit" — see CLAUDE.md → Column widths.
+  // Both leaned on `width: 0rem` meaning "shrink to fit"; `getColWidth()` says why it no longer
+  // does.
   it('leaves an actions column room for its icons', async () => {
     const { fixture } = await renderStable(HostWithRowActionsComponent);
 
@@ -1678,7 +1682,7 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
     expect(scrolled).toHaveBeenCalled();
   });
 
-  // Pins the seam described in Angular/CLAUDE.md → fixed-chrome offset: the component reads
+  // Pins the seam described in .claude/rules/library-scss.md: the component reads
   // the inset from a var it does not own, and still works when no shell declares one.
   it('offsets the scroll target by the shell viewport-top inset', () => {
     const { fixture } = createWithDataTable(HostWithoutActionsComponent);
@@ -1931,9 +1935,10 @@ describe('SpiderlyDataTableComponent — pending state', () => {
 });
 
 describe('SpiderlyDataTableComponent — pending overlay styling', () => {
-  // The ::ng-deep computed-style assert Angular/CLAUDE.md requires for any rule targeting
-  // markup this component does not author. The pin table is shared with the data view's suite,
-  // because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
+  // The ::ng-deep veil rules target PrimeNG's mask, which this component does not author. A PrimeNG
+  // change can stop them silently, and this computed-style assert notices. The pin table is shared
+  // with the data view's suite, because the declaration is: table-pending-veil() in
+  // styles/layout/_mixins.scss.
   it('keeps the veil rules matching PrimeNG mask markup', () => {
     // Un-awaited on purpose: the fixture returns with the first fetch still pending, so the
     // mask is mounted. Same trick the scroll suite's scroll-margin pin uses.
@@ -1950,7 +1955,7 @@ describe('SpiderlyDataTableComponent — pending overlay styling', () => {
 // ---------------------------------------------------------------------------
 // The filter surface is the consumer's store, rendered as the chip bar. A table handed none has
 // no filter surface at all — the legacy Column.filterType header filters were deleted once no
-// consumer passed the old shape. See spiderly-data-table/CLAUDE.md -> "Operator-owned view".
+// consumer passed the old shape. See `docs/data-table-operator-owned-view.md`.
 // ---------------------------------------------------------------------------
 
 @Component({
@@ -2273,7 +2278,7 @@ async function openColumnMenu(
 
 // Hiding a column meant opening the chooser popover and hunting for its row. The column itself is
 // where the gesture belongs, and the menu is the surface the width, order and wrap controls will
-// share (CLAUDE.md -> "Operator-owned view", decision 3).
+// share (decision 3).
 describe('SpiderlyDataTableComponent — the column header menu', () => {
   it('hides a column from its own header', async () => {
     const { fixture, dataTable } = createWithDataTable(
@@ -2313,7 +2318,7 @@ describe('SpiderlyDataTableComponent — the column header menu', () => {
   });
 
   // The other half of the truncation complaint. The default is one clamped line and stays that
-  // way (CLAUDE.md -> decision 9), but WHICH column gives up its row height is the operator's
+  // way (decision 9), but WHICH column gives up its row height is the operator's
   // call, not the author of `cols` — the same rule Notion follows, per column, from the same menu
   // that hides it. Asserted on the computed style rather than a class name: what matters is that
   // the text wraps.
@@ -2579,7 +2584,7 @@ class HostWithACrampedColumnComponent {
 
 // The clamp hides the value and, until now, offered nothing to read it with — which is why a consuming
 // app hand-added [title] in four places. Wrapping is a choice someone makes; this is for the default
-// nobody touched (CLAUDE.md -> decision 9). Only when it actually overflows: a title on a cell
+// nobody touched (decision 9). Only when it actually overflows: a title on a cell
 // that fits is noise on every hover across a dense grid, which is what got the SKU tooltip
 // removed in the first place.
 describe('SpiderlyDataTableComponent — the clamped cell says what it hides', () => {
@@ -2781,13 +2786,13 @@ class HostWithFrozenIdentityComponent {
 // Once the grid scrolls sideways a row loses its identity: "Intesa, plaćeno, 12.400" with no idea
 // whose order it is. NN/g's Data Tables is explicit that the leftmost header column must lock in
 // place, and `lockVisible` already names exactly that column in every table — so freezing needs
-// no new API (CLAUDE.md -> decision 8).
+// no new API (decision 8).
 describe('SpiderlyDataTableComponent — the frozen left edge', () => {
   // The measured offset's correction lands at animation-frame timing `whenStable` never awaits
-  // and needs a `detectChanges` to reach the DOM — CLAUDE.md's ResizeObserver trap bullet
-  // carries the full telling. Settle until the header invariant holds; the body cells bind the
-  // same `frozenOffsetPx`, so they converge with it, and on non-convergence the asserts below
-  // fail loudly with the real values.
+  // and needs a `detectChanges` to reach the DOM — the microtask comment in the component's
+  // `observeSelectionWidth()` says why. Settle until the header invariant holds; the body cells
+  // bind the same `frozenOffsetPx`, so they converge with it, and on non-convergence the asserts
+  // below fail loudly with the real values.
   async function settleFrozenOffset(
     fixture: ComponentFixture<unknown>,
   ): Promise<void> {
@@ -2855,7 +2860,7 @@ describe('SpiderlyDataTableComponent — the frozen left edge', () => {
 
 // The shortcut for neighbours, after the menu path rather than instead of it: HTML5 dnd has no
 // edge auto-scroll, so a long move belongs in a menu, and it has no keyboard path at all
-// (CLAUDE.md -> decision 6).
+// (decision 6).
 describe('SpiderlyDataTableComponent — dragging a header', () => {
   function dragHeaderOnto(
     fixture: ComponentFixture<unknown>,
@@ -3061,7 +3066,7 @@ class HostWithViewsComponent {
 
 // Wave 3. The bar lets an operator build a question; a view is the one they ask every morning,
 // asked in one click. Without them the first two waves are a pile of knobs someone re-sets daily
-// (CLAUDE.md -> decision 10).
+// (decision 10).
 describe('SpiderlyDataTableComponent — views', () => {
   it('applies a view when it is picked, and asks the server again', async () => {
     const { fixture, host } = createWithDataTable(HostWithViewsComponent);

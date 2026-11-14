@@ -131,7 +131,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 }
 """;
 
-            Helpers.WriteToTheFile(result, Path.Combine(outputPath, "validators.generated.ts"));
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(Path.Combine(outputPath, "validators.generated.ts"), result, nameof(NgValidatorsGenerator), "the validation attributes on the [SpiderlyEntity] and [SpiderlyDTO] properties");
         }
 
         private static string GenerateFormControlSwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)

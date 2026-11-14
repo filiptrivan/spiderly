@@ -86,7 +86,7 @@ namespace Spiderly.SourceGenerators.Angular
 
             string result = GetAngularEnums(currentProjectEnums, currentProjectClassEnums, currentProjectEntities);
 
-            Helpers.WriteToTheFile(result, outputPath);
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(outputPath, result, nameof(NgEnumsGenerator), "the [SpiderlyEnum] enums and classes, and the [SpiderlyEntity] classes for PermissionCodes");
         }
 
         private static string GetAngularEnums(

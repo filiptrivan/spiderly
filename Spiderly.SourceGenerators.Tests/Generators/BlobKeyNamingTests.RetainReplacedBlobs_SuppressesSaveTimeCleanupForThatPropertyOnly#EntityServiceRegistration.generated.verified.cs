@@ -19,8 +19,8 @@ namespace TestApp.Business.Services
             services.AddTransient<EntityServiceDependencies>();
             services.AddTransient<AuthorizationServiceGenerated>();
 
-            services.AddTransient<BannerService>();
-            services.AddTransient<BannerServiceGenerated>(sp => sp.GetRequiredService<BannerService>());
+            services.AddTransient<global::TestApp.Business.Services.BannerService>();
+            services.AddTransient<BannerServiceGenerated>(sp => sp.GetRequiredService<global::TestApp.Business.Services.BannerService>());
 
             return services;
         }

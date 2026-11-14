@@ -20,8 +20,8 @@ namespace TestApp.Business.Services
             services.AddTransient<AuthorizationServiceGenerated>();
 
             services.AddTransient<MemberServiceGenerated>();
-            services.AddTransient<OrgService>();
-            services.AddTransient<OrgServiceGenerated>(sp => sp.GetRequiredService<OrgService>());
+            services.AddTransient<global::TestApp.Business.Services.OrgService>();
+            services.AddTransient<OrgServiceGenerated>(sp => sp.GetRequiredService<global::TestApp.Business.Services.OrgService>());
             services.AddTransient<TeamServiceGenerated>();
 
             return services;

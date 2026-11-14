@@ -17,8 +17,9 @@ namespace Spiderly.Shared.Helpers
         /// carry relational shapes no other fixture has — <c>UserExternalLogin</c> is the only
         /// <c>[Required]</c> navigation beside an explicit non-nullable foreign-key scalar in the whole
         /// codebase, and the reason an explicit-FK generator bug was caught at all was that
-        /// <c>spiderly init</c> happens to scaffold it. A second copy of these in a test project is the same
-        /// drift that once broke CI with <c>CS1729</c> (see <c>tests/e2e-fixtures/CLAUDE.md</c>).
+        /// <c>spiderly init</c> happens to scaffold it. A second copy of these in a test project drifts. The
+        /// e2e fixture's full copy of the DbContext did, and broke CI with <c>CS1729</c> when its constructor
+        /// changed.
         /// </para>
         /// </summary>
         internal static List<SpiderlyFile> GetEntityFiles(string appName) => new()
@@ -3179,8 +3180,20 @@ namespace {{appName}}.Business.DataMappers
 """;
         }
 
-        private static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
+        internal static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
         {
+            // The library's peers, with the packages the app itself imports beside them.
+            SortedDictionary<string, string> dependencies = new(AngularLibraryPackage.PeerDependencyVersions(), StringComparer.Ordinal)
+            {
+                ["@primeng/themes"] = "19.1.3",
+                ["tslib"] = "2.3.0",
+            };
+            if (isRunningFromNuget)
+                dependencies["spiderly"] = version;
+
+            // The peerDependencies of @angular/compiler-cli name the exact @angular/compiler of its own version.
+            // So the toolchain takes the workspace's pins, as the peers do.
+            // A toolchain pinned apart from them makes npm refuse the install (ERESOLVE).
             return $$"""
 {
     "name": "{{appName}}",
@@ -3201,34 +3214,12 @@ namespace {{appName}}.Business.DataMappers
     },
     "private": true,
     "dependencies": {
-{{(isRunningFromNuget /* Note: Can't comment it out because it's json */ ? $$"""
-        "spiderly": "{{version}}",
-""" : "")}}
-        "@angular/animations": "19.2.13",
-        "@angular/common": "19.2.13",
-        "@angular/compiler": "19.2.13",
-        "@angular/core": "19.2.13",
-        "@angular/forms": "19.2.13",
-        "@angular/platform-browser": "19.2.13",
-        "@angular/platform-browser-dynamic": "19.2.13",
-        "@angular/router": "19.2.13",
-        "@jsverse/transloco": "7.5.0",
-        "file-saver": "2.0.5",
-        "marked": "15.0.12",
-        "ngx-markdown": "19.1.1",
-        "ngx-spinner": "19.0.0",
-        "primeicons": "7.0.0",
-        "primeng": "19.1.3",
-        "@primeng/themes": "19.1.3",
-        "quill": "2.0.2",
-        "rxjs": "7.8.1",
-        "tslib": "2.3.0",
-        "zone.js": "0.15.1"
+{{string.Join(",\n", dependencies.Select(dependency => $"        \"{dependency.Key}\": \"{dependency.Value}\""))}}
     },
     "devDependencies": {
-        "@angular-devkit/build-angular": "19.2.13",
-        "@angular/cli": "19.2.13",
-        "@angular/compiler-cli": "19.2.13",
+        "@angular-devkit/build-angular": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular-devkit/build-angular")}}",
+        "@angular/cli": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular/cli")}}",
+        "@angular/compiler-cli": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular/compiler-cli")}}",
         "@jsverse/transloco-keys-manager": "6.2.2",
         "@playwright/test": "1.60.0",
         "@types/jasmine": "5.1.0",
@@ -3578,7 +3569,11 @@ export const ThemePreset = definePreset(Aura, {
 """;
         }
 
-        private static string GetTranslocoEnJsonCode()
+        /// <summary>
+        /// The init template's English Transloco file. Internal so that <c>TsContractMirrorTests</c> can require a
+        /// value here for every key the library's filter bar shows.
+        /// </summary>
+        internal static string GetTranslocoEnJsonCode()
         {
             return $$$"""
 {
@@ -3694,6 +3689,7 @@ export const ThemePreset = definePreset(Aura, {
   "LessThan": "Less than",
   "StartsWith": "Starts with",
   "Contains": "Contains",
+  "In": "Is one of",
   "AreYouSure": "Are you sure?",
   "SuccessfullyDeletedMessage": "Successfully deleted.",
   "SuccessfullyDeletedListMessage": "Successfully deleted selected records.",
