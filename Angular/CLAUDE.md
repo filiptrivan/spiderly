@@ -8,7 +8,7 @@ The library's rules are path-scoped, under the repo root's `.claude/rules/`: eac
 
 | Key | When, and where |
 |---|---|
-| Regenerating `package-lock.json` | Changing a dependency (`package.json`, `npm install`, the lockfile): `.claude/rules/angular-dependencies.md`. |
+| Regenerating `package-lock.json` | Changing a dependency (`package.json`, `npm install`, the lockfile): the pre-commit's dry run under the npm `packageManager` pins (`.githooks/pre-commit`), and `AngularPinTests` for the runtime `@angular/*` pins. |
 | Overlay styling | Styling content PrimeNG teleports to `document.body` (an open popover, a dropdown, calendar or multiselect panel), and its spec assert: `.claude/rules/library-scss.md`. |
 | Fixed-chrome offset | Reading `--spiderly-viewport-top-inset` from a component (declared beside `--spiderly-topbar-height` in `styles/layout/_main.scss`, whose comment says why two names and why zero specificity), and the global `scroll-behavior: smooth` removed 2026-08-29: `.claude/rules/library-scss.md`. |
 | Always translate static UI text in library templates | Static text in a library template, and seeding its key in the init template: `.claude/rules/library-template-text.md`. |

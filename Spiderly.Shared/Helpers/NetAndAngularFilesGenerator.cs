@@ -3179,7 +3179,11 @@ namespace {{appName}}.Business.DataMappers
 """;
         }
 
-        private static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
+        /// <summary>
+        /// Internal so <c>AngularPinTests</c> reads the real template's <c>@angular/*</c> pins, which
+        /// <c>Angular/package.json</c> matches.
+        /// </summary>
+        internal static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
         {
             return $$"""
 {

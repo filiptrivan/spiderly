@@ -1,0 +1,16 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 2e97e672..fdd524b9 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -74,6 +74,11 @@ jobs:
+       - name: Agent-eval harness self-test
+         run: cd tools && npm run test:evals
+ 
++      # The pre-commit's own checks (a hand edit under agent/, the Angular lock under the pinned npm),
++      # each run through a real `git commit` in a throwaway repo.
++      - name: Pre-commit hook self-test
++        run: node --test .githooks/pre-commit.test.mjs
++
+   angular-unit-test:
+     name: Unit Tests (Angular)
+     runs-on: ubuntu-24.04

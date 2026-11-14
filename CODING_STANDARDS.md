@@ -167,4 +167,6 @@ loaded with the files it governs:
 - Library SCSS (content PrimeNG teleports to `document.body`, the viewport inset, scroll
   behaviour): `.claude/rules/library-scss.md`.
 - Static text in a library template, and seeding its key: `.claude/rules/library-template-text.md`.
-- The runtime `@angular/*` pins and the lockfile: `.claude/rules/angular-dependencies.md`.
+
+Checks hold the runtime `@angular/*` pins (`AngularPinTests`) and the lockfile (the pre-commit's dry
+run under the npm `packageManager` pins, `.githooks/pre-commit`).
