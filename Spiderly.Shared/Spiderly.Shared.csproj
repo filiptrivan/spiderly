@@ -28,7 +28,7 @@
   <ItemGroup>
     <Folder Include="Emailing\Templates\" />
   </ItemGroup>
-  <!-- spiderly init writes the Angular library's peer dependencies into a new app: AngularLibraryPackage. -->
+  <!-- spiderly init reads the Angular library's package.json and its workspace's: AngularLibraryPackage. -->
   <ItemGroup>
     <EmbeddedResource Include="..\Angular\projects\spiderly\package.json">
       <LogicalName>Spiderly.AngularLibrary.package.json</LogicalName>

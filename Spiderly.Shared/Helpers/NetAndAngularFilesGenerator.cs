@@ -3191,8 +3191,9 @@ namespace {{appName}}.Business.DataMappers
             if (isRunningFromNuget)
                 dependencies["spiderly"] = version;
 
-            // @angular/compiler-cli needs the exact @angular/compiler of its own version. So the toolchain takes the
-            // workspace's pins, as the peers do: a toolchain pinned apart from them makes npm refuse the install.
+            // The peerDependencies of @angular/compiler-cli name the exact @angular/compiler of its own version.
+            // So the toolchain takes the workspace's pins, as the peers do.
+            // A toolchain pinned apart from them makes npm refuse the install (ERESOLVE).
             return $$"""
 {
     "name": "{{appName}}",

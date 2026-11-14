@@ -14,13 +14,13 @@ declare global {
   }
 }
 
-interface ControlFile {
+interface ControlComponent {
   type: Type<unknown>;
   file: string;
 }
 
 /** Each component class exported by a `*.component.ts` file under controls/, with that file. */
-function controlComponents(): ControlFile[] {
+function controlComponents(): ControlComponent[] {
   const context = import.meta.webpackContext('./', { recursive: true, regExp: /\.component\.ts$/ });
   const controls = new Map<Type<unknown>, string>();
   for (const file of context.keys()) {
@@ -33,14 +33,15 @@ function controlComponents(): ControlFile[] {
 }
 
 /** Each of `controls` that `exported` does not hold, by class and file. */
-function missingFrom(controls: ControlFile[], exported: Set<unknown>): string[] {
+function missingFrom(controls: ControlComponent[], exported: Set<unknown>): string[] {
   return controls.filter((control) => !exported.has(control.type)).map(({ type, file }) => `${type.name} (${file})`);
 }
 
-// A generated details page imports SpiderlyControlsModule and an app imports from the public API,
-// so a control missing from either one is a control no app can use.
+// A generated details page imports SpiderlyControlsModule, and an app imports from the public API.
+// A control missing from either one is a control that no app can use.
 describe('Every control under controls/', () => {
   const controls = controlComponents();
+  // Angular's private API: the components a module exports, re-exports included.
   const moduleExports = transitiveScopesFor(SpiderlyControlsModule).exported.directives;
   const publicApiExports = new Set<unknown>(Object.values(publicApi));
 

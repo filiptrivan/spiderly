@@ -6,7 +6,7 @@ namespace Spiderly.Shared.Helpers
     /// The two package.json files of the <c>spiderly</c> Angular library, which this assembly embeds at build time
     /// (see <c>Spiderly.Shared.csproj</c>). The library's own file names its peer dependencies. Its workspace's
     /// file (<c>Angular/package.json</c>) pins the version that builds and tests the library.
-    /// <c>spiderly init</c> reads both, so the init template keeps no copy of either list.
+    /// <c>spiderly init</c> reads both. So the init template keeps no copy of the peers or of their versions.
     /// </summary>
     internal static class AngularLibraryPackage
     {

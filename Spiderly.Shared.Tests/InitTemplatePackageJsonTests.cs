@@ -5,9 +5,8 @@ namespace Spiderly.Shared.Tests
 {
     /// <summary>
     /// Guards the package.json that <c>spiderly init</c> writes for a new app's Frontend against the Angular
-    /// library's two package.json files. A new app lacks a library peer only when the template keeps its own list of
-    /// them, and a package manager that installs no peers (yarn, or the <c>--dev</c> mode with no spiderly
-    /// package) then fails at the first import of that peer.
+    /// library's two package.json files. A new app without a library peer fails at the first import of that peer.
+    /// The <c>--dev</c> mode installs no spiderly package, so no package manager brings the peer for it.
     /// </summary>
     public class InitTemplatePackageJsonTests
     {
@@ -43,10 +42,7 @@ namespace Spiderly.Shared.Tests
                     dependencies: new() { ["a"] = "1.0.0", ["c"] = "3.1.0" }));
         }
 
-        /// <summary>
-        /// <c>@angular/compiler-cli</c> needs the exact <c>@angular/compiler</c> of its own version. A toolchain
-        /// pinned apart from the Angular the peers bring makes npm refuse the install (ERESOLVE).
-        /// </summary>
+        /// <summary>Why: the comment on the toolchain in <c>NetAndAngularFilesGenerator.GetPackageJsonData</c>.</summary>
         [Theory]
         [InlineData("@angular-devkit/build-angular")]
         [InlineData("@angular/cli")]
@@ -60,10 +56,7 @@ namespace Spiderly.Shared.Tests
             Assert.Equal(workspace[toolchainPackage], devDependencies[toolchainPackage]);
         }
 
-        /// <summary>
-        /// Each peer that <paramref name="dependencies"/> lacks, or holds at another version than the one
-        /// <paramref name="workspace"/> pins. A peer the workspace does not pin is expected at its peer range.
-        /// </summary>
+        /// <summary>Each peer that <paramref name="dependencies"/> lacks, or holds at another version than the expected one.</summary>
         private static List<string> WrongPeers(
             Dictionary<string, string> peers, Dictionary<string, string> workspace, Dictionary<string, string> dependencies) =>
             peers
