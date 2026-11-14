@@ -1,6 +1,6 @@
 ---
 name: frontend-localization
-description: How Spiderly localizes Angular admin-panel UI strings — labels, buttons, menu items, validation messages, any user-facing text. Spiderly uses Transloco with flat assets/i18n/{lang}.json files imported into the build by the app's ImportedTranslocoLoader. Use whenever you add or translate a UI string, hit a raw translation key rendering on screen, set up or change languages (provideTransloco / availableLangs), use translocoService.translate or the *transloco template directive, run i18n:extract, or wonder how form labels get auto-translated. For .NET backend strings (error messages, Excel names, IStringLocalizer), use the backend-localization skill instead.
+description: How Spiderly localizes Angular admin-panel UI strings — labels, buttons, menu items, validation messages, any user-facing text. Spiderly uses Transloco with flat assets/i18n/{lang}.json files imported into the build by the app's ImportedTranslocoLoader. Use whenever you add or translate a UI string, hit a raw translation key rendering on screen, set up or change languages (provideSpiderlyTransloco / availableLangs), use translocoService.translate or the *transloco template directive, run i18n:extract, wonder how form labels get auto-translated, or translate Spiderly's own built-in strings (its `spiderly` scope). For .NET backend strings (error messages, Excel names, IStringLocalizer), use the backend-localization skill instead.
 ---
 
 # Frontend Localization
@@ -11,7 +11,7 @@ This is a **separate system from the backend**: a string shown by the API (a `Bu
 
 ## Setup (`translations.ts`)
 
-`spiderly init` writes the loader and the Transloco config to `src/app/business/services/translations.ts`; `app.config.ts` only calls `provideTranslations()`:
+`spiderly init` writes the loader and the Transloco config to `src/app/business/services/translations.ts`; `app.config.ts` only calls `provideTranslations()`. `provideSpiderlyTransloco` takes `provideTransloco`'s options, and it also loads Spiderly's own strings (see "Spiderly's own strings"):
 
 ```typescript
 @Injectable({ providedIn: 'root' })
@@ -22,7 +22,7 @@ export class ImportedTranslocoLoader implements TranslocoLoader {
 }
 
 export function provideTranslations() {
-  return provideTransloco({
+  return provideSpiderlyTransloco({
     config: {
       availableLangs: ['en'],          // every language you ship a JSON file for
       defaultLang: 'en',
@@ -84,7 +84,29 @@ Add `TranslocoDirective` to the component's `imports` to use `*transloco`.
 1. Add it to **every** `assets/i18n/{lang}.json` (one entry per language).
 2. Reference it via `translate('Key')` / `t('Key')`.
 
-Run **`npm run i18n:extract`** (transloco-keys-manager) to scan `src/` and add any missing keys to the JSON files automatically — use it instead of hand-syncing. Note it scans only your own `src/`, **not** `node_modules/spiderly`; keys used inside Spiderly's own library components are pre-seeded by `spiderly init`, so they resolve out of the box.
+Run **`npm run i18n:extract`** (transloco-keys-manager) to scan `src/` and add any missing keys to the JSON files automatically — use it instead of hand-syncing. It scans only your own `src/`. Spiderly's own components read their strings from the library, so your files never hold them (next section).
+
+## Spiderly's own strings (the `spiderly` scope)
+
+Spiderly's components (the data table, the filter bar, the login page, the controls) and its services (toasts, validation messages) ship their own strings. They live in a Transloco scope named `spiderly`, and the library reads each one as `spiderly.<Key>`. Your translation files hold none of them.
+
+- **English ships inside the library.** An English app needs nothing beyond `provideSpiderlyTransloco`.
+- **`provideSpiderlyTransloco` loads the strings before the first page**, and again on each language switch. Call it in place of `provideTransloco`, with the same options. So a class that translates a string as it is built (a menu's labels, a form's toast text) reads the active language.
+- **Another language is one more file:** `src/assets/i18n/spiderly/<lang>.json`, for each `lang` in `availableLangs`. Transloco asks your loader for `spiderly/<lang>`, as it does for any scope. The `ImportedTranslocoLoader` above imports `assets/i18n/spiderly/<lang>.json` with no change. A loader that ignores its `lang` argument must handle `spiderly/<lang>` itself.
+- **Start from the library's English.** Copy `node_modules/spiderly/i18n/en.json` to `src/assets/i18n/spiderly/<lang>.json` and translate each value. Keep the keys as they are, with no `spiderly.` prefix: the scope adds it.
+- **A key your file lacks shows in English**, never as a raw key. A language with no file shows all of Spiderly's strings in English, and the console warns with the path it asked for.
+- **A runtime language switch switches Spiderly's strings too**, when `reRenderOnLangChange` is `true`.
+
+```jsonc
+// src/assets/i18n/spiderly/sr-Latn-RS.json
+{
+  "Return": "Nazad",
+  "NoRecordsFound": "Nema podataka.",
+  "ResultCount": "{{count}} rezultata"
+}
+```
+
+When a Spiderly release adds a string, its English shows until your `spiderly/<lang>.json` has the key. After an upgrade, compare your file with `node_modules/spiderly/i18n/en.json`.
 
 ## Form label auto-translation
 
@@ -123,7 +145,7 @@ If you build a reusable control/component with text baked into its template, rou
 
 ## Gotchas
 
-- **A missing key renders the raw key.** Transloco's default `missingHandler` returns the key string, so a typo'd or unseeded key leaks the identifier (e.g. `InvalidSKU`) onto the screen instead of erroring. Treat a raw-key sighting as a missing-translation bug. Keep keys in sync across all `{lang}.json` files and lean on `i18n:extract`.
+- **A missing key renders the raw key.** Transloco's default `missingHandler` returns the key string, so a typo'd or missing key leaks the identifier (e.g. `InvalidSKU`) onto the screen instead of erroring. Treat a raw-key sighting as a missing-translation bug. Keep keys in sync across all `{lang}.json` files and lean on `i18n:extract`.
 - **Filename must match `availableLangs`.** `ImportedTranslocoLoader` imports `{lang}.json` for the active lang; a mismatch (`sr.json` while `availableLangs` is `['sr-Latn-RS']`) fails the import and the whole file falls through to raw keys.
 - **New keys render raw for some users right after a deploy, and a hard reload does not fix it?** Something still fetches the translations from a URL that survives deploys (see *Why imported, not fetched*). Check that `app.config.ts` calls `provideTranslations()` and that the network panel shows no `/assets/i18n/` request.
 - **`reRenderOnLangChange: false`** means a runtime language switch won't re-render already-rendered text. Set it to `true` only if you actually offer in-session language switching.

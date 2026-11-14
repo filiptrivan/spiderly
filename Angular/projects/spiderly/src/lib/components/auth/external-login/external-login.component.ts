@@ -7,10 +7,12 @@ import { ConfigServiceBase } from '../../../services/config.service.base';
 import { ExternalProviderPublic } from '../../../entities/security-entities';
 import { SpiderlyButtonComponent } from '../../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { DEFAULT_EXTERNAL_PROVIDER_ICONS } from '../external-provider-icons';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-external-login',
   templateUrl: './external-login.component.html',
+  providers: [provideSpiderlyScope()],
   imports: [CommonModule, TranslocoDirective, SpiderlyButtonComponent],
 })
 export class ExternalLoginComponent implements OnInit {

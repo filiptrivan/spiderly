@@ -31,8 +31,8 @@ export class SpiderlyErrorHandler implements ErrorHandler {
     console.error(error);
 
     this.messageService.errorMessage(
-      this.translocoService.translate('UnexpectedErrorDetails'),
-      this.translocoService.translate('UnexpectedErrorTitle'),
+      this.translocoService.translate('spiderly.UnexpectedErrorDetails'),
+      this.translocoService.translate('spiderly.UnexpectedErrorTitle'),
     );
   }
 }

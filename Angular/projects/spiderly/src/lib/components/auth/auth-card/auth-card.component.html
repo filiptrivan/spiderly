@@ -16,13 +16,15 @@
       <div class="surface-card py-12 px-8 sm:px-12" style="border-radius: 45px">
         <div class="flex justify-center" style="margin-bottom: 38px">
           <ng-content select="[auth-logo]">
-            <img
-              *ngIf="image != null"
-              [src]="image"
-              alt="{{ companyName }} Logo"
-              title="{{ companyName }} Logo"
-              class="max-h-15"
-            />
+            <ng-container *transloco="let t">
+              <img
+                *ngIf="image != null"
+                [src]="image"
+                [alt]="t('spiderly.CompanyLogo', { companyName: companyName })"
+                [title]="t('spiderly.CompanyLogo', { companyName: companyName })"
+                class="max-h-15"
+              />
+            </ng-container>
             <i
               *ngIf="image == null"
               class="pi pi-spin pi-spinner primary-color"

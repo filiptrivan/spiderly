@@ -205,6 +205,8 @@ cols: Column<ProductDTO>[] = [
 ];
 ```
 
+A `boolean` column shows `true` as "Yes", and `false` and null as "No", since a checkbox's null means false. A `bool?` whose null means "not set" (inherit, unknown) declares `triState: true`, and its null shows as an empty cell.
+
 Headers are click-to-sort by default; disable with `sortable: false`. Columns whose `field` ends in `CommaSeparated` are auto-disabled — the backend generates no sort case for collection columns and rejects unknown sort fields with a 400, so the table never offers the click.
 
 The table lays its columns out from their **declared widths, never from the rows on screen** (`table-layout: fixed`). The browser default would size every column from the content of the page currently rendered, so a column is one width on this page and another on the next, and a filter — which narrows the variety of values in the column it filters — shifts the whole grid under an operator who is scanning it.

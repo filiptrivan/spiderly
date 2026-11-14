@@ -1,6 +1,9 @@
 namespace Spiderly.Shared.Tests
 {
-    /// <summary>Reads a file of this repo that the tests check but do not build, such as the Angular sources.</summary>
+    /// <summary>
+    /// Reads a file of this repo by its path from the repo root, the folder that holds <c>Spiderly.sln</c>, so
+    /// a test can pin a non-C# file (a TypeScript mirror, <c>Angular/package.json</c>) against the C# it mirrors.
+    /// </summary>
     internal static class RepoFiles
     {
         /// <summary>The text of <paramref name="relativePath"/>, a path from the repo root with <c>/</c> separators.</summary>

@@ -46,6 +46,8 @@ namespace __APP_NAME__.Business.Entities
         [UIControlType(nameof(UIControlTypeCodes.MultiAutocomplete))]
         public virtual List<User> Members { get; } = new(); // M2M
 
+        // [Required] on a list refuses only null: project-crud.spec.ts saves a project with no tasks.
+        [Required]
         [UIOrderedOneToMany]
         public virtual List<ProjectTask> ProjectTasks { get; } = new();
 

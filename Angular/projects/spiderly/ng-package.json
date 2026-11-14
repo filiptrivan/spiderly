@@ -6,6 +6,7 @@
   },
   "assets": [
     { "input": "src/lib", "glob": "**/*.scss", "output": "styles" },
+    { "input": "src/lib/i18n", "glob": "en.json", "output": "i18n" },
     { "input": "agent", "glob": "**/*", "output": "agent" }
   ]
 }

@@ -259,7 +259,7 @@ describe('SpiderlyFilterBarComponent', () => {
         // `Contains` is the text default: an operator nobody chose has to be the one a person
         // means by typing a fragment into a box.
         operator: MatchModeCodes.Contains,
-        operatorPhraseKey: 'FilterChipContains',
+        operatorPhraseKey: 'spiderly.FilterChipContains',
         value: 'Elektromont',
       },
     ]);

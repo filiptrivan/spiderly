@@ -224,8 +224,8 @@ export class BaseFormService {
 
   showInvalidFieldsMessage = () => {
     this.messageService.warningMessage(
-      this.translocoService.translate('YouHaveSomeInvalidFieldsDescription'),
-      this.translocoService.translate('YouHaveSomeInvalidFieldsTitle'),
+      this.translocoService.translate('spiderly.YouHaveSomeInvalidFieldsDescription'),
+      this.translocoService.translate('spiderly.YouHaveSomeInvalidFieldsTitle'),
     );
   };
 

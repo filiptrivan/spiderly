@@ -65,7 +65,7 @@ export class SpiderlyAutocompleteComponent
       });
 
     if (this.emptyMessage == null) {
-      this.emptyMessage = this.translocoService.translate('EmptyMessage');
+      this.emptyMessage = this.translocoService.translate('spiderly.EmptyMessage');
     }
   }
 

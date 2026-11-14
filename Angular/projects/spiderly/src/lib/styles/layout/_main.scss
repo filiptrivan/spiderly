@@ -6,8 +6,8 @@
 
 // Declared through :where() so both vars carry ZERO specificity: a consumer's own
 // `html { --spiderly-… }` then wins wherever it sits in the cascade, instead of the override
-// working or not depending on stylesheet order. The fallback rule components must follow:
-// .claude/rules/library-scss.md.
+// working or not depending on stylesheet order. A component reads the inset with a 0px fallback,
+// which Stylelint holds: Angular/projects/spiderly/stylelint.config.mjs.
 :where(html) {
   // Two names because they are two quantities that merely coincide in THIS shell: the topbar's
   // own height, and how much fixed chrome covers the top of the viewport. A shell that pins a
@@ -19,9 +19,6 @@
 html {
   height: 100%;
   font-size: $scale;
-
-  // No `scroll-behavior` here, deliberately (2026-08-29) — the argument against re-adding it
-  // is in .claude/rules/library-scss.md.
 }
 
 body {

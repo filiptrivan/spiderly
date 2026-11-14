@@ -9,6 +9,7 @@ import { TabsModule } from 'primeng/tabs';
 import { MarkdownComponent } from 'ngx-markdown';
 import { Observable } from 'rxjs';
 import { EditorImageUploadResult } from '../../entities/editor-image-upload-result';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 /**
  * Markdown form control: a plain textarea (Write) with a rendered live preview (Preview),
@@ -29,6 +30,7 @@ import { EditorImageUploadResult } from '../../entities/editor-image-upload-resu
 @Component({
   selector: 'spiderly-markdown',
   templateUrl: './spiderly-markdown.component.html',
+  providers: [provideSpiderlyScope()],
   imports: [
     CommonModule,
     ReactiveFormsModule,

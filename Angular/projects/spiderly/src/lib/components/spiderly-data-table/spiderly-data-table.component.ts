@@ -72,6 +72,7 @@ import {
   SpiderlyDeleteConfirmationComponent,
 } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 /**
  * Default column width per value type, in rem — generous on purpose (these numbers date from when
@@ -118,6 +119,7 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
 @Component({
   selector: 'spiderly-data-table',
   templateUrl: './spiderly-data-table.component.html',
+  providers: [provideSpiderlyScope()],
   styleUrl: 'spiderly-data-table.component.scss',
   imports: [
     FormsModule,
@@ -2065,9 +2067,9 @@ export class SpiderlyDataTableComponent
         deleteItemFromTableObservableMethod:
           this.deleteItemFromTableObservableMethod,
         id: rowId,
-        message: this.translocoService.translate('PleaseConfirmToProceed'),
+        message: this.translocoService.translate('spiderly.PleaseConfirmToProceed'),
       },
-      'SuccessfullyDeletedMessage',
+      'spiderly.SuccessfullyDeletedMessage',
     );
   }
 
@@ -2081,11 +2083,11 @@ export class SpiderlyDataTableComponent
         deleteListFromTableObservableMethod:
           this.deleteListFromTableObservableMethod,
         ids: selectedIds,
-        message: this.translocoService.translate('DeleteBulkConfirmation', {
+        message: this.translocoService.translate('spiderly.DeleteBulkConfirmation', {
           count: selectedIds.length,
         }),
       },
-      'SuccessfullyDeletedListMessage',
+      'spiderly.SuccessfullyDeletedListMessage',
       () => this.resetSelection(),
     );
   }
@@ -2098,7 +2100,7 @@ export class SpiderlyDataTableComponent
     this.deleteRef = this.dialogService.open(
       SpiderlyDeleteConfirmationComponent,
       {
-        header: this.translocoService.translate('AreYouSure'),
+        header: this.translocoService.translate('spiderly.AreYouSure'),
         width: '400px',
         data,
       },
@@ -2268,9 +2270,10 @@ export class SpiderlyDataTableComponent
         return option?.label ?? multiselectValue;
       }
       case 'boolean':
+        if (col.triState && rowData[col.field] == null) return null;
         return rowData[col.field] == true
-          ? this.translocoService.translate('Yes')
-          : this.translocoService.translate('No');
+          ? this.translocoService.translate('spiderly.Yes')
+          : this.translocoService.translate('spiderly.No');
       case 'numeric':
         if (rowData[col.field] == null) return null;
         return formatNumber(
@@ -2704,6 +2707,12 @@ export class Column<T = any> {
   editable?: boolean;
   showTime?: boolean;
   decimalPlaces?: number;
+  /**
+   * For a boolean column: show null as an empty cell, not as "No". Declare it on a `bool?` whose
+   * null means "not set" (inherit, unknown). Leave it off a checkbox: Spiderly reads a checkbox's
+   * null as false, and an untouched checkbox saves null.
+   */
+  triState?: boolean;
   sortable?: boolean;
   /**
    * Whether the column is initially rendered. Defaults to `true`. Declare `visible: false` for
@@ -2749,6 +2758,7 @@ export class Column<T = any> {
     editable,
     showTime,
     decimalPlaces,
+    triState,
     sortable,
     visible,
     lockVisible,
@@ -2766,6 +2776,7 @@ export class Column<T = any> {
     editable?: boolean;
     showTime?: boolean;
     decimalPlaces?: number;
+    triState?: boolean;
     sortable?: boolean;
     visible?: boolean;
     lockVisible?: boolean;
@@ -2783,6 +2794,7 @@ export class Column<T = any> {
     this.editable = editable;
     this.showTime = showTime;
     this.decimalPlaces = decimalPlaces;
+    this.triState = triState;
     this.sortable = sortable;
     this.visible = visible;
     this.lockVisible = lockVisible;

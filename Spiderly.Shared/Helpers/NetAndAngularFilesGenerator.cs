@@ -3180,6 +3180,9 @@ namespace {{appName}}.Business.DataMappers
 """;
         }
 
+        /// <summary>
+        /// Internal so that <c>InitTemplatePackageJsonTests</c> and <c>AngularPinTests</c> read the real template.
+        /// </summary>
         internal static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
         {
             // The library's peers, with the packages the app itself imports beside them.
@@ -3577,11 +3580,8 @@ export const ThemePreset = definePreset(Aura, {
         {
             return $$$"""
 {
-  "SelectFromTheList": "Select...",
-  "OnDate": "On date",
   "TierList": "Loyalty Tiers",
   "Partner": "Partner",
-  "Submit": "Confirm",
   "UserList": "Users",
   "SuperRoles": "Super roles",
   "IsDisabled": "Account is disabled",
@@ -3595,44 +3595,18 @@ export const ThemePreset = definePreset(Aura, {
   "Permissions": "Permissions",
   "Settings": "Settings",
   "PartnerList": "Partners",
-  "SelectThePartner": "Select partner",
-  "AgreementsOnRegister": "By clicking Login, you accept the",
-  "UserAgreement": "terms of use",
-  "PrivacyPolicy": "privacy policy",
-  "and": "and",
   "CookiePolicy": "cookie policy",
   "AgreeAndJoin": "Agree and Join",
-  "or": "or",
-  "All": "All",
-  "AccountVerificationHeader": "Profile Verification",
-  "AccountVerificationTitle": "Verify your email address",
-  "AccountVerificationDescription": "We have sent a verification code to {{email}}. Please check your inbox or spam folder and enter the code we sent to complete the process. Thank you!",
-  "GoToGmail": "Go to Gmail",
-  "GoToYahoo": "Go to Yahoo",
-  "ResendVerificationCodeFirstPart": "If you didn't find it, you can",
-  "ResendVerificationCodeLinkSecondPart": "resend the verification code.",
   "ForgotPassword": "Forgot password?",
-  "Login": "Log in",
   "RememberYourPassword": "Remembered your password?",
   "ResetPassword": "Reset password",
-  "DragAndDropFilesHereToUpload": "Drag and drop files here to upload.",
   "PleaseConfirmToProceed": "Please confirm to proceed.",
-  "DeleteBulkConfirmation": "Are you sure you want to delete {{count}} items?",
   "Cancel": "Cancel",
   "Confirm": "Confirm",
   "Clear": "Clear",
-  "Write": "Write",
-  "Preview": "Preview",
-  "UploadingImage": "Uploading image…",
-  "ImageUploadFailed": "Image upload failed.",
-  "ExportToExcel": "Export to Excel",
   "Select": "Select",
   "SyncDiscountProductGroups": "Sync discount product groups",
-  "NoRecordsFound": "No records found.",
   "Loading": "Loading",
-  "TotalRecords": "Total records",
-  "AddNew": "Add New",
-  "Return": "Return",
   "ProductsForYouTitle": "Products for You",
   "Currency": "$",
   "PartnerIntermediateStepTitle": "You can change partners at any time",
@@ -3654,56 +3628,14 @@ export const ThemePreset = definePreset(Aura, {
   "MarkAsUnread": "Mark as unread",
   "Email": "Email",
   "Slug": "URL path",
-  "YourProfile": "Your profile",
   "Profile": "Profile",
-  "Logout": "Log out",
   "Home": "Home",
   "SuperAdministration": "Super Administration",
   "Administration": "Administration",
-  "SuccessfullySentVerificationCode": "Verification code sent successfully.",
-  "YouHaveSuccessfullyVerifiedYourAccount": "You have successfully verified your account.",
   "YouHaveSuccessfullyChangedYourPassword": "You have successfully changed your password.",
-  "SuccessfulAction": "Operation successful",
-  "Warning": "Warning",
-  "Error": "Error",
-  "ExternalLoginExpiredDetails": "Your sign-in took too long and expired. Please try again.",
-  "ExternalLoginFailedDetails": "Sign-in failed. Please try again.",
-  "ServerLostConnectionDetails": "Connection lost. Please check your internet connection. If the problem persists, please contact our support team.",
-  "ServerLostConnectionTitle": "Connection Lost",
-  "PermissionErrorDetails": "You do not have permission for this operation.",
-  "PermissionErrorTitle": "Permission Denied",
-  "NotFoundDetails": "The requested resource was not found, please try again.",
-  "NotFoundTitle": "Not Found",
-  "UnexpectedErrorTitle": "An error occurred",
-  "UnexpectedErrorDetails": "Our team has been notified and we are working on a solution. Please try again later.",
-  "ErrorReference": "Error reference: {{traceId}}",
-  "ColorPickerPlaceholder": "e.g., #ff0000",
-  "True": "True",
-  "False": "False",
-  "Empty": "Empty",
   "Revert": "Revert to state",
-  "DatesBefore": "Dates before",
-  "DatesAfter": "Dates after",
-  "Equals": "Equals",
-  "MoreThan": "More than",
-  "LessThan": "Less than",
-  "StartsWith": "Starts with",
-  "Contains": "Contains",
-  "In": "Is one of",
   "AreYouSure": "Are you sure?",
-  "SuccessfullyDeletedMessage": "Successfully deleted.",
-  "SuccessfullyDeletedListMessage": "Successfully deleted selected records.",
-  "DeleteSelected": "Delete selected",
-  "Yes": "Yes",
-  "No": "No",
-  "SuccessfulSaveToastDescription": "Successfully saved.",
   "SuccessfulSyncToastDescription": "Successfully updated data.",
-  "YouHaveSomeInvalidFieldsDescription": "Some fields on the form were not entered correctly, please check them and try again.",
-  "YouHaveSomeInvalidFieldsTitle": "Invalid Fields on Form",
-  "Remove": "Remove",
-  "AddAbove": "Add above",
-  "AddBelow": "Add below",
-  "ListCanNotBeEmpty": "The list '{{value}}' cannot be empty.",
   "NotEmpty": "Field cannot be empty.",
   "Length": "Field must have a minimum of {{min}} and a maximum of {{max}} characters.",
   "MaxLength": "Field must have a maximum of {{max}} characters.",
@@ -3720,8 +3652,6 @@ export const ThemePreset = definePreset(Aura, {
   "NotEmptyPrecisionScale": "Field cannot be empty, value must have a total of {{precision}} digits, and the number of digits after the decimal point must not be greater than {{scale}}.",
   "NotEmptyNumberRangeMinPrecisionScale": "Field cannot be empty, value must be greater than or equal to {{min}}, must have a total of {{precision}} digits, and the number of digits after the decimal point must not be greater than {{scale}}.",
   "NotEmptyLengthEmailAddress": "Field cannot be empty, must have a minimum of {{min}} and a maximum of {{max}} characters, and must be a valid email address.",
-  "ImageWidthMustBeExact": "Image width must be exactly {{ 0 }}px (current: {{ 1 }}px).",
-  "ImageHeightMustBeExact": "Image height must be exactly {{ 0 }}px (current: {{ 1 }}px).",
   "FileSizeExceeded": "File size must not exceed {{ 0 }} MB.",
   "IdToken": "/",
   "Browser": "/",
@@ -3742,7 +3672,6 @@ export const ThemePreset = definePreset(Aura, {
   "ExcelUpdatePoints": "Excel points update",
   "ManualUpdatePointsFromDate": "Manual points update from date",
   "ManualUpdatePointsToDate": "Manual points update to date",
-  "Reload": "Refresh",
   "TransactionsTo": "Transactions to",
   "TransactionsFrom": "Transactions from",
   "IsManuallyStarted": "Manually started",
@@ -3802,7 +3731,6 @@ export const ThemePreset = definePreset(Aura, {
   "StartUpdatePointsScheduledTask": "Start automatic points update",
   "PauseUpdatePointsScheduledTask": "Pause automatic points update",
   "LogoImage": "Logo",
-  "Info": "Information",
   "PrimaryColor": "Primary color",
   "PointsForTheFirstTimeGenderFill": "Points for first-time gender fill",
   "PointsForTheFirstTimeBirthDateFill": "Points for first-time birth date fill",
@@ -3895,42 +3823,9 @@ export const ThemePreset = definePreset(Aura, {
     "emptyMessage": "No results",
     "emptyFilterMessage": "No results"
   },
-  "LeftCornerPartnersEmptyMessage": "You don't have a profile for any partner",
-  "EmptyMessage": "No results",
-  "ClearFilters": "Clear all filters",
-  "ApplyFilters": "Apply filters",
-  "Columns": "Columns",
-  "AddFilter": "Add filter",
-  "Apply": "Apply",
-  "RemoveFilter": "Remove filter",
-  "SortedBy": "Sorted by:",
-  "Sort": "Sort",
-  "ResetSort": "Reset to default sort",
-  "ResultCount": "{{count}} results",
-  "Search": "Search",
-  "HideColumn": "Hide column",
-  "WrapText": "Wrap text",
-  "MoveLeft": "Move left",
-  "MoveRight": "Move right",
-  "FitWidth": "Fit width",
-  "SortAscending": "Sort ascending",
-  "SortDescending": "Sort descending",
-  "Filter": "Filter",
-  "FilterChipContains": "contains",
-  "FilterChipStartsWith": "starts with",
-  "FilterChipEquals": "is",
-  "FilterChipGreaterThan": "more than",
-  "FilterChipLessThan": "less than",
-  "FilterChipBefore": "before",
-  "FilterChipAfter": "after",
-  "FilterChipIn": "is one of",
-  "FilterControlNotAvailable": "No control for this filter yet",
-  "ResetToDefault": "Reset to default",
   "PartnerUserList": "Users",
   "YouDoNotHaveAnyAchievement": "You haven't earned any points yet.",
   "PointsHistory": "Points History",
-  "LoginRequired": "You need to be logged in to perform this action. Please log in and try again.",
-  "BadRequestDetails": "The system cannot process the request. Please check your request and try again.",
   "BusinessSystemList": "Business systems",
   "BusinessSystem": "Business system"
 }
@@ -3960,7 +3855,8 @@ export class ValidatorService extends ValidatorServiceGenerated {
         {
             return $$"""
 import { Injectable } from '@angular/core';
-import { provideTransloco, Translation, TranslocoLoader } from '@jsverse/transloco';
+import { Translation, TranslocoLoader } from '@jsverse/transloco';
+import { provideSpiderlyTransloco } from 'spiderly';
 
 // Imported, never fetched: the build emits each language file as a content-hashed chunk shipped
 // with the code that reads its keys. A file fetched from an unchanging URL like
@@ -3974,8 +3870,10 @@ export class ImportedTranslocoLoader implements TranslocoLoader {
   }
 }
 
+// Spiderly ships its own strings in English. Another language for them is one more file here,
+// assets/i18n/spiderly/<lang>.json, which this loader reads as `spiderly/<lang>`.
 export function provideTranslations() {
-  return provideTransloco({
+  return provideSpiderlyTransloco({
     config: {
       availableLangs: ['en'],
       defaultLang: 'en',

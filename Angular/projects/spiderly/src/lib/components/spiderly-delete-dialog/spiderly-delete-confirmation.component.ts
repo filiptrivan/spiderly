@@ -5,6 +5,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { SpiderlyButtonComponent } from '../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Observable } from 'rxjs';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 export type DeleteConfirmationData =
   | {
@@ -23,7 +24,7 @@ export type DeleteConfirmationData =
   templateUrl: './spiderly-delete-confirmation.component.html',
   styles: [],
   imports: [SpiderlyButtonComponent, TranslocoDirective, ConfirmDialogModule],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, provideSpiderlyScope()],
 })
 export class SpiderlyDeleteConfirmationComponent {
   constructor(

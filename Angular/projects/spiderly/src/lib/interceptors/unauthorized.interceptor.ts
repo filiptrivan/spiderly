@@ -44,45 +44,45 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
     // the server decides which responses carry a support reference, never this status-code chain.
     const withReference = (detail: string): string =>
       errorResponse?.traceId
-        ? `${detail} ${translocoService.translate('ErrorReference', { traceId: errorResponse.traceId })}`
+        ? `${detail} ${translocoService.translate('spiderly.ErrorReference', { traceId: errorResponse.traceId })}`
         : detail;
 
     if (err.status === 0) {
       // Server unreachable; defer so the message isn't lost during a shutdown/refresh race.
       setTimeout(() => {
         messageService.warningMessage(
-          withReference(translocoService.translate('ServerLostConnectionDetails')),
-          translocoService.translate('ServerLostConnectionTitle'),
+          withReference(translocoService.translate('spiderly.ServerLostConnectionDetails')),
+          translocoService.translate('spiderly.ServerLostConnectionTitle'),
         );
       }, 100);
     } else if (err.status === 400) {
       messageService.warningMessage(
-        withReference(errorResponse?.message ?? translocoService.translate('BadRequestDetails')),
-        translocoService.translate('Warning'),
+        withReference(errorResponse?.message ?? translocoService.translate('spiderly.BadRequestDetails')),
+        translocoService.translate('spiderly.Warning'),
       );
     } else if (err.status === 401) {
       if (errorResponse?.errorCode === ApiErrorCodes.InvalidToken) {
         authService.clearSession(); // expired/invalid session — drop it; guards send the user to login
       } else {
         messageService.warningMessage(
-          withReference(errorResponse?.message ?? translocoService.translate('LoginRequired')),
-          translocoService.translate('Warning'),
+          withReference(errorResponse?.message ?? translocoService.translate('spiderly.LoginRequired')),
+          translocoService.translate('spiderly.Warning'),
         );
       }
     } else if (err.status === 403) {
       messageService.warningMessage(
-        withReference(translocoService.translate('PermissionErrorDetails')),
-        translocoService.translate('PermissionErrorTitle'),
+        withReference(translocoService.translate('spiderly.PermissionErrorDetails')),
+        translocoService.translate('spiderly.PermissionErrorTitle'),
       );
     } else if (err.status === 404) {
       messageService.warningMessage(
-        withReference(translocoService.translate('NotFoundDetails')),
-        translocoService.translate('NotFoundTitle'),
+        withReference(translocoService.translate('spiderly.NotFoundDetails')),
+        translocoService.translate('spiderly.NotFoundTitle'),
       );
     } else {
       messageService.errorMessage(
-        withReference(translocoService.translate('UnexpectedErrorDetails')),
-        translocoService.translate('UnexpectedErrorTitle'),
+        withReference(translocoService.translate('spiderly.UnexpectedErrorDetails')),
+        translocoService.translate('spiderly.UnexpectedErrorTitle'),
       );
     }
   };

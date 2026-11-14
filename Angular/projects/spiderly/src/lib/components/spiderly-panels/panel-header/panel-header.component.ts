@@ -27,7 +27,7 @@ export class PanelHeaderComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.title == null)
-      this.title = this.translocoService.translate('Details');
+      this.title = this.translocoService.translate('spiderly.Details');
 
     if (this.showIcon === true && this.icon == null)
       this.icon = 'pi pi-file-edit';

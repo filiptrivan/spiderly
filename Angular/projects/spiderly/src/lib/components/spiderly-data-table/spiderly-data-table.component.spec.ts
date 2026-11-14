@@ -74,7 +74,7 @@ function createFixture<T>(host: new () => T): ComponentFixture<T> {
     imports: [
       host,
       TranslocoTestingModule.forRoot(
-        translocoTesting({ ResultCount: '{{count}} results' }),
+        translocoTesting({ ResultCount: '{{count}} results', Yes: 'Yes', No: 'No' }),
       ),
     ],
     providers: [
@@ -1046,6 +1046,52 @@ describe('SpiderlyDataTableComponent — multiselect cells show the label, not t
   });
 });
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithBooleanColumnsComponent {
+  cols: Column[] = [
+    {
+      name: 'Eligible',
+      field: 'eligible',
+      filterType: 'boolean',
+      triState: true,
+    },
+    { name: 'Disabled', field: 'disabled', filterType: 'boolean' },
+  ];
+  getList = () =>
+    paginated([
+      { eligible: true, disabled: true },
+      { eligible: false, disabled: false },
+      { eligible: null, disabled: null },
+    ]);
+}
+
+describe('SpiderlyDataTableComponent — boolean cells', () => {
+  const columnTexts = (el: HTMLElement, index: number) =>
+    Array.from(el.querySelectorAll('tbody tr')).map((tr) =>
+      tr.querySelectorAll('td')[index].textContent!.trim(),
+    );
+
+  it('shows null as an empty cell in a tri-state column', async () => {
+    const el = await renderRows(createFixture(HostWithBooleanColumnsComponent));
+
+    expect(columnTexts(el, 0)).toEqual(['Yes', 'No', '']);
+  });
+
+  it('shows null as No in a column that is not tri-state', async () => {
+    const el = await renderRows(createFixture(HostWithBooleanColumnsComponent));
+
+    expect(columnTexts(el, 1)).toEqual(['Yes', 'No', 'No']);
+  });
+});
+
 const fourSelectableRows = (): Observable<PaginatedResult> =>
   paginated([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
 
@@ -1682,8 +1728,8 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
     expect(scrolled).toHaveBeenCalled();
   });
 
-  // Pins the seam described in .claude/rules/library-scss.md: the component reads
-  // the inset from a var it does not own, and still works when no shell declares one.
+  // Pins the seam described on the scroll-target-below-top-chrome mixin (styles/layout/_mixins.scss):
+  // the component reads the inset from a var it does not own, and still works when no shell declares one.
   it('offsets the scroll target by the shell viewport-top inset', () => {
     const { fixture } = createWithDataTable(HostWithoutActionsComponent);
     const container = (

@@ -58,6 +58,11 @@ namespace Spiderly.SourceGenerators.Angular
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "validators");
 
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(Path.Combine(outputPath, "validators.generated.ts"), GetValidatorsFileContent(referencedProjectClasses), nameof(NgValidatorsGenerator), "the validation attributes on the [SpiderlyEntity] and [SpiderlyDTO] properties");
+        }
+
+        internal static string GetValidatorsFileContent(List<SpiderlyClass> referencedProjectClasses)
+        {
             referencedProjectClasses = referencedProjectClasses.OrderBy(x => x.Name).ToList();
 
             List<SpiderlyClass> entities = referencedProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
@@ -65,7 +70,6 @@ namespace Spiderly.SourceGenerators.Angular
 
             List<string> formControlSwitchCases = new();
             List<string> validatorMethods = new();
-            List<string> formArraySwitchCases = new();
 
             foreach (SpiderlyClass dtoClass in dtoClasses)
             {
@@ -73,9 +77,11 @@ namespace Spiderly.SourceGenerators.Angular
                     SpiderlyNaming.IsGeneratedDTOName(dtoClass.Name, x.Name, "DTO", "SaveBodyDTO")
                 ); // If it is null then we only made DTO, without entity class
 
-                List<SpiderValidationRule> rules = ValidationRuleBuilder.GetValidationRules(dtoClass.Properties, entityClass);
-                List<SpiderValidationRule> formControlRules = rules.Where(r => !r.Property.Type.IsEnumerable()).ToList();
-                List<SpiderValidationRule> formArrayRules = rules.Where(r => r.Property.Type.IsEnumerable()).ToList();
+                // A list's only rule is the NotNull of its [Required], and a form array is never null,
+                // so a list gets no client check.
+                List<SpiderValidationRule> formControlRules = ValidationRuleBuilder.GetValidationRules(dtoClass.Properties, entityClass)
+                    .Where(r => !r.Property.Type.IsEnumerable())
+                    .ToList();
 
                 string formControlSwitchCase = GenerateFormControlSwitchCases(dtoClass, formControlRules);
                 if (string.IsNullOrEmpty(formControlSwitchCase) == false)
@@ -84,10 +90,6 @@ namespace Spiderly.SourceGenerators.Angular
                 string methods = GenerateValidatorMethods(dtoClass, formControlRules);
                 if (string.IsNullOrEmpty(methods) == false)
                     validatorMethods.Add(methods);
-
-                string formArraySwitchCase = GenerateFormArraySwitchCases(dtoClass, formArrayRules);
-                if (string.IsNullOrEmpty(formArraySwitchCase) == false)
-                    formArraySwitchCases.Add(formArraySwitchCase);
             }
 
             string result = $$"""
@@ -118,20 +120,14 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
         }
     }
 
-    setFormArrayValidator = (formArray: SpiderlyFormArray, className: string): void => {
-        switch(formArray.label + className){
-{{string.Join("\n", formArraySwitchCases)}}
-            default:
-                return;
-        }
-    }
+    setFormArrayValidator = (formArray: SpiderlyFormArray, className: string): void => {};
 
 {{string.Join("\n", validatorMethods)}}
 
 }
 """;
 
-            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(Path.Combine(outputPath, "validators.generated.ts"), result, nameof(NgValidatorsGenerator), "the validation attributes on the [SpiderlyEntity] and [SpiderlyDTO] properties");
+            return result;
         }
 
         private static string GenerateFormControlSwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
@@ -145,24 +141,6 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
                 sb.AppendLine($$"""
             case '{{rule.Property.Name.FirstCharToLower()}}{{entityName}}':
                 return this.{{rule.Property.Name.FirstCharToLower()}}{{entityName}}Validator(formControl);
-""");
-            }
-
-            return sb.ToString();
-        }
-
-        private static string GenerateFormArraySwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
-        {
-            string entityName = Helpers.RemoveDtoSuffix(dtoClass.Name);
-
-            StringBuilder sb = new();
-
-            foreach (SpiderValidationRule rule in rules)
-            {
-                sb.AppendLine($$"""
-            case '{{rule.Property.Name.FirstCharToLower()}}{{entityName}}':
-                this.isFormArrayEmpty(formArray);
-                return;
 """);
             }
 
@@ -218,7 +196,8 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
                 switch (rulePart)
                 {
                     case NotEmptyRulePart:
-                        AddNotEmptyRule(rule.Property, parts);
+                    case NotNullRulePart:
+                        AddRequiredRule(rule.Property, parts);
                         break;
                     case LengthRangePart p:
                         AddLengthRangeRule(p, parts);
@@ -252,7 +231,11 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             }
         }
 
-        private static void AddNotEmptyRule(SpiderlyProperty property, ValidationMethodParts parts)
+        /// <summary>
+        /// Serves a <see cref="NotEmptyRulePart"/> and a <see cref="NotNullRulePart"/> alike: a form control
+        /// holds null, '' or a value, and '' is no legal answer for a non-string either.
+        /// </summary>
+        private static void AddRequiredRule(SpiderlyProperty property, ValidationMethodParts parts)
         {
             string ruleName = "notEmptyRule";
 
