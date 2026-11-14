@@ -3180,8 +3180,23 @@ namespace {{appName}}.Business.DataMappers
 """;
         }
 
-        private static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
+        internal static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
         {
+            Dictionary<string, string> libraryPeers = AngularLibraryPackage.ReadPeerDependencies();
+
+            // The library's peers, with the packages the app itself imports beside them.
+            SortedDictionary<string, string> dependencies = new(libraryPeers, StringComparer.Ordinal)
+            {
+                ["@primeng/themes"] = "19.1.3",
+                ["tslib"] = "2.3.0",
+            };
+            if (isRunningFromNuget)
+                dependencies["spiderly"] = version;
+
+            // @angular/compiler-cli needs the exact @angular/compiler of its own version, so the toolchain takes
+            // the library's Angular range too. A toolchain pinned apart from that range makes npm refuse the install.
+            string angularRange = libraryPeers["@angular/core"];
+
             return $$"""
 {
     "name": "{{appName}}",
@@ -3202,34 +3217,12 @@ namespace {{appName}}.Business.DataMappers
     },
     "private": true,
     "dependencies": {
-{{(isRunningFromNuget /* Note: Can't comment it out because it's json */ ? $$"""
-        "spiderly": "{{version}}",
-""" : "")}}
-        "@angular/animations": "19.2.13",
-        "@angular/common": "19.2.13",
-        "@angular/compiler": "19.2.13",
-        "@angular/core": "19.2.13",
-        "@angular/forms": "19.2.13",
-        "@angular/platform-browser": "19.2.13",
-        "@angular/platform-browser-dynamic": "19.2.13",
-        "@angular/router": "19.2.13",
-        "@jsverse/transloco": "7.5.0",
-        "file-saver": "2.0.5",
-        "marked": "15.0.12",
-        "ngx-markdown": "19.1.1",
-        "ngx-spinner": "19.0.0",
-        "primeicons": "7.0.0",
-        "primeng": "19.1.3",
-        "@primeng/themes": "19.1.3",
-        "quill": "2.0.2",
-        "rxjs": "7.8.1",
-        "tslib": "2.3.0",
-        "zone.js": "0.15.1"
+{{string.Join(",\n", dependencies.Select(dependency => $"        \"{dependency.Key}\": \"{dependency.Value}\""))}}
     },
     "devDependencies": {
-        "@angular-devkit/build-angular": "19.2.13",
-        "@angular/cli": "19.2.13",
-        "@angular/compiler-cli": "19.2.13",
+        "@angular-devkit/build-angular": "{{angularRange}}",
+        "@angular/cli": "{{angularRange}}",
+        "@angular/compiler-cli": "{{angularRange}}",
         "@jsverse/transloco-keys-manager": "6.2.2",
         "@playwright/test": "1.60.0",
         "@types/jasmine": "5.1.0",

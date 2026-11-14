@@ -33,7 +33,7 @@ namespace Spiderly.Shared.Tests
         {
             Dictionary<string, string> csharp = ConstStringMembers(typeof(ApiErrorCodes));
             Dictionary<string, string> ts = ParseTsStringMap(
-                RepoFile("Angular/projects/spiderly/src/lib/errors/api-error-codes.ts"));
+                RepoFiles.Read("Angular/projects/spiderly/src/lib/errors/api-error-codes.ts"));
 
             Assert.Equal(csharp, ts);
         }
@@ -43,7 +43,7 @@ namespace Spiderly.Shared.Tests
         {
             Dictionary<string, string> csharp = ConstStringMembers(typeof(MatchModeCodes));
             Dictionary<string, string> ts = ParseTsStringMap(
-                RepoFile("Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes.ts"));
+                RepoFiles.Read("Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes.ts"));
 
             Assert.Equal(csharp, ts);
         }
@@ -57,7 +57,7 @@ namespace Spiderly.Shared.Tests
         public void Every_filter_operator_key_has_a_value_in_the_init_template_English_translations()
         {
             List<string> missing = OperatorKeysWithoutEnglishValue(
-                RepoFile("Angular/projects/spiderly/src/lib/filters/filter-store.ts"),
+                RepoFiles.Read("Angular/projects/spiderly/src/lib/filters/filter-store.ts"),
                 NetAndAngularFilesGenerator.GetTranslocoEnJsonCode());
 
             Assert.True(missing.Count == 0,
@@ -130,23 +130,6 @@ namespace Spiderly.Shared.Tests
             foreach (Match m in Regex.Matches(ts, @"(\w+)\s*[:=]\s*[""']([^""']+)[""']"))
                 map[m.Groups[1].Value] = m.Groups[2].Value;
             return map;
-        }
-
-        private static string RepoFile(string relativePath)
-        {
-            DirectoryInfo? dir = new(AppContext.BaseDirectory);
-            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Spiderly.sln")))
-                dir = dir.Parent;
-
-            if (dir is null)
-                throw new DirectoryNotFoundException(
-                    $"Could not locate the repo root (Spiderly.sln) above {AppContext.BaseDirectory}.");
-
-            string path = Path.Combine(dir.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            if (!File.Exists(path))
-                throw new FileNotFoundException($"Expected mirror file not found: {path}");
-
-            return File.ReadAllText(path);
         }
     }
 }
