@@ -252,46 +252,32 @@ namespace Spiderly.SourceGenerators.Angular
             return UIControlTypeCodes.None; // Note: We can't throw exception here
         }
 
-        internal static string GetUIStringControlType(UIControlTypeCodes controlType)
+        /// <summary>
+        /// The selector of the control that renders <paramref name="controlType"/>.
+        /// The switch has no discard arm, and CS8509 is an error in this project.
+        /// So a new <see cref="UIControlTypeCodes"/> value fails the compile until it gets a selector here.
+        /// A new control can also need its attributes (<see cref="GetControlAttributes"/>), its width
+        /// (<see cref="GetUIControlWidth"/>) and its place in the order (<see cref="GetOrderedPropertiesForUIBlocks"/>).
+        /// </summary>
+        internal static string GetUIStringControlType(UIControlTypeCodes controlType) => controlType switch
         {
-            switch (controlType)
-            {
-                case UIControlTypeCodes.Autocomplete:
-                    return "spiderly-autocomplete";
-                case UIControlTypeCodes.Calendar:
-                    return "spiderly-calendar";
-                case UIControlTypeCodes.CheckBox:
-                    return "spiderly-checkbox";
-                case UIControlTypeCodes.ColorPicker:
-                    return "spiderly-colorpicker";
-                case UIControlTypeCodes.Dropdown:
-                    return "spiderly-dropdown";
-                case UIControlTypeCodes.Editor:
-                    return "spiderly-editor";
-                case UIControlTypeCodes.Markdown:
-                    return "spiderly-markdown";
-                case UIControlTypeCodes.File:
-                    return "spiderly-file";
-                case UIControlTypeCodes.MultiAutocomplete:
-                    return "spiderly-multiautocomplete";
-                case UIControlTypeCodes.MultiSelect:
-                    return "spiderly-multiselect";
-                case UIControlTypeCodes.Integer:
-                case UIControlTypeCodes.Decimal:
-                    return "spiderly-number";
-                case UIControlTypeCodes.Password:
-                    return "spiderly-password";
-                case UIControlTypeCodes.TextArea:
-                    return "spiderly-textarea";
-                case UIControlTypeCodes.TextBox:
-                    return "spiderly-textbox";
-                case UIControlTypeCodes.Table:
-                    return "spiderly-data-table";
-                default:
-                    return $"Unknown UIControlType: '{controlType}'.";
-
-            }
-        }
+            UIControlTypeCodes.Autocomplete => "spiderly-autocomplete",
+            UIControlTypeCodes.Calendar => "spiderly-calendar",
+            UIControlTypeCodes.CheckBox => "spiderly-checkbox",
+            UIControlTypeCodes.ColorPicker => "spiderly-colorpicker",
+            UIControlTypeCodes.Dropdown => "spiderly-dropdown",
+            UIControlTypeCodes.Editor => "spiderly-editor",
+            UIControlTypeCodes.Markdown => "spiderly-markdown",
+            UIControlTypeCodes.File => "spiderly-file",
+            UIControlTypeCodes.MultiAutocomplete => "spiderly-multiautocomplete",
+            UIControlTypeCodes.MultiSelect => "spiderly-multiselect",
+            UIControlTypeCodes.Integer or UIControlTypeCodes.Decimal => "spiderly-number",
+            UIControlTypeCodes.Password => "spiderly-password",
+            UIControlTypeCodes.TextArea => "spiderly-textarea",
+            UIControlTypeCodes.TextBox => "spiderly-textbox",
+            UIControlTypeCodes.Table => "spiderly-data-table",
+            UIControlTypeCodes.None => $"Unknown UIControlType: '{controlType}'.",
+        };
 
         internal static string? GetFormControlName(SpiderlyProperty property)
         {
