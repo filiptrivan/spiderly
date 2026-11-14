@@ -32,30 +32,39 @@ function controlComponents(): ControlFile[] {
   return [...controls].map(([type, file]) => ({ type, file }));
 }
 
-const named = ({ type, file }: ControlFile): string => `${type.name} (${file})`;
+/** Each of `controls` that `exported` does not hold, by class and file. */
+function missingFrom(controls: ControlFile[], exported: Set<unknown>): string[] {
+  return controls.filter((control) => !exported.has(control.type)).map(({ type, file }) => `${type.name} (${file})`);
+}
 
 // A generated details page imports SpiderlyControlsModule and an app imports from the public API,
 // so a control missing from either one is a control no app can use.
 describe('Every control under controls/', () => {
   const controls = controlComponents();
+  const moduleExports = transitiveScopesFor(SpiderlyControlsModule).exported.directives;
+  const publicApiExports = new Set<unknown>(Object.values(publicApi));
 
   it('is found by the file search', () => {
     expect(controls.map((control) => control.type)).toContain(SpiderlyTextboxComponent);
   });
 
   it('is exported by SpiderlyControlsModule', () => {
-    const exported = transitiveScopesFor(SpiderlyControlsModule).exported.directives;
-
-    expect(controls.filter((control) => !exported.has(control.type)).map(named))
+    expect(missingFrom(controls, moduleExports))
       .withContext('Add each to the imports and the exports of SpiderlyControlsModule')
       .toEqual([]);
   });
 
   it('is exported by the public API', () => {
-    const exported = new Set<unknown>(Object.values(publicApi));
-
-    expect(controls.filter((control) => !exported.has(control.type)).map(named))
+    expect(missingFrom(controls, publicApiExports))
       .withContext("Add an `export * from './lib/controls/…'` line for each to src/public-api.ts")
       .toEqual([]);
+  });
+
+  it('is reported when the module and the public API leave it out (negative control)', () => {
+    class LeftOutComponent {}
+    const leftOut = [{ type: LeftOutComponent, file: 'left-out.component.ts' }];
+
+    expect(missingFrom(leftOut, moduleExports)).toEqual(['LeftOutComponent (left-out.component.ts)']);
+    expect(missingFrom(leftOut, publicApiExports)).toEqual(['LeftOutComponent (left-out.component.ts)']);
   });
 });
