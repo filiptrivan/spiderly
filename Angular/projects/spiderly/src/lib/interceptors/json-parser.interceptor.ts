@@ -13,8 +13,7 @@ export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
     body: cleanedBody,
   });
 
-  // Only a JSON body: a text body is what a C# string action answers, and its generated method
-  // promises a string, even when the text reads as a date.
+  // Only a JSON body. A C# string action answers text, and its generated method promises a string.
   return next(clonedRequest).pipe(
     map((event: HttpEvent<any>) =>
       event instanceof HttpResponse && req.responseType === 'json'
@@ -57,20 +56,22 @@ const getCleanRequestBody = (obj: unknown): unknown => {
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
-/**
- * Returns `value` with each ISO date string in it turned into a `Date`. It changes an array or an
- * object in place. A value that is itself a date string comes back as a new `Date`, so a caller uses
- * the return value.
- * @see https://stackoverflow.com/a/54733846/1306679
- */
+/** A copy of `value` with each ISO date string in it turned into a `Date`. */
 const convertToDate = (value: unknown): unknown => {
-  if (typeof value === 'string') return dateRegex.test(value) ? new Date(value) : value;
+  if (typeof value === 'string') {
+    return dateRegex.test(value) ? new Date(value) : value;
+  }
 
   if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) value[i] = convertToDate(value[i]);
-  } else if (value !== null && typeof value === 'object') {
-    const object = value as Record<string, unknown>;
-    for (const key of Object.keys(object)) object[key] = convertToDate(object[key]);
+    return value.map((item) => convertToDate(item));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const newObj: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+      newObj[key] = convertToDate((value as any)[key]);
+    }
+    return newObj;
   }
 
   return value;
