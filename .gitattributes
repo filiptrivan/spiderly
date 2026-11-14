@@ -10,14 +10,14 @@ claude-plugins/skills/**/references/*.generated.md text eol=lf
 Angular/projects/spiderly/agent/** text eol=lf
 
 # A nested CLAUDE.md (any below the root) and a rule file under .claude/rules/ hold at most 2,000
-# bytes, as ci-workflows size-cap/size-cap.mjs reads these marks. Such a file holds only what bites a
-# session before it reads any one symbol, so it never grows into a component manual. Claude Code loads
-# every .md file under .claude/rules/, so the glob reaches subfolders too. Root CLAUDE.md keeps the
-# general cap, 20,000 bytes: its line after the nested one unsets the mark, since the later line wins.
+# bytes. The cap stops such a file from growing into a component manual. Claude Code loads every .md
+# file under .claude/rules/ (code.claude.com/docs/en/memory, read 2026-11-14), so the glob reaches
+# subfolders. Root CLAUDE.md keeps the general cap of ci-workflows size-cap/size-cap.mjs. Its line
+# unsets the mark, and it comes after the nested line, since the later line wins.
 CLAUDE.md size-cap=2000
 /CLAUDE.md -size-cap
 .claude/rules/**/*.md size-cap=2000
-# A rule file over 2,000 bytes keeps a mark at its size, and the text pass that cuts it under 2,000
+# A rule file over 2,000 bytes keeps a mark at its size. The text pass that cuts it under 2,000
 # removes the mark.
 .claude/rules/library-scss.md size-cap=2166
 
