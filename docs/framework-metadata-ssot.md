@@ -67,7 +67,7 @@ The script runs the three hops in order — the C# exporter (writes the JSON), `
 
 ## Local pre-commit guard
 
-`.githooks/pre-commit` mirrors the CI check so staleness fails at commit time instead of after a CI round-trip. It is gated: it inspects the staged file list and only runs the (dotnet-build-backed) regeneration when SSOT sources, pipeline files, or the artifacts themselves are touched — unrelated commits pay zero overhead. On staleness it regenerates and **auto-stages the artifacts into the commit** (the output is deterministic and derived, so there is nothing to review). It blocks instead in one case: when SSOT sources have unstaged or untracked changes, because the regen runs against the working tree and auto-staging would commit artifacts derived from sources outside the commit. It also runs `TsContractMirrorTests` when the hand-maintained C#↔TS mirror files are staged, catching `ApiErrorCodes`/`MatchModeCodes` divergence locally. Activate once per clone (git does not auto-install hooks):
+`.githooks/pre-commit` mirrors the CI check so staleness fails at commit time instead of after a CI round-trip. It is gated: it inspects the staged file list and only runs the (dotnet-build-backed) regeneration when SSOT sources, pipeline files, or the artifacts themselves are touched — unrelated commits pay zero overhead. On staleness it regenerates and **auto-stages the artifacts into the commit** (the output is deterministic and derived, so there is nothing to review). It blocks instead in one case: when SSOT sources have unstaged or untracked changes, because the regen runs against the working tree and auto-staging would commit artifacts derived from sources outside the commit. It also runs `TsContractMirrorTests` when the hand-maintained mirror files are staged, catching `ApiErrorCodes`/`MatchModeCodes` divergence and an `OPERATOR_WORDS` key without an English value locally. Activate once per clone (git does not auto-install hooks):
 
 ```bash
 git config core.hooksPath .githooks
@@ -85,7 +85,7 @@ Either way: add the doc placement in `tools/gen-skill-docs.mjs` (it fails loud i
 
 ## Cross-language mirrors
 
-`ApiErrorCodes` and `MatchModeCodes` are hand-maintained in TypeScript too (`api-error-codes.ts`, `match-mode-enum-codes.ts`); the Angular admin and storefronts switch on the wire values. Rather than *generate* those (which would reorder the enums away from their readable declaration order for no functional gain on a string contract), `Spiderly.Shared.Tests/TsContractMirrorTests` asserts the C# ↔ TS member sets match, so any divergence fails CI. The **downstream** storefront mirror in a consuming app lives in a separate repo — out of scope here, same as the website.
+`ApiErrorCodes` and `MatchModeCodes` are hand-maintained in TypeScript too (`api-error-codes.ts`, `match-mode-enum-codes.ts`); the Angular admin and storefronts switch on the wire values. Rather than *generate* those (which would reorder the enums away from their readable declaration order for no functional gain on a string contract), `Spiderly.Shared.Tests/TsContractMirrorTests` asserts the C# ↔ TS member sets match, so any divergence fails CI. The same class requires an English value in the init template for every `OPERATOR_WORDS` key in `filters/filter-store.ts`. The **downstream** storefront mirror in a consuming app lives in a separate repo — out of scope here, same as the website.
 
 ## Distribution to spiderly-website
 

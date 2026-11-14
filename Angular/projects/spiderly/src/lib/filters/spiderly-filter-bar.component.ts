@@ -305,9 +305,6 @@ export function foldForSearch(value: string): string {
         <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
-            <!-- A control below is sized through its own size or pSize input. Every PrimeNG
-                 component has its own small class: p-inputtext-sm does nothing on a
-                 p-select. -->
             @if (handle.operators.length > 1) {
               <p-select
                 size="small"

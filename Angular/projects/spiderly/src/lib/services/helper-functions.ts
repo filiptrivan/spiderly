@@ -383,9 +383,9 @@ export function getImageDimensions(
 //   viewport-relative, so inside a consumer's own overflow container it measures the wrong box.
 // - The early return is what stops a list sitting BELOW other page content (a table inside a
 //   details form) from shoving that content off-screen when it was already visible.
-// - The early return is an explicit test, not `block: 'nearest'`. What 'nearest' does when the
-//   element overruns the viewport at both edges is not confirmed: the published CSSOM View
-//   copies stop before that algorithm. The explicit test is two lines, and a spec can hold it.
+// - The early return is an explicit test, not `block: 'nearest'`. Nobody could confirm what
+//   'nearest' does when the element overruns the viewport at both edges: the published CSSOM
+//   View copies stop before that algorithm. The explicit test is two lines, and a spec holds it.
 // - `behavior: 'instant'` overrides the element's CSS `scroll-behavior`; `'auto'` defers to it,
 //   so an app setting `html { scroll-behavior: smooth }` would animate every call.
 export function scrollElementIntoViewIfAboveViewport(element: HTMLElement): void {

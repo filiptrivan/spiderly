@@ -21,6 +21,10 @@ namespace Spiderly.Shared.Tests
     /// (alphabetically-sorted, for deterministic extraction) framework metadata would reorder the enums away
     /// from their readable declaration order, for no functional gain on a string contract.
     /// </para>
+    /// <para>
+    /// One mirror here is TS → template, not C# ↔ TS: every <c>OPERATOR_WORDS</c> key in the filter store needs
+    /// a value in the init template's English Transloco file.
+    /// </para>
     /// </summary>
     public class TsContractMirrorTests
     {
@@ -45,29 +49,51 @@ namespace Spiderly.Shared.Tests
         }
 
         /// <summary>
-        /// The filter bar's operator picker and chip show the VALUE of a key in <c>OPERATOR_WORDS</c>
-        /// (<c>filters/filter-store.ts</c>), never the key. A key with no value renders as the raw key, and a
-        /// consumer that matches an option by its label (an e2e test, conditional logic) breaks silently. The init
-        /// template is the only place these keys reach a consumer, because a consumer's key extraction scans only
-        /// its own <c>src/</c>. English is the only locale the template seeds.
+        /// Requires a value in the init template's English Transloco file for every <c>OPERATOR_WORDS</c> key.
+        /// Why: the comment on <c>OPERATOR_WORDS</c> in <c>filters/filter-store.ts</c>, and
+        /// <c>.claude/rules/library-template-text.md</c>. English is the only locale the template seeds.
         /// </summary>
         [Fact]
         public void Every_filter_operator_key_has_a_value_in_the_init_template_English_translations()
         {
-            List<string> keys = OperatorWordKeys(
-                RepoFile("Angular/projects/spiderly/src/lib/filters/filter-store.ts"));
-            using JsonDocument en = JsonDocument.Parse(NetAndAngularFilesGenerator.GetTranslocoEnJsonCode());
-
-            List<string> missing = keys
-                .Where(key => !en.RootElement.TryGetProperty(key, out JsonElement value)
-                    || value.ValueKind != JsonValueKind.String
-                    || string.IsNullOrWhiteSpace(value.GetString()))
-                .ToList();
+            List<string> missing = OperatorKeysWithoutEnglishValue(
+                RepoFile("Angular/projects/spiderly/src/lib/filters/filter-store.ts"),
+                NetAndAngularFilesGenerator.GetTranslocoEnJsonCode());
 
             Assert.True(missing.Count == 0,
                 $"These OPERATOR_WORDS keys (filter-store.ts) have no value in the init template's English " +
                 $"Transloco file: {string.Join(", ", missing)}. Seed each one in " +
                 $"NetAndAngularFilesGenerator.GetTranslocoEnJsonCode().");
+        }
+
+        [Fact]
+        public void NegativeControl_an_operator_key_without_an_English_value_is_reported()
+        {
+            const string ts = """
+                const OPERATOR_WORDS: Record<FilterValueKind, OperatorWords> = {
+                  text: {
+                    [MatchModeCodes.Equals]: { pickerKey: 'Equals', phraseKey: 'FilterChipEquals' },
+                    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
+                  },
+                };
+                """;
+            const string en = """{ "Equals": "Equals", "FilterChipEquals": "is", "FilterChipIn": " " }""";
+
+            Assert.Equal(new List<string> { "In", "FilterChipIn" }, OperatorKeysWithoutEnglishValue(ts, en));
+        }
+
+        /// <summary>
+        /// The <c>OPERATOR_WORDS</c> keys that have no string value, or a blank one, in <paramref name="enJson"/>.
+        /// </summary>
+        private static List<string> OperatorKeysWithoutEnglishValue(string filterStoreTs, string enJson)
+        {
+            using JsonDocument en = JsonDocument.Parse(enJson);
+
+            return OperatorWordKeys(filterStoreTs)
+                .Where(key => !en.RootElement.TryGetProperty(key, out JsonElement value)
+                    || value.ValueKind != JsonValueKind.String
+                    || string.IsNullOrWhiteSpace(value.GetString()))
+                .ToList();
         }
 
         /// <summary>

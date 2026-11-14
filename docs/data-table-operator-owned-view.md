@@ -287,15 +287,15 @@ Filip took the full plan on that condition.
 ## The pending state: two rejected designs
 
 Every refetch raises the pending overlay over the stale rows (the comment opening `lazyLoad`, and
-the `table-pending-veil` mixin in `styles/layout/_mixins.scss`). Two designs were tried and
-rejected on 2026-08-30:
+the `table-pending-veil` mixin in `styles/layout/_mixins.scss`). The 2026-08-30 work tried two
+designs and rejected both:
 
 - **`position: sticky` on the spinner**, to keep it in view over a long table, cannot work. The
   icon's containing block is the mask it would need to escape. In the app, the wrapper's
   `overflow-auto` also makes the mask a scrollport that never scrolls, so the offset resolves to
   zero. A Karma pin would still pass, because Karma loads no Tailwind: it would assert a behavior
   the app does not have. The mixin anchors the spinner with `align-items: flex-start` instead.
-- **A CSS `animation-delay` anti-flash veil** was dropped, not shipped. It splits the clock: the
+- **A CSS `animation-delay` anti-flash veil** did not ship. It splits the clock: the
   delay covers only the mask, while the empty-message suppression flips at once. Any
   `prefers-reduced-motion` reset also deletes it silently. No debounce ships: the flash was a
   problem because the old overlay was a black scrim, and a low-contrast veil may not show it at

@@ -7,13 +7,15 @@
       'card responsive-card-padding overflow-auto': showCardWrapper
     }"
   >
-    <!-- The scroll back on a page change hooks (onPage), not lazyLoad. The paginator routes the
-         page-size dropdown through the same onPage, so one binding covers paging and page size,
+    <!-- The scroll back on a page change hooks (onPage), not lazyLoad. The paginator sends the
+         page-size dropdown through the same onPage. So one binding covers paging and page size,
          on lazy and client-side tables alike. lazyLoad also fires for a sort or a filter, where
          the reader is already at the header. restoreState never emits onPage, so a restored page
          does not scroll on first paint. A spec holds that: such a scroll would push a details
          page's form off-screen as it opens. The target is the tableContainer wrapper, not the
-         host: :host declares no display, so the host is inline and its box is not dependable. -->
+         host: :host declares no display, so the host is inline and its box is not dependable.
+         The template hands the element to the handler, so the component needs no @ViewChild and
+         no nullable field for it. -->
     <p-table
       #dt
       [value]="items"

@@ -323,10 +323,10 @@ function headerNamed(el: HTMLElement, name: string): HTMLTableCellElement {
   return headerCells(el).find((th) => (th.textContent ?? '').includes(name))!;
 }
 
-// Async because the checkboxes' [ngModel] writes resolve in a microtask: a spec awaits
+// Async because the checkboxes' [ngModel] writes resolve in a microtask. A spec awaits
 // `fixture.whenStable()` after it opens the chooser or toggles a box. Once open, PrimeNG appends
-// the popover to `document.body`, so a spec reads the `Popover` instance's `container` (see
-// overlayHolding), never the document, where stale popovers from earlier fixtures stay.
+// the popover to `document.body`. So a spec reads the `Popover` instance's `container` (see
+// overlayHolding), not the document: stale popovers from earlier fixtures stay there.
 async function openChooser(fixture: ComponentFixture<unknown>): Promise<void> {
   const button = (
     fixture.nativeElement as HTMLElement

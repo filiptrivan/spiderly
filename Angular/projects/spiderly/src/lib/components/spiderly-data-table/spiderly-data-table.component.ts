@@ -296,9 +296,9 @@ export class SpiderlyDataTableComponent
    * that default. Bound to a field, never an object literal in the template: a literal is a new
    * reference on every change-detection pass.
    *
-   * The table needs no `min-width` of its own, and this style no computed floor: the browser
-   * already widens a table past its container to the sum of its declared column widths, so the
-   * container still scrolls. The "too wide for its container scrolls" spec holds the measurement.
+   * The table needs no `min-width`, and this style needs no computed floor. The browser already
+   * widens a table past its container to the sum of its declared widths, so the container still
+   * scrolls. The "too wide for its container scrolls" spec holds the measurement.
    */
   protected readonly tableStyle = { 'table-layout': 'fixed' };
   totalRecords: number;
@@ -331,9 +331,8 @@ export class SpiderlyDataTableComponent
   fakeIsAllSelected: boolean = false; // Only for showing checkboxes, we will not send this to the backend
   isFirstTimeLazyLoad: boolean = true;
   /**
-   * The row a shift+click range runs from: the row the last click toggled. It is checked when a
-   * range resolves (`renderedRows()`), so only a wholesale row replacement resets it: `lazyLoad`
-   * and `loadFormArrayItems`.
+   * The row a shift+click range runs from: the row the last click toggled. Only a wholesale row
+   * replacement resets it; `renderedRows()` says why no other path needs to.
    */
   private rangeAnchorId: number | null = null;
   /**
@@ -568,9 +567,9 @@ export class SpiderlyDataTableComponent
       this.clientLoad();
     }
 
-    // After `resolvedStateKey` is derived: the merge reads the persisted pick by that key, and a
-    // null key reads nothing, silently. The pick itself persists in PrimeNG's own table state
-    // (`saveState` and `restoreState` carry `rows`).
+    // After `resolvedStateKey` is derived, like the restores below: the merge reads the persisted
+    // pick by that key. PrimeNG's own table state persists the pick (`saveState` and
+    // `restoreState` carry `rows`).
     this.mergeActivePageSizesIntoOptions();
 
     // AFTER `resolvedStateKey` is derived, which is what every restore below keys off — placed
@@ -888,8 +887,8 @@ export class SpiderlyDataTableComponent
    * filter (Filip, on /tags). A filter is a question you are in the middle of asking, not a
    * durable preference like a column's width.
    *
-   * The view segment is part of this key too, not only of the layout keys: a view is a saved
-   * question, so each view keeps its own filters (decision 10).
+   * This key also carries the view segment, as the layout keys do. A view is a saved question,
+   * so each view keeps its own filters (decision 10).
    */
   private get filtersStateKey(): string | null {
     return this.filtersStateKeyOf(this.activeViewId);
@@ -1302,10 +1301,10 @@ export class SpiderlyDataTableComponent
    * undefined, which pinned the overlay up forever. Same stranded overlay this component was
    * fixed for once already, through the other door.
    *
-   * It does not give screen-reader parity: `aria-busy` defers announcements and makes none, so a
-   * screen reader still hears nothing when a page flip starts or lands. A live region is a
-   * library-wide decision (an `sr-only` utility and a seeded Transloco key), and there is
-   * deliberately no opt-out input.
+   * It does not give screen-reader parity. `aria-busy` defers announcements and makes none: a
+   * screen reader hears nothing when a page flip starts or ends. A live region is a library-wide
+   * decision (an `sr-only` utility and a seeded Transloco key). There is deliberately no opt-out
+   * input.
    */
   get isPending(): boolean {
     return this.loading;
@@ -2429,10 +2428,10 @@ export class SpiderlyDataTableComponent
   }
 
   /**
-   * Single-row toggle — the plain-click path. Every selection change goes through it, a range
-   * included, so the lazy delta model (`newlySelectedItems`, `unselectedItems`) and the per-row
-   * events stay identical to a manual click. A caller skips a row already in the target state:
-   * that skip keeps duplicate ids out of the delta arrays.
+   * Single-row toggle — the plain-click path. Each per-row change the table makes, a click or a
+   * range, goes through it, so the lazy delta model (`newlySelectedItems`, `unselectedItems`) and
+   * the per-row events stay identical to a manual click. A caller must skip a row already in the
+   * target state, as `applyRange` does, or the delta arrays get duplicate ids.
    */
   private toggleRow(id: number, index: number) {
     if (this.isRowSelected(id)) {
@@ -2458,9 +2457,9 @@ export class SpiderlyDataTableComponent
 
   /**
    * Applies `select` to every row between the two positions in `rows` (inclusive), skipping rows
-   * already in the target state; each change goes through `toggleRow` so the delta model and
-   * per-row events stay identical to manual clicks. The event payload keeps `row.index` for
-   * parity with what the single-click template binding passes.
+   * already in the target state; each change goes through `toggleRow()` (its comment says why).
+   * The event payload keeps `row.index` for parity with what the single-click template binding
+   * passes.
    */
   private applyRange(
     rows: any[],
