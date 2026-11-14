@@ -890,15 +890,23 @@ import { {{ngType}} } from '../../entities/entities.generated';
             List<KeyValuePair<string, string>> nullableParams = getAndDeleteParams.Where(x => x.Value.EndsWith("null")).ToList();
 
             return $$"""
-        let params = `?{{string.Join("&", nonNullableParams.Select(x => $"{x.Key}=${{{x.Key}}}"))}}`;
+        let params = `?{{string.Join("&", nonNullableParams.Select(x => $"{x.Key}=${{{GetQueryParamValue(x)}}}"))}}`;
 
 {{string.Join("\n", nullableParams.Select(x => $$"""
         if ({{x.Key}}) {
-            params += `&{{x.Key}}=${{{x.Key}}}`;
+            params += `&{{x.Key}}=${{{GetQueryParamValue(x)}}}`;
         }
 """))}}
 """;
         }
+
+        /// <summary>
+        /// The expression a query param's value goes on the wire as. A <c>Date</c> goes as its ISO 8601 form,
+        /// which ASP.NET's model binder reads as a <c>DateTime</c>; interpolated as it is, it would go as its
+        /// <c>toString()</c> form, which the binder cannot read (spiderly#395).
+        /// </summary>
+        private static string GetQueryParamValue(KeyValuePair<string, string> param)
+            => param.Value == "Date" ? $"{param.Key}.toISOString()" : param.Key;
 
         private static string? GetPostAndPutParameters(Dictionary<string, string>? postAndPutParameter, HttpTypeCodes httpType)
         {
