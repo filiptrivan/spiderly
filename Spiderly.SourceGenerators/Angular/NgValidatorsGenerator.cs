@@ -58,6 +58,11 @@ namespace Spiderly.SourceGenerators.Angular
             string rootPath = callingProjectDirectory.GetRootPath();
             string outputPath = Path.Combine(rootPath, "Frontend", "src", "app", "business", "services", "validators");
 
+            Helpers.WriteToTheFile(GetValidatorsFileContent(referencedProjectClasses), Path.Combine(outputPath, "validators.generated.ts"));
+        }
+
+        internal static string GetValidatorsFileContent(List<SpiderlyClass> referencedProjectClasses)
+        {
             referencedProjectClasses = referencedProjectClasses.OrderBy(x => x.Name).ToList();
 
             List<SpiderlyClass> entities = referencedProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
@@ -131,7 +136,7 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
 }
 """;
 
-            Helpers.WriteToTheFile(result, Path.Combine(outputPath, "validators.generated.ts"));
+            return result;
         }
 
         private static string GenerateFormControlSwitchCases(SpiderlyClass dtoClass, List<SpiderValidationRule> rules)
