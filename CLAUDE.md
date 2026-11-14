@@ -11,4 +11,3 @@ Each row is a branch only some sessions reach: its trigger, then its home.
 | Key | When, and where |
 |---|---|
 | Documentation updates | A change that affects public API, attributes, generated output, or behavior: update the documentation in the `spiderly-website/` sibling repo. |
-| API error codes | Adding, removing or renaming an `ApiErrorCodes` code: its Angular mirror changes in the same commit (`TsContractMirrorTests` pins it), and a consuming app's own TS copy (a storefront's api-error.ts, say) is a third mirror nothing here sees: `docs/framework-metadata-ssot.md` → "Cross-language mirrors". |
