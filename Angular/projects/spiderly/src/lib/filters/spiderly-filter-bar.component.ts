@@ -88,6 +88,12 @@ export function foldForSearch(value: string): string {
   styleUrl: 'spiderly-filter-bar.component.scss',
   template: `
     <ng-container *transloco="let t">
+      <!-- The e2e fixture drives this bar by its data-testid values: the filter helpers in
+           tests/e2e-fixtures/frontend/tests/e2e/page-objects/base-page.ts (applyTextFilter,
+           applyNumericFilter, applyBooleanFilter, clearTableFilters) and the storage asserts in
+           specs/product-crud.spec.ts. A change to this DOM, the editor's commit flow or the
+           persistence keys changes them in the same commit. A stale helper fails as a 30 s
+           Playwright timeout on an element that no longer exists. -->
       <div class="filter-bar" data-testid="filter-bar">
         @for (chip of filters().applied(); track chip.id) {
           <span class="filter-chip" data-testid="filter-chip">
@@ -299,6 +305,9 @@ export function foldForSearch(value: string): string {
         <div class="filter-editor" data-testid="filter-editor">
             <span class="filter-editor-label">{{ handle.label }}</span>
 
+            <!-- A control below is sized through its own size or pSize input. Every PrimeNG
+                 component has its own small class: p-inputtext-sm does nothing on a
+                 p-select. -->
             @if (handle.operators.length > 1) {
               <p-select
                 size="small"

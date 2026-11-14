@@ -9,7 +9,9 @@ import { Directive } from '@angular/core';
  * The projected template binds to the consumer component (so `(click)` handlers call
  * the consumer's methods), and inherits the action row's spacing and responsive
  * stacking. No table state is passed as context — read it via the table's outputs
- * (`onLazyLoad`, `onTotalRecordsChange`, `onRowSelect`) when needed.
+ * (`onLazyLoad`, `onTotalRecordsChange`, `onRowSelect`) when needed. A lazy table's selection
+ * has no clean list of ids to pass: under select-all it is a delta (`newlySelectedItems`,
+ * `unselectedItems`).
  *
  * @example
  * ```html

@@ -8,10 +8,10 @@
 > the deletion-wave rulings live in the bullet list under "What has shipped" below, and interior
 > decision prose keeps its original tense as history — the rulings win where they disagree.
 >
-> Decided 2026-09-02 (Filip, grilled). This record lived in the component's own `CLAUDE.md` until
-> 2026-10-28, when it moved here; `spiderly-data-table/CLAUDE.md` → "Operator-owned view" points
-> here, and the component's comments cite the decisions below by number ("decision 8",
-> "CLAUDE.md -> decision 8").
+> Decided 2026-09-02 (Filip, grilled). This record lived in the component's own CLAUDE.md until
+> 2026-10-28, when it moved here. That file is gone (2026-11-14): `SpiderlyDataTableComponent`'s
+> class comment points here, and the library's comments cite the decisions below by number
+> ("decision 8").
 
 ## The premise
 
@@ -27,7 +27,7 @@ contract stays with the developer.**
 Decisions, in the order they were resolved. Do not re-derive them. **Decisions 1 and 2 were
 rewritten later the same day**, after Filip proposed the filter engine below; the earlier form
 kept filters as a property of `Column` behind a `filterSurface` flag, and is in the git history of
-`spiderly-data-table/CLAUDE.md` only, where this record lived until 2026-10-28.
+the data table's CLAUDE.md only, where this record lived until 2026-10-28.
 
 **1. A filter is a FIRST-CLASS ENTITY, and the engine knows nothing about columns.** Filter state is
 a normalised `{ filterId, operator, value }` set in a store the CONSUMER owns and hands to the table
@@ -283,3 +283,20 @@ field-keyed width/order/wrap persistence, frozen edge — decisions 3 to 9. (3) 
 every morning, and the smaller honest plan (the `title` directive, a two-item header menu, and a bare
 "N filters on hidden columns · Show" strip instead of the bar) would have been the better trade.
 Filip took the full plan on that condition.
+
+## The pending state: two rejected designs
+
+Every refetch raises the pending overlay over the stale rows (the comment opening `lazyLoad`, and
+the `table-pending-veil` mixin in `styles/layout/_mixins.scss`). Two designs were tried and
+rejected on 2026-08-30:
+
+- **`position: sticky` on the spinner**, to keep it in view over a long table, cannot work. The
+  icon's containing block is the mask it would need to escape. In the app, the wrapper's
+  `overflow-auto` also makes the mask a scrollport that never scrolls, so the offset resolves to
+  zero. A Karma pin would still pass, because Karma loads no Tailwind: it would assert a behavior
+  the app does not have. The mixin anchors the spinner with `align-items: flex-start` instead.
+- **A CSS `animation-delay` anti-flash veil** was dropped, not shipped. It splits the clock: the
+  delay covers only the mask, while the empty-message suppression flips at once. Any
+  `prefers-reduced-motion` reset also deletes it silently. No debounce ships: the flash was a
+  problem because the old overlay was a black scrim, and a low-contrast veil may not show it at
+  all. Add one only if a person reports flicker in a live admin.

@@ -97,7 +97,7 @@ describe('SpiderlyMultiSelectComponent deselect -> form model (save-time contrac
   it('unchecking an option in the open panel is visible in getRawValue() before any blur', async () => {
     hostElement().querySelector<HTMLElement>('.p-multiselect').click();
     // whenStable + second detectChanges: PrimeNG overlay writes resolve in a
-    // microtask (see spiderly-data-table/CLAUDE.md -> "Spec gotcha").
+    // microtask (as the data table spec's `openChooser()` notes).
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

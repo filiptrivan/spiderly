@@ -7,6 +7,13 @@
       'card responsive-card-padding overflow-auto': showCardWrapper
     }"
   >
+    <!-- The scroll back on a page change hooks (onPage), not lazyLoad. The paginator routes the
+         page-size dropdown through the same onPage, so one binding covers paging and page size,
+         on lazy and client-side tables alike. lazyLoad also fires for a sort or a filter, where
+         the reader is already at the header. restoreState never emits onPage, so a restored page
+         does not scroll on first paint. A spec holds that: such a scroll would push a details
+         page's form off-screen as it opens. The target is the tableContainer wrapper, not the
+         host: :host declares no display, so the host is inline and its box is not dependable. -->
     <p-table
       #dt
       [value]="items"
@@ -220,8 +227,8 @@
       <ng-template pTemplate="header">
         <tr>
           <!-- Sized for the checkbox plus the counter beside it, which shows `totalRecords` on a
-               select-all and so reaches five digits on a large table. Not `0rem` (see CLAUDE.md →
-               Column widths), and not routed through getColWidth: this column has no `Column`. -->
+               select-all and so reaches five digits on a large table. Not `0rem` (`getColWidth()`
+               says why), and not routed through getColWidth: this column has no `Column`. -->
           <th
             #selectionHeader
             class="frozen-column"
@@ -258,8 +265,8 @@
             >
               <!-- Ours, not PrimeNG's: enabling [resizableColumns] makes it persist widths by
                    th:nth-child INDEX into our own stateKey, which slides every stored width onto
-                   the wrong column the first time the chooser hides one (CLAUDE.md -> decision
-                   5). We take the gesture and keep the state. -->
+                   the wrong column the first time the chooser hides one (decision 5). We take
+                   the gesture and keep the state. -->
               <span
                 *ngIf="hasLazyLoad && isDataColumn(col)"
                 class="column-resizer"
@@ -358,6 +365,9 @@
                   gap: 18px;
                 "
               >
+                <!-- row-interactive goes on each action span, not on this flex row: the row
+                     renders, empty, in every other cell too, so marking it would stop row
+                     navigation on a strip of every ordinary cell. -->
                 <ng-container
                   *ngFor="let action of col.actions; trackBy: actionTrackByFn"
                 >

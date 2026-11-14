@@ -60,7 +60,7 @@ type Rendered = { nativeElement: unknown; detectChanges(): void };
 
 // Once open, PrimeNG appends the popover to document.body, where stale ones from earlier fixtures
 // linger — so query THIS fixture's Popover instance, never the document. Same rule the column
-// chooser's specs already follow (spiderly-data-table/CLAUDE.md).
+// chooser's specs already follow (`overlayHolding()` in the data table spec).
 // There is more than one popover on the bar now, so find the container by what it HOLDS rather
 // than by position — an index would silently follow whichever was declared first.
 function overlay(fixture: Rendered, selector: string): HTMLElement {
