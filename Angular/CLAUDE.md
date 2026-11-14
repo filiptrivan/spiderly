@@ -4,7 +4,7 @@ This workspace builds the published `spiderly` Angular library (`projects/spider
 
 ## Where the rest lives
 
-The library's rules are path-scoped, under the repo root's `.claude/rules/`: each loads when a file it governs is read or written, and each row names it for a session that reaches its branch another way (a shell command, a TypeScript file, a code comment citing the row).
+The library's rules are path-scoped, under the repo root's `.claude/rules/`: each loads when a file it governs is read or written, and each row names it for a session that reaches its branch another way (a shell command, a TypeScript file, a code comment citing the row). A row whose rule a check holds names that check.
 
 | Key | When, and where |
 |---|---|

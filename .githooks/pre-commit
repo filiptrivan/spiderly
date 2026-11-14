@@ -6,7 +6,9 @@
 # Bypass when needed: git commit --no-verify (CI remains the backstop)
 set -e
 
-staged=$(git diff --cached --name-only)
+# --no-renames lists a rename as its delete and its add, so a file moved out of a guarded path still
+# triggers that path's block.
+staged=$(git diff --cached --name-only --no-renames)
 
 # Hand-maintained; extend when adding a contract (docs/framework-metadata-ssot.md "Adding a new contract").
 ssot_src='^(Spiderly\.MetadataExporter/|Spiderly\.ZooGenerator/|Spiderly\.SourceGenerators/Models/SpiderlyTypeRef\.cs|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
@@ -54,25 +56,6 @@ if echo "$staged" | grep -qE "$bundle_src|$bundle_artifacts|$ssot_src|$ssot_arti
 
   node tools/build-agent-bundle.mjs
 
-  # A staged file under agent/ that the regeneration changes is a hand edit or an older build, and the
-  # auto-stage below would throw it away: refuse it, and name the authoring file it is built from.
-  staged_bundle=$(git diff --cached --name-only --no-renames -- Angular/projects/spiderly/agent)
-  if [ -n "$staged_bundle" ]; then
-    replaced=$({ git diff --name-only -- Angular/projects/spiderly/agent; git ls-files --others --exclude-standard -- Angular/projects/spiderly/agent; } | grep -Fx -e "$staged_bundle" || true)
-    if [ -n "$replaced" ]; then
-      echo ""
-      echo "pre-commit: the agent bundle's regeneration replaces these staged files. Make each edit in the authoring file on its right:"
-      echo "$replaced" | sed \
-        -e 's#^Angular/projects/spiderly/agent/docs/\(.*\)$#  &  <-  claude-plugins/docs/\1#' \
-        -e 's#^Angular/projects/spiderly/agent/skills/\(.*\)$#  &  <-  claude-plugins/skills/\1#' \
-        -e 's#^Angular/projects/spiderly/agent/manifest\.json$#  &  <-  the name and description of each claude-plugins/skills/*/SKILL.md#' \
-        -e 's#\(claude-plugins/docs/[^/]*/references/[^/]*\.generated\.md\)$#\1, which tools/regen-metadata.sh writes#'
-      echo "pre-commit: your edits stay staged: git diff --cached -- Angular/projects/spiderly/agent"
-      echo "pre-commit: if a staged file is only an older build, stage the new one: git add Angular/projects/spiderly/agent"
-      exit 1
-    fi
-  fi
-
   bundle_changes=$(git status --porcelain -- Angular/projects/spiderly/agent)
 
   if [ -n "$bundle_changes" ]; then
@@ -87,6 +70,24 @@ if echo "$staged" | grep -qE "$bundle_src|$bundle_artifacts|$ssot_src|$ssot_arti
       echo "pre-commit: auto-staging would commit content derived from sources outside this commit."
       echo "pre-commit: stage (or stash) those sources, then retry the commit."
       exit 1
+    fi
+    # A staged file under agent/ that the regeneration changes is a hand edit or an older build, and the
+    # auto-stage below would throw it away: refuse it, and name the authoring file it is built from.
+    staged_bundle=$(git diff --cached --name-only --no-renames -- Angular/projects/spiderly/agent)
+    if [ -n "$staged_bundle" ]; then
+      replaced=$({ git diff --name-only -- Angular/projects/spiderly/agent; git ls-files --others --exclude-standard -- Angular/projects/spiderly/agent; } | grep -Fx -e "$staged_bundle" || true)
+      if [ -n "$replaced" ]; then
+        echo ""
+        echo "pre-commit: the agent bundle's regeneration replaces these staged files. Make each edit in the authoring file on its right:"
+        echo "$replaced" | sed \
+          -e 's#^Angular/projects/spiderly/agent/docs/\(.*\)$#  &  <-  claude-plugins/docs/\1#' \
+          -e 's#^Angular/projects/spiderly/agent/skills/\(.*\)$#  &  <-  claude-plugins/skills/\1#' \
+          -e 's#^Angular/projects/spiderly/agent/manifest\.json$#  &  <-  the name and description of each claude-plugins/skills/*/SKILL.md#' \
+          -e 's#\(claude-plugins/docs/[^/]*/references/[^/]*\.generated\.md\)$#\1, which tools/regen-metadata.sh writes#'
+        echo "pre-commit: your edits stay staged: git diff --cached -- Angular/projects/spiderly/agent"
+        echo "pre-commit: if a staged file is only an older build, stage the new one: git add Angular/projects/spiderly/agent"
+        exit 1
+      fi
     fi
     git add Angular/projects/spiderly/agent
     echo "pre-commit: agent bundle was stale — regenerated and auto-staged into this commit."
@@ -111,7 +112,8 @@ fi
 # --- Angular lockfile: CI's "Verify Angular lockfile integrity" step, under the pinned npm ----------
 # Judges the staged manifest and lock, copied into a fresh directory with no node_modules, under the
 # npm that `packageManager` pins. An older npm drops the optional cytoscape/d3-selection nodes (the
-# mermaid subtree of ngx-markdown), so a check under it passes a lock that CI refuses.
+# mermaid subtree of ngx-markdown; seen with npm 11.6.2, 2026-05-30), so a check under it passes a lock
+# that CI refuses.
 if echo "$staged" | grep -qE "$angular_lock"; then
   npm_pin=$(git show :Angular/package.json | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).packageManager || "")')
   npm_pin=${npm_pin%%+*}
@@ -124,12 +126,13 @@ if echo "$staged" | grep -qE "$angular_lock"; then
   trap 'rm -rf "$lock_dir"' EXIT
   git show :Angular/package.json > "$lock_dir/package.json"
   git show :Angular/package-lock.json > "$lock_dir/package-lock.json"
+  [ -z "$(git ls-files -- Angular/.npmrc)" ] || git show :Angular/.npmrc > "$lock_dir/.npmrc"
   if ! out=$(cd "$lock_dir" && npx --yes "$npm_pin" ci --dry-run --ignore-scripts 2>&1); then
     # The cause, without the usage text npm appends to it.
     printf '%s\n' "$out" | sed '/^npm error Clean install a project/,$d'
     echo ""
-    echo "pre-commit: $npm_pin refused the staged Angular lock (its output is above)."
-    echo "pre-commit: regenerate the lock under that npm and the node .nvmrc names: cd Angular && npx $npm_pin install"
+    echo "pre-commit: npm ci --dry-run under $npm_pin failed on the staged Angular lock (its output is above)."
+    echo "pre-commit: when the lock drifted, regenerate it under that npm and the node .nvmrc names: cd Angular && npx $npm_pin install"
     echo "pre-commit: then stage Angular/package.json and Angular/package-lock.json together."
     exit 1
   fi

@@ -41,7 +41,13 @@ function copy(root, path) {
   copyFileSync(join(repoRoot, path), join(root, path));
 }
 
-// A repo whose first commit, made past the hook, holds `paths` copied from this repo and `files`.
+function stage(root, ...paths) {
+  const r = git(root, 'add', ...paths);
+  assert.equal(r.code, 0, r.out);
+}
+
+// A repo whose first commit, made past the hook, holds `paths` copied from this repo and `files`. It sits
+// one level down in its temp directory, so the Size cap block finds no sibling ci-workflows and skips.
 function fixture(paths, files = {}) {
   const root = join(mkdtempSync(join(tmpdir(), 'pre-commit-')), 'repo');
   mkdirSync(root);
@@ -52,7 +58,7 @@ function fixture(paths, files = {}) {
 }
 
 function commitAll(root) {
-  assert.equal(git(root, 'add', '-A').code, 0);
+  stage(root, '-A');
   const r = git(root, 'commit', '-q', '--no-verify', '-m', 'fixture');
   assert.equal(r.code, 0, r.out);
 }
@@ -75,7 +81,7 @@ test('a staged hand edit under agent/ is refused, naming the authoring file it c
   const root = bundleFixture();
   write(root, `${agent}/docs/alpha/index.md`, entry('alpha', 'Edited by hand.'));
   write(root, `${agent}/skills/beta/SKILL.md`, entry('beta', 'Edited by hand.'));
-  git(root, 'add', agent);
+  stage(root, agent);
 
   const r = git(root, 'commit', '-m', 'hand edit');
 
@@ -89,7 +95,7 @@ test('a staged hand edit under agent/ is refused, naming the authoring file it c
 test('an edit to an authoring tree regenerates the bundle and stages it into the commit', () => {
   const root = bundleFixture();
   write(root, 'claude-plugins/docs/alpha/index.md', entry('alpha', 'Edited at the source.'));
-  git(root, 'add', 'claude-plugins');
+  stage(root, 'claude-plugins');
 
   const r = git(root, 'commit', '-m', 'source edit');
 
@@ -101,12 +107,27 @@ test('a staged bundle built from its staged source passes', () => {
   const root = bundleFixture();
   write(root, 'claude-plugins/skills/beta/SKILL.md', entry('beta', 'Rebuilt by hand.'));
   assert.equal(run(root, process.execPath, ['tools/build-agent-bundle.mjs']).code, 0);
-  git(root, 'add', 'claude-plugins', agent);
+  stage(root, 'claude-plugins', agent);
 
   const r = git(root, 'commit', '-m', 'source edit and its build');
 
   assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /regenerating to verify sync/);
   assert.match(git(root, 'show', `HEAD:${agent}/skills/beta/SKILL.md`).out, /Rebuilt by hand\./);
+});
+
+test('a staged build whose source changed again unstaged names that source, not a hand edit', () => {
+  const root = bundleFixture();
+  write(root, 'claude-plugins/skills/beta/SKILL.md', entry('beta', 'Built and staged.'));
+  assert.equal(run(root, process.execPath, ['tools/build-agent-bundle.mjs']).code, 0);
+  stage(root, 'claude-plugins', agent);
+  write(root, 'claude-plugins/skills/beta/SKILL.md', entry('beta', 'Edited again, unstaged.'));
+
+  const r = git(root, 'commit', '-m', 'unstaged source');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /bundle sources have unstaged\/untracked changes/);
+  assert.doesNotMatch(r.out, /replaces these staged files/);
 });
 
 // This repo's own manifest and lock, staged on top of a first commit that lacks them.
@@ -118,7 +139,8 @@ function angularFixture() {
   return root;
 }
 
-const pinnedNpm = JSON.parse(readFileSync(join(repoRoot, 'Angular/package.json'), 'utf8')).packageManager;
+// The npm the hook runs: `packageManager` without a `+sha512…` hash.
+const pinnedNpm = JSON.parse(readFileSync(join(repoRoot, 'Angular/package.json'), 'utf8')).packageManager.split('+')[0];
 
 test('a staged Angular lock that drifts from its package.json is refused under the pinned npm', () => {
   const root = angularFixture();
@@ -127,7 +149,7 @@ test('a staged Angular lock that drifts from its package.json is refused under t
   const manifest = JSON.parse(readFileSync(join(root, 'Angular/package.json'), 'utf8'));
   manifest.dependencies['left-pad'] = '1.3.0';
   write(root, 'Angular/package.json', JSON.stringify(manifest, null, 2) + '\n');
-  git(root, 'add', 'Angular');
+  stage(root, 'Angular');
 
   const r = git(root, 'commit', '-m', 'drifted lock');
 
@@ -139,10 +161,11 @@ test('a staged Angular lock that drifts from its package.json is refused under t
 
 test("a staged Angular lock in sync with its package.json passes, as this repo's own does", () => {
   const root = angularFixture();
-  git(root, 'add', 'Angular');
+  stage(root, 'Angular');
 
   const r = git(root, 'commit', '-m', 'lock in sync');
 
   assert.equal(r.code, 0, r.out);
+  assert.ok(r.out.includes(`the Angular lock is in sync under ${pinnedNpm}`), r.out);
   assert.equal(commitCount(root), '2');
 });
