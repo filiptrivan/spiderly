@@ -5,11 +5,13 @@ import { getParentUrl } from '../../../services/helper-functions';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
 import { SpiderlyButtonComponent } from '../spiderly-button/spiderly-button.component';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'return-button',
   templateUrl: './return-button.component.html',
   styles: [],
+  providers: [provideSpiderlyScope()],
   imports: [
     CommonModule,
     ButtonModule,

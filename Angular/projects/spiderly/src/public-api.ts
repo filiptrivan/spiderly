@@ -90,6 +90,8 @@ export * from './lib/guards/not-auth.guard';
 
 export * from './lib/handlers/spiderly-error-handler';
 
+export * from './lib/i18n/spiderly-scope';
+
 export { SKIP_REFRESH_CHECK } from './lib/interceptors/http-context-tokens';
 export * from './lib/interceptors/http-loading.interceptor';
 export * from './lib/interceptors/json-parser.interceptor';
