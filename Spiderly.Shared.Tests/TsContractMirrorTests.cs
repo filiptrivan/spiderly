@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Spiderly.Shared.Contracts;
 using Spiderly.Shared.Enums;
-using Spiderly.Shared.Helpers;
 
 namespace Spiderly.Shared.Tests
 {
@@ -21,8 +20,8 @@ namespace Spiderly.Shared.Tests
     /// from their readable declaration order, for no functional gain on a string contract.
     /// </para>
     /// <para>
-    /// One mirror here is TS → template, not C# ↔ TS: every <c>OPERATOR_WORDS</c> key in the filter store needs
-    /// a value in the init template's English Transloco file.
+    /// One mirror here is TS → JSON, not C# ↔ TS: every <c>OPERATOR_WORDS</c> key in the filter store needs
+    /// a value in the library's English Transloco file, <c>i18n/en.json</c>.
     /// </para>
     /// </summary>
     public class TsContractMirrorTests
@@ -48,21 +47,21 @@ namespace Spiderly.Shared.Tests
         }
 
         /// <summary>
-        /// Requires a value in the init template's English Transloco file for every <c>OPERATOR_WORDS</c> key.
-        /// Why: the comment on <c>OPERATOR_WORDS</c> in <c>filters/filter-store.ts</c>, and
-        /// <c>.claude/rules/library-template-text.md</c>. English is the only locale the template seeds.
+        /// Requires a value in the library's English Transloco file for every <c>OPERATOR_WORDS</c> key.
+        /// Why: the comment on <c>OPERATOR_WORDS</c> in <c>filters/filter-store.ts</c>. The library ships its
+        /// strings in its <c>spiderly</c> scope, and English is the language it ships.
         /// </summary>
         [Fact]
-        public void Every_filter_operator_key_has_a_value_in_the_init_template_English_translations()
+        public void Every_filter_operator_key_has_a_value_in_the_library_English_translations()
         {
             List<string> missing = OperatorKeysWithoutEnglishValue(
                 RepoFiles.Read("Angular/projects/spiderly/src/lib/filters/filter-store.ts"),
-                NetAndAngularFilesGenerator.GetTranslocoEnJsonCode());
+                RepoFiles.Read("Angular/projects/spiderly/src/lib/i18n/en.json"));
 
             Assert.True(missing.Count == 0,
-                $"These OPERATOR_WORDS keys (filter-store.ts) have no value in the init template's English " +
-                $"Transloco file: {string.Join(", ", missing)}. Seed each one in " +
-                $"NetAndAngularFilesGenerator.GetTranslocoEnJsonCode().");
+                $"These OPERATOR_WORDS keys (filter-store.ts) have no value in the library's English " +
+                $"Transloco file: {string.Join(", ", missing)}. Give each key the `{ScopePrefix}` prefix, and add " +
+                $"it without the prefix to Angular/projects/spiderly/src/lib/i18n/en.json.");
         }
 
         [Fact]
@@ -71,25 +70,35 @@ namespace Spiderly.Shared.Tests
             const string ts = """
                 const OPERATOR_WORDS: Record<FilterValueKind, OperatorWords> = {
                   text: {
-                    [MatchModeCodes.Equals]: { pickerKey: 'Equals', phraseKey: 'FilterChipEquals' },
-                    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
+                    [MatchModeCodes.Equals]: { pickerKey: 'spiderly.Equals', phraseKey: 'spiderly.FilterChipEquals' },
+                    [MatchModeCodes.In]: { pickerKey: 'spiderly.In', phraseKey: 'spiderly.FilterChipIn' },
+                    [MatchModeCodes.Contains]: { pickerKey: 'Contains', phraseKey: 'spiderly.FilterChipContains' },
                   },
                 };
                 """;
-            const string en = """{ "Equals": "Equals", "FilterChipEquals": "is", "FilterChipIn": " " }""";
+            const string en = """
+                { "Equals": "Equals", "FilterChipEquals": "is", "FilterChipIn": " ", "Contains": "Contains", "FilterChipContains": "contains" }
+                """;
 
-            Assert.Equal(new List<string> { "In", "FilterChipIn" }, OperatorKeysWithoutEnglishValue(ts, en));
+            Assert.Equal(
+                new List<string> { "spiderly.In", "spiderly.FilterChipIn", "Contains" },
+                OperatorKeysWithoutEnglishValue(ts, en));
         }
+
+        /// <summary>The prefix of a key in the library's own Transloco scope. Its file holds the key without it.</summary>
+        private const string ScopePrefix = "spiderly.";
 
         /// <summary>
         /// The <c>OPERATOR_WORDS</c> keys that have no string value, or a blank one, in <paramref name="enJson"/>.
+        /// A key without the <see cref="ScopePrefix"/> has none, since the library reads it from the app's file.
         /// </summary>
         private static List<string> OperatorKeysWithoutEnglishValue(string filterStoreTs, string enJson)
         {
             using JsonDocument en = JsonDocument.Parse(enJson);
 
             return OperatorWordKeys(filterStoreTs)
-                .Where(key => !en.RootElement.TryGetProperty(key, out JsonElement value)
+                .Where(key => !key.StartsWith(ScopePrefix, StringComparison.Ordinal)
+                    || !en.RootElement.TryGetProperty(key[ScopePrefix.Length..], out JsonElement value)
                     || value.ValueKind != JsonValueKind.String
                     || string.IsNullOrWhiteSpace(value.GetString()))
                 .ToList();

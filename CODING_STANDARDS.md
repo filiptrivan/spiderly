@@ -169,7 +169,7 @@ with the files it governs:
 
 - Library SCSS (content PrimeNG teleports to `document.body`): `.claude/rules/library-scss.md`.
 
-Checks hold the runtime `@angular/*` pins (`AngularPinTests`) and the lockfile (the pre-commit's dry
+Checks hold the exact runtime pins (`AngularPinTests`) and the lockfile (the pre-commit's dry
 run under the npm `packageManager` pins, `.githooks/pre-commit`). Stylelint refuses the viewport inset
 without its `0px` fallback, and any `scroll-behavior` (`Angular/projects/spiderly/stylelint.config.mjs`).
 An angular-eslint template rule refuses static text in a library template. A second rule refuses a

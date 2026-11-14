@@ -8,11 +8,12 @@ using Spiderly.Shared.Helpers;
 namespace Spiderly.Shared.Tests
 {
     /// <summary>
-    /// Every runtime <c>@angular/*</c> in <c>Angular/package.json</c> is pinned exact, at the version the
-    /// <c>spiderly init</c> template emits, so the lock regenerates the same way on every install. A caret or a
-    /// tilde floats to a newer patch on a fresh install, and that install dies on an ERESOLVE peer conflict
-    /// with the pinned compiler. A runtime <c>@angular/*</c> the template does not emit is refused too: the
-    /// library's peer dependencies list every one, so each consumer app needs it.
+    /// Every runtime dependency in <c>Angular/package.json</c> is pinned exact, so the lock regenerates the same
+    /// way on every install. A caret or a tilde floats to a newer patch on a fresh install, and that install dies
+    /// on an ERESOLVE peer conflict with the pinned compiler. <c>spiderly init</c> also gives a new app each
+    /// library peer at the version pinned here (<c>AngularLibraryPackage</c>), so a range floats there too. A
+    /// runtime <c>@angular/*</c> the init template does not emit is refused: the library's peer dependencies
+    /// list every one, so each consumer app needs it.
     /// </summary>
     public class AngularPinTests
     {
@@ -49,6 +50,24 @@ namespace Spiderly.Shared.Tests
             Assert.StartsWith("@angular/cdk ", violation);
         }
 
+        [Fact]
+        public void Library_pins_every_runtime_dependency_exact()
+        {
+            List<string> ranges = Ranges(RepoFiles.Read("Angular/package.json"));
+
+            Assert.True(ranges.Count == 0,
+                $"Pin each runtime dependency in Angular/package.json exact, then regenerate its lock: {string.Join("; ", ranges)}.");
+        }
+
+        [Fact]
+        public void NegativeControl_a_range_on_a_runtime_dependency_outside_angular_is_reported()
+        {
+            JsonNode library = JsonNode.Parse(RepoFiles.Read("Angular/package.json"))!;
+            library["dependencies"]!["marked"] = "^15.0.0";
+
+            Assert.Equal(new List<string> { "marked is \"^15.0.0\", a range" }, Ranges(library.ToJsonString()));
+        }
+
         private static readonly Regex ExactVersion = new(@"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$");
 
         private static List<string> PinViolations(string libraryPackageJson, string templatePackageJson)
@@ -59,20 +78,31 @@ namespace Spiderly.Shared.Tests
             foreach ((string name, string pin) in RuntimeAngularPins(libraryPackageJson))
             {
                 if (!ExactVersion.IsMatch(pin))
-                    violations.Add($"{name} is \"{pin}\", a range. Pin it exact, at the version NetAndAngularFilesGenerator.GetPackageJsonData emits.");
+                    violations.Add($"{name} is \"{pin}\", a range. Pin it exact: spiderly init gives a new app the version pinned here.");
                 else if (!emitted.TryGetValue(name, out string? templatePin))
-                    violations.Add($"{name} is not in the init template. Add it to NetAndAngularFilesGenerator.GetPackageJsonData at {pin}.");
+                    violations.Add($"{name} is not in the init template. Add it to the peerDependencies of Angular/projects/spiderly/package.json: spiderly init gives a new app each peer.");
                 else if (pin != templatePin)
-                    violations.Add($"{name} is {pin}, and the init template emits {templatePin}. Pin one version in both, then regenerate Angular/package-lock.json.");
+                    violations.Add($"{name} is {pin}, and the init template emits {templatePin}. Rebuild Spiderly.Shared: the init template reads the pins from the copy of Angular/package.json that it embeds.");
             }
 
             return violations;
         }
 
-        private static Dictionary<string, string> RuntimeAngularPins(string packageJson) =>
+        /// <summary>Each runtime dependency of <paramref name="packageJson"/> whose version is a range.</summary>
+        private static List<string> Ranges(string packageJson) =>
+            RuntimeDependencies(packageJson)
+                .Where(dependency => !ExactVersion.IsMatch(dependency.Value))
+                .Select(dependency => $"{dependency.Key} is \"{dependency.Value}\", a range")
+                .ToList();
+
+        private static Dictionary<string, string> RuntimeDependencies(string packageJson) =>
             JsonNode.Parse(packageJson)!["dependencies"]!.AsObject()
-                .Where(dependency => dependency.Key.StartsWith("@angular/", StringComparison.Ordinal))
                 .ToDictionary(dependency => dependency.Key, dependency => dependency.Value!.GetValue<string>(), StringComparer.Ordinal);
+
+        private static Dictionary<string, string> RuntimeAngularPins(string packageJson) =>
+            RuntimeDependencies(packageJson)
+                .Where(dependency => dependency.Key.StartsWith("@angular/", StringComparison.Ordinal))
+                .ToDictionary(dependency => dependency.Key, dependency => dependency.Value, StringComparer.Ordinal);
 
         private static string TemplatePackageJson() =>
             NetAndAngularFilesGenerator.GetPackageJsonData("App", "0.0.0", isRunningFromNuget: true);
