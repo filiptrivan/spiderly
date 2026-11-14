@@ -150,15 +150,15 @@ bumps all packages together at publish time, and the maintainer owns the release
   red-then-fix pairs, then the detector lands green on top.
 - **A change to a source generator or the EF model-config extensions is exercised by a fixture
   shape, and the e2e is green in CI before it ships**; snapshot tests are necessary but never
-  sufficient (they never run the generated code and compile one project, so a runtime or
-  cross-project bug passes them). The diff adds or extends a fixture entity when the shape or
+  sufficient (no generator unit test runs the generated code, and `GeneratedCodeCompilationTests`
+  compiles one project, so a runtime or cross-project bug passes them). The diff adds or extends a fixture entity when the shape or
   composition the change touches is missing from the zoo; when existing fixtures already exercise
   the changed path, a green e2e suffices: a fixture entity added per change regardless of coverage
   is ritual, and ritual is how aspirational tests happen (`8a2714f`, above).
-- **Coverage is judged per composition (control type × standalone form / ordered child / nested
-  ordered child), and multiplied only where the generator branches.**
-- **A mutable collection's coverage is judged per operation, add and removal; an explicit empty list
-  is the removal.**
+- **Judge coverage per composition (control type × standalone form / ordered child / nested ordered
+  child), and multiply fixtures only where the generator branches.**
+- **Judge a mutable collection's coverage per operation, add and removal; an explicit empty list is
+  the removal.**
 - **A model test that exercises a relationship runs the same `Configure*Relationships` passes in the
   same order as the real `ApplicationDbContext.OnModelCreating`**, or it misses inter-pass NREs
   (`OneToOneRelationshipModelTests`, whose summary tells the one it missed).
