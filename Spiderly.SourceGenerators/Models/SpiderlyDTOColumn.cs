@@ -37,7 +37,7 @@ namespace Spiderly.SourceGenerators.Models
         /// The column is guaranteed to carry a value — the DTO emits it non-nullable (a reference type
         /// additionally gets <c>= null!</c>). Derived from <c>[Required]</c>, which is already the signal
         /// EF turns into NOT NULL, Swashbuckle turns into a required schema member, and FluentValidation
-        /// turns into <c>.NotEmpty()</c>.
+        /// turns into a rule that refuses null.
         /// <para>
         /// Deliberately false for <see cref="SpiderlyDTOColumnKind.ManyToOneDisplayName"/> and
         /// <see cref="SpiderlyDTOColumnKind.OneToManyCommaSeparated"/> even when the source navigation is

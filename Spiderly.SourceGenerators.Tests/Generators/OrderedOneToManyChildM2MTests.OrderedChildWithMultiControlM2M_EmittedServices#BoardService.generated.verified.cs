@@ -276,8 +276,6 @@ namespace TestApp.Business.Services
 
             var orderedItemIds = orderedItemsDTO.Select(x => x.BoardLaneDTO!.Id).ToList();
 
-
-
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 await _deps.Context.DbSet<BoardLane>().Where(x => x.BoardId == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();

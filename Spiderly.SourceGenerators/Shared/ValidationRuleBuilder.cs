@@ -40,7 +40,7 @@ namespace Spiderly.SourceGenerators.Shared
         private static SpiderValidationRule? GetRuleForProperty(SpiderlyProperty property, List<SpiderlyProperty> DTOProperties, SpiderlyClass entity)
         {
             // [ReadOnly] is server-owned: the client never sends it, so any inbound rule (e.g. the
-            // NotEmpty a [Required] would emit) is structurally unsatisfiable and 422s every save.
+            // rule a [Required] would emit) is structurally unsatisfiable and 422s every save.
             // Skip it entirely — the read DTO keeps the property, but it carries no validation.
             if (property.HasReadOnlyAttribute())
                 return null;
@@ -68,17 +68,39 @@ namespace Spiderly.SourceGenerators.Shared
 
         private static string GetRulePropertyName(SpiderlyProperty property, SpiderlyClass entity)
         {
-            // M2O ([WithMany]) and the 1-1 dependent ([WithOne]) both validate against the flattened
-            // {Nav}Id the DTO carries — a required reference nav means "the FK must be set". The
-            // dependent has [WithOne] (not [WithMany]) and IsManyToOneType() is false for it by design,
-            // so it's mapped here via IsOneToOneType().
-            if ((property.HasWithManyAttribute() && property.IsManyToOneType()) || property.IsOneToOneType())  // FT: if it is not base type and not enumerable than it's many to one for sure, and the validation can only be for id to be required
+            if (ValidatesForeignKey(property))
                 return property.ResolveDTOForeignKeyName(entity);
 
             if (property.HasUIOrderedOneToManyAttribute())
                 return $"Ordered{property.Name}SaveBodyDTO";
 
             return property.Name;
+        }
+
+        /// <summary>
+        /// M2O ([WithMany]) and the 1-1 dependent ([WithOne]) both validate against the flattened
+        /// {Nav}Id the DTO carries — a required reference nav means "the FK must be set". The
+        /// dependent has [WithOne] (not [WithMany]) and IsManyToOneType() is false for it by design,
+        /// so it's matched here via IsOneToOneType().
+        /// </summary>
+        private static bool ValidatesForeignKey(SpiderlyProperty property)
+        {
+            return (property.HasWithManyAttribute() && property.IsManyToOneType()) || property.IsOneToOneType();
+        }
+
+        /// <summary>
+        /// <c>[Required]</c> means what ASP.NET Core's <c>RequiredAttribute</c> means: it refuses null, and
+        /// on a string an empty or whitespace string. <c>NotEmpty()</c> on any other type also refuses
+        /// <c>false</c>, <c>0</c>, a default date and <c>[]</c>, which are legal answers, so those get
+        /// <c>NotNull()</c>. A relation's id keeps <c>NotEmpty()</c>: no row has the id 0.
+        /// <c>AllowEmptyStrings</c> is not read, so a <c>[Required]</c> string always refuses "".
+        /// </summary>
+        private static SpiderValidationRulePart GetRequiredRulePart(SpiderlyProperty property)
+        {
+            if (ValidatesForeignKey(property) || property.Type.Name == "string")
+                return new NotEmptyRulePart();
+
+            return new NotNullRulePart();
         }
 
         internal static List<SpiderValidationRulePart> GetRulePartsForProperty(SpiderlyProperty property, string rulePropertyName)
@@ -96,7 +118,7 @@ namespace Spiderly.SourceGenerators.Shared
                 switch (attribute.Name)
                 {
                     case "Required":
-                        ruleParts.Add(new NotEmptyRulePart());
+                        ruleParts.Add(GetRequiredRulePart(property));
                         break;
                     case "StringLength":
                         // [StringLength] ctor requires a non-optional maximumLength arg, so Value is

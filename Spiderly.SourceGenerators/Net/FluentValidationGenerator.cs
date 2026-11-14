@@ -162,6 +162,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
         private static string ToFluentValidationCall(SpiderValidationRulePart rulePart, string propertyType) => rulePart switch
         {
             NotEmptyRulePart => ".NotEmpty()",
+            NotNullRulePart => ".NotNull()",
             MaximumLengthRulePart p => $".MaximumLength({p.MaxLength})",
             LengthRangePart p => $".Length({p.Min}, {p.Max})",
             ExactLengthRulePart p => $".Length({p.Length})",
