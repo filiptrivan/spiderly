@@ -3861,8 +3861,8 @@ export class ValidatorService extends ValidatorServiceGenerated {
         {
             return $$"""
 import { Injectable } from '@angular/core';
-import { provideTransloco, Translation, TranslocoLoader } from '@jsverse/transloco';
-import { provideSpiderlyTranslations } from 'spiderly';
+import { Translation, TranslocoLoader } from '@jsverse/transloco';
+import { provideSpiderlyTransloco } from 'spiderly';
 
 // Imported, never fetched: the build emits each language file as a content-hashed chunk shipped
 // with the code that reads its keys. A file fetched from an unchanging URL like
@@ -3879,17 +3879,14 @@ export class ImportedTranslocoLoader implements TranslocoLoader {
 // Spiderly ships its own strings in English. Another language for them is one more file here,
 // assets/i18n/spiderly/<lang>.json, which this loader reads as `spiderly/<lang>`.
 export function provideTranslations() {
-  return [
-    ...provideTransloco({
-      config: {
-        availableLangs: ['en'],
-        defaultLang: 'en',
-        reRenderOnLangChange: true,
-      },
-      loader: ImportedTranslocoLoader,
-    }),
-    provideSpiderlyTranslations(),
-  ];
+  return provideSpiderlyTransloco({
+    config: {
+      availableLangs: ['en'],
+      defaultLang: 'en',
+      reRenderOnLangChange: true,
+    },
+    loader: ImportedTranslocoLoader,
+  });
 }
 """;
         }

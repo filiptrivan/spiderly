@@ -169,6 +169,6 @@ with the files it governs:
 Checks hold the runtime `@angular/*` pins (`AngularPinTests`) and the lockfile (the pre-commit's dry
 run under the npm `packageManager` pins, `.githooks/pre-commit`). Stylelint refuses the viewport inset
 without its `0px` fallback, and any `scroll-behavior` (`Angular/projects/spiderly/stylelint.config.mjs`).
-An angular-eslint template rule refuses static text in a library template, and another refuses a key
-outside the library's own `spiderly` scope or missing from its `i18n/en.json`
-(`Angular/projects/spiderly/eslint.config.js`). The pre-commit and CI run both.
+An angular-eslint template rule refuses static text in a library template. A second rule refuses a
+key outside the library's own `spiderly` scope, or one missing from its `i18n/en.json`. Both are in
+`Angular/projects/spiderly/eslint.config.js`. The pre-commit and CI run both.

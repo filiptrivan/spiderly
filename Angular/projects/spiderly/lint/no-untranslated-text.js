@@ -27,7 +27,7 @@ const READ_ATTRIBUTES = new Set([
 
 // `{{binding}}` is filled from `data`: ESLint reads a literal `{{ … }}` in a message as a placeholder.
 const FIX =
-  'Translate it with Transloco: add TranslocoDirective to the component\'s imports and provideSpiderlyScope() to its providers, wrap the template in <ng-container *transloco="let t">, write {{binding}}, and add the key with its English to i18n/en.json, as spiderly-markdown and return-button do.';
+  'Translate it with Transloco, as spiderly-markdown and return-button do. Add TranslocoDirective to the component\'s imports and provideSpiderlyScope() to its providers. Wrap the template in <ng-container *transloco="let t">, and write {{binding}}. Add the key with its English to i18n/en.json.';
 const BINDING = "{{ t('spiderly.Key') }}";
 
 // The static text a bound expression shows: the parts around an interpolation's bindings, and a string

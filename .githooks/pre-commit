@@ -18,7 +18,7 @@ bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
 angular_lock='^Angular/package(-lock)?\.json$'
 lint_src='^Angular/projects/spiderly/src/.+\.(html|ts|scss)$'
-lint_rules='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+|src/lib/i18n/en\.json))$'
+lint_inputs='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+|src/lib/i18n/en\.json))$'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
@@ -144,15 +144,15 @@ fi
 # --- Library lint: the library's rules (ng lint's config) and Stylelint ----------------------------
 # Lints the staged library files as they stand in the working tree, so a partly staged file is judged
 # whole, and CI lints the committed tree. A change to a rule, a lint config or the library's en.json
-# (the library-key rule reads it) runs the rules' own tests and lints the whole library.
-if echo "$staged" | grep -qE "$lint_src|$lint_rules"; then
+# runs the rules' own tests and lints the whole library. The library-key rule reads en.json.
+if echo "$staged" | grep -qE "$lint_src|$lint_inputs"; then
   if [ ! -d Angular/node_modules ]; then
     echo "pre-commit: the library's lint needs the Angular packages. Install them, then retry the commit: cd Angular && npm ci"
     exit 1
   fi
   lint_failed=
-  if echo "$staged" | grep -qE "$lint_rules"; then
-    echo "pre-commit: staged changes touch the library's lint rules — testing them and linting the whole library..."
+  if echo "$staged" | grep -qE "$lint_inputs"; then
+    echo "pre-commit: staged changes touch the library's lint rules or the keys they read — testing them and linting the whole library..."
     if ! out=$(cd Angular && npm run --silent test:lint-rules 2>&1); then
       printf '%s\n' "$out"
       echo "pre-commit: a lint rule's own test failed (its output is above): cd Angular && npm run test:lint-rules"

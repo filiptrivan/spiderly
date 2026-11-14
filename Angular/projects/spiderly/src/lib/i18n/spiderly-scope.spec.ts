@@ -1,17 +1,11 @@
 import { ApplicationInitStatus } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import {
-  provideTransloco,
-  Translation,
-  TRANSLOCO_LOADER,
-  TranslocoLoader,
-  TranslocoService,
-} from '@jsverse/transloco';
+import { Translation, TRANSLOCO_LOADER, TranslocoLoader, TranslocoService } from '@jsverse/transloco';
 import { Observable, of, throwError } from 'rxjs';
 
 import { SpiderlyReturnButtonComponent } from '../components/spiderly-buttons/return-button/return-button.component';
-import { provideSpiderlyTranslations } from './spiderly-scope';
+import { provideSpiderlyTransloco } from './spiderly-scope';
 
 // The app's own loader, as an app writes it: one file per path. Transloco asks it for
 // `spiderly/<lang>` as for any scope of the app's own, so the app's Serbian for the library's
@@ -41,11 +35,10 @@ describe('The library scope', () => {
       imports: [SpiderlyReturnButtonComponent],
       providers: [
         provideRouter([]),
-        provideTransloco({
+        provideSpiderlyTransloco({
           config: { availableLangs: ['en', 'sr', 'de'], defaultLang, reRenderOnLangChange: true },
         }),
         { provide: TRANSLOCO_LOADER, useValue: appLoader },
-        provideSpiderlyTranslations(),
       ],
     });
   }
@@ -89,6 +82,15 @@ describe('The library scope', () => {
     await switchTo(fixture, 'en');
 
     expect(label(fixture)).toBe('Return');
+  });
+
+  // A new release adds keys the app's file has not caught up with.
+  it("shows English for a key the app's file lacks, never the raw key", async () => {
+    configure('sr');
+
+    await TestBed.inject(ApplicationInitStatus).donePromise;
+
+    expect(TestBed.inject(TranslocoService).translate('spiderly.NoRecordsFound')).toBe('No records found.');
   });
 
   it('shows English for a language the app has no file for, never a blank component', async () => {

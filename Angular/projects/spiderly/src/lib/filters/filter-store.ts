@@ -37,8 +37,8 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
 
 /**
  * Transloco keys for the operator a control offers. The keys live in the library's `spiderly` scope
- * (`i18n/en.json`), so one operator cannot be worded two ways in one admin. The wording is per KIND on purpose: `LessThan` reads "Less than" for a number and
- * "Dates before" for a date.
+ * (`i18n/en.json`), so one operator cannot be worded two ways in one admin. The wording is per KIND
+ * on purpose: `LessThan` reads "Less than" for a number and "Dates before" for a date.
  *
  * The operator TABLE itself lives in `allowed-operators.ts`, the one telling both consumers
  * derive from (this store's runtime lists, `FilterRule`'s compile-time union).

@@ -1,9 +1,11 @@
-// The library owns its strings: they live in its `spiderly` Transloco scope, English in
-// src/lib/i18n/en.json, and an app adds its own language for them (i18n/spiderly-scope.ts). A key the
-// library reads from the app's translations shows raw in an app that never added it, so a literal key
-// in `t(…)` or `translate(…)` is refused unless it is a `spiderly.` key. A `spiderly.` key en.json does
-// not hold is refused too, and so is a component whose template reads one without the scope, which its
-// `*transloco` would not wait for on a language switch.
+// The library owns its strings. They live in its `spiderly` Transloco scope, with the English in
+// src/lib/i18n/en.json, and an app adds its own language for them (i18n/spiderly-scope.ts). A key
+// that the library reads from the app's translations shows raw in an app that never added it.
+// So the rule refuses three things:
+// - a literal key in `t(…)` or `translate(…)` that is not a `spiderly.` key;
+// - a `spiderly.` key that en.json does not hold;
+// - a component whose template reads a `spiderly.` key without the scope. Its `*transloco` would not
+//   wait for the strings on a language switch.
 //
 // One rule for both parsers: the template nodes (`Call`, `LiteralPrimitive`) and the TypeScript nodes
 // (`CallExpression`, `Literal`, `Decorator`) never meet in one file.
@@ -31,10 +33,10 @@ const libraryKeyRule = (en) => ({
   },
   create(context) {
     // `at` is where the report points: `{ node }` in a class, `{ loc }` in a template.
-    const checkRead = (key, at) => {
+    const refuseUnscoped = (key, at) => {
       if (typeof key === 'string' && !SCOPED.test(key)) context.report({ ...at, messageId: 'unscoped', data: { key } });
     };
-    const checkScoped = (value, at) => {
+    const refuseUnknown = (value, at) => {
       const match = typeof value === 'string' && SCOPED.exec(value);
       if (match && !Object.hasOwn(en, match[1])) context.report({ ...at, messageId: 'unknown', data: { key: match[1] } });
     };
@@ -50,21 +52,21 @@ const libraryKeyRule = (en) => ({
       // Templates: `t('Key')`, and any `'spiderly.Key'` literal.
       Call(node) {
         const [arg] = node.args;
-        if (node.receiver?.name === 't' && arg?.constructor.name === 'LiteralPrimitive') checkRead(arg.value, templateLoc(node));
+        if (node.receiver?.name === 't' && arg?.constructor.name === 'LiteralPrimitive') refuseUnscoped(arg.value, templateLoc(node));
       },
       LiteralPrimitive(node) {
-        checkScoped(node.value, templateLoc(node));
+        refuseUnknown(node.value, templateLoc(node));
       },
 
       // Classes: `translate('Key')`, any `'spiderly.Key'` literal, and a component's providers.
       CallExpression(node) {
         const [arg] = node.arguments;
         if (node.callee.type === 'MemberExpression' && node.callee.property.name === 'translate' && arg?.type === 'Literal') {
-          checkRead(arg.value, { node: arg });
+          refuseUnscoped(arg.value, { node: arg });
         }
       },
       Literal(node) {
-        checkScoped(node.value, { node });
+        refuseUnknown(node.value, { node });
       },
       Decorator(node) {
         const call = node.expression;
