@@ -85,7 +85,7 @@ Either way: add the doc placement in `tools/gen-skill-docs.mjs` (it fails loud i
 
 ## Cross-language mirrors
 
-`ApiErrorCodes` and `MatchModeCodes` are hand-maintained in TypeScript too (`api-error-codes.ts`, `match-mode-enum-codes.ts`); the Angular admin and storefronts switch on the wire values. Rather than *generate* those (which would reorder the enums away from their readable declaration order for no functional gain on a string contract), `Spiderly.Shared.Tests/TsContractMirrorTests` asserts the C# ↔ TS member sets match, so any divergence fails CI. The same class requires an English value in the init template for every `OPERATOR_WORDS` key in `filters/filter-store.ts`. The **downstream** storefront mirror in a consuming app lives in a separate repo — out of scope here, same as the website.
+`ApiErrorCodes` and `MatchModeCodes` are hand-maintained in TypeScript too (`api-error-codes.ts`, `match-mode-enum-codes.ts`); the Angular admin and storefronts switch on the wire values. Rather than *generate* those (which would reorder the enums away from their readable declaration order for no functional gain on a string contract), `Spiderly.Shared.Tests/TsContractMirrorTests` asserts the C# ↔ TS member sets match, so any divergence fails CI. The same class requires an English value in the init template for every `OPERATOR_WORDS` key in `filters/filter-store.ts`. A consuming app that keeps its own copy keeps it in its own repo, out of scope here, same as the website.
 
 ## Distribution to spiderly-website
 
