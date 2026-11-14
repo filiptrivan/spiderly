@@ -33,6 +33,9 @@
     <EmbeddedResource Include="..\Angular\projects\spiderly\package.json">
       <LogicalName>Spiderly.AngularLibrary.package.json</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Angular\package.json">
+      <LogicalName>Spiderly.AngularWorkspace.package.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Spiderly.Shared.Tests" />

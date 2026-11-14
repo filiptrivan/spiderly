@@ -3182,10 +3182,8 @@ namespace {{appName}}.Business.DataMappers
 
         internal static string GetPackageJsonData(string appName, string version, bool isRunningFromNuget)
         {
-            Dictionary<string, string> libraryPeers = AngularLibraryPackage.ReadPeerDependencies();
-
             // The library's peers, with the packages the app itself imports beside them.
-            SortedDictionary<string, string> dependencies = new(libraryPeers, StringComparer.Ordinal)
+            SortedDictionary<string, string> dependencies = new(AngularLibraryPackage.PeerDependencyVersions(), StringComparer.Ordinal)
             {
                 ["@primeng/themes"] = "19.1.3",
                 ["tslib"] = "2.3.0",
@@ -3193,10 +3191,8 @@ namespace {{appName}}.Business.DataMappers
             if (isRunningFromNuget)
                 dependencies["spiderly"] = version;
 
-            // @angular/compiler-cli needs the exact @angular/compiler of its own version, so the toolchain takes
-            // the library's Angular range too. A toolchain pinned apart from that range makes npm refuse the install.
-            string angularRange = libraryPeers["@angular/core"];
-
+            // @angular/compiler-cli needs the exact @angular/compiler of its own version. So the toolchain takes the
+            // workspace's pins, as the peers do: a toolchain pinned apart from them makes npm refuse the install.
             return $$"""
 {
     "name": "{{appName}}",
@@ -3220,9 +3216,9 @@ namespace {{appName}}.Business.DataMappers
 {{string.Join(",\n", dependencies.Select(dependency => $"        \"{dependency.Key}\": \"{dependency.Value}\""))}}
     },
     "devDependencies": {
-        "@angular-devkit/build-angular": "{{angularRange}}",
-        "@angular/cli": "{{angularRange}}",
-        "@angular/compiler-cli": "{{angularRange}}",
+        "@angular-devkit/build-angular": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular-devkit/build-angular")}}",
+        "@angular/cli": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular/cli")}}",
+        "@angular/compiler-cli": "{{AngularLibraryPackage.WorkspaceDevDependencyVersion("@angular/compiler-cli")}}",
         "@jsverse/transloco-keys-manager": "6.2.2",
         "@playwright/test": "1.60.0",
         "@types/jasmine": "5.1.0",
