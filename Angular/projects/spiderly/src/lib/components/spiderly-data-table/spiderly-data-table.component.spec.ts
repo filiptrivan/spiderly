@@ -1042,6 +1042,52 @@ describe('SpiderlyDataTableComponent — multiselect cells show the label, not t
   });
 });
 
+@Component({
+  imports: [SpiderlyDataTableComponent],
+  template: `
+    <spiderly-data-table
+      [cols]="cols"
+      [getPaginatedListObservableMethod]="getList"
+    ></spiderly-data-table>
+  `,
+})
+class HostWithBooleanColumnsComponent {
+  cols: Column[] = [
+    {
+      name: 'Eligible',
+      field: 'eligible',
+      filterType: 'boolean',
+      triState: true,
+    } as Column,
+    { name: 'Disabled', field: 'disabled', filterType: 'boolean' },
+  ];
+  getList = () =>
+    paginated([
+      { eligible: true, disabled: true },
+      { eligible: false, disabled: false },
+      { eligible: null, disabled: null },
+    ]);
+}
+
+describe('SpiderlyDataTableComponent — boolean cells', () => {
+  const columnTexts = (el: HTMLElement, index: number) =>
+    Array.from(el.querySelectorAll('tbody tr')).map((tr) =>
+      tr.querySelectorAll('td')[index].textContent!.trim(),
+    );
+
+  it('shows null as an empty cell in a tri-state column', async () => {
+    const el = await renderRows(createFixture(HostWithBooleanColumnsComponent));
+
+    expect(columnTexts(el, 0)).toEqual(['Yes', 'No', '']);
+  });
+
+  it('shows null as No in a column that is not tri-state', async () => {
+    const el = await renderRows(createFixture(HostWithBooleanColumnsComponent));
+
+    expect(columnTexts(el, 1)).toEqual(['Yes', 'No', 'No']);
+  });
+});
+
 const fourSelectableRows = (): Observable<PaginatedResult> =>
   paginated([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
 
