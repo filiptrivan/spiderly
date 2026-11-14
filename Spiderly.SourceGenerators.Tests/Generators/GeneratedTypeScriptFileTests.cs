@@ -6,15 +6,11 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 
 /// <summary>
 /// The Angular generators write their <c>.generated.ts</c> files to disk, under the consumer's
-/// <c>Frontend</c> folder, so these tests give each generator a temporary app folder and read back the file
-/// it wrote. The in-memory harness alone gives a generator no project folder, which made these files
-/// unreachable from a test.
+/// <c>Frontend</c> folder. So each test gives the generator a temporary app folder and reads back the file.
 /// </summary>
 public sealed class GeneratedTypeScriptFileTests : IDisposable
 {
-    // One app shape that makes every Angular generator write its file: an entity and an enum for the
-    // Business-side generators, and a controller with DateTime query params for the API service. The
-    // calling project is a WebAPI project, as NgControllersGenerator and NgValidatorsGenerator require;
+    // The calling project is a WebAPI project, as NgControllersGenerator and NgValidatorsGenerator require.
     // NgValidatorsGenerator reads the referenced Spiderly.Security DTOs.
     private const string AppSource = """
         using System;
@@ -45,7 +41,7 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
             public class ReportController
             {
                 [HttpGet]
-                public int GetOrderCount(long brandId, DateTime from, DateTime to) => 0;
+                public int GetOrderCount(long brandId, DateTime from, DateTime? to) => 0;
             }
         }
         """;
@@ -54,13 +50,15 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
 
     private string ProjectDir => Path.Combine(_appFolder, "Backend", "TestApp.WebAPI");
 
+    private string BusinessFolder => Path.Combine(_appFolder, "Frontend", "src", "app", "business");
+
     public GeneratedTypeScriptFileTests()
     {
         Directory.CreateDirectory(ProjectDir);
 
         // A generator writes into its folder but never creates it; `spiderly init` does.
         foreach (string folder in new[] { "components", "entities", "enums", Path.Combine("services", "api"), Path.Combine("services", "validators") })
-            Directory.CreateDirectory(Path.Combine(_appFolder, "Frontend", "src", "app", "business", folder));
+            Directory.CreateDirectory(Path.Combine(BusinessFolder, folder));
     }
 
     public void Dispose() => Directory.Delete(_appFolder, recursive: true);
@@ -76,31 +74,26 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         string text = Generate(generatorType, file);
 
         Assert.StartsWith(
-            $"// Spiderly's {generatorType.Name} writes this file. Do not edit it, because the next backend build overwrites a hand edit.\n" +
+            $"// Spiderly's {generatorType.Name} writes this file. Do not edit it, because the next backend build overwrites it.\n" +
             $"// To change this file, change its backend source: {backendSource}.\n",
             text);
     }
 
-    /// <summary>
-    /// A <c>Date</c> interpolated into the query goes on the wire as its <c>toString()</c> form
-    /// ("Mon Aug 17 2026 00:00:00 GMT+0200 (Central European Summer Time)"), which ASP.NET's model binder
-    /// cannot read, so a non-nullable <c>DateTime</c> param answers 400 (spiderly#395). The caller still
-    /// passes a plain <c>Date</c>.
-    /// </summary>
+    // Why a Date goes in its ISO form, and a null Date as it does: NgControllersGenerator.GetQueryParamValue.
     [Fact]
     public void ApiService_DateTimeQueryParam_IsSentAsAnIsoString()
     {
         string text = Generate(typeof(NgControllersGenerator), "services/api/api.service.generated.ts");
 
         Assert.Contains("getOrderCount = (brandId: number, from: Date, to: Date): Observable<number>", text);
-        Assert.Contains("let params = `?brandId=${brandId}&from=${from.toISOString()}&to=${to.toISOString()}`;", text);
+        Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
     private string Generate(Type generatorType, string file)
     {
         GeneratorTestHarness.Run(generatorType, AppSource, projectDir: ProjectDir);
 
-        string path = Path.Combine(_appFolder, "Frontend", "src", "app", "business", file);
+        string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");
 
         return File.ReadAllText(path).Replace("\r\n", "\n");

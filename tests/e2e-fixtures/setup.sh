@@ -65,13 +65,15 @@ echo "Copying Angular list component overrides..."
 cp "$SCRIPT_DIR/frontend/app/product/product-list.component.ts" "$APP_PAGES_DIR/product/product-list.component.ts"
 
 # --- Add the query-param echo page and its route ---
-# The page calls a generated API-service method, so a spec can read what the generated client sends.
-# grep fails the setup (set -e) when the generated routes file no longer opens its layout routes so.
+# The page calls a generated API-service method. A spec reads the request it sends.
+# The route goes after the line that opens the layout routes. When that line is gone, grep stops
+# the setup (set -e).
 echo "Adding the query-param echo page..."
 mkdir -p "$APP_PAGES_DIR/query-param-echo"
 cp "$SCRIPT_DIR/frontend/app/query-param-echo/query-param-echo.component.ts" "$APP_PAGES_DIR/query-param-echo/"
-grep -q '^const layoutRoutes: Routes = \[[[:space:]]*$' "$APP_ROUTES"
-sed -i "/^const layoutRoutes: Routes = \[[[:space:]]*$/a\\    { path: 'query-param-echo', loadComponent: () => import('./pages/query-param-echo/query-param-echo.component').then(c => c.QueryParamEchoComponent), canActivate: [AuthGuard] }," "$APP_ROUTES"
+LAYOUT_ROUTES_LINE='^const layoutRoutes: Routes = \[[[:space:]]*$'
+grep -q "$LAYOUT_ROUTES_LINE" "$APP_ROUTES"
+sed -i "/$LAYOUT_ROUTES_LINE/a\\    { path: 'query-param-echo', loadComponent: () => import('./pages/query-param-echo/query-param-echo.component').then(c => c.QueryParamEchoComponent), canActivate: [AuthGuard] }," "$APP_ROUTES"
 
 # --- Raise the global rate limit for the whole E2E run ---
 # The suite hits the backend from ONE IP and a green run already sits at ~235 of the default

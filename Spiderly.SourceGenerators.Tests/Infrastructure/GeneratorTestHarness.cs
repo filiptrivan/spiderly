@@ -29,8 +29,8 @@ internal static class GeneratorTestHarness
     /// coverage at all.</param>
     /// <param name="projectDir">The consumer project's folder, which MSBuild gives a generator as
     /// <c>build_property.projectdir</c>. An Angular generator writes its <c>.generated.ts</c> file under the
-    /// <c>Frontend</c> folder beside the <c>Backend</c> folder above it, so a test that reads that file passes one.
-    /// Omit it for a generator that emits only C#.</param>
+    /// <c>Frontend</c> folder beside the <c>Backend</c> folder above it. A test that reads that file passes
+    /// one. Omit it for a generator that emits only C#.</param>
     public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null, string? projectDir = null)
     {
         IIncrementalGenerator generator = (IIncrementalGenerator)Activator.CreateInstance(generatorType)!;

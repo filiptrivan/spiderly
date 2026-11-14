@@ -901,12 +901,17 @@ import { {{ngType}} } from '../../entities/entities.generated';
         }
 
         /// <summary>
-        /// The expression a query param's value goes on the wire as. A <c>Date</c> goes as its ISO 8601 form,
-        /// which ASP.NET's model binder reads as a <c>DateTime</c>; interpolated as it is, it would go as its
-        /// <c>toString()</c> form, which the binder cannot read (spiderly#395).
+        /// The expression that puts a query param's value on the wire. A <c>Date</c> goes in its ISO 8601 form,
+        /// which ASP.NET's model binder reads as a <c>DateTime</c>. Its <c>toString()</c> form, which plain
+        /// interpolation sends, makes the binder answer 400 (spiderly#395).
+        /// <para>
+        /// A <c>DateTime?</c> param is a plain <c>Date</c> too, and the generated app's TypeScript is not strict,
+        /// so a caller can pass null. <c>?.</c> sends that null as text the binder refuses, as a null of any other
+        /// type goes. An omitted optional param is spiderly#392.
+        /// </para>
         /// </summary>
         private static string GetQueryParamValue(KeyValuePair<string, string> param)
-            => param.Value == "Date" ? $"{param.Key}.toISOString()" : param.Key;
+            => param.Value == "Date" ? $"{param.Key}?.toISOString()" : param.Key;
 
         private static string? GetPostAndPutParameters(Dictionary<string, string>? postAndPutParameter, HttpTypeCodes httpType)
         {
