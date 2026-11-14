@@ -104,7 +104,7 @@ export class ApiGeneratedService extends ApiSecurityService {
 }
 """;
 
-            Helpers.WriteToTheFile(result, outputPath);
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(outputPath, result, nameof(NgControllersGenerator), "the [SpiderlyController] classes, and the [SpiderlyEntity] classes for the CRUD methods");
         }
 
         private static List<string> GetAngularHttpMethods(List<SpiderlyClass> controllerClasses, List<SpiderlyClass> allEntities, List<SpiderlyClass> referencedDTOs, HashSet<string> knownTsTypes, ImmutableArray<string> spiderlyEnumNames, SourceProductionContext context)

@@ -105,7 +105,7 @@ namespace Spiderly.SourceGenerators.Angular
 {{string.Join("\n\n", GetAngularBaseDetailsComponents(customDTOClasses, currentProjectEntities, allEntities))}}
 """;
 
-            Helpers.WriteToTheFile(result, outputPath);
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(outputPath, result, nameof(NgBaseDetailsGenerator), "the [SpiderlyEntity] and [SpiderlyDTO] classes and their UI attributes");
         }
 
         private static List<string> GetAngularBaseDetailsComponents(List<SpiderlyClass> customDTOClasses, List<SpiderlyClass> currentProjectEntities, List<SpiderlyClass> allEntities)
