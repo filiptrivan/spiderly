@@ -36,9 +36,8 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
 }
 
 /**
- * Transloco keys for the operator a control offers. The keys are seeded in the init template's
- * en block (`NetAndAngularFilesGenerator.cs`), so one operator cannot be worded two ways in one
- * admin. The wording is per KIND on purpose: `LessThan` reads "Less than" for a number and
+ * Transloco keys for the operator a control offers. The keys live in the library's `spiderly` scope
+ * (`i18n/en.json`), so one operator cannot be worded two ways in one admin. The wording is per KIND on purpose: `LessThan` reads "Less than" for a number and
  * "Dates before" for a date.
  *
  * The operator TABLE itself lives in `allowed-operators.ts`, the one telling both consumers
@@ -61,54 +60,54 @@ const OPERATOR_WORDS: Record<
 > = {
   text: {
     [MatchModeCodes.StartsWith]: {
-      pickerKey: 'StartsWith',
-      phraseKey: 'FilterChipStartsWith',
+      pickerKey: 'spiderly.StartsWith',
+      phraseKey: 'spiderly.FilterChipStartsWith',
     },
     [MatchModeCodes.Contains]: {
-      pickerKey: 'Contains',
-      phraseKey: 'FilterChipContains',
+      pickerKey: 'spiderly.Contains',
+      phraseKey: 'spiderly.FilterChipContains',
     },
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     // No `In` for text: ALLOWED_OPERATORS.text does not carry it, so the entry was unreachable —
     // and it made `textFilter({ options })` look supported when the store throws on it.
   },
   number: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     [MatchModeCodes.GreaterThan]: {
-      pickerKey: 'MoreThan',
-      phraseKey: 'FilterChipGreaterThan',
+      pickerKey: 'spiderly.MoreThan',
+      phraseKey: 'spiderly.FilterChipGreaterThan',
     },
     [MatchModeCodes.LessThan]: {
-      pickerKey: 'LessThan',
-      phraseKey: 'FilterChipLessThan',
+      pickerKey: 'spiderly.LessThan',
+      phraseKey: 'spiderly.FilterChipLessThan',
     },
     // The picker never renders for a pick-list (one operator), but the CHIP always does.
-    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
+    [MatchModeCodes.In]: { pickerKey: 'spiderly.In', phraseKey: 'spiderly.FilterChipIn' },
   },
   boolean: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
   },
   date: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'OnDate',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.OnDate',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     [MatchModeCodes.LessThan]: {
-      pickerKey: 'DatesBefore',
-      phraseKey: 'FilterChipBefore',
+      pickerKey: 'spiderly.DatesBefore',
+      phraseKey: 'spiderly.FilterChipBefore',
     },
     [MatchModeCodes.GreaterThan]: {
-      pickerKey: 'DatesAfter',
-      phraseKey: 'FilterChipAfter',
+      pickerKey: 'spiderly.DatesAfter',
+      phraseKey: 'spiderly.FilterChipAfter',
     },
   },
 };

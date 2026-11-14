@@ -15,10 +15,12 @@ import {
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { ValidatorAbstractService } from '../../services/validator-abstract.service';
 import { BaseControl } from '../base-control';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-file',
   templateUrl: './spiderly-file.component.html',
+  providers: [provideSpiderlyScope()],
   styles: [],
   imports: [
     CommonModule,

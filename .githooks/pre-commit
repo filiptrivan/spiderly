@@ -18,7 +18,7 @@ bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
 angular_lock='^Angular/package(-lock)?\.json$'
 lint_src='^Angular/projects/spiderly/src/.+\.(html|ts|scss)$'
-lint_rules='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+))$'
+lint_rules='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+|src/lib/i18n/en\.json))$'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
@@ -141,10 +141,10 @@ if echo "$staged" | grep -qE "$angular_lock"; then
   echo "pre-commit: the Angular lock is in sync under $npm_pin."
 fi
 
-# --- Library lint: the template rule (ng lint's config) and Stylelint ------------------------------
+# --- Library lint: the library's rules (ng lint's config) and Stylelint ----------------------------
 # Lints the staged library files as they stand in the working tree, so a partly staged file is judged
-# whole, and CI lints the committed tree. A change to a rule or a lint config runs the rules' own tests
-# and lints the whole library.
+# whole, and CI lints the committed tree. A change to a rule, a lint config or the library's en.json
+# (the library-key rule reads it) runs the rules' own tests and lints the whole library.
 if echo "$staged" | grep -qE "$lint_src|$lint_rules"; then
   if [ ! -d Angular/node_modules ]; then
     echo "pre-commit: the library's lint needs the Angular packages. Install them, then retry the commit: cd Angular && npm ci"

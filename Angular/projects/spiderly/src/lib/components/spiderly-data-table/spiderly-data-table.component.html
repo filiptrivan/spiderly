@@ -44,7 +44,7 @@
               pButton
               *ngIf="hasLazyLoad"
               data-testid="column-chooser-button"
-              [label]="t('Columns')"
+              [label]="t('spiderly.Columns')"
               class="p-button-outlined"
               style="flex: none"
               icon="pi pi-sliders-h"
@@ -53,7 +53,7 @@
             <button
               pButton
               *ngIf="showExportToExcelButton"
-              [label]="t('ExportToExcel')"
+              [label]="t('spiderly.ExportToExcel')"
               class="p-button-outlined"
               style="flex: none"
               icon="pi pi-download"
@@ -62,7 +62,7 @@
             <button
               pButton
               *ngIf="showReloadTableButton"
-              [label]="t('Reload')"
+              [label]="t('spiderly.Reload')"
               class="p-button-outlined"
               style="flex: none"
               icon="pi pi-refresh"
@@ -71,7 +71,7 @@
             <button
               pButton
               *ngIf="deleteListFromTableObservableMethod && rowsSelectedNumber > 0"
-              [label]="t('DeleteSelected') + ' (' + rowsSelectedNumber + ')'"
+              [label]="t('spiderly.DeleteSelected') + ' (' + rowsSelectedNumber + ')'"
               class="p-button-danger"
               style="flex: none"
               icon="pi pi-trash"
@@ -94,7 +94,7 @@
               (click)="hideMenuColumn()"
             >
               <i class="pi pi-eye-slash"></i>
-              <span class="column-menu-item-label">{{ t('HideColumn') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.HideColumn') }}</span>
             </button>
             <button
               type="button"
@@ -105,7 +105,7 @@
               (click)="filterMenuColumn()"
             >
               <i class="pi pi-filter"></i>
-              <span class="column-menu-item-label">{{ t('Filter') }}…</span>
+              <span class="column-menu-item-label">{{ t('spiderly.Filter') }}…</span>
             </button>
             <button
               type="button"
@@ -116,7 +116,7 @@
               (click)="sortMenuColumn(1)"
             >
               <i class="pi pi-sort-amount-up-alt"></i>
-              <span class="column-menu-item-label">{{ t('SortAscending') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.SortAscending') }}</span>
             </button>
             <button
               type="button"
@@ -127,7 +127,7 @@
               (click)="sortMenuColumn(-1)"
             >
               <i class="pi pi-sort-amount-down"></i>
-              <span class="column-menu-item-label">{{ t('SortDescending') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.SortDescending') }}</span>
             </button>
             <button
               type="button"
@@ -138,7 +138,7 @@
               (click)="moveMenuColumn(-1)"
             >
               <i class="pi pi-arrow-left"></i>
-              <span class="column-menu-item-label">{{ t('MoveLeft') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.MoveLeft') }}</span>
             </button>
             <button
               type="button"
@@ -149,7 +149,7 @@
               (click)="moveMenuColumn(1)"
             >
               <i class="pi pi-arrow-right"></i>
-              <span class="column-menu-item-label">{{ t('MoveRight') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.MoveRight') }}</span>
             </button>
             <button
               type="button"
@@ -159,7 +159,7 @@
               (click)="fitMenuColumn()"
             >
               <i class="pi pi-arrows-h"></i>
-              <span class="column-menu-item-label">{{ t('FitWidth') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.FitWidth') }}</span>
             </button>
             <!-- menuitemcheckbox, not menuitem: this one TOGGLES, and a label reading the same
                  in both states leaves the operator to find out by clicking — which on a wide
@@ -177,7 +177,7 @@
               (click)="toggleWrapForMenuColumn()"
             >
               <i class="pi pi-align-left"></i>
-              <span class="column-menu-item-label">{{ t('WrapText') }}</span>
+              <span class="column-menu-item-label">{{ t('spiderly.WrapText') }}</span>
               <i *ngIf="isMenuColumnWrapped" class="pi pi-check"></i>
             </button>
           </div>
@@ -287,7 +287,7 @@
                     type="button"
                     class="column-menu-button"
                     data-testid="column-menu"
-                    [attr.aria-label]="t('Columns')"
+                    [attr.aria-label]="t('spiderly.Columns')"
                     (click)="$event.stopPropagation(); openColumnMenu(col, $event)"
                   >
                     <i class="pi pi-chevron-down"></i>
@@ -401,18 +401,18 @@
               visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
             "
           >
-            {{ t("NoRecordsFound") }}
+            {{ t("spiderly.NoRecordsFound") }}
           </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="paginatorleft">
-        {{ t("TotalRecords") }}: {{ totalRecords }}
+        {{ t("spiderly.TotalRecords") }}: {{ totalRecords }}
       </ng-template>
       <ng-template pTemplate="paginatorright">
         <div style="display: flex; justify-content: end; gap: 10px">
           <spiderly-button
             *ngIf="showAddButton"
-            [label]="t('AddNew')"
+            [label]="t('spiderly.AddNew')"
             icon="pi pi-plus"
             (onClick)="navigateToDetails(0)"
           ></spiderly-button>
@@ -440,7 +440,7 @@
           class="column-chooser-reset"
           (click)="resetColumnLayout()"
         >
-          {{ t('ResetToDefault') }}
+          {{ t('spiderly.ResetToDefault') }}
         </button>
       </div>
     </p-popover>

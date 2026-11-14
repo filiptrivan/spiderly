@@ -28,10 +28,12 @@ import { CommonModule } from '@angular/common';
 import { SpiderlyControlsModule } from '../../../controls/spiderly-controls.module';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { Namebook } from '../../../entities/namebook';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: '[menuitem]',
   templateUrl: './menuitem.component.html',
+  providers: [provideSpiderlyScope()],
   animations: [
     trigger('children', [
       state(

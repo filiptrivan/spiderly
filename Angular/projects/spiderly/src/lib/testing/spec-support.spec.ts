@@ -19,8 +19,10 @@ export function translocoTesting(
     // Empty by default: a spec asserting on static text is usually asserting on the wrong thing.
     // `words` is for the cases where the RENDERED SENTENCE is the behaviour — a chip reading
     // "Firma sadrži Elektromont", or a count that must not be a bare digit — where matching the
-    // key would pass while the sentence was nonsense.
-    langs: { en: words },
+    // key would pass while the sentence was nonsense. They are the library's own strings, so
+    // they fill its `spiderly` scope, and preloading it keeps a library template rendering in the
+    // change-detection pass that creates it, with no wait for the scope's inline loader.
+    langs: { en: {}, 'spiderly/en': words },
     translocoConfig: { availableLangs: ['en'], defaultLang: 'en' },
     preloadLangs: true,
   };

@@ -9,10 +9,12 @@ import { SpiderlyMenuItem } from '../sidebar/sidebar-menu.component';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { Subscription } from 'rxjs';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-topbar',
   templateUrl: './topbar.component.html',
+  providers: [provideSpiderlyScope()],
   styleUrl: './topbar.component.scss',
   imports: [
     CommonModule,

@@ -186,6 +186,10 @@ function lintFixture({ packages = true, files = {} } = {}) {
       'Angular/projects/spiderly/stylelint.config.mjs',
       'Angular/projects/spiderly/lint/no-untranslated-text.js',
       'Angular/projects/spiderly/lint/no-untranslated-text.test.mjs',
+      'Angular/projects/spiderly/lint/library-key.js',
+      'Angular/projects/spiderly/lint/library-key.test.mjs',
+      'Angular/projects/spiderly/src/lib/i18n/en.json',
+      'Angular/projects/spiderly/src/lib/components/spiderly-buttons/return-button/return-button.component.html',
       'Angular/projects/spiderly/lint/viewport-inset-fallback.mjs',
       'Angular/projects/spiderly/lint/stylelint.test.mjs',
     ],
@@ -223,9 +227,23 @@ test('a staged library stylesheet setting scroll-behavior is refused, naming the
   assert.equal(commitCount(root), '1');
 });
 
-test('a staged translated template and a stylesheet within the rules pass', () => {
+test('a staged library template reading a key outside the library\'s scope is refused, naming the fix', () => {
   const root = lintFixture();
   write(root, `${lib}/components/greeting/greeting.component.html`, `<ng-container *transloco="let t"><h2>{{ t('WelcomeBack') }}</h2></ng-container>\n`);
+  stage(root, 'Angular');
+
+  const r = git(root, 'commit', '-m', 'unscoped key');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /greeting\.component\.html/);
+  assert.match(r.out, /t\('spiderly\.WelcomeBack'\)/);
+  assert.match(r.out, /i18n\/en\.json/);
+  assert.equal(commitCount(root), '1');
+});
+
+test('a staged translated template and a stylesheet within the rules pass', () => {
+  const root = lintFixture();
+  write(root, `${lib}/components/greeting/greeting.component.html`, `<ng-container *transloco="let t"><h2>{{ t('spiderly.Return') }}</h2></ng-container>\n`);
   write(root, `${lib}/components/greeting/greeting.component.scss`, '.greeting {\n  top: var(--spiderly-viewport-top-inset, 0px);\n}\n');
   stage(root, 'Angular');
 
@@ -254,6 +272,21 @@ test('a staged lint rule change lints the whole library, down to a file it does 
   assert.notEqual(r.code, 0, r.out);
   assert.match(r.out, /deep\.component\.html/);
   assert.match(r.out, /deep\.component\.scss/);
+  assert.equal(commitCount(root), '1');
+});
+
+test('a staged en.json lints the whole library, down to a template that reads a key it dropped', () => {
+  const root = lintFixture();
+  const en = `${lib}/i18n/en.json`;
+  write(root, en, '{}\n');
+  stage(root, en);
+
+  const r = git(root, 'commit', '-m', 'drop a key');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.doesNotMatch(r.out, /a lint rule's own test failed/);
+  assert.match(r.out, /return-button\.component\.html/);
+  assert.match(r.out, /"spiderly\.Return" has no English/);
   assert.equal(commitCount(root), '1');
 });
 

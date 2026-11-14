@@ -15,7 +15,7 @@ export class SpiderlyMessageService {
 
   successMessage(
     detail: string,
-    title: string = this.translocoService.translate('SuccessfulAction'),
+    title: string = this.translocoService.translate('spiderly.SuccessfulAction'),
   ) {
     this.messageService.add({
       severity: 'success',
@@ -28,7 +28,7 @@ export class SpiderlyMessageService {
   warningMessage(detail: string, title?: string, sticky?: boolean) {
     this.messageService.add({
       severity: 'warn',
-      summary: title ?? this.translocoService.translate('Warning'),
+      summary: title ?? this.translocoService.translate('spiderly.Warning'),
       detail: detail,
       life: 10000,
       sticky: sticky,
@@ -37,7 +37,7 @@ export class SpiderlyMessageService {
 
   errorMessage(
     detail: string,
-    title: string = this.translocoService.translate('Error'),
+    title: string = this.translocoService.translate('spiderly.Error'),
   ) {
     this.messageService.add({
       severity: 'error',
@@ -50,7 +50,7 @@ export class SpiderlyMessageService {
   infoMessage(detail: string, title?: string, sticky?: boolean) {
     this.messageService.add({
       severity: 'info',
-      summary: title ?? this.translocoService.translate('Info'),
+      summary: title ?? this.translocoService.translate('spiderly.Info'),
       detail: detail,
       life: 10000,
       sticky: sticky,

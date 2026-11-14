@@ -52,7 +52,7 @@ The seam, its carriers and the rule for a new interactive cell: the doc comment 
 
 ## Operator labels are runtime translations
 
-The bar's operator picker and chip phrases are Transloco keys (`OPERATOR_WORDS`, `filters/filter-store.ts`), so the user-visible text is the **value** in `assets/i18n/<locale>.json`, not the key. Code matching an option (an e2e test, conditional logic) matches its rendered label; a key renamed without its en.json value (or the value without the key) silently breaks a consumer matching by label.
+The bar's operator picker and chip phrases are keys of the library's `spiderly` scope (`OPERATOR_WORDS`, `filters/filter-store.ts`), so the user-visible text is the **value**: in `i18n/en.json`, or in an app's `i18n/spiderly/<lang>.json`. Code matching an option (an e2e test, conditional logic) matches its rendered label; a key renamed without its value (or the value without the key) silently breaks a consumer matching by label.
 
 ## Column chooser — `Column.visible` / `Column.lockVisible`
 
@@ -78,7 +78,7 @@ Paging leaves the reader parked at the paginator with the new rows off-screen ab
 
 Why every refetch raises `loading` and leaves `items` alone: the comment opening `lazyLoad`. Before 2026-08-30 `lazyLoad` never raised the flag at all — only `reload()` did — so paging, sorting and filtering ran with no feedback whatsoever, which is invisible on a fast query and glaring on a slow one.
 
-- **`isPending`, the single predicate (its doc comment), is not a11y parity**: `aria-busy` defers announcements, it does not produce one, and a screen-reader user is still told nothing when a page flip starts or lands. There is no live region to announce into — zero `aria-live` in this library and none in PrimeNG 19.1.3's table or paginator (checked 2026-08-30). Adding one is a library-wide decision needing an `sr-only` utility and a seeded Transloco key, not a rider on this. There is deliberately no opt-out `@Input`.
+- **`isPending`, the single predicate (its doc comment), is not a11y parity**: `aria-busy` defers announcements, it does not produce one, and a screen-reader user is still told nothing when a page flip starts or lands. There is no live region to announce into — zero `aria-live` in this library and none in PrimeNG 19.1.3's table or paginator (checked 2026-08-30). Adding one is a library-wide decision needing an `sr-only` utility and a key in the library's `spiderly` scope, not a rider on this. There is deliberately no opt-out `@Input`.
 - **There is no `loadingbody` template, on purpose** (why PrimeNG's would wedge a row under the page: the spec's "exactly the data rows" assert). It was deleted rather than `*ngIf`-guarded — with the overlay up it added nothing, the data view never had one, and it carried an `[attr.colspan]` that had to track `visibleCols` plus the selection column forever.
 - **The overlay's styling is the `table-pending-veil` mixin** (`styles/layout/_mixins.scss`), shared with `spiderly-data-view` and pinned once by `expectPendingVeil` in `testing/spec-support.spec.ts`. Why PrimeNG's own scrim had to go, why `color` is set alongside the background, and why the spinner is top-anchored: the mixin's doc comment, which is the single telling.
 - **`loading = false` stays after the selection await, deliberately** (the eager selected-ids request and the `try/finally` around that await: the comments in `lazyLoad`): lowering it earlier paints page 2's row 5 as checked because page 1's row 5 was, since `fakeSelectedItems` still holds the previous page's ids.

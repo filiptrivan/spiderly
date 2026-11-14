@@ -18,8 +18,8 @@
           <div class="text-center">
             <img
               [src]="logoPath"
-              [alt]="t('CompanyLogo', { companyName: companyName })"
-              [title]="t('CompanyLogo', { companyName: companyName })"
+              [alt]="t('spiderly.CompanyLogo', { companyName: companyName })"
+              [title]="t('spiderly.CompanyLogo', { companyName: companyName })"
               height="60"
               class="mb-6"
             />
@@ -28,13 +28,13 @@
             <div class="font-bold text-5xl lg:text-6xl spiderly-gradient-title">
               404
             </div>
-            <div class="font-bold text-5xl lg:text-6xl">{{ t('PageNotFoundTitle') }}</div>
+            <div class="font-bold text-5xl lg:text-6xl">{{ t('spiderly.PageNotFoundTitle') }}</div>
           </h1>
           <div class="text-gray-600 text-lg mb-8">
-            {{ t('PageNotFoundDetails') }}
+            {{ t('spiderly.PageNotFoundDetails') }}
           </div>
           <div>
-            <p-button [routerLink]="['/']" [label]="t('GoToHomepage')"></p-button>
+            <p-button [routerLink]="['/']" [label]="t('spiderly.GoToHomepage')"></p-button>
           </div>
         </div>
       </div>

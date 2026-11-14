@@ -15,7 +15,7 @@ const ruleTester = new RuleTester({ languageOptions: { parser: angular.templateP
 // The refusal names the text and the fix.
 const refused = (text) => ({
   message: new RegExp(
-    `^Static text "${text}" in a library template\\. Translate it with Transloco: .*TranslocoDirective.*\\*transloco="let t".*\\{\\{ t\\('Key'\\) \\}\\}`,
+    `^Static text "${text}" in a library template\\. Translate it with Transloco: .*TranslocoDirective.*provideSpiderlyScope\\(\\).*\\*transloco="let t".*\\{\\{ t\\('spiderly\\.Key'\\) \\}\\}.*i18n/en\\.json`,
   ),
 });
 

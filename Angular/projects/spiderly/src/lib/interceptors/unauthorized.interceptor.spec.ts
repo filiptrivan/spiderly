@@ -65,7 +65,7 @@ describe('unauthorizedInterceptor', () => {
     expect(err.status).toBe(400);
     expect(messageService.warningMessage).toHaveBeenCalledWith(
       'Sve izabrane pošiljke (40) već imaju zakazano preuzimanje.',
-      'Warning',
+      'spiderly.Warning',
     );
   });
 
@@ -77,7 +77,7 @@ describe('unauthorizedInterceptor', () => {
 
     await failed;
 
-    expect(messageService.warningMessage).toHaveBeenCalledWith('BadRequestDetails', 'Warning');
+    expect(messageService.warningMessage).toHaveBeenCalledWith('spiderly.BadRequestDetails', 'spiderly.Warning');
   });
 
   // The pre-existing behaviours the Blob branch must not disturb.
@@ -87,7 +87,7 @@ describe('unauthorizedInterceptor', () => {
 
     await failed;
 
-    expect(messageService.warningMessage).toHaveBeenCalledWith('Spelled out', 'Warning');
+    expect(messageService.warningMessage).toHaveBeenCalledWith('Spelled out', 'spiderly.Warning');
   });
 
   it('still toasts a JSON error body on a json request, and rethrows', async () => {
@@ -97,6 +97,6 @@ describe('unauthorizedInterceptor', () => {
     const err = await failed;
 
     expect(err).toBeInstanceOf(HttpErrorResponse);
-    expect(messageService.warningMessage).toHaveBeenCalledWith('Spelled out ErrorReference', 'Warning');
+    expect(messageService.warningMessage).toHaveBeenCalledWith('Spelled out spiderly.ErrorReference', 'spiderly.Warning');
   });
 });

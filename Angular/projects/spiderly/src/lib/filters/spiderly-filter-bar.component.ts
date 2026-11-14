@@ -32,6 +32,7 @@ import {
   SortKeyLabel,
   SortPickOption,
 } from './filter-store';
+import { provideSpiderlyScope } from '../i18n/spiderly-scope';
 
 /** One option's word for one value — the honest raw value when no option matches (failed lookup). */
 function spellOptionValue(
@@ -73,6 +74,7 @@ export function foldForSearch(value: string): string {
  */
 @Component({
   selector: 'spiderly-filter-bar',
+  providers: [provideSpiderlyScope()],
   imports: [
     CommonModule,
     FormsModule,
@@ -112,8 +114,8 @@ export function foldForSearch(value: string): string {
               <span class="filter-chip-value">{{
                 chip.kind === 'boolean'
                   ? chip.value
-                    ? t('Yes')
-                    : t('No')
+                    ? t('spiderly.Yes')
+                    : t('spiderly.No')
                   : chipValue(chip)
               }}</span>
             </button>
@@ -121,7 +123,7 @@ export function foldForSearch(value: string): string {
               type="button"
               class="filter-chip-remove"
               data-testid="filter-chip-remove"
-              [attr.aria-label]="t('RemoveFilter')"
+              [attr.aria-label]="t('spiderly.RemoveFilter')"
               (click)="filters().reset(chip.id)"
             >
               &times;
@@ -160,7 +162,7 @@ export function foldForSearch(value: string): string {
              branch never reaches the @else (it is gated on sort().length). -->
         <ng-template #sortChipBody>
           @if (sort().length) {
-            <span class="sort-chip-label">{{ t('SortedBy') }}</span>
+            <span class="sort-chip-label">{{ t('spiderly.SortedBy') }}</span>
             @for (key of sort(); track key.field; let last = $last) {
               <span class="sort-chip-key"
                 >{{ key.label }} {{ key.descending ? '↓' : '↑' }}{{
@@ -169,7 +171,7 @@ export function foldForSearch(value: string): string {
               >
             }
           } @else {
-            <span class="sort-chip-label">{{ t('Sort') }}</span>
+            <span class="sort-chip-label">{{ t('spiderly.Sort') }}</span>
           }
         </ng-template>
 
@@ -178,7 +180,7 @@ export function foldForSearch(value: string): string {
                filter is otherwise a mystery. The CURRENT query's count only: the unfiltered total
                would cost a second request the paginator does not offer. -->
           <span class="filter-bar-count" data-testid="filter-bar-count">{{
-            t('ResultCount', { count: totalRecords() })
+            t('spiderly.ResultCount', { count: totalRecords() })
           }}</span>
         }
 
@@ -193,7 +195,7 @@ export function foldForSearch(value: string): string {
             type="button"
             class="p-button-text p-button-sm filter-add"
             icon="pi pi-plus"
-            [label]="t('AddFilter')"
+            [label]="t('spiderly.AddFilter')"
             data-testid="add-filter"
             [attr.aria-expanded]="isAddOpen()"
             (click)="addMenu.toggle($event); isAddOpen.set(!isAddOpen())"
@@ -210,7 +212,7 @@ export function foldForSearch(value: string): string {
             type="button"
             class="p-button-text p-button-sm filter-bar-clear"
             icon="pi pi-filter-slash"
-            [label]="t('ClearFilters')"
+            [label]="t('spiderly.ClearFilters')"
             data-testid="filter-bar-clear"
             (click)="clearAll.emit()"
           ></button>
@@ -250,7 +252,7 @@ export function foldForSearch(value: string): string {
                 data-testid="sort-menu-reset"
                 (click)="sortReset.emit(); sortMenu.hide()"
               >
-                {{ t('ResetSort') }}
+                {{ t('spiderly.ResetSort') }}
               </button>
             }
           </div>
@@ -265,8 +267,8 @@ export function foldForSearch(value: string): string {
               class="filter-add-search"
               data-testid="add-filter-search"
               [value]="addSearch()"
-              [attr.aria-label]="t('AddFilter')"
-              [placeholder]="t('Search')"
+              [attr.aria-label]="t('spiderly.AddFilter')"
+              [placeholder]="t('spiderly.Search')"
               (input)="addSearch.set($any($event.target).value)"
             />
 
@@ -328,7 +330,7 @@ export function foldForSearch(value: string): string {
                 [options]="handle.options"
                 optionLabel="label"
                 optionValue="value"
-                [placeholder]="t('All')"
+                [placeholder]="t('spiderly.All')"
                 [ngModel]="handle.value()"
                 (onChange)="draftValue(handle, $event.value)"
               ></p-multiSelect>
@@ -367,7 +369,7 @@ export function foldForSearch(value: string): string {
                    the store, which nothing checks at runtime — the operator is checked, the value
                    is not. Visibly missing beats silently wrong. -->
               <span data-testid="filter-editor-unsupported">{{
-                t('FilterControlNotAvailable')
+                t('spiderly.FilterControlNotAvailable')
               }}</span>
             }
 
@@ -375,7 +377,7 @@ export function foldForSearch(value: string): string {
             pButton
             type="button"
             class="p-button-sm filter-editor-apply"
-            [label]="t('Apply')"
+            [label]="t('spiderly.Apply')"
             data-testid="filter-editor-apply"
             (click)="apply(handle)"
           ></button>

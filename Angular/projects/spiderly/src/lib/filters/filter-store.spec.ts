@@ -132,7 +132,7 @@ describe('createFilterStore — typed is not applied', () => {
         label: 'Firma',
         kind: 'text',
         operator: MatchModeCodes.Contains,
-        operatorPhraseKey: 'FilterChipContains',
+        operatorPhraseKey: 'spiderly.FilterChipContains',
         value: 'Elektromont',
       },
     ]);

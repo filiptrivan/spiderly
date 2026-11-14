@@ -45,7 +45,7 @@ export function provideSpiderlyTranslations(): EnvironmentProviders {
 
 /**
  * Makes a library component's `*transloco` wait for the library's strings before it renders, on the
- * first render and on each language switch. Every library component whose template or class reads a
+ * first render and on each language switch. Every library component whose template reads a
  * `spiderly.` key provides it.
  */
 export function provideSpiderlyScope(): Provider {

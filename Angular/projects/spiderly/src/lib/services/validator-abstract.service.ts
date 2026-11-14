@@ -41,7 +41,7 @@ export abstract class ValidatorAbstractService {
 
         if (imageWidth > 0 && width !== imageWidth) {
           errors.push(
-            this.translocoService.translate('ImageWidthMustBeExact', {
+            this.translocoService.translate('spiderly.ImageWidthMustBeExact', {
               0: imageWidth,
               1: width,
             }),
@@ -50,7 +50,7 @@ export abstract class ValidatorAbstractService {
 
         if (imageHeight > 0 && height !== imageHeight) {
           errors.push(
-            this.translocoService.translate('ImageHeightMustBeExact', {
+            this.translocoService.translate('spiderly.ImageHeightMustBeExact', {
               0: imageHeight,
               1: height,
             }),
@@ -80,7 +80,7 @@ export abstract class ValidatorAbstractService {
 
       return arrayValid
         ? null
-        : { _: this.translocoService.translate('NotEmpty') };
+        : { _: this.translocoService.translate('spiderly.NotEmpty') };
     };
     validator.hasNotEmptyRule = true;
     control.required = true;
@@ -101,7 +101,7 @@ export abstract class ValidatorAbstractService {
       return arrayValid
         ? null
         : {
-            _: this.translocoService.translate('ListCanNotBeEmpty', {
+            _: this.translocoService.translate('spiderly.ListCanNotBeEmpty', {
               value: control.labelForDisplay,
             }),
           };
@@ -124,7 +124,7 @@ export abstract class ValidatorAbstractService {
 
       return arrayValid
         ? null
-        : { _: this.translocoService.translate('NotEmpty') };
+        : { _: this.translocoService.translate('spiderly.NotEmpty') };
     };
     validator.hasNotEmptyRule = true;
     control.required = true;

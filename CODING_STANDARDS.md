@@ -161,14 +161,14 @@ bumps all packages together at publish time, and the maintainer owns the release
 
 ## Angular library
 
-The published `spiderly` package, `Angular/projects/spiderly`. Its rules are path-scoped, each
-loaded with the files it governs:
+The published `spiderly` package, `Angular/projects/spiderly`. Its one path-scoped rule file loads
+with the files it governs:
 
 - Library SCSS (content PrimeNG teleports to `document.body`): `.claude/rules/library-scss.md`.
-- Seeding the Transloco key of a library template's text: `.claude/rules/library-template-text.md`.
 
 Checks hold the runtime `@angular/*` pins (`AngularPinTests`) and the lockfile (the pre-commit's dry
 run under the npm `packageManager` pins, `.githooks/pre-commit`). Stylelint refuses the viewport inset
 without its `0px` fallback, and any `scroll-behavior` (`Angular/projects/spiderly/stylelint.config.mjs`).
-An angular-eslint template rule refuses static text in a library template
+An angular-eslint template rule refuses static text in a library template, and another refuses a key
+outside the library's own `spiderly` scope or missing from its `i18n/en.json`
 (`Angular/projects/spiderly/eslint.config.js`). The pre-commit and CI run both.

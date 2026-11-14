@@ -72,6 +72,7 @@ import {
   SpiderlyDeleteConfirmationComponent,
 } from '../spiderly-delete-dialog/spiderly-delete-confirmation.component';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 /**
  * Default column width per value type, in rem — generous on purpose (these numbers date from when
@@ -110,6 +111,7 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
 @Component({
   selector: 'spiderly-data-table',
   templateUrl: './spiderly-data-table.component.html',
+  providers: [provideSpiderlyScope()],
   styleUrl: 'spiderly-data-table.component.scss',
   imports: [
     FormsModule,
@@ -2000,9 +2002,9 @@ export class SpiderlyDataTableComponent
         deleteItemFromTableObservableMethod:
           this.deleteItemFromTableObservableMethod,
         id: rowId,
-        message: this.translocoService.translate('PleaseConfirmToProceed'),
+        message: this.translocoService.translate('spiderly.PleaseConfirmToProceed'),
       },
-      'SuccessfullyDeletedMessage',
+      'spiderly.SuccessfullyDeletedMessage',
     );
   }
 
@@ -2016,11 +2018,11 @@ export class SpiderlyDataTableComponent
         deleteListFromTableObservableMethod:
           this.deleteListFromTableObservableMethod,
         ids: selectedIds,
-        message: this.translocoService.translate('DeleteBulkConfirmation', {
+        message: this.translocoService.translate('spiderly.DeleteBulkConfirmation', {
           count: selectedIds.length,
         }),
       },
-      'SuccessfullyDeletedListMessage',
+      'spiderly.SuccessfullyDeletedListMessage',
       () => this.resetSelection(),
     );
   }
@@ -2033,7 +2035,7 @@ export class SpiderlyDataTableComponent
     this.deleteRef = this.dialogService.open(
       SpiderlyDeleteConfirmationComponent,
       {
-        header: this.translocoService.translate('AreYouSure'),
+        header: this.translocoService.translate('spiderly.AreYouSure'),
         width: '400px',
         data,
       },
@@ -2205,8 +2207,8 @@ export class SpiderlyDataTableComponent
       case 'boolean':
         if (col.triState && rowData[col.field] == null) return null;
         return rowData[col.field] == true
-          ? this.translocoService.translate('Yes')
-          : this.translocoService.translate('No');
+          ? this.translocoService.translate('spiderly.Yes')
+          : this.translocoService.translate('spiderly.No');
       case 'numeric':
         if (rowData[col.field] == null) return null;
         return formatNumber(

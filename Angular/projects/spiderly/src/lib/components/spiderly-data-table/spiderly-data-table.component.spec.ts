@@ -74,7 +74,7 @@ function createFixture<T>(host: new () => T): ComponentFixture<T> {
     imports: [
       host,
       TranslocoTestingModule.forRoot(
-        translocoTesting({ ResultCount: '{{count}} results' }),
+        translocoTesting({ ResultCount: '{{count}} results', Yes: 'Yes', No: 'No' }),
       ),
     ],
     providers: [

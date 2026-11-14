@@ -41,10 +41,12 @@ import { SelectModule } from 'primeng/select';
 import { BaseEntity } from '../../entities/base-entity';
 import { PrimengOption } from '../../entities/primeng-option';
 import { scrollElementIntoViewIfAboveViewport } from '../../services/helper-functions';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-data-view',
   templateUrl: './spiderly-data-view.component.html',
+  providers: [provideSpiderlyScope()],
   styleUrl: 'spiderly-data-view.component.scss',
   imports: [
     FormsModule,
