@@ -113,9 +113,8 @@ public class GeneratedCodeCompilationTests
     }
 
     /// <summary>
-    /// A <c>[SpiderlyService]</c> class can sit in any namespace, here a folder below <c>Services</c>. The
-    /// generated registration lives in <c>{App}.Business.Services</c>, so it names each such class in full.
-    /// A short name finds no class there (CS0246).
+    /// A <c>[SpiderlyService]</c> class in the namespace of a folder below <c>Services</c>. Why the
+    /// registration names it in full: <c>ServicesGenerator.AppendServiceRegistration</c>.
     /// </summary>
     [Fact]
     public void EveryDotNetGenerator_RegistersAServiceOutsideTheServicesNamespace()

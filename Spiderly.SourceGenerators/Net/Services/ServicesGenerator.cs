@@ -250,12 +250,16 @@ namespace {{basePartOfNamespace}}.Services
         #region DI Registration
 
         /// <summary>
-        /// Registers a generated base service. When the user wrote a <c>[SpiderlyService]</c> subclass of it, DI
-        /// hands out the subclass for the base, so the subclass's overrides run. The registration lives in
-        /// <c>{base}.Services</c> and the subclass can sit in any namespace, so the subclass is named in full.
+        /// Registers the generated <c>{name}ServiceGenerated</c>. When the user wrote a <c>[SpiderlyService]</c>
+        /// <c>{name}Service</c>, DI hands out that subclass for the base. Then the subclass's overrides run. The
+        /// registration lives in <c>{base}.Services</c> and the subclass can sit in any namespace, so it names the
+        /// subclass in full.
         /// </summary>
-        private static void AppendServiceRegistration(StringBuilder registrations, string generatedTypeName, SpiderlyClass? userService)
+        private static void AppendServiceRegistration(StringBuilder registrations, string name, List<SpiderlyClass> userServices)
         {
+            string generatedTypeName = $"{name}ServiceGenerated";
+            SpiderlyClass? userService = userServices.FirstOrDefault(x => x.Name == $"{name}Service");
+
             if (userService == null)
             {
                 registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>();");
@@ -277,14 +281,12 @@ namespace {{basePartOfNamespace}}.Services
             // EntityServiceDependencies injects AuthorizationServiceGenerated directly, so it must be registered. This
             // is wired here — rather than left to the consumer's startup — so a forgotten registration can't 403
             // every permission-gated endpoint or fail DI validation at boot.
-            AppendServiceRegistration(registrations, "AuthorizationServiceGenerated",
-                userEntityServices.FirstOrDefault(x => x.Name == "AuthorizationService"));
+            AppendServiceRegistration(registrations, "Authorization", userEntityServices);
             registrations.AppendLine();
 
             foreach (SpiderlyClass entity in entities)
             {
-                AppendServiceRegistration(registrations, $"{entity.Name}ServiceGenerated",
-                    userEntityServices.FirstOrDefault(x => x.Name == $"{entity.Name}Service"));
+                AppendServiceRegistration(registrations, entity.Name, userEntityServices);
             }
 
             return $$"""
