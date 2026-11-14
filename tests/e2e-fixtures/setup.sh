@@ -7,9 +7,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ENTITIES_DIR="$APP_FOLDER/Backend/$APP_NAME.Business/Entities"
 INFRA_DIR="$APP_FOLDER/Backend/$APP_NAME.Infrastructure"
+CONTROLLERS_DIR="$APP_FOLDER/Backend/$APP_NAME.WebAPI/Controllers"
 LOCAL_SETTINGS="$APP_FOLDER/Backend/$APP_NAME.WebAPI/appsettings.Development.local.json"
 E2E_DIR="$APP_FOLDER/Frontend/e2e"
 APP_PAGES_DIR="$APP_FOLDER/Frontend/src/app/pages"
+APP_ROUTES="$APP_FOLDER/Frontend/src/app/app.routes.ts"
 
 echo "=== Spiderly E2E Fixtures Setup ==="
 echo "App name: $APP_NAME"
@@ -28,9 +30,13 @@ cp "$SCRIPT_DIR/backend/entities/"*.cs "$ENTITIES_DIR/"
 echo "Copying ApplicationDbContext seed overlay..."
 cp "$SCRIPT_DIR/backend/infrastructure/ApplicationDbContext.SeedData.cs" "$INFRA_DIR/${APP_NAME}ApplicationDbContext.SeedData.cs"
 
+# --- Copy controller files ---
+echo "Copying controller files..."
+cp "$SCRIPT_DIR/backend/controllers/"*.cs "$CONTROLLERS_DIR/"
+
 # --- Replace __APP_NAME__ placeholder in copied .cs files ---
 echo "Replacing __APP_NAME__ with $APP_NAME in copied files..."
-find "$ENTITIES_DIR" "$INFRA_DIR" -name "*.cs" -exec sed -i "s/__APP_NAME__/$APP_NAME/g" {} +
+find "$ENTITIES_DIR" "$INFRA_DIR" "$CONTROLLERS_DIR" -name "*.cs" -exec sed -i "s/__APP_NAME__/$APP_NAME/g" {} +
 
 # --- Copy E2E test helpers ---
 echo "Copying E2E test helpers..."
@@ -57,6 +63,15 @@ cp -r "$SCRIPT_DIR/frontend/tests/e2e/fixtures/." "$E2E_DIR/fixtures/"
 # varied filter types replace the generated file with a richer version.
 echo "Copying Angular list component overrides..."
 cp "$SCRIPT_DIR/frontend/app/product/product-list.component.ts" "$APP_PAGES_DIR/product/product-list.component.ts"
+
+# --- Add the query-param echo page and its route ---
+# The page calls a generated API-service method, so a spec can read what the generated client sends.
+# grep fails the setup (set -e) when the generated routes file no longer opens its layout routes so.
+echo "Adding the query-param echo page..."
+mkdir -p "$APP_PAGES_DIR/query-param-echo"
+cp "$SCRIPT_DIR/frontend/app/query-param-echo/query-param-echo.component.ts" "$APP_PAGES_DIR/query-param-echo/"
+grep -q '^const layoutRoutes: Routes = \[[[:space:]]*$' "$APP_ROUTES"
+sed -i "/^const layoutRoutes: Routes = \[[[:space:]]*$/a\\    { path: 'query-param-echo', loadComponent: () => import('./pages/query-param-echo/query-param-echo.component').then(c => c.QueryParamEchoComponent), canActivate: [AuthGuard] }," "$APP_ROUTES"
 
 # --- Raise the global rate limit for the whole E2E run ---
 # The suite hits the backend from ONE IP and a green run already sits at ~235 of the default
