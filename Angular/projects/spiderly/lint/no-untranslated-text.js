@@ -19,6 +19,9 @@ const READ_ATTRIBUTES = new Set([
   'aria-label',
   'ariaLabel',
   'emptyMessage',
+  'emptyFilterMessage',
+  'acceptLabel',
+  'rejectLabel',
   'pTooltip',
 ]);
 
@@ -31,8 +34,8 @@ const BINDING = "{{ t('Key') }}";
 // literal the expression evaluates to (`'Save'`, a conditional's branch, an operand of `+` or `??`). A
 // literal it only passes on (`t('Key')`, `'Key' | transloco`) or compares (`status === 'active'`) is not shown.
 function shownText(ast) {
-  switch (ast.constructor.name.replace(/\$\d+$/, '')) {
-    case 'Interpolation':
+  switch (ast.constructor.name) {
+    case 'Interpolation$1':
       return [...ast.strings, ...ast.expressions.flatMap(shownText)];
     case 'LiteralPrimitive':
       return typeof ast.value === 'string' ? [ast.value] : [];

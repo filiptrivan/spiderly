@@ -173,9 +173,9 @@ test("a staged Angular lock in sync with its package.json passes, as this repo's
 // The library's lint configs and rules, with this repo's installed Angular packages linked in.
 const lib = 'Angular/projects/spiderly/src/lib';
 const angularPackages = join(repoRoot, 'Angular/node_modules');
-const needsPackages = { skip: !existsSync(angularPackages) && 'needs Angular/node_modules: cd Angular && npm ci' };
 
 function lintFixture({ packages = true, files = {} } = {}) {
+  if (packages) assert.ok(existsSync(angularPackages), "these tests link this repo's Angular packages: cd Angular && npm ci");
   const root = fixture(
     [
       'Angular/.gitignore',
@@ -196,7 +196,7 @@ function lintFixture({ packages = true, files = {} } = {}) {
   return root;
 }
 
-test('a staged library template with static English is refused, naming the text and the fix', needsPackages, () => {
+test('a staged library template with static English is refused, naming the text and the fix', () => {
   const root = lintFixture();
   write(root, `${lib}/components/greeting/greeting.component.html`, '<h2>Welcome back</h2>\n');
   stage(root, 'Angular');
@@ -210,7 +210,7 @@ test('a staged library template with static English is refused, naming the text 
   assert.equal(commitCount(root), '1');
 });
 
-test('a staged library stylesheet setting scroll-behavior is refused, naming the fix', needsPackages, () => {
+test('a staged library stylesheet setting scroll-behavior is refused, naming the fix', () => {
   const root = lintFixture();
   write(root, `${lib}/styles/layout/_main.scss`, 'html {\n  scroll-behavior: smooth;\n}\n');
   stage(root, 'Angular');
@@ -223,7 +223,7 @@ test('a staged library stylesheet setting scroll-behavior is refused, naming the
   assert.equal(commitCount(root), '1');
 });
 
-test('a staged translated template and a stylesheet within the rules pass', needsPackages, () => {
+test('a staged translated template and a stylesheet within the rules pass', () => {
   const root = lintFixture();
   write(root, `${lib}/components/greeting/greeting.component.html`, `<ng-container *transloco="let t"><h2>{{ t('WelcomeBack') }}</h2></ng-container>\n`);
   write(root, `${lib}/components/greeting/greeting.component.scss`, '.greeting {\n  top: var(--spiderly-viewport-top-inset, 0px);\n}\n');
@@ -232,11 +232,12 @@ test('a staged translated template and a stylesheet within the rules pass', need
   const r = git(root, 'commit', '-m', 'translated');
 
   assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /the library's lint passes/);
   assert.equal(commitCount(root), '2');
 });
 
 // The shallow stylesheet is what a shell's own `**/*.scss` would stop at: sh's `**` is one directory.
-test('a staged lint rule change lints the whole library, down to a file it does not stage', needsPackages, () => {
+test('a staged lint rule change lints the whole library, down to a file it does not stage', () => {
   const root = lintFixture({
     files: {
       [`${lib}/styles/shared.scss`]: '.shared {\n  margin: 0;\n}\n',

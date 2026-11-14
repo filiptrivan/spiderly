@@ -4,7 +4,7 @@ paths:
   - "Angular/projects/spiderly/src/lib/**/*.component.ts"
 ---
 
-# Static text in a library template
+# Seeding a library template's Transloco key
 
 - **Each new Transloco key is seeded** in the init template's base translation file, the `en` i18n JSON
   block in `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` (search for `"Save": "Save"`).

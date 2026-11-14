@@ -1678,8 +1678,8 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
     expect(scrolled).toHaveBeenCalled();
   });
 
-  // Pins the seam described in Angular/CLAUDE.md → fixed-chrome offset: the component reads
-  // the inset from a var it does not own, and still works when no shell declares one.
+  // Pins the seam described on the scroll-target-below-top-chrome mixin (styles/layout/_mixins.scss):
+  // the component reads the inset from a var it does not own, and still works when no shell declares one.
   it('offsets the scroll target by the shell viewport-top inset', () => {
     const { fixture } = createWithDataTable(HostWithoutActionsComponent);
     const container = (

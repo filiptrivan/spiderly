@@ -17,7 +17,8 @@ export default {
   },
   overrides: [
     {
-      // The layout's own files: layout.scss declares the inset beside them, so it is never missing there.
+      // The layout's own files: layout.scss loads them beside _main.scss, which declares the inset, so it
+      // is never missing there.
       files: ['src/lib/styles/layout/_topbar.scss', 'src/lib/styles/layout/_content.scss', 'src/lib/styles/layout/_menu.scss'],
       rules: { 'spiderly/viewport-inset-fallback': null },
     },

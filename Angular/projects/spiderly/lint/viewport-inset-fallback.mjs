@@ -18,7 +18,6 @@ const messages = ruleMessages(ruleName, {
     `${read} has no 0px fallback. Write var(${INSET}, 0px): a library component works without Spiderly's layout, and without the fallback a consumer with its own shell gets a phantom gap.`,
 });
 
-// `var(--spiderly-viewport-top-inset, 0px)`: the name, a comma, and `0px` alone.
 function hasZeroFallback(varNode) {
   const [, comma, ...fallback] = varNode.nodes.filter((n) => n.type !== 'space' && n.type !== 'comment');
   return comma?.type === 'div' && comma.value === ',' && fallback.length === 1 && fallback[0].value === '0px';

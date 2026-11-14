@@ -17,7 +17,7 @@ ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enum
 bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
 angular_lock='^Angular/package(-lock)?\.json$'
-lint_src='^Angular/projects/spiderly/src/lib/.+\.(html|ts|scss)$'
+lint_src='^Angular/projects/spiderly/src/.+\.(html|ts|scss)$'
 lint_rules='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+))$'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
