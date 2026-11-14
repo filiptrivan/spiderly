@@ -13,9 +13,9 @@ namespace Spiderly.SourceGenerators.Tests.Generators;
 public sealed class GeneratedTypeScriptFileTests : IDisposable
 {
     // One app shape that makes every Angular generator write its file: an entity and an enum for the
-    // Business-side generators, and a controller for the API service. The calling project is a WebAPI
-    // project, as NgControllersGenerator and NgValidatorsGenerator require; NgValidatorsGenerator reads
-    // the referenced Spiderly.Security DTOs.
+    // Business-side generators, and a controller with DateTime query params for the API service. The
+    // calling project is a WebAPI project, as NgControllersGenerator and NgValidatorsGenerator require;
+    // NgValidatorsGenerator reads the referenced Spiderly.Security DTOs.
     private const string AppSource = """
         using System;
 
@@ -45,7 +45,7 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
             public class ReportController
             {
                 [HttpGet]
-                public int GetOrderCount(long brandId) => 0;
+                public int GetOrderCount(long brandId, DateTime from, DateTime to) => 0;
             }
         }
         """;
@@ -79,6 +79,21 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
             $"// Spiderly's {generatorType.Name} writes this file. Do not edit it, because the next backend build overwrites a hand edit.\n" +
             $"// To change this file, change its backend source: {backendSource}.\n",
             text);
+    }
+
+    /// <summary>
+    /// A <c>Date</c> interpolated into the query goes on the wire as its <c>toString()</c> form
+    /// ("Mon Aug 17 2026 00:00:00 GMT+0200 (Central European Summer Time)"), which ASP.NET's model binder
+    /// cannot read, so a non-nullable <c>DateTime</c> param answers 400 (spiderly#395). The caller still
+    /// passes a plain <c>Date</c>.
+    /// </summary>
+    [Fact]
+    public void ApiService_DateTimeQueryParam_IsSentAsAnIsoString()
+    {
+        string text = Generate(typeof(NgControllersGenerator), "services/api/api.service.generated.ts");
+
+        Assert.Contains("getOrderCount = (brandId: number, from: Date, to: Date): Observable<number>", text);
+        Assert.Contains("let params = `?brandId=${brandId}&from=${from.toISOString()}&to=${to.toISOString()}`;", text);
     }
 
     private string Generate(Type generatorType, string file)
