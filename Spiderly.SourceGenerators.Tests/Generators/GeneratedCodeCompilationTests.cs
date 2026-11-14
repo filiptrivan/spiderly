@@ -112,6 +112,33 @@ public class GeneratedCodeCompilationTests
         AssertCompilesClean(withGenerated, generatorDiagnostics);
     }
 
+    /// <summary>
+    /// A <c>[SpiderlyService]</c> class can sit in any namespace, here a folder below <c>Services</c>. The
+    /// generated registration lives in <c>{App}.Business.Services</c>, so it names each such class in full.
+    /// A short name finds no class there (CS0246).
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_RegistersAServiceOutsideTheServicesNamespace()
+    {
+        const string ServiceInAFolder = $$"""
+            using Spiderly.Shared.Attributes;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Services.EntityServices
+            {
+                [SpiderlyService]
+                public class TaskCommentService : TaskCommentServiceGenerated
+                {
+                    public TaskCommentService(EntityServiceDependencies deps) : base(deps) { }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [ServiceInAFolder]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
     [Fact]
     public void NegativeControl_ABrokenEntityIsReported()
     {
