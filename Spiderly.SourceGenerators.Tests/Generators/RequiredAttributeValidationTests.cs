@@ -10,11 +10,8 @@ using Spiderly.SourceGenerators.Tests.Infrastructure;
 namespace Spiderly.SourceGenerators.Tests.Generators;
 
 /// <summary>
-/// <c>[Required]</c> means what ASP.NET Core's <c>RequiredAttribute</c> means: it refuses null, and on a
-/// string also an empty or whitespace string. It never refuses <c>false</c>, <c>0</c>, a date or
-/// <c>[]</c>, which are legal answers. A many-to-one relation's id also refuses <c>0</c>, because no row
-/// has that id. Each shape is pinned on the server rule (<see cref="FluentValidationGenerator"/>) and the
-/// client rule (<see cref="NgValidatorsGenerator"/>).
+/// Pins what <c>[Required]</c> means (<see cref="ValidationRuleBuilder"/>) for each shape, on the server
+/// rule (<see cref="FluentValidationGenerator"/>) and the client rule (<see cref="NgValidatorsGenerator"/>).
 /// </summary>
 public class RequiredAttributeValidationTests
 {

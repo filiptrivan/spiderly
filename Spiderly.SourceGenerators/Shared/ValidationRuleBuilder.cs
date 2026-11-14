@@ -92,7 +92,7 @@ namespace Spiderly.SourceGenerators.Shared
         /// <c>[Required]</c> means what ASP.NET Core's <c>RequiredAttribute</c> means: it refuses null, and
         /// on a string an empty or whitespace string. <c>NotEmpty()</c> on any other type also refuses
         /// <c>false</c>, <c>0</c>, a default date and <c>[]</c>, which are legal answers, so those get
-        /// <c>NotNull()</c>. A relation's id keeps <c>NotEmpty()</c>: no row has the id 0.
+        /// <c>NotNull()</c>. A navigation's {Nav}Id keeps <c>NotEmpty()</c>: no row has the id 0.
         /// <c>AllowEmptyStrings</c> is not read, so a <c>[Required]</c> string always refuses "".
         /// </summary>
         private static SpiderValidationRulePart GetRequiredRulePart(SpiderlyProperty property)

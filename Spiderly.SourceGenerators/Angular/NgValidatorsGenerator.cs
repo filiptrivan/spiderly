@@ -195,11 +195,9 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             {
                 switch (rulePart)
                 {
-                    // One check for both: a form control holds null, '' or a value, and '' is no legal
-                    // answer for a non-string either. false, 0 and a date pass it.
                     case NotEmptyRulePart:
                     case NotNullRulePart:
-                        AddNotEmptyRule(rule.Property, parts);
+                        AddRequiredRule(rule.Property, parts);
                         break;
                     case LengthRangePart p:
                         AddLengthRangeRule(p, parts);
@@ -233,7 +231,11 @@ export class ValidatorServiceGenerated extends ValidatorAbstractService {
             }
         }
 
-        private static void AddNotEmptyRule(SpiderlyProperty property, ValidationMethodParts parts)
+        /// <summary>
+        /// Serves a <see cref="NotEmptyRulePart"/> and a <see cref="NotNullRulePart"/> alike: a form control
+        /// holds null, '' or a value, and '' is no legal answer for a non-string either.
+        /// </summary>
+        private static void AddRequiredRule(SpiderlyProperty property, ValidationMethodParts parts)
         {
             string ruleName = "notEmptyRule";
 
