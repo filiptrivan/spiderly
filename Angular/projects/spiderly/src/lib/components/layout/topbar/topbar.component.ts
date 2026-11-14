@@ -8,6 +8,7 @@ import { MenubarModule } from 'primeng/menubar';
 import { SpiderlyMenuItem } from '../sidebar/sidebar-menu.component';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 import { Subscription } from 'rxjs';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 @Component({
   selector: 'spiderly-topbar',
@@ -19,6 +20,7 @@ import { Subscription } from 'rxjs';
     MenubarModule,
     AvatarModule,
     ProfileAvatarComponent,
+    TranslocoDirective,
   ],
 })
 export class TopBarComponent {

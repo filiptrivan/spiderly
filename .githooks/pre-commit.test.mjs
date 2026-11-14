@@ -1,13 +1,13 @@
 // Runs .githooks/pre-commit through a real `git commit` in a throwaway repo per test, holding only the
-// files the block under test reads: the agent bundle's builder and two authoring trees, or the Angular
-// manifest and lock.
+// files the block under test reads: the agent bundle's builder and two authoring trees, the Angular
+// manifest and lock, or the library's lint configs and rules with this repo's Angular packages linked in.
 //
 //   node --test .githooks/pre-commit.test.mjs
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -168,4 +168,102 @@ test("a staged Angular lock in sync with its package.json passes, as this repo's
   assert.equal(r.code, 0, r.out);
   assert.ok(r.out.includes(`the Angular lock is in sync under ${pinnedNpm}`), r.out);
   assert.equal(commitCount(root), '2');
+});
+
+// The library's lint configs and rules, with this repo's installed Angular packages linked in.
+const lib = 'Angular/projects/spiderly/src/lib';
+const angularPackages = join(repoRoot, 'Angular/node_modules');
+const needsPackages = { skip: !existsSync(angularPackages) && 'needs Angular/node_modules: cd Angular && npm ci' };
+
+function lintFixture({ packages = true, files = {} } = {}) {
+  const root = fixture(
+    [
+      'Angular/.gitignore',
+      'Angular/angular.json',
+      'Angular/package.json',
+      'Angular/eslint.config.js',
+      'Angular/projects/spiderly/eslint.config.js',
+      'Angular/projects/spiderly/stylelint.config.mjs',
+      'Angular/projects/spiderly/lint/no-untranslated-text.js',
+      'Angular/projects/spiderly/lint/no-untranslated-text.test.mjs',
+      'Angular/projects/spiderly/lint/viewport-inset-fallback.mjs',
+      'Angular/projects/spiderly/lint/stylelint.test.mjs',
+    ],
+    files,
+  );
+  if (packages) symlinkSync(angularPackages, join(root, 'Angular/node_modules'), 'dir');
+  commitAll(root);
+  return root;
+}
+
+test('a staged library template with static English is refused, naming the text and the fix', needsPackages, () => {
+  const root = lintFixture();
+  write(root, `${lib}/components/greeting/greeting.component.html`, '<h2>Welcome back</h2>\n');
+  stage(root, 'Angular');
+
+  const r = git(root, 'commit', '-m', 'static text');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /greeting\.component\.html/);
+  assert.match(r.out, /Static text "Welcome back"/);
+  assert.match(r.out, /\*transloco="let t"/);
+  assert.equal(commitCount(root), '1');
+});
+
+test('a staged library stylesheet setting scroll-behavior is refused, naming the fix', needsPackages, () => {
+  const root = lintFixture();
+  write(root, `${lib}/styles/layout/_main.scss`, 'html {\n  scroll-behavior: smooth;\n}\n');
+  stage(root, 'Angular');
+
+  const r = git(root, 'commit', '-m', 'scroll-behavior');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /_main\.scss/);
+  assert.match(r.out, /behavior: 'smooth'/);
+  assert.equal(commitCount(root), '1');
+});
+
+test('a staged translated template and a stylesheet within the rules pass', needsPackages, () => {
+  const root = lintFixture();
+  write(root, `${lib}/components/greeting/greeting.component.html`, `<ng-container *transloco="let t"><h2>{{ t('WelcomeBack') }}</h2></ng-container>\n`);
+  write(root, `${lib}/components/greeting/greeting.component.scss`, '.greeting {\n  top: var(--spiderly-viewport-top-inset, 0px);\n}\n');
+  stage(root, 'Angular');
+
+  const r = git(root, 'commit', '-m', 'translated');
+
+  assert.equal(r.code, 0, r.out);
+  assert.equal(commitCount(root), '2');
+});
+
+// The shallow stylesheet is what a shell's own `**/*.scss` would stop at: sh's `**` is one directory.
+test('a staged lint rule change lints the whole library, down to a file it does not stage', needsPackages, () => {
+  const root = lintFixture({
+    files: {
+      [`${lib}/styles/shared.scss`]: '.shared {\n  margin: 0;\n}\n',
+      [`${lib}/components/a/b/deep.component.html`]: '<h2>Welcome back</h2>\n',
+      [`${lib}/components/a/b/deep.component.scss`]: 'html {\n  scroll-behavior: smooth;\n}\n',
+    },
+  });
+  const rule = 'Angular/projects/spiderly/lint/no-untranslated-text.js';
+  write(root, rule, `${readFileSync(join(root, rule), 'utf8')}// Touched.\n`);
+  stage(root, rule);
+
+  const r = git(root, 'commit', '-m', 'rule change');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /deep\.component\.html/);
+  assert.match(r.out, /deep\.component\.scss/);
+  assert.equal(commitCount(root), '1');
+});
+
+test('a staged library file with no Angular packages installed is refused, naming the install', () => {
+  const root = lintFixture({ packages: false });
+  write(root, `${lib}/components/greeting/greeting.component.html`, '<h2>Welcome back</h2>\n');
+  stage(root, 'Angular');
+
+  const r = git(root, 'commit', '-m', 'no packages');
+
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /cd Angular && npm ci/);
+  assert.equal(commitCount(root), '1');
 });

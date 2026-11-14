@@ -30,7 +30,6 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { Namebook } from '../../../entities/namebook';
 
 @Component({
-  // eslint-disable-next-line @angular-eslint/component-selector
   selector: '[menuitem]',
   templateUrl: './menuitem.component.html',
   animations: [

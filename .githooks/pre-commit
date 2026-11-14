@@ -17,6 +17,8 @@ ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enum
 bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
 angular_lock='^Angular/package(-lock)?\.json$'
+lint_src='^Angular/projects/spiderly/src/lib/.+\.(html|ts|scss)$'
+lint_rules='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+))$'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
@@ -137,6 +139,41 @@ if echo "$staged" | grep -qE "$angular_lock"; then
     exit 1
   fi
   echo "pre-commit: the Angular lock is in sync under $npm_pin."
+fi
+
+# --- Library lint: the template rule (ng lint's config) and Stylelint ------------------------------
+# Lints the staged library files as they stand in the working tree, so a partly staged file is judged
+# whole, and CI lints the committed tree. A change to a rule or a lint config runs the rules' own tests
+# and lints the whole library.
+if echo "$staged" | grep -qE "$lint_src|$lint_rules"; then
+  if [ ! -d Angular/node_modules ]; then
+    echo "pre-commit: the library's lint needs the Angular packages. Install them, then retry the commit: cd Angular && npm ci"
+    exit 1
+  fi
+  lint_failed=
+  if echo "$staged" | grep -qE "$lint_rules"; then
+    echo "pre-commit: staged changes touch the library's lint rules — testing them and linting the whole library..."
+    if ! out=$(cd Angular && npm run --silent test:lint-rules 2>&1); then
+      printf '%s\n' "$out"
+      echo "pre-commit: a lint rule's own test failed (its output is above): cd Angular && npm run test:lint-rules"
+      exit 1
+    fi
+    # CI's commands: ng lint, and Stylelint on the glob the script quotes.
+    (cd Angular && npm run --silent lint) || lint_failed=1
+    (cd Angular && npm run --silent lint:scss) || lint_failed=1
+  else
+    targets=$(git diff --cached --name-only --no-renames --diff-filter=d | grep -E "$lint_src" | sed 's#^Angular/##' || true)
+    eslint_targets=$(echo "$targets" | grep -E '\.(html|ts)$' || true)
+    scss_targets=$(echo "$targets" | grep -E '\.scss$' || true)
+    # Unquoted: one argument per path; the library's paths hold no space.
+    [ -z "$eslint_targets" ] || (cd Angular && ./node_modules/.bin/eslint --no-warn-ignored $eslint_targets) || lint_failed=1
+    [ -z "$scss_targets" ] || (cd Angular && ./node_modules/.bin/stylelint $scss_targets) || lint_failed=1
+  fi
+  if [ -n "$lint_failed" ]; then
+    echo "pre-commit: the library's lint refused the files above; each message names its fix."
+    exit 1
+  fi
+  echo "pre-commit: the library's lint passes."
 fi
 
 # --- Size cap ------------------------------------------------------------------------------------

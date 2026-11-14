@@ -8,7 +8,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "lint:scss": "stylelint \"projects/spiderly/src/lib/**/*.scss\"",
+    "test:lint-rules": "node --test \"projects/spiderly/lint/*.test.mjs\""
   },
   "private": false,
   "dependencies": {
@@ -48,6 +50,9 @@
     "karma-jasmine": "5.1.0",
     "karma-jasmine-html-reporter": "2.1.0",
     "ng-packagr": "19.2.2",
+    "postcss-scss": "4.0.9",
+    "postcss-value-parser": "4.2.0",
+    "stylelint": "17.16.0",
     "typescript": "5.5.4",
     "typescript-eslint": "8.18.0"
   }

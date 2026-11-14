@@ -10,6 +10,6 @@ The library's rules are path-scoped, under the repo root's `.claude/rules/`: eac
 |---|---|
 | Regenerating `package-lock.json` | Changing a dependency (`package.json`, `npm install`, the lockfile): the pre-commit's dry run under the npm `packageManager` pins (`.githooks/pre-commit`), and `AngularPinTests` for the runtime `@angular/*` pins. |
 | Overlay styling | Styling content PrimeNG teleports to `document.body` (an open popover, a dropdown, calendar or multiselect panel), and its spec assert: `.claude/rules/library-scss.md`. |
-| Fixed-chrome offset | Reading `--spiderly-viewport-top-inset` from a component (declared beside `--spiderly-topbar-height` in `styles/layout/_main.scss`, whose comment says why two names and why zero specificity), and the global `scroll-behavior: smooth` removed 2026-08-29: `.claude/rules/library-scss.md`. |
-| Always translate static UI text in library templates | Static text in a library template, and seeding its key in the init template: `.claude/rules/library-template-text.md`. |
+| Fixed-chrome offset | Reading `--spiderly-viewport-top-inset` from a component (declared beside `--spiderly-topbar-height` in `styles/layout/_main.scss`, whose comment says why two names and why zero specificity), or setting `scroll-behavior`: Stylelint holds both (`projects/spiderly/stylelint.config.mjs`). |
+| Always translate static UI text in library templates | Static text in a library template: a template rule in `ng lint` holds it (`projects/spiderly/lint/no-untranslated-text.js`). Seeding its key in the init template: `.claude/rules/library-template-text.md`. |
 | Adding a new form control | `projects/spiderly/src/lib/controls/CLAUDE.md`. |

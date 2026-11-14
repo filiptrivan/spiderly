@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { AuthServiceBase } from '../../../services/auth.service.base';
 
 @Component({
   selector: 'spiderly-auth-card',
   templateUrl: './auth-card.component.html',
-  imports: [CommonModule],
+  imports: [CommonModule, TranslocoDirective],
 })
 export class AuthCardComponent implements OnInit, OnDestroy {
   private companyDetailsSubscription: Subscription | null = null;
