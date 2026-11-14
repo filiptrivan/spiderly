@@ -18,5 +18,7 @@ paths:
   which declares the vars, alongside them, so the declaration can never be missing there.
 - **A call site that wants an animated scroll passes `behavior: 'smooth'` itself; the library sets
   no global `scroll-behavior`.** The miss of a global one: it silently applies to every programmatic
-  scroll in every consuming app, the router's scroll to the top on a route change included. It also
-  ignores `prefers-reduced-motion`, which nothing in the library guards.
+  scroll in every consuming app. With the router's `scrollPositionRestoration: 'top'`, each route
+  change animates the whole way up. `anchorScrolling` and native `#fragment` jumps animate too. It
+  overrides `scrollIntoView({ behavior: 'auto' })` at every call site. It also ignores
+  `prefers-reduced-motion`, which nothing in the library guards.
