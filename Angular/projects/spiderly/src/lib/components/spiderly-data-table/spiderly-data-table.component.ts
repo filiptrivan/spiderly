@@ -2203,6 +2203,7 @@ export class SpiderlyDataTableComponent
         return option?.label ?? multiselectValue;
       }
       case 'boolean':
+        if (col.triState && rowData[col.field] == null) return null;
         return rowData[col.field] == true
           ? this.translocoService.translate('Yes')
           : this.translocoService.translate('No');
@@ -2625,6 +2626,12 @@ export class Column<T = any> {
   editable?: boolean;
   showTime?: boolean;
   decimalPlaces?: number;
+  /**
+   * For a boolean column: show null as an empty cell, not as "No". Declare it on a `bool?` whose
+   * null means "not set" (inherit, unknown). Leave it off a checkbox: Spiderly reads a checkbox's
+   * null as false, and an untouched checkbox saves null.
+   */
+  triState?: boolean;
   sortable?: boolean;
   /**
    * Whether the column is initially rendered. Defaults to `true`. Declare `visible: false` for
@@ -2670,6 +2677,7 @@ export class Column<T = any> {
     editable,
     showTime,
     decimalPlaces,
+    triState,
     sortable,
     visible,
     lockVisible,
@@ -2687,6 +2695,7 @@ export class Column<T = any> {
     editable?: boolean;
     showTime?: boolean;
     decimalPlaces?: number;
+    triState?: boolean;
     sortable?: boolean;
     visible?: boolean;
     lockVisible?: boolean;
@@ -2704,6 +2713,7 @@ export class Column<T = any> {
     this.editable = editable;
     this.showTime = showTime;
     this.decimalPlaces = decimalPlaces;
+    this.triState = triState;
     this.sortable = sortable;
     this.visible = visible;
     this.lockVisible = lockVisible;

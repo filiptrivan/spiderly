@@ -1058,7 +1058,7 @@ class HostWithBooleanColumnsComponent {
       field: 'eligible',
       filterType: 'boolean',
       triState: true,
-    } as Column,
+    },
     { name: 'Disabled', field: 'disabled', filterType: 'boolean' },
   ];
   getList = () =>
