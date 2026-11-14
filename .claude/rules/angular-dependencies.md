@@ -8,8 +8,7 @@ paths:
 
 - **A dependency changes in `package.json`, and `package-lock.json` follows from `npm install`**
   under the pinned toolchain (below), the two committed together. The miss of a hand-edited lock:
-  CI's `Verify Angular lockfile integrity` gate (`npm ci --dry-run`) rejects any drift, and
-  hand-edits are what broke CI repeatedly.
+  CI's `Verify Angular lockfile integrity` gate (`npm ci --dry-run`) rejects any drift.
 - **Regenerate only under the pinned toolchain**, the node `.nvmrc` names and the npm
   `packageManager` pins (run `nvm use` first, or `npx npm@<that version>`). Older npm (e.g.
   `11.6.2`) **silently drops** the optional `cytoscape` / `d3-selection` nodes — the `mermaid`
