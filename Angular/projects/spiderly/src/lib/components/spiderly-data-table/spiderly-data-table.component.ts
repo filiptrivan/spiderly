@@ -107,6 +107,14 @@ const DEFAULT_COLUMN_WIDTH_REM: Record<
   blob: 5,
 };
 
+/**
+ * Wraps PrimeNG's `<p-table>` with Spiderly's column, filter, sort and paging model.
+ *
+ * The operator-owned view (the consumer's filter store and its chip bar, the header menu, widths,
+ * header drag, the frozen left edge, views) has its decision record in
+ * `docs/data-table-operator-owned-view.md`. A comment in this library that cites "decision N"
+ * names the decision with that number there.
+ */
 @Component({
   selector: 'spiderly-data-table',
   templateUrl: './spiderly-data-table.component.html',
@@ -165,7 +173,7 @@ export class SpiderlyDataTableComponent
    * hole where it used to be. Once the grid scrolls sideways a row otherwise loses its identity
    * — "Intesa, plaćeno, 12.400" with no idea whose order it is — and NN/g's Data Tables is
    * explicit that the leftmost header column must lock in place. `lockVisible` already names
-   * exactly that column in every table, so this needs no new API (CLAUDE.md -> decision 8).
+   * exactly that column in every table, so this needs no new API (decision 8).
    */
   isColumnFrozen(col: Column): boolean {
     return col.lockVisible === true && this.visibleCols[0] === col;
@@ -216,6 +224,11 @@ export class SpiderlyDataTableComponent
     // animation frame later, and until it does the identity column sits at left:0 — on top of the
     // checkbox column it is supposed to start after. The microtask keeps the write out of the CD
     // pass that just finished, which doing it inline here would break with an NG0100.
+    // The microtask can run before the first rows render, because rows land on a macrotask. When
+    // those rows re-split the shares, the observer corrects the offset at frame timing, which
+    // `whenStable` does not wait for. Headless Chrome on Linux re-splits by 2px where macOS does
+    // not, so a green local run proves nothing. A spec that asserts the offset settles animation
+    // frames first (`settleFrozenOffset` in the spec).
     queueMicrotask(measure);
   }
 
@@ -237,14 +250,14 @@ export class SpiderlyDataTableComponent
   @Input() tableIcon: string = 'pi pi-list';
   @Input() items: any[]; // Pass only when hasLazyLoad === false
   @Input() rows: number;
-  /** Paginator page-size choices; merge rules and persistence: CLAUDE.md → "Rows-per-page". */
+  /** Paginator page-size choices; merge rules: `mergeActivePageSizesIntoOptions()`. */
   @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
   @Input() cols: Column[];
 
   /**
    * The consumer's filter store — the table's WHOLE filter surface, rendered as the chip bar. A
    * table given none has no filtering at all (`Column.filterType` is only the value's shape; the
-   * legacy header-filter fallback was deleted — CLAUDE.md -> "Operator-owned view").
+   * legacy header-filter fallback was deleted — `docs/data-table-operator-owned-view.md`).
    *
    * READ ONCE, in ngOnInit — a store assigned later is silently ignored: the requery effect
    * stays subscribed to the first store's `applied()`, and `resolvedStateKey` (which
@@ -282,6 +295,10 @@ export class SpiderlyDataTableComponent
    * whole grid. PrimeNG sets no `table-layout` of its own, so without this the table inherits
    * that default. Bound to a field, never an object literal in the template: a literal is a new
    * reference on every change-detection pass.
+   *
+   * The table needs no `min-width`, and this style needs no computed floor. The browser already
+   * widens a table past its container to the sum of its declared widths, so the container still
+   * scrolls. The "too wide for its container scrolls" spec holds the measurement.
    */
   protected readonly tableStyle = { 'table-layout': 'fixed' };
   totalRecords: number;
@@ -313,8 +330,17 @@ export class SpiderlyDataTableComponent
   isAllSelected: boolean = null;
   fakeIsAllSelected: boolean = false; // Only for showing checkboxes, we will not send this to the backend
   isFirstTimeLazyLoad: boolean = true;
-  /** Shift-range selection state — model and invariants: CLAUDE.md → "Shift-click range selection". */
+  /**
+   * The row a shift+click range runs from: the row the last click toggled. Only a wholesale row
+   * replacement resets it; `renderedRows()` says why no other path needs to.
+   */
   private rangeAnchorId: number | null = null;
+  /**
+   * The shift state of a press on a row's checkbox, paired with that row's id. It lives on the
+   * mousedown because `p-checkbox` emits the DOM `change` event as `onChange.originalEvent`, and
+   * `change` carries no `shiftKey`. `onSelectionCellMouseDown` captures it, and the same click's
+   * `selectRow` consumes and clears it.
+   */
   private pendingShift: { shiftKey: boolean; id: number } | null = null;
   @Output() onIsAllSelectedChange: EventEmitter<AllClickEvent> =
     new EventEmitter();
@@ -335,6 +361,11 @@ export class SpiderlyDataTableComponent
   // Client side table
   // @Input() formArrayItems: any[]; // Pass this only if you have some additional logic for showing data
   @Input() getFormArrayItems: (additionalIndexes?: any) => any[];
+  /**
+   * Whether the server pages, sorts and filters the rows. The column chooser and each header's
+   * menu, resize grip and drag render only for a lazy table: a client-side (form-array) table
+   * keeps its declared columns.
+   */
   @Input() hasLazyLoad: boolean = true;
 
   /**
@@ -536,6 +567,9 @@ export class SpiderlyDataTableComponent
       this.clientLoad();
     }
 
+    // After `resolvedStateKey` is derived, like the restores below: the merge reads the persisted
+    // pick by that key. PrimeNG's own table state persists the pick (`saveState` and
+    // `restoreState` carry `rows`).
     this.mergeActivePageSizesIntoOptions();
 
     // AFTER `resolvedStateKey` is derived, which is what every restore below keys off — placed
@@ -616,9 +650,9 @@ export class SpiderlyDataTableComponent
   /**
    * `cols` in the operator's order. A field the stored order has never seen — a column added in a
    * later release — sorts to the END rather than displacing a layout someone built by hand
-   * (CLAUDE.md -> "Operator-owned view", decision 7); the sort is stable, so those keep their
-   * declared order among themselves. Actions columns carry no field and are always last, which is
-   * where every consumer already declares them.
+   * (decision 7); the sort is stable, so those keep their declared order among themselves.
+   * Actions columns carry no field and are always last, which is where every consumer already
+   * declares them.
    */
   private orderedCols(): Column[] {
     if (this.columnOrder.length === 0) return this.cols;
@@ -678,7 +712,7 @@ export class SpiderlyDataTableComponent
    * `onMouseDown` arms the th for anything that is not an INPUT, a TEXTAREA or its OWN resizer —
    * so our menu chevron and our resize grip would each start a column drag, and reaching for a
    * width would silently reorder the grid — and its `onColumnDrop` reorders blind, with no notion
-   * of a locked column (CLAUDE.md -> decision 6).
+   * of a locked column (decision 6).
    *
    * A shortcut for neighbours, never the mechanism: HTML5 dnd has no edge auto-scroll, so a column
    * scrolled off the right is unreachable this way, and there is no keyboard path at all. The menu
@@ -725,6 +759,7 @@ export class SpiderlyDataTableComponent
     return !col.lockVisible && SpiderlyDataTableComponent.isDataColumn(col);
   }
 
+  /** Every template loop iterates `visibleCols`, so a change to visibility or order calls this. */
   private refreshVisibleCols(): void {
     this.visibleCols = this.orderedCols().filter((col) =>
       this.isColumnVisible(col),
@@ -851,6 +886,9 @@ export class SpiderlyDataTableComponent
    * stateful table persisted them for free, and nothing replaced it — a refresh dropped every
    * filter (Filip, on /tags). A filter is a question you are in the middle of asking, not a
    * durable preference like a column's width.
+   *
+   * This key also carries the view segment, as the layout keys do. A view is a saved question,
+   * so each view keeps its own filters (decision 10).
    */
   private get filtersStateKey(): string | null {
     return this.filtersStateKeyOf(this.activeViewId);
@@ -1239,6 +1277,16 @@ export class SpiderlyDataTableComponent
     this.table.tableService.onSort(meta);
   }
 
+  /**
+   * Puts the table's wrapper back under the top of the viewport after a page change: paging
+   * leaves the reader at the paginator, with the new rows above the screen. It is unconditional,
+   * with no opt-out input. PrimeNG holds the same policy for `[scrollable]` tables, whose page
+   * change resets the container's scroll. That branch never runs here: this table uses
+   * `responsiveLayout="scroll"`, so the window scrolls, not a container.
+   *
+   * Why the hook is `(onPage)` and the target is the wrapper: the comment above `<p-table>` in
+   * the template. The guard and the offset: `scrollElementIntoViewIfAboveViewport()`.
+   */
   onPageChange(container: HTMLElement): void {
     scrollElementIntoViewIfAboveViewport(container);
   }
@@ -1252,6 +1300,11 @@ export class SpiderlyDataTableComponent
    * where it was actively wrong: a FAILED first load lowers the flag with `items` still
    * undefined, which pinned the overlay up forever. Same stranded overlay this component was
    * fixed for once already, through the other door.
+   *
+   * It does not give screen-reader parity. `aria-busy` defers announcements and makes none: a
+   * screen reader hears nothing when a page flip starts or ends. A live region is a library-wide
+   * decision (an `sr-only` utility and a seeded Transloco key). There is deliberately no opt-out
+   * input.
    */
   get isPending(): boolean {
     return this.loading;
@@ -1311,6 +1364,8 @@ export class SpiderlyDataTableComponent
           // tracker. console.error here would have dropped both.
           this.errorHandler.handleError(error);
         } finally {
+          // After the selection await, deliberately. Lowered earlier, the new page paints with
+          // the previous page's checked rows, since `fakeSelectedItems` still holds their ids.
           this.loading = false;
         }
       },
@@ -1412,7 +1467,11 @@ export class SpiderlyDataTableComponent
     );
   }
 
-  /** The column the header menu is currently open for, and its header cell. */
+  /**
+   * The column the header menu is currently open for, and its header cell. One menu serves every
+   * column: its items render once and read their target here. PrimeNG does not re-project popover
+   * content that an `@if` destroyed, so a menu rebuilt per column reopens as an empty overlay.
+   */
   menuColumn: Column | null = null;
 
   private menuHeaderCell: HTMLElement | null = null;
@@ -1664,8 +1723,8 @@ export class SpiderlyDataTableComponent
 
   /**
    * Whether this column's cells give up the one-line clamp. The DEFAULT stays clamped
-   * (CLAUDE.md -> "Operator-owned view", decision 9); what changes is that the operator picks
-   * which column pays the row height, not whoever wrote `cols`.
+   * (decision 9); what changes is that the operator picks which column pays the row height, not
+   * whoever wrote `cols`.
    *
    * Lands on the td as `.cell-wrap`, whose inherited `--spiderly-cell-*` properties are how the
    * toggle crosses into a projected `spiderlyCellTemplate` too — the contract's one telling is
@@ -1919,6 +1978,9 @@ export class SpiderlyDataTableComponent
    * the column is sized from, and the table shares its surplus in PROPORTION to these numbers.
    * Columns declaring none would otherwise take an equal share, which throws away what the
    * per-type defaults say — a boolean holds "Da"/"Ne", a text column holds a name.
+   *
+   * Never `0rem`: auto layout read it as "shrink to content", but the fixed layout reads it as
+   * zero and the column disappears. An actions column gets a real share too (`defaultShare()`).
    */
   getColWidth(col: Column): string {
     const override = col.field ? this.columnWidths[col.field] : undefined;
@@ -1967,8 +2029,11 @@ export class SpiderlyDataTableComponent
 
   /*
    * Handle a cell click. Only columns that opt in (have an `onCellClick` callback) react; for them
-   * we stop propagation so the click does not also trigger row navigation, then invoke the consumer
-   * callback with a fully-populated CellClickEvent. Inert cells fall through to onRowClick unchanged.
+   * we stop propagation, then invoke the consumer callback with a fully-populated CellClickEvent.
+   * Inert cells fall through to onRowClick unchanged.
+   * The `stopPropagation` is no longer what stops row navigation: `.row-interactive` does that, in
+   * `onRowClick`. It stays because it is a documented consumer contract, and it shields a
+   * consumer's own outer click handlers.
    */
   onCellClick(col: Column, rowData: any, event: MouseEvent): void {
     if (!col.onCellClick) return;
@@ -2297,8 +2362,13 @@ export class SpiderlyDataTableComponent
 
   /**
    * Captures the shift state for the checkbox change this press produces — id-paired so an
-   * aborted press can never leak into a later toggle (see CLAUDE.md). Also stops shift+click
-   * from extending the browser text selection, which starts at mousedown.
+   * aborted press can never leak into a later toggle. Also stops shift+click from extending the
+   * browser text selection, which starts at mousedown.
+   *
+   * Do not clear the flag on the cell's `click`. The checkbox's `change` fires after the click
+   * dispatch completes, so a click-time clear runs first and kills every real range: the range
+   * suite fails. The accepted gap: press a checkbox, drag off, release outside, then toggle that
+   * row by keyboard, and it ranges. A document-level `mouseup` has the same order problem.
    */
   onSelectionCellMouseDown(event: MouseEvent, id: number) {
     // Arm only for a press on the checkbox itself: a press on the surrounding cell produces no
@@ -2316,6 +2386,10 @@ export class SpiderlyDataTableComponent
    * caps lazy pages at `rows` even when the server overshoots). Resolving a range over raw
    * `items` would sweep filtered-out or off-page rows sitting between two visually adjacent
    * ones. An anchor outside this window misses and the shift-click degrades to a plain toggle.
+   *
+   * Never resolve a range over `rowData.index`: only `loadFormArrayItems` sets it. Because the
+   * anchor is checked here, at use, a page flip and a client-side sort or filter need no reset of
+   * their own.
    */
   private renderedRows(): any[] {
     return this.table?.dataToRender(null) ?? this.items;
@@ -2353,7 +2427,12 @@ export class SpiderlyDataTableComponent
     this.rangeAnchorId = id;
   }
 
-  /** Single-row toggle — the plain-click path. */
+  /**
+   * Single-row toggle — the plain-click path. Each per-row change the table makes, a click or a
+   * range, goes through it, so the lazy delta model (`newlySelectedItems`, `unselectedItems`) and
+   * the per-row events stay identical to a manual click. A caller must skip a row already in the
+   * target state, as `applyRange` does, or the delta arrays get duplicate ids.
+   */
   private toggleRow(id: number, index: number) {
     if (this.isRowSelected(id)) {
       this.rowUnselect(id);
@@ -2378,9 +2457,9 @@ export class SpiderlyDataTableComponent
 
   /**
    * Applies `select` to every row between the two positions in `rows` (inclusive), skipping rows
-   * already in the target state; each change goes through `toggleRow` so the delta model and
-   * per-row events stay identical to manual clicks (see CLAUDE.md). The event payload keeps
-   * `row.index` for parity with what the single-click template binding passes.
+   * already in the target state; each change goes through `toggleRow()` (its comment says why).
+   * The event payload keeps `row.index` for parity with what the single-click template binding
+   * passes.
    */
   private applyRange(
     rows: any[],
@@ -2523,7 +2602,7 @@ export class Action {
 /**
  * A saved question. The bar lets an operator BUILD one; a view is the one they ask every morning,
  * asked in a click — and without them the whole column-and-filter rework is a pile of knobs
- * someone re-sets daily (CLAUDE.md -> "Operator-owned view", decision 10).
+ * someone re-sets daily (decision 10).
  *
  * Declared in consumer code, not stored per user: with a handful of operators and a handful of
  * fixed daily jobs, shared built-in views cover the work, while personal saved views would drift

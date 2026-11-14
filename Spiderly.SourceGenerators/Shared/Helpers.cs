@@ -4,9 +4,7 @@ using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Spiderly.SourceGenerators.Shared
 {
@@ -313,32 +311,6 @@ namespace Spiderly.SourceGenerators.Shared
 
         //    return properties;
         //}
-
-        #endregion
-
-        #region Helpers
-
-        public static void WriteToTheFile(string data, string path)
-        {
-            if (data != null)
-            {
-                data = data.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
-
-                if (File.Exists(path) && File.ReadAllText(path) == data)
-                    return;
-
-                using StreamWriter sw = new StreamWriter(path, false);
-                sw.Write(data);
-            }
-        }
-
-        public static void WriteToTheFile(StringBuilder data, string path)
-        {
-            if (data != null)
-            {
-                WriteToTheFile(data.ToString(), path);
-            }
-        }
 
         #endregion
     }

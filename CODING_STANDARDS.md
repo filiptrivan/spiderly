@@ -116,10 +116,9 @@ Search engines and other sites link to spiderly-website's published pages, so a 
 answers 404 loses its search rank and the readers those links bring. A spiderly-website diff that
 renames, moves or deletes a page under `content/docs/` adds a permanent redirect from its old URL in
 `next.config.mjs` `redirects()`, to the page that now holds its content, or for a page deleted
-outright to the nearest one on its subject (`/docs/entity-validation` → `/docs/validation`). No
-check pins it (read 2026-11-03): the code-owner review on `next.config.mjs` (spiderly-website
-`.github/CODEOWNERS`) reaches the maintainer only when a diff touches that file, and a page deleted
-without a redirect never does.
+outright to the nearest one on its subject (`/docs/entity-validation` → `/docs/validation`).
+spiderly-website's build fails on a URL in its `published-urls.txt` that neither renders a page nor
+redirects (`scripts/published-urls.mjs`). A review judges only the redirect's target.
 
 ## Versions
 
@@ -150,11 +149,15 @@ bumps all packages together at publish time, and the maintainer owns the release
   red-then-fix pairs, then the detector lands green on top.
 - **A change to a source generator or the EF model-config extensions is exercised by a fixture
   shape, and the e2e is green in CI before it ships**; snapshot tests are necessary but never
-  sufficient (why, and the five bugs only the e2e caught: `tests/e2e-fixtures/CLAUDE.md`). The diff
-  adds or extends a fixture entity when the shape or composition the change touches is missing from
-  the zoo; when existing fixtures already exercise the changed path, a green e2e suffices: a fixture
-  entity added per change regardless of coverage is ritual, and ritual is how aspirational tests
-  happen (`8a2714f`, above).
+  sufficient (no generator unit test runs the generated code, and `GeneratedCodeCompilationTests`
+  compiles one project, so a runtime or cross-project bug passes them). The diff adds or extends a fixture entity when the shape or
+  composition the change touches is missing from the zoo; when existing fixtures already exercise
+  the changed path, a green e2e suffices: a fixture entity added per change regardless of coverage
+  is ritual, and ritual is how aspirational tests happen (`8a2714f`, above).
+- **Judge coverage per composition (control type × standalone form / ordered child / nested ordered
+  child), and multiply fixtures only where the generator branches.**
+- **Judge a mutable collection's coverage per operation, add and removal; an explicit empty list is
+  the removal.**
 - **A model test that exercises a relationship runs the same `Configure*Relationships` passes in the
   same order as the real `ApplicationDbContext.OnModelCreating`**, or it misses inter-pass NREs
   (`OneToOneRelationshipModelTests`, whose summary tells the one it missed).

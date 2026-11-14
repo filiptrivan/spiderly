@@ -60,7 +60,7 @@ type Rendered = { nativeElement: unknown; detectChanges(): void };
 
 // Once open, PrimeNG appends the popover to document.body, where stale ones from earlier fixtures
 // linger — so query THIS fixture's Popover instance, never the document. Same rule the column
-// chooser's specs already follow (spiderly-data-table/CLAUDE.md).
+// chooser's specs already follow (`overlayHolding()` in the data table spec).
 // There is more than one popover on the bar now, so find the container by what it HOLDS rather
 // than by position — an index would silently follow whichever was declared first.
 function overlay(fixture: Rendered, selector: string): HTMLElement {
@@ -710,7 +710,7 @@ describe('SpiderlyFilterBarComponent — the sort picker', () => {
 
   // The menu is teleported into document.body with its popover, so its rules live at SCSS TOP
   // LEVEL; a computed-style assert is what notices if they move under :host and die silently
-  // (Angular/CLAUDE.md → overlay styling).
+  // (.claude/rules/library-scss.md).
   it('sort menu styles survive the body teleport', async () => {
     const fixture = renderPicker({
       sort: [{ field: 'name', label: 'Naziv', descending: true }],

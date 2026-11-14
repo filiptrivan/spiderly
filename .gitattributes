@@ -9,6 +9,18 @@ claude-plugins/skills/**/references/*.generated.md text eol=lf
 # pin LF to keep core.autocrlf from misfiring it on a Windows checkout. See docs/agent-guidance-distribution.md.
 Angular/projects/spiderly/agent/** text eol=lf
 
+# A nested CLAUDE.md (any below the root) and a rule file under .claude/rules/ hold at most 2,000
+# bytes. The cap stops such a file from growing into a component manual. Claude Code loads every .md
+# file under .claude/rules/ (code.claude.com/docs/en/memory, read 2026-11-14), so the glob reaches
+# subfolders. Root CLAUDE.md keeps the general cap of ci-workflows size-cap/size-cap.mjs. Its line
+# unsets the mark, and it comes after the nested line, since the later line wins.
+CLAUDE.md size-cap=2000
+/CLAUDE.md -size-cap
+.claude/rules/**/*.md size-cap=2000
+# A rule file over 2,000 bytes keeps a mark at its size. The text pass that cuts it under 2,000
+# removes the mark.
+.claude/rules/library-scss.md size-cap=2166
+
 # What a script or tool writes, which the Size cap skips (ci-workflows size-cap/size-cap.mjs, run by
 # .githooks/pre-commit and CI). The generators' own sources, NetAndAngularFilesGenerator.cs among
 # them, are written by hand and stay unmarked.

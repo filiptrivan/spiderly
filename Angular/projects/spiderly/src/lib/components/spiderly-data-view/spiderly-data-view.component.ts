@@ -117,8 +117,8 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
     this.matchModeNumberOptions = matchModeOptionsFor('number');
   }
 
-  // Paging semantics and the scroll-margin contract are documented once, on the data table:
-  // spiderly-data-table/CLAUDE.md → "Scroll back to the table on page change".
+  // Paging semantics and the scroll-margin contract are documented once, on the data table's
+  // `onPageChange()` and its `(onPage)` binding in the template.
   onPageChange(container: HTMLElement): void {
     scrollElementIntoViewIfAboveViewport(container);
   }
@@ -134,8 +134,8 @@ export class SpiderlyDataViewComponent<T> implements OnInit {
 
   lazyLoad(event: TableLazyLoadEvent) {
     // Every refetch is pending, not just the first load. `items` is deliberately left alone so
-    // the previous page stays readable under the overlay. Full reasoning: the data table's
-    // CLAUDE.md → "Pending state".
+    // the previous page stays readable under the overlay. Full reasoning: the comment opening
+    // the data table's `lazyLoad()`.
     this.loading = true;
 
     this.lastLazyLoadEvent = event;

@@ -1,8 +1,10 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -12,9 +14,9 @@ internal static class GeneratorTestHarness
 {
     private static readonly IReadOnlyList<MetadataReference> References = TestMetadataReferences.All;
 
-    public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null)
+    public static GeneratorDriver Run<TGenerator>(string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null, string? projectDir = null)
         where TGenerator : IIncrementalGenerator, new()
-        => Run(typeof(TGenerator), source, nullable, spiderlyConfigJson);
+        => Run(typeof(TGenerator), source, nullable, spiderlyConfigJson, projectDir);
 
     /// <summary>
     /// Type-keyed overload for <c>[Theory]</c> cases, which can't carry a generic type argument.
@@ -25,7 +27,11 @@ internal static class GeneratorTestHarness
     /// an <see cref="AdditionalText"/> exactly as MSBuild does. Omit for the default config (every generator
     /// enabled) — which is what every test did before this existed, meaning config gating had no end-to-end
     /// coverage at all.</param>
-    public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null)
+    /// <param name="projectDir">The consumer project's folder, which MSBuild gives a generator as
+    /// <c>build_property.projectdir</c>. An Angular generator writes its <c>.generated.ts</c> file under the
+    /// <c>Frontend</c> folder beside the <c>Backend</c> folder above it. A test that reads that file passes
+    /// one. Omit it for a generator that emits only C#.</param>
+    public static GeneratorDriver Run(Type generatorType, string source, NullableContextOptions nullable = NullableContextOptions.Disable, string? spiderlyConfigJson = null, string? projectDir = null)
     {
         IIncrementalGenerator generator = (IIncrementalGenerator)Activator.CreateInstance(generatorType)!;
 
@@ -41,9 +47,46 @@ internal static class GeneratorTestHarness
             // (separator-normalized), so this must keep that suffix to be picked up.
             : [new InMemoryAdditionalText(".spiderly/config.json", spiderlyConfigJson)];
 
+        AnalyzerConfigOptionsProvider? optionsProvider = projectDir is null
+            ? null
+            : new GlobalOptionsProvider("build_property.projectdir", projectDir);
+
         return CSharpGeneratorDriver
-            .Create([generator.AsSourceGenerator()], additionalTexts)
+            .Create([generator.AsSourceGenerator()], additionalTexts, optionsProvider: optionsProvider)
             .RunGenerators(compilation);
+    }
+
+    private sealed class GlobalOptionsProvider : AnalyzerConfigOptionsProvider
+    {
+        private readonly AnalyzerConfigOptions _globalOptions;
+
+        public GlobalOptionsProvider(string key, string value) => _globalOptions = new SingleOption(key, value);
+
+        public override AnalyzerConfigOptions GlobalOptions => _globalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => SingleOption.Empty;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => SingleOption.Empty;
+    }
+
+    private sealed class SingleOption : AnalyzerConfigOptions
+    {
+        public static readonly SingleOption Empty = new(null, null);
+
+        private readonly string? _key;
+        private readonly string? _value;
+
+        public SingleOption(string? key, string? value)
+        {
+            _key = key;
+            _value = value;
+        }
+
+        public override bool TryGetValue(string key, [NotNullWhen(true)] out string? value)
+        {
+            value = key == _key ? _value : null;
+            return value != null;
+        }
     }
 
     private sealed class InMemoryAdditionalText : AdditionalText

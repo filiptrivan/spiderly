@@ -5,7 +5,12 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <!-- CS8509 (a switch expression misses a named enum value) is an error.
+         Its use: NgDetailsPropertyBlockGenerator.GetUIStringControlType.
+         CS8524 (a switch expression misses an unnamed value, such as (UIControlTypeCodes)17) is off.
+         Only a discard arm covers that value, and a discard arm hides CS8509. -->
+    <WarningsAsErrors>Nullable;CS8509</WarningsAsErrors>
+    <NoWarn>$(NoWarn);CS8524</NoWarn>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>spiderly-logo.png</PackageIcon>

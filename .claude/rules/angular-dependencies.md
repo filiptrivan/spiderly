@@ -17,7 +17,7 @@ paths:
   accepts but CI's npm rejects as `Missing: cytoscape ... from lock file`. A "passing" local gate
   under the wrong npm is a **false positive** — verify in a fresh, no-`node_modules` dir under the
   pinned npm.
-- **Every runtime `@angular/*` in `Angular/package.json` is pinned exact**, at the version the init
-  template in `NetAndAngularFilesGenerator.cs` emits, so the lock regenerates deterministically. The
+- **Every runtime dependency in `Angular/package.json` is pinned exact**: `spiderly init` writes these
+  pins into a new app (`AngularLibraryPackage`), and the lock regenerates deterministically. The
   miss a caret range causes: a from-scratch `npm install` floats to a newer patch and dies on an
   ERESOLVE peer conflict against the pinned compiler.

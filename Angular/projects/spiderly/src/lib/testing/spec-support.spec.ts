@@ -10,7 +10,7 @@ import { PaginatedResult } from '../entities/paginated-result';
 // picks it up; it intentionally contains no tests.
 
 // Every control in this library routes static text through Transloco
-// (Angular/CLAUDE.md), so component specs boot it from this one empty-map
+// (.claude/rules/library-template-text.md), so component specs boot it from this one empty-map
 // config instead of each carrying its own copy.
 export function translocoTesting(
   words: Record<string, string> = {},

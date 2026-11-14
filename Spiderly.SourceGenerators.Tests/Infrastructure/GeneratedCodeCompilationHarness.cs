@@ -123,7 +123,7 @@ internal static class GeneratedCodeCompilationHarness
             using Stream stream = assembly.GetManifestResourceStream(resource)!;
             using StreamReader reader = new(stream);
 
-            // setup.sh:40 does exactly this substitution when overlaying the fixtures onto a generated app.
+            // setup.sh's __APP_NAME__ step does this same substitution when it overlays the fixtures.
             byFileName[resource.Substring(FixtureResourcePrefix.Length)] = reader.ReadToEnd().Replace(AppNamePlaceholder, AppName);
         }
 

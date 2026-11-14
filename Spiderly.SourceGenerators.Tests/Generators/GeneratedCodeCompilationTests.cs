@@ -112,6 +112,32 @@ public class GeneratedCodeCompilationTests
         AssertCompilesClean(withGenerated, generatorDiagnostics);
     }
 
+    /// <summary>
+    /// A <c>[SpiderlyService]</c> class in the namespace of a folder below <c>Services</c>. Why the
+    /// registration names it in full: <c>ServicesGenerator.AppendServiceRegistration</c>.
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_RegistersAServiceOutsideTheServicesNamespace()
+    {
+        const string ServiceInAFolder = $$"""
+            using Spiderly.Shared.Attributes;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Services.EntityServices
+            {
+                [SpiderlyService]
+                public class TaskCommentService : TaskCommentServiceGenerated
+                {
+                    public TaskCommentService(EntityServiceDependencies deps) : base(deps) { }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [ServiceInAFolder]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
     [Fact]
     public void NegativeControl_ABrokenEntityIsReported()
     {
@@ -198,10 +224,9 @@ public class GeneratedCodeCompilationTests
     /// NOT here, and deliberately: <c>ControllerGenerator</c>. It returns early unless the calling project
     /// directory contains <c>.WebAPI</c>, and it reads entities/DTOs/services from REFERENCED assemblies
     /// rather than its own compilation. Controllers therefore belong to the multi-project axis —
-    /// the one <c>tests/e2e-fixtures/CLAUDE.md</c> records as structurally unreachable from a single
-    /// compilation, and the one that produced a real CS1061 when two generators disagreed about a flag set
-    /// only on current-project classes. Until that variant exists here, a type error in a generated
-    /// controller is still e2e-only.
+    /// the axis a single compilation cannot reach, since it holds no referenced entities, and the one that
+    /// produced a real CS1061 when two generators disagreed about a flag set only on current-project classes.
+    /// Until that variant exists here, a type error in a generated controller is still e2e-only.
     /// </para>
     /// </summary>
     private static readonly string[] ExpectedGeneratedFiles =

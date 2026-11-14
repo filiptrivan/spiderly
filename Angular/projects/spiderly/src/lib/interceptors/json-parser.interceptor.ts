@@ -5,7 +5,7 @@ import {
   HttpRequest,
   HttpParams,
 } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { map } from 'rxjs';
 
 export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
   const cleanedBody = getCleanRequestBody(req.body);
@@ -13,12 +13,13 @@ export const jsonHttpInterceptor: HttpInterceptorFn = (req, next) => {
     body: cleanedBody,
   });
 
+  // Only a JSON body. A C# string action answers text, and its generated method promises a string.
   return next(clonedRequest).pipe(
-    tap((event: HttpEvent<any>) => {
-      if (event instanceof HttpResponse) {
-        convertToDate(event.body);
-      }
-    }),
+    map((event: HttpEvent<any>) =>
+      event instanceof HttpResponse && req.responseType === 'json'
+        ? event.clone({ body: convertToDate(event.body) })
+        : event,
+    ),
   );
 };
 
@@ -53,32 +54,25 @@ const getCleanRequestBody = (obj: unknown): unknown => {
   return obj;
 };
 
-/**
- * @see https://stackoverflow.com/a/54733846/1306679
- */
-const convertToDate = (
-  object: unknown,
-  parent?: Record<string, unknown> | unknown[],
-  key?: number | string,
-) => {
-  if (object === null) return;
+const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
-  const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-
-  if (typeof object === 'string') {
-    if (dateRegex.test(object)) {
-      const date = new Date(object);
-      parent[key] = date;
-    }
-  } else if (Array.isArray(object)) {
-    for (let i = 0; i < object.length; i++) convertToDate(object[i], object, i);
-  } else {
-    for (const key of Object.keys(object as Record<string, unknown>)) {
-      convertToDate(
-        (object as Record<string, unknown>)[key],
-        object as Record<string, unknown>,
-        key,
-      );
-    }
+/** A copy of `value` with each ISO date string in it turned into a `Date`. */
+const convertToDate = (value: unknown): unknown => {
+  if (typeof value === 'string') {
+    return dateRegex.test(value) ? new Date(value) : value;
   }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => convertToDate(item));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const newObj: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+      newObj[key] = convertToDate((value as any)[key]);
+    }
+    return newObj;
+  }
+
+  return value;
 };
