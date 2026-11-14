@@ -198,10 +198,9 @@ public class GeneratedCodeCompilationTests
     /// NOT here, and deliberately: <c>ControllerGenerator</c>. It returns early unless the calling project
     /// directory contains <c>.WebAPI</c>, and it reads entities/DTOs/services from REFERENCED assemblies
     /// rather than its own compilation. Controllers therefore belong to the multi-project axis —
-    /// the one <c>tests/e2e-fixtures/CLAUDE.md</c> records as structurally unreachable from a single
-    /// compilation, and the one that produced a real CS1061 when two generators disagreed about a flag set
-    /// only on current-project classes. Until that variant exists here, a type error in a generated
-    /// controller is still e2e-only.
+    /// the axis a single compilation cannot reach, since it holds no referenced entities, and the one that
+    /// produced a real CS1061 when two generators disagreed about a flag set only on current-project classes.
+    /// Until that variant exists here, a type error in a generated controller is still e2e-only.
     /// </para>
     /// </summary>
     private static readonly string[] ExpectedGeneratedFiles =

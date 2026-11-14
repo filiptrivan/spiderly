@@ -485,7 +485,7 @@ describe('SpiderlyDataTableComponent — column visibility', () => {
 });
 
 describe('SpiderlyDataTableComponent — chooser styles survive the body teleport', () => {
-  // Guards the `:host` overlay-styling trap — see Angular/CLAUDE.md → overlay styling.
+  // Guards the `:host` overlay-styling trap — see .claude/rules/library-scss.md.
   // One pin per SCSS rule; add a row when a chooser rule is added.
   const stylePins: [selector: string, property: string, expected: string][] = [
     ['.column-chooser', 'display', 'flex'],
@@ -1678,7 +1678,7 @@ describe('SpiderlyDataTableComponent — scroll on page change', () => {
     expect(scrolled).toHaveBeenCalled();
   });
 
-  // Pins the seam described in Angular/CLAUDE.md → fixed-chrome offset: the component reads
+  // Pins the seam described in .claude/rules/library-scss.md: the component reads
   // the inset from a var it does not own, and still works when no shell declares one.
   it('offsets the scroll target by the shell viewport-top inset', () => {
     const { fixture } = createWithDataTable(HostWithoutActionsComponent);
@@ -1931,9 +1931,9 @@ describe('SpiderlyDataTableComponent — pending state', () => {
 });
 
 describe('SpiderlyDataTableComponent — pending overlay styling', () => {
-  // The ::ng-deep computed-style assert Angular/CLAUDE.md requires for any rule targeting
-  // markup this component does not author. The pin table is shared with the data view's suite,
-  // because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
+  // The ::ng-deep computed-style assert .claude/rules/library-scss.md requires for any rule
+  // targeting markup this component does not author. The pin table is shared with the data view's
+  // suite, because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
   it('keeps the veil rules matching PrimeNG mask markup', () => {
     // Un-awaited on purpose: the fixture returns with the first fetch still pending, so the
     // mask is mounted. Same trick the scroll suite's scroll-margin pin uses.

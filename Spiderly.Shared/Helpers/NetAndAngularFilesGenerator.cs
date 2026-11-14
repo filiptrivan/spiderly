@@ -17,8 +17,9 @@ namespace Spiderly.Shared.Helpers
         /// carry relational shapes no other fixture has — <c>UserExternalLogin</c> is the only
         /// <c>[Required]</c> navigation beside an explicit non-nullable foreign-key scalar in the whole
         /// codebase, and the reason an explicit-FK generator bug was caught at all was that
-        /// <c>spiderly init</c> happens to scaffold it. A second copy of these in a test project is the same
-        /// drift that once broke CI with <c>CS1729</c> (see <c>tests/e2e-fixtures/CLAUDE.md</c>).
+        /// <c>spiderly init</c> happens to scaffold it. A second copy of these in a test project drifts as the
+        /// e2e fixture's full copy of the DbContext once did, which broke CI with <c>CS1729</c> when its
+        /// constructor changed.
         /// </para>
         /// </summary>
         internal static List<SpiderlyFile> GetEntityFiles(string appName) => new()

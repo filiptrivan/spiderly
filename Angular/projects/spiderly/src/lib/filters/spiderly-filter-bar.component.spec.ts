@@ -710,7 +710,7 @@ describe('SpiderlyFilterBarComponent — the sort picker', () => {
 
   // The menu is teleported into document.body with its popover, so its rules live at SCSS TOP
   // LEVEL; a computed-style assert is what notices if they move under :host and die silently
-  // (Angular/CLAUDE.md → overlay styling).
+  // (.claude/rules/library-scss.md).
   it('sort menu styles survive the body teleport', async () => {
     const fixture = renderPicker({
       sort: [{ field: 'name', label: 'Naziv', descending: true }],

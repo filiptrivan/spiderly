@@ -57,7 +57,7 @@ namespace __APP_NAME__.Business.Entities
         public virtual User? AssignedTo { get; set; }
 
         // Multi-control M2M on an ORDERED child — exercised by the ordered-path e2e in
-        // project-task-crud.spec.ts (see tests/e2e-fixtures/CLAUDE.md, the composition paragraph).
+        // project-task-crud.spec.ts (coverage per composition: `CODING_STANDARDS.md` → "Tests").
         [UIControlType(nameof(UIControlTypeCodes.MultiSelect))]
         public virtual List<User> Watchers { get; } = new(); // M2M
 

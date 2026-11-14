@@ -127,9 +127,9 @@ describe('SpiderlyDataViewComponent — pending state', () => {
 });
 
 describe('SpiderlyDataViewComponent — pending overlay styling', () => {
-  // The ::ng-deep computed-style assert Angular/CLAUDE.md requires for any rule targeting
-  // markup this component does not author. The pin table is shared with the data table's
-  // suite, because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
+  // The ::ng-deep computed-style assert .claude/rules/library-scss.md requires for any rule
+  // targeting markup this component does not author. The pin table is shared with the data
+  // table's suite, because the declaration is: table-pending-veil() in styles/layout/_mixins.scss.
   it('keeps the veil rules matching PrimeNG mask markup', () => {
     // Un-awaited on purpose: the fixture returns with the first fetch pending, so the mask
     // is mounted.
