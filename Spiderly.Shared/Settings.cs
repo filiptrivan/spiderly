@@ -38,7 +38,7 @@ namespace Spiderly.Shared
         /// Global sliding-window permit limit for an authenticated API-key principal. Machine callers
         /// (SSR servers, static-site builds, partner integrations) aggregate many end users behind a few
         /// shared egress IPs, so each key gets its own partition with this budget instead of competing
-        /// for a per-IP bucket with unrelated clients behind the same egress.
+        /// for a caller-key bucket with unrelated clients behind the same egress.
         /// </summary>
         public int ApiKeyRequestsLimitNumber { get; set; } = 1200;
 

@@ -373,7 +373,7 @@ namespace Spiderly.Shared.Helpers
 
         /// <summary>
         /// The client IP as it is, or <see cref="UnknownIPAddress"/> when there isn't one: for a log line, or
-        /// for a key that counts each address alone. An anonymous caller's rate-limit key is
+        /// for a key that counts each address alone. A rate limit that counts per address keys on
         /// <see cref="GetCallerKey"/>. <see cref="GetIPAddress"/> is null on non-socket transports (in-memory
         /// test servers, Unix-domain sockets), and the limiter keys its partitions in a dictionary — a null
         /// key throws rather than degrading.
@@ -384,12 +384,12 @@ namespace Spiderly.Shared.Helpers
         }
 
         /// <summary>
-        /// The key an anonymous caller's rate limit counts under. An IPv4 address is its own key, and an
+        /// The key a rate limit counts a caller under when it counts per address: the global limiter's
+        /// anonymous partition and the blob-upload policy. An IPv4 address is its own key, and an
         /// IPv4-mapped IPv6 address gives its IPv4 address. Any other IPv6 address gives its /64 prefix,
-        /// <c>2001:db8:1:2::/64</c>. RFC 4291's 64-bit interface identifier makes a /64 the usual smallest
-        /// subnet, and a provider often gives one server a whole /64. A key per full address would give that
-        /// server 2^64 separate limits. No address gives <see cref="UnknownIPAddress"/>, as
-        /// <see cref="GetIPAddressOrUnknown"/> does.
+        /// <c>2001:db8:1:2::/64</c>. RFC 6177 assigns an end site (a home, an office, a server) at least one
+        /// /64, so a key per full address would give one site 2^64 separate limits. No address gives
+        /// <see cref="UnknownIPAddress"/>, as <see cref="GetIPAddressOrUnknown"/> does.
         /// </summary>
         public static string GetCallerKey(HttpContext httpContext)
         {

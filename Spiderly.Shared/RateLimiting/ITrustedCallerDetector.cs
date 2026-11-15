@@ -8,7 +8,7 @@ namespace Spiderly.Shared.RateLimiting
     /// arbitrary public client. When <c>AddRateLimiting()</c> is enabled and a
     /// consumer registers an implementation in DI, the global limiter routes a trusted
     /// request into its own large-budget partition
-    /// (<c>Settings.TrustedRequestsLimitNumber</c>) instead of the per-IP bucket a scraper
+    /// (<c>Settings.TrustedRequestsLimitNumber</c>) instead of the caller-key bucket a scraper
     /// would land in — so first-party build/SSR bursts are not throttled as abuse.
     /// </summary>
     /// <remarks>
@@ -25,7 +25,7 @@ namespace Spiderly.Shared.RateLimiting
     /// guarantee is removed the marker becomes client-spoofable and rate limiting can be
     /// bypassed — document the coupling at the implementation.
     /// </para>
-    /// <para>Optional: no registration ⇒ no trusted class ⇒ unchanged per-IP behavior.</para>
+    /// <para>Optional: no registration ⇒ no trusted class ⇒ unchanged caller-key behavior.</para>
     /// <example>
     /// <code>
     /// public sealed class EdgeMarkerTrustedCallerDetector : ITrustedCallerDetector

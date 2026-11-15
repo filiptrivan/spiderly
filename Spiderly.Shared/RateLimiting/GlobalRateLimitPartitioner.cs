@@ -28,7 +28,7 @@ namespace Spiderly.Shared.RateLimiting
         /// <item><b>Authenticated API-key principal</b> → a per-key partition. Reads the
         /// VALIDATED principal (stamped by the authentication middleware), never the raw
         /// API-key header — so only meaningful after <c>UseAuthentication</c>. Machine callers
-        /// aggregate many end users behind a few shared egress IPs, so a per-IP bucket both
+        /// aggregate many end users behind a few shared egress IPs, so a caller-key bucket both
         /// starves them and lets one machine consume unrelated clients' budget.</item>
         /// <item><b>Everyone else</b> → a partition per <see cref="Helper.GetCallerKey"/>: an IPv4
         /// address, or an IPv6 /64.</item>
