@@ -1305,8 +1305,8 @@ export class SpiderlyDataTableComponent
    *
    * It does not give screen-reader parity. `aria-busy` defers announcements and makes none: a
    * screen reader hears nothing when a page flip starts or ends. A live region is a library-wide
-   * decision (an `sr-only` utility and a seeded Transloco key). There is deliberately no opt-out
-   * input.
+   * decision (an `sr-only` utility and a key in the library's `i18n/en.json`). There is
+   * deliberately no opt-out input.
    */
   get isPending(): boolean {
     return this.loading;

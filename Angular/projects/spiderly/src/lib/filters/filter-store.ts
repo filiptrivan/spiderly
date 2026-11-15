@@ -55,10 +55,10 @@ interface OperatorWords {
 }
 
 /**
- * A person sees each key's VALUE from the app's `assets/i18n/<locale>.json`, never the key. So
+ * A person sees each key's VALUE from the library's `spiderly` scope, never the key. So
  * code that matches an option (an e2e test, conditional logic) matches its rendered label, and a
  * key renamed without its value breaks that code silently. `TsContractMirrorTests.cs` fails when
- * a key here has no value in the init template's English file.
+ * a key here has no value in the library's `i18n/en.json`.
  */
 const OPERATOR_WORDS: Record<
   FilterValueKind,
