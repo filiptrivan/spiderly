@@ -67,6 +67,18 @@ namespace Spiderly.Shared.Tests
         }
 
         [Fact]
+        public void Anonymous_callers_in_one_ipv6_64_share_one_partition()
+        {
+            GlobalRateLimitPartition first = GlobalRateLimitPartitioner.Resolve(
+                ContextFrom("2001:db8:1:2::1"), Budgets, trustedCallerDetector: null);
+            GlobalRateLimitPartition second = GlobalRateLimitPartitioner.Resolve(
+                ContextFrom("2001:db8:1:2::2"), Budgets, trustedCallerDetector: null);
+
+            Assert.Equal("2001:db8:1:2::/64", first.Key);
+            Assert.Equal(first.Key, second.Key);
+        }
+
+        [Fact]
         public void Untrusted_detector_falls_through_to_per_ip()
         {
             // A registered detector that returns false must not disturb the anonymous/per-IP path.

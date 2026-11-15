@@ -18,13 +18,17 @@ namespace Spiderly.Shared
         /// <summary>Storefront/admin origin allowed by CORS.</summary>
         public string FrontendUrl { get; set; } = "http://localhost:4200";
 
-        /// <summary>Global sliding-window permit limit per IP.</summary>
+        /// <summary>
+        /// Global sliding-window permit limit per anonymous caller (<see cref="Helpers.Helper.GetCallerKey"/>).
+        /// </summary>
         public int RequestsLimitNumber { get; set; } = 240;
 
         /// <summary>Global sliding-window length, in seconds.</summary>
         public int RequestsLimitWindow { get; set; } = 60;
 
-        /// <summary>Blob-upload sliding-window permit limit per IP.</summary>
+        /// <summary>
+        /// Blob-upload sliding-window permit limit per caller (<see cref="Helpers.Helper.GetCallerKey"/>).
+        /// </summary>
         public int BlobUploadRequestsLimitNumber { get; set; } = 20;
 
         /// <summary>Blob-upload sliding-window length, in seconds.</summary>
