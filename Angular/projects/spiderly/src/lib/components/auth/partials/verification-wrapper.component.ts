@@ -21,10 +21,12 @@ import { SpiderlyMessageService } from '../../../services/spiderly-message.servi
 import { BaseFormComponent } from '../../base-form/base-form.component';
 import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-control';
 import { SpiderlyPanelsModule } from '../../spiderly-panels/spiderly-panels.module';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'verification-wrapper',
   templateUrl: './verification-wrapper.component.html',
+  providers: [provideSpiderlyScope()],
   imports: [
     CommonModule,
     FormsModule,

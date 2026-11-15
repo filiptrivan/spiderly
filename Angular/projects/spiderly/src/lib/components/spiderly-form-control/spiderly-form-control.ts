@@ -130,7 +130,7 @@ export class SpiderlyFormArray<
   public getCrudMenuForOrderedData = () => {
     let crudMenuForOrderedData: MenuItem[] = [
       {
-        label: this.translocoService.translate('Remove'),
+        label: this.translocoService.translate('spiderly.Remove'),
         icon: 'pi pi-minus',
         command: () => {
           this.baseFormService.removeFormControlFromTheFormArray(
@@ -140,7 +140,7 @@ export class SpiderlyFormArray<
         },
       },
       {
-        label: this.translocoService.translate('AddAbove'),
+        label: this.translocoService.translate('spiderly.AddAbove'),
         icon: 'pi pi-arrow-up',
         command: () => {
           this.baseFormService.addNewFormGroupToFormArray(
@@ -152,7 +152,7 @@ export class SpiderlyFormArray<
         },
       },
       {
-        label: this.translocoService.translate('AddBelow'),
+        label: this.translocoService.translate('spiderly.AddBelow'),
         icon: 'pi pi-arrow-down',
         command: () => {
           this.baseFormService.addNewFormGroupToFormArray(

@@ -38,7 +38,7 @@ export class SpiderlyColorPickerComponent
 
     if (this.control.value == null)
       this.placeholder = this.translocoService.translate(
-        'ColorPickerPlaceholder',
+        'spiderly.ColorPickerPlaceholder',
       );
 
     super.ngOnInit();

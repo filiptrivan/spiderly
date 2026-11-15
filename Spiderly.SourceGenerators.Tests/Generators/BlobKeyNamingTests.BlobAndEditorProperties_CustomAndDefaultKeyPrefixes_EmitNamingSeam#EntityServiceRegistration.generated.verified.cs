@@ -19,8 +19,8 @@ namespace TestApp.Business.Services
             services.AddTransient<EntityServiceDependencies>();
             services.AddTransient<AuthorizationServiceGenerated>();
 
-            services.AddTransient<ProductMediaService>();
-            services.AddTransient<ProductMediaServiceGenerated>(sp => sp.GetRequiredService<ProductMediaService>());
+            services.AddTransient<global::TestApp.Business.Services.ProductMediaService>();
+            services.AddTransient<ProductMediaServiceGenerated>(sp => sp.GetRequiredService<global::TestApp.Business.Services.ProductMediaService>());
 
             return services;
         }

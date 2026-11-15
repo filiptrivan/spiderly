@@ -89,7 +89,7 @@ export class BasePage {
   //   filter-editor-apply    — the commit button; every kind commits through it
   //   filter-chip            — one applied constraint
   //   filter-bar-clear       — Clear filters (renders only while something is applied)
-  // Operator labels are the translocoService output (en.json): 'MoreThan' key → 'More than'.
+  // Operator labels are the library's own English (its i18n/en.json): 'MoreThan' key → 'More than'.
   // PrimeNG bits that remain: .p-datatable-mask (loading overlay),
   // .p-paginator-page-selected (selected pager page).
 

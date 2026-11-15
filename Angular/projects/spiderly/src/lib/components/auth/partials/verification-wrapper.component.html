@@ -7,7 +7,7 @@
       @if (verificationTokenRequestFormGroup != null) {
         <spiderly-panel>
           <panel-header
-            [title]="t('AccountVerificationHeader')"
+            [title]="t('spiderly.AccountVerificationHeader')"
             [showBigTitle]="true"
             icon="pi pi-envelope"
           ></panel-header>
@@ -16,11 +16,11 @@
             <form class="spiderly-grid">
               <div class="col-8">
                 <div style="font-size: 17.5px">
-                  {{ t("AccountVerificationTitle") }}
+                  {{ t("spiderly.AccountVerificationTitle") }}
                 </div>
               </div>
               <div class="col-8">
-                {{ t("AccountVerificationDescription", { email: email }) }}
+                {{ t("spiderly.AccountVerificationDescription", { email: email }) }}
               </div>
               <div class="col-8">
                 <!--
@@ -42,7 +42,7 @@
               <div class="col-8">
                 <spiderly-button
                   (onClick)="codeSubmit()"
-                  [label]="t('Submit')"
+                  [label]="t('spiderly.Submit')"
                   icon="pi pi-verified"
                   type="submit"
                 ></spiderly-button>
@@ -54,7 +54,7 @@
             <a
               pButton
               class="p-button-link"
-              [label]="t('GoToGmail')"
+              [label]="t('spiderly.GoToGmail')"
               icon="pi pi-external-link"
               href="https://mail.google.com/mail/u/"
               target="_blank"
@@ -63,7 +63,7 @@
             <a
               pButton
               class="p-button-link"
-              [label]="t('GoToYahoo')"
+              [label]="t('spiderly.GoToYahoo')"
               icon="pi pi-external-link"
               href="https://mail.yahoo.com/d/folders/1/"
               target="_blank"
@@ -72,9 +72,9 @@
           </panel-footer>
           <panel-footer>
             <div>
-              {{ t("ResendVerificationCodeFirstPart") }}
+              {{ t("spiderly.ResendVerificationCodeFirstPart") }}
               <a class="link" (click)="resendVerificationToken()">{{
-                t("ResendVerificationCodeLinkSecondPart")
+                t("spiderly.ResendVerificationCodeLinkSecondPart")
               }}</a>
             </div>
           </panel-footer>

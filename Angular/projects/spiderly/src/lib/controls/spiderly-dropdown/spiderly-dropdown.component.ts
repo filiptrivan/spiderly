@@ -35,9 +35,9 @@ export class SpiderlyDropdownComponent
   override ngOnInit() {
     if (this.isBooleanPicker) {
       this.options = [
-        { displayName: this.translocoService.translate('True'), id: true },
-        { displayName: this.translocoService.translate('False'), id: false },
-        { displayName: this.translocoService.translate('Empty'), id: null },
+        { displayName: this.translocoService.translate('spiderly.True'), id: true },
+        { displayName: this.translocoService.translate('spiderly.False'), id: false },
+        { displayName: this.translocoService.translate('spiderly.Empty'), id: null },
       ];
     }
 

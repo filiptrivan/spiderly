@@ -16,7 +16,7 @@ export class BaseDropdownControl extends BaseControl {
   @Input() showAddon: boolean = false;
   @Input() addonIcon: string = 'pi pi-ellipsis-h';
   @Input() override placeholder: string =
-    this.translocoService.translate('SelectFromTheList');
+    this.translocoService.translate('spiderly.SelectFromTheList');
   @Output() onButtonClick: EventEmitter<null> = new EventEmitter();
 
   constructor(protected override translocoService: TranslocoService) {

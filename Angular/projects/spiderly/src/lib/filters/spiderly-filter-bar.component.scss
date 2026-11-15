@@ -1,9 +1,9 @@
 @use "../styles/layout/mixins" as *;
 
 // Not teleported, so `:host` scoping holds here — unlike the column chooser, whose rules must sit
-// at top level because PrimeNG moves its popover into document.body (Angular/CLAUDE.md → overlay
-// styling). Colours come from the PrimeNG theme's variables so the bar follows the admin's theme
-// rather than carrying a second palette.
+// at top level because PrimeNG moves its popover into document.body
+// (.claude/rules/library-scss.md). Colours come from the PrimeNG theme's variables so the bar
+// follows the admin's theme rather than carrying a second palette.
 :host {
   display: block;
 }
@@ -71,9 +71,9 @@
 }
 
 // The add menu is teleported into document.body with its popover, so its rules must sit at TOP
-// LEVEL — `:host` nesting dies on teleport, exactly as the column chooser's do (Angular/CLAUDE.md
-// → overlay styling). The editor is in-template and could be nested, but the two are kept together
-// so nobody has to remember which is which.
+// LEVEL — `:host` nesting dies on teleport, exactly as the column chooser's do
+// (.claude/rules/library-scss.md). The editor is in-template and could be nested, but the two are
+// kept together so nobody has to remember which is which.
 .filter-add-menu {
   display: flex;
   flex-direction: column;
@@ -171,7 +171,7 @@ button.sort-chip {
 }
 
 // Teleported with its popover into document.body, so TOP LEVEL like the add menu above it
-// (Angular/CLAUDE.md → overlay styling); pinned by the "sort menu styles survive the body
+// (.claude/rules/library-scss.md); pinned by the "sort menu styles survive the body
 // teleport" spec. Inherits .filter-add-option for the row look.
 .sort-menu-option {
   display: flex;

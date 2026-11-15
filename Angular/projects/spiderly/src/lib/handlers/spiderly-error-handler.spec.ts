@@ -38,8 +38,8 @@ describe('SpiderlyErrorHandler', () => {
 
     expect(console.error).toHaveBeenCalledWith(error);
     expect(messageService.errorMessage).toHaveBeenCalledWith(
-      'UnexpectedErrorDetails',
-      'UnexpectedErrorTitle',
+      'spiderly.UnexpectedErrorDetails',
+      'spiderly.UnexpectedErrorTitle',
     );
   });
 

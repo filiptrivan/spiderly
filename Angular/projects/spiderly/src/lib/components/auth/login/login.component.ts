@@ -20,10 +20,12 @@ import { SpiderlyFormGroup } from '../../spiderly-form-control/spiderly-form-con
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 import { ExternalLoginComponent } from '../external-login/external-login.component';
 import { LoginVerificationComponent } from '../partials/login-verification.component';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-login',
   templateUrl: './login.component.html',
+  providers: [provideSpiderlyScope()],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -78,7 +80,7 @@ export class SpiderlyLoginComponent extends BaseFormComponent implements OnInit 
     }
     this.authService.externalAuthErrorCode = null; // show once
     const messageKey =
-      code === 'expired' ? 'ExternalLoginExpiredDetails' : 'ExternalLoginFailedDetails';
+      code === 'expired' ? 'spiderly.ExternalLoginExpiredDetails' : 'spiderly.ExternalLoginFailedDetails';
     this.messageService.warningMessage(this.translocoService.translate(messageKey));
   }
 

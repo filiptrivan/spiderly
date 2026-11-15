@@ -205,6 +205,8 @@ cols: Column<ProductDTO>[] = [
 ];
 ```
 
+A `boolean` column shows `true` as "Yes", and `false` and null as "No", since a checkbox's null means false. A `bool?` whose null means "not set" (inherit, unknown) declares `triState: true`, and its null shows as an empty cell.
+
 Headers are click-to-sort by default; disable with `sortable: false`. Columns whose `field` ends in `CommaSeparated` are auto-disabled — the backend generates no sort case for collection columns and rejects unknown sort fields with a 400, so the table never offers the click.
 
 The table lays its columns out from their **declared widths, never from the rows on screen** (`table-layout: fixed`). The browser default would size every column from the content of the page currently rendered, so a column is one width on this page and another on the next, and a filter — which narrows the variety of values in the column it filters — shifts the whole grid under an operator who is scanning it.
@@ -448,20 +450,26 @@ Key properties: `apiUrl`, `frontendUrl`, `GoogleClientId`, `companyName`, `prima
 
 ### AuthServiceBase
 
-Override hooks for custom post-auth behavior:
+Override hooks for custom post-auth behavior. Each hook is an arrow-function property, so an
+override replaces the base's own hook (there is no `super` call) and repeats the base's work:
+
+- `onAfterLogout`: the base clears the permission codes and opens the login page. An override
+  that skips this leaves a signed-out user on the page they were on.
+- `onAfterRefreshToken`: the base loads the permission codes after every authenticated refresh,
+  the page load's included. An override that skips this leaves the menu with no permission codes
+  after a reload.
 
 ```typescript
 export class AuthService extends AuthServiceBase {
-  override onAfterLoginExternal = () => {
-    this.analyticsService.trackLogin("google");
-  };
-
   override onAfterLogout = () => {
     this.cacheService.clear();
+    this._currentUserPermissionCodes.next(null); // the base's work
+    this.router.navigate([this.config.loginSlug]); // the base's work
   };
 
   override onAfterRefreshToken = () => {
-    this.syncPermissions();
+    this.analyticsService.trackSessionRefresh();
+    this.setCurrentUserPermissionCodes().subscribe(); // the base's work
   };
 }
 ```
