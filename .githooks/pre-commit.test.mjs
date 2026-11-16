@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,13 +22,24 @@ const env = {
   GIT_COMMITTER_NAME: 'Fixture', GIT_COMMITTER_EMAIL: 'fixture@example.com',
 };
 
-function run(cwd, cmd, args) {
-  const r = spawnSync(cmd, args, { cwd, env, encoding: 'utf8' });
+function run(cwd, cmd, args, extraEnv = {}) {
+  const r = spawnSync(cmd, args, { cwd, env: { ...env, ...extraEnv }, encoding: 'utf8' });
   return { code: r.status, out: r.stdout + r.stderr };
 }
 
+const gitConfig = ['-c', 'core.hooksPath=.githooks', '-c', 'commit.gpgsign=false'];
+
 function git(cwd, ...args) {
-  return run(cwd, 'git', ['-c', 'core.hooksPath=.githooks', '-c', 'commit.gpgsign=false', ...args]);
+  return run(cwd, 'git', [...gitConfig, ...args]);
+}
+
+// A fixture holds no .NET project, so the contract-mirror block's `dotnet test` cannot run in it. This
+// stub prints its arguments and passes. Give the returned env to the commit, beside the fixture.
+function stubDotnet(root) {
+  const bin = join(dirname(root), 'bin');
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'dotnet'), '#!/bin/sh\necho "dotnet $*"\n', { mode: 0o755 });
+  return { PATH: `${bin}${delimiter}${env.PATH}` };
 }
 
 function write(root, path, text) {
@@ -281,9 +292,10 @@ test('a staged en.json lints the whole library, down to a template that reads a 
   write(root, en, '{}\n');
   stage(root, en);
 
-  const r = git(root, 'commit', '-m', 'drop a key');
+  const r = run(root, 'git', [...gitConfig, 'commit', '-m', 'drop a key'], stubDotnet(root));
 
   assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /dotnet test Spiderly\.Shared\.Tests --filter TsContractMirrorTests/, 'en.json is a contract mirror too');
   assert.doesNotMatch(r.out, /a lint rule's own test failed/);
   assert.match(r.out, /return-button\.component\.html/);
   assert.match(r.out, /"spiderly\.Return" has no English/);
