@@ -84,11 +84,13 @@ describe('createFilterStore — restoring persisted filters', () => {
       status: numberFilter({ label: 'Status' }),
       stock: numberFilter({ label: 'Stock' }),
     });
+    const errors = spyOn(console, 'error');
     filters.restore(JSON.parse(snapshot));
 
     const payload = filters.toFilterPayload();
     expect(payload['stock']).toEqual([{ matchMode: MatchModeCodes.GreaterThan, value: 5 }]);
     expect(payload['status']).toBeUndefined();
+    expect(errors).toHaveBeenCalledOnceWith(jasmine.stringMatching(/'status'.*'contains'/));
   });
 });
 
