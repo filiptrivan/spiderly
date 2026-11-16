@@ -1,13 +1,13 @@
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { readStoredJson, writeStoredJson } from '../../services/web-storage';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 
 /** The table's inputs that say where its state persists. */
-export interface TableStateStorageHost {
-  readonly stateKey?: string;
-  readonly additionalFilterIdLong: number;
-  readonly stateStorage: 'session' | 'local';
-}
+export type TableStateStorageHost = Pick<
+  SpiderlyDataTableComponent,
+  'stateKey' | 'additionalFilterIdLong' | 'stateStorage'
+>;
 
 /**
  * A piece of table state that each view keeps apart. `columns` holds the visibility overrides,

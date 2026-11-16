@@ -1,21 +1,27 @@
 import { untracked } from '@angular/core';
 import { FilterRule } from '../../entities/filter-rule';
 import { createFilterStore, FilterSource } from '../../filters/filter-store';
-import { LayoutScope } from './column-layout';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableStateStorage } from './table-state-storage';
 import { TableView } from './table-view';
 
 /** The table's inputs that declare its views and hold its filters. */
-export interface ActiveViewHost {
-  readonly views?: TableView[];
-  readonly filters?: FilterSource;
+export type ActiveViewHost = Pick<SpiderlyDataTableComponent, 'views' | 'filters'>;
+
+/**
+ * What the layout and the sort read of the active view. Its id scopes their stored state, and
+ * its declaration gives their defaults.
+ */
+export interface ViewScope {
+  readonly id: string | null;
+  view(): TableView | undefined;
 }
 
 /**
- * Which of a `spiderly-data-table`'s views is active, how a reload and a late `[views]` find it
- * again, and the filters that entering a view applies. Its id scopes the layout and sort keys.
+ * Which of a `spiderly-data-table`'s views is active. It finds that view again after a reload
+ * and after a late `[views]`. It also applies the filters of the view that the table enters.
  */
-export class ActiveView implements LayoutScope {
+export class ActiveView implements ViewScope {
   /**
    * The view currently selected. Seeded from the first view in `ngOnInit` — then overridden by
    * `restoreActiveView`, so a reload lands where the operator was — and never left null on a
@@ -80,12 +86,11 @@ export class ActiveView implements LayoutScope {
   /**
    * The second half of `restoreActiveView`: the view to adopt, when a later `[views]` change
    * brings a stored view that did not exist at init. The table adopts it through `selectView`,
-   * so it gets the same
-   * stored-wins/transient/layout/requery semantics a click would have had. There is no parked
-   * copy of the stored id — the key itself is re-read, and because every explicit pick
-   * overwrites it, the operator's own choice wins by construction. Accepted cost of adopting
-   * late instead of holding the first request: a brief flash of the seeded view's rows and a
-   * second request when the late view lands.
+   * so it gets the same stored-wins/transient/layout/requery semantics a click would have had.
+   * There is no parked copy of the stored id — the key itself is re-read, and because every
+   * explicit pick overwrites it, the operator's own choice wins by construction. Accepted cost of
+   * adopting late instead of holding the first request: a brief flash of the seeded view's rows
+   * and a second request when the late view lands.
    *
    * Only a view this change BROUGHT is adopted. A consumer rebuilds `[views]` on every list load
    * to refresh `TableView.count`, and under `stateStorage: 'local'` the key can name a view the
@@ -103,7 +108,7 @@ export class ActiveView implements LayoutScope {
   }
 
   persistAppliedFilters(): void {
-    if (!this.host.filters) return;
+    if (!this.storage.persists || !this.host.filters) return;
 
     const snapshot = this.host.filters.snapshot();
 

@@ -88,7 +88,7 @@
             ></button>
           </div>
         </div>
-        <!-- ONE menu for every column, with the target held in `menuColumn`. Rendering its items
+        <!-- ONE menu for every column, with the target held in `HeaderMenu.column`. Rendering its items
              inside an @if keyed on the column would put them inside the popover's projected
              content, and PrimeNG does not re-project content an @if has destroyed — the filter
              bar's editor lost a whole afternoon to exactly that. -->
@@ -250,20 +250,20 @@
               <span class="selection-count">({{ rowsSelectedNumber }})</span>
             </div>
           </th>
-          <ng-container *ngFor="let col of visibleCols; trackBy: layout.colTrackByFn">
+          <ng-container *ngFor="let col of layout.visibleCols; trackBy: layout.colTrackByFn">
             <th
               #headerCell
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="!isColumnSortable(col)"
-              [style.width]="getColWidth(col)"
+              [style.width]="layout.getColWidth(col)"
               [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
               [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
-              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
+              [style.left]="frozenEdge.columnLeft(col)"
               [attr.draggable]="hasLazyLoad && !col.lockVisible ? true : null"
-              (mousedown)="headerDrag.onHeaderMouseDown($event)"
-              (dragstart)="headerDrag.onHeaderDragStart(col, $event)"
-              (dragover)="headerDrag.onHeaderDragOver(col, $event)"
-              (drop)="headerDrag.onHeaderDrop(col, $event)"
+              (mousedown)="headerDrag.mouseDown($event)"
+              (dragstart)="headerDrag.dragStart(col, $event)"
+              (dragover)="headerDrag.dragOver(col, $event)"
+              (drop)="headerDrag.drop(col, $event)"
             >
               <!-- Ours, not PrimeNG's: enabling [resizableColumns] makes it persist widths by
                    th:nth-child INDEX into our own stateKey, which slides every stored width onto
@@ -345,15 +345,15 @@
               [binary]="true"
             ></p-checkbox>
           </td>
-          <ng-container *ngFor="let col of visibleCols; trackBy: layout.colTrackByFn">
+          <ng-container *ngFor="let col of layout.visibleCols; trackBy: layout.colTrackByFn">
             <td
               [style]="cells.getStyleForBodyColumn(col)"
               [class.clickable]="col.onCellClick"
               [class.row-interactive]="col.onCellClick"
               [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
               [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
-              [class.cell-wrap]="isColumnWrapped(col)"
-              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
+              [class.cell-wrap]="layout.isColumnWrapped(col)"
+              [style.left]="frozenEdge.columnLeft(col)"
               (click)="rowActions.onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"
             >
@@ -386,7 +386,7 @@
                 [ngTemplateOutletContext]="{
                   $implicit: rowData,
                   value: rowData[col.field],
-                  displayValue: getRowData(rowData, col),
+                  displayValue: cells.getRowData(rowData, col),
                   col: col
                 }"
               ></ng-container>
@@ -396,7 +396,7 @@
               class="row-interactive"
               [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
               [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
-              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
+              [style.left]="frozenEdge.columnLeft(col)"
             >
               <spiderly-number
                 [control]="cells.getFormArrayControlByIndex(col.field, rowData.index)"
@@ -410,7 +410,7 @@
         <tr>
           <td
             [attr.colspan]="
-              visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
+              layout.visibleCols.length + (selectionMode === 'multiple' ? 1 : 0)
             "
           >
             {{ t("spiderly.NoRecordsFound") }}

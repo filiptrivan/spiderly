@@ -1,10 +1,12 @@
-import { Table } from 'primeng/table';
-import { FilterSource } from '../../filters/filter-store';
 import { ActiveView } from './active-view';
 import { ColumnLayout } from './column-layout';
 import { PageLoader } from './page-loader';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableSort } from './table-sort';
 import { TableView } from './table-view';
+
+/** The table's grid and store, which entering a view sorts and filters. */
+export type ViewSwitchHost = Pick<SpiderlyDataTableComponent, 'table' | 'filters'>;
 
 /**
  * Entering a `spiderly-data-table` view: its layout, its sort and its filters go on the grid, and
@@ -13,7 +15,7 @@ import { TableView } from './table-view';
  */
 export class ViewSwitch {
   constructor(
-    private readonly host: { readonly table: Table; readonly filters?: FilterSource },
+    private readonly host: ViewSwitchHost,
     private readonly activeView: ActiveView,
     private readonly layout: ColumnLayout,
     private readonly sort: TableSort,

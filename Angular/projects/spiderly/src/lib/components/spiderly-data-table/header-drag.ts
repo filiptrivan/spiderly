@@ -12,7 +12,7 @@ import { Column } from './data-table-column';
  * scrolled off the right is unreachable this way, and there is no keyboard path at all. The menu
  * carries both.
  *
- * `onHeaderMouseDown` is the arming rule; the drop rule is `ColumnLayout.canDropOn`.
+ * `mouseDown` is the arming rule; the drop rule is `ColumnLayout.canDropOn`.
  */
 export class HeaderDrag {
   private draggedColumn: Column | null = null;
@@ -22,7 +22,7 @@ export class HeaderDrag {
 
   constructor(private readonly layout: ColumnLayout) {}
 
-  onHeaderMouseDown(event: MouseEvent): void {
+  mouseDown(event: MouseEvent): void {
     const target = event.target as HTMLElement;
 
     this.headerDragArmed = !target.closest(
@@ -30,7 +30,7 @@ export class HeaderDrag {
     );
   }
 
-  onHeaderDragStart(col: Column, event: DragEvent): void {
+  dragStart(col: Column, event: DragEvent): void {
     if (col.lockVisible || !this.headerDragArmed) {
       event.preventDefault();
       return;
@@ -40,11 +40,11 @@ export class HeaderDrag {
     event.dataTransfer?.setData('text/plain', col.field ?? '');
   }
 
-  onHeaderDragOver(col: Column, event: DragEvent): void {
+  dragOver(col: Column, event: DragEvent): void {
     if (this.layout.canDropOn(col)) event.preventDefault();
   }
 
-  onHeaderDrop(col: Column, event: DragEvent): void {
+  drop(col: Column, event: DragEvent): void {
     event.preventDefault();
 
     const dragged = this.draggedColumn;

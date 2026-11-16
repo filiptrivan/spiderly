@@ -3,7 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { Observable } from 'rxjs';
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import {
   DeleteConfirmationData,
@@ -12,20 +11,22 @@ import {
 import { CellDisplay } from './cell-display';
 import { Action, ActionClickEvent, Column } from './data-table-column';
 import { RowSelection } from './row-selection';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 
 /** The table's inputs that say where a row leads and how a row is deleted, and its reload. */
-export interface RowActionsHost {
-  readonly idField: string;
-  readonly navigateOnRowClick: boolean;
-  readonly rowNavigationPath: string;
-  readonly deleteItemFromTableObservableMethod: (rowId: number) => Observable<any>;
-  readonly deleteListFromTableObservableMethod: (ids: number[]) => Observable<any>;
-  reload(): void;
-}
+export type RowActionsHost = Pick<
+  SpiderlyDataTableComponent,
+  | 'idField'
+  | 'navigateOnRowClick'
+  | 'rowNavigationPath'
+  | 'deleteItemFromTableObservableMethod'
+  | 'deleteListFromTableObservableMethod'
+  | 'reload'
+>;
 
 /**
- * What a click in a `spiderly-data-table`'s body does: open a row's details, run a cell's or an
- * action's callback, or delete rows after the operator confirms. Construct it in the table's
+ * What a click in a `spiderly-data-table`'s body does. It opens a row's details, runs a cell's or
+ * an action's callback, or deletes rows after the operator confirms. Construct it in the table's
  * injection context, for the router, the dialog and the messages.
  */
 export class RowActions {

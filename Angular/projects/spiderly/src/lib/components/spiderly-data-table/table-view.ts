@@ -1,5 +1,4 @@
-// A saved question of a `spiderly-data-table`, as a consumer declares it. The component file
-// re-exports it, so the old import path works.
+// A saved question of a `spiderly-data-table`, as a consumer declares it.
 import { SortMeta } from 'primeng/api';
 
 /**

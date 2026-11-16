@@ -38,7 +38,6 @@ import { FilterSource, SortKeyLabel, SortPickOption } from '../../filters/filter
 import { SpiderlyFilterTemplateDirective } from '../../directives/spiderly-filter-template.directive';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ConfigServiceBase } from '../../services/config.service.base';
-import { exportListToExcel } from '../../services/helper-functions';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 import { ActiveView } from './active-view';
@@ -59,8 +58,8 @@ import { TableStateStorage } from './table-state-storage';
 import { TableView } from './table-view';
 import { ViewSwitch } from './view-switch';
 
-// The names this file exported before its jobs moved to their own files; `public-api.ts` and
-// consumers still import them from here.
+// The names this file exported before its jobs moved out. `public-api.ts` and consumers import
+// them from here.
 export { Action, Column } from './data-table-column';
 export type { ActionClickEvent, CellClickEvent } from './data-table-column';
 export { AllClickEvent, RowClickEvent } from './row-selection';
@@ -101,8 +100,9 @@ export class SpiderlyDataTableComponent
 {
   @ViewChild('dt') table: Table;
 
-  // The table's jobs, one module each. A module reads the inputs below through the `this` it is
-  // handed, so it sees a later input change as the table does.
+  // The table's jobs, one module each. Each module reads the inputs below through `this`, so it
+  // sees each input change. A field initializer runs in order, so a module comes after the
+  // modules and queries that it takes.
   private readonly storage = new TableStateStorage(this);
   protected readonly activeView = new ActiveView(this, this.storage);
   protected readonly layout = new ColumnLayout(
@@ -212,6 +212,9 @@ export class SpiderlyDataTableComponent
   get activeViewId(): string | null {
     return this.activeView.id;
   }
+  set activeViewId(id: string | null) {
+    this.activeView.id = id;
+  }
 
   /** Whether the paginator is shown. Pass only when `hasLazyLoad === false`. Defaults to `true`. */
   @Input() showPaginator: boolean = true;
@@ -240,8 +243,8 @@ export class SpiderlyDataTableComponent
 
   lastLazyLoadEvent: TableLazyLoadEvent;
 
-  // The selection's state lives in `RowSelection`; these are its inputs and the fields that
-  // consumers read.
+  // The selection's state is in `RowSelection`. These are its inputs, and the members that
+  // consumers use.
   @Input() set newlySelectedItems(ids: number[]) {
     this.selection.newlySelectedItems = ids;
   }
@@ -418,7 +421,7 @@ export class SpiderlyDataTableComponent
     return this.activeView.viewFilterPayload(viewId);
   }
 
-  // Questions a consumer or a spec asks the table; each module's doc tells its answer.
+  // The members that a consumer or a spec calls. The module behind each one documents it.
   readonly isColumnSortable = isColumnSortable;
   readonly isDataColumn = isDataColumn;
 
@@ -454,6 +457,14 @@ export class SpiderlyDataTableComponent
     this.selection.selectAll(checked);
   }
 
+  rowSelect(id: number): void {
+    this.selection.rowSelect(id);
+  }
+
+  rowUnselect(id: number): void {
+    this.selection.rowUnselect(id);
+  }
+
   /** Whether a fetch is in flight: `PageLoader.isPending`. */
   get isPending(): boolean {
     return this.pageLoader.isPending;
@@ -476,15 +487,8 @@ export class SpiderlyDataTableComponent
     this.columnResize.abort();
   }
 
-  showActions(): boolean {
-    return this.cols.some((x) => x.actions?.length > 0);
-  }
-
   exportListToExcel() {
-    let filter: Filter = this.lastLazyLoadEvent as unknown as Filter;
-    filter.additionalFilterIdLong = this.additionalFilterIdLong;
-
-    exportListToExcel(this.exportListToExcelObservableMethod, filter);
+    this.pageLoader.exportListToExcel();
   }
 
   /**

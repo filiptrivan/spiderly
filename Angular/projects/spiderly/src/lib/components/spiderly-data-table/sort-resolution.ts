@@ -1,9 +1,9 @@
 import { SortMeta } from 'primeng/api';
-import { FilterSource } from '../../filters/filter-store';
-import { ColumnLayout, LayoutScope } from './column-layout';
+import type { ViewScope } from './active-view';
+import { ColumnLayout } from './column-layout';
 import { Column } from './data-table-column';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableStateStorage } from './table-state-storage';
-import { TableView } from './table-view';
 
 /** Order matters: `[a, b]` and `[b, a]` ask the server for different orderings. */
 export function sortMetaEquals(a: SortMeta[], b: SortMeta[]): boolean {
@@ -29,24 +29,21 @@ export function isColumnSortable(col: Column): boolean {
 }
 
 /** The table's inputs that decide which sort applies. */
-export interface SortResolutionHost {
-  readonly cols: Column[];
-  readonly filters?: FilterSource;
-  readonly views?: TableView[];
-  readonly defaultSortField?: string;
-  readonly defaultSortOrder: 1 | -1;
-}
+export type SortResolutionHost = Pick<
+  SpiderlyDataTableComponent,
+  'cols' | 'filters' | 'views' | 'defaultSortField' | 'defaultSortOrder'
+>;
 
 /**
- * Which sort a `spiderly-data-table` applies: the operator's stored override for the active view,
- * else the view's declared sort, else the table default, each cleared of what the backend cannot
- * sort. A null answer means "unsorted".
+ * Which sort a `spiderly-data-table` applies. The operator's stored override for the active view
+ * comes first, then the view's declared sort, then the table default. Each loses the fields that
+ * the backend cannot sort. A null answer means "unsorted".
  */
 export class SortResolution {
   constructor(
     private readonly host: SortResolutionHost,
     private readonly storage: TableStateStorage,
-    private readonly scope: LayoutScope,
+    private readonly scope: ViewScope,
     private readonly layout: ColumnLayout,
   ) {}
 

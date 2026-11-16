@@ -1,32 +1,26 @@
 import { formatDate, formatNumber } from '@angular/common';
-import { inject, LOCALE_ID, QueryList, TemplateRef } from '@angular/core';
+import { inject, LOCALE_ID, TemplateRef } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
-import {
-  CellTemplateContext,
-  SpiderlyCellTemplateDirective,
-} from '../../directives/spiderly-cell-template.directive';
+import { CellTemplateContext } from '../../directives/spiderly-cell-template.directive';
 import {
   getHtmlImgDisplayString64,
   parseDateOnlyLocal,
 } from '../../services/helper-functions';
 import { SpiderlyFormControl } from '../spiderly-form-control/spiderly-form-control';
 import { Action, Column } from './data-table-column';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 
 /** The table's projected cell templates, and the inputs an editable cell reads its control from. */
-export interface CellDisplayHost {
-  readonly cellTemplates: QueryList<SpiderlyCellTemplateDirective>;
-  readonly getFormControl: (
-    formControlName: string,
-    index: number,
-    additionalIndexes?: any,
-  ) => SpiderlyFormControl;
-  readonly additionalIndexes: any;
-}
+export type CellDisplayHost = Pick<
+  SpiderlyDataTableComponent,
+  'cellTemplates' | 'getFormControl' | 'additionalIndexes'
+>;
 
 /**
- * How a `spiderly-data-table` shows a cell: the consumer's template or its formatted value by the
- * column's `filterType`, its alignment, an editable cell's control, and its action icons.
- * Construct it in the table's injection context, for the locale and `TranslocoService`.
+ * How a `spiderly-data-table` shows a cell. A cell shows the consumer's template, or its value
+ * formatted by the column's `filterType`. This module also gives a cell its alignment, an
+ * editable cell its control, and an action its icon. Construct it in the table's injection
+ * context, for the locale and `TranslocoService`.
  */
 export class CellDisplay {
   private readonly locale = inject(LOCALE_ID);

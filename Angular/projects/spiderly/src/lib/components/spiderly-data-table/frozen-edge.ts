@@ -1,6 +1,10 @@
 import { inject, NgZone } from '@angular/core';
 import { ColumnLayout } from './column-layout';
 import { Column } from './data-table-column';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
+
+/** The table's input that says whether a checkbox column renders. */
+export type FrozenEdgeHost = Pick<SpiderlyDataTableComponent, 'selectionMode'>;
 
 /**
  * The pinned left edge of a `spiderly-data-table`: the checkbox column, then the identity column,
@@ -32,9 +36,7 @@ export class FrozenEdge {
   private selectionWidthObserver?: ResizeObserver;
 
   constructor(
-    private readonly host: {
-      readonly selectionMode: 'single' | 'multiple' | undefined | null;
-    },
+    private readonly host: FrozenEdgeHost,
     private readonly layout: ColumnLayout,
   ) {}
 
@@ -63,8 +65,13 @@ export class FrozenEdge {
     return !this.layout.visibleCols.some((col) => this.isColumnFrozen(col));
   }
 
-  /** A frozen column starts after the checkbox column, when there is one. */
-  frozenColumnOffset(): string {
+  /**
+   * A frozen column's `left`: it starts after the checkbox column, when there is one. A column
+   * that is not frozen gets null, and it scrolls.
+   */
+  columnLeft(col: Column): string | null {
+    if (!this.isColumnFrozen(col)) return null;
+
     return this.host.selectionMode === 'multiple' ? `${this.frozenOffsetPx}px` : '0';
   }
 

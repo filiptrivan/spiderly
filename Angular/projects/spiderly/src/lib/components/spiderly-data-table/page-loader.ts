@@ -1,44 +1,42 @@
-import {
-  effect,
-  ErrorHandler,
-  EventEmitter,
-  inject,
-  Injector,
-} from '@angular/core';
-import { Table, TableLazyLoadEvent } from 'primeng/table';
-import { Observable } from 'rxjs';
+import { effect, ErrorHandler, inject, Injector } from '@angular/core';
+import { TableLazyLoadEvent } from 'primeng/table';
 import { Filter } from '../../entities/filter';
-import { PaginatedResult } from '../../entities/paginated-result';
-import { FilterSource } from '../../filters/filter-store';
-import { scrollElementIntoViewIfAboveViewport } from '../../services/helper-functions';
+import {
+  exportListToExcel,
+  scrollElementIntoViewIfAboveViewport,
+} from '../../services/helper-functions';
 import { ActiveView } from './active-view';
 import { RowSelection } from './row-selection';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableSort } from './table-sort';
 import { TableStateStorage } from './table-state-storage';
 
-/** The table's inputs that the loader reads, and the row state it writes. */
-export interface PageLoaderHost {
-  readonly table: Table;
-  items: any[];
-  totalRecords: number;
-  lastLazyLoadEvent: TableLazyLoadEvent;
-  readonly rows: number;
-  rowsPerPageOptions: number[];
-  readonly filters?: FilterSource;
-  readonly additionalFilterIdLong: number;
-  readonly additionalIndexes: any;
-  readonly getPaginatedListObservableMethod: (
-    tableFilter: Filter,
-  ) => Observable<PaginatedResult>;
-  readonly getFormArrayItems: (additionalIndexes?: any) => any[];
-  readonly onLazyLoad: EventEmitter<Filter>;
-  readonly onTotalRecordsChange: EventEmitter<number>;
-}
+/**
+ * The table's inputs that the loader reads. The loader also writes the row state that the
+ * template binds: `items`, `totalRecords`, `lastLazyLoadEvent` and `rowsPerPageOptions`.
+ */
+export type PageLoaderHost = Pick<
+  SpiderlyDataTableComponent,
+  | 'table'
+  | 'items'
+  | 'totalRecords'
+  | 'lastLazyLoadEvent'
+  | 'rows'
+  | 'rowsPerPageOptions'
+  | 'filters'
+  | 'additionalFilterIdLong'
+  | 'additionalIndexes'
+  | 'getPaginatedListObservableMethod'
+  | 'exportListToExcelObservableMethod'
+  | 'getFormArrayItems'
+  | 'onLazyLoad'
+  | 'onTotalRecordsChange'
+>;
 
 /**
  * Loads a `spiderly-data-table`'s rows: a page from the server for a lazy table, the form array
- * for a client-side one. It keeps the pending flag true for exactly as long as a fetch is in
- * flight, re-queries when the applied filters change, and owns the paginator's page sizes.
+ * for a client-side one. The pending flag is true for exactly as long as a fetch is in flight.
+ * The loader re-queries when the applied filters change, and it owns the paginator's page sizes.
  * Construct it in the table's injection context, for `ErrorHandler` and the effect's injector.
  */
 export class PageLoader {
@@ -201,6 +199,14 @@ export class PageLoader {
     this.load(this.host.lastLazyLoadEvent);
   }
 
+  /** Sends the last page request's filter to the export endpoint. */
+  exportListToExcel() {
+    let filter: Filter = this.host.lastLazyLoadEvent as unknown as Filter;
+    filter.additionalFilterIdLong = this.host.additionalFilterIdLong;
+
+    exportListToExcel(this.host.exportListToExcelObservableMethod, filter);
+  }
+
   /**
    * A page size PrimeNG will actually apply but that is missing from `rowsPerPageOptions` leaves
    * the paginator dropdown blank — so both the effective `rows` and the persisted pick (which
@@ -221,9 +227,10 @@ export class PageLoader {
 
     for (const value of candidates) {
       if (value != null && !this.host.rowsPerPageOptions.includes(value)) {
-        this.host.rowsPerPageOptions = [...this.host.rowsPerPageOptions, value].sort(
-          (a, b) => a - b,
-        );
+        this.host.rowsPerPageOptions = [
+          ...this.host.rowsPerPageOptions,
+          value,
+        ].sort((a, b) => a - b);
       }
     }
   }

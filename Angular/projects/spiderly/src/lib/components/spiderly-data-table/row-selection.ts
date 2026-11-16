@@ -1,28 +1,26 @@
-import { EventEmitter } from '@angular/core';
-import { Table } from 'primeng/table';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { Filter } from '../../entities/filter';
 import { LazyLoadSelectedIdsResult } from '../../entities/lazy-load-selected-ids-result';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 
 /** The table's inputs and outputs that the row selection reads and emits through. */
-export interface RowSelectionHost {
-  readonly table: Table;
-  readonly items: any[];
-  readonly totalRecords: number;
-  readonly hasLazyLoad: boolean;
-  readonly idField: string;
-  readonly selectionMode: 'single' | 'multiple' | undefined | null;
-  readonly additionalIndexes: any;
-  readonly selectedLazyLoadObservableMethod: (
-    tableFilter: Filter,
-  ) => Observable<LazyLoadSelectedIdsResult>;
-  readonly deleteListFromTableObservableMethod: (ids: number[]) => Observable<any>;
-  readonly getAlreadySelectedItemIds: (additionalIndexes?: any) => number[];
-  readonly getAlreadySelectedItems: (additionalIndexes?: any) => any[];
-  readonly onRowSelect: EventEmitter<RowClickEvent>;
-  readonly onRowUnselect: EventEmitter<RowClickEvent>;
-  readonly onIsAllSelectedChange: EventEmitter<AllClickEvent>;
-}
+export type RowSelectionHost = Pick<
+  SpiderlyDataTableComponent,
+  | 'table'
+  | 'items'
+  | 'totalRecords'
+  | 'hasLazyLoad'
+  | 'idField'
+  | 'selectionMode'
+  | 'additionalIndexes'
+  | 'selectedLazyLoadObservableMethod'
+  | 'deleteListFromTableObservableMethod'
+  | 'getAlreadySelectedItemIds'
+  | 'getAlreadySelectedItems'
+  | 'onRowSelect'
+  | 'onRowUnselect'
+  | 'onIsAllSelectedChange'
+>;
 
 /**
  * The checkbox column of a `spiderly-data-table`: which rows are selected, the delta a lazy table

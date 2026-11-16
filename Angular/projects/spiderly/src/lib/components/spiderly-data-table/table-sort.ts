@@ -2,26 +2,19 @@ import { inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { SortMeta } from 'primeng/api';
 import { Table, TableLazyLoadEvent } from 'primeng/table';
-import {
-  FilterSource,
-  SortKeyLabel,
-  SortPickOption,
-} from '../../filters/filter-store';
+import { SortKeyLabel, SortPickOption } from '../../filters/filter-store';
 import { firstCharToUpper } from '../../services/helper-functions';
 import { Column } from './data-table-column';
 import { isColumnSortable, SortResolution, sortMetaEquals } from './sort-resolution';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 
 /** The table's members that the sort drives and reads. */
-export interface TableSortHost {
-  readonly table: Table;
-  readonly cols: Column[];
-  readonly filters?: FilterSource;
-}
+export type TableSortHost = Pick<SpiderlyDataTableComponent, 'table' | 'cols' | 'filters'>;
 
 /**
- * The sort on a `spiderly-data-table`'s PrimeNG grid: each sort gesture, the sort that entering a
- * view puts on the grid, and the labels the filter bar shows. `SortResolution` decides which sort
- * applies. Construct it in the table's injection context, for `TranslocoService`.
+ * The sort on a `spiderly-data-table`'s PrimeNG grid. It holds each sort gesture, the sort that
+ * entering a view puts on the grid, and the labels that the filter bar shows. `SortResolution`
+ * decides which sort applies. Construct it in the table's injection context, for `TranslocoService`.
  */
 export class TableSort {
   private readonly translocoService = inject(TranslocoService);

@@ -1,12 +1,14 @@
 import { Popover } from 'primeng/popover';
-import { FilterSource } from '../../filters/filter-store';
 import { SpiderlyFilterBarComponent } from '../../filters/spiderly-filter-bar.component';
 import { ColumnLayout } from './column-layout';
 import { ColumnResize } from './column-resize';
 import { Column } from './data-table-column';
 import { isColumnSortable } from './sort-resolution';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableSort } from './table-sort';
 
+/** The table's input whose store the menu's Filter item opens. */
+export type HeaderMenuHost = Pick<SpiderlyDataTableComponent, 'filters'>;
 
 /**
  * The menu a `spiderly-data-table` header opens: hide, filter, sort, move, fit and wrap its column.
@@ -23,7 +25,7 @@ export class HeaderMenu {
   private headerCell: HTMLElement | null = null;
 
   constructor(
-    private readonly host: { readonly filters?: FilterSource },
+    private readonly host: HeaderMenuHost,
     private readonly popover: () => Popover,
     private readonly filterBar: () => SpiderlyFilterBarComponent | undefined,
     private readonly layout: ColumnLayout,

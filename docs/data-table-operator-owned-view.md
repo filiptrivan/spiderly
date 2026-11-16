@@ -271,8 +271,8 @@ still the design, and this is where it stands against it.
     `columnWidths`) into a `ColumnLayout` class.** A pure moving-of-fields with no behavior
     change, in the file the migration was actively stabilising; nothing currently duplicates or
     misuses that state, so the refactor bought a diff and no property. Revisited 2026-11-16: the
-    Size cap (ci-workflows' `size-cap/size-cap.mjs`) is that property, so the component now keeps
-    each job in its own module beside it, `ColumnLayout` among them.
+    Size cap (ci-workflows' `size-cap/size-cap.mjs`) is that property. Each job of the component
+    is now a module beside it, and `ColumnLayout` is one of them.
 
 ## Rollout
 

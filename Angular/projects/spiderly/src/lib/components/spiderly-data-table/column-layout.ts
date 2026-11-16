@@ -1,23 +1,21 @@
+import type { ViewScope } from './active-view';
 import { columnShare, columnWidth } from './column-shares';
 import { Column } from './data-table-column';
+import type { SpiderlyDataTableComponent } from './spiderly-data-table.component';
 import { TableStateStorage } from './table-state-storage';
-import { TableView } from './table-view';
 
 /** A data column shows values for a `field`; anything else (the actions column) always renders. */
 export function isDataColumn(col: Column): boolean {
   return !!col.field;
 }
 
-/** The view whose layout is on screen. Its id scopes the stored layout, its `columns` the defaults. */
-export interface LayoutScope {
-  readonly id: string | null;
-  view(): TableView | undefined;
-}
+/** The table's input that declares its columns. */
+export type ColumnLayoutHost = Pick<SpiderlyDataTableComponent, 'cols'>;
 
 /**
  * The operator's layout of a `spiderly-data-table`'s columns: which show, in what order, which
- * wrap, and how wide. Each view keeps its own layout, in localStorage. `onHide` hears of the
- * columns that a toggle or a reset hides.
+ * wrap, and how wide. Each view keeps its own layout, in localStorage. `onHide` gets the columns
+ * that a toggle or a reset hides.
  */
 export class ColumnLayout {
   /** Columns currently rendered — `cols` minus the hidden ones. Actions columns always render. */
@@ -55,9 +53,9 @@ export class ColumnLayout {
   private columnWidths: Record<string, number> = {};
 
   constructor(
-    private readonly host: { readonly cols: Column[] },
+    private readonly host: ColumnLayoutHost,
     private readonly storage: TableStateStorage,
-    private readonly scope: LayoutScope,
+    private readonly scope: ViewScope,
     private readonly onHide: (hidden: Column[]) => void,
   ) {}
 

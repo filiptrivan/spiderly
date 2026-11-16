@@ -1,5 +1,5 @@
 // What a consumer declares for one column of a `spiderly-data-table`, and the payloads that its
-// click callbacks receive. The component file re-exports each name, so the old import path works.
+// click callbacks receive.
 import { PrimengOption } from '../../entities/primeng-option';
 
 export class Action {
