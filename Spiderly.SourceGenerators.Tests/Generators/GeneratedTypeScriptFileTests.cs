@@ -89,9 +89,49 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
-    private string Generate(Type generatorType, string file)
+    [Fact]
+    public void BaseDetails_HiddenOneToOneNavigation_DoesNotRenderItsForeignKeyAsANumber()
     {
-        GeneratorTestHarness.Run(generatorType, AppSource, projectDir: ProjectDir);
+        const string source = """
+            #nullable enable
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Conversation : BusinessObject<long>
+                {
+                    public int Sequence { get; set; }
+                    public long? OwningTaskItemId { get; set; }
+
+                    [WithOne(nameof(TaskItem.Conversation))]
+                    [UIDoNotGenerate]
+                    public virtual TaskItem? OwningTaskItem { get; set; }
+                }
+
+                [SpiderlyEntity]
+                public class TaskItem : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Title { get; set; } = string.Empty;
+                    public virtual Conversation? Conversation { get; set; }
+                }
+            }
+            """;
+
+        string text = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
+        const string control = "<spiderly-number [control]=\"this.parentFormGroup.controls.conversationDTO.getControl(";
+
+        Assert.Contains(control + "'sequence')\"", text);
+        Assert.DoesNotContain("owningTaskItemOptionsForConversation", text);
+        Assert.DoesNotContain(control + "'owningTaskItemId')\"", text);
+    }
+
+    private string Generate(Type generatorType, string file, string source = AppSource)
+    {
+        GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir);
 
         string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");
