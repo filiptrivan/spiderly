@@ -33,19 +33,32 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            var combinedWithEnums = combined
-                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
-                .Combine(PipelineFactory.GetNullableContextProvider(context));
+            var stringLengths = context.SyntaxProvider.ForAttributeWithMetadataName(
+                    "System.ComponentModel.DataAnnotations.StringLengthAttribute",
+                    static (node, _) => node is PropertyDeclarationSyntax,
+                    static (ctx, _) =>
+                    {
+                        AttributeData attribute = ctx.Attributes[0];
+                        SyntaxReference syntax = attribute.ApplicationSyntaxReference!;
+                        return (Tree: syntax.SyntaxTree, Span: syntax.Span, Value: ClassAnalyzer.GetStringLengthValue(attribute));
+                    })
+                .Where(static length => length.Value != null)
+                .Collect();
 
-            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
+            var inputs = combined
+                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
+                .Combine(PipelineFactory.GetNullableContextProvider(context))
+                .Combine(stringLengths);
+
+            context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var ((combinedSource, enumNames), nullableContext) = source;
+                var (((combinedSource, enumNames), nullableContext), lengths) = source;
                 var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
+                Execute(classes, referencedClasses, enumNames, lengths, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, ImmutableArray<(SyntaxTree Tree, TextSpan Span, string? Value)> stringLengths, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -53,7 +66,11 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(FluentValidationGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames);
+            var lengths = stringLengths.ToDictionary(length => (length.Tree, length.Span), length => length.Value);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames,
+                attribute => lengths.TryGetValue((attribute.SyntaxTree, attribute.Span), out string? value)
+                    ? new SpiderlyAttribute { Name = "StringLength", Value = value }
+                    : ClassAnalyzer.GetSpiderAttribute(attribute));
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
