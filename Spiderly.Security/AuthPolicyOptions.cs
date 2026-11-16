@@ -68,7 +68,7 @@ namespace Spiderly.Security
         /// Minimum number of seconds between two login-verification emails to the same address. A request
         /// inside this window is silently accepted but sends nothing — the caller already has a fresh code —
         /// so the endpoint cannot be driven to flood an inbox or burn the email provider's quota. The limit
-        /// is per-address and IP-independent, so it holds against a distributed sender that the per-IP rate
+        /// is per-address and IP-independent, so it holds against a distributed sender that the caller-key rate
         /// limiter cannot stop. Set to <c>0</c> to disable the cooldown.
         /// </summary>
         public int VerificationCodeResendCooldownSeconds { get; set; } = 60;
