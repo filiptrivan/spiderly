@@ -70,6 +70,28 @@ describe('createFilterStore — a filter needs no column', () => {
   });
 });
 
+describe('createFilterStore — restoring persisted filters', () => {
+  it('drops an operator incompatible with the new filter kind and keeps valid filters', () => {
+    const previous = createFilterStore({
+      status: textFilter({ label: 'Status' }),
+      stock: numberFilter({ label: 'Stock' }),
+    });
+    previous.setAndCommit('status', { operator: MatchModeCodes.Contains, value: 'open' });
+    previous.setAndCommit('stock', { operator: MatchModeCodes.GreaterThan, value: 5 });
+    const snapshot = JSON.stringify(previous.snapshot());
+
+    const filters = createFilterStore({
+      status: numberFilter({ label: 'Status' }),
+      stock: numberFilter({ label: 'Stock' }),
+    });
+    filters.restore(JSON.parse(snapshot));
+
+    const payload = filters.toFilterPayload();
+    expect(payload['stock']).toEqual([{ matchMode: MatchModeCodes.GreaterThan, value: 5 }]);
+    expect(payload['status']).toBeUndefined();
+  });
+});
+
 // The bar shows APPLIED, never TYPED. This is the one mistake in this component that has already
 // shipped: reading `table.filters` filled the header's filter icon on the first keystroke, so the
 // grid claimed to be narrowed while it still showed everything (decision 2b). A chip drawn off a
