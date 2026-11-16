@@ -1,6 +1,5 @@
 .github/workflows/release.yml
 Angular/projects/spiderly/src/lib/components/spiderly-data-table/spiderly-data-table.component.spec.ts
-Angular/projects/spiderly/src/lib/components/spiderly-data-table/spiderly-data-table.component.ts
 Angular/projects/spiderly/src/lib/filters/filter-store.ts
 Angular/projects/spiderly/src/lib/filters/spiderly-filter-bar.component.spec.ts
 Angular/projects/spiderly/src/lib/filters/spiderly-filter-bar.component.ts

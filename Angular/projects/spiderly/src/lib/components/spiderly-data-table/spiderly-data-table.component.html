@@ -26,7 +26,7 @@
       responsiveLayout="scroll"
       [lazy]="hasLazyLoad"
       (onLazyLoad)="lazyLoad($event)"
-      (onPage)="onPageChange(tableContainer)"
+      (onPage)="pageLoader.onPageChange(tableContainer)"
       [totalRecords]="totalRecords"
       class="spiderly-table"
       [loading]="isPending"
@@ -84,7 +84,7 @@
               class="p-button-danger"
               style="flex: none"
               icon="pi pi-trash"
-              (click)="deleteSelectedObjects()"
+              (click)="rowActions.deleteSelectedObjects()"
             ></button>
           </div>
         </div>
@@ -99,8 +99,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-hide"
-              [disabled]="!menuColumn || !canToggleColumn(menuColumn)"
-              (click)="hideMenuColumn()"
+              [disabled]="!headerMenu.canHide"
+              (click)="headerMenu.hideColumn()"
             >
               <i class="pi pi-eye-slash"></i>
               <span class="column-menu-item-label">{{ t('spiderly.HideColumn') }}</span>
@@ -110,8 +110,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-filter"
-              [disabled]="!menuColumn || !canFilterColumn(menuColumn)"
-              (click)="filterMenuColumn()"
+              [disabled]="!headerMenu.canFilter"
+              (click)="headerMenu.filterColumn()"
             >
               <i class="pi pi-filter"></i>
               <span class="column-menu-item-label">{{ t('spiderly.Filter') }}…</span>
@@ -121,8 +121,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-sort-asc"
-              [disabled]="!menuColumn || !isColumnSortable(menuColumn)"
-              (click)="sortMenuColumn(1)"
+              [disabled]="!headerMenu.canSort"
+              (click)="headerMenu.sortColumn(1)"
             >
               <i class="pi pi-sort-amount-up-alt"></i>
               <span class="column-menu-item-label">{{ t('spiderly.SortAscending') }}</span>
@@ -132,8 +132,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-sort-desc"
-              [disabled]="!menuColumn || !isColumnSortable(menuColumn)"
-              (click)="sortMenuColumn(-1)"
+              [disabled]="!headerMenu.canSort"
+              (click)="headerMenu.sortColumn(-1)"
             >
               <i class="pi pi-sort-amount-down"></i>
               <span class="column-menu-item-label">{{ t('spiderly.SortDescending') }}</span>
@@ -143,8 +143,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-left"
-              [disabled]="!menuColumn || !canMoveColumn(menuColumn, -1)"
-              (click)="moveMenuColumn(-1)"
+              [disabled]="!headerMenu.canMove(-1)"
+              (click)="headerMenu.moveColumn(-1)"
             >
               <i class="pi pi-arrow-left"></i>
               <span class="column-menu-item-label">{{ t('spiderly.MoveLeft') }}</span>
@@ -154,8 +154,8 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-right"
-              [disabled]="!menuColumn || !canMoveColumn(menuColumn, 1)"
-              (click)="moveMenuColumn(1)"
+              [disabled]="!headerMenu.canMove(1)"
+              (click)="headerMenu.moveColumn(1)"
             >
               <i class="pi pi-arrow-right"></i>
               <span class="column-menu-item-label">{{ t('spiderly.MoveRight') }}</span>
@@ -165,7 +165,7 @@
               role="menuitem"
               class="column-menu-item"
               data-testid="column-menu-fit"
-              (click)="fitMenuColumn()"
+              (click)="headerMenu.fitColumn()"
             >
               <i class="pi pi-arrows-h"></i>
               <span class="column-menu-item-label">{{ t('spiderly.FitWidth') }}</span>
@@ -181,20 +181,20 @@
               role="menuitemcheckbox"
               class="column-menu-item"
               data-testid="column-menu-wrap"
-              [disabled]="!menuColumn || menuColumn.editable === true"
-              [attr.aria-checked]="isMenuColumnWrapped"
-              (click)="toggleWrapForMenuColumn()"
+              [disabled]="!headerMenu.canWrap"
+              [attr.aria-checked]="headerMenu.isColumnWrapped"
+              (click)="headerMenu.toggleWrap()"
             >
               <i class="pi pi-align-left"></i>
               <span class="column-menu-item-label">{{ t('spiderly.WrapText') }}</span>
-              <i *ngIf="isMenuColumnWrapped" class="pi pi-check"></i>
+              <i *ngIf="headerMenu.isColumnWrapped" class="pi pi-check"></i>
             </button>
           </div>
         </p-popover>
 
         <div class="table-views" *ngIf="views?.length" role="tablist">
           <button
-            *ngFor="let view of views; trackBy: viewTrackByFn"
+            *ngFor="let view of views; trackBy: activeView.viewTrackByFn"
             type="button"
             role="tab"
             class="table-view"
@@ -217,13 +217,13 @@
           *ngIf="filters"
           [filters]="filters"
           [totalRecords]="totalRecords"
-          [sort]="sortKeys"
-          [sortOptions]="sortPickOptions"
-          [sortIsDefault]="sortIsDefault"
+          [sort]="sort.sortKeys"
+          [sortOptions]="sort.sortPickOptions"
+          [sortIsDefault]="sort.sortIsDefault"
           [controlTemplates]="filterTemplates"
           (clearAll)="clear()"
-          (sortPick)="sortFromBar($event)"
-          (sortReset)="resetSortFromBar()"
+          (sortPick)="sort.sortFromBar($event)"
+          (sortReset)="sort.resetSortFromBar()"
         ></spiderly-filter-bar>
       </ng-template>
       <ng-template pTemplate="header">
@@ -234,36 +234,36 @@
           <th
             #selectionHeader
             class="frozen-column"
-            [class.frozen-column-last]="isSelectionColumnLastFrozen"
-            [style.width]="selectionColumnWidth"
+            [class.frozen-column-last]="frozenEdge.isSelectionColumnLastFrozen"
+            [style.width]="frozenEdge.selectionColumnWidth"
             [style.left]="'0'"
             *ngIf="selectionMode == 'multiple'"
           >
             <div style="display: flex; gap: 8px">
               <p-checkbox
-                *ngIf="showSelectAllCheckbox"
+                *ngIf="selection.showSelectAllCheckbox"
                 [disabled]="readonly"
                 (onChange)="selectAll($event.checked)"
-                [(ngModel)]="fakeIsAllSelected"
+                [(ngModel)]="selection.fakeIsAllSelected"
                 [binary]="true"
               ></p-checkbox>
               <span class="selection-count">({{ rowsSelectedNumber }})</span>
             </div>
           </th>
-          <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
+          <ng-container *ngFor="let col of visibleCols; trackBy: layout.colTrackByFn">
             <th
               #headerCell
               [pSortableColumn]="col.field"
               [pSortableColumnDisabled]="!isColumnSortable(col)"
               [style.width]="getColWidth(col)"
-              [class.frozen-column]="isColumnFrozen(col)"
-              [class.frozen-column-last]="isLastFrozenColumn(col)"
-              [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
+              [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
+              [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
+              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
               [attr.draggable]="hasLazyLoad && !col.lockVisible ? true : null"
-              (mousedown)="onHeaderMouseDown($event)"
-              (dragstart)="onHeaderDragStart(col, $event)"
-              (dragover)="onHeaderDragOver(col, $event)"
-              (drop)="onHeaderDrop(col, $event)"
+              (mousedown)="headerDrag.onHeaderMouseDown($event)"
+              (dragstart)="headerDrag.onHeaderDragStart(col, $event)"
+              (dragover)="headerDrag.onHeaderDragOver(col, $event)"
+              (drop)="headerDrag.onHeaderDrop(col, $event)"
             >
               <!-- Ours, not PrimeNG's: enabling [resizableColumns] makes it persist widths by
                    th:nth-child INDEX into our own stateKey, which slides every stored width onto
@@ -273,7 +273,7 @@
                 *ngIf="hasLazyLoad && isDataColumn(col)"
                 class="column-resizer"
                 data-testid="column-resizer"
-                (mousedown)="startColumnResize(col, $event, headerCell)"
+                (mousedown)="columnResize.start(col, $event, headerCell)"
               ></span>
               <div
                 style="
@@ -297,7 +297,7 @@
                     class="column-menu-button"
                     data-testid="column-menu"
                     [attr.aria-label]="t('spiderly.Columns')"
-                    (click)="$event.stopPropagation(); openColumnMenu(col, $event)"
+                    (click)="$event.stopPropagation(); headerMenu.open(col, $event)"
                   >
                     <i class="pi pi-chevron-down"></i>
                   </button>
@@ -328,33 +328,33 @@
         </ng-template>
         <tr
           [class.clickable]="navigateOnRowClick"
-          (click)="onRowClick(rowData, $event)"
+          (click)="rowActions.onRowClick(rowData, $event)"
         >
           <!-- row-interactive: a selection gesture must never double as row navigation (onRowClick). -->
           <td
             *ngIf="selectionMode == 'multiple'"
             class="selection-cell row-interactive frozen-column"
-            [class.frozen-column-last]="isSelectionColumnLastFrozen"
+            [class.frozen-column-last]="frozenEdge.isSelectionColumnLastFrozen"
             [style.left]="'0'"
-            (mousedown)="onSelectionCellMouseDown($event, rowData[idField])"
+            (mousedown)="selection.onSelectionCellMouseDown($event, rowData[idField])"
           >
             <p-checkbox
               [disabled]="readonly"
-              (onChange)="selectRow(rowData[idField], rowData.index)"
-              [ngModel]="isRowSelected(rowData[idField])"
+              (onChange)="selection.selectRow(rowData[idField], rowData.index)"
+              [ngModel]="selection.isRowSelected(rowData[idField])"
               [binary]="true"
             ></p-checkbox>
           </td>
-          <ng-container *ngFor="let col of visibleCols; trackBy: colTrackByFn">
+          <ng-container *ngFor="let col of visibleCols; trackBy: layout.colTrackByFn">
             <td
-              [style]="getStyleForBodyColumn(col)"
+              [style]="cells.getStyleForBodyColumn(col)"
               [class.clickable]="col.onCellClick"
               [class.row-interactive]="col.onCellClick"
-              [class.frozen-column]="isColumnFrozen(col)"
-              [class.frozen-column-last]="isLastFrozenColumn(col)"
+              [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
+              [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
               [class.cell-wrap]="isColumnWrapped(col)"
-              [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
-              (click)="onCellClick(col, rowData, $event)"
+              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
+              (click)="rowActions.onCellClick(col, rowData, $event)"
               *ngIf="!col.editable"
             >
               <!-- getColWidth reserves this column's width from `actions.length`; this gap is
@@ -371,18 +371,18 @@
                      renders, empty, in every other cell too, so marking it would stop row
                      navigation on a strip of every ordinary cell. -->
                 <ng-container
-                  *ngFor="let action of col.actions; trackBy: actionTrackByFn"
+                  *ngFor="let action of col.actions; trackBy: cells.actionTrackByFn"
                 >
                   <span
                     [pTooltip]="action.name"
-                    [class]="getClassForAction(action) + ' row-interactive'"
-                    [style]="getStyleForAction(action)"
-                    (click)="getMethodForAction(action, rowData, $event)"
+                    [class]="cells.getClassForAction(action) + ' row-interactive'"
+                    [style]="cells.getStyleForAction(action)"
+                    (click)="rowActions.getMethodForAction(action, rowData, $event)"
                   ></span>
                 </ng-container>
               </div>
               <ng-container
-                [ngTemplateOutlet]="getCellTemplate(col) ?? defaultCell"
+                [ngTemplateOutlet]="cells.getCellTemplate(col) ?? defaultCell"
                 [ngTemplateOutletContext]="{
                   $implicit: rowData,
                   value: rowData[col.field],
@@ -394,12 +394,12 @@
             <td
               *ngIf="col.editable"
               class="row-interactive"
-              [class.frozen-column]="isColumnFrozen(col)"
-              [class.frozen-column-last]="isLastFrozenColumn(col)"
-              [style.left]="isColumnFrozen(col) ? frozenColumnOffset() : null"
+              [class.frozen-column]="frozenEdge.isColumnFrozen(col)"
+              [class.frozen-column-last]="frozenEdge.isLastFrozenColumn(col)"
+              [style.left]="frozenEdge.isColumnFrozen(col) ? frozenEdge.frozenColumnOffset() : null"
             >
               <spiderly-number
-                [control]="getFormArrayControlByIndex(col.field, rowData.index)"
+                [control]="cells.getFormArrayControlByIndex(col.field, rowData.index)"
                 [showLabel]="false"
               ></spiderly-number>
             </td>
@@ -426,7 +426,7 @@
             *ngIf="showAddButton"
             [label]="t('spiderly.AddNew')"
             icon="pi pi-plus"
-            (onClick)="navigateToDetails(0)"
+            (onClick)="rowActions.navigateToDetails(0)"
           ></spiderly-button>
         </div>
       </ng-template>
@@ -434,15 +434,15 @@
     <p-popover #columnChooser>
       <div class="column-chooser">
         <label
-          *ngFor="let col of chooserCols; trackBy: colTrackByFn"
+          *ngFor="let col of layout.chooserCols; trackBy: layout.colTrackByFn"
           data-testid="column-chooser-option"
           class="column-chooser-option"
         >
           <p-checkbox
             [binary]="true"
-            [ngModel]="isColumnVisible(col)"
-            [disabled]="!canToggleColumn(col)"
-            (onChange)="toggleColumn(col, $event.checked)"
+            [ngModel]="layout.isColumnVisible(col)"
+            [disabled]="!layout.canToggleColumn(col)"
+            (onChange)="layout.toggleColumn(col, $event.checked)"
           ></p-checkbox>
           <span>{{ col.name }}</span>
         </label>
@@ -450,7 +450,7 @@
           type="button"
           data-testid="column-chooser-reset"
           class="column-chooser-reset"
-          (click)="resetColumnLayout()"
+          (click)="layout.resetColumnLayout()"
         >
           {{ t('spiderly.ResetToDefault') }}
         </button>
