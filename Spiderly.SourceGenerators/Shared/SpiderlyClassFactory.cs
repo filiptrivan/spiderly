@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
 using System.Collections.Generic;
@@ -17,6 +18,9 @@ namespace Spiderly.SourceGenerators.Shared
         /// Pass <see cref="ImmutableArray{T}.Empty"/> to opt out of enum tagging (legacy behavior).
         /// </summary>
         public static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
+            => GetSpiderlyClasses(currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames, null);
+
+        internal static List<SpiderlyClass> GetSpiderlyClasses(IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames, Compilation? compilation)
         {
             List<SpiderlyClass> result = currentProjectClasses
                 .Select(x =>
@@ -34,7 +38,7 @@ namespace Spiderly.SourceGenerators.Shared
                         BaseType = x.GetBaseType(),
                         IsAbstract = x.IsAbstract(),
                         Description = ClassAnalyzer.GetXmlDocSummary(x),
-                        Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames),
+                        Properties = ClassAnalyzer.GetAllPropertiesOfTheClass(x, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames, compilation),
                         // GetAllAttributesOfTheClass only returns null for a null `c` argument; x here always
                         // comes from currentProjectClasses, so it is never null.
                         Attributes = ClassAnalyzer.GetAllAttributesOfTheClass(x, currentProjectClasses, referencedProjectsClasses)!,

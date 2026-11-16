@@ -202,6 +202,12 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (AttributeData attribute in symbol.GetAttributes())
             {
+                if (ClassAnalyzer.IsMaxFileSizeAttribute(attribute))
+                {
+                    attributes.Add(ClassAnalyzer.CreateMaxFileSizeAttribute(attribute));
+                    continue;
+                }
+
                 string? attributeName = attribute.AttributeClass?.Name?.Replace("Attribute", "");
 
                 string? argumentValue = null;

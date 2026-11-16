@@ -13,5 +13,7 @@ namespace Spiderly.SourceGenerators.Models
         /// <para>Null for a bare attribute with no argument list (e.g. <c>[Required]</c>).</para>
         /// </summary>
         public string? Value { get; set; }
+
+        internal int? Int32Value { get; set; }
     }
 }

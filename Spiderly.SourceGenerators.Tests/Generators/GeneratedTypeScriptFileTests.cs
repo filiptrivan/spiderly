@@ -1,7 +1,9 @@
 using System.IO;
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Angular;
 using Spiderly.SourceGenerators.Net;
+using Spiderly.SourceGenerators.Shared;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
@@ -94,9 +96,43 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
     [Theory]
     [InlineData("52_428_800")]
     [InlineData("52428800")]
+    [InlineData("UploadLimit")]
     public void MaxFileSize_EmitsTheSameLimitInAngularAndUploadValidation(string literal)
     {
-        string source = $$"""
+        string source = UploadSource(literal);
+        string angular = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
+        string backend = GeneratorTestHarness.Run<ServicesGenerator>(source).GetRunResult().Results.Single()
+            .GeneratedSources.Single(x => x.HintName == "ProductService.generated.cs").SourceText.ToString();
+
+        string angularLimit = Regex.Match(angular, @"\[maxFileSize\]=""([0-9]+)""").Groups[1].Value;
+        string backendLimit = Regex.Match(backend, @"Helper\.ValidateFileSize\(file\.Length, ([0-9_]+),").Groups[1].Value;
+        Assert.Multiple(
+            () => Assert.Equal("52428800", angularLimit),
+            () => Assert.Equal("52428800", backendLimit.Replace("_", "")));
+    }
+
+    [Theory]
+    [InlineData("52_428_800", false)]
+    [InlineData("0", true)]
+    [InlineData("-1", true)]
+    [InlineData("UnknownLimit", true)]
+    public void MaxFileSize_ReportsInvalidValuesAtTheProperty(string literal, bool invalid)
+    {
+        var diagnostics = GeneratorTestHarness.Run<EntityValidationGenerator>(UploadSource(literal)).GetRunResult().Diagnostics;
+        if (!invalid)
+        {
+            Assert.Empty(diagnostics);
+            return;
+        }
+
+        Diagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("SPIDERLY032", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("Product.VideoUrl", diagnostic.GetMessage());
+        Assert.Equal("VideoUrl", diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan));
+    }
+
+    private static string UploadSource(string literal) => $$"""
             using Spiderly.Shared.Attributes;
             using Spiderly.Shared.Attributes.Entity;
             using Spiderly.Shared.BaseEntities;
@@ -106,6 +142,8 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
                 [SpiderlyEntity]
                 public class Product : BusinessObject<long>
                 {
+                    private const int UploadLimit = 52_428_800;
+
                     [DisplayName]
                     public string Name { get; set; }
 
@@ -122,17 +160,6 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
                 public class ProductService : ProductServiceGenerated { }
             }
             """;
-
-        string angular = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
-        string backend = GeneratorTestHarness.Run<ServicesGenerator>(source).GetRunResult().Results.Single()
-            .GeneratedSources.Single(x => x.HintName == "ProductService.generated.cs").SourceText.ToString();
-
-        string angularLimit = Regex.Match(angular, @"\[maxFileSize\]=""([0-9]+)""").Groups[1].Value;
-        string backendLimit = Regex.Match(backend, @"Helper\.ValidateFileSize\(file\.Length, ([0-9_]+),").Groups[1].Value;
-        Assert.Multiple(
-            () => Assert.Equal("52428800", angularLimit),
-            () => Assert.Equal("52428800", backendLimit.Replace("_", "")));
-    }
 
     private string Generate(Type generatorType, string file, string source = AppSource)
     {

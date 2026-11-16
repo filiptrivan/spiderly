@@ -428,15 +428,10 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         public static int GetMaxFileSize(this SpiderlyProperty property)
-        {
-            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");
+            => property.FindMaxFileSizeAttribute()?.Int32Value ?? 0;
 
-            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
-                return 0;
-
-            int.TryParse(attribute.Value, out int maxFileSize);
-            return maxFileSize;
-        }
+        internal static SpiderlyAttribute? FindMaxFileSizeAttribute(this SpiderlyProperty property)
+            => property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");
 
         public static List<UITableColumn> GetUITableColumns(this SpiderlyProperty property)
         {

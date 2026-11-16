@@ -131,6 +131,18 @@ test.describe('Product CRUD Operations', () => {
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
+  test('should reject videos above the configured 2 MB limit', async ({ request }) => {
+    const response = await request.post(`${API_BASE_URL}/api/Product/UploadVideoUrlForProduct`, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Accept-Language': 'en' },
+      multipart: {
+        file: { name: '0-oversized.mp4', mimeType: 'video/mp4', buffer: Buffer.concat([mp4Fixture], 2_000_001) },
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    expect((await response.json()).message).toBe('File size must not exceed 2 MB.');
+  });
+
   test('should delete product via API', async ({ request }) => {
     const response = await request.delete(
       `${API_BASE_URL}/api/Product/DeleteProduct?id=${productId}`,
