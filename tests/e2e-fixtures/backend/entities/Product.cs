@@ -32,5 +32,7 @@ namespace __APP_NAME__.Business.Entities
         [AcceptedFileTypes("video/mp4")]
         [StringLength(1000)]
         public string? VideoUrl { get; set; }
+
+        public virtual ProjectCharter? ReferenceCharter { get; set; }
     }
 }

@@ -31,5 +31,11 @@ namespace __APP_NAME__.Business.Entities
         [WithOne(nameof(Project.ProjectCharter))]
         [CascadeDelete]
         public virtual Project? CharteredProject { get; set; }
+
+        public int? ReferenceProductId { get; set; }
+
+        [WithOne(nameof(Product.ReferenceCharter))]
+        [UIDoNotGenerate]
+        public virtual Product? ReferenceProduct { get; set; }
     }
 }
