@@ -90,10 +90,13 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
-    [Fact]
-    public void ApiService_ControllerWithPrivateStaticHelper_EmitsThePublicAction()
+    [Theory]
+    [InlineData("private static")]
+    [InlineData("private")]
+    [InlineData("public static")]
+    public void ApiService_ControllerWithHelper_EmitsThePublicAction(string modifiers)
     {
-        const string source = """
+        string source = $$"""
             using Microsoft.AspNetCore.Mvc;
             using Spiderly.Shared.Attributes;
 
@@ -105,7 +108,7 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
                     [HttpGet]
                     public string GetReportName() => FormatReportName("sales");
 
-                    private static string FormatReportName(string name) => $"{name}.csv";
+                    {{modifiers}} string FormatReportName(string name) => $"{name}.csv";
                 }
             }
             """;
