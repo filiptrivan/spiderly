@@ -12,7 +12,7 @@ using Xunit;
 namespace Spiderly.Shared.Tests
 {
     // End-to-end wiring test for the trusted-caller class: proves the global limiter actually routes a
-    // trusted request into the large bucket (never 429) while an untrusted one hits the low per-IP cap.
+    // trusted request into the large bucket (never 429) while an untrusted one hits the low caller-key cap.
     // Complements GlobalRateLimitPartitionerTests (which pins the pure decision) by exercising the real
     // AddRateLimiter/UseRateLimiter middleware through a TestServer — the 5 lines of closure glue the
     // unit test can't reach.
@@ -22,7 +22,7 @@ namespace Spiderly.Shared.Tests
         {
             Settings settings = new()
             {
-                RequestsLimitNumber = 2, // tiny per-IP cap so a handful of requests trips it
+                RequestsLimitNumber = 2, // tiny caller-key cap so a handful of requests trips it
                 RequestsLimitWindow = 60,
                 TrustedRequestsLimitNumber = 1000,
                 TrustedRequestsLimitWindow = 60,
@@ -36,7 +36,7 @@ namespace Spiderly.Shared.Tests
                 })
                 .Configure(app =>
                 {
-                    // Pin a stable, non-null client IP so the per-IP partition key is deterministic
+                    // Pin a stable, non-null client IP so the caller-key partition is deterministic
                     // (TestServer leaves RemoteIpAddress null, which a partition key can't be).
                     if (stampClientIp)
                     {
