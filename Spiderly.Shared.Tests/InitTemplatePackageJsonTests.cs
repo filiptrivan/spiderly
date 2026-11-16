@@ -42,7 +42,7 @@ namespace Spiderly.Shared.Tests
                     dependencies: new() { ["a"] = "1.0.0", ["c"] = "3.1.0" }));
         }
 
-        /// <summary>Why: the comment on the toolchain in <c>NetAndAngularFilesGenerator.GetPackageJsonData</c>.</summary>
+        /// <summary>Why: the comment on the toolchain in <c>FrontendTemplate.PackageJson</c>.</summary>
         [Theory]
         [InlineData("@angular-devkit/build-angular")]
         [InlineData("@angular/cli")]

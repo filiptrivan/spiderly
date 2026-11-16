@@ -11,7 +11,6 @@ Spiderly.Security/Services/JwtAuthManagerService.cs
 Spiderly.Security/Services/SecurityServiceBase.cs
 Spiderly.Shared/Extensions/StartupExtensions.cs
 Spiderly.Shared/Helpers/Helper.cs
-Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs
 Spiderly.SourceGenerators/Angular/BaseDetails/NgDetailsDataGenerator.cs
 Spiderly.SourceGenerators/Angular/BaseDetails/NgDetailsPropertyBlockGenerator.cs
 Spiderly.SourceGenerators/Angular/NgControllersGenerator.cs

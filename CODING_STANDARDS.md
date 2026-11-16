@@ -101,9 +101,10 @@ in via the `SpiderlySecurityBuilder` sub-builder).
 
 ## Init template drift
 
-`Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` holds the full project template `spiderly
-init` emits (Startup.cs, AppServiceExtensions.cs, the entity scaffolding, package.json, …) as raw
-string literals. A diff that changes a framework public API (DI registration shape, `SpiderlyBuilder`
+The classes in `Spiderly.Shared/Helpers/Scaffold/` hold the full project template `spiderly init`
+emits (Startup.cs, AppServiceExtensions.cs, the entity scaffolding, package.json, …) as raw string
+literals, each class its own folders of the project. `NetAndAngularFilesGenerator.Generate` writes
+it. A diff that changes a framework public API (DI registration shape, `SpiderlyBuilder`
 methods, a generated service's constructor signature, a new built-in service that needs
 registering) updates the template strings it affects too. CI's e2e job catches the worst
 regressions, but only for code paths the fixture exercises: commit `96ad6b9` removed the global
