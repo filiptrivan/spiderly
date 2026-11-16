@@ -21,7 +21,7 @@ namespace Spiderly.Shared.Helpers.Scaffold
                         new SpiderlyFile { Name = "en.json", Data = GetTranslocoEnJsonCode() },
                     }
                 },
-                LogoTemplate.Folder(),
+                ImagesTemplate.Folder(),
             },
             Files =
             {

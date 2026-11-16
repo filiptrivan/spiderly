@@ -3,7 +3,7 @@ using CaseConverter;
 namespace Spiderly.Shared.Helpers.Scaffold
 {
     /// <summary>
-    /// The Angular pages of one entity: its details page, and its list page as a table or as a data view.
+    /// The Angular pages of one entity: its details page, and its list page as a table or a data view.
     /// <c>spiderly add-new-entity</c> writes them, and the seeded Role and User list pages reuse the table.
     /// </summary>
     internal static class EntityPagesTemplate

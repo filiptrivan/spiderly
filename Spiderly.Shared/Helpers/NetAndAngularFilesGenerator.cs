@@ -5,7 +5,9 @@ namespace Spiderly.Shared.Helpers
 {
     /// <summary>
     /// The templates of the Spiderly CLI: the project <c>spiderly init</c> scaffolds, and the pages
-    /// <c>spiderly add-new-entity</c> writes. The classes in <c>Helpers/Scaffold/</c> build the project, each class its own folders.
+    /// <c>spiderly add-new-entity</c> writes. The templates are in <c>Helpers/Scaffold/</c>, and
+    /// <see cref="ProjectRootTemplate"/> builds the project from them. A folder's class builds that folder and calls
+    /// the classes of the folders in it. So the layout of a folder stays beside its templates.
     /// </summary>
     public static class NetAndAngularFilesGenerator
     {
@@ -67,19 +69,19 @@ namespace Spiderly.Shared.Helpers
         /// <summary>The TypeScript of an entity's details page.</summary>
         public static string GetSpiderlyAngularDetailsTsTemplate(string entityName) => EntityPagesTemplate.DetailsTs(entityName);
 
-        /// <summary>The template of an entity's details page.</summary>
+        /// <summary>The HTML of an entity's details page.</summary>
         public static string GetSpiderlyAngularDetailsHtmlTemplate(string entityName) => EntityPagesTemplate.DetailsHtml(entityName);
 
         /// <summary>The TypeScript of an entity's list page, as a data table.</summary>
         public static string GetSpiderlyAngularTableTsTemplate(string entityName) => EntityPagesTemplate.TableTs(entityName);
 
-        /// <summary>The template of an entity's list page, as a data table.</summary>
+        /// <summary>The HTML of an entity's list page, as a data table.</summary>
         public static string GetSpiderlyAngularTableHtmlTemplate(string entityName) => EntityPagesTemplate.TableHtml(entityName);
 
         /// <summary>The TypeScript of an entity's list page, as a data view of cards.</summary>
         public static string GetSpiderlyAngularDataViewTsTemplate(string entityName) => EntityPagesTemplate.DataViewTs(entityName);
 
-        /// <summary>The template of an entity's list page, as a data view of cards.</summary>
+        /// <summary>The HTML of an entity's list page, as a data view of cards.</summary>
         public static string GetSpiderlyAngularDataViewHtmlTemplate(string entityName) => EntityPagesTemplate.DataViewHtml(entityName);
 
         /// <summary>

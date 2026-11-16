@@ -5,7 +5,7 @@ namespace Spiderly.Shared.Helpers.Scaffold
     /// <summary>
     /// The <c>src/assets/images/</c> folder: the placeholder logo, and the place for the app's favicon.
     /// </summary>
-    internal static class LogoTemplate
+    internal static class ImagesTemplate
     {
         internal static SpiderlyFolder Folder() => new()
         {

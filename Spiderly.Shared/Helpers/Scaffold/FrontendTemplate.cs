@@ -5,8 +5,8 @@ using static Spiderly.Shared.Helpers.Scaffold.TemplateComments;
 namespace Spiderly.Shared.Helpers.Scaffold
 {
     /// <summary>
-    /// The <c>Frontend/</c> folder: the Angular workspace's own files (its project, package, TypeScript and tool
-    /// configuration), with its <c>src/</c> and <c>tests/</c> folders.
+    /// The <c>Frontend/</c> folder: the Angular workspace's configuration files, with its <c>src/</c> and
+    /// <c>tests/</c> folders.
     /// </summary>
     internal static class FrontendTemplate
     {

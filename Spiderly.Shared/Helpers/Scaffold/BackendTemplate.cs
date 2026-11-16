@@ -29,8 +29,8 @@ namespace Spiderly.Shared.Helpers.Scaffold
                         }
                     },
                     BusinessProjectTemplate.Folder(appName, spiderlyVersion, isRunningFromNuget),
-                    DbContextTemplate.InfrastructureFolder(appName, spiderlyVersion, isRunningFromNuget, dbProvider),
-                    DbContextTemplate.MigrationsFolder(appName, dbProvider),
+                    DatabaseProjectsTemplate.InfrastructureFolder(appName, spiderlyVersion, isRunningFromNuget, dbProvider),
+                    DatabaseProjectsTemplate.MigrationsFolder(appName, dbProvider),
                     SharedProjectTemplate.Folder(appName, spiderlyVersion, isRunningFromNuget),
                     WebApiProjectTemplate.Folder(appName, spiderlyVersion, isRunningFromNuget, dbProvider),
                 },

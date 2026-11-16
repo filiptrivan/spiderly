@@ -5,10 +5,10 @@ using static Spiderly.Shared.Helpers.Scaffold.TemplateComments;
 namespace Spiderly.Shared.Helpers.Scaffold
 {
     /// <summary>
-    /// The app's DbContext: the <c>{AppName}.Infrastructure</c> project declares it with its seed data. The
-    /// <c>{AppName}.Migrations</c> project's factory builds it for the EF Core tools, so both change with its constructor.
+    /// The two projects of the app's database. <c>{AppName}.Infrastructure</c> declares the DbContext with its seed
+    /// data. The <c>{AppName}.Migrations</c> factory builds it for the EF Core tools, so both change with its constructor.
     /// </summary>
-    internal static class DbContextTemplate
+    internal static class DatabaseProjectsTemplate
     {
         internal static SpiderlyFolder InfrastructureFolder(string appName, string spiderlyVersion, bool isRunningFromNuget, DbProviderCodes dbProvider) => new()
         {
