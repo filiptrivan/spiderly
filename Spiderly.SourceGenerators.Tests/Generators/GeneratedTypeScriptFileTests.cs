@@ -1,5 +1,7 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using Spiderly.SourceGenerators.Angular;
+using Spiderly.SourceGenerators.Net;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
 namespace Spiderly.SourceGenerators.Tests.Generators;
@@ -89,9 +91,52 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
-    private string Generate(Type generatorType, string file)
+    [Theory]
+    [InlineData("52_428_800")]
+    [InlineData("52428800")]
+    public void MaxFileSize_EmitsTheSameLimitInAngularAndUploadValidation(string literal)
     {
-        GeneratorTestHarness.Run(generatorType, AppSource, projectDir: ProjectDir);
+        string source = $$"""
+            using Spiderly.Shared.Attributes;
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Product : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Name { get; set; }
+
+                    [S3PublicStorage]
+                    [AcceptedFileTypes("video/mp4")]
+                    [MaxFileSize({{literal}})]
+                    public string VideoUrl { get; set; }
+                }
+            }
+
+            namespace TestApp.Business.Services
+            {
+                [SpiderlyService]
+                public class ProductService : ProductServiceGenerated { }
+            }
+            """;
+
+        string angular = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
+        string backend = GeneratorTestHarness.Run<ServicesGenerator>(source).GetRunResult().Results.Single()
+            .GeneratedSources.Single(x => x.HintName == "ProductService.generated.cs").SourceText.ToString();
+
+        string angularLimit = Regex.Match(angular, @"\[maxFileSize\]=""([0-9]+)""").Groups[1].Value;
+        string backendLimit = Regex.Match(backend, @"Helper\.ValidateFileSize\(file\.Length, ([0-9_]+),").Groups[1].Value;
+        Assert.Multiple(
+            () => Assert.Equal("52428800", angularLimit),
+            () => Assert.Equal("52428800", backendLimit.Replace("_", "")));
+    }
+
+    private string Generate(Type generatorType, string file, string source = AppSource)
+    {
+        GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir);
 
         string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");
