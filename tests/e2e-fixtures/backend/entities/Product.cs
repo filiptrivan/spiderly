@@ -33,5 +33,11 @@ namespace __APP_NAME__.Business.Entities
         [MaxFileSize(2_000_000)]
         [StringLength(1000)]
         public string? VideoUrl { get; set; }
+
+        [DiskStorage]
+        [AcceptedFileTypes("video/mp4")]
+        [MaxFileSize(52_428_800)]
+        [StringLength(1000)]
+        public string? LargeVideoUrl { get; set; }
     }
 }

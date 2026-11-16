@@ -143,6 +143,24 @@ test.describe('Product CRUD Operations', () => {
     expect((await response.json()).message).toBe('File size must not exceed 2 MB.');
   });
 
+  test('should accept a 32 MiB video within the configured 50 MiB limit', async ({ request }) => {
+    // An MP4 free-space box increases the size without changing the video stream.
+    const padding = Buffer.alloc(32 * 1024 * 1024 - mp4Fixture.length);
+    padding.writeUInt32BE(padding.length);
+    padding.write('free', 4, 'ascii');
+    const video = Buffer.concat([mp4Fixture, padding]);
+
+    const response = await request.post(`${API_BASE_URL}/api/Product/UploadLargeVideoUrlForProduct`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      multipart: {
+        file: { name: '0-large.mp4', mimeType: 'video/mp4', buffer: video },
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toBeTruthy();
+  });
+
   test('should delete product via API', async ({ request }) => {
     const response = await request.delete(
       `${API_BASE_URL}/api/Product/DeleteProduct?id=${productId}`,
