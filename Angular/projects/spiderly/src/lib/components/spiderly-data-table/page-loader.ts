@@ -1,4 +1,4 @@
-import { effect, ErrorHandler, inject, Injector } from '@angular/core';
+import { effect, ErrorHandler, inject, Injector, untracked } from '@angular/core';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { Filter } from '../../entities/filter';
 import {
@@ -169,8 +169,10 @@ export class PageLoader {
           return;
         }
 
-        this.activeView.persistAppliedFilters();
-        this.refetchFromFirstPage();
+        untracked(() => {
+          this.activeView.persistAppliedFilters();
+          this.refetchFromFirstPage();
+        });
       },
       { injector: this.injector },
     );
