@@ -370,8 +370,7 @@ describe('SpiderlyFilterBarComponent', () => {
     });
     fixture.detectChanges();
 
-    // The datepicker hands back a real Date at local midnight; nothing parses a string here.
-    control(fixture, DatePicker).onSelect.emit(new Date(2026, 8, 1));
+    control(fixture, DatePicker).selectDate({ year: 2026, month: 8, day: 1 });
     fixture.detectChanges();
 
     editor(fixture)
