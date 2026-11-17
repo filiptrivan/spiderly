@@ -22,5 +22,12 @@ namespace Spiderly.SourceGenerators.Shared
 
             context.AddSource(hintName, SourceText.From(header + body, Encoding.UTF8));
         }
+
+        /// <summary>
+        /// The <c>?</c> a generated nullable reference type carries: <c>"?"</c> when the file's header is
+        /// <c>#nullable enable</c>, and <c>""</c> when it is <c>#nullable disable</c>, where a <c>?</c> warns CS8632.
+        /// </summary>
+        public static string NullableMark(this NullableContextOptions nullableContext)
+            => nullableContext.AnnotationsEnabled() ? "?" : "";
     }
 }

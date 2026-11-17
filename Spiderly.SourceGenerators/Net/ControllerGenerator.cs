@@ -99,7 +99,7 @@ using {{appName}}.Business.Services;
 
 namespace {{basePartOfNamespace}}.Controllers
 {
-{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, config, context))}}
+{{string.Join("\n\n", GetControllerClasses(allEntities, customControllers, config, nullableContext, context))}}
 }
 """;
 
@@ -112,7 +112,7 @@ namespace {{basePartOfNamespace}}.Controllers
         // avoids computing per-controller service dependency graphs in the generator,
         // and means user-written controllers don't break when entity relationships change.
         // We can introduce breaking changes freely, so we can always refactor later if needed.
-        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config, SourceProductionContext context)
+        public static List<string> GetControllerClasses(List<SpiderlyClass> allEntities, List<SpiderlyClass> customControllers, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             string routePrefix = config.Api.RoutePrefix;
             List<string> result = new();
@@ -138,7 +138,7 @@ namespace {{basePartOfNamespace}}.Controllers
             _localizer = localizer;
         }
 
-{{string.Join("\n\n", GetControllerMethods(groupedControllerEntities.ToList(), allEntities, context))}}
+{{string.Join("\n\n", GetControllerMethods(groupedControllerEntities.ToList(), allEntities, nullableContext, context))}}
 
     }
 """);
@@ -158,7 +158,7 @@ namespace {{basePartOfNamespace}}.Controllers
 """;
         }
 
-        private static List<string> GetControllerMethods(List<SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> allEntities, SourceProductionContext context)
+        private static List<string> GetControllerMethods(List<SpiderlyClass> groupedControllerEntities, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             List<string> result = new();
 
@@ -229,7 +229,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return await {{entityServiceField}}.Get{{controllerEntity.Name}}DTO(id);
         }
 
-{{GetManyToOneReadMethods(controllerEntity, allEntities)}}
+{{GetManyToOneReadMethods(controllerEntity, allEntities, nullableContext)}}
 
 {{string.Join("\n\n", GetOrderedOneToManyControllerMethods(controllerEntity, allEntities))}}
 
@@ -272,7 +272,7 @@ namespace {{basePartOfNamespace}}.Controllers
 
         #region Many To One
 
-        private static string GetManyToOneReadMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetManyToOneReadMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             StringBuilder sb = new();
 
@@ -281,7 +281,7 @@ namespace {{basePartOfNamespace}}.Controllers
                 if (property.ShouldGenerateAutocompleteControllerMethod())
                 {
                     sb.Append($$"""
-{{GetAutocompleteMethod(property, entity, allEntities)}}
+{{GetAutocompleteMethod(property, entity, allEntities, nullableContext)}}
 
 """);
                 }
@@ -298,7 +298,7 @@ namespace {{basePartOfNamespace}}.Controllers
             return sb.ToString();
         }
 
-        private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             SpiderlyClass manyToOneEntity = Helpers.GetEntityByPropertyType(property, allEntities);
 
@@ -318,7 +318,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns autocomplete options for {{property.Name}} on {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string filter)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string{{nullableContext.NullableMark()}} filter)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
                 limit,

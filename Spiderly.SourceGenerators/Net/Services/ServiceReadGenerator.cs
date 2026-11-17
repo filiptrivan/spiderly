@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
@@ -9,7 +10,7 @@ namespace Spiderly.SourceGenerators.Net
 {
     internal static class ServiceReadGenerator
     {
-        internal static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        internal static string GetReadBusinessServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             string entityIdType = entity.GetIdType(allEntities);
 
@@ -177,7 +178,7 @@ namespace Spiderly.SourceGenerators.Net
             });
         }
 
-{{GetManyToOneReadMethods(entity, allEntities)}}
+{{GetManyToOneReadMethods(entity, allEntities, nullableContext)}}
 """;
         }
 
@@ -325,7 +326,7 @@ namespace Spiderly.SourceGenerators.Net
 
         #region Many To One
 
-        internal static string GetManyToOneReadMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        internal static string GetManyToOneReadMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             StringBuilder sb = new();
 
@@ -339,7 +340,7 @@ namespace Spiderly.SourceGenerators.Net
                 if (property.ShouldGenerateAutocompleteControllerMethod())
                 {
                     sb.Append($$"""
-{{GetAutocompleteMethod(property, entity, allEntities)}}
+{{GetAutocompleteMethod(property, entity, allEntities, nullableContext)}}
 
 """);
                 }
@@ -356,7 +357,7 @@ namespace Spiderly.SourceGenerators.Net
             return sb.ToString();
         }
 
-        private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetAutocompleteMethod(SpiderlyProperty property, SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             SpiderlyClass autocompleteEntity = allEntities.Single(x => x.Name == Helpers.ExtractTypeFromGenericType(property.Type));
             string autocompleteEntityIdType = autocompleteEntity.GetIdType(allEntities);
@@ -372,7 +373,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{autocompleteEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
             int limit,
-            string filter,
+            string{{nullableContext.NullableMark()}} filter,
             IQueryable<{{autocompleteEntity.Name}}> query
         )
         {

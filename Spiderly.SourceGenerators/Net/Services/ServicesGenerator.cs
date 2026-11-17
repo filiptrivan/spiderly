@@ -67,7 +67,7 @@ namespace Spiderly.SourceGenerators.Net
             // Generate one service file per entity
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
-                string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace);
+                string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace, nullableContext);
                 context.AddSpiderlyCSharpSource($"{entity.Name}Service.generated", entityServiceCode, nullableContext);
             }
 
@@ -135,7 +135,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Per-Entity Service
 
-        private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace)
+        private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace, NullableContextOptions nullableContext)
         {
             bool entityNeedsS3Public = entity.Properties.Any(x => x.HasS3PublicStorageAttribute());
             bool entityNeedsS3Private = entity.Properties.Any(x => x.HasS3PrivateStorageAttribute());
@@ -144,7 +144,7 @@ namespace {{basePartOfNamespace}}.Services
             string storageFields = GetStorageFields(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
             string storageInit = GetStorageInit(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
 
-            string methods = GetEntityServiceMethods(entity, allEntities);
+            string methods = GetEntityServiceMethods(entity, allEntities, nullableContext);
 
             return $$"""
 {{GetUsings(basePartOfNamespace)}}
@@ -197,7 +197,7 @@ namespace {{basePartOfNamespace}}.Services
             return sb.ToString();
         }
 
-        private static string GetEntityServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetEntityServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             if (entity.IsManyToMany())
             {
@@ -217,7 +217,7 @@ namespace {{basePartOfNamespace}}.Services
             return $$"""
         #region Read
 
-{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntities)}}
+{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntities, nullableContext)}}
 
         #endregion
 
