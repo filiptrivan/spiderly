@@ -189,8 +189,8 @@ public class GeneratedCodeCompilationTests
 
     /// <summary>
     /// An app implements the framework's interfaces with the nullability their summaries give. The scaffolded
-    /// <c>OutboxMessage</c> keeps <c>LastError</c> null until an attempt fails, and a resolver returns null for
-    /// a recipient that no longer exists. A wrong annotation on the interface warns in the app's own code, which
+    /// <c>OutboxMessage</c> keeps <c>LastError</c> null until an attempt fails. A resolver returns null for a
+    /// recipient that no longer exists. A wrong annotation on the interface warns in the app's own code, which
     /// <c>&lt;WarningsAsErrors&gt;Nullable&lt;/WarningsAsErrors&gt;</c> makes fatal.
     /// </summary>
     [Fact]

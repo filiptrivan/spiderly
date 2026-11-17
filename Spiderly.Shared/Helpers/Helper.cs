@@ -839,6 +839,10 @@ namespace Spiderly.Shared.Helpers
             return bytes;
         }
 
+        /// <summary>
+        /// The <c>src</c> of each <c>img</c> tag in <paramref name="htmlContent"/>. Null or empty HTML gives an empty
+        /// list, since an optional editor property can be null.
+        /// </summary>
         public static List<string> ExtractImageUrlsFromHtml(string? htmlContent)
         {
             if (string.IsNullOrEmpty(htmlContent))
