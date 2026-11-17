@@ -11,6 +11,8 @@ using Spiderly.Shared.Exceptions;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -370,14 +372,38 @@ namespace Spiderly.Shared.Helpers
         public const string UnknownIPAddress = "unknown";
 
         /// <summary>
-        /// The client IP, or <see cref="UnknownIPAddress"/> when there isn't one. Use this wherever the IP
-        /// becomes a rate-limit partition key: <see cref="GetIPAddress"/> is null on non-socket transports
-        /// (in-memory test servers, Unix-domain sockets), and the limiter keys its partitions in a
-        /// dictionary — a null key throws rather than degrading.
+        /// The client IP as it is, or <see cref="UnknownIPAddress"/> when there isn't one: for a log line, or
+        /// for a key that counts each address alone. A rate limit that counts per address keys on
+        /// <see cref="GetCallerKey"/>. <see cref="GetIPAddress"/> is null on non-socket transports (in-memory
+        /// test servers, Unix-domain sockets), and the limiter keys its partitions in a dictionary — a null
+        /// key throws rather than degrading.
         /// </summary>
         public static string GetIPAddressOrUnknown(HttpContext httpContext)
         {
             return GetIPAddress(httpContext) ?? UnknownIPAddress;
+        }
+
+        /// <summary>
+        /// The key a rate limit counts a caller under when it counts per address: the global limiter's
+        /// anonymous partition and the blob-upload policy. An IPv4 address is its own key, and an
+        /// IPv4-mapped IPv6 address gives its IPv4 address. Any other IPv6 address gives its /64 prefix,
+        /// <c>2001:db8:1:2::/64</c>. RFC 6177 assigns an end site (a home, an office, a server) at least one
+        /// /64, so a key per full address would give one site 2^64 separate limits. No address gives
+        /// <see cref="UnknownIPAddress"/>, as <see cref="GetIPAddressOrUnknown"/> does.
+        /// </summary>
+        public static string GetCallerKey(HttpContext httpContext)
+        {
+            IPAddress? address = httpContext.Connection.RemoteIpAddress;
+            if (address == null)
+                return UnknownIPAddress;
+            if (address.IsIPv4MappedToIPv6)
+                address = address.MapToIPv4();
+            if (address.AddressFamily == AddressFamily.InterNetwork)
+                return address.ToString();
+
+            byte[] bytes = address.GetAddressBytes();
+            Array.Clear(bytes, 8, 8);
+            return $"{new IPAddress(bytes)}/64";
         }
 
         /// <summary>
