@@ -91,10 +91,8 @@ export class RowSelection {
    * the try/finally that guarantees the pending flag wraps an await, not fifty lines of
    * selection algebra.
    */
-  async reconcileLoadedPage(
-    selectedIds: Promise<LazyLoadSelectedIdsResult | Error> | null,
-  ): Promise<void> {
-    if (selectedIds == null) {
+  reconcileLoadedPage(selectedRows: LazyLoadSelectedIdsResult | Error | null): void {
+    if (selectedRows == null) {
       if (this.host.deleteListFromTableObservableMethod) {
         this.fakeSelectedItems = this.host.items
           .map((x) => x[this.host.idField])
@@ -103,15 +101,14 @@ export class RowSelection {
       return;
     }
 
-    const selectedRowsMethodResult = await selectedIds;
-    if (selectedRowsMethodResult instanceof Error) throw selectedRowsMethodResult;
+    if (selectedRows instanceof Error) throw selectedRows;
 
     this.currentPageSelectedItemsFromDb = [
-      ...selectedRowsMethodResult.selectedIds,
+      ...selectedRows.selectedIds,
     ];
 
     if (this.isFirstTimeLazyLoad == true) {
-      this.rowsSelectedNumber = selectedRowsMethodResult.totalRecordsSelected;
+      this.rowsSelectedNumber = selectedRows.totalRecordsSelected;
       this.setFakeIsAllSelected();
       this.isFirstTimeLazyLoad = false;
     }
@@ -126,7 +123,7 @@ export class RowSelection {
       this.fakeSelectedItems = [...this.newlySelectedItems]; // Only for showing checkboxes, we will not send this to the backend
     } else if (this.isAllSelected == null) {
       let idsToInsert = [
-        ...selectedRowsMethodResult.selectedIds,
+        ...selectedRows.selectedIds,
         ...this.newlySelectedItems,
       ];
       idsToInsert = idsToInsert.filter(
