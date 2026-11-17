@@ -109,6 +109,38 @@ namespace Spiderly.Shared.Tests
             Assert.Equal(30, h.OldestDueMinutes);
         }
 
+        [Fact]
+        public async Task Health_measures_a_scheduled_rows_age_from_its_due_time()
+        {
+            // Staged 60 minutes ago to wait one hour: it came due 1 minute ago, so it is not late.
+            Add(dispatchedAt: null, createdAt: FarFromTheMachineClock.AddMinutes(-60),
+                nextAttemptAt: FarFromTheMachineClock.AddMinutes(-1));
+            await _ctx.SaveChangesAsync();
+
+            OutboxHealth h = await new OutboxHealthJob<TestOutboxMessage>(_ctx, Opts(backlogAgeAlertMinutes: 15),
+                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance,
+                new FakeTimeProvider(new DateTimeOffset(FarFromTheMachineClock))).ComputeHealthAsync();
+
+            Assert.Equal(1, h.OldestDueMinutes);
+            Assert.False(h.Alert);
+        }
+
+        [Fact]
+        public async Task Health_reports_the_row_due_longest_not_the_row_created_first()
+        {
+            Add(dispatchedAt: null, createdAt: FarFromTheMachineClock.AddMinutes(-60),
+                nextAttemptAt: FarFromTheMachineClock.AddMinutes(-1));        // created first, due 1 min ago
+            Add(dispatchedAt: null, createdAt: FarFromTheMachineClock.AddMinutes(-20)); // fresh, due 20 min ago
+            await _ctx.SaveChangesAsync();
+
+            OutboxHealth h = await new OutboxHealthJob<TestOutboxMessage>(_ctx, Opts(backlogAgeAlertMinutes: 15),
+                NullLogger<OutboxHealthJob<TestOutboxMessage>>.Instance,
+                new FakeTimeProvider(new DateTimeOffset(FarFromTheMachineClock))).ComputeHealthAsync();
+
+            Assert.Equal(20, h.OldestDueMinutes);
+            Assert.True(h.Alert);
+        }
+
         // ---- helpers ----
 
         // The registered clock's instant in the clock tests: reading the machine's clock instead can never pass by
