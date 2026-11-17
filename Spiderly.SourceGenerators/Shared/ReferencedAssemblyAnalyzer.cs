@@ -263,6 +263,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = methodSymbol.Name,
                     ReturnType = ToDisplayName(methodSymbol.ReturnType)!, // IMethodSymbol.ReturnType is never null.
+                    IsPublicInstance = methodSymbol.DeclaredAccessibility == Accessibility.Public && !methodSymbol.IsStatic,
                     Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
                 };
 

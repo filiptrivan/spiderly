@@ -181,6 +181,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = method.Identifier.Text,
                     ReturnType = method.ReturnType.ToString(),
+                    IsPublicInstance = method.Modifiers.Any(SyntaxKind.PublicKeyword) && !method.Modifiers.Any(SyntaxKind.StaticKeyword),
                     Body = method.Body?.ToString(), // FT: CreateHostBuilder method inside Program.cs has no body
                     Parameters = method.ParameterList.Parameters
                         .Select(parameter => new SpiderParameter
