@@ -839,7 +839,7 @@ namespace Spiderly.Shared.Helpers
             return bytes;
         }
 
-        public static List<string> ExtractImageUrlsFromHtml(string htmlContent)
+        public static List<string> ExtractImageUrlsFromHtml(string? htmlContent)
         {
             if (string.IsNullOrEmpty(htmlContent))
                 return new List<string>();
