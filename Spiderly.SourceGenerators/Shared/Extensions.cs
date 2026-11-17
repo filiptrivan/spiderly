@@ -767,8 +767,7 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// Returns explicit foreign keys to hide in the details UI for many-to-one navigations
-        /// and one-to-one navigations marked <c>[UIDoNotGenerate]</c>.
+        /// Returns explicit foreign keys to hide in the details UI for many-to-one and one-to-one navigations.
         /// </summary>
         public static HashSet<string> GetPairedForeignKeyNames(this SpiderlyClass entity)
         {
@@ -776,9 +775,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty nav in entity.Properties)
             {
-                bool hidesForeignKey = nav.HasWithManyAttribute()
-                    || (nav.HasWithOneAttribute() && nav.HasUIDoNotGenerateAttribute());
-                if (!hidesForeignKey)
+                if (!nav.HasWithManyAttribute() && !nav.HasWithOneAttribute())
                     continue;
 
                 string? fkName = nav.ResolveExplicitForeignKeyName(entity);
