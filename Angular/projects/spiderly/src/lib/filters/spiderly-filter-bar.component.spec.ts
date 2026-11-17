@@ -386,6 +386,38 @@ describe('SpiderlyFilterBarComponent', () => {
     });
   });
 
+  it('applies a date typed into the datepicker', async () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+    const fixture = renderBar(filters);
+    await startEditing(fixture);
+
+    const input = editor(fixture).querySelector<HTMLInputElement>(
+      'p-datepicker input',
+    )!;
+    for (const key of '09/01/2026') {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      input.value += key;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    }
+
+    const date = new Date(2026, 8, 1);
+    expect(control(fixture, DatePicker).value).toEqual(date);
+    expect(filters.toFilterPayload()).toEqual({});
+
+    editor(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(filters.toFilterPayload()).toEqual({
+      createdAt: [{ matchMode: MatchModeCodes.GreaterThan, value: date }],
+    });
+    expect(chips(fixture).length).toBe(1);
+  });
+
   // The only path by which orderStatusId can exist: "Processing OR PreparingForShipping" is the
   // question asked before every bulk action, and only `In` expresses it. Declaring options is what
   // asks for it — the same rule as the table's [filters], where the shape of the input is the
