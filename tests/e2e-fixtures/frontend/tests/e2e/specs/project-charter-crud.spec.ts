@@ -129,6 +129,7 @@ test.describe('ProjectCharter — native one-to-one ([WithOne])', () => {
     await page.goto(`/project-charter-list/${mainCharterId}`);
 
     await expect(page.locator('spiderly-autocomplete')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('spiderly-number [id="charteredProjectId" i]')).toHaveCount(0);
     await expect(page.locator('spiderly-number [id="referenceProductId" i]')).toHaveCount(0);
     await expect(page.locator('body')).not.toContainText('Unknown UIControlType');
   });

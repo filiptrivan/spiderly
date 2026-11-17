@@ -89,10 +89,12 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
-    [Fact]
-    public void BaseDetails_HiddenOneToOneNavigation_DoesNotRenderItsForeignKeyAsANumber()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BaseDetails_OneToOneNavigation_DoesNotRenderItsForeignKeyAsANumber(bool hidden)
     {
-        const string source = """
+        string source = $$"""
             #nullable enable
             using Spiderly.Shared.Attributes.Entity;
             using Spiderly.Shared.Attributes.Entity.UI;
@@ -107,7 +109,7 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
                     public long? OwningTaskItemId { get; set; }
 
                     [WithOne(nameof(TaskItem.Conversation))]
-                    [UIDoNotGenerate]
+                    {{(hidden ? "[UIDoNotGenerate]" : string.Empty)}}
                     public virtual TaskItem? OwningTaskItem { get; set; }
                 }
 
@@ -122,11 +124,15 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
             """;
 
         string text = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
-        const string control = "<spiderly-number [control]=\"this.parentFormGroup.controls.conversationDTO.getControl(";
+        const string control = " [control]=\"this.parentFormGroup.controls.conversationDTO.getControl(";
+        const string foreignKey = control + "'owningTaskItemId')\"";
 
-        Assert.Contains(control + "'sequence')\"", text);
-        Assert.DoesNotContain("owningTaskItemOptionsForConversation", text);
-        Assert.DoesNotContain(control + "'owningTaskItemId')\"", text);
+        Assert.Contains("<spiderly-number" + control + "'sequence')\"", text);
+        if (hidden)
+            Assert.DoesNotContain("<spiderly-autocomplete" + foreignKey, text);
+        else
+            Assert.Contains("<spiderly-autocomplete" + foreignKey, text);
+        Assert.DoesNotContain("<spiderly-number" + foreignKey, text);
     }
 
     private string Generate(Type generatorType, string file, string source = AppSource)
