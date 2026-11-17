@@ -2,8 +2,10 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -27,11 +29,14 @@ namespace Spiderly.SourceGenerators.Shared
         /// Pass <see cref="ImmutableArray{T}.Empty"/> to opt out of enum tagging (legacy behavior).
         /// </summary>
         public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
+            => GetAllPropertiesOfTheClass(c, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames, GetSpiderAttribute);
+
+        internal static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
             TypeSyntax? baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
             ClassDeclarationSyntax baseClass = GetClass(baseType, currentProjectClasses);
 
-            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames);
+            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames, mapPropertyAttribute);
 
             TypeSyntax? typeGeneric = null;
 
@@ -56,7 +61,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     foreach (PropertyDeclarationSyntax prop in baseClass.Members.OfType<PropertyDeclarationSyntax>())
                     {
-                        properties.Add(GetPropWithModifiedT(prop, typeGeneric, baseClass));
+                        properties.Add(GetPropWithModifiedT(prop, typeGeneric, baseClass, mapPropertyAttribute));
                     }
                 }
 
@@ -135,6 +140,9 @@ namespace Spiderly.SourceGenerators.Shared
         /// in the current compilation; properties whose stringified type matches a name in the set get <c>IsEnum = true</c>.
         /// </summary>
         public static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames)
+            => GetPropsOfCurrentClass(c, spiderlyEnumNames, GetSpiderAttribute);
+
+        private static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
             // Build a HashSet once per class scan; ImmutableArray.Contains is O(N).
             // Nullable enum properties (`OrderStatusCodes?`) need the suffix stripped to match the unadorned name in the set.
@@ -158,13 +166,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Description = GetXmlDocSummary(prop),
                         Location = prop.Identifier.GetLocation(),
                         IsEnum = enumNameSet != null && enumNameSet.Contains(typeText.WithoutNullableSuffix()),
-                        Attributes = prop.AttributeLists
-                            .SelectMany(x => x.Attributes)
-                            .Select(x =>
-                            {
-                                return GetSpiderAttribute(x);
-                            })
-                            .ToList()
+                        Attributes = GetPropertyAttributes(prop, mapPropertyAttribute)
                     };
                 })
                 .ToList();
@@ -234,6 +236,17 @@ namespace Spiderly.SourceGenerators.Shared
             };
         }
 
+        internal static string? GetStringLengthValue(AttributeData attribute)
+        {
+            if (attribute.ConstructorArguments.Length != 1 || attribute.ConstructorArguments[0].Value is not int max)
+                return null;
+
+            var minimum = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == "MinimumLength").Value;
+            return minimum.Value is int min
+                ? FormattableString.Invariant($"{max}, MinimumLength={min}")
+                : max.ToString(CultureInfo.InvariantCulture);
+        }
+
         internal static string? GetFormatedAttributeValue(string? value)
         {
             value = value?.Replace("\"", "").Replace("@", "");
@@ -244,9 +257,8 @@ namespace Spiderly.SourceGenerators.Shared
             return value;
         }
 
-        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax? typeGeneric, ClassDeclarationSyntax baseClass)
+        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax? typeGeneric, ClassDeclarationSyntax baseClass, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
-            List<SpiderlyAttribute> attributes = GetAllAttributesOfTheMember(prop);
             SpiderlyProperty newProp = new SpiderlyProperty
             {
                 Type = prop.Type.ToString(),
@@ -254,7 +266,7 @@ namespace Spiderly.SourceGenerators.Shared
                 EntityName = baseClass.Identifier.Text,
                 Description = GetXmlDocSummary(prop),
                 Location = prop.Identifier.GetLocation(),
-                Attributes = attributes,
+                Attributes = GetPropertyAttributes(prop, mapPropertyAttribute),
             };
 
             if (prop.Type.ToString() == "T") // If some property has type of T, we change it to long for example
@@ -279,14 +291,12 @@ namespace Spiderly.SourceGenerators.Shared
             return newProp;
         }
 
-        private static List<SpiderlyAttribute> GetAllAttributesOfTheMember(MemberDeclarationSyntax prop)
+        private static List<SpiderlyAttribute> GetPropertyAttributes(PropertyDeclarationSyntax prop, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
-            List<SpiderlyAttribute> attributes = new List<SpiderlyAttribute>();
-            attributes = prop.AttributeLists
+            return prop.AttributeLists
                 .SelectMany(x => x.Attributes)
-                .Select(GetSpiderAttribute)
+                .Select(mapPropertyAttribute)
                 .ToList();
-            return attributes;
         }
 
         internal static string? GetXmlDocSummary(SyntaxNode node)
