@@ -4,7 +4,7 @@ using __APP_NAME__.Business.Entities;
 namespace __APP_NAME__.Infrastructure
 {
     // E2E fixture seed overlay. Replaces the generated demo SeedData (see
-    // Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs -> GetInfrastructureApplicationDbContextSeedDataData)
+    // Spiderly.Shared/Helpers/Scaffold/DatabaseProjectsTemplate.cs -> GetInfrastructureApplicationDbContextSeedDataData)
     // with the permission/role/category set the e2e specs depend on. This is a partial-class file: it owns ONLY
     // the seed data, never the DbContext constructor or OnModelCreating, so framework plumbing changes can't break it.
     public partial class __APP_NAME__ApplicationDbContext

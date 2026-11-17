@@ -198,7 +198,7 @@ Kept as-is: `INotification`, `IIntegrationEvent`, `INotificationChannel`, `IInte
 3. **Rewire notifications** onto the core: `[OutboxCode]`, `CodeTypeRegistry<INotification>` from `Routes.Keys`, `NotificationOutboxPayload : OutboxEnvelope`, `Notifier`/`NotificationDeliveryExecutor` use `OutboxCode.Of` + `Rebuild`. Update notification tests.
 4. **Delete** the duplicated classes + all `Discover(assemblies)` paths.
 5. **Reverify the consuming app** — rename `[IntegrationEventCode]`→`[OutboxCode]` on `OrderCreated`, `AddIntegrationEvents(typeof(OrderCreated))` unchanged, notification types `[NotificationCode]`→`[OutboxCode]`; build the app.
-6. **Housekeeping** — audit the `spiderly init` template (`NetAndAngularFilesGenerator.cs`) for renamed APIs; regenerate framework-metadata SSOT + agent bundle if the renamed attributes are covered; update any consumer docs/skills referencing the old names.
+6. **Housekeeping** — audit the `spiderly init` template (`Spiderly.Shared/Helpers/Scaffold/`) for renamed APIs; regenerate framework-metadata SSOT + agent bundle if the renamed attributes are covered; update any consumer docs/skills referencing the old names.
 
 Each slice builds + tests green before the next.
 

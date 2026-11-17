@@ -65,7 +65,7 @@ On 403 rate-limited: ask the user to export `GH_TOKEN` (no scopes needed) and re
 - `Spiderly.Security/**/*.cs` — auth interfaces, attributes
 - `Spiderly.Infrastructure/**/*.cs` — DI extensions, base services
 - `Spiderly.SourceGenerators/**/*.cs` — generator output shape changes (may break consumer overrides)
-- `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` — init template; drift here implies existing apps may need mirroring edits (new service registration, new file in scaffold)
+- `Spiderly.Shared/Helpers/Scaffold/*.cs` — init template, which `NetAndAngularFilesGenerator.cs` writes; drift here implies existing apps may need mirroring edits (new service registration, new file in scaffold)
 - `Angular/projects/spiderly/src/lib/**/*.ts`
 - `Angular/projects/spiderly/src/public-api.ts`
 

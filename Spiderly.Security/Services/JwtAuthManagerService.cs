@@ -471,7 +471,7 @@ namespace Spiderly.Security.Services
         /// within <see cref="AuthPolicyOptions.VerificationCodeResendCooldownSeconds"/>, or because the
         /// number of currently-valid codes has reached
         /// <see cref="AuthPolicyOptions.MaxActiveVerificationCodesPerEmail"/>. Both limits are per-address
-        /// and IP-independent, so they hold against a distributed sender that the per-IP rate limiter
+        /// and IP-independent, so they hold against a distributed sender that the caller-key rate limiter
         /// cannot stop. Expired codes are ignored. Callers should silently report success when this returns
         /// <c>true</c> (the caller already holds a fresh code), so the endpoint leaks neither whether an
         /// address exists nor that it is being targeted.
