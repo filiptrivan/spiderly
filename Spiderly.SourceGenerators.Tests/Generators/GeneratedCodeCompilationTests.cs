@@ -189,8 +189,8 @@ public class GeneratedCodeCompilationTests
 
     /// <summary>
     /// Server-owned properties of nullable types. The generated DTO-to-entity config ignores a <c>[ReadOnly]</c>
-    /// property through Mapster's <c>Func&lt;TDestination, object&gt;</c>, so a null value must box there without
-    /// a warning.
+    /// property through Mapster's <c>Func&lt;TDestination, object&gt;</c>, so that function must return a nullable
+    /// property without a warning.
     /// </summary>
     [Fact]
     public void EveryDotNetGenerator_IgnoresANullableReadOnlyPropertyOnSave()
