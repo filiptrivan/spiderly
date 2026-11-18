@@ -188,6 +188,47 @@ public class GeneratedCodeCompilationTests
     }
 
     /// <summary>
+    /// Server-owned properties of nullable types. The generated DTO-to-entity config ignores a <c>[ReadOnly]</c>
+    /// property through Mapster's <c>Func&lt;TDestination, object&gt;</c>, so a null value must box there without
+    /// a warning.
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_IgnoresANullableReadOnlyPropertyOnSave()
+    {
+        const string NullableServerOwnedValues = $$"""
+            using System.ComponentModel.DataAnnotations;
+            using Spiderly.Shared.Attributes;
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Gauge : BusinessObject<long>
+                {
+                    [DisplayName]
+                    [Required]
+                    [StringLength(100, MinimumLength = 1)]
+                    public string Name { get; set; } = null!;
+
+                    [ReadOnly]
+                    public decimal? LastReading { get; set; }
+
+                    [ReadOnly]
+                    [StringLength(100)]
+                    public string? LastReadingNote { get; set; }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [NullableServerOwnedValues]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
+    /// <summary>
     /// An app implements the framework's interfaces with the nullability their summaries give. The scaffolded
     /// <c>OutboxMessage</c> keeps <c>LastError</c> null until an attempt fails. A resolver returns null for a
     /// recipient that no longer exists. A wrong annotation on the interface warns in the app's own code, which
