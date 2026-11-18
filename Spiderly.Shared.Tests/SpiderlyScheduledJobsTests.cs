@@ -82,7 +82,7 @@ namespace Spiderly.Shared.Tests
             public DateTime? DispatchedAt { get; set; }
             public int AttemptCount { get; set; }
             public DateTime? LastAttemptedAt { get; set; }
-            public string LastError { get; set; } = "";
+            public string? LastError { get; set; }
             public DateTime? NextAttemptAt { get; set; }
             public long? DismissedByUserId { get; set; }
         }

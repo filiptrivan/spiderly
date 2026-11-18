@@ -99,7 +99,11 @@ public class ReferencedAssemblyAnalyzerTests
                 [SpiderlyEntity]
                 public class Product : BusinessObject<long>
                 {
+                    private const string Mp4 = "video/mp4";
+                    private const string Webm = "video/webm";
+
                     [MaxFileSize(52_428_800)]
+                    [AcceptedFileTypes(Mp4, Webm)]
                     public string VideoUrl { get; set; }
                 }
             }
@@ -108,7 +112,10 @@ public class ReferencedAssemblyAnalyzerTests
         SpiderlyClass product = ReferencedAssemblyAnalyzer.GetClassesFromCompilation(compilation, [ClassCategoryCodes.Entities])
             .Single(x => x.Name == "Product");
 
-        Assert.Equal(52_428_800, product.Properties.Single(x => x.Name == "VideoUrl").GetMaxFileSize());
+        SpiderlyProperty video = product.Properties.Single(x => x.Name == "VideoUrl");
+        Assert.Equal(52_428_800, video.GetMaxFileSize());
+        Assert.Equal("52428800", video.FindMaxFileSizeAttribute()?.Value);
+        Assert.Equal(new[] { "video/mp4", "video/webm" }, video.GetAcceptedFileTypes());
     }
 
     [Fact]

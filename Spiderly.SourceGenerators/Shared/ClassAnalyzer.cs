@@ -2,8 +2,10 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -27,14 +29,14 @@ namespace Spiderly.SourceGenerators.Shared
         /// Pass <see cref="ImmutableArray{T}.Empty"/> to opt out of enum tagging (legacy behavior).
         /// </summary>
         public static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames)
-            => GetAllPropertiesOfTheClass(c, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames, null);
+            => GetAllPropertiesOfTheClass(c, currentProjectClasses, referencedProjectsClasses, spiderlyEnumNames, GetSpiderAttribute);
 
-        internal static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames, Compilation? compilation)
+        internal static List<SpiderlyProperty> GetAllPropertiesOfTheClass(ClassDeclarationSyntax c, IList<ClassDeclarationSyntax> currentProjectClasses, List<SpiderlyClass> referencedProjectsClasses, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
             TypeSyntax? baseType = c.BaseList?.Types.FirstOrDefault()?.Type; // BaseClass<long>
             ClassDeclarationSyntax baseClass = GetClass(baseType, currentProjectClasses);
 
-            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames, compilation?.GetSemanticModel(c.SyntaxTree));
+            List<SpiderlyProperty> properties = GetPropsOfCurrentClass(c, spiderlyEnumNames, mapPropertyAttribute);
 
             TypeSyntax? typeGeneric = null;
 
@@ -57,10 +59,9 @@ namespace Spiderly.SourceGenerators.Shared
                 }
                 else
                 {
-                    SemanticModel? semanticModel = compilation?.GetSemanticModel(baseClass.SyntaxTree);
                     foreach (PropertyDeclarationSyntax prop in baseClass.Members.OfType<PropertyDeclarationSyntax>())
                     {
-                        properties.Add(GetPropWithModifiedT(prop, typeGeneric, baseClass, semanticModel));
+                        properties.Add(GetPropWithModifiedT(prop, typeGeneric, baseClass, mapPropertyAttribute));
                     }
                 }
 
@@ -139,9 +140,9 @@ namespace Spiderly.SourceGenerators.Shared
         /// in the current compilation; properties whose stringified type matches a name in the set get <c>IsEnum = true</c>.
         /// </summary>
         public static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames)
-            => GetPropsOfCurrentClass(c, spiderlyEnumNames, null);
+            => GetPropsOfCurrentClass(c, spiderlyEnumNames, GetSpiderAttribute);
 
-        private static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames, SemanticModel? semanticModel)
+        private static List<SpiderlyProperty> GetPropsOfCurrentClass(ClassDeclarationSyntax c, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
             // Build a HashSet once per class scan; ImmutableArray.Contains is O(N).
             // Nullable enum properties (`OrderStatusCodes?`) need the suffix stripped to match the unadorned name in the set.
@@ -165,7 +166,7 @@ namespace Spiderly.SourceGenerators.Shared
                         Description = GetXmlDocSummary(prop),
                         Location = prop.Identifier.GetLocation(),
                         IsEnum = enumNameSet != null && enumNameSet.Contains(typeText.WithoutNullableSuffix()),
-                        Attributes = GetPropertyAttributes(prop, semanticModel),
+                        Attributes = GetPropertyAttributes(prop, mapPropertyAttribute)
                     };
                 })
                 .ToList();
@@ -180,6 +181,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = method.Identifier.Text,
                     ReturnType = method.ReturnType.ToString(),
+                    IsPublicInstance = method.Modifiers.Any(SyntaxKind.PublicKeyword) && !method.Modifiers.Any(SyntaxKind.StaticKeyword),
                     Body = method.Body?.ToString(), // FT: CreateHostBuilder method inside Program.cs has no body
                     Parameters = method.ParameterList.Parameters
                         .Select(parameter => new SpiderParameter
@@ -235,6 +237,54 @@ namespace Spiderly.SourceGenerators.Shared
             };
         }
 
+        internal static SpiderlyAttribute GetSpiderAttribute(AttributeData attribute)
+        {
+            INamedTypeSymbol type = attribute.AttributeClass!;
+            string name = type.Name;
+            if (name.EndsWith("Attribute", StringComparison.Ordinal))
+                name = name.Substring(0, name.Length - "Attribute".Length);
+
+            if (name == "MaxFileSize" && type.ContainingNamespace.ToDisplayString() == "Spiderly.Shared.Attributes.Entity")
+            {
+                int? size = attribute.ConstructorArguments.Length == 1
+                    && attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Primitive, Value: int bytes }
+                    && bytes > 0 ? bytes : null;
+                return new SpiderlyAttribute { Name = name, Value = size?.ToString(CultureInfo.InvariantCulture), Int32Value = size };
+            }
+
+            if (name == "StringLength")
+                return new SpiderlyAttribute { Name = name, Value = GetStringLengthValue(attribute) };
+
+            var values = attribute.ConstructorArguments.Select(GetConstantValue).Where(value => value != null)
+                .Concat(attribute.NamedArguments.Select(arg => $"{arg.Key}={GetConstantValue(arg.Value)}")).ToArray();
+            return new SpiderlyAttribute
+            {
+                Name = name,
+                Value = values.Length == 0 ? null : GetFormatedAttributeValue(string.Join(", ", values)),
+            };
+        }
+
+        private static string? GetConstantValue(TypedConstant constant)
+        {
+            if (constant.IsNull || constant.Kind == TypedConstantKind.Error)
+                return null;
+
+            return constant.Kind == TypedConstantKind.Array
+                ? string.Join(", ", constant.Values.Select(GetConstantValue))
+                : Convert.ToString(constant.Value, CultureInfo.InvariantCulture);
+        }
+
+        private static string? GetStringLengthValue(AttributeData attribute)
+        {
+            if (attribute.ConstructorArguments.Length != 1 || attribute.ConstructorArguments[0].Value is not int max)
+                return null;
+
+            var minimum = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == "MinimumLength").Value;
+            return minimum.Value is int min
+                ? FormattableString.Invariant($"{max}, MinimumLength={min}")
+                : max.ToString(CultureInfo.InvariantCulture);
+        }
+
         internal static string? GetFormatedAttributeValue(string? value)
         {
             value = value?.Replace("\"", "").Replace("@", "");
@@ -245,7 +295,7 @@ namespace Spiderly.SourceGenerators.Shared
             return value;
         }
 
-        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax? typeGeneric, ClassDeclarationSyntax baseClass, SemanticModel? semanticModel)
+        private static SpiderlyProperty GetPropWithModifiedT(PropertyDeclarationSyntax prop, TypeSyntax? typeGeneric, ClassDeclarationSyntax baseClass, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
             SpiderlyProperty newProp = new SpiderlyProperty
             {
@@ -254,7 +304,7 @@ namespace Spiderly.SourceGenerators.Shared
                 EntityName = baseClass.Identifier.Text,
                 Description = GetXmlDocSummary(prop),
                 Location = prop.Identifier.GetLocation(),
-                Attributes = GetPropertyAttributes(prop, semanticModel),
+                Attributes = GetPropertyAttributes(prop, mapPropertyAttribute),
             };
 
             if (prop.Type.ToString() == "T") // If some property has type of T, we change it to long for example
@@ -279,39 +329,12 @@ namespace Spiderly.SourceGenerators.Shared
             return newProp;
         }
 
-        private static List<SpiderlyAttribute> GetPropertyAttributes(PropertyDeclarationSyntax prop, SemanticModel? semanticModel)
+        private static List<SpiderlyAttribute> GetPropertyAttributes(PropertyDeclarationSyntax prop, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute)
         {
-            List<SpiderlyAttribute> attributes = prop.AttributeLists
+            return prop.AttributeLists
                 .SelectMany(x => x.Attributes)
-                .Select(GetSpiderAttribute)
+                .Select(mapPropertyAttribute)
                 .ToList();
-
-            if (attributes.Count != 0 && semanticModel?.GetDeclaredSymbol(prop) is IPropertySymbol symbol)
-            {
-                AttributeData? maxFileSize = symbol.GetAttributes().FirstOrDefault(IsMaxFileSizeAttribute);
-                if (maxFileSize != null)
-                {
-                    attributes.RemoveAll(x => x.Name == "MaxFileSize");
-                    attributes.Add(CreateMaxFileSizeAttribute(maxFileSize));
-                }
-            }
-
-            return attributes;
-        }
-
-        internal static bool IsMaxFileSizeAttribute(AttributeData attribute)
-            => attribute.AttributeClass is { Name: "MaxFileSizeAttribute" } type
-                && type.ContainingNamespace.ToDisplayString() == "Spiderly.Shared.Attributes.Entity";
-
-        internal static SpiderlyAttribute CreateMaxFileSizeAttribute(AttributeData attribute)
-        {
-            return new SpiderlyAttribute
-            {
-                Name = "MaxFileSize",
-                Int32Value = attribute.ConstructorArguments.Length == 1
-                    && attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Primitive, Value: int size }
-                    && size > 0 ? size : null,
-            };
         }
 
         internal static string? GetXmlDocSummary(SyntaxNode node)

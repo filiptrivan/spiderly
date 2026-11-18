@@ -108,7 +108,8 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         string backendLimit = Regex.Match(backend, @"Helper\.ValidateFileSize\(file\.Length, ([0-9_]+),").Groups[1].Value;
         Assert.Multiple(
             () => Assert.Equal("52428800", angularLimit),
-            () => Assert.Equal("52428800", backendLimit.Replace("_", "")));
+            () => Assert.Equal("52428800", backendLimit.Replace("_", "")),
+            () => Assert.Contains("[acceptedFileTypes]=\"['video/mp4', 'video/webm']\"", angular));
     }
 
     [Theory]
@@ -143,12 +144,14 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
                 public class Product : BusinessObject<long>
                 {
                     private const int UploadLimit = 52_428_800;
+                    private const string Mp4 = "video/mp4";
+                    private const string Webm = "video/webm";
 
                     [DisplayName]
                     public string Name { get; set; }
 
                     [S3PublicStorage]
-                    [AcceptedFileTypes("video/mp4")]
+                    [AcceptedFileTypes(Mp4, Webm)]
                     [MaxFileSize({{literal}})]
                     public string VideoUrl { get; set; }
                 }
@@ -161,9 +164,39 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
             }
             """;
 
+    [Theory]
+    [InlineData("private static")]
+    [InlineData("private")]
+    [InlineData("public static")]
+    public void ApiService_ControllerWithHelper_EmitsThePublicAction(string modifiers)
+    {
+        string source = $$"""
+            using Microsoft.AspNetCore.Mvc;
+            using Spiderly.Shared.Attributes;
+
+            namespace TestApp.WebAPI.Controllers
+            {
+                [SpiderlyController]
+                public class ReportController : ControllerBase
+                {
+                    [HttpGet]
+                    public string GetReportName() => FormatReportName("sales");
+
+                    {{modifiers}} string FormatReportName(string name) => $"{name}.csv";
+                }
+            }
+            """;
+
+        string text = Generate(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", source);
+
+        Assert.Contains("getReportName = (", text);
+        Assert.DoesNotContain("formatReportName", text, StringComparison.OrdinalIgnoreCase);
+    }
+
     private string Generate(Type generatorType, string file, string source = AppSource)
     {
-        GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir);
+        GeneratorDriverRunResult result = GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir).GetRunResult();
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
 
         string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");

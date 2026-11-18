@@ -11,6 +11,7 @@ public class NgControllersGeneratorTests
     private static SpiderlyMethod Method(string name, params string[] attributeNames) => new()
     {
         Name = name,
+        IsPublicInstance = true,
         Attributes = new List<SpiderlyAttribute>(
             Array.ConvertAll(attributeNames, a => new SpiderlyAttribute { Name = a })),
     };

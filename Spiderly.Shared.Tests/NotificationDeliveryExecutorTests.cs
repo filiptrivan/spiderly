@@ -121,7 +121,7 @@ namespace Spiderly.Shared.Tests
         {
             private readonly INotificationRecipient _recipient;
             public FakeResolver(INotificationRecipient recipient) => _recipient = recipient;
-            public Task<INotificationRecipient> ResolveAsync(long recipientId) => Task.FromResult(_recipient);
+            public Task<INotificationRecipient?> ResolveAsync(long recipientId) => Task.FromResult<INotificationRecipient?>(_recipient);
         }
     }
 }

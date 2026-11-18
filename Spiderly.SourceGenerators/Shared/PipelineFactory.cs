@@ -1,11 +1,14 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 
 namespace Spiderly.SourceGenerators.Shared
 {
@@ -156,6 +159,44 @@ namespace Spiderly.SourceGenerators.Shared
                 compilation.Options is CSharpCompilationOptions csharpOptions
                     ? csharpOptions.NullableContextOptions
                     : NullableContextOptions.Disable);
+        }
+
+        internal static IncrementalValueProvider<Func<AttributeSyntax, SpiderlyAttribute>> GetPropertyAttributeMapper(SyntaxValueProvider syntaxProvider)
+        {
+            return syntaxProvider.CreateSyntaxProvider(
+                    predicate: static (node, _) => node is PropertyDeclarationSyntax { AttributeLists.Count: > 0, Parent: ClassDeclarationSyntax },
+                    transform: static (ctx, ct) => GetPropertyAttributeValues(ctx, ct))
+                .SelectMany(static (attributes, _) => attributes)
+                .Collect()
+                .Select(static (attributes, _) =>
+                {
+                    var bySyntax = attributes.ToDictionary(attribute => (attribute.Tree, attribute.Span));
+                    return new Func<AttributeSyntax, SpiderlyAttribute>(syntax =>
+                        bySyntax.TryGetValue((syntax.SyntaxTree, syntax.Span), out var attribute)
+                            ? new SpiderlyAttribute { Name = attribute.Name, Value = attribute.Value, Int32Value = attribute.Int32Value }
+                            : ClassAnalyzer.GetSpiderAttribute(syntax));
+                });
+        }
+
+        private static ImmutableArray<(SyntaxTree Tree, TextSpan Span, string Name, string? Value, int? Int32Value)> GetPropertyAttributeValues(
+            GeneratorSyntaxContext context, CancellationToken cancellationToken)
+        {
+            var declaration = (PropertyDeclarationSyntax)context.Node;
+            if (context.SemanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not IPropertySymbol property)
+                return ImmutableArray<(SyntaxTree, TextSpan, string, string?, int?)>.Empty;
+
+            var result = ImmutableArray.CreateBuilder<(SyntaxTree, TextSpan, string, string?, int?)>();
+            foreach (AttributeData attribute in property.GetAttributes())
+            {
+                SyntaxReference? syntax = attribute.ApplicationSyntaxReference;
+                if (syntax == null || syntax.SyntaxTree != declaration.SyntaxTree || !declaration.Span.Contains(syntax.Span)
+                    || attribute.AttributeClass is not { TypeKind: not TypeKind.Error })
+                    continue;
+
+                SpiderlyAttribute value = ClassAnalyzer.GetSpiderAttribute(attribute);
+                result.Add((syntax.SyntaxTree, syntax.Span, value.Name, value.Value, value.Int32Value));
+            }
+            return result.ToImmutable();
         }
 
         /// <summary>

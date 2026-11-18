@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -36,15 +37,16 @@ namespace Spiderly.SourceGenerators.Shared
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            var sourceWithCompilation = combined
+            var inputs = combined
                 .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
-                .Combine(context.CompilationProvider);
+                .Combine(PipelineFactory.GetNullableContextProvider(context))
+                .Combine(PipelineFactory.GetPropertyAttributeMapper(context.SyntaxProvider));
 
-            context.RegisterSafeImplementationSourceOutput(sourceWithCompilation, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var ((combinedSource, enumNames), compilation) = source;
+                var (((combinedSource, enumNames), nullableContext), mapPropertyAttribute) = source;
                 var ((classes, referencedClasses), _) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, compilation, spc);
+                Execute(classes, referencedClasses, enumNames, nullableContext, mapPropertyAttribute, spc);
             });
         }
 
@@ -52,14 +54,14 @@ namespace Spiderly.SourceGenerators.Shared
             IList<ClassDeclarationSyntax> classes,
             List<SpiderlyClass> referencedProjectClasses,
             ImmutableArray<string> spiderlyEnumNames,
-            Compilation compilation,
+            NullableContextOptions nullableContext,
+            Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute,
             SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
 
-            NullableContextOptions nullableContext = compilation.Options.NullableContextOptions;
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames, compilation);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames, mapPropertyAttribute);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
 
             foreach (SpiderlyClass entity in currentProjectEntities)

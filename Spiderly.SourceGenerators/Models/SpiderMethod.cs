@@ -9,6 +9,7 @@ namespace Spiderly.SourceGenerators.Models
     {
         public string Name { get; set; } = null!;
         public string ReturnType { get; set; } = null!;
+        internal bool IsPublicInstance { get; set; }
 
         /// <summary>Null for a bodiless method (abstract / expression-bodied-less declarations).</summary>
         public string? Body { get; set; }

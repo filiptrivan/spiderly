@@ -197,76 +197,7 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         private static List<SpiderlyAttribute> GetAttributesFromReferencedAssemblies(ISymbol symbol)
-        {
-            List<SpiderlyAttribute> attributes = [];
-
-            foreach (AttributeData attribute in symbol.GetAttributes())
-            {
-                if (ClassAnalyzer.IsMaxFileSizeAttribute(attribute))
-                {
-                    attributes.Add(ClassAnalyzer.CreateMaxFileSizeAttribute(attribute));
-                    continue;
-                }
-
-                string? attributeName = attribute.AttributeClass?.Name?.Replace("Attribute", "");
-
-                string? argumentValue = null;
-
-                if (attribute.ConstructorArguments.Length > 0)
-                {
-                    if (attributeName == "StringLength")
-                    {
-                        List<string?> parts = new List<string?>
-                        {
-                            attribute.ConstructorArguments[0].Value?.ToString() // Max length
-                        };
-
-                        var minLengthArg = attribute.NamedArguments.FirstOrDefault(na => na.Key == "MinimumLength");
-
-                        if (minLengthArg.Key != null)
-                        {
-                            parts.Add($"MinimumLength={minLengthArg.Value.Value}");
-                        }
-
-                        argumentValue = string.Join(", ", parts);
-                    }
-                    else
-                    {
-                        argumentValue = attribute.ConstructorArguments.Length > 0
-                        ?
-                        string.Join(", ", attribute.ConstructorArguments.Select(arg =>
-                        {
-                            try
-                            {
-                                return arg.Value?.ToString();
-                            }
-                            catch (Exception)
-                            {
-                                return arg.Values.FirstOrDefault().Value?.ToString();
-                            }
-                        }))
-                        : null; // FT: Doing this because of Range(0, 5) (long tail because of null pointer exception)
-                    }
-                }
-
-                argumentValue = ClassAnalyzer.GetFormatedAttributeValue(argumentValue);
-
-                SpiderlyAttribute spiderAttribute = new SpiderlyAttribute
-                {
-                    // AttributeClass is nullable, but an attribute Roslyn CANNOT resolve does not produce
-                    // null here — it produces an IErrorTypeSymbol whose Name is still the written name, so
-                    // it flows through correctly (verified against a three-assembly compilation where the
-                    // attribute's defining assembly is unreferenced). Null would require an undecodable
-                    // metadata blob; a fault there now surfaces as SPIDERLY024. Deliberately unguarded.
-                    Name = attributeName!,
-                    Value = argumentValue
-                };
-
-                attributes.Add(spiderAttribute);
-            }
-
-            return attributes.OrderBy(x => x.Name).ToList();
-        }
+            => symbol.GetAttributes().Select(ClassAnalyzer.GetSpiderAttribute).OrderBy(x => x.Name).ToList();
 
         /// <summary>
         /// Cant get method Body and method DescendantNodes from referenced assemblies
@@ -281,6 +212,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = methodSymbol.Name,
                     ReturnType = ToDisplayName(methodSymbol.ReturnType)!, // IMethodSymbol.ReturnType is never null.
+                    IsPublicInstance = methodSymbol.DeclaredAccessibility == Accessibility.Public && !methodSymbol.IsStatic,
                     Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
                 };
 
