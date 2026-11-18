@@ -90,4 +90,23 @@ public class GeneratedCSharpNullablePragmaTests
         }
     }
 
+    /// <summary>
+    /// An autocomplete's <c>filter</c> is optional. The admin sends <c>filter=</c> when a field gets focus
+    /// empty, and the service reads null as "no filter". So under <c>#nullable enable</c> it is
+    /// <c>string?</c>, and the required-parameter rule lets it through. This harness emits no
+    /// controller, so the e2e fixture apps run the controller's twin.
+    /// </summary>
+    [Theory]
+    [InlineData(NullableContextOptions.Enable, "string? filter,")]
+    [InlineData(NullableContextOptions.Disable, "string filter,")]
+    public void An_autocomplete_filter_is_nullable_where_annotations_are_on(NullableContextOptions nullable, string expected)
+    {
+        var runResult = GeneratorTestHarness.Run(typeof(ServicesGenerator), Source, nullable).GetRunResult();
+        string productService = runResult.Results.Single().GeneratedSources
+            .Single(s => s.HintName.StartsWith("ProductService.generated")).SourceText.ToString();
+
+        Assert.Contains("GetCategoryAutocompleteListForProduct(", productService);
+        Assert.Contains(expected, productService);
+    }
+
 }
