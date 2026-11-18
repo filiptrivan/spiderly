@@ -65,10 +65,8 @@ namespace Spiderly.Shared.Outbox
         {
             DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
-            // The pending row that has been DUE longest. A row becomes due at its NextAttemptAt (a schedule or a retry
-            // backoff), or at CreatedAt when it has none, so a row is never late before its time. Backing-off,
-            // scheduled and dead-lettered rows carry a future NextAttemptAt and are not due. A growing value means
-            // the sweep isn't keeping up (or is wedged).
+            // The pending row that has been due longest (IOutboxMessage.NextAttemptAt). A growing value means the
+            // sweep is not keeping up, or is stuck.
             DateTime? oldestDue = await _context.DbSet<TOutbox>()
                 .Where(x => x.DispatchedAt == null && (x.NextAttemptAt == null || x.NextAttemptAt <= now))
                 .Select(x => (DateTime?)(x.NextAttemptAt ?? x.CreatedAt))
