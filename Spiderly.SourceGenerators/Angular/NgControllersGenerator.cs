@@ -361,15 +361,10 @@ import { {{ngType}} } from '../../entities/entities.generated';
             return angularType == "number" || angularType == "boolean" || angularType == "Date";
         }
 
-        /// <summary>
-        /// A controller method is an endpoint the Angular client should call unless it opted out:
-        /// [NonAction] methods are excluded from ASP.NET routing (e.g. a consumer suppressing a
-        /// generated base action by overriding it) and carry no Http* attribute — without this
-        /// skip, GetHttpType throws and the WHOLE api.service.generated.ts silently stops
-        /// regenerating.
-        /// </summary>
+        // ASP.NET Core excludes non-public and static methods from action discovery.
         internal static bool IsEndpointMethod(SpiderlyMethod controllerMethod) =>
-            !controllerMethod.HasUIDoNotGenerateAttribute()
+            controllerMethod.IsPublicInstance
+            && !controllerMethod.HasUIDoNotGenerateAttribute()
             && !controllerMethod.Attributes.Any(attr => attr.Name == "NonAction");
 
         internal static HttpTypeCodes GetHttpType(SpiderlyMethod controllerMethod)
