@@ -35,8 +35,8 @@ namespace Spiderly.Shared.Interfaces
         /// <summary>Timestamp of the last dispatch attempt.</summary>
         DateTime? LastAttemptedAt { get; set; }
 
-        /// <summary>Truncated exception/error message from the last failed attempt.</summary>
-        string LastError { get; set; }
+        /// <summary>Truncated exception/error message from the last failed attempt. <c>null</c> until an attempt fails, and again after an operator's Retry.</summary>
+        string? LastError { get; set; }
 
         /// <summary>When set, the sweep skips this row until this time — exponential backoff between failed attempts, set by <c>OutboxDispatcherJob</c>. <c>null</c> means eligible immediately (a fresh row).</summary>
         DateTime? NextAttemptAt { get; set; }

@@ -17,7 +17,9 @@ namespace __APP_NAME__.WebAPI.Controllers
         [HttpGet]
         public string EchoDateTimeQueryParam(DateTime at)
         {
-            return at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+            return FormatUtc(at);
         }
+
+        private static string FormatUtc(DateTime at) => at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
     }
 }

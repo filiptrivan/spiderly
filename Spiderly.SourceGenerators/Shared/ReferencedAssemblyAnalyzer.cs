@@ -210,19 +210,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     if (attributeName == "StringLength")
                     {
-                        List<string?> parts = new List<string?>
-                        {
-                            attribute.ConstructorArguments[0].Value?.ToString() // Max length
-                        };
-
-                        var minLengthArg = attribute.NamedArguments.FirstOrDefault(na => na.Key == "MinimumLength");
-
-                        if (minLengthArg.Key != null)
-                        {
-                            parts.Add($"MinimumLength={minLengthArg.Value.Value}");
-                        }
-
-                        argumentValue = string.Join(", ", parts);
+                        argumentValue = ClassAnalyzer.GetStringLengthValue(attribute);
                     }
                     else
                     {
@@ -275,6 +263,7 @@ namespace Spiderly.SourceGenerators.Shared
                 {
                     Name = methodSymbol.Name,
                     ReturnType = ToDisplayName(methodSymbol.ReturnType)!, // IMethodSymbol.ReturnType is never null.
+                    IsPublicInstance = methodSymbol.DeclaredAccessibility == Accessibility.Public && !methodSymbol.IsStatic,
                     Attributes = GetAttributesFromReferencedAssemblies(methodSymbol),
                 };
 

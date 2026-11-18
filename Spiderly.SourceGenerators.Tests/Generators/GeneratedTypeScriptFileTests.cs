@@ -1,4 +1,5 @@
 using System.IO;
+using Microsoft.CodeAnalysis;
 using Spiderly.SourceGenerators.Angular;
 using Spiderly.SourceGenerators.Tests.Infrastructure;
 
@@ -89,9 +90,39 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.Contains("let params = `?brandId=${brandId}&from=${from?.toISOString()}&to=${to?.toISOString()}`;", text);
     }
 
-    private string Generate(Type generatorType, string file)
+    [Theory]
+    [InlineData("private static")]
+    [InlineData("private")]
+    [InlineData("public static")]
+    public void ApiService_ControllerWithHelper_EmitsThePublicAction(string modifiers)
     {
-        GeneratorTestHarness.Run(generatorType, AppSource, projectDir: ProjectDir);
+        string source = $$"""
+            using Microsoft.AspNetCore.Mvc;
+            using Spiderly.Shared.Attributes;
+
+            namespace TestApp.WebAPI.Controllers
+            {
+                [SpiderlyController]
+                public class ReportController : ControllerBase
+                {
+                    [HttpGet]
+                    public string GetReportName() => FormatReportName("sales");
+
+                    {{modifiers}} string FormatReportName(string name) => $"{name}.csv";
+                }
+            }
+            """;
+
+        string text = Generate(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", source);
+
+        Assert.Contains("getReportName = (", text);
+        Assert.DoesNotContain("formatReportName", text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string Generate(Type generatorType, string file, string source = AppSource)
+    {
+        GeneratorDriverRunResult result = GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir).GetRunResult();
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
 
         string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");

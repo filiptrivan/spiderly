@@ -9,6 +9,6 @@ namespace Spiderly.Shared.Interfaces
     public interface INotificationRecipientResolver
     {
         /// <summary>Loads the recipient with the given id, or returns <c>null</c> if it no longer exists.</summary>
-        Task<INotificationRecipient> ResolveAsync(long recipientId);
+        Task<INotificationRecipient?> ResolveAsync(long recipientId);
     }
 }
