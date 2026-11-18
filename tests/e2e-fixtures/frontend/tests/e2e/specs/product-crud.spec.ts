@@ -240,16 +240,18 @@ test.describe('Product CRUD Operations', () => {
     await listPage.sortByColumn('Price');
     await listPage.sortByColumn('Stock', { multi: true });
 
-    await listPage.gotoTablePage(2);
-    await page.waitForLoadState('networkidle');
-
-    const preReload = await listPage.getSessionStorageEntry<{
+    // The table saves its state outside the click, so the spec waits for the stored value.
+    // waitForLoadState('networkidle') would not wait here: networkidle fired long before (#458).
+    type TableState = {
       multiSortMeta?: Array<{ field: string; order: number }>;
       first?: number;
       rows?: number;
-    }>(stateKey);
+    };
+    await listPage.gotoTablePage(2);
+    await expect.poll(async () => (await listPage.getSessionStorageEntry<TableState>(stateKey))?.first).toBeGreaterThan(0);
+
+    const preReload = await listPage.getSessionStorageEntry<TableState>(stateKey);
     expect(preReload).not.toBeNull();
-    expect(preReload!.first).toBeGreaterThan(0);
     expect(preReload!.multiSortMeta?.length).toBe(2);
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'price' && m.order === -1)).toBeTruthy();
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1)).toBeTruthy();
@@ -274,20 +276,28 @@ test.describe('Product CRUD Operations', () => {
     await expect(page.locator('.p-paginator-page-selected', { hasText: '2' })).toBeVisible();
 
     await listPage.clearTableFilters();
-    await page.waitForLoadState('networkidle');
     // Clear reaches only the FILTERS (2026-09-06): the store empties and its requery effect
     // re-persists page one (the reset must survive a reload — see the "re-persists page one"
     // Karma pin), while the operator's sort stays exactly where it was, in the blob and on the
     // grid; the filter snapshot key goes because an empty snapshot is stored as absence.
-    const afterClear = await listPage.getSessionStorageEntry<{
-      first?: number;
-      multiSortMeta?: Array<{ field: string; order: number }>;
-    }>(stateKey);
-    expect(afterClear?.first ?? 0).toBe(0);
-    expect(
-      afterClear?.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1),
-    ).toBeTruthy();
-    const afterClearFilters = await listPage.storedFilterSnapshot(stateKey);
-    expect(afterClearFilters).toBeNull();
+    // The effect runs in a later change detection pass, not inside the click, so the spec
+    // polls (#458).
+    await expect.poll(async () => {
+      const afterClear = await listPage.getSessionStorageEntry<TableState>(stateKey);
+      return {
+        first: afterClear?.first ?? 0,
+        keepsStockSort: afterClear?.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1) ?? false,
+        filters: await listPage.storedFilterSnapshot(stateKey),
+      };
+    }).toEqual({ first: 0, keepsStockSort: true, filters: null });
+
+    // What the save is for: a reload shows page one, no filters, and the sort kept.
+    await page.reload();
+    await page.locator('sidebar-menu').waitFor({ state: 'visible', timeout: 15000 });
+    await expect(page.locator('.p-paginator-page-selected', { hasText: '1' })).toBeVisible();
+    await expect(page.getByTestId('filter-chip')).toHaveCount(0);
+    // A sorted header's name carries its multi-sort badge ("Price 1 Columns"), so match its start.
+    await expect(page.getByRole('columnheader', { name: /^Price\b/ })).toHaveAttribute('aria-sort', 'descending');
+    await expect(page.getByRole('columnheader', { name: /^Stock\b/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 });
