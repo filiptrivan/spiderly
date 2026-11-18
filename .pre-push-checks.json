@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "name": ".NET tests",
+      "command": "dotnet test -c Release",
+      "ci": ["Unit Tests (.NET)"]
+    },
+    {
+      "name": "Angular tests",
+      "command": "cd Angular && npm ci && npx ng test spiderly --watch=false --browsers=ChromeHeadlessNoSandbox",
+      "browser": true,
+      "ci": ["Unit Tests (Angular)"]
+    },
+    {
+      "name": "size cap",
+      "command": "node \"$CI_WORKFLOWS/size-cap/size-cap.mjs\" --base origin/main",
+      "ciWorkflows": true,
+      "ci": ["size-cap / size cap"]
+    }
+  ]
+}
