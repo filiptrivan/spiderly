@@ -6,14 +6,16 @@ using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 namespace Spiderly.Shared.Helpers
 {
     /// <summary>
-    /// Makes an action's non-nullable <c>string</c> parameter required, so a missing or empty value
-    /// answers 400 before the action runs. A <c>string?</c> parameter, one with a default value, and one
-    /// in a nullable-oblivious file stay optional.
+    /// Makes an action's non-nullable <c>string</c> parameter required. Under <c>[ApiController]</c>, a
+    /// missing or empty value then answers 400 before the action runs. Without it, the model state is
+    /// invalid and the action runs. A <c>string?</c> parameter stays optional. So does a parameter with a
+    /// default value, or one in a nullable-oblivious file.
     /// <para>
-    /// <c>SpiderlyAddControllers</c> turns MVC's implicit <c>[Required]</c> off, so that a null body
-    /// property reaches the generated FluentValidation rules and their 422. This provider puts the rule
-    /// back for parameters only. Body properties are model properties, never parameters, so it leaves
-    /// them alone. The case it stops: <c>NonNullableStringParameterRequiredTests</c>.
+    /// <c>SpiderlyAddControllers</c> turns MVC's implicit <c>[Required]</c> off. Then a null body property
+    /// reaches the generated FluentValidation rules and their 422. But the switch also covers action
+    /// parameters, so a <c>string q</c> arrived as null for <c>?q=</c>. This provider puts the rule back
+    /// for parameters only. Body properties are not parameters, so it leaves them alone. The case it
+    /// stops: <c>NonNullableStringParameterRequiredTests</c>.
     /// </para>
     /// </summary>
     public sealed class RequiredStringParameterMetadataProvider : IValidationMetadataProvider

@@ -373,7 +373,7 @@ namespace Spiderly.SourceGenerators.Net
         /// <returns>List of NamebookDTO containing ID and DisplayName</returns>
         public async virtual Task<List<NamebookDTO<{{autocompleteEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
             int limit,
-            string{{nullableContext.NullableMark()}} filter,
+            string{{nullableContext.NullableSuffix()}} filter,
             IQueryable<{{autocompleteEntity.Name}}> query
         )
         {

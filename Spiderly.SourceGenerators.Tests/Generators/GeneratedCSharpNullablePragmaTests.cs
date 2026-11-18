@@ -91,10 +91,10 @@ public class GeneratedCSharpNullablePragmaTests
     }
 
     /// <summary>
-    /// An autocomplete's <c>filter</c> is optional: the admin sends <c>filter=</c> when a field gets focus
+    /// An autocomplete's <c>filter</c> is optional. The admin sends <c>filter=</c> when a field gets focus
     /// empty, and the service reads null as "no filter". So under <c>#nullable enable</c> it is
-    /// <c>string?</c>, and a binder that makes a non-nullable <c>string</c> parameter required lets it
-    /// through. The controller's twin is exercised by the e2e fixture apps.
+    /// <c>string?</c>, and the required-parameter rule lets it through. This harness emits no
+    /// controller, so the e2e fixture apps run the controller's twin.
     /// </summary>
     [Theory]
     [InlineData(NullableContextOptions.Enable, "string? filter,")]

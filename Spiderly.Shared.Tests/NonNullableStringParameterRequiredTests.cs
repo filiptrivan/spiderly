@@ -12,22 +12,11 @@ namespace Spiderly.Shared.Tests
     /// <summary>
     /// Pins that an action's non-nullable <c>string</c> parameter is required at the HTTP boundary,
     /// through the real MVC pipeline <see cref="StartupExtensions.SpiderlyAddControllers"/> builds.
-    /// <para>
-    /// <see cref="ImplicitRequiredSuppressionTests"/> turns MVC's implicit <c>[Required]</c> off, so that a
-    /// null field of a request body reaches the generated FluentValidation rules and their 422. That
-    /// switch also covers action parameters. Then a <c>string q</c> parameter arrives as null when the
-    /// query has no <c>q</c>, or has <c>?q=</c>, since MVC reads an empty value as null. The compiler
-    /// trusts the annotation, so the action dereferences a null.
-    /// </para>
+    /// Why the rule exists: <see cref="Helpers.RequiredStringParameterMetadataProvider"/>.
     /// <para>
     /// It shipped: a consumer's nullable pass changed <c>characters?.Trim()</c> to
     /// <c>characters.Trim()</c> behind <c>Search(string q)</c>. The storefront's search box asks for
-    /// <c>?q=</c> on open, so every search box said "search is not available" (2026-11-17).
-    /// </para>
-    /// <para>
-    /// So a parameter's annotation is what the boundary enforces: a non-nullable <c>string</c> without a
-    /// default answers 400 when it is missing or empty, and an optional one is <c>string?</c>, whose null
-    /// the compiler makes each reader handle. A body property keeps the 422 path.
+    /// <c>?q=</c> on open. So every search box said "search is not available" (2026-11-17).
     /// </para>
     /// </summary>
     public class NonNullableStringParameterRequiredTests
@@ -70,6 +59,7 @@ namespace Spiderly.Shared.Tests
         [InlineData("/parameter-probe/optional")]
         [InlineData("/parameter-probe/optional?q=")]
         [InlineData("/parameter-probe/defaulted")]
+        [InlineData("/parameter-probe/oblivious?q=")]
         public async Task A_given_value_an_optional_parameter_and_a_defaulted_one_answer_200(string path)
         {
             Assert.Equal(HttpStatusCode.OK, await Get(path));
@@ -99,6 +89,11 @@ namespace Spiderly.Shared.Tests
 
         [HttpGet]
         public string Defaulted(string q = "all") => q;
+
+#nullable disable
+        [HttpGet]
+        public string Oblivious(string q) => q ?? "";
+#nullable enable
 
         [HttpPost]
         public string Body(ParameterProbeBody body) => body.Name ?? "";

@@ -456,9 +456,7 @@ namespace Spiderly.Shared.Extensions
                     // non-nullable List<FilterSortMetaDTO>.
                     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
 
-                    // The switch above also covers action parameters, so a `string q` arrived as null
-                    // for `?q=`. A parameter's annotation is the boundary's rule again: see
-                    // RequiredStringParameterMetadataProvider.
+                    // Why parameters get the rule back: RequiredStringParameterMetadataProvider.
                     options.ModelMetadataDetailsProviders.Add(new RequiredStringParameterMetadataProvider());
                 })
                 .AddJsonOptions(options =>

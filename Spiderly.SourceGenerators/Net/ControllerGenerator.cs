@@ -318,7 +318,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// Returns autocomplete options for {{property.Name}} on {{entity.Name}}.
         /// </summary>
         [HttpGet]
-        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string{{nullableContext.NullableMark()}} filter)
+        {{Helpers.GetAuthGuardAttribute(entity, CrudCodes.Read)}}public virtual async Task<List<NamebookDTO<{{manyToOneEntityIdType}}>>> Get{{property.Name}}AutocompleteListFor{{entity.Name}}(int limit, string{{nullableContext.NullableSuffix()}} filter)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Get{{property.Name}}AutocompleteListFor{{entity.Name}}(
                 limit,
