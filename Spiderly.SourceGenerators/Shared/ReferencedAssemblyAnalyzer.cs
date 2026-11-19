@@ -197,7 +197,7 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         private static List<SpiderlyAttribute> GetAttributesFromReferencedAssemblies(ISymbol symbol)
-            => symbol.GetAttributes().Select(ClassAnalyzer.GetSpiderAttribute).OrderBy(x => x.Name).ToList();
+            => symbol.GetAttributes().Select(SpiderlyAttributeMapper.Map).OrderBy(x => x.Name).ToList();
 
         /// <summary>
         /// Cant get method Body and method DescendantNodes from referenced assemblies

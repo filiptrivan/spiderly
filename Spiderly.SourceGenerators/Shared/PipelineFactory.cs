@@ -193,7 +193,7 @@ namespace Spiderly.SourceGenerators.Shared
                     || attribute.AttributeClass is not { TypeKind: not TypeKind.Error })
                     continue;
 
-                SpiderlyAttribute value = ClassAnalyzer.GetSpiderAttribute(attribute);
+                SpiderlyAttribute value = SpiderlyAttributeMapper.Map(attribute);
                 result.Add((syntax.SyntaxTree, syntax.Span, value.Name, value.Value, value.Int32Value));
             }
             return result.ToImmutable();
