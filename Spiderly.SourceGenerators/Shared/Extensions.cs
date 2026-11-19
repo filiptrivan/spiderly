@@ -5,7 +5,6 @@ using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,7 +26,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 case null: return null;
                 case "": return null;
-                default: return input.First().ToString().ToUpper() + input.Substring(1);
+                default: return input.First().ToString().ToUpperInvariant() + input.Substring(1);
             }
         }
 
@@ -40,7 +39,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 case null: return null;
                 case "": return null;
-                default: return input.First().ToString().ToLower() + input.Substring(1);
+                default: return input.First().ToString().ToLowerInvariant() + input.Substring(1);
             }
         }
 
@@ -52,7 +51,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             string kebabCaseString = Regex.Replace(pascalCaseString, "([a-z])([A-Z])", "$1-$2");
-            kebabCaseString = kebabCaseString.ToLower();
+            kebabCaseString = kebabCaseString.ToLowerInvariant();
 
             return kebabCaseString;
         }
@@ -66,9 +65,6 @@ namespace Spiderly.SourceGenerators.Shared
         {
             // Create a StringBuilder object to store the result.
             StringBuilder result = new();
-
-            // Get the TextInfo object for the current culture.
-            TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
 
             // Flag to track if we are at the beginning of a new word.
             bool newWord = true;
@@ -84,7 +80,7 @@ namespace Spiderly.SourceGenerators.Shared
                     // If we are at the beginning of a new word, convert the character to uppercase.
                     if (newWord)
                     {
-                        result.Append(textInfo.ToUpper(currentChar));
+                        result.Append(char.ToUpperInvariant(currentChar));
                         newWord = false;
                     }
                     // Otherwise, add the character as is for uppercase or convert to lowercase for other characters.
@@ -123,6 +119,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             // Create a new instance of StringBuilder to store the output string
             StringBuilder result = new();
+
             // Flag to keep track of whether the previous character was an uppercase letter or not
             bool isPrevUpper = false;
 
