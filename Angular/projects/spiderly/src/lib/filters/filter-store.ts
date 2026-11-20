@@ -660,12 +660,22 @@ export function createFilterStore<
      * Ids the store no longer declares are dropped rather than carried: a filter removed from the
      * declaration in a later release would otherwise ride every request from anyone whose storage
      * still held it, with no chip able to name it and no way to clear it from the UI.
+     * A saved operator can also outlive its filter kind and must be checked before reuse.
      */
     restore(snapshot: FilterSnapshot): void {
       const next = new Map<keyof TDefs, StoredConstraint>();
 
       for (const [id, constraint] of Object.entries(snapshot ?? {})) {
-        if (!(id in definitions)) continue;
+        if (!Object.hasOwn(definitions, id)) continue;
+
+        const kind = definitions[id].kind;
+        const allowed: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
+        if (!allowed.includes(constraint.operator)) {
+          console.error(
+            `Filter '${id}' dropped the persisted '${constraint.operator}' operator because '${kind}' filters do not support it.`,
+          );
+          continue;
+        }
 
         next.set(id as keyof TDefs, {
           operator: constraint.operator,
