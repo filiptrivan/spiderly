@@ -759,9 +759,7 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// Returns the names of scalar properties that are the explicit FK of a many-to-one navigation
-        /// on the same entity. Useful for UI generators that want to suppress the redundant numeric
-        /// input that would otherwise be rendered next to the navigation's autocomplete picker.
+        /// Returns explicit foreign keys to hide in the details UI for many-to-one and one-to-one navigations.
         /// </summary>
         public static HashSet<string> GetPairedForeignKeyNames(this SpiderlyClass entity)
         {
@@ -769,7 +767,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty nav in entity.Properties)
             {
-                if (nav.HasWithManyAttribute() == false)
+                if (!nav.HasWithManyAttribute() && !nav.HasWithOneAttribute())
                     continue;
 
                 string? fkName = nav.ResolveExplicitForeignKeyName(entity);

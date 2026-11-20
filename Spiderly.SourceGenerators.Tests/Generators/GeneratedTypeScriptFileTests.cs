@@ -193,6 +193,52 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.DoesNotContain("formatReportName", text, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BaseDetails_OneToOneNavigation_DoesNotRenderItsForeignKeyAsANumber(bool hidden)
+    {
+        string source = $$"""
+            #nullable enable
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace TestApp.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Conversation : BusinessObject<long>
+                {
+                    public int Sequence { get; set; }
+                    public long? OwningTaskItemId { get; set; }
+
+                    [WithOne(nameof(TaskItem.Conversation))]
+                    {{(hidden ? "[UIDoNotGenerate]" : string.Empty)}}
+                    public virtual TaskItem? OwningTaskItem { get; set; }
+                }
+
+                [SpiderlyEntity]
+                public class TaskItem : BusinessObject<long>
+                {
+                    [DisplayName]
+                    public string Title { get; set; } = string.Empty;
+                    public virtual Conversation? Conversation { get; set; }
+                }
+            }
+            """;
+
+        string text = Generate(typeof(NgBaseDetailsGenerator), "components/base-details.generated.ts", source);
+        const string control = " [control]=\"this.parentFormGroup.controls.conversationDTO.getControl(";
+        const string foreignKey = control + "'owningTaskItemId')\"";
+
+        Assert.Contains("<spiderly-number" + control + "'sequence')\"", text);
+        if (hidden)
+            Assert.DoesNotContain("<spiderly-autocomplete" + foreignKey, text);
+        else
+            Assert.Contains("<spiderly-autocomplete" + foreignKey, text);
+        Assert.DoesNotContain("<spiderly-number" + foreignKey, text);
+    }
+
     private string Generate(Type generatorType, string file, string source = AppSource)
     {
         GeneratorDriverRunResult result = GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir).GetRunResult();

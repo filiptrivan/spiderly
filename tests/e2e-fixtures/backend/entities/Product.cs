@@ -39,5 +39,7 @@ namespace __APP_NAME__.Business.Entities
         [MaxFileSize(52_428_800)]
         [StringLength(1000)]
         public string? LargeVideoUrl { get; set; }
+
+        public virtual ProjectCharter? ReferenceCharter { get; set; }
     }
 }
