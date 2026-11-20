@@ -87,9 +87,9 @@ export class RowSelection {
   }
 
   /**
-   * Repaints the checkbox column for the page that just landed. Split out of the subscriber so
-   * the try/finally that guarantees the pending flag wraps an await, not fifty lines of
-   * selection algebra.
+   * Repaints the checkbox column for the page that just landed. It does not await: the page
+   * loader's subscriber awaits the selected ids and passes them here. That keeps the selection
+   * algebra out of the subscriber's try/finally, which guarantees the pending flag.
    */
   reconcileLoadedPage(selectedRows: LazyLoadSelectedIdsResult | Error | null): void {
     if (selectedRows == null) {
