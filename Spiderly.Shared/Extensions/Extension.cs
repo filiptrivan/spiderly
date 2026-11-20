@@ -20,7 +20,7 @@ namespace Spiderly.Shared.Extensions
             {
                 null => throw new ArgumentNullException(nameof(input)),
                 "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
-                _ => string.Concat(input[0].ToString().ToUpper(), input.AsSpan(1))
+                _ => string.Concat(input[0].ToString().ToUpperInvariant(), input.AsSpan(1))
             };
 
         public static string FirstCharToLower(this string input) =>
@@ -28,7 +28,7 @@ namespace Spiderly.Shared.Extensions
             {
                 null => throw new ArgumentNullException(nameof(input)),
                 "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
-                _ => string.Concat(input[0].ToString().ToLower(), input.AsSpan(1))
+                _ => string.Concat(input[0].ToString().ToLowerInvariant(), input.AsSpan(1))
             };
 
         public static string? ToCommaSeparatedString<T>(this List<T> input, IStringLocalizer? localizer = null)
