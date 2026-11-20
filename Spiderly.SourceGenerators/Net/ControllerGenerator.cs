@@ -600,7 +600,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
-        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]
+        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]{{GetUploadRequestSizeLimitAttribute(property)}}
         public virtual async Task<string> Upload{{property.Name}}For{{entity.Name}}([FromForm] IFormFile file) // FT: It doesn't work without interface
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}For{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}}); // TODO: Make authorization in business service with override
@@ -626,7 +626,7 @@ namespace {{basePartOfNamespace}}.Controllers
         /// </summary>
         [HttpPost]
         [AuthGuard]
-        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]
+        [EnableRateLimiting(SpiderlyRateLimitPolicies.BlobUpload)]{{GetUploadRequestSizeLimitAttribute(property)}}
         public virtual async Task<EditorImageUploadResultDTO> Upload{{property.Name}}ImageFor{{entity.Name}}([FromForm] IFormFile file)
         {
             return await _serviceProvider.GetRequiredService<{{entity.Name}}ServiceGenerated>().Upload{{property.Name}}ImageFor{{entity.Name}}(file, {{Helpers.GetShouldAuthorizeEntityString(entity)}}, {{Helpers.GetShouldAuthorizeEntityString(entity)}});
@@ -635,6 +635,17 @@ namespace {{basePartOfNamespace}}.Controllers
             }
 
             return result;
+        }
+
+        private static string GetUploadRequestSizeLimitAttribute(SpiderlyProperty property)
+        {
+            int maxFileSize = property.GetMaxFileSize();
+            if (maxFileSize == 0)
+                return string.Empty;
+
+            const long multipartOverheadBytes = 1_048_576;
+            long requestSizeLimit = maxFileSize + multipartOverheadBytes;
+            return FormattableString.Invariant($"\n        [RequestSizeLimit({requestSizeLimit})]");
         }
 
         #endregion

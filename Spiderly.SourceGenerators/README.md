@@ -275,8 +275,9 @@ Blob properties are marked by any subclass of `StorageAttribute`. Spiderly ships
 
 #### MaxFileSize
 
-- Specifies the maximum allowed file size (in bytes) for a blob property.
-- Default: 20 MB (20,000,000 bytes).
+- Specifies the maximum allowed file size for a blob property as a positive `int` constant in bytes.
+- An invalid value raises `SPIDERLY032` at the property. Omitting the attribute uses the 20 MB (20,000,000 bytes) default.
+- With an explicit limit, the generated upload action allows 1 MiB of additional request body space for multipart encoding. File validation uses the configured byte limit.
 - Use alongside any `StorageAttribute` subclass.
 - e.g. `[MaxFileSize(5_000_000)]`
 

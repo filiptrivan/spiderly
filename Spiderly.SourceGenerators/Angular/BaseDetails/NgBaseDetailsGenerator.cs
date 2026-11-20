@@ -56,20 +56,22 @@ namespace Spiderly.SourceGenerators.Angular
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            var combinedWithEnums = combined.Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider));
+            var inputs = combined
+                .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
+                .Combine(PipelineFactory.GetPropertyAttributeMapper(context.SyntaxProvider));
 
-            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var (combinedSource, enumNames) = source;
+                var ((combinedSource, enumNames), mapPropertyAttribute) = source;
                 var (classesAndEntitiesAndPath, config) = combinedSource;
                 var (classesAndEntities, callingPath) = classesAndEntitiesAndPath;
                 var (classes, referencedClasses) = classesAndEntities;
 
-                Execute(classes, referencedClasses, enumNames, callingPath, config, spc);
+                Execute(classes, referencedClasses, enumNames, callingPath, config, mapPropertyAttribute, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, string callingProjectDirectory, SpiderlyConfig config, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, string callingProjectDirectory, SpiderlyConfig config, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -77,7 +79,7 @@ namespace Spiderly.SourceGenerators.Angular
             if (!config.IsGeneratorEnabled(nameof(NgBaseDetailsGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames, mapPropertyAttribute);
 
             if (currentProjectClasses.Count == 0)
                 return;

@@ -375,5 +375,13 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidMaxFileSize = new(
+            id: "SPIDERLY032",
+            title: "[MaxFileSize] requires a positive integer",
+            messageFormat: "[MaxFileSize] on '{0}.{1}' must specify a positive Int32 constant in bytes.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

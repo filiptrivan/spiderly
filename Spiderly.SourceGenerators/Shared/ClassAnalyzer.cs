@@ -5,7 +5,6 @@ using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -235,17 +234,6 @@ namespace Spiderly.SourceGenerators.Shared
                 Name = a!.Name.ToString(), // The defensive 'a?.' above flow-types 'a' nullable; the parameter itself is non-null.
                 Value = argumentValue,
             };
-        }
-
-        internal static string? GetStringLengthValue(AttributeData attribute)
-        {
-            if (attribute.ConstructorArguments.Length != 1 || attribute.ConstructorArguments[0].Value is not int max)
-                return null;
-
-            var minimum = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == "MinimumLength").Value;
-            return minimum.Value is int min
-                ? FormattableString.Invariant($"{max}, MinimumLength={min}")
-                : max.ToString(CultureInfo.InvariantCulture);
         }
 
         internal static string? GetFormatedAttributeValue(string? value)
