@@ -131,6 +131,36 @@ test.describe('Product CRUD Operations', () => {
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
+  test('should reject videos above the configured 2 MB limit', async ({ request }) => {
+    const response = await request.post(`${API_BASE_URL}/api/Product/UploadVideoUrlForProduct`, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Accept-Language': 'en' },
+      multipart: {
+        file: { name: '0-oversized.mp4', mimeType: 'video/mp4', buffer: Buffer.concat([mp4Fixture], 2_000_001) },
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    expect((await response.json()).message).toBe('File size must not exceed 2 MB.');
+  });
+
+  test('should accept a 32 MiB video within the configured 50 MiB limit', async ({ request }) => {
+    // An MP4 free-space box increases the size without changing the video stream.
+    const padding = Buffer.alloc(32 * 1024 * 1024 - mp4Fixture.length);
+    padding.writeUInt32BE(padding.length);
+    padding.write('free', 4, 'ascii');
+    const video = Buffer.concat([mp4Fixture, padding]);
+
+    const response = await request.post(`${API_BASE_URL}/api/Product/UploadLargeVideoUrlForProduct`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      multipart: {
+        file: { name: '0-large.mp4', mimeType: 'video/mp4', buffer: video },
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toBeTruthy();
+  });
+
   test('should delete product via API', async ({ request }) => {
     const response = await request.delete(
       `${API_BASE_URL}/api/Product/DeleteProduct?id=${productId}`,
@@ -240,16 +270,20 @@ test.describe('Product CRUD Operations', () => {
     await listPage.sortByColumn('Price');
     await listPage.sortByColumn('Stock', { multi: true });
 
-    await listPage.gotoTablePage(2);
-    await page.waitForLoadState('networkidle');
-
-    const preReload = await listPage.getSessionStorageEntry<{
+    // The table saves its state after a click, not inside it: the generated app coalesces
+    // change detection (eventCoalescing: true), and the save runs in that later pass. So the
+    // spec polls the stored state after each click. waitForLoadState('networkidle') does not
+    // wait after a click, because networkidle fired at the last navigation; it waits only
+    // after a reload (#458, 2026-11-18: CI read first 10 before the save, run 44182952878).
+    type TableState = {
       multiSortMeta?: Array<{ field: string; order: number }>;
       first?: number;
-      rows?: number;
-    }>(stateKey);
+    };
+    await listPage.gotoTablePage(2);
+    await expect.poll(async () => (await listPage.getSessionStorageEntry<TableState>(stateKey))?.first).toBeGreaterThan(0);
+
+    const preReload = await listPage.getSessionStorageEntry<TableState>(stateKey);
     expect(preReload).not.toBeNull();
-    expect(preReload!.first).toBeGreaterThan(0);
     expect(preReload!.multiSortMeta?.length).toBe(2);
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'price' && m.order === -1)).toBeTruthy();
     expect(preReload!.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1)).toBeTruthy();
@@ -274,20 +308,30 @@ test.describe('Product CRUD Operations', () => {
     await expect(page.locator('.p-paginator-page-selected', { hasText: '2' })).toBeVisible();
 
     await listPage.clearTableFilters();
-    await page.waitForLoadState('networkidle');
     // Clear reaches only the FILTERS (2026-09-06): the store empties and its requery effect
     // re-persists page one (the reset must survive a reload — see the "re-persists page one"
     // Karma pin), while the operator's sort stays exactly where it was, in the blob and on the
     // grid; the filter snapshot key goes because an empty snapshot is stored as absence.
-    const afterClear = await listPage.getSessionStorageEntry<{
-      first?: number;
-      multiSortMeta?: Array<{ field: string; order: number }>;
-    }>(stateKey);
-    expect(afterClear?.first ?? 0).toBe(0);
-    expect(
-      afterClear?.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1),
-    ).toBeTruthy();
-    const afterClearFilters = await listPage.storedFilterSnapshot(stateKey);
-    expect(afterClearFilters).toBeNull();
+    // The spec polls, for the reason given above the first poll.
+    await expect.poll(async () => {
+      const afterClear = await listPage.getSessionStorageEntry<TableState>(stateKey);
+      return {
+        first: afterClear?.first,
+        keepsStockSort: afterClear?.multiSortMeta?.some((m) => m.field === 'stock' && m.order === 1) ?? false,
+        filters: await listPage.storedFilterSnapshot(stateKey),
+      };
+    }).toEqual({ first: 0, keepsStockSort: true, filters: null });
+
+    // The save exists so that a reload shows page one, no filters, and the sort kept.
+    // The paginator shows page one before PrimeNG restores the stored state, so the spec
+    // waits for the network to settle first, as after the first reload.
+    await page.reload();
+    await page.locator('sidebar-menu').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.p-paginator-page-selected', { hasText: /^\s*1\s*$/ })).toBeVisible();
+    await expect(page.getByTestId('filter-chip')).toHaveCount(0);
+    // A sorted header's name carries its multi-sort badge ("Price 1 Columns"), so match its start.
+    await expect(page.getByRole('columnheader', { name: /^Price\b/ })).toHaveAttribute('aria-sort', 'descending');
+    await expect(page.getByRole('columnheader', { name: /^Stock\b/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 });

@@ -8,7 +8,7 @@ using Spiderly.Shared.Jobs;
 namespace Spiderly.Shared.Outbox
 {
     /// <summary>A point-in-time snapshot of outbox backlog health.</summary>
-    /// <param name="OldestDueMinutes">Age (minutes) of the oldest still-pending row that is due now (excludes backing-off and dead-lettered rows). 0 when none.</param>
+    /// <param name="OldestDueMinutes">Minutes since the pending row that has been due longest became due (at its <c>NextAttemptAt</c>, or its <c>CreatedAt</c> when it has none). Rows not yet due (backing off, scheduled, dead-lettered) are excluded. 0 when none.</param>
     /// <param name="DeadLetters">Count of rows that hit the retry cap and are parked at the <see cref="OutboxRetryPolicy.NeverRetry"/> sentinel, awaiting human triage.</param>
     /// <param name="Alert">True when the oldest-due age exceeds the configured threshold, or there is at least one dead-letter.</param>
     public readonly record struct OutboxHealth(double OldestDueMinutes, int DeadLetters, bool Alert);
@@ -65,12 +65,12 @@ namespace Spiderly.Shared.Outbox
         {
             DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
-            // Oldest row that is DUE now and still pending — excludes backing-off and dead-lettered rows (both carry a
-            // future NextAttemptAt). A growing value = the sweep isn't keeping up (or is wedged).
+            // The pending row that has been due longest (IOutboxMessage.NextAttemptAt). A growing value means the
+            // sweep is not keeping up, or is stuck.
             DateTime? oldestDue = await _context.DbSet<TOutbox>()
                 .Where(x => x.DispatchedAt == null && (x.NextAttemptAt == null || x.NextAttemptAt <= now))
-                .OrderBy(x => x.CreatedAt)
-                .Select(x => (DateTime?)x.CreatedAt)
+                .Select(x => (DateTime?)(x.NextAttemptAt ?? x.CreatedAt))
+                .OrderBy(dueAt => dueAt)
                 .FirstOrDefaultAsync();
 
             // Dead-lettered: crossed the retry cap, parked at the NeverRetry sentinel, awaiting human Retry/Dismiss.

@@ -1,6 +1,6 @@
 // A committed filter re-queries (`PageLoader.requeryOnAppliedFilters`), through the table.
 
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { paginated, renderRows } from '../../testing/spec-support.spec';
 import { MatchModeCodes } from '../../enums/match-mode-enum-codes';
@@ -105,6 +105,34 @@ describe('SpiderlyDataTableComponent — a committed filter re-queries', () => {
     // Narrowing from page 3 must not keep asking the server to skip rows a smaller result set
     // does not have — the failure is an empty grid for a value that is definitely there.
     expect(host.captured.at(-1)!.first).toBe(0);
+  });
+
+  it('does not re-query when a signal read by the list callback changes', async () => {
+    const { fixture, host } = createWithDataTable(
+      HostWithCapturingFilterStoreComponent,
+    );
+    const teamId = signal(1);
+    const getList = host.getList;
+    host.getList = (filter) =>
+      getList({ ...filter, additionalFilterIdLong: teamId() });
+    await renderRows(fixture);
+
+    const before = host.captured.length;
+    await fixture.ngZone!.run(async () => {
+      host.filters.setAndCommit('companyName', {
+        operator: MatchModeCodes.Contains,
+        value: 'Elektromont',
+      });
+    });
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before + 1);
+    expect(host.captured.at(-1)?.additionalFilterIdLong).toBe(1);
+
+    await fixture.ngZone!.run(async () => teamId.set(2));
+    await renderRows(fixture);
+
+    expect(host.captured.length).toBe(before + 1);
   });
 
   // A draft is not a query: re-fetching on every keystroke is the other half of the lie the chip

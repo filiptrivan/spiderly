@@ -192,7 +192,11 @@ namespace {{basePartOfNamespace}}.DataMappers
                     property.Type.IsEnumerable() == false &&
                     property.IsForeignKeyReferenceNav() == false)
                 {
-                    result.Add($"                .Ignore(dest => dest.{property.Name})");
+                    // The `!` stops CS8603 where Mapster's Func<TDestination, object> returns a nullable property.
+                    // The generator emits it for every property, as Extensions.AsNullForgivingProjection does. It
+                    // is inert on a non-nullable property and inside the #nullable disable header of an NRT-off
+                    // consumer.
+                    result.Add($"                .Ignore(dest => dest.{property.Name}!)");
                 }
             }
 

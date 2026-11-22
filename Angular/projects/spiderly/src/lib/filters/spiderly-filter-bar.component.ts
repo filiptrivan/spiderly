@@ -354,7 +354,7 @@ export function foldForSearch(value: string): string {
                 styleClass="filter-editor-value"
                 data-testid="filter-editor-value"
                 [ngModel]="handle.value()"
-                (onSelect)="draftValue(handle, $event)"
+                (ngModelChange)="draftValue(handle, $event)"
               ></p-datepicker>
             } @else if (handle.kind === 'text' || handle.kind === 'number') {
               <!-- A DOM control's raw value is always a string. It is coerced on the way into
