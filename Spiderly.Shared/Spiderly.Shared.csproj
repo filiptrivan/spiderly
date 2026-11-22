@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>19.17.1</Version>
+    <Version>19.21.3</Version>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -27,6 +27,15 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Emailing\Templates\" />
+  </ItemGroup>
+  <!-- spiderly init reads the Angular library's package.json and its workspace's: AngularLibraryPackage. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Angular\projects\spiderly\package.json">
+      <LogicalName>Spiderly.AngularLibrary.package.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Angular\package.json">
+      <LogicalName>Spiderly.AngularWorkspace.package.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Spiderly.Shared.Tests" />

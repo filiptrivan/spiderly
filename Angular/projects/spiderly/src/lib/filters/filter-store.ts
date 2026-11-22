@@ -36,10 +36,9 @@ export interface FilterDefinition<TKind extends FilterValueKind = FilterValueKin
 }
 
 /**
- * Transloco keys for the operator a control offers. The keys are seeded in the init template's
- * en block (`NetAndAngularFilesGenerator.cs`), so one operator cannot be worded two ways in one
- * admin. The wording is per KIND on purpose: `LessThan` reads "Less than" for a number and
- * "Dates before" for a date.
+ * Transloco keys for the operator a control offers. The keys live in the library's `spiderly` scope
+ * (`i18n/en.json`), so one operator cannot be worded two ways in one admin. The wording is per KIND
+ * on purpose: `LessThan` reads "Less than" for a number and "Dates before" for a date.
  *
  * The operator TABLE itself lives in `allowed-operators.ts`, the one telling both consumers
  * derive from (this store's runtime lists, `FilterRule`'s compile-time union).
@@ -55,60 +54,66 @@ interface OperatorWords {
   phraseKey: string;
 }
 
+/**
+ * A person sees each key's VALUE from the library's `spiderly` scope, never the key. So
+ * code that matches an option (an e2e test, conditional logic) matches its rendered label, and a
+ * key renamed without its value breaks that code silently. `TsContractMirrorTests.cs` fails when
+ * a key here has no value in the library's `i18n/en.json`.
+ */
 const OPERATOR_WORDS: Record<
   FilterValueKind,
   Partial<Record<MatchModeCodes, OperatorWords>>
 > = {
   text: {
     [MatchModeCodes.StartsWith]: {
-      pickerKey: 'StartsWith',
-      phraseKey: 'FilterChipStartsWith',
+      pickerKey: 'spiderly.StartsWith',
+      phraseKey: 'spiderly.FilterChipStartsWith',
     },
     [MatchModeCodes.Contains]: {
-      pickerKey: 'Contains',
-      phraseKey: 'FilterChipContains',
+      pickerKey: 'spiderly.Contains',
+      phraseKey: 'spiderly.FilterChipContains',
     },
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     // No `In` for text: ALLOWED_OPERATORS.text does not carry it, so the entry was unreachable —
     // and it made `textFilter({ options })` look supported when the store throws on it.
   },
   number: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     [MatchModeCodes.GreaterThan]: {
-      pickerKey: 'MoreThan',
-      phraseKey: 'FilterChipGreaterThan',
+      pickerKey: 'spiderly.MoreThan',
+      phraseKey: 'spiderly.FilterChipGreaterThan',
     },
     [MatchModeCodes.LessThan]: {
-      pickerKey: 'LessThan',
-      phraseKey: 'FilterChipLessThan',
+      pickerKey: 'spiderly.LessThan',
+      phraseKey: 'spiderly.FilterChipLessThan',
     },
     // The picker never renders for a pick-list (one operator), but the CHIP always does.
-    [MatchModeCodes.In]: { pickerKey: 'In', phraseKey: 'FilterChipIn' },
+    [MatchModeCodes.In]: { pickerKey: 'spiderly.In', phraseKey: 'spiderly.FilterChipIn' },
   },
   boolean: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'Equals',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.Equals',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
   },
   date: {
     [MatchModeCodes.Equals]: {
-      pickerKey: 'OnDate',
-      phraseKey: 'FilterChipEquals',
+      pickerKey: 'spiderly.OnDate',
+      phraseKey: 'spiderly.FilterChipEquals',
     },
     [MatchModeCodes.LessThan]: {
-      pickerKey: 'DatesBefore',
-      phraseKey: 'FilterChipBefore',
+      pickerKey: 'spiderly.DatesBefore',
+      phraseKey: 'spiderly.FilterChipBefore',
     },
     [MatchModeCodes.GreaterThan]: {
-      pickerKey: 'DatesAfter',
-      phraseKey: 'FilterChipAfter',
+      pickerKey: 'spiderly.DatesAfter',
+      phraseKey: 'spiderly.FilterChipAfter',
     },
   },
 };
@@ -655,12 +660,22 @@ export function createFilterStore<
      * Ids the store no longer declares are dropped rather than carried: a filter removed from the
      * declaration in a later release would otherwise ride every request from anyone whose storage
      * still held it, with no chip able to name it and no way to clear it from the UI.
+     * A saved operator can also outlive its filter kind and must be checked before reuse.
      */
     restore(snapshot: FilterSnapshot): void {
       const next = new Map<keyof TDefs, StoredConstraint>();
 
       for (const [id, constraint] of Object.entries(snapshot ?? {})) {
-        if (!(id in definitions)) continue;
+        if (!Object.hasOwn(definitions, id)) continue;
+
+        const kind = definitions[id].kind;
+        const allowed: readonly MatchModeCodes[] = ALLOWED_OPERATORS[kind];
+        if (!allowed.includes(constraint.operator)) {
+          console.error(
+            `Filter '${id}' dropped the persisted '${constraint.operator}' operator because '${kind}' filters do not support it.`,
+          );
+          continue;
+        }
 
         next.set(id as keyof TDefs, {
           operator: constraint.operator,

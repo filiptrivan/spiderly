@@ -51,7 +51,7 @@ Follow Spiderly's fail-loudly convention: every refused-to-start condition exits
 
 Fire these two WebFetch calls **in parallel** (same message, two tool calls):
 
-1. **Diff between tags.** `https://api.github.com/repos/filiptrivan/spiderly/compare/v{current}...v{target}` (three-dot syntax). Response has `files[]` with `filename` and `patch`. Filter client-side to the user-facing paths below — GitHub's compare endpoint has no path-filter parameter. If `truncated: true`, warn the user the diff was capped and proceed with what was returned.
+1. **Diff between tags.** `https://api.github.com/repos/filiptrivan/spiderly/compare/v{current}...v{target}` (three-dot syntax). Response has `files[]` with `filename` and `patch`, and `commits[]`: keep each `commit.message` that has a `BREAKING CHANGE:` footer, since that footer is the step a consumer takes. Filter `files[]` client-side to the user-facing paths below — GitHub's compare endpoint has no path-filter parameter. If `truncated: true`, warn the user the diff was capped and proceed with what was returned.
 
 2. **All release notes in one call.** `https://api.github.com/repos/filiptrivan/spiderly/releases?per_page=100`. Returns every release. Filter in-memory to tags `v{X.Y.Z}` strictly above current and ≤ target. Concatenate `body` fields in ascending version order. (One call, not N — Spiderly's total release count fits in one page.)
 
@@ -65,7 +65,7 @@ On 403 rate-limited: ask the user to export `GH_TOKEN` (no scopes needed) and re
 - `Spiderly.Security/**/*.cs` — auth interfaces, attributes
 - `Spiderly.Infrastructure/**/*.cs` — DI extensions, base services
 - `Spiderly.SourceGenerators/**/*.cs` — generator output shape changes (may break consumer overrides)
-- `Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs` — init template; drift here implies existing apps may need mirroring edits (new service registration, new file in scaffold)
+- `Spiderly.Shared/Helpers/Scaffold/*.cs` — init template, which `NetAndAngularFilesGenerator.cs` writes; drift here implies existing apps may need mirroring edits (new service registration, new file in scaffold)
 - `Angular/projects/spiderly/src/lib/**/*.ts`
 - `Angular/projects/spiderly/src/public-api.ts`
 
@@ -73,7 +73,7 @@ On 403 rate-limited: ask the user to export `GH_TOKEN` (no scopes needed) and re
 
 ## Step 4 — Impact scan and plan
 
-Read the combined release notes + filtered diff in a single pass. Identify changes that likely affect a consumer:
+Read the combined release notes, the `BREAKING CHANGE:` footers + filtered diff in a single pass. Each footer's step goes into the plan. Identify changes that likely affect a consumer:
 
 - New / renamed / removed public types, methods, attributes in `Spiderly.Shared`, `Spiderly.Security`, `Spiderly.Infrastructure`
 - Changes in source-generator output shape (consumers may have overrides that no longer compile)

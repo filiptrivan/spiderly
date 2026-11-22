@@ -10,6 +10,9 @@ namespace __APP_NAME__.Business.Entities
     [DoNotAuthorize]
     public class TaskCategory : ReadonlyObject<byte>
     {
+        private const int MinColorLength = 4;
+        private const int MaxColorLength = 10;
+
         [DisplayName]
         [Required]
         [StringLength(50, MinimumLength = 1)]
@@ -17,7 +20,7 @@ namespace __APP_NAME__.Business.Entities
 
         [UIControlType(nameof(UIControlTypeCodes.ColorPicker))]
         [Required]
-        [StringLength(10, MinimumLength = 4)]
+        [StringLength(MaxColorLength, MinimumLength = MinColorLength)]
         public string Color { get; set; } = null!;
 
         [UIDoNotGenerate]

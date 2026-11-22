@@ -110,7 +110,7 @@ export class {{angularClassIdentifier}} extends BaseEntity
 
             sbImports.Append(sb);
 
-            Helpers.WriteToTheFile(sbImports.ToString(), outputPath);
+            SpiderlyTypeScriptEmission.WriteSpiderlyTypeScriptFile(outputPath, sbImports.ToString(), nameof(NgEntitiesGenerator), "the [SpiderlyEntity] and [SpiderlyDTO] classes");
         }
 
         // Internal (not private): the zoo-fixture tests push the full shape axis through this exact

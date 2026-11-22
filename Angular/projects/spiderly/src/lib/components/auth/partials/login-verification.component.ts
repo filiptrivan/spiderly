@@ -26,7 +26,7 @@ export class LoginVerificationComponent implements OnInit {
       .sendLoginVerificationEmail({ email: this.email })
       .subscribe(() => {
         this.messageService.successMessage(
-          this.translocoService.translate('SuccessfullySentVerificationCode'),
+          this.translocoService.translate('spiderly.SuccessfullySentVerificationCode'),
         );
       });
   }
@@ -37,7 +37,7 @@ export class LoginVerificationComponent implements OnInit {
       .subscribe(() => {
         this.messageService.successMessage(
           this.translocoService.translate(
-            'YouHaveSuccessfullyVerifiedYourAccount',
+            'spiderly.YouHaveSuccessfullyVerifiedYourAccount',
           ),
         );
         this.authService.navigateToDashboard();

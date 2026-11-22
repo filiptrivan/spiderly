@@ -112,6 +112,163 @@ public class GeneratedCodeCompilationTests
         AssertCompilesClean(withGenerated, generatorDiagnostics);
     }
 
+    /// <summary>
+    /// A <c>[SpiderlyService]</c> class in the namespace of a folder below <c>Services</c>. Why the
+    /// registration names it in full: <c>ServicesGenerator.AppendServiceRegistration</c>.
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_RegistersAServiceOutsideTheServicesNamespace()
+    {
+        const string ServiceInAFolder = $$"""
+            using Spiderly.Shared.Attributes;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Services.EntityServices
+            {
+                [SpiderlyService]
+                public class TaskCommentService : TaskCommentServiceGenerated
+                {
+                    public TaskCommentService(EntityServiceDependencies deps) : base(deps) { }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [ServiceInAFolder]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
+    /// <summary>
+    /// An optional editor property with stored images. The generated save passes the property to
+    /// <c>Helper.ExtractImageUrlsFromHtml</c>, so the helper must take a null value without a warning.
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_PassesANullableEditorPropertyToItsImageCleanup()
+    {
+        const string OptionalEditorWithImages = $$"""
+            using System.ComponentModel.DataAnnotations;
+            using Spiderly.Shared.Attributes;
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+            using Spiderly.Shared.Enums;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Announcement : BusinessObject<long>
+                {
+                    [DisplayName]
+                    [Required]
+                    [StringLength(100, MinimumLength = 1)]
+                    public string Title { get; set; } = null!;
+
+                    [UIControlType(nameof(UIControlTypeCodes.Editor))]
+                    [S3PublicStorage]
+                    [AcceptedFileTypes("image/*")]
+                    [StringLength(10000, MinimumLength = 1)]
+                    public string? Body { get; set; }
+                }
+            }
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Services
+            {
+                [SpiderlyService]
+                public class AnnouncementService : AnnouncementServiceGenerated
+                {
+                    public AnnouncementService(EntityServiceDependencies deps) : base(deps) { }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [OptionalEditorWithImages]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
+    /// <summary>
+    /// Server-owned properties of nullable types. The generated DTO-to-entity config ignores a <c>[ReadOnly]</c>
+    /// property through Mapster's <c>Func&lt;TDestination, object&gt;</c>, so that function must return a nullable
+    /// property without a warning.
+    /// </summary>
+    [Fact]
+    public void EveryDotNetGenerator_IgnoresANullableReadOnlyPropertyOnSave()
+    {
+        const string NullableServerOwnedValues = $$"""
+            using System.ComponentModel.DataAnnotations;
+            using Spiderly.Shared.Attributes;
+            using Spiderly.Shared.Attributes.Entity;
+            using Spiderly.Shared.Attributes.Entity.UI;
+            using Spiderly.Shared.BaseEntities;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Entities
+            {
+                [SpiderlyEntity]
+                public class Gauge : BusinessObject<long>
+                {
+                    [DisplayName]
+                    [Required]
+                    [StringLength(100, MinimumLength = 1)]
+                    public string Name { get; set; } = null!;
+
+                    [ReadOnly]
+                    public decimal? LastReading { get; set; }
+
+                    [ReadOnly]
+                    [StringLength(100)]
+                    public string? LastReadingNote { get; set; }
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(
+            out ImmutableArray<Diagnostic> generatorDiagnostics, [NullableServerOwnedValues]);
+
+        AssertCompilesClean(withGenerated, generatorDiagnostics);
+    }
+
+    /// <summary>
+    /// An app implements the framework's interfaces with the nullability their summaries give. The scaffolded
+    /// <c>OutboxMessage</c> keeps <c>LastError</c> null until an attempt fails. A resolver returns null for a
+    /// recipient that no longer exists. A wrong annotation on the interface warns in the app's own code, which
+    /// <c>&lt;WarningsAsErrors&gt;Nullable&lt;/WarningsAsErrors&gt;</c> makes fatal.
+    /// </summary>
+    [Fact]
+    public void AnAppImplementsTheFrameworkInterfacesWithTheirDocumentedNullability()
+    {
+        const string ResolverOfARemovedRecipient = $$"""
+            using Spiderly.Shared.Interfaces;
+
+            namespace {{GeneratedCodeCompilationHarness.AppName}}.Business.Services
+            {
+                public class RecipientResolver : INotificationRecipientResolver
+                {
+                    public Task<INotificationRecipient?> ResolveAsync(long recipientId) =>
+                        Task.FromResult<INotificationRecipient?>(null);
+                }
+            }
+            """;
+
+        Compilation withGenerated = GeneratedCodeCompilationHarness.CompileAllGenerators(out _, [ResolverOfARemovedRecipient]);
+
+        HashSet<SyntaxTree> implementations = new[] { "Business.Entities.OutboxMessage", "Business.Services.RecipientResolver" }
+            .Select(name => withGenerated.GetTypeByMetadataName($"{GeneratedCodeCompilationHarness.AppName}.{name}"))
+            .Select(type => Assert.Single(Assert.IsAssignableFrom<INamedTypeSymbol>(type).Locations).SourceTree)
+            .OfType<SyntaxTree>()
+            .ToHashSet();
+
+        string[] warnings = withGenerated.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Warning)
+            .Where(d => d.Location.SourceTree is not null && implementations.Contains(d.Location.SourceTree))
+            .Select(Describe)
+            .Distinct()
+            .ToArray();
+
+        Assert.Equal(2, implementations.Count);
+        Assert.True(warnings.Length == 0, $"The app's code raised {warnings.Length} warning(s):\n{string.Join("\n", warnings)}");
+    }
+
     [Fact]
     public void NegativeControl_ABrokenEntityIsReported()
     {
@@ -198,10 +355,9 @@ public class GeneratedCodeCompilationTests
     /// NOT here, and deliberately: <c>ControllerGenerator</c>. It returns early unless the calling project
     /// directory contains <c>.WebAPI</c>, and it reads entities/DTOs/services from REFERENCED assemblies
     /// rather than its own compilation. Controllers therefore belong to the multi-project axis —
-    /// the one <c>tests/e2e-fixtures/CLAUDE.md</c> records as structurally unreachable from a single
-    /// compilation, and the one that produced a real CS1061 when two generators disagreed about a flag set
-    /// only on current-project classes. Until that variant exists here, a type error in a generated
-    /// controller is still e2e-only.
+    /// the axis a single compilation cannot reach, since it holds no referenced entities, and the one that
+    /// produced a real CS1061 when two generators disagreed about a flag set only on current-project classes.
+    /// Until that variant exists here, a type error in a generated controller is still e2e-only.
     /// </para>
     /// </summary>
     private static readonly string[] ExpectedGeneratedFiles =

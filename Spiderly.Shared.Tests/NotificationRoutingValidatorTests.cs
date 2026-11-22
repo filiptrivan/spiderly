@@ -158,8 +158,8 @@ namespace Spiderly.Shared.Tests
 
         private sealed class StubResolver : INotificationRecipientResolver
         {
-            public Task<INotificationRecipient> ResolveAsync(long recipientId)
-                => Task.FromResult<INotificationRecipient>(null!);
+            public Task<INotificationRecipient?> ResolveAsync(long recipientId)
+                => Task.FromResult<INotificationRecipient?>(null);
         }
 
         private sealed class TestNote : INotification

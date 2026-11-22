@@ -28,15 +28,16 @@ namespace Spiderly.Shared.RateLimiting
         /// <item><b>Authenticated API-key principal</b> → a per-key partition. Reads the
         /// VALIDATED principal (stamped by the authentication middleware), never the raw
         /// API-key header — so only meaningful after <c>UseAuthentication</c>. Machine callers
-        /// aggregate many end users behind a few shared egress IPs, so a per-IP bucket both
+        /// aggregate many end users behind a few shared egress IPs, so a caller-key bucket both
         /// starves them and lets one machine consume unrelated clients' budget.</item>
-        /// <item><b>Everyone else</b> → per-IP.</item>
+        /// <item><b>Everyone else</b> → a partition per <see cref="Helper.GetCallerKey"/>: an IPv4
+        /// address, or an IPv6 /64.</item>
         /// </list>
         /// </summary>
         /// <param name="httpContext">The current request.</param>
         /// <param name="settings">Rate-limit budgets.</param>
         /// <param name="trustedCallerDetector">Optional trusted-caller hook; <c>null</c> ⇒
-        /// no trusted class (unchanged per-IP/api-key behavior).</param>
+        /// no trusted class (unchanged caller-key/api-key behavior).</param>
         public static GlobalRateLimitPartition Resolve(
             HttpContext httpContext,
             Settings settings,
@@ -60,7 +61,7 @@ namespace Spiderly.Shared.RateLimiting
             }
 
             return new GlobalRateLimitPartition(
-                Helper.GetIPAddressOrUnknown(httpContext),
+                Helper.GetCallerKey(httpContext),
                 settings.RequestsLimitNumber,
                 settings.RequestsLimitWindow);
         }

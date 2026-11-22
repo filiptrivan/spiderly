@@ -60,7 +60,7 @@ type Rendered = { nativeElement: unknown; detectChanges(): void };
 
 // Once open, PrimeNG appends the popover to document.body, where stale ones from earlier fixtures
 // linger — so query THIS fixture's Popover instance, never the document. Same rule the column
-// chooser's specs already follow (spiderly-data-table/CLAUDE.md).
+// chooser's specs already follow (`overlayHolding()` in the data table spec).
 // There is more than one popover on the bar now, so find the container by what it HOLDS rather
 // than by position — an index would silently follow whichever was declared first.
 function overlay(fixture: Rendered, selector: string): HTMLElement {
@@ -259,7 +259,7 @@ describe('SpiderlyFilterBarComponent', () => {
         // `Contains` is the text default: an operator nobody chose has to be the one a person
         // means by typing a fragment into a box.
         operator: MatchModeCodes.Contains,
-        operatorPhraseKey: 'FilterChipContains',
+        operatorPhraseKey: 'spiderly.FilterChipContains',
         value: 'Elektromont',
       },
     ]);
@@ -370,8 +370,7 @@ describe('SpiderlyFilterBarComponent', () => {
     });
     fixture.detectChanges();
 
-    // The datepicker hands back a real Date at local midnight; nothing parses a string here.
-    control(fixture, DatePicker).onSelect.emit(new Date(2026, 8, 1));
+    control(fixture, DatePicker).selectDate({ year: 2026, month: 8, day: 1 });
     fixture.detectChanges();
 
     editor(fixture)
@@ -384,6 +383,38 @@ describe('SpiderlyFilterBarComponent', () => {
         { matchMode: MatchModeCodes.LessThan, value: new Date(2026, 8, 1) },
       ],
     });
+  });
+
+  it('applies a date typed into the datepicker', async () => {
+    const filters = createFilterStore({
+      createdAt: dateFilter({ label: 'Datum' }),
+    });
+    const fixture = renderBar(filters);
+    await startEditing(fixture);
+
+    const input = editor(fixture).querySelector<HTMLInputElement>(
+      'p-datepicker input',
+    )!;
+    for (const key of '09/01/2026') {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      input.value += key;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    }
+
+    const date = new Date(2026, 8, 1);
+    expect(control(fixture, DatePicker).value).toEqual(date);
+    expect(filters.toFilterPayload()).toEqual({});
+
+    editor(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="filter-editor-apply"]')!
+      .click();
+    fixture.detectChanges();
+
+    expect(filters.toFilterPayload()).toEqual({
+      createdAt: [{ matchMode: MatchModeCodes.GreaterThan, value: date }],
+    });
+    expect(chips(fixture).length).toBe(1);
   });
 
   // The only path by which orderStatusId can exist: "Processing OR PreparingForShipping" is the
@@ -710,7 +741,7 @@ describe('SpiderlyFilterBarComponent — the sort picker', () => {
 
   // The menu is teleported into document.body with its popover, so its rules live at SCSS TOP
   // LEVEL; a computed-style assert is what notices if they move under :host and die silently
-  // (Angular/CLAUDE.md → overlay styling).
+  // (.claude/rules/library-scss.md).
   it('sort menu styles survive the body teleport', async () => {
     const fixture = renderPicker({
       sort: [{ field: 'name', label: 'Naziv', descending: true }],

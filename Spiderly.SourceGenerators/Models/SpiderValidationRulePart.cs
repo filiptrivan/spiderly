@@ -4,6 +4,7 @@ namespace Spiderly.SourceGenerators.Models
 
     /// <summary>Parameterless validation rule parts.</summary>
     public sealed class NotEmptyRulePart : SpiderValidationRulePart { }
+    public sealed class NotNullRulePart : SpiderValidationRulePart { }
     public sealed class EmailAddressRulePart : SpiderValidationRulePart { }
     public sealed class NotHaveWhiteSpaceRulePart : SpiderValidationRulePart { }
 

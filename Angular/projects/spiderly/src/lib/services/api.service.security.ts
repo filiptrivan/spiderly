@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
@@ -12,6 +12,7 @@ import {
   VerificationTokenRequest,
 } from '../entities/security-entities';
 import { ConfigServiceBase } from './config.service.base';
+import { SKIP_REFRESH_CHECK } from '../interceptors/http-context-tokens';
 
 @Injectable({
   providedIn: 'root',
@@ -24,11 +25,16 @@ export class ApiSecurityService {
 
   //#region Authentication
 
+  // An auth request's options, marked with SKIP_REFRESH_CHECK.
+  private authRequestOptions(options: object = {}, context = new HttpContext()) {
+    return { ...options, context: context.set(SKIP_REFRESH_CHECK, true) };
+  }
+
   login = (request: VerificationTokenRequest): Observable<AuthResult> => {
     return this.http.post<AuthResult>(
       `${this.config.apiUrl}/Security/Login`,
       request,
-      this.config.httpOptions,
+      this.authRequestOptions(this.config.httpOptions),
     );
   };
 
@@ -38,7 +44,7 @@ export class ApiSecurityService {
     return this.http.post<SendLoginVerificationEmailResult>(
       `${this.config.apiUrl}/Security/SendLoginVerificationEmail`,
       loginDTO,
-      this.config.httpOptions,
+      this.authRequestOptions(this.config.httpOptions),
     );
   };
 
@@ -48,7 +54,7 @@ export class ApiSecurityService {
     return this.http.post<AuthResultWithCookies>(
       `${this.config.apiUrl}/Security/LoginWithCookies`,
       request,
-      this.config.httpOptions,
+      this.authRequestOptions(this.config.httpOptions),
     );
   };
 
@@ -62,12 +68,14 @@ export class ApiSecurityService {
   logout = (browserId: string): Observable<any> => {
     return this.http.get<any>(
       `${this.config.apiUrl}/Security/Logout?browserId=${browserId}`,
+      this.authRequestOptions(),
     );
   };
 
   logoutWithCookies = (browserId: string): Observable<any> => {
     return this.http.get<any>(
       `${this.config.apiUrl}/Security/LogoutWithCookies?browserId=${browserId}`,
+      this.authRequestOptions(),
     );
   };
 
@@ -75,16 +83,21 @@ export class ApiSecurityService {
     return this.http.post<AuthResult>(
       `${this.config.apiUrl}/Security/RefreshTokenWithHeaders`,
       request,
-      this.config.httpOptions,
+      this.authRequestOptions(this.config.httpOptions),
     );
   };
 
-  refreshTokenWithCookies = (browserId: string): Observable<AuthResultWithCookies> => {
+  // `context` carries the caller's own marks (AuthServiceBase's SKIP_ERROR_MESSAGE).
+  refreshTokenWithCookies = (
+    browserId: string,
+    context?: HttpContext,
+  ): Observable<AuthResultWithCookies> => {
     // POST, not GET: refresh rotates the single-use token (a state mutation), and a cacheable GET let
     // browsers replay a stale logged-in response on back/forward navigation (phantom dashboard after logout).
     return this.http.post<AuthResultWithCookies>(
       `${this.config.apiUrl}/Security/RefreshTokenWithCookies?browserId=${browserId}`,
       null,
+      this.authRequestOptions({}, context),
     );
   };
 

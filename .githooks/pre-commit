@@ -6,14 +6,19 @@
 # Bypass when needed: git commit --no-verify (CI remains the backstop)
 set -e
 
-staged=$(git diff --cached --name-only)
+# --no-renames lists a rename as its delete and its add, so a file moved out of a guarded path still
+# triggers that path's block.
+staged=$(git diff --cached --name-only --no-renames)
 
 # Hand-maintained; extend when adding a contract (docs/framework-metadata-ssot.md "Adding a new contract").
 ssot_src='^(Spiderly\.MetadataExporter/|Spiderly\.ZooGenerator/|Spiderly\.SourceGenerators/Models/SpiderlyTypeRef\.cs|tools/(regen-metadata\.sh|extract-ts-metadata\.mjs|gen-skill-docs\.mjs|package(-lock)?\.json)|Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/(MatchModeCodes|UIControlTypeCodes)\.cs|Spiderly\.Shared/Attributes/|Spiderly\.Security/Controllers/SecurityBaseController\.cs|Angular/projects/spiderly/src/lib/services/(helper-functions\.ts|validator-abstract\.service\.ts)|Angular/projects/spiderly/src/lib/controls/)'
 ssot_artifacts='^(framework-metadata\.json|claude-plugins/docs/[^/]+/references/[^/]+\.generated\.md|tests/e2e-fixtures/backend/entities/ZooShapes\.cs)'
-ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/MatchModeCodes\.cs|Angular/projects/spiderly/src/lib/errors/api-error-codes\.ts|Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes\.ts)$'
+ts_mirrors='^(Spiderly\.Shared/Contracts/ApiErrorCodes\.cs|Spiderly\.Shared/Enums/MatchModeCodes\.cs|Angular/projects/spiderly/src/lib/errors/api-error-codes\.ts|Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes\.ts|Angular/projects/spiderly/src/lib/filters/filter-store\.ts|Angular/projects/spiderly/src/lib/i18n/en\.json)$'
 bundle_src='^(claude-plugins/(docs|skills)/|tools/build-agent-bundle\.mjs)'
 bundle_artifacts='^Angular/projects/spiderly/agent/'
+angular_lock='^Angular/package(-lock)?\.json$'
+lint_src='^Angular/projects/spiderly/src/.+\.(html|ts|scss)$'
+lint_inputs='^Angular/(eslint\.config\.js|projects/spiderly/(eslint\.config\.js|stylelint\.config\.mjs|lint/.+|src/lib/i18n/en\.json))$'
 
 # --- Framework-metadata SSOT: regenerate, auto-stage when safe ---------------------------------
 if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
@@ -45,7 +50,7 @@ if echo "$staged" | grep -qE "$ssot_src|$ssot_artifacts"; then
   fi
 fi
 
-# --- Agent guidance bundle: regenerate, auto-stage when safe ----------------------------------
+# --- Agent guidance bundle: regenerate, refuse a hand edit, auto-stage when safe --------------
 # Runs after the framework-metadata block so the bundle copies freshly-regenerated *.generated.md.
 # Also triggers on SSOT changes (they ripple into the generated refs the bundle copies).
 if echo "$staged" | grep -qE "$bundle_src|$bundle_artifacts|$ssot_src|$ssot_artifacts"; then
@@ -68,6 +73,24 @@ if echo "$staged" | grep -qE "$bundle_src|$bundle_artifacts|$ssot_src|$ssot_arti
       echo "pre-commit: stage (or stash) those sources, then retry the commit."
       exit 1
     fi
+    # A staged file under agent/ that the regeneration changes is a hand edit or an older build, and the
+    # auto-stage below would throw it away: refuse it, and name the authoring file it is built from.
+    staged_bundle=$(git diff --cached --name-only --no-renames -- Angular/projects/spiderly/agent)
+    if [ -n "$staged_bundle" ]; then
+      replaced=$({ git diff --name-only -- Angular/projects/spiderly/agent; git ls-files --others --exclude-standard -- Angular/projects/spiderly/agent; } | grep -Fx -e "$staged_bundle" || true)
+      if [ -n "$replaced" ]; then
+        echo ""
+        echo "pre-commit: the agent bundle's regeneration replaces these staged files. Make each edit in the authoring file on its right:"
+        echo "$replaced" | sed \
+          -e 's#^Angular/projects/spiderly/agent/docs/\(.*\)$#  &  <-  claude-plugins/docs/\1#' \
+          -e 's#^Angular/projects/spiderly/agent/skills/\(.*\)$#  &  <-  claude-plugins/skills/\1#' \
+          -e 's#^Angular/projects/spiderly/agent/manifest\.json$#  &  <-  the name and description of each claude-plugins/skills/*/SKILL.md#' \
+          -e 's#\(claude-plugins/docs/[^/]*/references/[^/]*\.generated\.md\)$#\1, which tools/regen-metadata.sh writes#'
+        echo "pre-commit: your edits stay staged: git diff --cached -- Angular/projects/spiderly/agent"
+        echo "pre-commit: if a staged file is only an older build, stage the new one: git add Angular/projects/spiderly/agent"
+        exit 1
+      fi
+    fi
     git add Angular/projects/spiderly/agent
     echo "pre-commit: agent bundle was stale — regenerated and auto-staged into this commit."
   else
@@ -77,15 +100,81 @@ fi
 
 # --- C# <-> TS hand-maintained contract mirrors -------------------------------------------------
 if echo "$staged" | grep -qE "$ts_mirrors"; then
-  echo "pre-commit: staged changes touch C#<->TS contract mirrors — running TsContractMirrorTests..."
+  echo "pre-commit: staged changes touch hand-maintained contract mirrors — running TsContractMirrorTests..."
   if ! dotnet test Spiderly.Shared.Tests --filter TsContractMirrorTests --verbosity quiet --nologo; then
     echo ""
-    echo "pre-commit: C# and TS contract mirrors diverged. Sync the member sets:"
+    echo "pre-commit: a contract mirror diverged. Sync the side the test names:"
     echo "  Spiderly.Shared/Contracts/ApiErrorCodes.cs  <->  Angular/projects/spiderly/src/lib/errors/api-error-codes.ts"
     echo "  Spiderly.Shared/Enums/MatchModeCodes.cs     <->  Angular/projects/spiderly/src/lib/enums/match-mode-enum-codes.ts"
+    echo "  OPERATOR_WORDS keys in filters/filter-store.ts  ->  i18n/en.json, each key without its spiderly. prefix"
     exit 1
   fi
   echo "pre-commit: contract mirrors are in sync."
+fi
+
+# --- Angular lockfile: CI's "Verify Angular lockfile integrity" step, under the pinned npm ----------
+# Judges the staged manifest and lock, copied into a fresh directory with no node_modules, under the
+# npm that `packageManager` pins. An older npm drops the optional cytoscape/d3-selection nodes (the
+# mermaid subtree of ngx-markdown; seen with npm 11.6.2, 2026-05-30), so a check under it passes a lock
+# that CI refuses.
+if echo "$staged" | grep -qE "$angular_lock"; then
+  npm_pin=$(git show :Angular/package.json | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).packageManager || "")')
+  npm_pin=${npm_pin%%+*}
+  case "$npm_pin" in
+    npm@?*) ;;
+    *) echo "pre-commit: Angular/package.json pins no npm (\"packageManager\": \"npm@<version>\"), so the lock check cannot run."; exit 1 ;;
+  esac
+  echo "pre-commit: staged changes touch the Angular lock — npm ci --dry-run under $npm_pin..."
+  lock_dir=$(mktemp -d)
+  trap 'rm -rf "$lock_dir"' EXIT
+  git show :Angular/package.json > "$lock_dir/package.json"
+  git show :Angular/package-lock.json > "$lock_dir/package-lock.json"
+  [ -z "$(git ls-files -- Angular/.npmrc)" ] || git show :Angular/.npmrc > "$lock_dir/.npmrc"
+  if ! out=$(cd "$lock_dir" && npx --yes "$npm_pin" ci --dry-run --ignore-scripts 2>&1); then
+    # The cause, without the usage text npm appends to it.
+    printf '%s\n' "$out" | sed '/^npm error Clean install a project/,$d'
+    echo ""
+    echo "pre-commit: npm ci --dry-run under $npm_pin failed on the staged Angular lock (its output is above)."
+    echo "pre-commit: when the lock drifted, regenerate it under that npm and the node .nvmrc names: cd Angular && npx $npm_pin install"
+    echo "pre-commit: then stage Angular/package.json and Angular/package-lock.json together."
+    exit 1
+  fi
+  echo "pre-commit: the Angular lock is in sync under $npm_pin."
+fi
+
+# --- Library lint: the library's rules (ng lint's config) and Stylelint ----------------------------
+# Lints the staged library files as they stand in the working tree, so a partly staged file is judged
+# whole, and CI lints the committed tree. A change to a rule, a lint config or the library's en.json
+# runs the rules' own tests and lints the whole library. The library-key rule reads en.json.
+if echo "$staged" | grep -qE "$lint_src|$lint_inputs"; then
+  if [ ! -d Angular/node_modules ]; then
+    echo "pre-commit: the library's lint needs the Angular packages. Install them, then retry the commit: cd Angular && npm ci"
+    exit 1
+  fi
+  lint_failed=
+  if echo "$staged" | grep -qE "$lint_inputs"; then
+    echo "pre-commit: staged changes touch the library's lint rules or the keys they read — testing them and linting the whole library..."
+    if ! out=$(cd Angular && npm run --silent test:lint-rules 2>&1); then
+      printf '%s\n' "$out"
+      echo "pre-commit: a lint rule's own test failed (its output is above): cd Angular && npm run test:lint-rules"
+      exit 1
+    fi
+    # CI's commands: ng lint, and Stylelint on the glob the script quotes.
+    (cd Angular && npm run --silent lint) || lint_failed=1
+    (cd Angular && npm run --silent lint:scss) || lint_failed=1
+  else
+    targets=$(git diff --cached --name-only --no-renames --diff-filter=d | grep -E "$lint_src" | sed 's#^Angular/##' || true)
+    eslint_targets=$(echo "$targets" | grep -E '\.(html|ts)$' || true)
+    scss_targets=$(echo "$targets" | grep -E '\.scss$' || true)
+    # Unquoted: one argument per path; the library's paths hold no space.
+    [ -z "$eslint_targets" ] || (cd Angular && ./node_modules/.bin/eslint --no-warn-ignored $eslint_targets) || lint_failed=1
+    [ -z "$scss_targets" ] || (cd Angular && ./node_modules/.bin/stylelint $scss_targets) || lint_failed=1
+  fi
+  if [ -n "$lint_failed" ]; then
+    echo "pre-commit: the library's lint refused the files above; each message names its fix."
+    exit 1
+  fi
+  echo "pre-commit: the library's lint passes."
 fi
 
 # --- Size cap ------------------------------------------------------------------------------------

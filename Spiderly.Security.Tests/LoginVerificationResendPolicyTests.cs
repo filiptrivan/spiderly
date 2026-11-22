@@ -10,7 +10,7 @@ namespace Spiderly.Security.Tests
     /// Tests the per-recipient resend policy that guards <c>SendLoginVerificationEmail</c> against
     /// inbox-flooding / email-quota abuse on the (storefront-and-admin-shared) login endpoint:
     /// <see cref="JwtAuthManagerService.IsLoginVerificationSendBlockedAsync"/>. Both limits are
-    /// per-address and IP-independent, so they hold against a distributed sender the per-IP rate
+    /// per-address and IP-independent, so they hold against a distributed sender the caller-key rate
     /// limiter cannot stop.
     /// </summary>
     public class LoginVerificationResendPolicyTests

@@ -15,10 +15,12 @@ import {
 import { SpiderlyMessageService } from '../../services/spiderly-message.service';
 import { ValidatorAbstractService } from '../../services/validator-abstract.service';
 import { BaseControl } from '../base-control';
+import { provideSpiderlyScope } from '../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-file',
   templateUrl: './spiderly-file.component.html',
+  providers: [provideSpiderlyScope()],
   styles: [],
   imports: [
     CommonModule,
@@ -108,7 +110,14 @@ export class SpiderlyFileComponent extends BaseControl implements OnInit {
   }
 
   filesSelected(event: FileSelectEvent) {
-    const file = event.files[0];
+    // `files` is every file picked, `currentFiles` only those that passed PrimeNG's
+    // [maxFileSize] and [accept] checks, plus, with [multiple], the ones picked before.
+    // A refused file is not emitted, so the generated upload never sends it (spiderly#481).
+    const file = Array.from(event.files).find((f) =>
+      event.currentFiles.includes(f),
+    );
+    if (file == null) return;
+
     this.existingFileUrl = null;
 
     if (

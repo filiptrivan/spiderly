@@ -16,10 +16,12 @@ import { AuthServiceBase } from '../../../services/auth.service.base';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { SpiderlyButtonComponent } from '../../spiderly-buttons/spiderly-button/spiderly-button.component';
 import { ConfigServiceBase } from '../../../services/config.service.base';
+import { provideSpiderlyScope } from '../../../i18n/spiderly-scope';
 
 @Component({
   selector: 'spiderly-profile-avatar',
   templateUrl: './profile-avatar.component.html',
+  providers: [provideSpiderlyScope()],
   styleUrl: './profile-avatar.component.scss',
   imports: [
     CommonModule,
@@ -75,7 +77,7 @@ export class ProfileAvatarComponent {
     if (this.menuItems.length === 0) {
       this.menuItems = [
         {
-          label: this.translocoService.translate('YourProfile'),
+          label: this.translocoService.translate('spiderly.YourProfile'),
           icon: 'pi-user',
           showSeparator: true,
           onClick: () => {
@@ -83,7 +85,7 @@ export class ProfileAvatarComponent {
           },
         },
         {
-          label: this.translocoService.translate('Logout'),
+          label: this.translocoService.translate('spiderly.Logout'),
           icon: 'pi-sign-out',
           showSeparator: true,
           onClick: () => {

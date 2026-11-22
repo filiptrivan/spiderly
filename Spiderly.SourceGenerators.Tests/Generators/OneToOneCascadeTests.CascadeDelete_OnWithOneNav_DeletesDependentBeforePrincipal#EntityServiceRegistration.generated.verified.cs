@@ -20,8 +20,8 @@ namespace TestApp.Business.Services
             services.AddTransient<AuthorizationServiceGenerated>();
 
             services.AddTransient<ConversationServiceGenerated>();
-            services.AddTransient<TaskItemService>();
-            services.AddTransient<TaskItemServiceGenerated>(sp => sp.GetRequiredService<TaskItemService>());
+            services.AddTransient<global::TestApp.Business.Services.TaskItemService>();
+            services.AddTransient<TaskItemServiceGenerated>(sp => sp.GetRequiredService<global::TestApp.Business.Services.TaskItemService>());
 
             return services;
         }

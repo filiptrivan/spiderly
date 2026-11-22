@@ -35,10 +35,10 @@ namespace Spiderly.Shared.Interfaces
         /// <summary>Timestamp of the last dispatch attempt.</summary>
         DateTime? LastAttemptedAt { get; set; }
 
-        /// <summary>Truncated exception/error message from the last failed attempt.</summary>
-        string LastError { get; set; }
+        /// <summary>Truncated exception/error message from the last failed attempt. <c>null</c> until an attempt fails, and again after an operator's Retry.</summary>
+        string? LastError { get; set; }
 
-        /// <summary>When set, the sweep skips this row until this time — exponential backoff between failed attempts, set by <c>OutboxDispatcherJob</c>. <c>null</c> means eligible immediately (a fresh row).</summary>
+        /// <summary>"Not before": when set, the sweep skips this row until this time. <c>OutboxDispatcherJob</c> sets it for the exponential backoff between failed attempts, and code that stages a row may set it to schedule a fresh row for later. <c>null</c> means eligible immediately. The row is due from this time (or from <see cref="CreatedAt"/> when <c>null</c>), and <see cref="Outbox.OutboxHealthJob{TOutbox}"/> measures lateness from there.</summary>
         DateTime? NextAttemptAt { get; set; }
 
         /// <summary>Set by the admin Dismiss action — the operator who marked this row handled out-of-band. <see cref="DispatchedAt"/> is set in the same write so the sweep skips it.</summary>

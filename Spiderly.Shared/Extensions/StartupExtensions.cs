@@ -455,6 +455,9 @@ namespace Spiderly.Shared.Extensions
                     // request fail, because it posts "multiSortMeta": null and FilterDTO.MultiSortMeta is a
                     // non-nullable List<FilterSortMetaDTO>.
                     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+
+                    // Why parameters get the rule back: RequiredStringParameterMetadataProvider.
+                    options.ModelMetadataDetailsProviders.Add(new RequiredStringParameterMetadataProvider());
                 })
                 .AddJsonOptions(options =>
                 {
@@ -535,8 +538,8 @@ namespace Spiderly.Shared.Extensions
                 options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                 {
                     // Which class this request belongs to (trusted first-party infra → api-key principal →
-                    // per-IP) is a pure decision extracted to GlobalRateLimitPartitioner so the branch is
-                    // unit-testable. The trusted hook is opt-in (null detector ⇒ unchanged behavior) and
+                    // per caller key) is a pure decision extracted to GlobalRateLimitPartitioner so the
+                    // branch is unit-testable. The trusted hook is opt-in (null detector ⇒ unchanged behavior) and
                     // requires UseAuthentication before UseRateLimiter for the api-key branch to see the
                     // validated principal — the init template's middleware order.
                     ITrustedCallerDetector? trustedCallerDetector =
@@ -558,7 +561,7 @@ namespace Spiderly.Shared.Extensions
                 // Customer apps tune the limits via BlobUploadRequestsLimitNumber/Window in appsettings.
                 options.AddPolicy(SpiderlyRateLimitPolicies.BlobUpload, httpContext =>
                     RateLimitPartition.GetSlidingWindowLimiter(
-                        partitionKey: Helper.GetIPAddressOrUnknown(httpContext),
+                        partitionKey: Helper.GetCallerKey(httpContext),
                         factory: _ => new SlidingWindowRateLimiterOptions
                         {
                             PermitLimit = settings.BlobUploadRequestsLimitNumber,

@@ -9,6 +9,7 @@
 # Source generators + init template (a wrong change breaks freshly-init'd apps)
 /Spiderly.SourceGenerators/                                   @filiptrivan
 /Spiderly.Shared/Helpers/NetAndAngularFilesGenerator.cs       @filiptrivan
+/Spiderly.Shared/Helpers/Scaffold/                            @filiptrivan
 
 # Security package (shipped, auth-critical)
 /Spiderly.Security/                                           @filiptrivan

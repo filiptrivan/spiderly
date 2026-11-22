@@ -249,8 +249,6 @@ namespace Spiderly.SourceGenerators.Net
 
             var orderedItemIds = orderedItemsDTO.Select(x => x.{{extractedEntity.Name}}DTO!.Id).ToList();
 
-{{GetOrderedOneToManyRequiredValidation(property, entity)}}
-
             return await _deps.Context.WithTransactionAsync(async () =>
             {
                 await _deps.Context.DbSet<{{extractedEntity.Name}}>().Where(x => {{extractedEntity.GetManyToOnePropertyWithManyAttribute(entity.Name, property.Name).GetForeignKeyAccessExpression(extractedEntity, allEntities)}} == id && orderedItemIds.Contains(x.Id) == false).ExecuteDeleteAsync();
@@ -278,20 +276,6 @@ namespace Spiderly.SourceGenerators.Net
             }
 
             return result;
-        }
-
-        private static string? GetOrderedOneToManyRequiredValidation(SpiderlyProperty property, SpiderlyClass entity)
-        {
-            if (property.HasRequiredAttribute())
-            {
-                return $$"""
-            if (orderedItemIds.Count == 0)
-                throw new SecurityViolationException("The ordered {{property.Name}} for {{entity.Name}} can't be empty.");
-""";
-
-            }
-
-            return null;
         }
 
         #endregion

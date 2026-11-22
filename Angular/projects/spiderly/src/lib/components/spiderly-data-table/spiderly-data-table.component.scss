@@ -37,7 +37,7 @@
 
 // Chooser content is teleported into document.body with the open p-popover, so
 // its rules must stay top-level — `:host` nesting dies on teleport (see
-// Angular/CLAUDE.md → overlay styling). Each rule is pinned by a spec assert.
+// .claude/rules/library-scss.md). Each rule is pinned by a spec assert.
 .column-chooser {
   display: flex;
   flex-direction: column;
@@ -227,10 +227,12 @@
   }
 
   // The operator's per-column wrap (header menu) travels as inherited custom properties, because
-  // the library cannot style a projected spiderlyCellTemplate directly (CLAUDE.md → Column
-  // widths). Unset, the var()s below fall back to the clamp; a wrapped td flips both, and any
-  // consumer clamp written against the same vars follows — that is the whole contract. Only these
-  // two: text-overflow needs no property, since it has no effect once overflow is visible.
+  // the library cannot style a projected spiderlyCellTemplate directly. A projected template
+  // renders with the CONSUMER's _ngcontent, so no selector here matches it, and ::ng-deep is not
+  // the answer. Inheritance does cross that boundary. Unset, the var()s below fall back to the
+  // clamp; a wrapped td flips both, and any consumer clamp written against the same vars follows
+  // — that is the whole contract. Only these two: text-overflow needs no property, since it has no
+  // effect once overflow is visible.
   td.cell-wrap {
     --spiderly-cell-overflow: visible;
     --spiderly-cell-white-space: normal;

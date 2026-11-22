@@ -8,8 +8,8 @@ namespace Spiderly.Shared.Tests
 {
     // Pins the rate-limiter partition rule for machine callers: only a VALIDATED ApiKey principal
     // (stamped by the authentication middleware) earns a per-key partition — an anonymous request or
-    // a human principal stays on the per-IP bucket. Keying on the raw API-key header instead would
-    // let an attacker mint unlimited fresh buckets and bypass per-IP limiting entirely.
+    // a human principal stays on the caller-key bucket. Keying on the raw API-key header instead would
+    // let an attacker mint unlimited fresh buckets and bypass caller-key limiting entirely.
     public class ApiKeyRateLimitPartitionTests
     {
         [Fact]

@@ -86,7 +86,7 @@ export class BaseFormComponent<
    * ```
    */
   successfulSaveToastDescription: string = this.translocoService.translate(
-    'SuccessfulSaveToastDescription',
+    'spiderly.SuccessfulSaveToastDescription',
   );
 
   private modelDiffer: KeyValueDiffer<string, any>;

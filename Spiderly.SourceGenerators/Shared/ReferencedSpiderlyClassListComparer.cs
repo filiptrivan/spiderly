@@ -135,6 +135,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             return x.Name == y.Name &&
                 x.ReturnType == y.ReturnType &&
+                x.IsPublicInstance == y.IsPublicInstance &&
                 x.Body == y.Body &&
                 ListEquals(x.Parameters, y.Parameters, ParameterEquals) &&
                 ListEquals(x.Attributes, y.Attributes, AttributeEquals);
@@ -150,6 +151,7 @@ namespace Spiderly.SourceGenerators.Shared
                 int hash = 17;
                 hash = Add(hash, item.Name);
                 hash = Add(hash, item.ReturnType);
+                hash = Add(hash, item.IsPublicInstance);
                 hash = Add(hash, item.Body);
                 hash = AddList(hash, item.Parameters, GetParameterHashCode);
                 hash = AddList(hash, item.Attributes, GetAttributeHashCode);
@@ -193,7 +195,7 @@ namespace Spiderly.SourceGenerators.Shared
             if (x is null || y is null)
                 return false;
 
-            return x.Name == y.Name && x.Value == y.Value;
+            return x.Name == y.Name && x.Value == y.Value && x.Int32Value == y.Int32Value;
         }
 
         private static int GetAttributeHashCode(SpiderlyAttribute item)
@@ -206,6 +208,7 @@ namespace Spiderly.SourceGenerators.Shared
                 int hash = 17;
                 hash = Add(hash, item.Name);
                 hash = Add(hash, item.Value);
+                hash = Add(hash, item.Int32Value);
                 return hash;
             }
         }

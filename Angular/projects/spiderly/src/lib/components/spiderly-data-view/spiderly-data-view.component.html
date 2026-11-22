@@ -65,7 +65,7 @@
                         <p-multiSelect
                           [ngModel]="value"
                           [options]="filter.dropdownOrMultiselectValues"
-                          [placeholder]="t('All')"
+                          [placeholder]="t('spiderly.All')"
                           (onChange)="filter($event.value)"
                           optionLabel="label"
                           optionValue="code"
@@ -86,12 +86,12 @@
           </div>
           <div style="display: flex; gap: 12px">
             <spiderly-button
-              [label]="t('ApplyFilters')"
+              [label]="t('spiderly.ApplyFilters')"
               (onClick)="applyFilters()"
               [icon]="applyFiltersIcon"
             ></spiderly-button>
             <spiderly-button
-              [label]="t('ClearFilters')"
+              [label]="t('spiderly.ClearFilters')"
               (onClick)="clearFilters()"
               [icon]="clearFiltersIcon"
             ></spiderly-button>
@@ -112,10 +112,10 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        {{ t("NoRecordsFound") }}
+        {{ t("spiderly.NoRecordsFound") }}
       </ng-template>
       <ng-template *ngIf="showTotalRecordsNumber" pTemplate="paginatorleft">
-        {{ t("TotalRecords") }}: {{ totalRecords }}
+        {{ t("spiderly.TotalRecords") }}: {{ totalRecords }}
       </ng-template>
       <ng-template *ngIf="showPaginatorRightData" pTemplate="paginatorright">
         <ng-content select="[PAGINATORRIGHT]"></ng-content>

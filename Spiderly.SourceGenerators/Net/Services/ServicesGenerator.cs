@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -26,19 +27,20 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.Services },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities });
 
-            var combinedWithEnums = combined
+            var inputs = combined
                 .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
-                .Combine(PipelineFactory.GetNullableContextProvider(context));
+                .Combine(PipelineFactory.GetNullableContextProvider(context))
+                .Combine(PipelineFactory.GetPropertyAttributeMapper(context.SyntaxProvider));
 
-            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var ((combinedSource, enumNames), nullableContext) = source;
+                var (((combinedSource, enumNames), nullableContext), mapPropertyAttribute) = source;
                 var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
+                Execute(classes, referencedClasses, enumNames, config, nullableContext, mapPropertyAttribute, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectEntities, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -46,7 +48,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(ServicesGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities, spiderlyEnumNames);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectEntities, spiderlyEnumNames, mapPropertyAttribute);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
             List<SpiderlyClass> allEntities = currentProjectEntities.Concat(referencedProjectEntities).ToList();
 
@@ -67,7 +69,7 @@ namespace Spiderly.SourceGenerators.Net
             // Generate one service file per entity
             foreach (SpiderlyClass entity in currentProjectEntities)
             {
-                string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace);
+                string entityServiceCode = GetEntityServiceClass(entity, allEntities, basePartOfNamespace, nullableContext);
                 context.AddSpiderlyCSharpSource($"{entity.Name}Service.generated", entityServiceCode, nullableContext);
             }
 
@@ -135,7 +137,7 @@ namespace {{basePartOfNamespace}}.Services
 
         #region Per-Entity Service
 
-        private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace)
+        private static string GetEntityServiceClass(SpiderlyClass entity, List<SpiderlyClass> allEntities, string basePartOfNamespace, NullableContextOptions nullableContext)
         {
             bool entityNeedsS3Public = entity.Properties.Any(x => x.HasS3PublicStorageAttribute());
             bool entityNeedsS3Private = entity.Properties.Any(x => x.HasS3PrivateStorageAttribute());
@@ -144,7 +146,7 @@ namespace {{basePartOfNamespace}}.Services
             string storageFields = GetStorageFields(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
             string storageInit = GetStorageInit(entityNeedsS3Public, entityNeedsS3Private, entityNeedsDisk);
 
-            string methods = GetEntityServiceMethods(entity, allEntities);
+            string methods = GetEntityServiceMethods(entity, allEntities, nullableContext);
 
             return $$"""
 {{GetUsings(basePartOfNamespace)}}
@@ -197,7 +199,7 @@ namespace {{basePartOfNamespace}}.Services
             return sb.ToString();
         }
 
-        private static string GetEntityServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities)
+        private static string GetEntityServiceMethods(SpiderlyClass entity, List<SpiderlyClass> allEntities, NullableContextOptions nullableContext)
         {
             if (entity.IsManyToMany())
             {
@@ -217,7 +219,7 @@ namespace {{basePartOfNamespace}}.Services
             return $$"""
         #region Read
 
-{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntities)}}
+{{ServiceReadGenerator.GetReadBusinessServiceMethods(entity, allEntities, nullableContext)}}
 
         #endregion
 
@@ -249,6 +251,28 @@ namespace {{basePartOfNamespace}}.Services
 
         #region DI Registration
 
+        /// <summary>
+        /// Registers the generated <c>{name}ServiceGenerated</c>. When the user wrote a <c>[SpiderlyService]</c>
+        /// <c>{name}Service</c>, DI hands out that subclass for the base. Then the subclass's overrides run. The
+        /// registration lives in <c>{base}.Services</c> and the subclass can sit in any namespace, so it names the
+        /// subclass in full.
+        /// </summary>
+        private static void AppendServiceRegistration(StringBuilder registrations, string name, List<SpiderlyClass> userServices)
+        {
+            string generatedTypeName = $"{name}ServiceGenerated";
+            SpiderlyClass? userService = userServices.FirstOrDefault(x => x.Name == $"{name}Service");
+
+            if (userService == null)
+            {
+                registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>();");
+                return;
+            }
+
+            string userTypeName = $"global::{userService.Namespace}.{userService.Name}";
+            registrations.AppendLine($"            services.AddTransient<{userTypeName}>();");
+            registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>(sp => sp.GetRequiredService<{userTypeName}>());");
+        }
+
         private static string GetEntityServiceRegistration(List<SpiderlyClass> entities, List<SpiderlyClass> userEntityServices, string basePartOfNamespace)
         {
             StringBuilder registrations = new();
@@ -256,38 +280,15 @@ namespace {{basePartOfNamespace}}.Services
             registrations.AppendLine("            services.AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));");
             registrations.AppendLine("            services.AddTransient<EntityServiceDependencies>();");
 
-            // EntityServiceDependencies injects AuthorizationServiceGenerated directly, so it must be registered.
-            // Mirror the per-entity pattern below: forward the generated base to the user's AuthorizationService
-            // subclass when present (so its overrides apply), otherwise register the generated base directly. This
+            // EntityServiceDependencies injects AuthorizationServiceGenerated directly, so it must be registered. This
             // is wired here — rather than left to the consumer's startup — so a forgotten registration can't 403
             // every permission-gated endpoint or fail DI validation at boot.
-            if (userEntityServices.Any(x => x.Name == "AuthorizationService"))
-            {
-                registrations.AppendLine("            services.AddTransient<AuthorizationService>();");
-                registrations.AppendLine("            services.AddTransient<AuthorizationServiceGenerated>(sp => sp.GetRequiredService<AuthorizationService>());");
-            }
-            else
-            {
-                registrations.AppendLine("            services.AddTransient<AuthorizationServiceGenerated>();");
-            }
+            AppendServiceRegistration(registrations, "Authorization", userEntityServices);
             registrations.AppendLine();
 
             foreach (SpiderlyClass entity in entities)
             {
-                string generatedTypeName = $"{entity.Name}ServiceGenerated";
-                string userTypeName = $"{entity.Name}Service";
-
-                bool hasUserOverride = userEntityServices.Any(x => x.Name == userTypeName);
-
-                if (hasUserOverride)
-                {
-                    registrations.AppendLine($"            services.AddTransient<{userTypeName}>();");
-                    registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>(sp => sp.GetRequiredService<{userTypeName}>());");
-                }
-                else
-                {
-                    registrations.AppendLine($"            services.AddTransient<{generatedTypeName}>();");
-                }
+                AppendServiceRegistration(registrations, entity.Name, userEntityServices);
             }
 
             return $$"""

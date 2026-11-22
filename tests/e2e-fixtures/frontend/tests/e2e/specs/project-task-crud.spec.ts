@@ -148,9 +148,9 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
 
   // The generated admin edits ordered children INLINE on the parent form — their multiselects save
   // through SaveProject's ordered list, never through the standalone SaveProjectTask the tests above
-  // use (regression background: tests/e2e-fixtures/CLAUDE.md, the composition paragraph). Uses its
-  // own project because the parent-path save replaces the project's ordered children, which would
-  // clobber the shared taskId above.
+  // use (coverage per composition: `CODING_STANDARDS.md` → "Tests"). Uses its own project because
+  // the parent-path save replaces the project's ordered children, which would clobber the shared
+  // taskId above.
   test('should persist child M2M selections through the parent ordered path across add and removal', async ({ request }) => {
     const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -216,7 +216,7 @@ test.describe('ProjectTask Inline Management (UIOrderedOneToMany)', () => {
       // ...and a fresh read must prove it persisted.
       expect(watchersOf(await readForm())).toEqual([userId]);
 
-      // Removal leg — rationale: tests/e2e-fixtures/CLAUDE.md, the OPERATION axis.
+      // Removal leg — coverage per operation: `CODING_STANDARDS.md` → "Tests".
       // NOTE there is no omitted-list no-op at this boundary: generated SaveBody
       // DTOs initialize selection lists to empty, so an omitted key deserializes
       // to [] and CLEARS the selections (this leg's first CI run proved it). The

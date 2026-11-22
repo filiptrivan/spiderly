@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
@@ -33,19 +32,20 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            var combinedWithEnums = combined
+            var inputs = combined
                 .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
-                .Combine(PipelineFactory.GetNullableContextProvider(context));
+                .Combine(PipelineFactory.GetNullableContextProvider(context))
+                .Combine(PipelineFactory.GetPropertyAttributeMapper(context.SyntaxProvider));
 
-            context.RegisterSafeImplementationSourceOutput(combinedWithEnums, static (spc, source) =>
+            context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var ((combinedSource, enumNames), nullableContext) = source;
+                var (((combinedSource, enumNames), nullableContext), mapPropertyAttribute) = source;
                 var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, config, nullableContext, spc);
+                Execute(classes, referencedClasses, enumNames, mapPropertyAttribute, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -53,7 +53,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(FluentValidationGenerator)))
                 return;
 
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames);
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames, mapPropertyAttribute);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();
@@ -162,6 +162,7 @@ namespace {{basePartOfNamespace}}.ValidationRules
         private static string ToFluentValidationCall(SpiderValidationRulePart rulePart, string propertyType) => rulePart switch
         {
             NotEmptyRulePart => ".NotEmpty()",
+            NotNullRulePart => ".NotNull()",
             MaximumLengthRulePart p => $".MaximumLength({p.MaxLength})",
             LengthRangePart p => $".Length({p.Min}, {p.Max})",
             ExactLengthRulePart p => $".Length({p.Length})",

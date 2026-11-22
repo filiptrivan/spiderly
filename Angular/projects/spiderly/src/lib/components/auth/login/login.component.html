@@ -11,24 +11,24 @@
 
           <div class="mt-4 mb-6">
             <div class="text-center" style="font-size: smaller">
-              {{ t("AgreementsOnRegister") }}
+              {{ t("spiderly.AgreementsOnRegister") }}
               <b
                 routerLink="/user-agreement"
                 class="primary-color cursor-pointer"
-                >{{ t("UserAgreement") }}</b
+                >{{ t("spiderly.UserAgreement") }}</b
               >
-              {{ t("and") }}
+              {{ t("spiderly.and") }}
               <b
                 routerLink="/privacy-policy"
                 class="primary-color cursor-pointer"
-                >{{ t("PrivacyPolicy") }}</b
+                >{{ t("spiderly.PrivacyPolicy") }}</b
               >.
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 16px">
             <spiderly-button
-              [label]="t('Login')"
+              [label]="t('spiderly.Login')"
               (onClick)="sendLoginVerificationEmail()"
               [outlined]="true"
               [style]="{ width: '100%' }"
