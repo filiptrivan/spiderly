@@ -193,6 +193,92 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         Assert.DoesNotContain("formatReportName", text, StringComparison.OrdinalIgnoreCase);
     }
 
+    // How a [Route] template becomes the client's URL: NgControllersGenerator.GetControllerUrlPath.
+    [Theory]
+    [InlineData("OrderController", "", "Order")]
+    [InlineData("OrderController", "[Route(\"/api/[controller]/[action]\")]", "Order")]
+    [InlineData("OrderController", "[Route(\"api/[controller]/[action]\")]", "Order")]
+    [InlineData("OrderFulfilmentController", "[Route(\"/api/Order/[action]\")]", "Order")]
+    [InlineData("PaymentIntesaController", "[Route(\"/api/Payment/Intesa/[action]\")]", "Payment/Intesa")]
+    public void ApiService_ControllerRoute_GivesTheUrlTheBackendServes(string controller, string route, string urlPath)
+    {
+        (string text, IReadOnlyList<Diagnostic> diagnostics) = GenerateWithDiagnostics(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", RouteSource(controller, route));
+
+        Assert.Multiple(
+            () => Assert.Contains($"this.http.get<number>(`${{this.config.apiUrl}}/{urlPath}/GetOrderCount${{params}}`", text),
+            () => Assert.Contains($"this.http.post(`${{this.config.apiUrl}}/{urlPath}/UploadInvoice`, formData", text),
+            () => Assert.Empty(diagnostics));
+    }
+
+    [Fact]
+    public void ApiService_BaseControllerRoute_LosesToTheControllersOwnRoute()
+    {
+        string source = RouteSource("OrderFulfilmentController", "[Route(\"/api/Order/[action]\")]")
+            .Replace("public class OrderFulfilmentController : ControllerBase", "public class OrderFulfilmentController : RoutedControllerBase")
+            + """
+
+            namespace TestApp.WebAPI.Controllers
+            {
+                [Route("/api/[controller]/[action]")]
+                public class RoutedControllerBase : ControllerBase { }
+            }
+            """;
+
+        string text = Generate(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", source);
+
+        Assert.Contains("`${this.config.apiUrl}/Order/GetOrderCount${params}`", text);
+    }
+
+    [Theory]
+    [InlineData("[Route(\"/api/Order\")]")]
+    [InlineData("[Route(\"/api/[action]\")]")]
+    [InlineData("[Route(\"/v2/Order/[action]\")]")]
+    [InlineData("[Route(\"/api/Order/{id}/[action]\")]")]
+    [InlineData("[Route(\"/api/Order/[action]\", Name = \"orders\")]")]
+    public void ApiService_UnreadableControllerRoute_GivesTodaysUrlAndAWarning(string route)
+    {
+        (string text, IReadOnlyList<Diagnostic> diagnostics) = GenerateWithDiagnostics(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", RouteSource("OrderFulfilmentController", route));
+
+        Diagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Multiple(
+            () => Assert.Contains("`${this.config.apiUrl}/OrderFulfilment/GetOrderCount${params}`", text),
+            () => Assert.Contains("`${this.config.apiUrl}/OrderFulfilment/UploadInvoice`", text),
+            () => Assert.Equal("SPIDERLY033", diagnostic.Id),
+            () => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity),
+            () => Assert.Contains("OrderFulfilmentController", diagnostic.GetMessage()));
+    }
+
+    [Fact]
+    public void ApiService_UIDoNotGenerateController_GetsNoRouteWarning()
+    {
+        string source = RouteSource("OrderFulfilmentController", "[UIDoNotGenerate]\n[Route(\"/v2/Order/[action]\")]");
+
+        (_, IReadOnlyList<Diagnostic> diagnostics) = GenerateWithDiagnostics(typeof(NgControllersGenerator), "services/api/api.service.generated.ts", source);
+
+        Assert.Empty(diagnostics);
+    }
+
+    // NgControllersGenerator reads a DTO only from a referenced assembly, so the [FromForm] method takes a Spiderly.Security DTO.
+    private static string RouteSource(string controller, string route) => $$"""
+            using Microsoft.AspNetCore.Mvc;
+            using Spiderly.Security.DTO;
+            using Spiderly.Shared.Attributes;
+
+            namespace TestApp.WebAPI.Controllers
+            {
+                [SpiderlyController]
+                {{route}}
+                public class {{controller}} : ControllerBase
+                {
+                    [HttpGet]
+                    public int GetOrderCount(long brandId) => 0;
+
+                    [HttpPost]
+                    public void UploadInvoice([FromForm] LoginVerificationTokenDTO dto) { }
+                }
+            }
+            """;
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -240,6 +326,9 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
     }
 
     private string Generate(Type generatorType, string file, string source = AppSource)
+        => GenerateWithDiagnostics(generatorType, file, source).Text;
+
+    private (string Text, IReadOnlyList<Diagnostic> Diagnostics) GenerateWithDiagnostics(Type generatorType, string file, string source)
     {
         GeneratorDriverRunResult result = GeneratorTestHarness.Run(generatorType, source, projectDir: ProjectDir).GetRunResult();
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
@@ -247,6 +336,6 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
         string path = Path.Combine(BusinessFolder, file);
         Assert.True(File.Exists(path), $"{generatorType.Name} wrote no {file}.");
 
-        return File.ReadAllText(path).Replace("\r\n", "\n");
+        return (File.ReadAllText(path).Replace("\r\n", "\n"), result.Diagnostics);
     }
 }

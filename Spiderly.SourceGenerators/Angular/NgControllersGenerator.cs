@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Spiderly.SourceGenerators.Angular
 {
@@ -130,7 +131,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                 if (controllerClass.HasUIDoNotGenerateAttribute())
                     continue;
 
-                string controllerName = controllerClass.Name.Replace("Controller", "");
+                string controllerName = GetControllerUrlPath(controllerClass, context);
 
                 foreach (SpiderlyMethod controllerMethod in controllerClass.Methods)
                 {
@@ -169,6 +170,47 @@ export class ApiGeneratedService extends ApiSecurityService {
             }
 
             return result;
+        }
+
+        private static readonly Regex ReadableControllerRoute = new(
+            @"^/?api/(?<path>(?:\[controller\]|[A-Za-z0-9_.~-]+)(?:/(?:\[controller\]|[A-Za-z0-9_.~-]+))*)/\[action\]$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The part of a controller's URL between <c>apiUrl</c> and the method name, read from the
+        /// controller's class-level <c>[Route]</c> template as ASP.NET Core reads it:
+        /// <c>[Route("/api/Payment/Intesa/[action]")]</c> gives <c>Payment/Intesa</c>.
+        /// The template drops its leading <c>api</c>, because <c>apiUrl</c> already holds it.
+        /// <para>
+        /// With no <c>[Route]</c>, the class name gives the URL, so <c>[Route("/api/[controller]/[action]")]</c>
+        /// and no <c>[Route]</c> give the same URL. The class's own <c>[Route]</c> comes before a base class's
+        /// in <see cref="SpiderlyClass.Attributes"/> (<c>ClassAnalyzer.GetAllAttributesOfTheClass</c>), so it wins.
+        /// A template this cannot read (a route value such as <c>{id}</c>, no <c>[action]</c> at its end, no
+        /// leading <c>api</c>, or a named argument) gives the class-name URL and reports SPIDERLY033.
+        /// </para>
+        /// </summary>
+        private static string GetControllerUrlPath(SpiderlyClass controllerClass, SourceProductionContext context)
+        {
+            string controllerName = controllerClass.Name.Replace("Controller", "");
+
+            SpiderlyAttribute? route = controllerClass.Attributes.FirstOrDefault(x => x.Name == "Route" || x.Name == "RouteAttribute");
+            if (route == null)
+                return controllerName;
+
+            Match match = ReadableControllerRoute.Match(route.Value ?? string.Empty);
+            if (!match.Success)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SpiderlyDiagnostics.UnreadableControllerRoute,
+                    controllerClass.Location ?? Location.None,
+                    route.Value,
+                    controllerClass.Name,
+                    controllerName));
+
+                return controllerName;
+            }
+
+            return Regex.Replace(match.Groups["path"].Value, @"\[controller\]", controllerName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         /// <summary>

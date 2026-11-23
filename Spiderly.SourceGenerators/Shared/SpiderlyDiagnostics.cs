@@ -383,5 +383,19 @@ namespace Spiderly.SourceGenerators.Shared
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        /// <summary>
+        /// The Angular client builds a controller's URL from its class-level <c>[Route]</c> template.
+        /// A template it cannot read falls back to the class name, which the backend may not serve,
+        /// so the 404 shows only at run time. This warning names the controller at build time.
+        /// Raised by <see cref="Angular.NgControllersGenerator"/>.
+        /// </summary>
+        public static readonly DiagnosticDescriptor UnreadableControllerRoute = new(
+            id: "SPIDERLY033",
+            title: "The Angular client cannot read the controller's [Route] template",
+            messageFormat: "The Angular client cannot read the [Route] template '{0}' on '{1}', so it calls '/{2}/<Method>' after apiUrl. It reads only 'api/' or '/api/', then literal segments or [controller], then '/[action]' at the end, with no other argument. Change the template, or mark '{1}' with [UIDoNotGenerate] and write its client by hand.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
     }
 }
