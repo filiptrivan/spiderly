@@ -199,6 +199,7 @@ public sealed class GeneratedTypeScriptFileTests : IDisposable
     [InlineData("OrderController", "[Route(\"/api/[controller]/[action]\")]", "Order")]
     [InlineData("OrderController", "[Route(\"api/[controller]/[action]\")]", "Order")]
     [InlineData("OrderFulfilmentController", "[Route(\"/api/Order/[action]\")]", "Order")]
+    [InlineData("OrderFulfilmentController", "[Microsoft.AspNetCore.Mvc.Route(\"/api/Order/[action]\")]", "Order")]
     [InlineData("PaymentIntesaController", "[Route(\"/api/Payment/Intesa/[action]\")]", "Payment/Intesa")]
     public void ApiService_ControllerRoute_GivesTheUrlTheBackendServes(string controller, string route, string urlPath)
     {

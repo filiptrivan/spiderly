@@ -131,7 +131,7 @@ export class ApiGeneratedService extends ApiSecurityService {
                 if (controllerClass.HasUIDoNotGenerateAttribute())
                     continue;
 
-                string controllerName = GetControllerUrlPath(controllerClass, context);
+                string controllerUrlPath = GetControllerUrlPath(controllerClass, context);
 
                 foreach (SpiderlyMethod controllerMethod in controllerClass.Methods)
                 {
@@ -155,11 +155,11 @@ export class ApiGeneratedService extends ApiSecurityService {
 
                     if (methodParameters.Any(x => x.HasFromFormAttribute()) && methodParameters.Any(x => x.Type.Name == "IFormFile") == false)
                     {
-                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerName, referencedDTOs, spiderlyEnumNames));
+                        result.Add(GetCustomFromFormControllerMethod(controllerMethod, controllerUrlPath, referencedDTOs, spiderlyEnumNames));
                     }
                     else
                     {
-                        result.Add(GetCustomAngularControllerMethod(controllerMethod, controllerName, spiderlyEnumNames));
+                        result.Add(GetCustomAngularControllerMethod(controllerMethod, controllerUrlPath, spiderlyEnumNames));
                     }
                 }
             }
@@ -172,9 +172,13 @@ export class ApiGeneratedService extends ApiSecurityService {
             return result;
         }
 
+        private const string ControllerToken = @"\[controller\]";
+
         private static readonly Regex ReadableControllerRoute = new(
-            @"^/?api/(?<path>(?:\[controller\]|[A-Za-z0-9_.~-]+)(?:/(?:\[controller\]|[A-Za-z0-9_.~-]+))*)/\[action\]$",
+            $@"^/?api/(?<path>(?:{ControllerToken}|[A-Za-z0-9_.~-]+)(?:/(?:{ControllerToken}|[A-Za-z0-9_.~-]+))*)/\[action\]$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ControllerTokenRegex = new(ControllerToken, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         /// <summary>
         /// The part of a controller's URL between <c>apiUrl</c> and the method name, read from the
@@ -185,15 +189,14 @@ export class ApiGeneratedService extends ApiSecurityService {
         /// With no <c>[Route]</c>, the class name gives the URL, so <c>[Route("/api/[controller]/[action]")]</c>
         /// and no <c>[Route]</c> give the same URL. The class's own <c>[Route]</c> comes before a base class's
         /// in <see cref="SpiderlyClass.Attributes"/> (<c>ClassAnalyzer.GetAllAttributesOfTheClass</c>), so it wins.
-        /// A template this cannot read (a route value such as <c>{id}</c>, no <c>[action]</c> at its end, no
-        /// leading <c>api</c>, or a named argument) gives the class-name URL and reports SPIDERLY033.
+        /// A template that <see cref="ReadableControllerRoute"/> does not match gives the class-name URL and reports SPIDERLY033.
         /// </para>
         /// </summary>
         private static string GetControllerUrlPath(SpiderlyClass controllerClass, SourceProductionContext context)
         {
             string controllerName = controllerClass.Name.Replace("Controller", "");
 
-            SpiderlyAttribute? route = controllerClass.Attributes.FirstOrDefault(x => x.Name == "Route" || x.Name == "RouteAttribute");
+            SpiderlyAttribute? route = controllerClass.Attributes.FirstOrDefault(IsRouteAttribute);
             if (route == null)
                 return controllerName;
 
@@ -210,7 +213,16 @@ export class ApiGeneratedService extends ApiSecurityService {
                 return controllerName;
             }
 
-            return Regex.Replace(match.Groups["path"].Value, @"\[controller\]", controllerName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return ControllerTokenRegex.Replace(match.Groups["path"].Value, controllerName);
+        }
+
+        /// <summary>
+        /// <c>[Route]</c>, <c>[RouteAttribute]</c>, and each of them with its namespace, such as <c>[Mvc.Route]</c>.
+        /// </summary>
+        private static bool IsRouteAttribute(SpiderlyAttribute attribute)
+        {
+            string name = attribute.Name.Substring(attribute.Name.LastIndexOf('.') + 1);
+            return name == "Route" || name == "RouteAttribute";
         }
 
         /// <summary>
@@ -290,7 +302,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
         #region Custom Angular Controller Method
 
-        private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerName, ImmutableArray<string> spiderlyEnumNames)
+        private static string GetCustomAngularControllerMethod(SpiderlyMethod controllerMethod, string controllerUrlPath, ImmutableArray<string> spiderlyEnumNames)
         {
             string angularReturnType = AngularTypeMapper.GetAngularType(controllerMethod.ReturnType, spiderlyEnumNames);
 
@@ -304,7 +316,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 
             string httpOptions = GetHttpOptions(controllerMethod, spiderlyEnumNames);
 
-            return GetAngularControllerMethod(controllerMethod.Name, inputParameters, angularReturnType, httpType, controllerName, httpOptions);
+            return GetAngularControllerMethod(controllerMethod.Name, inputParameters, angularReturnType, httpType, controllerUrlPath, httpOptions);
         }
 
         private static string GetHttpOptions(SpiderlyMethod controllerMethod, ImmutableArray<string> spiderlyEnumNames)
@@ -474,7 +486,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
 """;
         }
 
-        private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerName, List<SpiderlyClass> DTOList, ImmutableArray<string> spiderlyEnumNames)
+        private static string GetCustomFromFormControllerMethod(SpiderlyMethod controllerMethod, string controllerUrlPath, List<SpiderlyClass> DTOList, ImmutableArray<string> spiderlyEnumNames)
         {
             SpiderParameter parameter = controllerMethod.Parameters.Single();
             SpiderlyClass parameterType = DTOList.Where(x => x.Name == parameter.Type.Name).SingleOrDefault();
@@ -484,7 +496,7 @@ import { {{ngType}} } from '../../entities/entities.generated';
     {{controllerMethod.Name.FirstCharToLower()}} = (dto: {{Helpers.RemoveDtoSuffix(parameter.Type.Name)}}): Observable<{{angularReturnType}}> => {
         let formData = new FormData();
 {{string.Join("\n", GetFormDataAppends(parameterType))}}
-        return this.http.post(`${this.config.apiUrl}/{{controllerName}}/{{controllerMethod.Name}}`, formData, this.config.httpOptions);
+        return this.http.post(`${this.config.apiUrl}/{{controllerUrlPath}}/{{controllerMethod.Name}}`, formData, this.config.httpOptions);
     }
 """;
         }
@@ -880,14 +892,14 @@ import { {{ngType}} } from '../../entities/entities.generated';
             Dictionary<string, string>? inputParameters,
             string returnType,
             HttpTypeCodes httpType,
-            string controllerName,
+            string controllerUrlPath,
             string httpOptions
         )
         {
             return $$"""
     {{methodName.FirstCharToLower()}} = ({{GetInputParameters(inputParameters)}}): Observable<{{returnType}}> => { 
 {{GetGetAndDeleteParameters(inputParameters, httpType)}}
-        return this.http.{{httpType.ToString().FirstCharToLower()}}{{GetReturnTypeAfterHttpType(returnType)}}(`${this.config.apiUrl}/{{controllerName}}/{{methodName}}${params}`{{GetPostAndPutParameters(inputParameters, httpType)}}{{httpOptions}});
+        return this.http.{{httpType.ToString().FirstCharToLower()}}{{GetReturnTypeAfterHttpType(returnType)}}(`${this.config.apiUrl}/{{controllerUrlPath}}/{{methodName}}${params}`{{GetPostAndPutParameters(inputParameters, httpType)}}{{httpOptions}});
     }
 """;
         }
