@@ -24,12 +24,18 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="body">The email body (HTML supported)</param>
         /// <param name="from">Optional sender. If not provided, uses the default sender from settings. Pass <see cref="EmailSender.Name"/> to control the display name shown in the recipient's inbox.</param>
         /// <param name="replyTo">Optional Reply-To. Without it a per-call <paramref name="from"/> override sends with no Reply-To at all (the configured default Reply-To never rides along), so replies to a no-reply override dead-end — pass this to route them to a monitored inbox.</param>
-        Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null);
+        /// <param name="cc">
+        /// Optional Cc addresses, copied on this one message in the order given, so every recipient sees the others and "Reply all" reaches them.
+        /// Null or empty sends no Cc. The addresses go out as given: trimming them and removing duplicates is the caller's job.
+        /// The Cc recipients get the same headers as <paramref name="recipient"/>: an <see cref="IOutboundEmailHeaderProvider"/> is asked once, for <paramref name="recipient"/>, so a List-Unsubscribe it builds for that address reaches the Cc recipients too.
+        /// </param>
+        Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null);
 
         /// <summary>
-        /// Sends an email with binary attachments (e.g., PDF documents).
+        /// Sends an email with binary attachments (e.g., PDF documents). Every other parameter, the Cc list
+        /// included, works as on <see cref="SendEmailAsync(string, string, string, EmailSender, EmailSender, IEnumerable{string})"/>.
         /// </summary>
-        Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null);
+        Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null);
 
         /// <summary>
         /// Sends the same email to multiple recipients

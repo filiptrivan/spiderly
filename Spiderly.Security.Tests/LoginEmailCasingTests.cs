@@ -250,8 +250,8 @@ namespace Spiderly.Security.Tests
 
             public Task SendVerificationEmailAsync(string toEmail, EmailVerifyUIDTO template) => Task.CompletedTask;
 
-            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null) => throw new NotSupportedException();
-            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null) => throw new NotSupportedException();
+            public Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null) => throw new NotSupportedException();
+            public Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null) => throw new NotSupportedException();
             public Task SendEmailAsync(List<string> recipients, string subject, string body) => throw new NotSupportedException();
             public Task SendEmailFromBackgroundJobAsync(string recipient, string subject, string body) => throw new NotSupportedException();
         }
