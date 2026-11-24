@@ -1,5 +1,4 @@
 using System.Net.Mail;
-using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Emailing;
@@ -46,6 +45,16 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("second@example.com, first@example.com", HeaderOfTheOneMessage("Cc"));
         }
 
+        [Fact]
+        public async Task An_empty_cc_list_writes_no_cc_header()
+        {
+            EmailingService service = NewServiceWritingTo(_pickupDirectory);
+
+            await service.SendEmailAsync("customer@example.com", "Subject", "<p>Body</p>", cc: []);
+
+            Assert.Null(HeaderOfTheOneMessage("Cc"));
+        }
+
         private EmailingService NewServiceWritingTo(string pickupDirectory)
         {
             EmailingService service = new(
@@ -57,12 +66,8 @@ namespace Spiderly.Shared.Tests
                     SmtpEnableSsl = false, // SmtpClient refuses pickup-directory delivery with SSL on
                 }));
 
-            SmtpClient smtpClient = (SmtpClient)typeof(EmailingService)
-                .GetField("_smtpClient", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(service)!;
-
-            smtpClient.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
-            smtpClient.PickupDirectoryLocation = pickupDirectory;
+            service.SmtpClient.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
+            service.SmtpClient.PickupDirectoryLocation = pickupDirectory;
 
             return service;
         }

@@ -41,11 +41,13 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(toEmail, template.Subject, template.Body);
         }
 
+        /// <inheritdoc/>
         public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from, replyTo, cc: cc);
         }
 
+        /// <inheritdoc/>
         public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
             await SendViaBrevoAsync(recipient, subject, body, from, replyTo, attachments, cc);

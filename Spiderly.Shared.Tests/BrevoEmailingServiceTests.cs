@@ -161,8 +161,8 @@ namespace Spiderly.Shared.Tests
             await service.SendEmailAsync("customer@example.com", "Subject", "<p>Body</p>", cc: cc);
 
             Assert.Equal(
-                ["to", "subject", "htmlContent", "sender"],
-                handler.LastPayload().EnumerateObject().Select(property => property.Name));
+                new HashSet<string> { "to", "subject", "htmlContent", "sender" },
+                handler.LastPayload().EnumerateObject().Select(property => property.Name).ToHashSet());
         }
 
         // An app that needs to decorate every outbound message (a List-Unsubscribe pointing at its own
@@ -191,8 +191,6 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("<https://example.com/opt-out>", headers.GetProperty("List-Unsubscribe").GetString());
         }
 
-        // A Cc recipient gets the To recipient's message, headers included: the provider is not asked
-        // per Cc address, and no per-address header set goes out beside the message's own.
         [Fact]
         public async Task The_header_provider_is_asked_once_for_the_to_recipient_when_cc_is_sent()
         {

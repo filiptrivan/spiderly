@@ -27,7 +27,7 @@ namespace Spiderly.Shared.Interfaces
         /// <param name="cc">
         /// Optional Cc addresses, copied on this one message in the order given, so every recipient sees the others and "Reply all" reaches them.
         /// Null or empty sends no Cc. The addresses go out as given: trimming them and removing duplicates is the caller's job.
-        /// The Cc recipients get the same headers as <paramref name="recipient"/>: an <see cref="IOutboundEmailHeaderProvider"/> is asked once, for <paramref name="recipient"/>, so a List-Unsubscribe it builds for that address reaches the Cc recipients too.
+        /// Which headers the Cc recipients get: <see cref="IOutboundEmailHeaderProvider"/>.
         /// </param>
         Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null);
 
