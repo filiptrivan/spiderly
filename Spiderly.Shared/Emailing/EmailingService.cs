@@ -11,6 +11,9 @@ namespace Spiderly.Shared.Emailing
     public class EmailingService : IEmailingService
     {
         private readonly SmtpClient _smtpClient;
+
+        /// <summary>The client every send goes through, internal for the tests that read its settings or redirect its delivery.</summary>
+        internal SmtpClient SmtpClient => _smtpClient;
         private readonly ILogger<EmailingService> _logger;
         private readonly EmailOptions _emailSettings;
         private readonly IOutboundEmailHeaderProvider? _headerProvider;
@@ -43,17 +46,19 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
+        /// <inheritdoc/>
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
-            using (MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo))
+            using (MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo, cc))
             {
                 await _smtpClient.SendMailAsync(mailMessage);
             }
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
+        /// <inheritdoc/>
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
-            using MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo);
+            using MailMessage mailMessage = BuildMessage(recipient, subject, body, from, replyTo, cc);
 
             if (attachments != null)
             {
@@ -108,9 +113,10 @@ namespace Spiderly.Shared.Emailing
         /// The one place a message is constructed, so every cross-cutting concern (Reply-To resolution,
         /// app-supplied headers) applies to every send path by construction. The five public methods each
         /// built their own message and had to remember both, which is one line per concern per method to
-        /// forget — and a send path added later would silently skip them.
+        /// forget — and a send path added later would silently skip them. A Cc list is not one of those
+        /// concerns: only the two sends that take one pass it.
         /// </summary>
-        private MailMessage BuildMessage(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
+        private MailMessage BuildMessage(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
             MailMessage mailMessage = new(BuildFromAddress(from), new MailAddress(recipient))
             {
@@ -121,6 +127,9 @@ namespace Spiderly.Shared.Emailing
             };
 
             ApplyReplyTo(mailMessage, from, replyTo);
+
+            foreach (string address in cc ?? [])
+                mailMessage.CC.Add(new MailAddress(address));
 
             IDictionary<string, string>? headers = _headerProvider?.HeadersFor(recipient);
 

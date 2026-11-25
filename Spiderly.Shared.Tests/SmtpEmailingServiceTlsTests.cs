@@ -1,5 +1,4 @@
 using System.Net.Mail;
-using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Spiderly.Shared.Emailing;
@@ -36,10 +35,7 @@ namespace Spiderly.Shared.Tests
                 NullLogger<EmailingService>.Instance,
                 Options.Create(options));
 
-            FieldInfo field = typeof(EmailingService)
-                .GetField("_smtpClient", BindingFlags.Instance | BindingFlags.NonPublic)!;
-
-            return ((SmtpClient)field.GetValue(service)!).EnableSsl;
+            return service.SmtpClient.EnableSsl;
         }
     }
 }

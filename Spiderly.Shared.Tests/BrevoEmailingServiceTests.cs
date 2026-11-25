@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -98,6 +99,72 @@ namespace Spiderly.Shared.Tests
             Assert.Equal("office@brand.com", payload.GetProperty("replyTo").GetProperty("email").GetString());
         }
 
+        [Fact]
+        public async Task A_cc_list_is_sent_in_order_beside_the_to_recipient()
+        {
+            RecordingHandler handler = new();
+            BrevoEmailingService service = NewService(handler, new EmailOptions
+            {
+                EmailSender = new EmailSender { Email = "no-reply@example.com", Name = "Example Shop" },
+                EmailReplyTo = new EmailSender { Email = "info@example.com", Name = "Example Shop" },
+                BrevoApiKey = "test-key",
+            });
+
+            await service.SendEmailAsync(
+                "customer@example.com",
+                "Subject",
+                "<p>Body</p>",
+                cc: ["second@example.com", "first@example.com"]);
+
+            JsonElement payload = handler.LastPayload();
+            Assert.Equal(["second@example.com", "first@example.com"], EmailsOf(payload.GetProperty("cc")));
+            Assert.Equal(["customer@example.com"], EmailsOf(payload.GetProperty("to")));
+            Assert.Equal("no-reply@example.com", payload.GetProperty("sender").GetProperty("email").GetString());
+            Assert.Equal("info@example.com", payload.GetProperty("replyTo").GetProperty("email").GetString());
+        }
+
+        [Fact]
+        public async Task The_send_with_attachments_carries_the_cc_list_too()
+        {
+            RecordingHandler handler = new();
+            BrevoEmailingService service = NewService(handler, new EmailOptions
+            {
+                EmailSender = new EmailSender { Email = "no-reply@example.com", Name = "Example Shop" },
+                BrevoApiKey = "test-key",
+            });
+
+            await service.SendEmailAsync(
+                "customer@example.com",
+                "Subject",
+                "<p>Body</p>",
+                [new EmailAttachment { Name = "order.pdf", ContentBase64 = "JVBERi0=", ContentType = "application/pdf" }],
+                cc: ["second@example.com", "first@example.com"]);
+
+            JsonElement payload = handler.LastPayload();
+            Assert.Equal(["second@example.com", "first@example.com"], EmailsOf(payload.GetProperty("cc")));
+            Assert.Equal("order.pdf", payload.GetProperty("attachment")[0].GetProperty("name").GetString());
+        }
+
+        public static TheoryData<string[]?> NoCc => new() { null, Array.Empty<string>() };
+
+        [Theory]
+        [MemberData(nameof(NoCc))]
+        public async Task A_null_or_empty_cc_list_leaves_the_payload_without_a_cc_key(string[]? cc)
+        {
+            RecordingHandler handler = new();
+            BrevoEmailingService service = NewService(handler, new EmailOptions
+            {
+                EmailSender = new EmailSender { Email = "no-reply@example.com", Name = "Example Shop" },
+                BrevoApiKey = "test-key",
+            });
+
+            await service.SendEmailAsync("customer@example.com", "Subject", "<p>Body</p>", cc: cc);
+
+            Assert.Equal(
+                new HashSet<string> { "to", "subject", "htmlContent", "sender" },
+                handler.LastPayload().EnumerateObject().Select(property => property.Name).ToHashSet());
+        }
+
         // An app that needs to decorate every outbound message (a List-Unsubscribe pointing at its own
         // opt-out endpoint, a tracking header) registers a provider rather than threading a parameter
         // through every send site — including the ones it does not call directly, like the framework's
@@ -122,6 +189,39 @@ namespace Spiderly.Shared.Tests
 
             JsonElement headers = handler.LastPayload().GetProperty("headers");
             Assert.Equal("<https://example.com/opt-out>", headers.GetProperty("List-Unsubscribe").GetString());
+        }
+
+        [Fact]
+        public async Task The_header_provider_is_asked_once_for_the_to_recipient_when_cc_is_sent()
+        {
+            RecordingHandler handler = new();
+            StubHeaderProvider headerProvider = new("customer@example.com", new Dictionary<string, string>
+            {
+                ["List-Unsubscribe"] = "<https://example.com/opt-out>",
+            });
+            BrevoEmailingService service = NewService(
+                handler,
+                new EmailOptions
+                {
+                    EmailSender = new EmailSender { Email = "no-reply@example.com", Name = "Example Shop" },
+                    BrevoApiKey = "test-key",
+                },
+                headerProvider);
+
+            await service.SendEmailAsync(
+                "customer@example.com",
+                "Subject",
+                "<p>Body</p>",
+                cc: ["second@example.com", "first@example.com"]);
+
+            Assert.Equal(["customer@example.com"], headerProvider.AskedFor);
+            JsonElement payload = handler.LastPayload();
+            JsonProperty header = Assert.Single(payload.GetProperty("headers").EnumerateObject());
+            Assert.Equal("List-Unsubscribe", header.Name);
+            Assert.Equal("<https://example.com/opt-out>", header.Value.GetString());
+            Assert.All(
+                payload.GetProperty("cc").EnumerateArray(),
+                address => Assert.Equal(["email"], address.EnumerateObject().Select(property => property.Name)));
         }
 
         // The provider is optional and per-recipient: no provider, or one that declines this
@@ -183,6 +283,9 @@ namespace Spiderly.Shared.Tests
             Assert.False(replyTo.TryGetProperty("name", out _));
         }
 
+        private static string[] EmailsOf(JsonElement addresses) =>
+            addresses.EnumerateArray().Select(address => address.GetProperty("email").GetString()!).ToArray();
+
         private static BrevoEmailingService NewService(
             RecordingHandler handler,
             EmailOptions options,
@@ -200,8 +303,13 @@ namespace Spiderly.Shared.Tests
                 _headers = headers;
             }
 
-            public IDictionary<string, string>? HeadersFor(string recipient) =>
-                recipient == _recipient ? _headers : null;
+            public List<string> AskedFor { get; } = [];
+
+            public IDictionary<string, string>? HeadersFor(string recipient)
+            {
+                AskedFor.Add(recipient);
+                return recipient == _recipient ? _headers : null;
+            }
         }
 
         private sealed class RecordingHandler : HttpMessageHandler

@@ -10,6 +10,10 @@ namespace Spiderly.Shared.Interfaces
     /// the payload is unchanged. Returning <c>null</c> (or an empty map) for a recipient declines
     /// decoration for that message.</para>
     ///
+    /// <para>A message sent with Cc addresses is still one message: it is asked once, for the To
+    /// recipient, and the Cc recipients get those same headers, a <c>List-Unsubscribe</c> built for the
+    /// To address included.</para>
+    ///
     /// <para>Typical use is a <c>List-Unsubscribe</c> / <c>List-Unsubscribe-Post</c> pair pointing at
     /// the app's own opt-out endpoint, so the mailbox provider's unsubscribe button reaches the app
     /// rather than the email provider's suppression list.</para>

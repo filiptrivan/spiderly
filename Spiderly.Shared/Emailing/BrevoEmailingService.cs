@@ -41,14 +41,16 @@ namespace Spiderly.Shared.Emailing
             await SendViaBrevoAsync(toEmail, template.Subject, template.Body);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null)
+        /// <inheritdoc/>
+        public async Task SendEmailAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
-            await SendViaBrevoAsync(recipient, subject, body, from, replyTo);
+            await SendViaBrevoAsync(recipient, subject, body, from, replyTo, cc: cc);
         }
 
-        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null)
+        /// <inheritdoc/>
+        public async Task SendEmailAsync(string recipient, string subject, string body, IEnumerable<EmailAttachment> attachments, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<string>? cc = null)
         {
-            await SendViaBrevoAsync(recipient, subject, body, from, replyTo, attachments);
+            await SendViaBrevoAsync(recipient, subject, body, from, replyTo, attachments, cc);
         }
 
         public async Task SendEmailAsync(List<string> recipients, string subject, string body)
@@ -77,7 +79,7 @@ namespace Spiderly.Shared.Emailing
             }
         }
 
-        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<EmailAttachment>? attachments = null)
+        private async Task SendViaBrevoAsync(string recipient, string subject, string body, EmailSender? from = null, EmailSender? replyTo = null, IEnumerable<EmailAttachment>? attachments = null, IEnumerable<string>? cc = null)
         {
             EmailSender sender = from ?? _emailSettings.EmailSender;
 
@@ -87,6 +89,11 @@ namespace Spiderly.Shared.Emailing
                 ["subject"] = subject,
                 ["htmlContent"] = body,
             };
+
+            object[]? brevoCc = cc?.Select(address => (object)new { email = address }).ToArray();
+
+            if (brevoCc is { Length: > 0 })
+                payload["cc"] = brevoCc;
 
             payload["sender"] = BuildAddressPayload(sender);
 
