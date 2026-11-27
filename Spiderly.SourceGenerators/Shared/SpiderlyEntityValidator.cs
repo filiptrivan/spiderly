@@ -44,6 +44,13 @@ namespace Spiderly.SourceGenerators.Shared
             ForeignKeyValidator.ValidateEntity(entity, entities);
             OneToOneValidator.ValidateEntity(entity, entities);
             CommaSeparatedDisplayNameValidator.ValidateEntity(entity, entities);
+
+            foreach (SpiderlyProperty property in entity.Properties)
+            {
+                if (property.FindMaxFileSizeAttribute() is { Int32Value: null })
+                    throw SpiderlyDiagnostics.Create(SpiderlyDiagnostics.InvalidMaxFileSize,
+                        property.Location ?? entity.Location, property.EntityName ?? entity.Name, property.Name);
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 using Spiderly.SourceGenerators.Enums;
 using Spiderly.SourceGenerators.Models;
 using Spiderly.SourceGenerators.Shared;
@@ -33,32 +32,20 @@ namespace Spiderly.SourceGenerators.Net
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO },
                 new List<ClassCategoryCodes> { ClassCategoryCodes.Entities, ClassCategoryCodes.DTO });
 
-            var stringLengths = context.SyntaxProvider.ForAttributeWithMetadataName(
-                    "System.ComponentModel.DataAnnotations.StringLengthAttribute",
-                    static (node, _) => node is PropertyDeclarationSyntax,
-                    static (ctx, _) =>
-                    {
-                        AttributeData attribute = ctx.Attributes[0];
-                        SyntaxReference syntax = attribute.ApplicationSyntaxReference!;
-                        return (Tree: syntax.SyntaxTree, Span: syntax.Span, Value: ClassAnalyzer.GetStringLengthValue(attribute));
-                    })
-                .Where(static length => length.Value != null)
-                .Collect();
-
             var inputs = combined
                 .Combine(PipelineFactory.GetSpiderlyEnumNamesProvider(context.SyntaxProvider))
                 .Combine(PipelineFactory.GetNullableContextProvider(context))
-                .Combine(stringLengths);
+                .Combine(PipelineFactory.GetPropertyAttributeMapper(context.SyntaxProvider));
 
             context.RegisterSafeImplementationSourceOutput(inputs, static (spc, source) =>
             {
-                var (((combinedSource, enumNames), nullableContext), lengths) = source;
+                var (((combinedSource, enumNames), nullableContext), mapPropertyAttribute) = source;
                 var ((classes, referencedClasses), config) = combinedSource;
-                Execute(classes, referencedClasses, enumNames, lengths, config, nullableContext, spc);
+                Execute(classes, referencedClasses, enumNames, mapPropertyAttribute, config, nullableContext, spc);
             });
         }
 
-        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, ImmutableArray<(SyntaxTree Tree, TextSpan Span, string? Value)> stringLengths, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
+        private static void Execute(IList<ClassDeclarationSyntax> classes, List<SpiderlyClass> referencedProjectClasses, ImmutableArray<string> spiderlyEnumNames, Func<AttributeSyntax, SpiderlyAttribute> mapPropertyAttribute, SpiderlyConfig config, NullableContextOptions nullableContext, SourceProductionContext context)
         {
             if (classes.Count == 0)
                 return;
@@ -66,11 +53,7 @@ namespace Spiderly.SourceGenerators.Net
             if (!config.IsGeneratorEnabled(nameof(FluentValidationGenerator)))
                 return;
 
-            var lengths = stringLengths.ToDictionary(length => (length.Tree, length.Span), length => length.Value);
-            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames,
-                attribute => lengths.TryGetValue((attribute.SyntaxTree, attribute.Span), out string? value)
-                    ? new SpiderlyAttribute { Name = "StringLength", Value = value }
-                    : ClassAnalyzer.GetSpiderAttribute(attribute));
+            List<SpiderlyClass> currentProjectClasses = SpiderlyClassFactory.GetSpiderlyClasses(classes, referencedProjectClasses, spiderlyEnumNames, mapPropertyAttribute);
             List<SpiderlyClass> allClasses = currentProjectClasses.Concat(referencedProjectClasses).ToList();
             List<SpiderlyClass> currentProjectDTOClasses = SpiderlyClassFactory.GetDTOClasses(currentProjectClasses, allClasses);
             List<SpiderlyClass> currentProjectEntities = currentProjectClasses.Where(x => x.HasSpiderlyEntityAttribute()).ToList();

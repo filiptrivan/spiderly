@@ -88,7 +88,7 @@ public class ReadOnlyAttributeTests
             .Single(t => t.FilePath.EndsWith("Mapper.generated.cs"));
         string mapper = generated.ToString();
 
-        Assert.Contains(".Ignore(dest => dest.TimesUsed)", mapper);
+        Assert.Contains(".Ignore(dest => dest.TimesUsed!)", mapper);
     }
 
     // [ReadOnly] is not [ExcludeFromDTO]: the property stays in the read {Entity}DTO so it's still

@@ -1,4 +1,4 @@
-import { effect, ErrorHandler, inject, Injector } from '@angular/core';
+import { effect, ErrorHandler, inject, Injector, untracked } from '@angular/core';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { Filter } from '../../entities/filter';
 import {
@@ -35,7 +35,7 @@ export type PageLoaderHost = Pick<
 
 /**
  * Loads a `spiderly-data-table`'s rows: a page from the server for a lazy table, the form array
- * for a client-side one. The pending flag is true for exactly as long as a fetch is in flight.
+ * for a client-side one. The pending flag follows the latest fetch.
  * The loader re-queries when the applied filters change, and it owns the paginator's page sizes.
  * Construct it in the table's injection context, for `ErrorHandler` and the effect's injector.
  */
@@ -44,6 +44,7 @@ export class PageLoader {
   private readonly injector = inject(Injector);
 
   private loading: boolean = true;
+  private latestLoad = 0;
 
   constructor(
     private readonly host: PageLoaderHost,
@@ -73,6 +74,12 @@ export class PageLoader {
   }
 
   load(event: TableLazyLoadEvent) {
+    const load = ++this.latestLoad;
+    const isLatest = () => load === this.latestLoad;
+    const finish = () => {
+      if (isLatest()) this.loading = false;
+    };
+
     // Every refetch is pending, not just the first load and reload(). `items` is deliberately
     // left alone: the previous page stays on screen under the overlay (stale-while-revalidate)
     // rather than blanking. Raising the flag is also what stops PrimeNG's empty message, gated
@@ -101,6 +108,8 @@ export class PageLoader {
 
     this.host.getPaginatedListObservableMethod(tableFilter).subscribe({
       next: async (res) => {
+        if (!isLatest()) return;
+
         // The await below is INSIDE an async subscriber, so a rejection there settles nothing:
         // `error:` belongs to the paginated-list observable and never runs. That used to strand
         // the overlay forever, hence the finally.
@@ -109,7 +118,8 @@ export class PageLoader {
           this.host.totalRecords = res.totalRecords;
           this.host.onTotalRecordsChange.next(res.totalRecords);
 
-          await this.selection.reconcileLoadedPage(selectedIds);
+          const selected = await selectedIds;
+          if (isLatest()) this.selection.reconcileLoadedPage(selected);
         } catch (error) {
           // The library's own owner: it toasts, it skips HttpErrorResponse (the interceptor
           // already reported those), and a consumer's ErrorHandler wrapper forwards to their
@@ -118,12 +128,10 @@ export class PageLoader {
         } finally {
           // After the selection await, deliberately. Lowered earlier, the new page paints with
           // the previous page's checked rows, since `fakeSelectedItems` still holds their ids.
-          this.loading = false;
+          finish();
         }
       },
-      error: () => {
-        this.loading = false;
-      },
+      error: finish,
     });
   }
 
@@ -169,8 +177,10 @@ export class PageLoader {
           return;
         }
 
-        this.activeView.persistAppliedFilters();
-        this.refetchFromFirstPage();
+        untracked(() => {
+          this.activeView.persistAppliedFilters();
+          this.refetchFromFirstPage();
+        });
       },
       { injector: this.injector },
     );

@@ -455,6 +455,9 @@ namespace Spiderly.Shared.Extensions
                     // request fail, because it posts "multiSortMeta": null and FilterDTO.MultiSortMeta is a
                     // non-nullable List<FilterSortMetaDTO>.
                     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+
+                    // Why parameters get the rule back: RequiredStringParameterMetadataProvider.
+                    options.ModelMetadataDetailsProviders.Add(new RequiredStringParameterMetadataProvider());
                 })
                 .AddJsonOptions(options =>
                 {

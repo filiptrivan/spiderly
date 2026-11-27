@@ -5,7 +5,6 @@ using Spiderly.SourceGenerators.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,7 +26,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 case null: return null;
                 case "": return null;
-                default: return input.First().ToString().ToUpper() + input.Substring(1);
+                default: return input.First().ToString().ToUpperInvariant() + input.Substring(1);
             }
         }
 
@@ -40,7 +39,7 @@ namespace Spiderly.SourceGenerators.Shared
             {
                 case null: return null;
                 case "": return null;
-                default: return input.First().ToString().ToLower() + input.Substring(1);
+                default: return input.First().ToString().ToLowerInvariant() + input.Substring(1);
             }
         }
 
@@ -52,7 +51,7 @@ namespace Spiderly.SourceGenerators.Shared
             }
 
             string kebabCaseString = Regex.Replace(pascalCaseString, "([a-z])([A-Z])", "$1-$2");
-            kebabCaseString = kebabCaseString.ToLower();
+            kebabCaseString = kebabCaseString.ToLowerInvariant();
 
             return kebabCaseString;
         }
@@ -66,9 +65,6 @@ namespace Spiderly.SourceGenerators.Shared
         {
             // Create a StringBuilder object to store the result.
             StringBuilder result = new();
-
-            // Get the TextInfo object for the current culture.
-            TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
 
             // Flag to track if we are at the beginning of a new word.
             bool newWord = true;
@@ -84,7 +80,7 @@ namespace Spiderly.SourceGenerators.Shared
                     // If we are at the beginning of a new word, convert the character to uppercase.
                     if (newWord)
                     {
-                        result.Append(textInfo.ToUpper(currentChar));
+                        result.Append(char.ToUpperInvariant(currentChar));
                         newWord = false;
                     }
                     // Otherwise, add the character as is for uppercase or convert to lowercase for other characters.
@@ -123,6 +119,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             // Create a new instance of StringBuilder to store the output string
             StringBuilder result = new();
+
             // Flag to keep track of whether the previous character was an uppercase letter or not
             bool isPrevUpper = false;
 
@@ -428,15 +425,10 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         public static int GetMaxFileSize(this SpiderlyProperty property)
-        {
-            SpiderlyAttribute attribute = property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");
+            => property.FindMaxFileSizeAttribute()?.Int32Value ?? 0;
 
-            if (attribute == null || string.IsNullOrEmpty(attribute.Value))
-                return 0;
-
-            int.TryParse(attribute.Value, out int maxFileSize);
-            return maxFileSize;
-        }
+        internal static SpiderlyAttribute? FindMaxFileSizeAttribute(this SpiderlyProperty property)
+            => property.Attributes.FirstOrDefault(x => x.Name == "MaxFileSize");
 
         public static List<UITableColumn> GetUITableColumns(this SpiderlyProperty property)
         {
@@ -767,9 +759,7 @@ namespace Spiderly.SourceGenerators.Shared
         }
 
         /// <summary>
-        /// Returns the names of scalar properties that are the explicit FK of a many-to-one navigation
-        /// on the same entity. Useful for UI generators that want to suppress the redundant numeric
-        /// input that would otherwise be rendered next to the navigation's autocomplete picker.
+        /// Returns explicit foreign keys to hide in the details UI for many-to-one and one-to-one navigations.
         /// </summary>
         public static HashSet<string> GetPairedForeignKeyNames(this SpiderlyClass entity)
         {
@@ -777,7 +767,7 @@ namespace Spiderly.SourceGenerators.Shared
 
             foreach (SpiderlyProperty nav in entity.Properties)
             {
-                if (nav.HasWithManyAttribute() == false)
+                if (!nav.HasWithManyAttribute() && !nav.HasWithOneAttribute())
                     continue;
 
                 string? fkName = nav.ResolveExplicitForeignKeyName(entity);
